@@ -1,0 +1,62 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2017 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: ReductionOperations.tt/ReductionOperations.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="Basic.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+var shuffleTypes = new TypeInformation[]
+    {
+        SignedIntTypes[2],
+        FloatTypes[0]
+    };
+var operations = new []
+    {
+        new { Name = "", Param = "sourceLane" },
+        new { Name = "Down", Param = "delta" },
+        new { Name = "Up", Param = "delta" },
+        new { Name = "Xor", Param = "mask" },
+    };
+#>
+using System.Diagnostics.CodeAnalysis;
+
+namespace ILGPU.ShuffleOperations
+{
+<#  foreach (var type in shuffleTypes) { #>
+<#      foreach (var op in operations) { #>
+    /// <summary>
+    /// Represents a shuffle <#= op.Name.ToLower() #> reduction of type <#= type.Type #>.
+    /// </summary>
+<#      if (type.IsUnsignedInt) { #>
+    [CLSCompliant(false)]
+<#      } #>
+    [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
+    public struct Shuffle<#= op.Name #><#= type.Name #> : IShuffle<#= op.Name #><<#= type.Type #>>
+    {
+        /// <summary>
+        /// Performs the shuffle operation.
+        /// </summary>
+        /// <param name="variable">The source variable to shuffle.</param>
+        /// <param name="<#= op.Param #>">The shuffle parameter.</param>
+        /// <returns>The value of the variable in the scope of the desired lane.</returns>
+        public <#= type.Type #> Shuffle<#= op.Name #>(<#= type.Type #> variable, int <#= op.Param #>)
+        {
+            return Warp.Shuffle<#= op.Name #>(variable, <#= op.Param #>);
+        }
+    }
+
+<#      } #>
+<#  } #>
+}

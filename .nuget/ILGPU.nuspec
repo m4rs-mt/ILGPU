@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>ILGPU</id>
+    <version>0.1.2</version>
+    <title>ILGPU</title>
+    <owners>Marcel Koester</owners>
+    <authors>Marcel Koester</authors>
+    <licenseUrl>http://www.ilgpu.net/licenses/ILGPU.License.txt</licenseUrl>
+    <projectUrl>http://www.ilgpu.net</projectUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <description>
+      ILGPU compiler and runtime library for convenient GPU programming in .Net.
+      Samples can be found in the GitHub repository: https://github.com/m4rs-mt/ILGPU.Samples
+    </description>
+    <summary>
+      ILGPU is a new JIT (just-in-time) compiler for GPU programs written in .Net-based languages. It offers the flexibility and the convenience of C++ AMP on the one hand and the high performance of Cuda programs on the other hand. Functions in the scope of kernels do not have to be annotated (default C# functions) and are allowed to work on value types. All kernels (including all hardware features like shared memory, atomics and warp shuffles) can be executed and debugged on the CPU using the integrated multi-threaded CPU accelerator.
+    </summary>
+    <releaseNotes>http://www.ilgpu.net/releases/ILGPU.ReleaseNotes.txt</releaseNotes>
+    <copyright>Copyright (c) 2016-2017 Marcel Koester. All rights reserved.</copyright>
+    <tags>ilgpu gpu msil il cil cpu ptx llvm nvidia amd amp opencl cuda compiler jit</tags>
+    <dependencies>
+      <dependency id="System.Runtime.CompilerServices.Unsafe" version="4.3.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="..\LICENSE.txt" target="" />
+    <file src="..\LICENSE-3RD-PARTY.txt" target="" />
+
+    <file src="ILGPU.targets" target="build\ILGPU.targets" />
+    <file src="..\Bin\Release\X86\ILGPU.LLVM.dll" target="build\X86\ILGPU.LLVM.dll" />
+    <file src="..\Bin\Release\X64\ILGPU.LLVM.dll" target="build\X64\ILGPU.LLVM.dll" />
+    <file src="..\Bin\Release\X86\libLLVM.dll" target="build\X86\libLLVM.dll" />
+    <file src="..\Bin\Release\X64\libLLVM.dll" target="build\X64\libLLVM.dll" />
+    <file src="..\Bin\Release\LLVMSharp.dll" target="lib\net46\LLVMSharp.dll" />
+    <file src="..\Bin\Debug\ILGPU.dll" target="lib\net46\Debug\ILGPU.dll" />
+    <file src="..\Bin\Debug\ILGPU.xml" target="lib\net46\Debug\ILGPU.xml" />
+    <file src="..\Bin\Release\ILGPU.dll" target="lib\net46\Release\ILGPU.dll" />
+    <file src="..\Bin\Release\ILGPU.xml" target="lib\net46\Release\ILGPU.xml" />
+  </files>
+</package>

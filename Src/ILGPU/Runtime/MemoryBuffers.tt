@@ -1,0 +1,548 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2017 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: MemoryBuffers.tt/MemoryBuffers.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+
+using ILGPU.Util;
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+
+namespace ILGPU.Runtime
+{
+<#  for (int i = 1; i <= 3; ++i) { #>
+<#      var typeName = i == 1 ? "MemoryBuffer" : $"MemoryBuffer{i}D"; #>
+<#      var arrayViewType = i == 1 ? "ArrayView" : $"ArrayView{i}D"; #>
+<#      var indexType = i == 1 ? "Index" : $"Index{i}"; #>
+    /// <summary>
+    /// Represents a <#= i #>D memory buffer that can be used in the scope
+    /// of ILGPU runtime kernels.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <remarks>Members of this class are not thread safe.</remarks>
+    public sealed partial class <#= typeName #><T> : MemoryBuffer
+        where T : struct
+    {
+        #region Constants
+
+        /// <summary>
+        /// Represents the size of an element in bytes.
+        /// </summary>
+        public static readonly int ElementSize = MemoryBuffer<T, <#= indexType #>>.ElementSize;
+
+        #endregion
+
+        #region Instance
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private MemoryBuffer<T, <#= indexType #>> buffer;
+
+        /// <summary>
+        /// Initializes this memory buffer.
+        /// </summary>
+        /// <param name="buffer">The wrapped buffer.</param>
+        internal <#= typeName #>(MemoryBuffer<T, <#= indexType #>> buffer)
+            : base(buffer.Accelerator, buffer.Extent.Size)
+        {
+            this.buffer = buffer;
+
+            // Cache local data
+            View = buffer.View;
+            Extent = buffer.Extent;
+            Pointer = buffer.Pointer;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the underlying generic memory buffer.
+        /// </summary>
+        public MemoryBuffer<T, <#= indexType #>> Buffer => buffer;
+
+        /// <summary>
+        /// Returns an array view that can access this array.
+        /// </summary>
+        public <#= arrayViewType #><T> View { get; }
+
+        /// <summary>
+        /// Returns the length of this buffer in bytes.
+        /// </summary>
+        public int LengthInBytes => Length * ElementSize;
+
+        /// <summary>
+        /// Returns the extent of this buffer.
+        /// </summary>
+        public <#= indexType #> Extent { get; }
+
+        /// <summary>
+        /// Accesses this memory buffer from the CPU.
+        /// </summary>
+        /// <param name="index">The element index.</param>
+        /// <returns>The element at the given index.</returns>
+        /// <remarks>
+        /// Note that this operation involves a synchronous memory copy.
+        /// Do not use this operation frequently or in high-performance scenarios.
+        /// </remarks>
+        [SuppressMessage("Microsoft.Design", "CA1043:UseIntegralOrStringArgumentForIndexers")]
+        public T this[<#= indexType #> index]
+        {
+            get { return buffer[index]; }
+            set { buffer[index] = value; }
+        }
+
+        #endregion
+
+        #region CopyTo Methods
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        public void CopyTo(
+            <#= typeName #><T> target,
+            <#= indexType #> sourceOffset,
+            <#= indexType #> targetOffset,
+            <#= indexType #> extent,
+            AcceleratorStream stream)
+        {
+            buffer.CopyTo(target, sourceOffset, targetOffset, extent, stream);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public void CopyTo(
+            <#= typeName #><T> target,
+            <#= indexType #> sourceOffset,
+            <#= indexType #> targetOffset,
+            <#= indexType #> extent)
+        {
+            buffer.CopyTo(target, sourceOffset, targetOffset, extent, Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        public void CopyTo(
+            <#= typeName #><T> target,
+            <#= indexType #> sourceOffset)
+        {
+            buffer.CopyTo(target, sourceOffset);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        public void CopyTo(
+            <#= typeName #><T> target,
+            <#= indexType #> sourceOffset,
+            AcceleratorStream stream)
+        {
+            buffer.CopyTo(target, sourceOffset, stream);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="target">The target view.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        public void CopyToView(
+            <#= arrayViewType #><T> target,
+            <#= indexType #> sourceOffset,
+            AcceleratorStream stream)
+        {
+            buffer.CopyToView(target, sourceOffset, stream);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="target">The target view.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        public void CopyToView(
+            <#= arrayViewType #><T> target,
+            <#= indexType #> sourceOffset)
+        {
+            buffer.CopyToView(target, sourceOffset);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="target">The target view.</param>
+        /// <param name="acceleratorType">The accelerator type of the view.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        public void CopyToView(
+            <#= arrayViewType #><T> target,
+            AcceleratorType acceleratorType,
+            <#= indexType #> sourceOffset)
+        {
+            buffer.CopyToView(target, acceleratorType, sourceOffset);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="target">The target view.</param>
+        /// <param name="acceleratorType">The accelerator type of the view.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        public void CopyToView(
+            <#= arrayViewType #><T> target,
+            AcceleratorType acceleratorType,
+            <#= indexType #> sourceOffset,
+            AcceleratorStream stream)
+        {
+            buffer.CopyToView(target, acceleratorType, sourceOffset, stream);
+        }
+
+        /// <summary>
+        /// Copies a single element of this buffer to the given target variable
+        /// in CPU memory.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="index">The source index.</param>
+        public void CopyTo(out T target, <#= indexType #> index)
+        {
+            buffer.CopyTo(out target, index);
+        }
+
+        /// <summary>
+        /// Copies a single element of this buffer to the given target variable
+        /// in CPU memory.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="index">The source index.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        public void CopyTo(
+            out T target,
+            <#= indexType #> index,
+            AcceleratorStream stream)
+        {
+            buffer.CopyTo(out target, index, stream);
+        }
+
+        /// <summary>
+        /// Copies the contents of this buffer into the given array.
+        /// </summary>
+        /// <param name="target">The target array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public void CopyTo(
+            T[] target,
+            <#= indexType #> sourceOffset,
+            int targetOffset,
+            <#= indexType #> extent)
+        {
+            buffer.CopyTo(target, sourceOffset, targetOffset, extent);
+        }
+
+        #endregion
+
+        #region CopyFrom Methods
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer.
+        /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        public void CopyFrom(
+            <#= typeName #><T> source,
+            <#= indexType #> sourceOffset,
+            <#= indexType #> targetOffset,
+            <#= indexType #> extent,
+            AcceleratorStream stream)
+        {
+            buffer.CopyFrom(source, sourceOffset, targetOffset, extent, stream);
+        }
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer.
+        /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public void CopyFrom(
+            <#= typeName #><T> source,
+            <#= indexType #> sourceOffset,
+            <#= indexType #> targetOffset,
+            <#= indexType #> extent)
+        {
+            buffer.CopyFrom(source, sourceOffset, targetOffset, extent);
+        }
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer.
+        /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        public void CopyFrom(
+            <#= typeName #><T> source,
+            <#= indexType #> targetOffset)
+        {
+            buffer.CopyFrom(source, targetOffset);
+        }
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer.
+        /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        public void CopyFrom(
+            <#= typeName #><T> source,
+            <#= indexType #> targetOffset,
+            AcceleratorStream stream)
+        {
+            buffer.CopyFrom(source, targetOffset, stream);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="source">The source view.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        public void CopyFromView(
+            <#= arrayViewType #><T> source,
+            <#= indexType #> targetOffset,
+            AcceleratorStream stream)
+        {
+            buffer.CopyFromView(source, targetOffset, stream);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="source">The source view.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        public void CopyFromView(
+            <#= arrayViewType #><T> source,
+            <#= indexType #> targetOffset)
+        {
+            buffer.CopyFromView(source, targetOffset);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="source">The source view.</param>
+        /// <param name="acceleratorType">The accelerator type of the view.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        public void CopyFromView(
+            <#= arrayViewType #><T> source,
+            AcceleratorType acceleratorType,
+            <#= indexType #> targetOffset)
+        {
+            buffer.CopyFromView(source, acceleratorType, targetOffset);
+        }
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="source">The source view.</param>
+        /// <param name="acceleratorType">The accelerator type of the view.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="stream">The used accelerator stream.</param>
+        public void CopyFromView(
+            <#= arrayViewType #><T> source,
+            AcceleratorType acceleratorType,
+            <#= indexType #> targetOffset,
+            AcceleratorStream stream)
+        {
+            buffer.CopyFromView(source, acceleratorType, targetOffset, stream);
+        }
+
+        /// <summary>
+        /// Copies a single element from CPU memory to this buffer.
+        /// </summary>
+        /// <param name="source">The source value.</param>
+        /// <param name="index">The target index.</param>
+        public void CopyFrom(T source, <#= indexType #> index)
+        {
+            buffer.CopyFrom(source, index);
+        }
+
+        /// <summary>
+        /// Copies the contents to this buffer from the given array.
+        /// </summary>
+        /// <param name="source">The source array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public void CopyFrom(
+            T[] source,
+            int sourceOffset,
+            <#= indexType #> targetOffset,
+            int extent)
+        {
+            buffer.CopyFrom(source, sourceOffset, targetOffset, extent);
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Sets the contents of the current buffer to zero.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        public override void MemSetToZero(AcceleratorStream stream)
+        {
+            buffer.MemSetToZero(stream);
+        }
+
+        /// <summary>
+        /// Copies the current contents into a new array.
+        /// </summary>
+        /// <returns>A new array holding the requested contents.</returns>
+        public T[] GetAsArray()
+        {
+            return buffer.GetAsArray();
+        }
+
+        /// <summary>
+        /// Copies the current contents into a new array.
+        /// </summary>
+        /// <param name="offset">The offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        public T[] GetAsArray(<#= indexType #> offset, <#= indexType #> extent)
+        {
+            return buffer.GetAsArray(offset, extent);
+        }
+
+        /// <summary>
+        /// Copies the current contents into a new array.
+        /// </summary>
+        /// <param name="offset">The offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        public override Array GetAsRawArray(int offset, int extent)
+        {
+            return buffer.GetAsRawArray(offset, extent);
+        }
+
+        /// <summary>
+        /// Returns a variable view for the element at the given index.
+        /// </summary>
+        /// <param name="index">The target index.</param>
+        /// <returns>A variable view for the element at the given index.</returns>
+        public VariableView<T> GetVariableView(<#= indexType #> index)
+        {
+            return View.GetVariableView(index);
+        }
+
+        /// <summary>
+        /// Returns a subview of the current view starting at the given offset.
+        /// </summary>
+        /// <param name="offset">The starting offset.</param>
+        /// <returns>The new subview.</returns>
+        public ArrayView<T, <#= indexType #>> GetSubView(<#= indexType #> offset)
+        {
+            return View.GetSubView(offset);
+        }
+
+        /// <summary>
+        /// Returns a subview of the current view starting at the given offset.
+        /// </summary>
+        /// <param name="offset">The starting offset.</param>
+        /// <param name="subViewExtent">The extent of the new subview.</param>
+        /// <returns>The new subview.</returns>
+        public ArrayView<T, <#= indexType #>> GetSubView(<#= indexType #> offset, <#= indexType #> subViewExtent)
+        {
+            return View.GetSubView(offset, subViewExtent);
+        }
+
+        /// <summary>
+        /// Returns the underlying generic memory buffer.
+        /// </summary>
+        /// <returns>The underlying generic memory buffer.</returns>
+        public MemoryBuffer<T, <#= indexType #>> ToMemoryBuffer()
+        {
+            return buffer;
+        }
+
+        /// <summary>
+        /// Returns an array view that can access this array.
+        /// </summary>
+        /// <returns>An array view that can access this array.</returns>
+        public <#= arrayViewType #><T> ToArrayView()
+        {
+            return View;
+        }
+
+        #endregion
+
+        #region Operators
+
+        /// <summary>
+        /// Implicitly converts this buffer into an array view.
+        /// </summary>
+        /// <param name="buffer">The source buffer.</param>
+        public static implicit operator <#= arrayViewType #><T>(<#= typeName #><T> buffer)
+        {
+            Debug.Assert(buffer != null, "Invalid buffer");
+            return buffer.View;
+        }
+
+        /// <summary>
+        /// Implicitly converts this buffer into an array view.
+        /// </summary>
+        /// <param name="buffer">The source buffer.</param>
+        public static implicit operator MemoryBuffer<T, <#= indexType #>>(<#= typeName #><T> buffer)
+        {
+            Debug.Assert(buffer != null, "Invalid buffer");
+            return buffer.buffer;
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary cref="DisposeBase.Dispose(bool)"/>
+        protected override void Dispose(bool disposing)
+        {
+            buffer?.Dispose();
+            buffer = null;
+        }
+
+        #endregion
+    }
+
+<#  } #>
+}

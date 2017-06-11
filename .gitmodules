@@ -1,0 +1,7 @@
+[submodule "LLVM"]
+	path = LLVM
+	url = https://github.com/llvm-mirror/llvm.git
+	branch = release_39
+[submodule "LLVMSharp"]
+	path = LLVMSharp
+	url = https://github.com/m4rs-mt/LLVMSharp.git

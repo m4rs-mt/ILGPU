@@ -1,0 +1,352 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2017 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: AtomicFunctions.tt/AtomicFunctions.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="Basic.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+var atomicSignedIntAndFloatTypes = AtomicSignedIntTypes.Concat(AtomicFloatTypes).ToArray();
+var atomicUnsignedIntAndFloatTypes = AtomicUnsignedIntTypes.Concat(AtomicFloatTypes).ToArray();
+#>
+using ILGPU.Compiler.Intrinsic;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Threading;
+
+namespace ILGPU
+{
+    namespace AtomicOperations
+    {
+<#      foreach (var type in AtomicNumericTypes) { #>
+        /// <summary>
+        /// Represents an atomic compare-exchange operation of type <#= type.Type #>.
+        /// </summary>
+<#      if (type.IsUnsignedInt) { #>
+        [CLSCompliant(false)]
+<#      } #>
+        [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
+        public struct CompareExchange<#= type.Name #> : ICompareExchangeOperation<<#= type.Type #>>
+        {
+            /// <summary>
+            /// Realizes an atomic compare-exchange operation.
+            /// </summary>
+            /// <param name="target">The target location.</param>
+            /// <param name="compare">The expected comparison value.</param>
+            /// <param name="value">The target value.</param>
+            /// <returns>The old value.</returns>
+            public <#= type.Type #> CompareExchange(VariableView<<#= type.Type #>> target, <#= type.Type #> compare, <#= type.Type #> value)
+            {
+                return Atomic.CompareExchange(target, compare, value);
+            }
+        }
+
+<#      } #>
+    }
+
+    public static partial class Atomic
+    {
+        #region Add
+
+<#      foreach (var type in AtomicSignedIntTypes) { #>
+        /// <summary>
+        /// Atommically adds the given value and the value at the target location
+        /// and returns the old value.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="value">The value to add.</param>
+        /// <returns>The old value that was stored at the target location.</returns>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Add)]
+        public static unsafe <#= type.Type #> Add(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        {
+            return Interlocked.Add(ref Unsafe.AsRef<<#= type.Type #>>(target.Pointer.ToPointer()), value);
+        }
+
+<#      } #>
+
+<#      foreach (var type in atomicUnsignedIntAndFloatTypes) { #>
+        struct Add<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        {
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
+            {
+                return current + value;
+            }
+        }
+
+<#      } #>
+
+<#      foreach (var type in AtomicUnsignedIntTypes) { #>
+        /// <summary>
+        /// Atommically adds the given value and the value at the target location
+        /// and returns the old value.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="value">The value to add.</param>
+        /// <returns>The old value that was stored at the target location.</returns>
+        [CLSCompliant(false)]
+        [AtomicIntrinsic(AtomicIntrinsicKind.Add)]
+        public static <#= type.Type #> Add(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        {
+            return MakeAtomic(target, value, new Add<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        }
+
+<#      } #>
+
+        #endregion
+
+        #region Sub
+
+<#      foreach (var type in atomicSignedIntAndFloatTypes) { #>
+        /// <summary>
+        /// Atommically subtracts the given value and the value at the target location
+        /// and returns the old value.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="value">The value to subtract.</param>
+        /// <returns>The old value that was stored at the target location.</returns>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Sub)]
+        public static <#= type.Type #> Sub(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        {
+            return Add(target, -value);
+        }
+
+<#      } #>
+
+
+<#      foreach (var type in AtomicUnsignedIntTypes) { #>
+        struct Sub<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        {
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
+            {
+                return current - value;
+            }
+        }
+
+        /// <summary>
+        /// Atommically subtracts the given value and the value at the target location
+        /// and returns the old value.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="value">The value to subtract.</param>
+        /// <returns>The old value that was stored at the target location.</returns>
+        [CLSCompliant(false)]
+        [AtomicIntrinsic(AtomicIntrinsicKind.Sub)]
+        public static <#= type.Type #> Sub(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        {
+            return MakeAtomic(target, value, new Sub<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        }
+
+<#      } #>
+
+        #endregion
+
+        #region Max
+
+<#      foreach (var type in AtomicNumericTypes) { #>
+        struct Max<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        {
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
+            {
+                return GPUMath.Max(current, value);
+            }
+        }
+
+        /// <summary>
+        /// Atomically computes the maximum at the target location with the given value
+        /// and returns the old value that was stored at the target location.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="value">The comparison value.</param>
+        /// <returns>The old value that was stored at the target location.</returns>
+<#      if (type.IsUnsignedInt) { #>
+        [CLSCompliant(false)]
+<#      } #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Max)]
+        public static <#= type.Type #> Max(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        {
+            return MakeAtomic(target, value, new Max<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        }
+
+<#      } #>
+
+        #endregion
+
+        #region Min
+
+<#      foreach (var type in AtomicNumericTypes) { #>
+        struct Min<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        {
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
+            {
+                return GPUMath.Min(current, value);
+            }
+        }
+
+        /// <summary>
+        /// Atomically computes the minimum at the target location with the given value
+        /// and returns the old value that was stored at the target location.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="value">The comparison value.</param>
+        /// <returns>The old value that was stored at the target location.</returns>
+<#      if (type.IsUnsignedInt) { #>
+        [CLSCompliant(false)]
+<#      } #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Min)]
+        public static <#= type.Type #> Min(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        {
+            return MakeAtomic(target, value, new Min<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        }
+
+<#      } #>
+
+        #endregion
+
+        #region And
+
+<#      foreach (var type in AtomicIntTypes) { #>
+        struct And<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        {
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
+            {
+                return current & value;
+            }
+        }
+
+        /// <summary>
+        /// Atomically computes the logical and of the value at the target location with
+        /// the given value and returns the old value that was stored at the target location.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="value">The comparison value.</param>
+        /// <returns>The old value that was stored at the target location.</returns>
+<#      if (type.IsUnsignedInt) { #>
+        [CLSCompliant(false)]
+<#      } #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.And)]
+        public static <#= type.Type #> And(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        {
+            return MakeAtomic(target, value, new And<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        }
+
+<#      } #>
+
+        #endregion
+
+        #region Or
+
+<#      foreach (var type in AtomicIntTypes) { #>
+        struct Or<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        {
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
+            {
+                return current | value;
+            }
+        }
+
+        /// <summary>
+        /// Atomically computes the logical or of the value at the target location with
+        /// the given value and returns the old value that was stored at the target location.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="value">The comparison value.</param>
+        /// <returns>The old value that was stored at the target location.</returns>
+<#      if (type.IsUnsignedInt) { #>
+        [CLSCompliant(false)]
+<#      } #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Or)]
+        public static <#= type.Type #> Or(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        {
+            return MakeAtomic(target, value, new Or<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        }
+
+<#      } #>
+
+        #endregion
+
+        #region Xor
+
+<#      foreach (var type in AtomicIntTypes) { #>
+        struct Xor<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
+        {
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
+            {
+                return current ^ value;
+            }
+        }
+
+        /// <summary>
+        /// Atomically computes the logical xor of the value at the target location with
+        /// the given value and returns the old value that was stored at the target location.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="value">The comparison value.</param>
+        /// <returns>The old value that was stored at the target location.</returns>
+<#      if (type.IsUnsignedInt) { #>
+        [CLSCompliant(false)]
+<#      } #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Xor)]
+        public static <#= type.Type #> Xor(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        {
+            return MakeAtomic(target, value, new Xor<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        }
+
+<#      } #>
+
+        #endregion
+
+        #region Exchange
+
+<#      foreach (var type in AtomicSignedIntTypes) { #>
+        /// <summary>
+        /// Represents an atomic exchange operation.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="value">The target value.</param>
+        /// <returns>The old value.</returns>
+<#      if (type.IsUnsignedInt) { #>
+        [CLSCompliant(false)]
+<#      } #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Xch)]
+        public static unsafe <#= type.Type #> Exchange(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        {
+            return Interlocked.Exchange(ref Unsafe.AsRef<<#= type.Type #>>(target.Pointer.ToPointer()), value);
+        }
+
+<#      } #>
+
+        #endregion
+
+        #region Compare & Exchange
+
+<#      foreach (var type in AtomicSignedIntTypes) { #>
+        /// <summary>
+        /// Represents an atomic compare-exchange operation.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="compare">The expected comparison value.</param>
+        /// <param name="value">The target value.</param>
+        /// <returns>The old value.</returns>
+        [AtomicIntrinsic(AtomicIntrinsicKind.CmpXch)]
+        public static unsafe <#= type.Type #> CompareExchange(VariableView<<#= type.Type #>> target, <#= type.Type #> compare, <#= type.Type #> value)
+        {
+            return Interlocked.CompareExchange(ref Unsafe.AsRef<<#= type.Type #>>(target.Pointer.ToPointer()), value, compare);
+        }
+
+<#      } #>
+
+        #endregion
+    }
+}

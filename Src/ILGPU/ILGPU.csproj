@@ -1,0 +1,280 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{30A409A1-B627-4ED0-9CDD-69BA19996E7B}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ILGPU</RootNamespace>
+    <AssemblyName>ILGPU</AssemblyName>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>..\..\Bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;WIN</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>..\..\Bin\Debug\ILGPU.XML</DocumentationFile>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>..\ILGPU.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <UseVSHostingProcess>true</UseVSHostingProcess>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
+    <OutputPath>..\..\Bin\Release\</OutputPath>
+    <DefineConstants>TRACE;WIN</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>..\..\Bin\Release\ILGPU.XML</DocumentationFile>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.3.0\lib\netstandard1.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ArrayView.cs" />
+    <Compile Include="ArrayViewExtensions.cs" />
+    <Compile Include="ArrayViews.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ArrayViews.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Compiler\CodeGenerator\Verify.cs" />
+    <Compile Include="Reduction.cs" />
+    <Compile Include="ReductionOperations.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ReductionOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Runtime\DebugArrayView.cs" />
+    <Compile Include="Shuffle.cs" />
+    <Compile Include="Runtime\AcceleratorId.cs" />
+    <Compile Include="Runtime\CPU\CPURuntimeWarpContext.cs" />
+    <Compile Include="Runtime\ImplicitKernelLauncherArgument.cs" />
+    <Compile Include="Runtime\MemoryBufferExtensions.cs" />
+    <Compile Include="Runtime\MemoryBuffers.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>MemoryBuffers.tt</DependentUpon>
+    </Compile>
+    <Compile Include="ShuffleOperations.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ShuffleOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Include="VariableView.cs" />
+    <Compile Include="Atomic.cs" />
+    <Compile Include="AtomicFunctions.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>AtomicFunctions.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Backends\ABI\ABISpecification.cs" />
+    <Compile Include="Backends\ABI\DefaultLLVMABI.cs" />
+    <Compile Include="Backends\ABI\MSILABI.cs" />
+    <Compile Include="Backends\ABI\PTXABI.cs" />
+    <Compile Include="Backends\Backend.cs" />
+    <Compile Include="Backends\MSILBackend.cs" />
+    <Compile Include="Backends\PTXMathFunctions.cs" />
+    <Compile Include="Backends\PTXDeviceFunctions.cs" />
+    <Compile Include="Backends\LLVMBackend.cs" />
+    <Compile Include="BasicValueType.cs" />
+    <Compile Include="CompiledKernel.cs" />
+    <Compile Include="Compiler\BasicBlock.cs" />
+    <Compile Include="Compiler\CodeGenerator\CFG.cs" />
+    <Compile Include="Compiler\CompareType.cs" />
+    <Compile Include="Compiler\Disassembler.cs" />
+    <Compile Include="Compiler\DisassemblerDriver.cs" />
+    <Compile Include="Compiler\ILInstruction.cs" />
+    <Compile Include="Compiler\Intrinsic\AtomicIntrinsicAttribute.cs" />
+    <Compile Include="Compiler\Intrinsic\GridIntrinsicAttribute.cs" />
+    <Compile Include="Compiler\Intrinsic\GroupIntrinsicAttribute.cs" />
+    <Compile Include="Compiler\Intrinsic\DeviceTypes.cs" />
+    <Compile Include="Compiler\Intrinsic\InteropIntrinsicAttribute.cs" />
+    <Compile Include="Compiler\Intrinsic\IntrinsicAttribute.cs" />
+    <Compile Include="Compiler\Intrinsic\MathIntrinsicAttribute.cs" />
+    <Compile Include="Compiler\Intrinsic\MemoryFenceIntrinsicAttribute.cs" />
+    <Compile Include="Compiler\Intrinsic\WarpIntrinsicAttribute.cs" />
+    <Compile Include="Compiler\IBasicBlockHost.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Index2.cs" />
+    <Compile Include="Index3.cs" />
+    <Compile Include="Resources\ErrorMessages.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ErrorMessages.resx</DependentUpon>
+    </Compile>
+    <Compile Include="GroupedIndices.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>GroupedIndices.tt</DependentUpon>
+    </Compile>
+    <Compile Include="IIndex.cs" />
+    <Compile Include="Interop.cs" />
+    <Compile Include="Compiler\CompilationContext.cs" />
+    <Compile Include="Resources\RuntimeErrorMessages.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Runtime\Accelerator.cs" />
+    <Compile Include="Runtime\CPU\CPUAcceleratorTask.cs" />
+    <Compile Include="Runtime\CPU\CPUStream.cs" />
+    <Compile Include="Runtime\CPU\CPURuntimeGroupContext.cs" />
+    <Compile Include="Runtime\Cuda\CudaAccelerator.cs" />
+    <Compile Include="Runtime\CPU\CPUMemoryBuffer.cs" />
+    <Compile Include="Runtime\CPU\CPUKernel.cs" />
+    <Compile Include="Runtime\CPU\CPUAccelerator.cs" />
+    <Compile Include="Runtime\Cuda\CudaMemoryBuffer.cs" />
+    <Compile Include="Runtime\Cuda\CudaStream.cs" />
+    <Compile Include="Runtime\Cuda\CudaNativeMethods.cs" />
+    <Compile Include="Runtime\IAcceleratorExtensionProvider.cs" />
+    <Compile Include="Runtime\IMemoryBuffer.cs" />
+    <Compile Include="Runtime\Kernel.cs" />
+    <Compile Include="Compiler\Value.cs" />
+    <Compile Include="Compiler\CodeGenerator\Variables.cs" />
+    <Compile Include="Compiler\CodeGenerator\Arithmetic.cs" />
+    <Compile Include="Compiler\CodeGenerator\Arrays.cs" />
+    <Compile Include="Compiler\CodeGenerator\Calls.cs" />
+    <Compile Include="Compiler\CodeGenerator\Compare.cs" />
+    <Compile Include="Compiler\CodeGenerator\Constants.cs" />
+    <Compile Include="Compiler\CodeGenerator\ControlFlow.cs" />
+    <Compile Include="Compiler\CodeGenerator\Convert.cs" />
+    <Compile Include="Compiler\CodeGenerator\Driver.cs" />
+    <Compile Include="Compiler\CodeGenerator\Fields.cs" />
+    <Compile Include="Compiler\CodeGenerator\Misc.cs" />
+    <Compile Include="Compiler\CodeGenerator\Numeric.cs" />
+    <Compile Include="Compiler\CodeGenerator\Objects.cs" />
+    <Compile Include="Compiler\CodeGenerator\Unsafe.cs" />
+    <Compile Include="Compiler\VariableRef.cs" />
+    <Compile Include="CompileUnit.cs" />
+    <Compile Include="Backends\PTXBackend.cs" />
+    <Compile Include="Backends\EntryPoint.cs" />
+    <Compile Include="Compiler\Intrinsic\DeviceFunctions.cs" />
+    <Compile Include="Compiler\Intrinsic\InvocationContext.cs" />
+    <Compile Include="Context.cs" />
+    <Compile Include="Compiler\CodeGenerator.cs" />
+    <Compile Include="Compiler\Intrinsic\CompilerDeviceFunctions.cs" />
+    <Compile Include="Compiler\ILOpCode.cs" />
+    <Compile Include="Grid.cs" />
+    <Compile Include="Group.cs" />
+    <Compile Include="MemoryFence.cs" />
+    <Compile Include="Index.cs" />
+    <Compile Include="MappedType.cs" />
+    <Compile Include="GPUMath.cs" />
+    <Compile Include="Runtime\AcceleratorStream.cs" />
+    <Compile Include="Runtime\KernelLauncherBuilder.cs" />
+    <Compile Include="Runtime\MemoryBuffer.cs" />
+    <Compile Include="Runtime\Cuda\CudaException.cs" />
+    <Compile Include="Runtime\Cuda\CudaKernel.cs" />
+    <Compile Include="Runtime\MemoryBufferCache.cs" />
+    <Compile Include="Util\DLLLoader.cs" />
+    <Compile Include="Util\MethodExtensions.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Method.cs" />
+    <Compile Include="SharedMemory.cs" />
+    <Compile Include="Util\Utilities.cs" />
+    <Compile Include="Util\TypeExtensions.cs" />
+    <Compile Include="Util\DisposeBase.cs" />
+    <Compile Include="Util\NativeMethods.cs" />
+    <Compile Include="Util\LLVMExtensions.cs" />
+    <Compile Include="Warp.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\LLVMSharp\LLVMSharp.csproj">
+      <Project>{e230f816-0e92-4ae4-83e4-24d74deb9609}</Project>
+      <Name>LLVMSharp</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\X64\libLLVM.dll">
+      <Link>X64\libLLVM.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\X86\libLLVM.dll">
+      <Link>X86\libLLVM.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\X64\ILGPU.LLVM.dll">
+      <Link>X64\ILGPU.LLVM.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\X86\ILGPU.LLVM.dll">
+      <Link>X86\ILGPU.LLVM.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ArrayViews.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ArrayViews.cs</LastGenOutput>
+    </Content>
+    <Content Include="AtomicFunctions.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AtomicFunctions.cs</LastGenOutput>
+    </Content>
+    <Content Include="GroupedIndices.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>GroupedIndices.cs</LastGenOutput>
+    </Content>
+    <Content Include="ReductionOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ReductionOperations.cs</LastGenOutput>
+    </Content>
+    <Content Include="Runtime\MemoryBuffers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
+    </Content>
+    <Content Include="ShuffleOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ShuffleOperations.cs</LastGenOutput>
+    </Content>
+    <None Include="Basic.tt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\ErrorMessages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ErrorMessages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\RuntimeErrorMessages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>RuntimeErrorMessages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">14.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <Import Project="$(VSToolsPath)\TextTemplating\Microsoft.TextTemplating.targets" />
+  <PropertyGroup>
+    <TransformOnBuild>true</TransformOnBuild>
+  </PropertyGroup>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
