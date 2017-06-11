@@ -1,0 +1,684 @@
+﻿// -----------------------------------------------------------------------------
+//                              ILGPU.Lightning
+//                   Copyright (c) 2017 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: RadixSortPairsProviders.tt/RadixSortPairsProviders.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../ILGPU/Src/ILGPU/Basic.tt" #>
+<#@ include file="Basic.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<# Func<RadixSortConfiguration, string> getPairSortingName = c => $"{c.Name}Pairs"; #>
+using System;
+using ILGPU.Runtime;
+using System.Runtime.CompilerServices;
+
+#pragma warning disable IDE0001 // Simplify Names
+
+namespace ILGPU.Lightning
+{
+    partial class RadixSortPairsProviderImplementation
+    {
+<# foreach (var config in RadixSortConfigurations) { #>
+<#      var sortingName = getPairSortingName(config); #>
+<#      foreach (var valueType in GetRadixSortPairTypes(config)) { #>
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                0,
+                sizeof(<#= config.Type #>) * 8,
+                cache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            if (!source.IsValid)
+                throw new ArgumentNullException(nameof(source));
+            if (!target.IsValid)
+                throw new ArgumentNullException(nameof(target));
+            if (!valuesSource.IsValid)
+                throw new ArgumentNullException(nameof(valuesSource));
+            if (!valuesTarget.IsValid)
+                throw new ArgumentNullException(nameof(valuesTarget));
+            if (target.Length < source.Length)
+                throw new ArgumentOutOfRangeException(nameof(source), "The source view is larger than the target view");
+            if (valuesTarget.Length < valuesSource.Length)
+                throw new ArgumentOutOfRangeException(nameof(valuesSource), "The vaues-source view is larger than the values-target view");
+            if (valuesSource.Length != source.Length)
+                throw new ArgumentOutOfRangeException(nameof(valuesSource), "The values-source view must have the length of the source view");
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+<#          GenerateVerificationCode(config); #>
+            <#= config.InternalName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                cache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// Note that the arguments do not have to be verified since they
+        /// have already been verified.
+        /// function.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        internal abstract void <#= config.InternalName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream);
+
+<#      } #>
+<# } #>
+
+    }
+
+    partial class RadixSortPairsProvider
+    {
+<# foreach (var config in RadixSortConfigurations) { #>
+<#      foreach (var valueType in GetRadixSortPairTypes(config)) { #>
+<#      var sortingName = getPairSortingName(config); #>
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget
+<#          GenerateMethodParameterDeclaration(config, true); #>
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            AcceleratorStream stream)
+        {
+            implementation.<#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                bufferCache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit)
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                Accelerator.DefaultStream);
+        }
+        
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            AcceleratorStream stream)
+        {
+            implementation.<#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                bufferCache,
+                stream);
+        }
+
+<#      } #>
+<# } #>
+
+    }
+
+    partial class RadixSortPairsProvider<TValue>
+    {
+<# foreach (var config in RadixSortConfigurations) { #>
+<#      var sortingName = getPairSortingName(config); #>
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<TValue> valuesSource,
+            ArrayView<TValue> valuesTarget
+<#          GenerateMethodParameterDeclaration(config, true); #>
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<TValue> valuesSource,
+            ArrayView<TValue> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            AcceleratorStream stream)
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                0,
+                sizeof(<#= config.Type #>) * 8,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<TValue> valuesSource,
+            ArrayView<TValue> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit)
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                Accelerator.DefaultStream);
+        }
+        
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<TValue> valuesSource,
+            ArrayView<TValue> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            AcceleratorStream stream)
+        {
+            if (!source.IsValid)
+                throw new ArgumentNullException(nameof(source));
+            if (source.Length < 1)
+                throw new ArgumentOutOfRangeException(nameof(source));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            var indexView = sequenceCache.Allocate<Index>(source.Length * 2);
+            var indexSourceView = indexView.GetSubView(0, source.Length);
+            var indexTargetView = indexView.GetSubView(source.Length, source.Length);
+            sequencer(
+                stream,
+                indexSourceView,
+                new Sequencers.IndexSequencer());
+            implementation.<#= sortingName #>(
+                source,
+                target,
+                indexSourceView,
+                indexTargetView,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                bufferCache,
+                stream);
+            LightningContext.Reorder<TValue>(
+                valuesSource,
+                valuesTarget,
+                indexTargetView);
+        }
+
+<# } #>
+
+    }
+
+    partial class LightningContext
+    {
+        #region RadixSortPairs
+
+<# foreach (var config in RadixSortConfigurations) { #>
+<#      var sortingName = getPairSortingName(config); #>
+<#      foreach (var valueType in GetRadixSortPairTypes(config)) { #>
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget
+<#      GenerateMethodParameterDeclaration(config, true); #>
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                DefaultCache,
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            AcceleratorStream stream)
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                DefaultCache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="cache">The target cache.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            MemoryBufferCache cache)
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                cache,
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+        <#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            radixSortPairsImplementation.<#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                cache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+        <#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit)
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                DefaultCache,
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            AcceleratorStream stream)
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                DefaultCache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="cache">The target cache.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache)
+        {
+            <#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                cache,
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort-pairs operation on the given key-value pairs.
+        /// </summary>
+        /// <param name="source">The source keys.</param>
+        /// <param name="target">The target keys.</param>
+        /// <param name="valuesSource">The source values.</param>
+        /// <param name="valuesTarget">The target values.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= sortingName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            radixSortPairsImplementation.<#= sortingName #>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                cache,
+                stream);
+        }
+
+<#      } #>
+<# } #>
+
+        #endregion
+    }
+}
+
+#pragma warning restore IDE0001

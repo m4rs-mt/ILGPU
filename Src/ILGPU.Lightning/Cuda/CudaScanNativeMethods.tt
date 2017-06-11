@@ -1,0 +1,44 @@
+﻿// -----------------------------------------------------------------------------
+//                              ILGPU.Lightning
+//                   Copyright (c) 2017 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: CudaScanNativeMethods.tt/CudaScanNativeMethods.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../../ILGPU/Src/ILGPU/Basic.tt" #>
+<#@ include file="../Basic.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ILGPU.Runtime.Cuda;
+using System;
+using System.Runtime.InteropServices;
+
+namespace ILGPU.Lightning.Cuda
+{
+    /// <summary>
+    /// Wraps native extension methods for Cuda
+    /// </summary>
+    static partial class CudaNativeMethods
+    {
+<# foreach (var config in ScanConfigurations) { #>
+        [DllImport(LightningContext.NativeLibName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern CudaError <#= config.CudaNativeMethodName #>(
+            [In] IntPtr tempStorage,
+            [In, Out] ref IntPtr tempStorageSize,
+            [In] IntPtr source,
+            [In] IntPtr target,
+            [In] int numElements,
+            [In] IntPtr stream);
+
+<# } #>
+
+    }
+
+}

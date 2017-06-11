@@ -1,0 +1,134 @@
+﻿// -----------------------------------------------------------------------------
+//                              ILGPU.Lightning
+//                   Copyright (c) 2017 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: CudaRadixSortProviders.tt/CudaRadixSortProviders.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../../ILGPU/Src/ILGPU/Basic.tt" #>
+<#@ include file="../Basic.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using System;
+using ILGPU.Runtime;
+using ILGPU.Runtime.Cuda;
+
+#pragma warning disable IDE0001 // Simplify Names
+
+namespace ILGPU.Lightning.Cuda
+{
+    partial class CudaRadixSortProviderImplementation
+    {
+<# foreach (var config in RadixSortConfigurations) { #>
+        internal override void <#= config.InternalName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            var cudaStream = stream as CudaStream;
+
+            // Estimate required temp-storage size
+            IntPtr tempStorageSize = IntPtr.Zero;
+            CudaNativeMethods.<#= config.CudaNativeMethodName #>(
+                IntPtr.Zero,
+                ref tempStorageSize,
+                source.Pointer,
+                target.Pointer,
+                source.Length,
+<#              GenerateMethodArguments(config, p => $"{p.Name}.Pointer"); #>
+                <#= config.IsSegmented ? "segmentsBegin.Length," : string.Empty #>
+                beginBit,
+                endBit,
+                IntPtr.Zero);
+
+            // Allocate temp storage
+            var view = cache.Allocate<byte>(tempStorageSize.ToInt32());
+
+            // Invoke actual scan
+            CudaNativeMethods.<#= config.CudaNativeMethodName #>(
+                view.Pointer,
+                ref tempStorageSize,
+                source.Pointer,
+                target.Pointer,
+                source.Length,
+<#              GenerateMethodArguments(config, p => $"{p.Name}.Pointer"); #>
+                <#= config.IsSegmented ? "segmentsBegin.Length," : string.Empty #>
+                beginBit,
+                endBit,
+                cudaStream?.StreamPtr ?? IntPtr.Zero);
+        }
+
+<# } #>
+
+    }
+
+    partial class CudaRadixSortPairsProviderImplementation
+    {
+<# foreach (var config in RadixSortConfigurations) { #>
+<#      foreach (var valueType in GetRadixSortPairTypes(config)) { #>
+        internal override void <#= config.InternalName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            var cudaStream = stream as CudaStream;
+
+            // Estimate required temp-storage size
+            IntPtr tempStorageSize = IntPtr.Zero;
+            CudaNativeMethods.<#= config.CudaNativeMethodName #><#= valueType.Name #>Pairs(
+                IntPtr.Zero,
+                ref tempStorageSize,
+                source.Pointer,
+                target.Pointer,
+                valuesSource.Pointer,
+                valuesTarget.Pointer,
+                source.Length,
+<#              GenerateMethodArguments(config, p => $"{p.Name}.Pointer"); #>
+                <#= config.IsSegmented ? "segmentsBegin.Length," : string.Empty #>
+                beginBit,
+                endBit,
+                IntPtr.Zero);
+
+            // Allocate temp storage
+            var view = cache.Allocate<byte>(tempStorageSize.ToInt32());
+
+            // Invoke actual scan
+            CudaNativeMethods.<#= config.CudaNativeMethodName #><#= valueType.Name #>Pairs(
+                view.Pointer,
+                ref tempStorageSize,
+                source.Pointer,
+                target.Pointer,
+                valuesSource.Pointer,
+                valuesTarget.Pointer,
+                source.Length,
+<#              GenerateMethodArguments(config, p => $"{p.Name}.Pointer"); #>
+                <#= config.IsSegmented ? "segmentsBegin.Length," : string.Empty #>
+                beginBit,
+                endBit,
+                cudaStream?.StreamPtr ?? IntPtr.Zero);
+        }
+
+<#      } #>
+<# } #>
+
+    }
+}
+
+#pragma warning restore IDE0001

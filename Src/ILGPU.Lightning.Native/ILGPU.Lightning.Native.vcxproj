@@ -1,0 +1,209 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{023FD7A3-E60A-4411-8015-24A72FC53BCC}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>ILGPULightningNative</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath14)\BuildCustomizations\CUDA 8.0.props" />
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(ProjectDir)..\..\CUB\;$(IncludePath)</IncludePath>
+    <OutDir>$(ProjectDir)\..\X86\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(ProjectDir)..\..\CUB\;$(IncludePath)</IncludePath>
+    <OutDir>$(ProjectDir)\..\X64\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;ILGPULIGHTNING_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;cudadevrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <CudaCompile>
+      <CodeGeneration>compute_20,sm_20;compute_30,sm_30;compute_35,sm_35;compute_50,sm_50;compute_52,sm_52;compute_60,sm_60;compute_61,sm_61;compute_62,sm_62</CodeGeneration>
+      <AdditionalOptions>-Wno-deprecated-gpu-targets %(AdditionalOptions)</AdditionalOptions>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;ILGPULIGHTNING_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;cudadevrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <CodeGeneration>compute_20,sm_20;compute_30,sm_30;compute_35,sm_35;compute_50,sm_50;compute_52,sm_52;compute_60,sm_60;compute_61,sm_61;compute_62,sm_62</CodeGeneration>
+      <AdditionalOptions>-Wno-deprecated-gpu-targets %(AdditionalOptions)</AdditionalOptions>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\CUB\cub\agent\agent_histogram.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_radix_sort_downsweep.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_radix_sort_upsweep.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_reduce.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_reduce_by_key.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_rle.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_scan.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_segment_fixup.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_select_if.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_spmv_csrt.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_spmv_orig.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\agent_spmv_row_based.cuh" />
+    <ClInclude Include="..\..\CUB\cub\agent\single_pass_scan_operators.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_adjacent_difference.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_discontinuity.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_exchange.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_histogram.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_load.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_radix_rank.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_radix_sort.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_raking_layout.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_reduce.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_scan.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_shuffle.cuh" />
+    <ClInclude Include="..\..\CUB\cub\block\block_store.cuh" />
+    <ClInclude Include="..\..\CUB\cub\cub.cuh" />
+    <ClInclude Include="..\..\CUB\cub\device\device_histogram.cuh" />
+    <ClInclude Include="..\..\CUB\cub\device\device_partition.cuh" />
+    <ClInclude Include="..\..\CUB\cub\device\device_radix_sort.cuh" />
+    <ClInclude Include="..\..\CUB\cub\device\device_reduce.cuh" />
+    <ClInclude Include="..\..\CUB\cub\device\device_run_length_encode.cuh" />
+    <ClInclude Include="..\..\CUB\cub\device\device_scan.cuh" />
+    <ClInclude Include="..\..\CUB\cub\device\device_segmented_radix_sort.cuh" />
+    <ClInclude Include="..\..\CUB\cub\device\device_segmented_reduce.cuh" />
+    <ClInclude Include="..\..\CUB\cub\device\device_select.cuh" />
+    <ClInclude Include="..\..\CUB\cub\device\device_spmv.cuh" />
+    <ClInclude Include="..\..\CUB\cub\grid\grid_barrier.cuh" />
+    <ClInclude Include="..\..\CUB\cub\grid\grid_even_share.cuh" />
+    <ClInclude Include="..\..\CUB\cub\grid\grid_mapping.cuh" />
+    <ClInclude Include="..\..\CUB\cub\grid\grid_queue.cuh" />
+    <ClInclude Include="..\..\CUB\cub\host\mutex.cuh" />
+    <ClInclude Include="..\..\CUB\cub\iterator\arg_index_input_iterator.cuh" />
+    <ClInclude Include="..\..\CUB\cub\iterator\cache_modified_input_iterator.cuh" />
+    <ClInclude Include="..\..\CUB\cub\iterator\cache_modified_output_iterator.cuh" />
+    <ClInclude Include="..\..\CUB\cub\iterator\constant_input_iterator.cuh" />
+    <ClInclude Include="..\..\CUB\cub\iterator\counting_input_iterator.cuh" />
+    <ClInclude Include="..\..\CUB\cub\iterator\discard_output_iterator.cuh" />
+    <ClInclude Include="..\..\CUB\cub\iterator\tex_obj_input_iterator.cuh" />
+    <ClInclude Include="..\..\CUB\cub\iterator\tex_ref_input_iterator.cuh" />
+    <ClInclude Include="..\..\CUB\cub\iterator\transform_input_iterator.cuh" />
+    <ClInclude Include="..\..\CUB\cub\thread\thread_load.cuh" />
+    <ClInclude Include="..\..\CUB\cub\thread\thread_operators.cuh" />
+    <ClInclude Include="..\..\CUB\cub\thread\thread_reduce.cuh" />
+    <ClInclude Include="..\..\CUB\cub\thread\thread_scan.cuh" />
+    <ClInclude Include="..\..\CUB\cub\thread\thread_search.cuh" />
+    <ClInclude Include="..\..\CUB\cub\thread\thread_store.cuh" />
+    <ClInclude Include="..\..\CUB\cub\util_allocator.cuh" />
+    <ClInclude Include="..\..\CUB\cub\util_arch.cuh" />
+    <ClInclude Include="..\..\CUB\cub\util_debug.cuh" />
+    <ClInclude Include="..\..\CUB\cub\util_device.cuh" />
+    <ClInclude Include="..\..\CUB\cub\util_macro.cuh" />
+    <ClInclude Include="..\..\CUB\cub\util_namespace.cuh" />
+    <ClInclude Include="..\..\CUB\cub\util_ptx.cuh" />
+    <ClInclude Include="..\..\CUB\cub\util_type.cuh" />
+    <ClInclude Include="..\..\CUB\cub\warp\warp_reduce.cuh" />
+    <ClInclude Include="..\..\CUB\cub\warp\warp_scan.cuh" />
+    <ClInclude Include="Cuda\RadixSort.h" />
+    <ClInclude Include="Cuda\RadixSortPairs.h" />
+    <ClInclude Include="Cuda\Scan.h" />
+    <ClInclude Include="Cuda\SegmentedRadixSort.h" />
+    <ClInclude Include="Cuda\SegmentedRadixSortPairs.h" />
+    <ClInclude Include="ILGPU.Lightning.h" />
+    <ClInclude Include="Index.h" />
+    <ClInclude Include="RadixSortSignedVariants.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="SignedVariants.h" />
+    <ClInclude Include="UnsignedVariants.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="Cuda\ExclusiveScanSigned.cu" />
+    <CudaCompile Include="Cuda\ExclusiveScanUnsigned.cu" />
+    <CudaCompile Include="Cuda\InclusiveScanSigned.cu" />
+    <CudaCompile Include="Cuda\InclusiveScanUnsigned.cu" />
+    <CudaCompile Include="Cuda\RadixSortPairsSigned.cu" />
+    <CudaCompile Include="Cuda\RadixSortPairsUnsigned.cu" />
+    <CudaCompile Include="Cuda\RadixSortSigned.cu" />
+    <CudaCompile Include="Cuda\RadixSortUnsigned.cu" />
+    <CudaCompile Include="Cuda\SegmentedRadixSortPairsSigned.cu" />
+    <CudaCompile Include="Cuda\SegmentedRadixSortPairsUnsigned.cu" />
+    <CudaCompile Include="Cuda\SegmentedRadixSortSigned.cu" />
+    <CudaCompile Include="Cuda\SegmentedRadixSortUnsigned.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ILGPU.Lightning.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath14)\BuildCustomizations\CUDA 8.0.targets" />
+  </ImportGroup>
+</Project>

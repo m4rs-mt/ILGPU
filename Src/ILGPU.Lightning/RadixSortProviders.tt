@@ -1,0 +1,440 @@
+﻿// -----------------------------------------------------------------------------
+//                              ILGPU.Lightning
+//                   Copyright (c) 2017 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: RadixSortProviders.tt/RadixSortProviders.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../ILGPU/Src/ILGPU/Basic.tt" #>
+<#@ include file="Basic.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using System;
+using ILGPU.Runtime;
+using System.Runtime.CompilerServices;
+
+#pragma warning disable IDE0001 // Simplify Names
+
+namespace ILGPU.Lightning
+{
+    partial class RadixSortProviderImplementation
+    {
+<# foreach (var config in RadixSortConfigurations) { #>
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            <#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                0,
+                sizeof(<#= config.Type #>) * 8,
+                cache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            if (!source.IsValid)
+                throw new ArgumentNullException(nameof(source));
+            if (!target.IsValid)
+                throw new ArgumentNullException(nameof(target));
+            if (target.Length < source.Length)
+                throw new ArgumentOutOfRangeException(nameof(source), "The source view is larger than the target view");
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (beginBit > sizeof(<#= config.Type #>) * 8)
+                throw new ArgumentOutOfRangeException(nameof(beginBit));
+            if (endBit > sizeof(<#= config.Type #>) * 8)
+                throw new ArgumentOutOfRangeException(nameof(endBit));
+            if (beginBit > endBit)
+                throw new ArgumentOutOfRangeException(nameof(beginBit), "The beginBit is larger than the endBit");
+<#          GenerateVerificationCode(config); #>
+            <#= config.InternalName #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                cache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// Note that the arguments do not have to be verified since they
+        /// have already been verified.
+        /// function.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        internal abstract void <#= config.InternalName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream);
+
+<# } #>
+
+    }
+
+    partial class RadixSortProvider
+    {
+<# foreach (var config in RadixSortConfigurations) { #>
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target
+<#          GenerateMethodParameterDeclaration(config, true); #>
+        {
+            <#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            AcceleratorStream stream)
+        {
+            implementation.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                bufferCache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit)
+        {
+            <#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                Accelerator.DefaultStream);
+        }
+        
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            AcceleratorStream stream)
+        {
+            implementation.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                bufferCache,
+                stream);
+        }
+
+<# } #>
+
+    }
+
+    partial class LightningContext
+    {
+        #region RadixSort
+
+<# foreach (var config in RadixSortConfigurations) { #>
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target
+<#      GenerateMethodParameterDeclaration(config, true); #>
+        {
+            <#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                DefaultCache,
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            AcceleratorStream stream)
+        {
+            <#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                DefaultCache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="cache">The target cache.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            MemoryBufferCache cache)
+        {
+            <#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                cache,
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+        <#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            radixSortImplementation.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                cache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+        <#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit)
+        {
+            <#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                DefaultCache,
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            AcceleratorStream stream)
+        {
+            <#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                DefaultCache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="cache">The target cache.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache)
+        {
+            <#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                cache,
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            radixSortImplementation.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                cache,
+                stream);
+        }
+
+<# } #>
+
+        #endregion
+    }
+}
+
+#pragma warning restore IDE0001

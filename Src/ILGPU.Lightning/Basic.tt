@@ -1,0 +1,212 @@
+﻿// -----------------------------------------------------------------------------
+//                              ILGPU.Lightning
+//                   Copyright (c) 2017 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: Basic.tt
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+
+<#+
+public class AdditionalParam
+{
+    public AdditionalParam(string name, string type, string documentation)
+    {
+        Name = name;
+        Type = type;
+        Documentation = documentation;
+    }
+
+    public string Name { get; }
+    public string Type { get; }
+    public string Documentation { get; }
+}
+
+public class AdditionalMethod
+{
+    public AdditionalMethod(string prefix, params AdditionalParam[] additionalParams)
+    {
+        Prefix = prefix;
+        VerificationCode = string.Empty;
+        AdditionalParams = additionalParams;
+    }
+
+    public AdditionalMethod(string prefix, string verificationCode, params AdditionalParam[] additionalParams)
+    {
+        Prefix = prefix;
+        VerificationCode = verificationCode;
+        AdditionalParams = additionalParams;
+    }
+
+    public AdditionalMethod(AdditionalMethod method)
+    {
+        Prefix = method.Prefix;
+        AdditionalParams = method.AdditionalParams;
+        VerificationCode = method.VerificationCode;
+    }
+
+    public string Prefix { get; }
+
+    public string VerificationCode { get; }
+
+    public AdditionalParam[] AdditionalParams { get; }
+}
+
+public void GenerateMethodParameterDocumentation(AdditionalMethod method)
+{
+    PushIndent("        ");
+    foreach (var param in method.AdditionalParams) { #>
+/// <param name="<#= param.Name #>"><#= param.Documentation #></param>
+<#+ }
+    ClearIndent();
+}
+
+public void GenerateMethodParameterDeclaration(
+    AdditionalMethod method,
+    bool terminateDeclaration = false,
+    Func<AdditionalParam, string> transformator = null)
+{
+    transformator = transformator ?? new Func<AdditionalParam, string>(p => $"{p.Type} {p.Name}");
+    PushIndent("            ");
+    var @params = method.AdditionalParams;
+    if (terminateDeclaration && @params.Length > 0)
+        WriteLine(",");
+    for (int i = 0, e = @params.Length; i < e; ++i) {
+        var param = @params[i]; #>
+<#= transformator(param) #><#= (terminateDeclaration && i + 1 < e || !terminateDeclaration) ? "," : string.Empty #>
+<#+ }
+    if (terminateDeclaration)
+        WriteLine(")");
+    ClearIndent();
+}
+
+public void GenerateVerificationCode(AdditionalMethod method)
+{
+    PushIndent("            "); #>
+<#= method.VerificationCode #>
+<#+ ClearIndent();
+}
+
+public void GenerateMethodArguments(
+    AdditionalMethod method,
+    Func<AdditionalParam, string> transformator = null)
+{
+    transformator = transformator ?? new Func<AdditionalParam, string>(p => p.Name);
+    PushIndent("                ");
+    foreach (var param in method.AdditionalParams) { #>
+<#= transformator(param) #>,
+<#+ }
+    ClearIndent();
+}
+
+// Scan
+
+public enum ScanMode
+{
+    Inclusive,
+    Exclusive,
+}
+
+public class ScanConfiguration
+{
+    public ScanConfiguration(TypeInformation type, ScanMode mode)
+    {
+        Mode = mode;
+        Name = $"{mode}Scan";
+        TypeInformation = type;
+    }
+
+    public ScanMode Mode { get; }
+
+    public TypeInformation TypeInformation { get; }
+
+    public string Name { get; }
+
+    public string InternalName => $"{Name}Internal";
+
+    public string Type => TypeInformation.Type;
+
+    public string CudaNativeMethodName => $"Cuda{Name}{TypeInformation.Name}";
+}
+
+public static readonly TypeInformation[] ScanTypes = IntTypes;
+public static readonly ScanMode[] ScanModes = { ScanMode.Inclusive, ScanMode.Exclusive };
+public static readonly IEnumerable<ScanConfiguration> ScanConfigurations =
+    from t in ScanTypes
+    from m in ScanModes
+    select new ScanConfiguration(t, m);
+
+// Radix Sort
+
+public enum RadixSortMode
+{
+    Ascending,
+    Descending,
+}
+
+public class RadixSortConfiguration : AdditionalMethod
+{
+    public RadixSortConfiguration(TypeInformation type, RadixSortMode mode, AdditionalMethod variant)
+        : base(variant)
+    {
+        Mode = mode;
+        var modeString = mode == RadixSortMode.Ascending ? string.Empty : mode.ToString();
+        Name = $"{variant.Prefix}{modeString}RadixSort";
+        TypeInformation = type;
+    }
+
+    public RadixSortMode Mode { get; }
+
+    public TypeInformation TypeInformation { get; }
+
+    public string Name { get; }
+
+    public bool IsSegmented => Prefix == "Segmented";
+
+    public string InternalName => $"{Name}Internal";
+
+    public string Type => TypeInformation.Type;
+
+    public string CudaNativeMethodName => $"Cuda{Name}{TypeInformation.Name}";
+};
+
+public static readonly TypeInformation[] RadixSortTypes = UnsignedIntTypes;
+public static readonly RadixSortMode[] RadixSortModes = { RadixSortMode.Ascending, RadixSortMode.Descending };
+public static readonly AdditionalMethod[] RadixSortVariants =
+    {
+        new AdditionalMethod(string.Empty), // Basic variant
+        new AdditionalMethod("Segmented",
+            "if (segmentsBegin.Length < 1) throw new ArgumentOutOfRangeException(nameof(segmentsBegin));" + Environment.NewLine +
+            "if (segmentsBegin.Length != segmentsEnd.Length) throw new ArgumentOutOfRangeException(nameof(segmentsEnd));",
+            new AdditionalParam("segmentsBegin", "ArrayView<int>", "Begin offsets of the different segments"),
+            new AdditionalParam("segmentsEnd", "ArrayView<int>", "End offsets of the different segments")) // Segmented variant
+    };
+public static readonly IEnumerable<RadixSortConfiguration> RadixSortConfigurations = 
+    from t in RadixSortTypes
+    from m in RadixSortModes
+    from v in RadixSortVariants
+    select new RadixSortConfiguration(t, m, v);
+
+public IEnumerable<TypeInformation> GetRadixSortPairTypes(RadixSortConfiguration config)
+{
+    yield return new TypeInformation(
+        "Index",
+        "Index",
+        TypeInformationKind.Default);
+}
+
+// Misc
+
+void Swap<T>(ref T first, ref T second)
+{
+    T temp = first;
+    first = second;
+    second = temp;
+}
+#>

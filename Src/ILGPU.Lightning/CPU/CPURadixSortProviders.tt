@@ -1,0 +1,300 @@
+﻿// -----------------------------------------------------------------------------
+//                              ILGPU.Lightning
+//                   Copyright (c) 2017 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: CPURadixSortProviders.tt/CPURadixSortProviders.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../../ILGPU/Src/ILGPU/Basic.tt" #>
+<#@ include file="../Basic.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using System;
+using System.Diagnostics;
+using ILGPU.Runtime;
+
+#pragma warning disable IDE0001 // Simplify Names
+#pragma warning disable IDE0004 // Cast is redundant
+
+namespace ILGPU.Lightning.CPU
+{
+    partial class CPURadixSortProviderImplementation
+    {
+        // TODO: replace naive squential implementations by clever parallel ones
+
+        struct RadixSortConfiguration<T>
+            where T : struct
+        {
+            public static readonly int ElementSize = ArrayView<T>.ElementSize;
+
+            public RadixSortConfiguration(
+                int length,
+                MemoryBufferCache cache)
+            {
+                int counterSpace = 2  * sizeof(int);
+                var dataSpace = length * ElementSize;
+                var cached = cache.Allocate<byte>(counterSpace + 2 * dataSpace);
+
+                Counters = cached.GetSubView(0, counterSpace).Cast<int>();
+
+                Storage = cached.GetSubView(counterSpace).Cast<T>();
+                LeftStorage = Storage.GetSubView(0, length);
+                RightStorage = Storage.GetSubView(length);
+            }
+
+            public ArrayView<int> Counters { get; }
+
+            public ArrayView<T> Storage { get; }
+            public ArrayView<T> LeftStorage { get; }
+            public ArrayView<T> RightStorage { get; }
+
+            public void ResetCounters()
+            {
+                Counters.Store(0, 0);
+                Counters.Store(1, 0);
+            }
+
+            public int IncCounter(int counterIdx)
+            {
+                var result = Counters[counterIdx];
+                Counters.Store(counterIdx, result + 1);
+                return result;
+            }
+        }
+
+<# foreach (var config in RadixSortConfigurations) { #>
+        internal override unsafe void <#= config.InternalName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+<#          if (config.IsSegmented) { #>
+            Debug.Assert(segmentsBegin.Length == segmentsEnd.Length, "Invalid segment setup");
+            for (int segmentIdx = 0, segmentLength = segmentsBegin.Length; segmentIdx < segmentLength; ++segmentIdx)
+            {
+            var beginIdx = segmentsBegin[segmentIdx];
+            var endIdx = segmentsEnd[segmentIdx];
+<#          } else { #>
+            var beginIdx = 0;
+            var endIdx = source.Length;
+<#          } #>
+            var config = new RadixSortConfiguration<<#= config.Type #>>(source.Length, cache);
+            var radixSource = source;
+            for (int bitIdx = beginBit; bitIdx < endBit; ++bitIdx)
+            {
+                config.ResetCounters();
+
+                for (int idx = beginIdx; idx < endIdx; ++idx)
+                {
+                    var element = radixSource[idx];
+                    var storageIdx = (int)((element >> (int)bitIdx) & 1);
+                    var counterIdx = config.IncCounter(storageIdx);
+                    config.Storage.Store(source.Length * storageIdx + counterIdx, element);
+                }
+
+<#      var leftView = "Left"; var rightView = "Right"; #>
+<#      var leftCounter = "0"; var rightCounter = "1"; #>
+<#      if (config.Mode != RadixSortMode.Ascending) { #>
+<#          Swap(ref leftView, ref rightView); #>
+<#          Swap(ref leftCounter, ref rightCounter); #>
+<#      } #>
+                Buffer.MemoryCopy(
+                    config.<#= leftView #>Storage.Pointer.ToPointer(),
+                    target.GetSubView(beginIdx).Pointer.ToPointer(),
+                    config.<#= leftView #>Storage.LengthInBytes,
+                    config.Counters[<#= leftCounter #>] * RadixSortConfiguration<<#= config.Type #>>.ElementSize);
+                if (config.Counters[<#= rightCounter #>] > 0)
+                    Buffer.MemoryCopy(
+                        config.<#= rightView #>Storage.Pointer.ToPointer(),
+                        target.GetSubView(beginIdx).GetSubView(config.Counters[<#= leftCounter #>]).Pointer.ToPointer(),
+                        config.<#= rightView #>Storage.LengthInBytes,
+                        config.Counters[<#= rightCounter #>] * RadixSortConfiguration<<#= config.Type #>>.ElementSize);
+
+                radixSource = target;
+            }
+<#          if (config.IsSegmented) { #>
+            }
+<#          } #>
+        }
+
+<# } #>
+
+    }
+
+    partial class CPURadixSortPairsProviderImplementation
+    {
+        struct RadixSortConfiguration<TKey, TValue>
+            where TKey : struct
+            where TValue : struct
+        {
+            public static readonly int ElementSize = ArrayView<TKey>.ElementSize;
+            public static readonly int ValueElementSize = ArrayView<TValue>.ElementSize;
+
+            public RadixSortConfiguration(
+                int length,
+                MemoryBufferCache cache)
+            {
+                int counterSpace = 2  * sizeof(int);
+
+                var dataSpace = length * ElementSize;
+                var valueDataSpace = length * ValueElementSize;
+                var cached = cache.Allocate<byte>(counterSpace + 2 * dataSpace + 2 * valueDataSpace);
+
+                Counters = cached.GetSubView(0, counterSpace).Cast<int>();
+                Storage = cached.GetSubView(counterSpace, 2 * dataSpace).Cast<TKey>();
+                ValueStorage = cached.GetSubView(counterSpace + 2 * dataSpace, 2 * valueDataSpace).Cast<TValue>();
+
+                LeftStorage = Storage.GetSubView(0, length);
+                RightStorage = Storage.GetSubView(length);
+
+                LeftValueStorage = ValueStorage.GetSubView(0, length);
+                RightValueStorage = ValueStorage.GetSubView(length);
+            }
+
+            public ArrayView<int> Counters { get; }
+
+            public ArrayView<TKey> Storage { get; }
+            public ArrayView<TKey> LeftStorage { get; }
+            public ArrayView<TKey> RightStorage { get; }
+
+            public ArrayView<TValue> ValueStorage { get; }
+            public ArrayView<TValue> LeftValueStorage { get; }
+            public ArrayView<TValue> RightValueStorage { get; }
+
+            public void ResetCounters()
+            {
+                Counters.Store(0, 0);
+                Counters.Store(1, 0);
+            }
+
+            public int IncCounter(int counterIdx)
+            {
+                var result = Counters[counterIdx];
+                Counters.Store(counterIdx, result + 1);
+                return result;
+            }
+        }
+
+<# foreach (var config in RadixSortConfigurations) { #>
+        internal static unsafe void <#= config.InternalName #><T>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<T> valuesSource,
+            ArrayView<T> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+            where T : struct
+        {
+<#          if (config.IsSegmented) { #>
+            Debug.Assert(segmentsBegin.Length == segmentsEnd.Length, "Invalid segment setup");
+            for (int segmentIdx = 0, numSegments = segmentsBegin.Length; segmentIdx < numSegments; ++segmentIdx)
+            {
+            var beginIdx = segmentsBegin[segmentIdx];
+            var endIdx = segmentsEnd[segmentIdx];
+<#          } else { #>
+            var beginIdx = 0;
+            var endIdx = source.Length;
+<#          } #>
+
+            var segmentLength = endIdx - beginIdx;
+            var config = new RadixSortConfiguration<<#= config.Type #>, T>(segmentLength, cache);
+            var radixSource = source;
+            var radixValueSource = valuesSource;
+            for (int bitIdx = beginBit; bitIdx < endBit; ++bitIdx)
+            {
+                config.ResetCounters();
+
+                for (int idx = beginIdx; idx < endIdx; ++idx)
+                {
+                    var element = radixSource[idx];
+                    var storageIdx = (int)((element >> (int)bitIdx) & 1);
+                    var counterIdx = config.IncCounter(storageIdx);
+                    config.Storage.Store(segmentLength * storageIdx + counterIdx, element);
+                    config.ValueStorage.Store(segmentLength * storageIdx + counterIdx, radixValueSource[idx]);
+                }
+
+<#      var leftView = "Left"; var rightView = "Right"; #>
+<#      var leftCounter = "0"; var rightCounter = "1"; #>
+<#      if (config.Mode != RadixSortMode.Ascending) { #>
+<#          Swap(ref leftView, ref rightView); #>
+<#          Swap(ref leftCounter, ref rightCounter); #>
+<#      } #>
+                Buffer.MemoryCopy(
+                    config.<#= leftView #>Storage.Pointer.ToPointer(),
+                    target.GetSubView(beginIdx).Pointer.ToPointer(),
+                    config.<#= leftView #>Storage.LengthInBytes,
+                    config.Counters[<#= leftCounter #>] * RadixSortConfiguration<<#= config.Type #>, T>.ElementSize);
+                Buffer.MemoryCopy(
+                    config.<#= leftView #>ValueStorage.Pointer.ToPointer(),
+                    valuesTarget.GetSubView(beginIdx).Pointer.ToPointer(),
+                    config.<#= leftView #>ValueStorage.LengthInBytes,
+                    config.Counters[<#= leftCounter #>] * RadixSortConfiguration<<#= config.Type #>, T>.ValueElementSize);
+                if (config.Counters[<#= rightCounter #>] > 0)
+                {
+                    Buffer.MemoryCopy(
+                        config.<#= rightView #>Storage.Pointer.ToPointer(),
+                        target.GetSubView(beginIdx).GetSubView(config.Counters[<#= leftCounter #>]).Pointer.ToPointer(),
+                        config.<#= rightView #>Storage.LengthInBytes,
+                        config.Counters[<#= rightCounter #>] * RadixSortConfiguration<<#= config.Type #>, T>.ElementSize);
+                    Buffer.MemoryCopy(
+                        config.<#= rightView #>ValueStorage.Pointer.ToPointer(),
+                        valuesTarget.GetSubView(beginIdx).GetSubView(config.Counters[<#= leftCounter #>]).Pointer.ToPointer(),
+                        config.<#= rightView #>ValueStorage.LengthInBytes,
+                        config.Counters[<#= rightCounter #>] * RadixSortConfiguration<<#= config.Type #>, T>.ValueElementSize);
+                } 
+
+                radixSource = target;
+                radixValueSource = valuesTarget;
+            }
+<#          if (config.IsSegmented) { #>
+            }
+<#          } #>
+        }
+
+<#      foreach (var valueType in GetRadixSortPairTypes(config)) { #>
+        internal override void <#= config.InternalName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            ArrayView<<#= valueType.Type #>> valuesSource,
+            ArrayView<<#= valueType.Type #>> valuesTarget,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            <#= config.InternalName #><<#= valueType.Type #>>(
+                source,
+                target,
+                valuesSource,
+                valuesTarget,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                cache,
+                stream);
+        }
+
+<#      } #>
+<# } #>
+
+    }
+
+}
+
+#pragma warning restore IDE0001
+#pragma warning restore IDE0004

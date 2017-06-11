@@ -1,0 +1,67 @@
+﻿// -----------------------------------------------------------------------------
+//                              ILGPU.Lightning
+//                   Copyright (c) 2017 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: CudaScanProviders.tt/CudaScanProviders.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../../ILGPU/Src/ILGPU/Basic.tt" #>
+<#@ include file="../Basic.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using System;
+using ILGPU.Runtime;
+using ILGPU.Runtime.Cuda;
+
+#pragma warning disable IDE0001 // Simplify Names
+
+namespace ILGPU.Lightning.Cuda
+{
+    partial class CudaScanProviderImplementation
+    {
+<# foreach (var config in ScanConfigurations) { #>
+        internal override void <#= config.InternalName #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            var cudaStream = stream as CudaStream;
+
+            // Estimate required temp-storage size
+            var tempStorageSize = IntPtr.Zero;
+            CudaNativeMethods.<#= config.CudaNativeMethodName #>(
+                IntPtr.Zero,
+                ref tempStorageSize,
+                source.Pointer,
+                target.Pointer,
+                source.Length,
+                IntPtr.Zero);
+
+            // Allocate temp storage
+            var view = cache.Allocate<byte>(tempStorageSize.ToInt32());
+
+            // Invoke actual scan
+            CudaNativeMethods.<#= config.CudaNativeMethodName #>(
+                view.Pointer,
+                ref tempStorageSize,
+                source.Pointer,
+                target.Pointer,
+                source.Length,
+                cudaStream?.StreamPtr ?? IntPtr.Zero);
+        }
+
+<# } #>
+
+    }
+
+}
+
+#pragma warning restore IDE0001
