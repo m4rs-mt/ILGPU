@@ -40,7 +40,6 @@ namespace LightningReduce
                     lc.Reduce(
                         buffer.View,
                         target.View,
-                        0,
                         new ShuffleDownInt32(),
                         new AddInt32());
 
@@ -71,7 +70,6 @@ namespace LightningReduce
                     lc.AtomicReduce(
                         buffer.View,
                         target.View,
-                        0,
                         new ShuffleDownInt32(),
                         new AtomicAddInt32());
 

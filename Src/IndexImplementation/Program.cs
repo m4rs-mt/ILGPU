@@ -214,6 +214,20 @@ namespace IndexImplementation
 
         #endregion
 
+        #region IComparable
+
+        /// <summary cref="IComparable{T}.CompareTo(T)"/>
+        public int CompareTo(MyIndex4 other)
+        {
+            if (this < other)
+                return -1;
+            else if (this > other)
+                return 1;
+            return 0;
+        }
+
+        #endregion
+
         #region Operators
 
         /// <summary>
@@ -236,6 +250,28 @@ namespace IndexImplementation
         public static bool operator !=(MyIndex4 first, MyIndex4 second)
         {
             return first.X != second.X || first.Y != second.Y || first.Z != second.Z || first.W != second.W;
+        }
+
+        /// <summary>
+        /// Returns true iff the first index is smaller than the second index.
+        /// </summary>
+        /// <param name="first">The first index.</param>
+        /// <param name="second">The second index.</param>
+        /// <returns>True, iff the first index is smaller than the second index.</returns>
+        public static bool operator <(MyIndex4 first, MyIndex4 second)
+        {
+            return first.X < second.X && first.Y < second.Y && first.Z < second.Z && first.W < second.W;
+        }
+
+        /// <summary>
+        /// Returns true iff the first index is greater than the second index.
+        /// </summary>
+        /// <param name="first">The first index.</param>
+        /// <param name="second">The second index.</param>
+        /// <returns>True, iff the first index is greater than the second index.</returns>
+        public static bool operator >(MyIndex4 first, MyIndex4 second)
+        {
+            return first.X > second.X && first.Y > second.Y && first.Z > second.Z && first.W > second.W;
         }
 
         #endregion
