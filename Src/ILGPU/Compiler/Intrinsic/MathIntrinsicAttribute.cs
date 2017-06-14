@@ -64,11 +64,11 @@ namespace ILGPU.Compiler.Intrinsic
         CosHF32,
         CosHF64,
 
-        AtanF64,
         AtanF32,
+        AtanF64,
 
-        Atan2F64,
         Atan2F32,
+        Atan2F64,
 
         TanF32,
         TanF64,
@@ -79,8 +79,8 @@ namespace ILGPU.Compiler.Intrinsic
         SinCosF32,
         SinCosF64,
         
-        PowF64,
         PowF32,
+        PowF64,
         
         ExpF32,
         ExpF64,
