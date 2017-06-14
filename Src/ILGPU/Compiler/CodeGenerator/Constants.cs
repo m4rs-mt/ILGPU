@@ -62,9 +62,12 @@ namespace ILGPU.Compiler
         /// </summary>
         private void Load(double value)
         {
-            CurrentBlock.Push(
-                typeof(double),
-                LLVM.ConstReal(LLVMContext.DoubleTypeInContext(), value));
+            if (Unit.Force32BitFloats)
+                Load((float)value);
+            else
+                CurrentBlock.Push(
+                    typeof(double),
+                    LLVM.ConstReal(LLVMContext.DoubleTypeInContext(), value));
         }
 
         /// <summary>
