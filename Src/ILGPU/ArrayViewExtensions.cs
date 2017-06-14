@@ -222,7 +222,7 @@ namespace ILGPU
         public ArrayView<T> GetRowView(int y)
         {
             Debug.Assert(y >= 0 && y < Height, "y out of bounds");
-            return AsLinearView().GetSubView(y * Width, Height);
+            return AsLinearView().GetSubView(y * Width, Width);
         }
 
         /// <summary>
