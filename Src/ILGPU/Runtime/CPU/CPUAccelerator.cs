@@ -740,11 +740,10 @@ namespace ILGPU.Runtime.CPU
                     ilGenerator.Emit(OpCodes.Stloc, castedLocal);
                     ilGenerator.Emit(OpCodes.Ldloca, castedLocal);
 
-                    ilGenerator.Emit(OpCodes.Ldc_I4_0);
-                    KernelLauncherBuilder.EmitLoadIndex(ilGenerator);
                     ilGenerator.Emit(OpCodes.Call,
                         genericArrayViewType.GetMethod(
-                            nameof(ArrayView<byte>.GetVariableView)));
+                            nameof(ArrayView<byte>.GetVariableView),
+                            new Type[] { }));
                 }
 
                 // Store shared-memory view to local variable
