@@ -197,6 +197,10 @@ namespace ILGPU.Backends
             if (target.IsAbstract)
                 throw compilationContext.GetNotSupportedException(
                     ErrorMessages.NotSupportedVirtualMethodCall, target.Name);
+            CodeGenerator.VerifyAccessToMethodInImplicitlyGroupedKernel(
+                compilationContext,
+                target,
+                entryPoint);
             if (IntrinsicTypes.Contains(target.DeclaringType))
                 return;
             if (VerifyActivatorCall(unit, target))
@@ -204,10 +208,6 @@ namespace ILGPU.Backends
             CodeGenerator.VerifyNotRuntimeMethod(
                 compilationContext,
                 target);
-            CodeGenerator.VerifyAccessToWarpShuffle(
-                compilationContext,
-                target,
-                entryPoint);
             CheckMethod(unit, target, entryPoint);
         }
 

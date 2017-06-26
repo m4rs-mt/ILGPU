@@ -358,12 +358,15 @@
     <value>Runtime-internal method '{0}' is not supported</value>
   </data>
   <data name="NotSupportedWarpShuffle" xml:space="preserve">
-    <value>The warp-shuffle function '{0}' is not supported in the scope of implicitly grouped kernels</value>
+    <value>The warp-shuffle function '{0}' is not supported in the scope of implicitly-grouped kernels</value>
   </data>
   <data name="NotSupportedActivatorOperation" xml:space="preserve">
     <value>The operation '{0}' on the .Net activator is not supported.</value>
   </data>
   <data name="NotSupportedPlatform" xml:space="preserve">
     <value>Not supported platform '{0}' ({1} required)</value>
+  </data>
+  <data name="NotSupportedGroupBarrier" xml:space="preserve">
+    <value>The group-barrier function '{0}' is not supported in the scope of implicitly-grouped kernels</value>
   </data>
 </root>

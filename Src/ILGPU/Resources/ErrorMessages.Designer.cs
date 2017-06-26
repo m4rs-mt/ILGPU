@@ -412,6 +412,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The group-barrier function &apos;{0}&apos; is not supported in the scope of implicitly-grouped kernels.
+        /// </summary>
+        internal static string NotSupportedGroupBarrier {
+            get {
+                return ResourceManager.GetString("NotSupportedGroupBarrier", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported group intrinsic of type &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedGroupIntrinsic {
@@ -781,7 +790,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The warp-shuffle function &apos;{0}&apos; is not supported in the scope of implicitly grouped kernels.
+        ///   Looks up a localized string similar to The warp-shuffle function &apos;{0}&apos; is not supported in the scope of implicitly-grouped kernels.
         /// </summary>
         internal static string NotSupportedWarpShuffle {
             get {

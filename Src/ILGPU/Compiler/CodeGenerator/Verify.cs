@@ -42,13 +42,13 @@ namespace ILGPU.Compiler
         }
 
         /// <summary>
-        /// Verifies that the given method is not a warp-shuffle instruction iff the entry point
-        /// is not a grouped-index kernel. Note that all other (non-shuffle) methods will be accepted.
+        /// Verifies that the given method is supported in the scope of an implictly-grouped kernel.
+        /// Note that all other (non-grouped) methods will be accepted.
         /// </summary>
         /// <param name="compilationContext">The current compilation context.</param>
         /// <param name="method">The method to verify.</param>
         /// <param name="entryPoint">The kernel entry point.</param>
-        public static void VerifyAccessToWarpShuffle(
+        public static void VerifyAccessToMethodInImplicitlyGroupedKernel(
             CompilationContext compilationContext,
             MethodBase method,
             EntryPoint entryPoint)
@@ -56,10 +56,14 @@ namespace ILGPU.Compiler
             Debug.Assert(compilationContext != null, "Invalid compilation context");
             Debug.Assert(method != null, "Invalid method");
             Debug.Assert(entryPoint != null, "Invalid entry point");
-            if (method.DeclaringType != typeof(Warp) ||
-                !method.Name.StartsWith(nameof(Warp.Shuffle), StringComparison.OrdinalIgnoreCase))
+            if (entryPoint.IsGroupedIndexEntry)
                 return;
-            if (!entryPoint.IsGroupedIndexEntry)
+            if (method.DeclaringType == typeof(Group) &&
+                method.Name.StartsWith(nameof(Group.Barrier), StringComparison.OrdinalIgnoreCase))
+                throw compilationContext.GetNotSupportedException(
+                    ErrorMessages.NotSupportedGroupBarrier, method.Name);
+            if (method.DeclaringType == typeof(Warp) &&
+                method.Name.StartsWith(nameof(Warp.Shuffle), StringComparison.OrdinalIgnoreCase))
                 throw compilationContext.GetNotSupportedException(
                     ErrorMessages.NotSupportedWarpShuffle, method.Name);
         }

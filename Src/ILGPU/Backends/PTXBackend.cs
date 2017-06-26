@@ -671,12 +671,12 @@ namespace ILGPU.Backends
                 var virtualEntryPoint = unit.GetMethod(entryPoint.MethodInfo);
                 builder.CreateCall(virtualEntryPoint.LLVMFunction, kernelValues, string.Empty);
 
-                // Verify warp-shuffle usage
+                // Verify method access in the scope of implicitly-grouped kernels
                 if (!entryPoint.IsGroupedIndexEntry)
                 {
                     virtualEntryPoint.VisitCalls((instruction, calledMethod) =>
                     {
-                        CodeGenerator.VerifyAccessToWarpShuffle(
+                        CodeGenerator.VerifyAccessToMethodInImplicitlyGroupedKernel(
                             unit.CompilationContext,
                             calledMethod.MethodBase,
                             entryPoint);
