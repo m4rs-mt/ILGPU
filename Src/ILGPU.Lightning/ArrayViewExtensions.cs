@@ -31,7 +31,7 @@ namespace ILGPU.Lightning
         public static void CopyTo<T>(this ArrayView<T> sourceView, ArrayView<T> targetView)
             where T : struct
         {
-            Debug.Assert(sourceView.Extent == targetView.Extent, "Target view out of range");
+            Debug.Assert(sourceView.Extent <= targetView.Extent, "Target view out of range");
             for (Index i = 0; i < targetView.Extent; ++i)
                 targetView[i] = sourceView[i];
         }
@@ -48,7 +48,7 @@ namespace ILGPU.Lightning
         public static void CopyGroupedTo<T>(this ArrayView<T> sourceView, ArrayView<T> targetView, Index threadIdx)
             where T : struct
         {
-            Debug.Assert(sourceView.Extent == targetView.Extent, "Target view out of range");
+            Debug.Assert(sourceView.Extent <= targetView.Extent, "Target view out of range");
             Debug.Assert(threadIdx >= Index.Zero && threadIdx < Group.Dimension.X, "Thread index out of range");
             for (Index i = threadIdx; i < sourceView.Extent; i += Group.Dimension.X)
                 targetView[i] = sourceView[i];
@@ -68,7 +68,7 @@ namespace ILGPU.Lightning
         public static void CopyToT<T>(this ArrayView2D<T> sourceView, ArrayView2D<T> targetView)
             where T : struct
         {
-            Debug.Assert(sourceView.Extent == targetView.Extent, "Target view out of range");
+            Debug.Assert(sourceView.Extent <= targetView.Extent, "Target view out of range");
             for (Index i = 0; i < sourceView.Extent.X; ++i)
                 for (Index j = 0; j < sourceView.Extent.Y; ++j)
                 {
@@ -89,7 +89,7 @@ namespace ILGPU.Lightning
         public static void CopyGroupedTo<T>(this ArrayView2D<T> sourceView, ArrayView2D<T> targetView, Index threadIdx)
             where T : struct
         {
-            Debug.Assert(sourceView.Extent == targetView.Extent, "Target view out of range");
+            Debug.Assert(sourceView.Extent <= targetView.Extent, "Target view out of range");
             Debug.Assert(threadIdx.X >= Index.Zero && threadIdx.X < Group.Dimension.X, "X thread-index out of range");
             for (Index i = threadIdx.X; i < sourceView.Extent.X; i += Group.Dimension.X)
                 for (Index j = 0; j < sourceView.Extent.Y; ++j)
@@ -111,7 +111,7 @@ namespace ILGPU.Lightning
         public static void CopyGroupedTo<T>(this ArrayView2D<T> sourceView, ArrayView2D<T> targetView, Index2 threadIdx)
             where T : struct
         {
-            Debug.Assert(sourceView.Extent == targetView.Extent, "Target view out of range");
+            Debug.Assert(sourceView.Extent <= targetView.Extent, "Target view out of range");
             Debug.Assert(threadIdx.X >= Index.Zero && threadIdx.X < Group.Dimension.X, "X thread-index out of range");
             Debug.Assert(threadIdx.Y >= Index.Zero && threadIdx.Y < Group.Dimension.Y, "Y thread-index out of range");
             for (Index i = threadIdx.X; i < sourceView.Extent.X; i += Group.Dimension.X)
@@ -137,7 +137,7 @@ namespace ILGPU.Lightning
         public static void CopyTo<T>(this ArrayView3D<T> sourceView, ArrayView3D<T> targetView)
             where T : struct
         {
-            Debug.Assert(sourceView.Extent == targetView.Extent, "Target view out of range");
+            Debug.Assert(sourceView.Extent <= targetView.Extent, "Target view out of range");
             for (Index i = 0; i < sourceView.Extent.X; ++i)
                 for (Index j = 0; j < sourceView.Extent.Y; ++j)
                     for (Index k = 0; k < sourceView.Extent.Z; ++k)
@@ -159,7 +159,7 @@ namespace ILGPU.Lightning
         public static void CopyGroupedTo<T>(this ArrayView3D<T> sourceView, ArrayView3D<T> targetView, Index threadIdx)
             where T : struct
         {
-            Debug.Assert(sourceView.Extent == targetView.Extent, "Target view out of range");
+            Debug.Assert(sourceView.Extent <= targetView.Extent, "Target view out of range");
             Debug.Assert(threadIdx >= Index.Zero && threadIdx < Group.Dimension.X, "Thread index out of range");
             for (Index i = threadIdx; i < sourceView.Extent.X; i += Group.Dimension.X)
                 for (Index j = 0; j < sourceView.Extent.Y; ++j)
@@ -182,7 +182,7 @@ namespace ILGPU.Lightning
         public static void CopyGroupedTo<T>(this ArrayView3D<T> sourceView, ArrayView3D<T> targetView, Index2 threadIdx)
             where T : struct
         {
-            Debug.Assert(sourceView.Extent == targetView.Extent, "Target view out of range");
+            Debug.Assert(sourceView.Extent <= targetView.Extent, "Target view out of range");
             Debug.Assert(threadIdx.X >= Index.Zero && threadIdx.X < Group.Dimension.X, "X thread-index out of range");
             Debug.Assert(threadIdx.Y >= Index.Zero && threadIdx.Y < Group.Dimension.Y, "Y thread-index out of range");
             for (Index i = threadIdx.X; i < sourceView.Extent.X; i += Group.Dimension.X)
@@ -206,7 +206,7 @@ namespace ILGPU.Lightning
         public static void CopyGroupedTo<T>(this ArrayView3D<T> sourceView, ArrayView3D<T> targetView, Index3 threadIdx)
             where T : struct
         {
-            Debug.Assert(sourceView.Extent == targetView.Extent, "Target view out of range");
+            Debug.Assert(sourceView.Extent <= targetView.Extent, "Target view out of range");
             Debug.Assert(threadIdx.X >= Index.Zero && threadIdx.X < Group.Dimension.X, "X thread-index out of range");
             Debug.Assert(threadIdx.Y >= Index.Zero && threadIdx.Y < Group.Dimension.Y, "Y thread-index out of range");
             Debug.Assert(threadIdx.Z >= Index.Zero && threadIdx.Z < Group.Dimension.Z, "Z thread-index out of range");
