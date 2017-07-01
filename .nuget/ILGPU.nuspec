@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>ILGPU</id>
-    <version>0.1.2</version>
+    <version>0.1.3</version>
     <title>ILGPU</title>
     <owners>Marcel Koester</owners>
     <authors>Marcel Koester</authors>
