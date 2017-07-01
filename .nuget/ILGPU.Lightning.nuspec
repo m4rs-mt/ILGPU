@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>ILGPU.Lightning</id>
-    <version>0.1.2</version>
+    <version>0.1.3</version>
     <title>ILGPU Lightning Lib</title>
     <authors>Marcel Koester, Denis Mueller, Christian Hauck</authors>
     <licenseUrl>http://www.ilgpu.net/licenses/ILGPU.Lightning.License.txt</licenseUrl>
@@ -19,7 +19,7 @@
     <copyright>Copyright © 2017 ILGPU Lightning Project. All rights reserved.</copyright>
     <tags>ilgpu gpu llvm nvidia amd amp opencl cuda scan prefix sum sort reduce parallel foreach</tags>
     <dependencies>
-      <dependency id="ILGPU" version="0.1.2" />
+      <dependency id="ILGPU" version="0.1.3" />
     </dependencies>
   </metadata>
   <files>
