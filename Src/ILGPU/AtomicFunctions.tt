@@ -71,7 +71,7 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Add)]
         public static unsafe <#= type.Type #> Add(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
         {
-            return Interlocked.Add(ref Unsafe.AsRef<<#= type.Type #>>(target.Pointer.ToPointer()), value);
+            return Interlocked.Add(ref Unsafe.AsRef<<#= type.Type #>>(target.Pointer.ToPointer()), value) - value;
         }
 
 <#      } #>
