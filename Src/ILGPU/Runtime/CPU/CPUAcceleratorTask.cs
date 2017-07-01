@@ -29,7 +29,7 @@ namespace ILGPU.Runtime.CPU
     /// <param name="numUsedRuntimeThreads">The currently used number of processing threads.</param>
     /// <param name="chunkSize">The size of a grid-idx chunk to process.</param>
     /// <param name="chunkOffset">The offset of the current processing chunk.</param>
-    /// <param name="userDimension">The user-defined kernel dimension.</param>
+    /// <param name="targetDimension">The target kernel dimension.</param>
     public delegate void CPUKernelExecutionHandler(
         CPUAcceleratorTask task,
         Barrier groupBarrier,
@@ -40,7 +40,7 @@ namespace ILGPU.Runtime.CPU
         int numUsedRuntimeThreads,
         int chunkSize,
         int chunkOffset,
-        int userDimension);
+        int targetDimension);
 
     /// <summary>
     /// Represents a single CPU-accelerator task.
@@ -76,7 +76,7 @@ namespace ILGPU.Runtime.CPU
             typeof(int),                // numUsedRuntimeThreads
             typeof(int),                // chunkSize
             typeof(int),                // chunkOffset
-            typeof(int)                 // userDimension
+            typeof(int)                 // targetDimension
         };
 
         #endregion
@@ -185,7 +185,7 @@ namespace ILGPU.Runtime.CPU
         /// <param name="numUsedRuntimeThreads">The currently used number of processing threads.</param>
         /// <param name="chunkSize">The size of a grid-idx chunk to process.</param>
         /// <param name="chunkOffset">The offset of the current processing chunk.</param>
-        /// <param name="userDimension">The user-defined kernel dimension.</param>
+        /// <param name="targetDimension">The target kernel dimension.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Execute(
             Barrier groupBarrier,
@@ -196,7 +196,7 @@ namespace ILGPU.Runtime.CPU
             int numUsedRuntimeThreads,
             int chunkSize,
             int chunkOffset,
-            int userDimension)
+            int targetDimension)
         {
             KernelExecutionDelegate(
                 this,
@@ -208,7 +208,7 @@ namespace ILGPU.Runtime.CPU
                 numUsedRuntimeThreads,
                 chunkSize,
                 chunkOffset,
-                userDimension);
+                targetDimension);
         }
 
         #endregion

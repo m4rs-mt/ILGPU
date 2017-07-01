@@ -367,9 +367,10 @@ namespace ILGPU.Runtime.CPU
                     groupContexts[runtimeGroupIdx].MakeCurrent(out ArrayView<byte> sharedMemory, out Barrier groupBarrier);
                     var runtimeDimension = task.RuntimeDimension;
                     var chunkSize = (runtimeDimension + numRuntimeGroups - 1) / numRuntimeGroups;
+                    chunkSize = ((chunkSize + groupThreadSize - 1) / groupThreadSize) * groupThreadSize;
                     var chunkOffset = chunkSize * runtimeGroupIdx;
-                    chunkSize = Math.Min(chunkOffset + chunkSize, runtimeDimension) - chunkOffset;
 
+                    var targetDimension = Math.Min(task.UserDimension, runtimeDimension);
                     Debug.Assert(sharedMemory.LengthInBytes == task.SharedMemSize, "Invalid shared-memory initialization");
                     task.Execute(
                         groupBarrier,
@@ -380,7 +381,7 @@ namespace ILGPU.Runtime.CPU
                         numUsedThreads,
                         chunkSize,
                         chunkOffset,
-                        task.UserDimension);
+                        targetDimension);
                 }
 
                 finishedEvent.SignalAndWait();
@@ -784,18 +785,14 @@ namespace ILGPU.Runtime.CPU
             }
 
             // Check the custom user dimension
-            // globalIndex < userDimension
-            var kernelNotInvoked = new Label();
-            if (!entryPoint.IsGroupedIndexEntry)
-            {
-                kernelNotInvoked = ilGenerator.DefineLabel();
-                ilGenerator.Emit(OpCodes.Ldloc, globalIndex);
-                ilGenerator.Emit(OpCodes.Ldarg, 9);
-                ilGenerator.Emit(OpCodes.Clt);
-                ilGenerator.Emit(OpCodes.Stloc, breakCondition);
-                ilGenerator.Emit(OpCodes.Ldloc, breakCondition);
-                ilGenerator.Emit(OpCodes.Brfalse, kernelNotInvoked);
-            }
+            // globalIndex < targetDimension
+            var kernelNotInvoked = ilGenerator.DefineLabel();
+            ilGenerator.Emit(OpCodes.Ldloc, globalIndex);
+            ilGenerator.Emit(OpCodes.Ldarg, 9);
+            ilGenerator.Emit(OpCodes.Clt);
+            ilGenerator.Emit(OpCodes.Stloc, breakCondition);
+            ilGenerator.Emit(OpCodes.Ldloc, breakCondition);
+            ilGenerator.Emit(OpCodes.Brfalse, kernelNotInvoked);
 
             // Launch the actual kernel method
             {
@@ -858,8 +855,7 @@ namespace ILGPU.Runtime.CPU
 
             // Synchronize group threads
             {
-                if (!entryPoint.IsGroupedIndexEntry)
-                    ilGenerator.MarkLabel(kernelNotInvoked);
+                ilGenerator.MarkLabel(kernelNotInvoked);
 
                 // Memory barrier for interlocked calls
                 ilGenerator.Emit(
