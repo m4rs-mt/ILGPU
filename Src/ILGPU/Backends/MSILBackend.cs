@@ -136,7 +136,7 @@ namespace ILGPU.Backends
                         throw compilationContext.GetNotSupportedException(
                             ErrorMessages.NotSupportedInstruction, method.Name, instruction.InstructionType);
                     case ILInstructionType.Callvirt:
-                        var virtualTarget = instruction.GetArgumentAs<MethodBase>();
+                        var virtualTarget = instruction.GetArgumentAs<MethodInfo>();
                         var constrainedType = instruction.HasFlags(ILInstructionFlags.Constrained) ?
                             instruction.FlagsContext.Argument as Type : null;
                         CheckCall(

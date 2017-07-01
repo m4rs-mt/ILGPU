@@ -61,7 +61,7 @@ namespace ILGPU.Compiler
             InstructionHandlers.Add(ILInstructionType.Call, (generator, instruction) => generator.MakeCall(instruction.GetArgumentAs<MethodBase>()));
             InstructionHandlers.Add(ILInstructionType.Callvirt, (generator, instruction) =>
             {
-                var method = instruction.GetArgumentAs<MethodBase>();
+                var method = instruction.GetArgumentAs<MethodInfo>();
                 if (instruction.HasFlags(ILInstructionFlags.Constrained))
                     generator.MakeVirtualCall(method, instruction.FlagsContext.Argument as Type);
                 else

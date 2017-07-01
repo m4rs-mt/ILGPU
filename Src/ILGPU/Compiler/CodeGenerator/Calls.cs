@@ -73,9 +73,9 @@ namespace ILGPU.Compiler
         /// <param name="target">The virtual method to call.</param>
         /// <param name="constrainedType">The constrained type of the virtual call.</param>
         /// <returns>The resolved call target.</returns>
-        public static MethodBase ResolveVirtualCallTarget(
+        public static MethodInfo ResolveVirtualCallTarget(
             CompilationContext compilationContext,
-            MethodBase target,
+            MethodInfo target,
             Type constrainedType)
         {
             if (!target.IsVirtual)
@@ -83,6 +83,7 @@ namespace ILGPU.Compiler
             if (constrainedType == null)
                 throw compilationContext.GetNotSupportedException(
                     ErrorMessages.NotSupportedVirtualMethodCallToUnconstrainedInstance, target.Name);
+            var sourceGenerics = target.GetGenericArguments();
             // This can only happen in constrained generic cases like:
             // Val GetVal<T>(T instance) where T : IValProvider
             // {
@@ -115,6 +116,8 @@ namespace ILGPU.Compiler
             else
             {
                 // Resolve the actual call target
+                if (sourceGenerics.Length > 0)
+                    target = target.GetGenericMethodDefinition();
                 var interfaceMapping = constrainedType.GetInterfaceMap(target.DeclaringType);
                 for (int i = 0, e = interfaceMapping.InterfaceMethods.Length; i < e; ++i)
                 {
@@ -127,7 +130,10 @@ namespace ILGPU.Compiler
             if (actualTarget == null)
                 throw compilationContext.GetNotSupportedException(
                     ErrorMessages.NotSupportedVirtualMethodCall, target.Name);
-            return actualTarget;
+            if (sourceGenerics.Length > 0)
+                return actualTarget.MakeGenericMethod(sourceGenerics);
+            else
+                return actualTarget;
         }
 
         /// <summary>
@@ -135,7 +141,7 @@ namespace ILGPU.Compiler
         /// </summary>
         /// <param name="target">The target method to invoke.</param>
         /// <param name="constrainedType">The target type on which to invoke the method.</param>
-        private void MakeVirtualCall(MethodBase target, Type constrainedType)
+        private void MakeVirtualCall(MethodInfo target, Type constrainedType)
         {
             target = ResolveVirtualCallTarget(CompilationContext, target, constrainedType);
             MakeCall(target);
