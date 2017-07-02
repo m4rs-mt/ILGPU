@@ -369,4 +369,7 @@
   <data name="NotSupportedGroupBarrier" xml:space="preserve">
     <value>The group-barrier function '{0}' is not supported in the scope of implicitly-grouped kernels</value>
   </data>
+  <data name="NotSupportedSizeOf" xml:space="preserve">
+    <value>Could not resolve the native size of the type '{0}'</value>
+  </data>
 </root>

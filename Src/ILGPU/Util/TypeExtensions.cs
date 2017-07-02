@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -81,10 +82,19 @@ namespace ILGPU.Util
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
             if (!type.IsValueType)
-                throw new NotSupportedException($"Type type '{type}' is no value type");
+                throw new NotSupportedException(
+                    string.Format(ErrorMessages.NotSupportedType, type));
             // We cannot use Marshal.SizeOf<T> since SizeOf<T> throws an exception when using generic types
             // TODO: replace with other functionality
-            return Marshal.SizeOf(Activator.CreateInstance(type));
+            try
+            {
+                return Marshal.SizeOf(Activator.CreateInstance(type));
+            }
+            catch (Exception e)
+            {
+                throw new NotSupportedException(
+                    string.Format(ErrorMessages.NotSupportedSizeOf, type), e);
+            }
         }
 
         /// <summary>

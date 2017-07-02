@@ -637,6 +637,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Could not resolve the native size of the type &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedSizeOf {
+            get {
+                return ResourceManager.GetString("NotSupportedSizeOf", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot store a value to the static field &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedStoreToStaticField {
