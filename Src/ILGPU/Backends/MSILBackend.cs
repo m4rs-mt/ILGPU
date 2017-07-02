@@ -49,6 +49,8 @@ namespace ILGPU.Backends
                 typeof(Warp),
                 typeof(CPURuntimeWarpContext),
                 typeof(CPURuntimeGroupContext),
+
+                typeof(Nullable<>)
             };
         }
 
@@ -201,7 +203,10 @@ namespace ILGPU.Backends
                 compilationContext,
                 target,
                 entryPoint);
-            if (IntrinsicTypes.Contains(target.DeclaringType))
+            var declaringType = target.DeclaringType;
+            if (declaringType.IsGenericType)
+                declaringType = declaringType.GetGenericTypeDefinition();
+            if (IntrinsicTypes.Contains(declaringType))
                 return;
             if (VerifyActivatorCall(unit, target))
                 return;

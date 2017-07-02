@@ -240,7 +240,10 @@ namespace ILGPU.Compiler.Intrinsic
         {
             // Check registered mappings
             if (!DeviceFunctionRemappers.TryGetValue(context.Method, out DeviceFunctionRemapper handler))
-                return null;
+            {
+                // Check for nullable types
+                return RemapNullableMethods(context);
+            }
             return handler(this, context);
         }
 
@@ -515,6 +518,52 @@ namespace ILGPU.Compiler.Intrinsic
             return new Value(
                 args[0].ValueType,
                 builder.CreateBitCast(add, args[0].LLVMValue.TypeOf(), string.Empty));
+        }
+
+        #endregion
+
+        #region Nullable
+
+        /// <summary>
+        /// Remaps methods of nullable types.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        /// <returns>The remapped invocation context.</returns>
+        private static InvocationContext? RemapNullableMethods(InvocationContext context)
+        {
+            // Check for nullable types
+            var declaringType = context.Method.DeclaringType;
+            var baseType = Nullable.GetUnderlyingType(declaringType);
+            if (baseType == null)
+                return null;
+
+            var nullableType = typeof(Nullable<>).MakeGenericType(baseType);
+            var valueGetter = nullableType.GetProperty("Value").GetGetMethod();
+            if (valueGetter != context.Method)
+                return null;
+
+            var nullableGetValueMapper = typeof(CompilerDeviceFunctions).GetMethod(
+                "GetNullableValue",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            return new InvocationContext(
+                context.Builder,
+                context.CallerMethod,
+                nullableGetValueMapper.MakeGenericMethod(baseType),
+                context.GetArgs(),
+                context.CodeGenerator);
+        }
+
+        /// <summary>
+        /// Wraps the getter T?.Value.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="nullable">The nullable value.</param>
+        /// <returns>The internal value of the given nullable.</returns>
+        private static T GetNullableValue<T>(ref T? nullable)
+            where T : struct
+        {
+            Debug.Assert(nullable.HasValue, "Nullable value is null");
+            return nullable.GetValueOrDefault();
         }
 
         #endregion

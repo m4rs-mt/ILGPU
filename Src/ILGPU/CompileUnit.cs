@@ -407,6 +407,10 @@ namespace ILGPU
                 throw CompilationContext.GetNotSupportedException(
                     ErrorMessages.NotSupportedClassType, type);
 
+            var nullableBaseType = Nullable.GetUnderlyingType(type);
+            if (nullableBaseType != null)
+                return GetNullableType(type, nullableBaseType);
+
             // Resolve fields
             var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
@@ -451,6 +455,36 @@ namespace ILGPU
             var resultType = LLVMContext.StructCreateNamed(GetLLVMName(type));
             resultType.StructSetBody(entries.ToArray(), false);
             return new MappedType(type, resultType, entries.Count, fieldOffsets);
+        }
+
+        /// <summary>
+        /// Converts the given nullable type into a corresponding LLVM type.
+        /// </summary>
+        /// <param name="type">The nullable type to convert.</param>
+        /// <param name="baseType">The encapsulated type of the given nullable type.</param>
+        /// <returns>The mapped LLVM type.</returns>
+        private MappedType GetNullableType(Type type, Type baseType)
+        {
+            const int NumExpectedFields = 2;
+            Debug.Assert(type != null, "Invalid type");
+            Debug.Assert(Nullable.GetUnderlyingType(type) == baseType, "Invalid base type");
+            var nullableType = LLVMContext.StructCreateNamed(GetLLVMName(type.ToString(), "Nullable"));
+            var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
+            if (fields.Length != NumExpectedFields)
+                throw CompilationContext.GetNotSupportedException(
+                    ErrorMessages.NotSupportedType, type);
+            var boolFlagOffset = fields[0].FieldType == typeof(bool) ? 0 : 1;
+            var typeOffset = 1 - boolFlagOffset;
+            var fieldOffsets = new Dictionary<FieldInfo, int>()
+            {
+                { fields[boolFlagOffset], boolFlagOffset },
+                { fields[typeOffset], typeOffset }
+            };
+            var structTypes = new LLVMTypeRef[NumExpectedFields];
+            structTypes[boolFlagOffset] = LLVMContext.Int1TypeInContext();
+            structTypes[typeOffset] = GetType(baseType);
+            nullableType.StructSetBody(structTypes, false);
+            return new MappedType(type, nullableType, structTypes.Length, fieldOffsets);
         }
 
         /// <summary>
