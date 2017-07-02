@@ -735,7 +735,7 @@ namespace ILGPU.Runtime.CPU
 
                 if (!sharedMemVariable.IsArray)
                 {
-                    var genericArrayViewType = Type.GetType("ILGPU.ArrayView`1").MakeGenericType(
+                    var genericArrayViewType = typeof(ArrayView<>).MakeGenericType(
                         sharedMemVariable.ElementType);
                     var castedLocal = ilGenerator.DeclareLocal(genericArrayViewType);
                     ilGenerator.Emit(OpCodes.Stloc, castedLocal);

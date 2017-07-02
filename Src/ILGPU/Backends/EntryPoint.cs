@@ -25,8 +25,8 @@ namespace ILGPU.Backends
     {
         #region Constants
 
-        private static readonly Type VariableViewType = System.Type.GetType("ILGPU.VariableView`1");
-        private static readonly Type ArrayViewType = System.Type.GetType("ILGPU.ArrayView`1");
+        private static readonly Type VariableViewType = typeof(VariableView<>);
+        private static readonly Type ArrayViewType = typeof(ArrayView<>);
 
         #endregion
 
