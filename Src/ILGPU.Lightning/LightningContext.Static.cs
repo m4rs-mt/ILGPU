@@ -34,9 +34,19 @@ namespace ILGPU.Lightning
         /// <summary>
         /// Represents the default flags of a new lightning context.
         /// </summary>
-        public static readonly CompileUnitFlags DefaultFlags =
-            CompileUnitFlags.FastMath |
-            CompileUnitFlags.UseGPUMath;
+        public static readonly CompileUnitFlags DefaultFlags = CompileUnitFlags.UseGPUMath;
+
+        /// <summary>
+        /// Represents the default flags of a new lightning context.
+        /// </summary>
+        public static readonly CompileUnitFlags FastMathFlags =
+            DefaultFlags | CompileUnitFlags.FastMath | CompileUnitFlags.PTXFlushDenormalsToZero;
+
+        /// <summary>
+        /// Represents the default flags of a new lightning context.
+        /// </summary>
+        public static readonly CompileUnitFlags FastMath32BitFloatsFlags =
+            FastMathFlags | CompileUnitFlags.Force32BitFloats;
 
         /// <summary>
         /// Initializes the native ILGPU.Lightning library.
