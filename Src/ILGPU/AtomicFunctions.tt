@@ -173,7 +173,9 @@ namespace ILGPU
 <#      if (type.IsUnsignedInt) { #>
         [CLSCompliant(false)]
 <#      } #>
+<#      if (type.IsInt) { #>
         [AtomicIntrinsic(AtomicIntrinsicKind.Max)]
+<#      } #>
         public static <#= type.Type #> Max(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
         {
             return MakeAtomic(target, value, new Max<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
@@ -204,7 +206,9 @@ namespace ILGPU
 <#      if (type.IsUnsignedInt) { #>
         [CLSCompliant(false)]
 <#      } #>
+<#      if (type.IsInt) { #>
         [AtomicIntrinsic(AtomicIntrinsicKind.Min)]
+<#      } #>
         public static <#= type.Type #> Min(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
         {
             return MakeAtomic(target, value, new Min<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());

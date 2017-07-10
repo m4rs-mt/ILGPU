@@ -39,6 +39,8 @@ public class TypeInformation
 
     public TypeInformationKind Kind { get; }
 
+    public bool IsInt => IsSignedInt || IsUnsignedInt;
+
     public bool IsSignedInt => Kind == TypeInformationKind.SignedInt;
 
     public bool IsUnsignedInt => Kind == TypeInformationKind.UnsignedInt;
