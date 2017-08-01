@@ -37,14 +37,14 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ILGPU, Version=0.1.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\ILGPU.0.1.2\lib\net46\Release\ILGPU.dll</HintPath>
+    <Reference Include="ILGPU, Version=0.1.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\ILGPU.0.1.4\lib\net46\Release\ILGPU.dll</HintPath>
     </Reference>
-    <Reference Include="ILGPU.Lightning, Version=0.1.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\ILGPU.Lightning.0.1.2\lib\net46\Release\ILGPU.Lightning.dll</HintPath>
+    <Reference Include="ILGPU.Lightning, Version=0.1.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\ILGPU.Lightning.0.1.4\lib\net46\Release\ILGPU.Lightning.dll</HintPath>
     </Reference>
     <Reference Include="LLVMSharp, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\ILGPU.0.1.2\lib\net46\LLVMSharp.dll</HintPath>
+      <HintPath>..\packages\ILGPU.0.1.4\lib\net46\LLVMSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -62,15 +62,15 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\packages\ILGPU.0.1.4\build\ILGPU.targets" Condition="Exists('..\packages\ILGPU.0.1.4\build\ILGPU.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\ILGPU.0.1.2\build\ILGPU.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILGPU.0.1.2\build\ILGPU.targets'))" />
-    <Error Condition="!Exists('..\packages\ILGPU.Lightning.0.1.2\build\ILGPU.Lightning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILGPU.Lightning.0.1.2\build\ILGPU.Lightning.targets'))" />
+    <Error Condition="!Exists('..\packages\ILGPU.0.1.4\build\ILGPU.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILGPU.0.1.4\build\ILGPU.targets'))" />
+    <Error Condition="!Exists('..\packages\ILGPU.Lightning.0.1.4\build\ILGPU.Lightning.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILGPU.Lightning.0.1.4\build\ILGPU.Lightning.targets'))" />
   </Target>
-  <Import Project="..\packages\ILGPU.0.1.2\build\ILGPU.targets" Condition="Exists('..\packages\ILGPU.0.1.2\build\ILGPU.targets')" />
-  <Import Project="..\packages\ILGPU.Lightning.0.1.2\build\ILGPU.Lightning.targets" Condition="Exists('..\packages\ILGPU.Lightning.0.1.2\build\ILGPU.Lightning.targets')" />
+  <Import Project="..\packages\ILGPU.Lightning.0.1.4\build\ILGPU.Lightning.targets" Condition="Exists('..\packages\ILGPU.Lightning.0.1.4\build\ILGPU.Lightning.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
