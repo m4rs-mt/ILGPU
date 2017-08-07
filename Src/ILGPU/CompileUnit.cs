@@ -755,6 +755,12 @@ namespace ILGPU
             var hasSupportedBase = instanceType.HasSupportedBaseClass();
             var elements = new LLVMValueRef[type.NumLLVMTypeElements];
 
+            // Fill all elements will zero
+            var elementTypes = type.LLVMType.GetStructElementTypes();
+            for (int i = 0, e = elements.Length; i < e; ++i)
+                elements[i] = LLVM.ConstNull(elementTypes[i]);
+
+            // Fill with real values
             foreach (var field in type.Fields)
             {
                 var fieldValue = field.Key.GetValue(instanceValue);
