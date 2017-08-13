@@ -54,6 +54,7 @@
       <DependentUpon>ArrayViews.tt</DependentUpon>
     </Compile>
     <Compile Include="Compiler\CodeGenerator\Verify.cs" />
+    <Compile Include="CompileUnitFlags.cs" />
     <Compile Include="Reduction.cs" />
     <Compile Include="ReductionOperations.cs">
       <AutoGen>True</AutoGen>
