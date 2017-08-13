@@ -21,6 +21,7 @@ namespace ILGPU.Compiler
         /// The block mapping from il offsets to basic blocks.
         /// </summary>
         private readonly Dictionary<int, BasicBlock> bbMapping = new Dictionary<int, BasicBlock>();
+        private readonly List<BasicBlock> postOrder = new List<BasicBlock>();
 
         private void InitCFG()
         {
@@ -31,6 +32,25 @@ namespace ILGPU.Compiler
 
             // Setup basic blocks
             SetupBasicBlocks(offsetMapping, new HashSet<BasicBlock>(), EntryBlock, 0);
+
+            // Determine post ordering
+            processedBasicBlocks.Clear();
+            DeterminePostOrder(EntryBlock);
+        }
+
+        /// <summary>
+        /// Determines the post order of all blocks.
+        /// </summary>
+        /// <param name="block">The current block.</param>
+        private void DeterminePostOrder(BasicBlock block)
+        {
+            if (!processedBasicBlocks.Contains(block))
+            {
+                processedBasicBlocks.Add(block);
+                foreach (var successor in block.Successors)
+                    DeterminePostOrder(successor);
+            }
+            postOrder.Add(block);
         }
 
         /// <summary>

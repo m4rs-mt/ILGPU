@@ -138,8 +138,10 @@ namespace ILGPU.Compiler
             // Seal the entry block
             EntryBlock.Seal();
 
-            // Generate code for the entry block
-            GenerateCodeForBlock(EntryBlock);
+            // Generate code for all blocks
+            processedBasicBlocks.Clear();
+            for (int blockIdx = postOrder.Count - 1; blockIdx >= 0; --blockIdx)
+                GenerateCodeForBlock(postOrder[blockIdx]);
         }
 
         /// <summary>
@@ -158,13 +160,11 @@ namespace ILGPU.Compiler
         /// <param name="block">The block to generate code for.</param>
         private void GenerateCodeForBlock(BasicBlock block)
         {
+            if (!block.IsSealed && block.Predecesors.All(processedBasicBlocks.Contains))
+                block.Seal();
+
             if (processedBasicBlocks.Contains(block))
-            {
-                if (!block.IsSealed && block.Predecesors.All(processedBasicBlocks.Contains))
-                    block.Seal();
                 return;
-            }
-            Debug.Assert(!block.IsSealed || block == EntryBlock, "Invalid sealing operation");
             processedBasicBlocks.Add(block);
 
             CurrentBlock = block;
@@ -186,13 +186,6 @@ namespace ILGPU.Compiler
                 if (!lastInstruction.IsTerminator)
                     InstructionBuilder.CreateBr(successor.LLVMBlock);
             }
-
-            // Generate code for all successors
-            foreach (var successor in block.Successors)
-                GenerateCodeForBlock(successor);
-
-            if (!block.IsSealed && block.Predecesors.All(processedBasicBlocks.Contains))
-                block.Seal();
         }
 
         /// <summary>
