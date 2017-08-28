@@ -9,10 +9,11 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Resources;
-using LLVMSharp;
 using System;
 using System.Diagnostics;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -26,8 +27,8 @@ namespace ILGPU.Compiler
         /// <returns>The computed element address.</returns>
         private LLVMValueRef ComputeArrayAddress(LLVMValueRef array, LLVMValueRef index)
         {
-            var baseAddr = InstructionBuilder.CreateExtractValue(array, 0, string.Empty);
-            return InstructionBuilder.CreateInBoundsGEP(baseAddr, new LLVMValueRef[] { index }, string.Empty);
+            var baseAddr = BuildExtractValue(Builder, array, 0, string.Empty);
+            return BuildInBoundsGEP(Builder, baseAddr, index);
         }
 
         /// <summary>
@@ -39,26 +40,26 @@ namespace ILGPU.Compiler
             var stackValue = CurrentBlock.Pop();
             var arrayLength = stackValue.LLVMValue;
 
-            if (!arrayLength.IsConstant())
+            if (!IsConstant(arrayLength))
                 throw CompilationContext.GetNotSupportedException(ErrorMessages.NotSupportedArrayCreation);
 
             // Allocate the element data first in a local alloca
             var llvmElementType = Unit.GetType(elementType);
-            var arrayLengthValue = (uint)arrayLength.ConstIntGetZExtValue();
+            var arrayLengthValue = (int)ConstIntGetZExtValue(arrayLength);
 
-            var llvmAllocaArrayType = LLVM.ArrayType(llvmElementType, arrayLengthValue);
+            var llvmAllocaArrayType = ArrayType(llvmElementType, arrayLengthValue);
             var arrayData = CreateTempAlloca(llvmAllocaArrayType);
-            InstructionBuilder.CreateStore(LLVM.ConstNull(llvmAllocaArrayType), arrayData);
+            BuildStore(Builder, ConstNull(llvmAllocaArrayType), arrayData);
 
             // Array<T> = (T*, int32)
             var arrayType = elementType.MakeArrayType();
             var llvmArrayType = Unit.GetType(arrayType);
-            var initialArrayValue = LLVM.GetUndef(llvmArrayType);
+            var initialArrayValue = GetUndef(llvmArrayType);
             // Setup T*: (T*, undef)
-            var basePtr = InstructionBuilder.CreatePointerCast(arrayData, LLVM.PointerType(llvmElementType, 0), string.Empty);
-            var arrayWithPointer = InstructionBuilder.CreateInsertValue(initialArrayValue, basePtr, 0, string.Empty);
+            var basePtr = BuildPointerCast(Builder, arrayData, PointerType(llvmElementType), string.Empty);
+            var arrayWithPointer = BuildInsertValue(Builder, initialArrayValue, basePtr, 0, string.Empty);
             // Setup length: (T*, int32)
-            var array = InstructionBuilder.CreateInsertValue(arrayWithPointer, arrayLength, 1, string.Empty);
+            var array = BuildInsertValue(Builder, arrayWithPointer, arrayLength, 1, string.Empty);
 
             // Push the final array value
             CurrentBlock.Push(arrayType, array);
@@ -71,7 +72,7 @@ namespace ILGPU.Compiler
         {
             var array = CurrentBlock.Pop();
             Debug.Assert(array.ValueType.IsArray);
-            CurrentBlock.Push(typeof(int), InstructionBuilder.CreateExtractValue(array.LLVMValue, 1, "ldlen"));
+            CurrentBlock.Push(typeof(int), BuildExtractValue(Builder, array.LLVMValue, 1, "ldlen"));
         }
 
         /// <summary>
@@ -84,7 +85,7 @@ namespace ILGPU.Compiler
             var array = CurrentBlock.Pop();
             Debug.Assert(array.ValueType.IsArray);
             var addr = ComputeArrayAddress(array.LLVMValue, idx.LLVMValue);
-            var value = InstructionBuilder.CreateLoad(addr, string.Empty);
+            var value = BuildLoad(Builder, addr, string.Empty);
             CurrentBlock.Push(CreateConversion(new Value(array.ValueType.GetElementType(), value), type));
         }
 
@@ -111,7 +112,7 @@ namespace ILGPU.Compiler
             var array = CurrentBlock.Pop();
             Debug.Assert(array.ValueType.IsArray);
             var addr = ComputeArrayAddress(array.LLVMValue, idx.LLVMValue);
-            InstructionBuilder.CreateStore(value.LLVMValue, addr);
+            BuildStore(Builder, value.LLVMValue, addr);
         }
     }
 }

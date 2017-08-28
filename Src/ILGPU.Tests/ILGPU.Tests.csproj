@@ -59,10 +59,6 @@
     <Compile Include="ArrayViewTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\LLVMSharp\LLVMSharp.csproj">
-      <Project>{E230F816-0E92-4AE4-83E4-24D74DEB9609}</Project>
-      <Name>LLVMSharp</Name>
-    </ProjectReference>
     <ProjectReference Include="..\ILGPU\ILGPU.csproj">
       <Project>{30a409a1-b627-4ed0-9cdd-69ba19996e7b}</Project>
       <Name>ILGPU</Name>

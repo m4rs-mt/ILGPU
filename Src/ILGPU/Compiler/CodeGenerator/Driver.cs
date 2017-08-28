@@ -19,11 +19,11 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -74,12 +74,12 @@ namespace ILGPU.Compiler
 
             InstructionHandlers.Add(ILInstructionType.Brfalse, (generator, instruction) =>
             {
-                generator.CurrentBlock.Push(typeof(bool), LLVM.ConstInt(generator.LLVMContext.Int1TypeInContext(), 0, false));
+                generator.CurrentBlock.Push(typeof(bool), ConstInt(generator.LLVMContext.Int1Type, 0, false));
                 generator.MakeBranch(instruction.GetArgumentAs<ILInstructionBranchTargets>(), CompareType.Equal, true);
             });
             InstructionHandlers.Add(ILInstructionType.Brtrue, (generator, instruction) =>
             {
-                generator.CurrentBlock.Push(typeof(bool), LLVM.ConstInt(generator.LLVMContext.Int1TypeInContext(), 1, false));
+                generator.CurrentBlock.Push(typeof(bool), ConstInt(generator.LLVMContext.Int1Type, 1, false));
                 generator.MakeBranch(instruction.GetArgumentAs<ILInstructionBranchTargets>(), CompareType.Equal, true);
             });
 

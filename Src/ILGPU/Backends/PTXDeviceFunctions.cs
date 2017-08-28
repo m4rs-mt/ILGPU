@@ -11,13 +11,13 @@
 
 using ILGPU.Compiler;
 using ILGPU.Compiler.Intrinsic;
+using ILGPU.LLVM;
 using ILGPU.Resources;
-using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Backends
 {
@@ -72,33 +72,35 @@ namespace ILGPU.Backends
 
         private void InitRegisters(LLVMContextRef context, LLVMModuleRef module)
         {
-            GetThreadIdxX = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.tid.x", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
-            GetThreadIdxY = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.tid.y", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
-            GetThreadIdxZ = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.tid.z", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
+            var int32Type = context.Int32Type;
 
-            GetBlockIdxX = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.ctaid.x", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
-            GetBlockIdxY = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.ctaid.y", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
-            GetBlockIdxZ = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.ctaid.z", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
+            GetThreadIdxX = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.tid.x", FunctionType(int32Type)));
+            GetThreadIdxY = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.tid.y", FunctionType(int32Type)));
+            GetThreadIdxZ = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.tid.z", FunctionType(int32Type)));
 
-            GetBlockDimX = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.ntid.x", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
-            GetBlockDimY = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.ntid.y", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
-            GetBlockDimZ = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.ntid.z", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
+            GetBlockIdxX = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.ctaid.x", FunctionType(int32Type)));
+            GetBlockIdxY = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.ctaid.y", FunctionType(int32Type)));
+            GetBlockIdxZ = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.ctaid.z", FunctionType(int32Type)));
 
-            GetGridDimX = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.nctaid.x", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
-            GetGridDimY = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.nctaid.y", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
-            GetGridDimZ = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.read.ptx.sreg.nctaid.z", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false)));
+            GetBlockDimX = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.ntid.x", FunctionType(int32Type)));
+            GetBlockDimY = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.ntid.y", FunctionType(int32Type)));
+            GetBlockDimZ = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.ntid.z", FunctionType(int32Type)));
+
+            GetGridDimX = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.nctaid.x", FunctionType(int32Type)));
+            GetGridDimY = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.nctaid.y", FunctionType(int32Type)));
+            GetGridDimZ = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.read.ptx.sreg.nctaid.z", FunctionType(int32Type)));
 
             GetGridDimensions = new Lazy<LLVMValueRef>[] { GetGridDimX, GetGridDimY, GetGridDimZ };
             GetBlockDimensions = new Lazy<LLVMValueRef>[] { GetBlockDimX, GetBlockDimY, GetBlockDimZ };
@@ -107,113 +109,104 @@ namespace ILGPU.Backends
 
         private void InitAtomics(LLVMContextRef context, LLVMModuleRef module)
         {
-            AtomicAddF32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.atomic.load.add.f32.p0f32", LLVM.FunctionType(context.FloatTypeInContext(), new LLVMTypeRef[]
-             {
-                LLVM.PointerType(context.FloatTypeInContext(), 0),
-                context.FloatTypeInContext()
-             }, false)));
+            var int32Type = context.Int32Type;
+            var float32Type = context.FloatType;
 
-            AtomicIncU32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.atomic.load.inc.32.p0i32", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[]
-             {
-                LLVM.PointerType(context.Int32TypeInContext(), 0),
-                context.Int32TypeInContext()
-             }, false)));
+            AtomicAddF32 = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.atomic.load.add.f32.p0f32",
+                FunctionType(float32Type, PointerType(float32Type), float32Type)
+             ));
 
-            AtomicDecU32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.atomic.load.dec.32.p0i32", LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[]
-             {
-                LLVM.PointerType(context.Int32TypeInContext(), 0),
-                context.Int32TypeInContext()
-             }, false)));
+            AtomicIncU32 = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.atomic.load.inc.32.p0i32",
+                FunctionType(int32Type, PointerType(int32Type), int32Type)));
+
+            AtomicDecU32 = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.atomic.load.dec.32.p0i32",
+                FunctionType(int32Type, PointerType(int32Type), int32Type)));
         }
 
         private void InitMemoryFences(LLVMContextRef context, LLVMModuleRef module)
         {
-            var fenceType = LLVM.FunctionType(context.VoidTypeInContext(), new LLVMTypeRef[] { }, false);
-            BlockLevelFence = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            var fenceType = FunctionType(context.VoidType);
+            BlockLevelFence = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.membar.cta", fenceType));
-            DeviceLevelFence = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            DeviceLevelFence = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.membar.gl", fenceType));
-            SystemLevelFence = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            SystemLevelFence = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.membar.sys", fenceType));
         }
 
         private void InitGroups(LLVMContextRef context, LLVMModuleRef module)
         {
-            GroupBarrier = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
-                module, "llvm.nvvm.barrier0", LLVM.FunctionType(context.VoidTypeInContext(), new LLVMTypeRef[] { }, false)));
-            var genericGroupBarrierType = LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[]
-            {
-                context.Int32TypeInContext()
-            }, false);
-            GroupBarrierAnd = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            GroupBarrier = new Lazy<LLVMValueRef>(() => AddFunction(
+                module, "llvm.nvvm.barrier0", FunctionType(context.VoidType)));
+            var genericGroupBarrierType = FunctionType(context.Int32Type, context.Int32Type);
+            GroupBarrierAnd = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.barrier0.and", genericGroupBarrierType));
-            GroupBarrierOr = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            GroupBarrierOr = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.barrier0.or", genericGroupBarrierType));
-            GroupBarrierPopCount = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            GroupBarrierPopCount = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.barrier0.popc", genericGroupBarrierType));
         }
 
         private void InitWarps(LLVMContextRef context, LLVMModuleRef module)
         {
-            var getterType = LLVM.FunctionType(context.Int32TypeInContext(), new LLVMTypeRef[] { }, false); 
-            GetWarpSize = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            var getterType = FunctionType(context.Int32Type); 
+            GetWarpSize = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.read.ptx.sreg.warpsize", getterType));
-            GetLaneId = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            GetLaneId = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.read.ptx.sreg.laneid", getterType));
         }
 
         private void InitAssertions(LLVMContextRef context, LLVMModuleRef module, LLVMTypeRef intPtrType)
         {
+            var voidPtrType = context.VoidPtrType;
             AssertFailedMethod = new Lazy<LLVMValueRef>(() =>
-                LLVM.AddFunction(module, "__assertfail",
-                LLVM.FunctionType(context.VoidTypeInContext(), new LLVMTypeRef[]
-                {
-                    LLVM.PointerType(context.VoidTypeInContext(), 0),
-                    LLVM.PointerType(context.VoidTypeInContext(), 0),
-                    context.Int32TypeInContext(),
-                    LLVM.PointerType(context.VoidTypeInContext(), 0),
+                AddFunction(module, "__assertfail",
+                FunctionType(context.VoidType, 
+                    voidPtrType,
+                    voidPtrType,
+                    context.Int32Type,
+                    voidPtrType,
                     intPtrType
-                }, false)));
+                )));
         }
 
         private void InitShuffles(LLVMContextRef context, LLVMModuleRef module)
         {
-            var shuffleI32Type = LLVM.FunctionType(
-                context.Int32TypeInContext(), new LLVMTypeRef[]
-                {
-                    context.Int32TypeInContext(),
-                    context.Int32TypeInContext(),
-                    context.Int32TypeInContext(),
-                }, false);
-            var shuffleF32Type = LLVM.FunctionType(
-                context.FloatTypeInContext(), new LLVMTypeRef[]
-                {
-                    context.FloatTypeInContext(),
-                    context.Int32TypeInContext(),
-                    context.Int32TypeInContext(),
-                }, false);
+            var int32Type = context.Int32Type;
+            var float32Type = context.FloatType;
 
-            ShuffleI32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            var shuffleI32Type = FunctionType(
+                int32Type,
+                int32Type,
+                int32Type,
+                int32Type);
+            var shuffleF32Type = FunctionType(
+                float32Type,
+                float32Type,
+                int32Type,
+                int32Type);
+
+            ShuffleI32 = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.shfl.idx.i32", shuffleI32Type));
-            ShuffleF32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            ShuffleF32 = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.shfl.idx.f32", shuffleF32Type));
 
-            ShuffleDownI32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            ShuffleDownI32 = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.shfl.down.i32", shuffleI32Type));
-            ShuffleDownF32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            ShuffleDownF32 = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.shfl.down.f32", shuffleF32Type));
 
-            ShuffleUpI32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            ShuffleUpI32 = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.shfl.up.i32", shuffleI32Type));
-            ShuffleUpF32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            ShuffleUpF32 = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.shfl.up.f32", shuffleF32Type));
 
-            ShuffleXorI32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            ShuffleXorI32 = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.shfl.bfly.i32", shuffleI32Type));
-            ShuffleXorF32 = new Lazy<LLVMValueRef>(() => LLVM.AddFunction(
+            ShuffleXorF32 = new Lazy<LLVMValueRef>(() => AddFunction(
                 module, "llvm.nvvm.shfl.bfly.f32", shuffleF32Type));
 
             ShuffleLookup = new Dictionary<WarpIntrinsicKind, KeyValuePair<Lazy<LLVMValueRef>, bool>>()
@@ -510,17 +503,17 @@ namespace ILGPU.Backends
             var args = new LLVMValueRef[]
             {
                 condition.LLVMValue,
-                message.HasValue ? message.Value.LLVMValue : builder.CreateGlobalStringPtr("Assertion Failed", string.Empty),
-                builder.CreateGlobalStringPtr(file, string.Empty),
-                LLVMExtensions.ConstInt(context.LLVMContext.Int32TypeInContext(), line, false),
-                builder.CreateGlobalStringPtr(func, string.Empty)
+                message.HasValue ? message.Value.LLVMValue : BuildGlobalStringPtr(builder, "Assertion Failed", string.Empty),
+                BuildGlobalStringPtr(builder, file, string.Empty),
+                ConstInt(context.LLVMContext.Int32Type, line, false),
+                BuildGlobalStringPtr(builder, func, string.Empty)
             };
 
             var assertFailedMethod = context.Unit.GetMethod(DebugAssertWrapper);
-            builder.CreateCall(
+            BuildCall(
+                builder,
                 assertFailedMethod.LLVMFunction,
-                args,
-                string.Empty);
+                args);
 
             return null;
         }
@@ -566,13 +559,14 @@ namespace ILGPU.Backends
             var args = context.GetLLVMArgs();
 
             // Convert to void*
-            args[0] = builder.CreateBitCast(args[0], LLVM.PointerType(llvmContext.VoidTypeInContext(), 0), string.Empty);
-            args[1] = builder.CreateBitCast(args[1], LLVM.PointerType(llvmContext.VoidTypeInContext(), 0), string.Empty);
-            args[3] = builder.CreateBitCast(args[3], LLVM.PointerType(llvmContext.VoidTypeInContext(), 0), string.Empty);
+            var voidPtrType = llvmContext.VoidPtrType;
+            args[0] = BuildBitCast(builder, args[0], voidPtrType, string.Empty);
+            args[1] = BuildBitCast(builder, args[1], voidPtrType, string.Empty);
+            args[3] = BuildBitCast(builder, args[3], voidPtrType, string.Empty);
             // Convert to size_t
-            args[4] = builder.CreateIntCast(args[4], context.Unit.NativeIntPtrType, string.Empty);
+            args[4] = BuildIntCast(builder, args[4], context.Unit.NativeIntPtrType, string.Empty);
 
-            builder.CreateCall(AssertFailedMethod.Value, args, string.Empty);
+            BuildCall(builder, AssertFailedMethod.Value, args);
 
             return null;
         }
@@ -589,11 +583,8 @@ namespace ILGPU.Backends
             var args = context.GetArgs();
             return new Value(
                 args[1].ValueType,
-                context.Builder.CreateCall(atomic, new LLVMValueRef[]
-            {
-                ptr,
-                args[1].LLVMValue,
-            }, string.Empty));
+                BuildCall(context.Builder, atomic, ptr, args[1].LLVMValue));
+            
         }
 
         /// <summary cref="CompilerDeviceFunctions.MakeAtomicAdd(InvocationContext, LLVMValueRef, AtomicIntrinsicKind)" />
@@ -649,12 +640,12 @@ namespace ILGPU.Backends
             Debug.Assert(indices != null, "Invalid grid indices");
 
             var builder = context.Builder;
-            var indexValue = LLVM.GetUndef(context.Unit.GetType(typeof(Index3)));
+            var indexValue = GetUndef(context.Unit.GetType(typeof(Index3)));
 
             for (int i = 0; i < 3; ++i)
             {
-                var resolvedValue = builder.CreateCall(indices[i].Value, new LLVMValueRef[] { }, string.Empty);
-                indexValue = builder.CreateInsertValue(indexValue, resolvedValue, (uint)i, string.Empty);
+                var resolvedValue = BuildCall(builder, indices[i].Value);
+                indexValue = BuildInsertValue(builder, indexValue, resolvedValue, i, string.Empty);
             }
 
             return new Value(typeof(Index3), indexValue);
@@ -663,11 +654,15 @@ namespace ILGPU.Backends
         /// <summary cref="CompilerDeviceFunctions.MakeGroup(InvocationContext, GroupIntrinsicKind)"/>
         protected override Value? MakeGroup(InvocationContext context, GroupIntrinsicKind kind)
         {
+            var llvmContext = context.LLVMContext;
+            var int32Type = llvmContext.Int32Type;
+            var builder = context.Builder;
+
             LLVMValueRef barrierTarget;
             switch (kind)
             {
                 case GroupIntrinsicKind.Barrier:
-                    context.Builder.CreateCall(GroupBarrier.Value, new LLVMValueRef[] { }, string.Empty);
+                    BuildCall(builder, GroupBarrier.Value);
                     return null;
                 case GroupIntrinsicKind.BarrierAnd:
                     barrierTarget = GroupBarrierAnd.Value;
@@ -690,17 +685,17 @@ namespace ILGPU.Backends
 
             // Convert arg to int32
             var boolArg = context.GetArgs()[0];
-            var arg = context.Builder.CreateZExtOrBitCast(boolArg.LLVMValue, context.LLVMContext.Int32TypeInContext(), string.Empty);
-            var result = context.Builder.CreateCall(barrierTarget, new LLVMValueRef[] { arg }, string.Empty);
+            var arg = BuildZExtOrBitCast(builder, boolArg.LLVMValue, int32Type, string.Empty);
+            var result = BuildCall(builder, barrierTarget, arg);
 
             // Convert return type to match the managed signature
             var method = context.Method as MethodInfo;
             Debug.Assert(method != null, "Invalid invocation of a group intrinsic");
             if (method.ReturnType == typeof(bool))
             {
-                result = context.Builder.CreateICmp(LLVMIntPredicate.LLVMIntEQ, result, LLVMExtensions.ConstInt(
-                    context.LLVMContext.Int32TypeInContext(), 1, false), string.Empty);
-                result = context.Builder.CreateTrunc(result, context.LLVMContext.Int1TypeInContext(), string.Empty);
+                result = BuildICmp(builder, LLVMIntPredicate.LLVMIntEQ, result, ConstInt(
+                    int32Type, 1, false), string.Empty);
+                result = BuildTrunc(builder, result, llvmContext.Int1Type, string.Empty);
             }
             return new Value(method.ReturnType, result);
         }
@@ -720,7 +715,7 @@ namespace ILGPU.Backends
                     funcName = ptxFastAttr.Name;
             }
 
-            var func = LLVM.GetNamedFunction(context.Unit.LLVMModule, funcName);
+            var func = GetNamedFunction(context.Unit.LLVMModule, funcName);
             if (func.Pointer == IntPtr.Zero)
                 throw context.CompilationContext.GetNotSupportedException(
                     ErrorMessages.NotSupportedMathIntrinsic, kind);
@@ -731,12 +726,12 @@ namespace ILGPU.Backends
                 llvmArgs[i] = args[i].LLVMValue;
 
             var builder = context.Builder;
-            var call = builder.CreateCall(func, llvmArgs, string.Empty);
+            var call = BuildCall(builder, func, llvmArgs);
 
             // Check for required comparison for i32 return-types instead of bool values
             if (ptxAttr.BoolAsInt32)
             {
-                call = builder.CreateTrunc(call, context.LLVMContext.Int1TypeInContext(), string.Empty);
+                call = BuildTrunc(builder, call, context.LLVMContext.Int1Type, string.Empty);
             }
             var info = context.Method as MethodInfo;
             Debug.Assert(info != null, "Invalid method invocation");
@@ -762,7 +757,7 @@ namespace ILGPU.Backends
                     throw context.CompilationContext.GetNotSupportedException(
                         ErrorMessages.NotSupportedMemoryFenceOperation, kind);
             }
-            context.Builder.CreateCall(memoryFenceFunction, new LLVMValueRef[] { }, string.Empty);
+            BuildCall(context.Builder, memoryFenceFunction);
             return null;
         }
 
@@ -771,9 +766,9 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="builder">The current builder.</param>
         /// <returns>A value that represents the current warp size.</returns>
-        private LLVMValueRef MakeWarpSize(IRBuilder builder)
+        private LLVMValueRef MakeWarpSize(LLVMBuilderRef builder)
         {
-            return builder.CreateCall(GetWarpSize.Value, new LLVMValueRef[] { }, "warpSize");
+            return BuildCall(builder, GetWarpSize.Value);
         }
 
         /// <summary>
@@ -786,23 +781,26 @@ namespace ILGPU.Backends
         /// <returns>A value that represents the desired warp-shuffle mask.</returns>
         private LLVMValueRef BuildWarpShuffleMask(
             CompileUnit unit,
-            IRBuilder builder,
+            LLVMBuilderRef builder,
             LLVMValueRef width,
             bool addOrMask)
         {
             var warpSize = MakeWarpSize(builder);
-            var warpDiff = builder.CreateSub( warpSize, width, string.Empty);
-            var result = builder.CreateShl(
+            var warpDiff = BuildSub(builder, warpSize, width, string.Empty);
+            var result = BuildShl(
+                builder,
                 warpDiff,
-                LLVM.ConstInt(unit.GetType(BasicValueType.Int32), 8, false),
+                ConstInt(unit.GetType(BasicValueType.Int32), 8, false),
                 string.Empty);
             if (addOrMask)
             {
-                var orMask = builder.CreateSub(
+                var orMask = BuildSub(
+                    builder,
                     warpSize,
-                    LLVM.ConstInt(unit.GetType(BasicValueType.Int32), 1, false),
+                    ConstInt(unit.GetType(BasicValueType.Int32), 1, false),
                     string.Empty);
-                result = builder.CreateOr(
+                result = BuildOr(
+                    builder,
                     result,
                     orMask,
                     string.Empty);
@@ -821,7 +819,7 @@ namespace ILGPU.Backends
                     value = MakeWarpSize(builder);
                     break;
                 case WarpIntrinsicKind.LaneIdx:
-                    value = builder.CreateCall(GetLaneId.Value, new LLVMValueRef[] { }, string.Empty);
+                    value = BuildCall(builder, GetLaneId.Value);
                     break;
                 default:
                     KeyValuePair<Lazy<LLVMValueRef>, bool> shuffleKey;
@@ -832,7 +830,7 @@ namespace ILGPU.Backends
                     var args = context.GetLLVMArgs();
                     args[2] = BuildWarpShuffleMask(context.Unit, builder, args[2], shuffleKey.Value);
                     // Build desired shuffle instruction
-                    value = builder.CreateCall(shuffleKey.Key.Value, args, string.Empty);
+                    value = BuildCall(builder, shuffleKey.Key.Value, args);
                     break;
             }
             return new Value(typeof(int), value);

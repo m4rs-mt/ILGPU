@@ -55,6 +55,10 @@
     </Compile>
     <Compile Include="Compiler\CodeGenerator\Verify.cs" />
     <Compile Include="CompileUnitFlags.cs" />
+    <Compile Include="LLVM\LLVMMethods.cs" />
+    <Compile Include="LLVM\LLVMTypes.cs" />
+    <Compile Include="LLVM\MethodExtensions.cs" />
+    <Compile Include="LLVM\TypeExtensions.cs" />
     <Compile Include="Reduction.cs" />
     <Compile Include="ReductionOperations.cs">
       <AutoGen>True</AutoGen>
@@ -192,14 +196,8 @@
     <Compile Include="Util\TypeExtensions.cs" />
     <Compile Include="Util\DisposeBase.cs" />
     <Compile Include="Util\NativeMethods.cs" />
-    <Compile Include="Util\LLVMExtensions.cs" />
+    <Compile Include="LLVM\LLVMExtensions.cs" />
     <Compile Include="Warp.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\LLVMSharp\LLVMSharp.csproj">
-      <Project>{e230f816-0e92-4ae4-83e4-24d74deb9609}</Project>
-      <Name>LLVMSharp</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\X64\libLLVM.dll">
@@ -262,6 +260,7 @@
       <LastGenOutput>RuntimeErrorMessages.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">14.0</VisualStudioVersion>

@@ -10,10 +10,10 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -47,10 +47,10 @@ namespace ILGPU.Compiler
             }
 
             CurrentBlock = EntryBlock;
-            InstructionBuilder.PositionBuilderAtEnd(CurrentBlock.LLVMBlock);
+            PositionBuilderAtEnd(Builder, CurrentBlock.LLVMBlock);
 
             // Init params
-            var @params = Function.GetParams();
+            var @params = GetParams(Function);
             if (Method.IsInstance)
             {
                 // Broken, wegen ldarga.0 bei instance methods?
@@ -69,8 +69,8 @@ namespace ILGPU.Compiler
                 if (variables.ContainsKey(argRef))
                 {
                     // Address was taken... emit a temporary alloca and store the arg value to it
-                    var alloca = InstructionBuilder.CreateAlloca(param.TypeOf(), param.GetValueName());
-                    InstructionBuilder.CreateStore(param, alloca);
+                    var alloca = BuildAlloca(Builder, TypeOf(param), methodParam.Name);
+                    BuildStore(Builder, param, alloca);
                     variables[argRef] = new Value(paramType, alloca);
                 }
                 else
@@ -89,12 +89,12 @@ namespace ILGPU.Compiler
                 var variableType = variable.LocalType.GetLLVMTypeRepresentation();
                 var localType = Unit.GetType(variableType);
                 var localRef = new VariableRef(i, VariableRefType.Local);
-                var initValue = LLVM.ConstNull(localType);
+                var initValue = ConstNull(localType);
                 if (variables.ContainsKey(localRef))
                 {
                     // Address was taken... emit a temporary alloca and store empty value to it
-                    var alloca = InstructionBuilder.CreateAlloca(localType, string.Empty);
-                    InstructionBuilder.CreateStore(initValue, alloca);
+                    var alloca = BuildAlloca(Builder, localType, string.Empty);
+                    BuildStore(Builder, initValue, alloca);
                     variables[localRef] = new Value(variableType, alloca);
                 }
                 else
@@ -116,7 +116,7 @@ namespace ILGPU.Compiler
             Debug.Assert(var.RefType == VariableRefType.Argument || var.RefType == VariableRefType.Local);
             if (variables.TryGetValue(var, out Value nonSSAValue))
             {
-                var load = InstructionBuilder.CreateLoad(nonSSAValue.LLVMValue, string.Empty);
+                var load = BuildLoad(Builder, nonSSAValue.LLVMValue, string.Empty);
                 CurrentBlock.Push(nonSSAValue.ValueType, load);
             }
             else
@@ -144,7 +144,7 @@ namespace ILGPU.Compiler
             var variableType = variableTypes[var];
             var value = CurrentBlock.Pop(variableType);
             if (variables.TryGetValue(var, out Value nonSSAValue))
-                InstructionBuilder.CreateStore(value.LLVMValue, nonSSAValue.LLVMValue);
+                BuildStore(Builder, value.LLVMValue, nonSSAValue.LLVMValue);
             else
                 CurrentBlock.SetValue(var, value);
         }
@@ -156,7 +156,7 @@ namespace ILGPU.Compiler
         private void LoadIndirect(Type type)
         {
             var address = CurrentBlock.Pop(type.MakePointerType());
-            var load = InstructionBuilder.CreateLoad(address.LLVMValue, "ldind");
+            var load = BuildLoad(Builder, address.LLVMValue, "ldind");
             CurrentBlock.Push(type, load);
         }
 
@@ -168,7 +168,7 @@ namespace ILGPU.Compiler
         {
             var value = CurrentBlock.Pop(type);
             var address = CurrentBlock.Pop(type.MakePointerType());
-            InstructionBuilder.CreateStore(value.LLVMValue, address.LLVMValue);
+            BuildStore(Builder, value.LLVMValue, address.LLVMValue);
         }
 
         #endregion

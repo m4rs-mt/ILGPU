@@ -9,7 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using LLVMSharp;
+using ILGPU.LLVM;
 using System;
 
 namespace ILGPU.Compiler
@@ -27,7 +27,7 @@ namespace ILGPU.Compiler
         /// <summary>
         /// Returns the current instruction builder.
         /// </summary>
-        IRBuilder InstructionBuilder { get; }
+        LLVMBuilderRef Builder { get; }
 
         /// <summary>
         /// Returns the current compilation context.

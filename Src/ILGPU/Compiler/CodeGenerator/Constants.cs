@@ -9,8 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Util;
-using LLVMSharp;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -24,7 +23,7 @@ namespace ILGPU.Compiler
             var t = typeof(object);
             CurrentBlock.Push(
                 t.MakePointerType(),
-                LLVM.ConstNull(Unit.GetType(t)));
+                ConstNull(Unit.GetType(t)));
         }
 
         /// <summary>
@@ -34,7 +33,7 @@ namespace ILGPU.Compiler
         {
             CurrentBlock.Push(
                 typeof(int),
-                LLVMExtensions.ConstInt(LLVMContext.Int32TypeInContext(), value, true));
+                ConstInt(LLVMContext.Int32Type, value, true));
         }
 
         /// <summary>
@@ -44,7 +43,7 @@ namespace ILGPU.Compiler
         {
             CurrentBlock.Push(
                 typeof(long),
-                LLVMExtensions.ConstInt(LLVMContext.Int64TypeInContext(), value, true));
+                ConstInt(LLVMContext.Int64Type, value, true));
         }
 
         /// <summary>
@@ -54,7 +53,7 @@ namespace ILGPU.Compiler
         {
             CurrentBlock.Push(
                 typeof(float),
-                LLVM.ConstReal(LLVMContext.FloatTypeInContext(), value));
+                ConstReal(LLVMContext.FloatType, value));
         }
 
         /// <summary>
@@ -67,7 +66,7 @@ namespace ILGPU.Compiler
             else
                 CurrentBlock.Push(
                     typeof(double),
-                    LLVM.ConstReal(LLVMContext.DoubleTypeInContext(), value));
+                    ConstReal(LLVMContext.DoubleType, value));
         }
 
         /// <summary>
@@ -77,7 +76,7 @@ namespace ILGPU.Compiler
         {
             CurrentBlock.Push(
                 typeof(string),
-                InstructionBuilder.CreateGlobalStringPtr(value, string.Empty));
+                BuildGlobalStringPtr(Builder, value, string.Empty));
         }
     }
 }

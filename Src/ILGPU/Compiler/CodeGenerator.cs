@@ -9,14 +9,15 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -67,7 +68,7 @@ namespace ILGPU.Compiler
             CompilationContext.VerifyEnteredMethod(method.MethodBase);
 
             this.disassembledMethod = disassembledMethod;
-            InstructionBuilder = new IRBuilder(unit.LLVMContext);
+            Builder = CreateBuilderInContext(unit.LLVMContext);
 
             InitCFG();
             InitArgsAndLocals();
@@ -90,7 +91,7 @@ namespace ILGPU.Compiler
         /// <summary>
         /// Returns the assigned instruction builder.
         /// </summary>
-        public IRBuilder InstructionBuilder { get; private set; }
+        public LLVMBuilderRef Builder { get; private set; }
 
         /// <summary>
         /// Returns the current compilation context.
@@ -168,7 +169,7 @@ namespace ILGPU.Compiler
             processedBasicBlocks.Add(block);
 
             CurrentBlock = block;
-            InstructionBuilder.PositionBuilderAtEnd(CurrentBlock.LLVMBlock);
+            PositionBuilderAtEnd(Builder, CurrentBlock.LLVMBlock);
             for (int i = block.InstructionOffset, e = block.InstructionOffset + block.InstructionCount; i < e; ++i)
             {
                 var instruction = disassembledMethod[i];
@@ -184,7 +185,7 @@ namespace ILGPU.Compiler
                 var successor = block.Successors.First();
                 var lastInstruction = disassembledMethod[block.InstructionOffset + block.InstructionCount - 1];
                 if (!lastInstruction.IsTerminator)
-                    InstructionBuilder.CreateBr(successor.LLVMBlock);
+                    BuildBr(Builder, successor.LLVMBlock);
             }
         }
 
@@ -196,14 +197,14 @@ namespace ILGPU.Compiler
         /// <returns>The allocated alloca instruction.</returns>
         private LLVMValueRef CreateTempAlloca(LLVMTypeRef llvmType)
         {
-            var currentBlock = InstructionBuilder.GetInsertBlock();
-            var firstInstruction = EntryBlock.LLVMBlock.GetFirstInstruction();
+            var currentBlock = GetInsertBlock(Builder);
+            var firstInstruction = GetFirstInstruction(EntryBlock.LLVMBlock);
             if (firstInstruction.Pointer != IntPtr.Zero)
-                InstructionBuilder.PositionBuilderBefore(firstInstruction);
+                PositionBuilderBefore(Builder, firstInstruction);
             else
-                InstructionBuilder.PositionBuilderAtEnd(EntryBlock.LLVMBlock);
-            var alloca = InstructionBuilder.CreateAlloca(llvmType, string.Empty);
-            InstructionBuilder.PositionBuilderAtEnd(currentBlock);
+                PositionBuilderAtEnd(Builder, EntryBlock.LLVMBlock);
+            var alloca = BuildAlloca(Builder, llvmType, string.Empty);
+            PositionBuilderAtEnd(Builder, currentBlock);
             return alloca;
         }
 
@@ -214,10 +215,10 @@ namespace ILGPU.Compiler
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (InstructionBuilder != null)
+            if (Builder.Pointer != IntPtr.Zero)
             {
-                InstructionBuilder.Dispose();
-                InstructionBuilder = null;
+                DisposeBuilder(Builder);
+                Builder = default(LLVMBuilderRef);
             }
         }
 

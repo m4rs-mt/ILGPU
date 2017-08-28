@@ -13,9 +13,9 @@ using ILGPU.Backends;
 using ILGPU.Backends.ABI;
 using ILGPU.Compiler;
 using ILGPU.Compiler.Intrinsic;
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -23,6 +23,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU
 {
@@ -82,11 +83,11 @@ namespace ILGPU
             Flags = flags;
             Context = context;
             Backend = backend;
-            LLVMModule = LLVM.ModuleCreateWithNameInContext(name, context.LLVMContext);
+            LLVMModule = ModuleCreateWithNameInContext(name, context.LLVMContext);
 
             typeMapping.Add(typeof(object), new MappedType(
                 typeof(object),
-                LLVMContext.StructCreateNamed("Object"),
+                StructCreateNamed(LLVMContext, "Object"),
                 0,
                 null));
 
@@ -99,13 +100,13 @@ namespace ILGPU
             for (int i = 0, e = deviceTypes.Count; i < e; ++i)
                 this.deviceTypes.Add(deviceTypes[i]);
 
-            CodeGenFunctionPassManager = LLVM.CreateFunctionPassManagerForModule(LLVMModule);
+            CodeGenFunctionPassManager = CreateFunctionPassManagerForModule(LLVMModule);
 #if DEBUG
-            LLVM.AddVerifierPass(CodeGenFunctionPassManager);
+            AddVerifierPass(CodeGenFunctionPassManager);
 #endif
-            LLVM.AddPromoteMemoryToRegisterPass(CodeGenFunctionPassManager);
-            LLVM.AddCFGSimplificationPass(CodeGenFunctionPassManager);
-            LLVM.AddScalarReplAggregatesPassSSA(CodeGenFunctionPassManager);
+            AddPromoteMemoryToRegisterPass(CodeGenFunctionPassManager);
+            AddCFGSimplificationPass(CodeGenFunctionPassManager);
+            AddScalarReplAggregatesPassSSA(CodeGenFunctionPassManager);
 
             abiSpecification = backend.CreateABISpecification(this);
             CompilationContext = new CompilationContext();
@@ -324,7 +325,7 @@ namespace ILGPU
             if (!typeMapping.TryGetValue(type, out MappedType mappedType))
             {
                 var elementType = GetType(fba.ElementType);
-                var llvmType = LLVM.ArrayType(elementType, (uint)fba.Length);
+                var llvmType = ArrayType(elementType, fba.Length);
                 var fieldOffsets = new Dictionary<FieldInfo, int>
                 {
                     [type.GetFields()[0]] = 0
@@ -395,8 +396,8 @@ namespace ILGPU
 
             abiSpecification.AlignType(type, entries);
 
-            var resultType = LLVMContext.StructCreateNamed(GetLLVMName(type));
-            resultType.StructSetBody(entries.ToArray(), false);
+            var resultType = StructCreateNamed(LLVMContext, GetLLVMName(type));
+            StructSetBody(resultType, entries.ToArray());
             return new MappedType(type, resultType, entries.Count, fieldOffsets);
         }
 
@@ -411,7 +412,7 @@ namespace ILGPU
             const int NumExpectedFields = 2;
             Debug.Assert(type != null, "Invalid type");
             Debug.Assert(Nullable.GetUnderlyingType(type) == baseType, "Invalid base type");
-            var nullableType = LLVMContext.StructCreateNamed(GetLLVMName(type.ToString(), "Nullable"));
+            var nullableType = StructCreateNamed(LLVMContext, GetLLVMName(type.ToString(), "Nullable"));
             var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
             if (fields.Length != NumExpectedFields)
                 throw CompilationContext.GetNotSupportedException(
@@ -424,9 +425,9 @@ namespace ILGPU
                 { fields[typeOffset], typeOffset }
             };
             var structTypes = new LLVMTypeRef[NumExpectedFields];
-            structTypes[boolFlagOffset] = LLVMContext.Int1TypeInContext();
+            structTypes[boolFlagOffset] = LLVMContext.Int1Type;
             structTypes[typeOffset] = GetType(baseType);
-            nullableType.StructSetBody(structTypes, false);
+            StructSetBody(nullableType, structTypes);
             return new MappedType(type, nullableType, structTypes.Length, fieldOffsets);
         }
 
@@ -447,12 +448,11 @@ namespace ILGPU
                     ErrorMessages.NotSupportedArrayElementType, type);
             if (!typeMapping.TryGetValue(type, out MappedType result))
             {
-                var arrayType = LLVMContext.StructCreateNamed(GetLLVMName(type.ToString(), "Array"));
-                arrayType.StructSetBody(new LLVMTypeRef[]
-                {
-                    LLVM.PointerType(GetType(type.GetElementType()), 0),
-                    LLVMContext.Int32TypeInContext()
-                }, false);
+                var arrayType = StructCreateNamed(LLVMContext, GetLLVMName(type.ToString(), "Array"));
+                StructSetBody(
+                    arrayType,
+                    PointerType(GetType(type.GetElementType())),
+                    LLVMContext.Int32Type);
                 result = new MappedType(type, arrayType, 2, null);
                 typeMapping.Add(type, result);
             }
@@ -471,31 +471,31 @@ namespace ILGPU
             switch (valueType)
             {
                 case BasicValueType.UInt1:
-                    type = LLVMContext.Int1TypeInContext();
+                    type = LLVMContext.Int1Type;
                     break;
                 case BasicValueType.Int8:
                 case BasicValueType.UInt8:
-                    type = LLVMContext.Int8TypeInContext();
+                    type = LLVMContext.Int8Type;
                     break;
                 case BasicValueType.Int16:
                 case BasicValueType.UInt16:
-                    type = LLVMContext.Int16TypeInContext();
+                    type = LLVMContext.Int16Type;
                     break;
                 case BasicValueType.Int32:
                 case BasicValueType.UInt32:
-                    type = LLVMContext.Int32TypeInContext();
+                    type = LLVMContext.Int32Type;
                     break;
                 case BasicValueType.Int64:
                 case BasicValueType.UInt64:
-                    type = LLVMContext.Int64TypeInContext();
+                    type = LLVMContext.Int64Type;
                     break;
                 case BasicValueType.Single:
-                    type = LLVMContext.FloatTypeInContext();
+                    type = LLVMContext.FloatType;
                     break;
                 case BasicValueType.Double:
                     type = Force32BitFloats ?
-                        LLVMContext.FloatTypeInContext() :
-                        LLVMContext.DoubleTypeInContext();
+                        LLVMContext.FloatType :
+                        LLVMContext.DoubleType;
                     break;
                 default:
                     type = default(LLVMTypeRef);
@@ -536,18 +536,18 @@ namespace ILGPU
             if (type.GetTypeInfo().GenericTypeParameters.Length > 0)
                 throw new NotSupportedException();
             if (type.IsTreatedAsPtr())
-                return LLVM.PointerType(GetType(type.GetElementType()), 0);
+                return PointerType(GetType(type.GetElementType()), 0);
             if (type.IsArray)
                 return GetArrayType(type).LLVMType;
             if (type == typeof(void))
-                return LLVMContext.VoidTypeInContext();
+                return LLVMContext.VoidType;
             if (type == typeof(string))
-                return LLVM.PointerType(LLVMContext.Int8TypeInContext(), 0);
+                return PointerType(LLVMContext.Int8Type);
             if (type == typeof(IntPtr) || type == typeof(UIntPtr))
-                return LLVM.PointerType(LLVMContext.VoidTypeInContext(), 0);
+                return LLVMContext.VoidPtrType;
             // Assume CharSet = ANSI
             if (type == typeof(char))
-                return LLVMContext.Int8TypeInContext();
+                return LLVMContext.Int8Type;
             if (TryGetBasicType(type.GetBasicValueType(), out LLVMTypeRef result))
                 return result;
             return GetObjectType(type).LLVMType;
@@ -575,7 +575,7 @@ namespace ILGPU
                         throw new NotSupportedException();
                 }
                 // Instance pointer is always passed by "reference"
-                @params[0] = LLVM.PointerType(GetType(method.DeclaringType), 0);
+                @params[0] = PointerType(GetType(method.DeclaringType));
                 ++offset;
             }
             for (int i = 0, e = methodParams.Length; i < e; ++i)
@@ -586,8 +586,8 @@ namespace ILGPU
                 @params[i + offset] = paramType;
             }
             var methodInfo = method as MethodInfo;
-            var returnType = methodInfo != null ? GetType(methodInfo.ReturnType) : LLVMContext.VoidTypeInContext();
-            return LLVM.FunctionType(returnType, @params, false);
+            var returnType = methodInfo != null ? GetType(methodInfo.ReturnType) : LLVMContext.VoidType;
+            return FunctionType(returnType, @params);
         }
 
         /// <summary>
@@ -641,39 +641,38 @@ namespace ILGPU
             switch (Type.GetTypeCode(type))
             {
                 case TypeCode.Boolean:
-                    return LLVMExtensions.ConstInt(context.Int1TypeInContext(), (bool)value ? 1 : 0, false);
+                    return ConstInt(context.Int1Type, (bool)value ? 1 : 0, false);
                 case TypeCode.SByte:
-                    return LLVMExtensions.ConstInt(context.Int8TypeInContext(), (sbyte)value, true);
+                    return ConstInt(context.Int8Type, (sbyte)value, true);
                 case TypeCode.Int16:
-                    return LLVMExtensions.ConstInt(context.Int16TypeInContext(), (short)value, true);
+                    return ConstInt(context.Int16Type, (short)value, true);
                 case TypeCode.Int32:
-                    return LLVMExtensions.ConstInt(context.Int32TypeInContext(), (int)value, true);
+                    return ConstInt(context.Int32Type, (int)value, true);
                 case TypeCode.Int64:
-                    return LLVMExtensions.ConstInt(context.Int64TypeInContext(), (long)value, true);
-                case TypeCode.Byte:
-                    return LLVMExtensions.ConstInt(context.Int8TypeInContext(), (byte)value, false);
-                case TypeCode.UInt16:
-                    return LLVMExtensions.ConstInt(context.Int16TypeInContext(), (ushort)value, false);
-                case TypeCode.UInt32:
-                    return LLVMExtensions.ConstInt(context.Int32TypeInContext(), (uint)value, false);
                 case TypeCode.UInt64:
-                    return LLVM.ConstInt(context.Int64TypeInContext(), (ulong)value, false);
+                    return ConstInt(context.Int64Type, (long)value, true);
+                case TypeCode.Byte:
+                    return ConstInt(context.Int8Type, (byte)value, false);
+                case TypeCode.UInt16:
+                    return ConstInt(context.Int16Type, (ushort)value, false);
+                case TypeCode.UInt32:
+                    return ConstInt(context.Int32Type, (uint)value, false);
                 case TypeCode.Single:
-                    return LLVM.ConstReal(context.FloatTypeInContext(), (float)value);
+                    return ConstReal(context.FloatType, (float)value);
                 case TypeCode.Double:
                     if (Force32BitFloats)
-                        return LLVM.ConstReal(context.FloatTypeInContext(), (float)value);
+                        return ConstReal(context.FloatType, (float)value);
                     else
-                        return LLVM.ConstReal(context.DoubleTypeInContext(), (double)value);
+                        return ConstReal(context.DoubleType, (double)value);
                 case TypeCode.Char:
-                    return LLVM.ConstInt(context.Int8TypeInContext(), (byte)value, false);
+                    return ConstInt(context.Int8Type, (byte)value, false);
                 case TypeCode.String:
-                    return LLVMExtensions.ConstStringInContext(context, (string)value, false);
+                    return ConstStringInContext(context, (string)value, false);
                 case TypeCode.Object:
                     if (type == typeof(IntPtr))
-                        return LLVMExtensions.ConstInt(NativeIntPtrType, ((IntPtr)value).ToInt64(), true);
+                        return ConstInt(NativeIntPtrType, ((IntPtr)value).ToInt64(), true);
                     else if (type == typeof(UIntPtr))
-                        return LLVM.ConstInt(NativeIntPtrType, ((UIntPtr)value).ToUInt64(), true);
+                        return ConstInt(NativeIntPtrType, (long)((UIntPtr)value).ToUInt64(), true);
                     else
                         return GetObjectValue(GetObjectType(type), value);
                 default:
@@ -692,16 +691,16 @@ namespace ILGPU
         private LLVMValueRef GetObjectValue(MappedType type, object instanceValue)
         {
             if (instanceValue == null)
-                return LLVM.ConstNull(type.LLVMType);
+                return ConstNull(type.LLVMType);
 
             var instanceType = type.ManagedType;
             var hasSupportedBase = instanceType.HasSupportedBaseClass();
             var elements = new LLVMValueRef[type.NumLLVMTypeElements];
 
             // Fill all elements will zero
-            var elementTypes = type.LLVMType.GetStructElementTypes();
+            var elementTypes = GetStructElementTypes(type.LLVMType);
             for (int i = 0, e = elements.Length; i < e; ++i)
-                elements[i] = LLVM.ConstNull(elementTypes[i]);
+                elements[i] = ConstNull(elementTypes[i]);
 
             // Fill with real values
             foreach (var field in type.Fields)
@@ -720,7 +719,9 @@ namespace ILGPU
                 elements[0] = llvmBaseClassValue;
             }
 
-            return LLVM.ConstNamedStruct(type.LLVMType, elements);
+            if (elements.Length < 1)
+                return ConstNamedStruct(type.LLVMType, out LLVMValueRef _, 0);
+            return ConstNamedStruct(type.LLVMType, out elements[0], elements.Length);
         }
 
         /// <summary>
@@ -728,7 +729,7 @@ namespace ILGPU
         /// </summary>
         public void Verify()
         {
-            if (LLVM.VerifyModule(
+            if (VerifyModule(
                 LLVMModule,
                 LLVMVerifierFailureAction.LLVMReturnStatusAction,
                 out IntPtr errorMessage))
@@ -749,7 +750,7 @@ namespace ILGPU
 #if DEBUG
             Verify();
 #endif
-            LLVM.RunPassManager(Context.OptimizeModulePassManager, LLVMModule);
+            RunPassManager(Context.OptimizeModulePassManager, LLVMModule);
         }
 
         // Name handling
@@ -819,13 +820,13 @@ namespace ILGPU
             Dispose(ref abiSpecification);
             if (CodeGenFunctionPassManager.Pointer != IntPtr.Zero)
             {
-                LLVM.DisposePassManager(CodeGenFunctionPassManager);
+                DisposePassManager(CodeGenFunctionPassManager);
                 CodeGenFunctionPassManager = default(LLVMPassManagerRef);
             }
 
             if (LLVMModule.Pointer != IntPtr.Zero)
             {
-                LLVM.DisposeModule(LLVMModule);
+                DisposeModule(LLVMModule);
                 LLVMModule = default(LLVMModuleRef);
             }
         }

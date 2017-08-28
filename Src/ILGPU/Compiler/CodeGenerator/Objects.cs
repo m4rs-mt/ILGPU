@@ -10,9 +10,9 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Resources;
-using LLVMSharp;
 using System;
 using System.Reflection;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -56,7 +56,7 @@ namespace ILGPU.Compiler
             // Use a temporary alloca to realize object creation
             // and initialize object with zero
             var tempAlloca = CreateTempAlloca(llvmType);
-            InstructionBuilder.CreateStore(LLVM.ConstNull(llvmType), tempAlloca);
+            BuildStore(Builder, ConstNull(llvmType), tempAlloca);
 
             // Invoke constructor for type
             Value[] values = new Value[constructor.GetParameters().Length + 1];
@@ -66,7 +66,7 @@ namespace ILGPU.Compiler
 
             // Push created instance on the stack
             if (type.IsValueType)
-                CurrentBlock.Push(type, InstructionBuilder.CreateLoad(values[0].LLVMValue, string.Empty));
+                CurrentBlock.Push(type, BuildLoad(Builder, values[0].LLVMValue, string.Empty));
             else
                 CurrentBlock.Push(values[0]);
         }
@@ -83,7 +83,7 @@ namespace ILGPU.Compiler
             var address = CurrentBlock.Pop();
 
             var llvmType = Unit.GetType(type);
-            InstructionBuilder.CreateStore(LLVM.ConstNull(llvmType), address.LLVMValue);
+            BuildStore(Builder, ConstNull(llvmType), address.LLVMValue);
         }
 
         /// <summary>
@@ -103,7 +103,7 @@ namespace ILGPU.Compiler
         {
             var address = CurrentBlock.Pop();
             address = CreateConversion(address, type.MakePointerType());
-            CurrentBlock.Push(type, InstructionBuilder.CreateLoad(address.LLVMValue, string.Empty));
+            CurrentBlock.Push(type, BuildLoad(Builder, address.LLVMValue, string.Empty));
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace ILGPU.Compiler
             var value = CurrentBlock.Pop(type);
             var address = CurrentBlock.Pop();
             address = CreateConversion(address, type.MakePointerType());
-            InstructionBuilder.CreateStore(value.LLVMValue, address.LLVMValue);
+            BuildStore(Builder, value.LLVMValue, address.LLVMValue);
         }
     }
 }

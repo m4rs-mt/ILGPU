@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using System.Collections.Generic;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -26,7 +27,7 @@ namespace ILGPU.Compiler
         private void InitCFG()
         {
             // Build basic blocks
-            EntryBlock = new BasicBlock(this, Function.AppendBasicBlock("Entry"));
+            EntryBlock = new BasicBlock(this, AppendBasicBlock(Function, "Entry"));
             bbMapping.Add(0, EntryBlock);
             var offsetMapping = BuildBasicBlocks();
 
@@ -71,7 +72,7 @@ namespace ILGPU.Compiler
                 {
                     if (bbMapping.ContainsKey(target))
                         continue;
-                    bbMapping.Add(target, new BasicBlock(this, Function.AppendBasicBlock($"BB_{blockIdx}")));
+                    bbMapping.Add(target, new BasicBlock(this, AppendBasicBlock(Function, $"BB_{blockIdx}")));
                     ++blockIdx;
                 }
             }

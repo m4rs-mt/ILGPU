@@ -10,12 +10,13 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Compiler;
+using ILGPU.LLVM;
 using ILGPU.Resources;
-using LLVMSharp;
 using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU
 {
@@ -54,9 +55,9 @@ namespace ILGPU
                 }
             }
             var functionType = unit.GetType(methodBase);
-            LLVMFunction = LLVM.AddFunction(unit.LLVMModule, Name, functionType);
-            LLVMFunction.AddFunctionAttr(LLVMAttribute.LLVMAlwaysInlineAttribute);
-            LLVMFunction.SetLinkage(LLVMLinkage.LLVMInternalLinkage);
+            LLVMFunction = AddFunction(unit.LLVMModule, Name, functionType);
+            AddFunctionAttr(LLVMFunction, LLVMAttribute.LLVMAlwaysInlineAttribute);
+            SetLinkage(LLVMFunction, LLVMLinkage.LLVMInternalLinkage);
         }
 
         #endregion
@@ -202,7 +203,7 @@ namespace ILGPU
             }
 
             // Perform a simple pass over the method
-            LLVM.RunFunctionPassManager(unit.CodeGenFunctionPassManager, LLVMFunction);
+            RunFunctionPassManager(unit.CodeGenFunctionPassManager, LLVMFunction);
         }
 
         #endregion

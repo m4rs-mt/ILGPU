@@ -9,8 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -27,7 +27,7 @@ namespace ILGPU.Backends.ABI
         /// <summary>
         /// Contains default .Net alignment information about built-in blittable types.
         /// </summary>
-        public static readonly IDictionary<Type, uint> ManagedAlignments = new Dictionary<Type, uint>
+        public static readonly IDictionary<Type, int> ManagedAlignments = new Dictionary<Type, int>
         {
             {  typeof(sbyte), 1 },
             { typeof(short), 2 },
@@ -82,7 +82,7 @@ namespace ILGPU.Backends.ABI
         /// Registers platform-dependent pointer types.
         /// </summary>
         /// <param name="alignment">The alignment of pointers.</param>
-        protected void AddPtrAlignment(uint alignment)
+        protected void AddPtrAlignment(int alignment)
         {
             Alignments.Add(typeof(IntPtr), alignment);
             Alignments.Add(typeof(UIntPtr), alignment);
@@ -92,8 +92,8 @@ namespace ILGPU.Backends.ABI
 
         #region Properties
 
-        protected Dictionary<Type, uint> Alignments { get; } =
-            new Dictionary<Type, uint>();
+        protected Dictionary<Type, int> Alignments { get; } =
+            new Dictionary<Type, int>();
 
         /// <summary>
         /// Returns the native LLVM context.
@@ -114,27 +114,27 @@ namespace ILGPU.Backends.ABI
         /// </summary>
         /// <param name="type">The input type.</param>
         /// <returns>The ABI size of the given type.</returns>
-        public abstract uint GetSizeOf(Type type);
+        public abstract int GetSizeOf(Type type);
 
         /// <summary>
         /// Computes the actual ABI alignment of the given type in bytes.
         /// </summary>
         /// <param name="type">The input type.</param>
         /// <returns>The ABI alignment of the given type.</returns>
-        public abstract uint GetAlignmentOf(Type type);
+        public abstract int GetAlignmentOf(Type type);
 
         /// <summary>
         /// Returns the required alignment of the given type in bytes.
         /// </summary>
         /// <param name="type">The input type.</param>
         /// <returns>The required alignment of the given type in bytes.</returns>
-        public uint this[Type type]
+        public int this[Type type]
         {
             get
             {
                 if (type.IsPointer)
                     return Alignments[typeof(IntPtr)];
-                if (!Alignments.TryGetValue(type, out uint alignment))
+                if (!Alignments.TryGetValue(type, out int alignment))
                     Alignments.Add(type, alignment);
                 return alignment;
             }

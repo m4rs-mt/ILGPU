@@ -10,12 +10,13 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Compiler;
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Backends
 {
@@ -88,10 +89,10 @@ namespace ILGPU.Backends
             if (arch == null)
                 throw new ArgumentNullException(nameof(arch));
 
-            LLVM.GetTargetFromTriple(triple, out LLVMTargetRef targetRef, out IntPtr errorMsg);
+            GetTargetFromTriple(triple, out LLVMTargetRef targetRef, out IntPtr errorMsg);
 
             LLVMTarget = targetRef;
-            LLVMTargetMachine = LLVM.CreateTargetMachine(
+            LLVMTargetMachine = CreateTargetMachine(
                 targetRef,
                 triple,
                 arch,
@@ -155,7 +156,7 @@ namespace ILGPU.Backends
         /// <returns>The compilation result.</returns>
         internal virtual byte[] Link(LLVMModuleRef module, LLVMValueRef generatedEntryPoint)
         {
-            if (LLVM.TargetMachineEmitToMemoryBuffer(
+            if (TargetMachineEmitToMemoryBuffer(
                 LLVMTargetMachine,
                 module,
                 LLVMCodeGenFileType.LLVMAssemblyFile,
@@ -165,15 +166,15 @@ namespace ILGPU.Backends
                     ErrorMessages.CouldNotGenerateMachineCode, Marshal.PtrToStringAnsi(errorMessage)));
             try
             {
-                var start = LLVM.GetBufferStart(buffer);
-                var length = LLVM.GetBufferSize(buffer).Pointer.ToInt32();
+                var start = GetBufferStart(buffer);
+                var length = GetBufferSize(buffer).ToInt32();
                 var data = new byte[length];
                 Marshal.Copy(start, data, 0, length);
                 return data;
             }
             finally
             {
-                LLVM.DisposeMemoryBuffer(buffer);
+                DisposeMemoryBuffer(buffer);
             }
         }
 
@@ -191,15 +192,15 @@ namespace ILGPU.Backends
 
             PrepareModuleLowering?.Invoke(this, new LLVMBackendEventArgs(unit, unit.LLVMModule));
 
-            var targetModule = LLVM.CloneModule(unit.LLVMModule);
+            var targetModule = CloneModule(unit.LLVMModule);
             try
             {
                 // Resolve the cloned version of our entry point
-                var targetEntry = LLVM.GetNamedFunction(targetModule, entryPointName);
+                var targetEntry = GetNamedFunction(targetModule, entryPointName);
                 PrepareModule(unit, targetModule, entryPoint, targetEntry);
 
 #if DEBUG
-                if (LLVM.VerifyModule(
+                if (VerifyModule(
                     targetModule,
                     LLVMVerifierFailureAction.LLVMReturnStatusAction,
                     out IntPtr errorMessage).Value != 0)
@@ -207,7 +208,7 @@ namespace ILGPU.Backends
                         ErrorMessages.LLVMModuleVerificationFailed, Marshal.PtrToStringAnsi(errorMessage)));
 #endif
 
-                LLVM.RunPassManager(Context.KernelModulePassManager, targetModule);
+                RunPassManager(Context.KernelModulePassManager, targetModule);
                 KernelModuleLowered?.Invoke(this, new LLVMBackendEventArgs(unit, targetModule));
 
                 var binaryKernelData = Link(targetModule, targetEntry);
@@ -217,9 +218,9 @@ namespace ILGPU.Backends
             {
                 // Set the entry function to internal linkage
                 // to avoid further occurances later on
-                backendEntry.SetLinkage(LLVMLinkage.LLVMInternalLinkage);
+                SetLinkage(backendEntry, LLVMLinkage.LLVMInternalLinkage);
 
-                LLVM.DisposeModule(targetModule);
+                DisposeModule(targetModule);
             }
         }
 
@@ -232,7 +233,7 @@ namespace ILGPU.Backends
         {
             if (LLVMTargetMachine.Pointer != IntPtr.Zero)
             {
-                LLVM.DisposeTargetMachine(LLVMTargetMachine);
+                DisposeTargetMachine(LLVMTargetMachine);
                 LLVMTargetMachine = default(LLVMTargetMachineRef);
             }
         }

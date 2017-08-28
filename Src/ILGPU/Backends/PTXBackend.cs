@@ -11,15 +11,16 @@
 
 using ILGPU.Backends.ABI;
 using ILGPU.Compiler;
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Backends
 {
@@ -201,10 +202,10 @@ namespace ILGPU.Backends
         [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline")]
         static PTXBackend()
         {
-            LLVM.InitializeNVPTXAsmPrinter();
-            LLVM.InitializeNVPTXTarget();
-            LLVM.InitializeNVPTXTargetInfo();
-            LLVM.InitializeNVPTXTargetMC();
+            InitializeNVPTXAsmPrinter();
+            InitializeNVPTXTarget();
+            InitializeNVPTXTargetInfo();
+            InitializeNVPTXTargetMC();
         }
 
         #endregion
@@ -272,18 +273,18 @@ namespace ILGPU.Backends
             var dataLayout = GetLLVMLayout(Platform);
             var targetTriple = GetLLVMTriple(Platform);
 
-            LLVM.SetDataLayout(module, dataLayout);
-            LLVM.SetTarget(module, targetTriple);
+            SetDataLayout(module, dataLayout);
+            SetTarget(module, targetTriple);
 
-            if (LLVM.CreateMemoryBufferWithContentsOfFile(LibDevicePath, out LLVMMemoryBufferRef libDeviceBuffer, out IntPtr errorMessage))
+            if (CreateMemoryBufferWithContentsOfFile(LibDevicePath, out LLVMMemoryBufferRef libDeviceBuffer, out IntPtr errorMessage))
                 throw new InvalidOperationException(string.Format(
                     ErrorMessages.CouldNotReadLibDevice, Marshal.PtrToStringAnsi(errorMessage)));
-            if (LLVM.GetBitcodeModuleInContext(unit.LLVMContext, libDeviceBuffer, out LLVMModuleRef libDeviceModule, out errorMessage))
+            if (GetBitcodeModuleInContext(unit.LLVMContext, libDeviceBuffer, out LLVMModuleRef libDeviceModule, out errorMessage))
                 throw new InvalidOperationException(string.Format(
                     ErrorMessages.CouldNotLoadLibDevice, Marshal.PtrToStringAnsi(errorMessage)));
-            LLVM.SetDataLayout(libDeviceModule, dataLayout);
-            LLVM.SetTarget(libDeviceModule, targetTriple);
-            LLVM.LinkModules2(module, libDeviceModule);
+            SetDataLayout(libDeviceModule, dataLayout);
+            SetTarget(libDeviceModule, targetTriple);
+            LinkModules2(module, libDeviceModule);
 
             var functions = new PTXDeviceFunctions(unit);
             ptxDeviceFunctions.Add(unit, functions);
@@ -325,7 +326,7 @@ namespace ILGPU.Backends
             for (int i = 0, e = entryPoint.NumDynamicallySizedSharedMemoryVariables; i < e; ++i)
                 argTypes[i + parameterOffset + numUniformVariables] = unit.GetType(typeof(int));
 
-            return LLVM.FunctionType(Context.LLVMContext.VoidTypeInContext(), argTypes, false);
+            return FunctionType(Context.LLVMContext.VoidType, argTypes);
         }
 
         /// <summary>
@@ -339,24 +340,24 @@ namespace ILGPU.Backends
         private static LLVMValueRef CreateIndexValue(
             CompileUnit unit,
             EntryPoint entryPoint,
-            IRBuilder builder,
+            LLVMBuilderRef builder,
             PTXDeviceFunctions cudaDeviceFunctions)
         {
             var indexType = unit.GetType(entryPoint.UngroupedIndexType);
-            var indexValue = LLVM.GetUndef(indexType);
+            var indexValue = GetUndef(indexType);
 
             Debug.Assert(entryPoint.Type >= IndexType.Index1D);
 
-            indexValue = builder.CreateInsertValue(indexValue, builder.CreateCall(
-                cudaDeviceFunctions.GetBlockIdxX.Value, new LLVMValueRef[] { }, "GetBlockIdxX"), 0, "Idx1");
+            indexValue = BuildInsertValue(builder, indexValue, BuildCall(
+                builder, cudaDeviceFunctions.GetBlockIdxX.Value), 0, "Idx1");
 
             if (entryPoint.Type >= IndexType.Index2D && entryPoint.Type <= IndexType.Index3D ||
                 entryPoint.Type >= IndexType.GroupedIndex2D)
-                indexValue = builder.CreateInsertValue(indexValue, builder.CreateCall(
-                    cudaDeviceFunctions.GetBlockIdxY.Value, new LLVMValueRef[] { }, "GetBlockIdxY"), 1, "Idx2");
+                indexValue = BuildInsertValue(builder, indexValue, BuildCall(
+                    builder, cudaDeviceFunctions.GetBlockIdxY.Value), 1, "Idx2");
             if (entryPoint.Type == IndexType.Index3D || entryPoint.Type == IndexType.GroupedIndex3D)
-                indexValue = builder.CreateInsertValue(indexValue, builder.CreateCall(
-                    cudaDeviceFunctions.GetBlockIdxZ.Value, new LLVMValueRef[] { }, "GetBlockIdxZ"), 2, "Idx3");
+                indexValue = BuildInsertValue(builder, indexValue, BuildCall(
+                    builder, cudaDeviceFunctions.GetBlockIdxZ.Value), 2, "Idx3");
 
             return indexValue;
         }
@@ -372,25 +373,25 @@ namespace ILGPU.Backends
         private static LLVMValueRef CreateGroupIndexValue(
             CompileUnit unit,
             EntryPoint entryPoint,
-            IRBuilder builder,
+            LLVMBuilderRef builder,
             PTXDeviceFunctions cudaDeviceFunctions)
         {
             var indexType = unit.GetType(entryPoint.UngroupedIndexType);
-            var threadIndexValue = LLVM.GetUndef(indexType);
+            var threadIndexValue = GetUndef(indexType);
 
             Debug.Assert(entryPoint.Type >= IndexType.Index1D);
 
             var isGroupedIndex = entryPoint.IsGroupedIndexEntry;
 
-            threadIndexValue = builder.CreateInsertValue(threadIndexValue, builder.CreateCall(
-                cudaDeviceFunctions.GetThreadIdxX.Value, new LLVMValueRef[] { }, "GetThreadIdxX"), 0, "TIdx1");
+            threadIndexValue = BuildInsertValue(builder, threadIndexValue, BuildCall(
+                builder, cudaDeviceFunctions.GetThreadIdxX.Value), 0, "TIdx1");
 
             if (entryPoint.Type >= IndexType.Index2D && !isGroupedIndex || entryPoint.Type >= IndexType.GroupedIndex2D)
-                threadIndexValue = builder.CreateInsertValue(threadIndexValue, builder.CreateCall(
-                    cudaDeviceFunctions.GetThreadIdxY.Value, new LLVMValueRef[] { }, "GetThreadIdxY"), 1, "TIdx2");
+                threadIndexValue = BuildInsertValue(builder, threadIndexValue, BuildCall(
+                    builder, cudaDeviceFunctions.GetThreadIdxY.Value), 1, "TIdx2");
             if (entryPoint.Type >= IndexType.Index3D && !isGroupedIndex || entryPoint.Type >= IndexType.GroupedIndex3D)
-                threadIndexValue = builder.CreateInsertValue(threadIndexValue, builder.CreateCall(
-                    cudaDeviceFunctions.GetThreadIdxZ.Value, new LLVMValueRef[] { }, "GetThreadIdxZ"), 2, "TIdx3");
+                threadIndexValue = BuildInsertValue(builder, threadIndexValue, BuildCall(
+                    builder, cudaDeviceFunctions.GetThreadIdxZ.Value), 2, "TIdx3");
 
             return threadIndexValue;
         }
@@ -409,42 +410,46 @@ namespace ILGPU.Backends
         private static LLVMValueRef CreateGlobalIndexValue(
             CompileUnit unit,
             EntryPoint entryPoint,
-            IRBuilder builder,
+            LLVMBuilderRef builder,
             PTXDeviceFunctions cudaDeviceFunctions,
             LLVMValueRef indexValue,
             LLVMValueRef groupIndexValue)
         {
             var indexType = unit.GetType(entryPoint.UngroupedIndexType);
-            var globalIndexValue = LLVM.GetUndef(indexType);
+            var globalIndexValue = GetUndef(indexType);
 
             Debug.Assert(entryPoint.Type >= IndexType.Index1D && entryPoint.Type < IndexType.GroupedIndex1D);
             var blockDimensions = cudaDeviceFunctions.GetBlockDimensions;
 
             for (int i = 0, e = (int)entryPoint.Type; i < e; ++i)
             {
-                var globalGroupOffset = builder.CreateMul(
-                    builder.CreateExtractValue(
+                var globalGroupOffset = BuildMul(
+                    builder,
+                    BuildExtractValue(
+                        builder,
                         indexValue,
-                        (uint)i,
+                        i,
                         "GridIdx_" + i),
-                    builder.CreateCall(
-                        blockDimensions[i].Value,
-                        new LLVMValueRef[] { },
-                        "GetBlockDim_" + i),
+                    BuildCall(
+                        builder,
+                        blockDimensions[i].Value),
                     "GlobalGroupOffset_" + i);
 
-                var globalIdx = builder.CreateAdd(
+                var globalIdx = BuildAdd(
+                    builder,
                     globalGroupOffset,
-                    builder.CreateExtractValue(
+                    BuildExtractValue(
+                        builder,
                         groupIndexValue,
-                        (uint)i,
+                        i,
                         "GroupIdx_" + i),
                     "GlobalIdxVal_" + i);
 
-                globalIndexValue = builder.CreateInsertValue(
+                globalIndexValue = BuildInsertValue(
+                    builder,
                     globalIndexValue,
                     globalIdx,
-                    (uint)i,
+                    i,
                     "GlobalIdx_" + i);
             }
 
@@ -464,22 +469,24 @@ namespace ILGPU.Backends
         private static LLVMValueRef CreateGlobalIndexRangeComparison(
             CompileUnit unit,
             EntryPoint entryPoint,
-            IRBuilder builder,
+            LLVMBuilderRef builder,
             PTXDeviceFunctions cudaDeviceFunctions,
             LLVMValueRef globalIndexValue,
             LLVMValueRef userIndexRange)
         {
             Debug.Assert(entryPoint.Type >= IndexType.Index1D && entryPoint.Type < IndexType.GroupedIndex1D);
 
-            LLVMValueRef comparisonValue = LLVM.ConstInt(LLVM.Int1TypeInContext(unit.LLVMContext), 1, false);
+            LLVMValueRef comparisonValue = ConstInt(unit.LLVMContext.Int1Type, 1, false);
             for (int i = 0, e = (int)entryPoint.Type; i <= e; ++i)
             {
-                var compareResult = builder.CreateICmp(
+                var compareResult = BuildICmp(
+                    builder,
                     LLVMIntPredicate.LLVMIntSLT,
-                    builder.CreateExtractValue(globalIndexValue, 0, "GlobalIdx_" + i),
-                    builder.CreateExtractValue(userIndexRange, 0, "UserRange_" + i),
+                    BuildExtractValue(builder, globalIndexValue, 0, "GlobalIdx_" + i),
+                    BuildExtractValue(builder, userIndexRange, 0, "UserRange_" + i),
                     "InRange_" + i);
-                comparisonValue = builder.CreateAnd(
+                comparisonValue = BuildAnd(
+                    builder,
                     comparisonValue,
                     compareResult,
                     "RangeOr_" + i);
@@ -501,7 +508,7 @@ namespace ILGPU.Backends
         private static LLVMValueRef CreateGroupedIndex(
             CompileUnit unit,
             EntryPoint entryPoint,
-            IRBuilder builder,
+            LLVMBuilderRef builder,
             PTXDeviceFunctions cudaDeviceFunctions,
             LLVMValueRef indexValue,
             LLVMValueRef groupIndexValue)
@@ -509,9 +516,9 @@ namespace ILGPU.Backends
             Debug.Assert(entryPoint.Type >= IndexType.GroupedIndex1D);
 
             // Create a new blocked index
-            var blockIndexValue = LLVM.GetUndef(unit.GetType(entryPoint.KernelIndexType));
-            blockIndexValue = builder.CreateInsertValue(blockIndexValue, indexValue, 0, "GridIdx");
-            blockIndexValue = builder.CreateInsertValue(blockIndexValue, groupIndexValue, 1, "GroupIdx");
+            var blockIndexValue = GetUndef(unit.GetType(entryPoint.KernelIndexType));
+            blockIndexValue = BuildInsertValue(builder, blockIndexValue, indexValue, 0, "GridIdx");
+            blockIndexValue = BuildInsertValue(builder, blockIndexValue, groupIndexValue, 1, "GroupIdx");
             return blockIndexValue;
         }
 
@@ -522,13 +529,14 @@ namespace ILGPU.Backends
         /// <param name="builder">The current IR builder.</param>
         /// <param name="type">The type of the variable to declare.</param>
         /// <returns>A GEP value that points to the base address of the shared-memory variable.</returns>
-        private static LLVMValueRef DeclareSharedMemoryVariable(CompileUnit unit, IRBuilder builder, LLVMTypeRef type)
+        private static LLVMValueRef DeclareSharedMemoryVariable(CompileUnit unit, LLVMBuilderRef builder, LLVMTypeRef type)
         {
             var globalName = unit.GetLLVMName("Global", "SharedMem");
-            var sharedMem = LLVM.AddGlobalInAddressSpace(unit.LLVMModule, type, globalName, 3);
-            return builder.CreateAddrSpaceCast(
+            var sharedMem = AddGlobalInAddressSpace(unit.LLVMModule, type, globalName, 3);
+            return BuildAddrSpaceCast(
+                builder,
                 sharedMem,
-                LLVM.PointerType(unit.LLVMContext.VoidTypeInContext(), 0),
+                unit.LLVMContext.VoidPtrType,
                 string.Empty);
         }
 
@@ -542,154 +550,153 @@ namespace ILGPU.Backends
             var context = unit.LLVMContext;
             var module = unit.LLVMModule;
 
-            LLVMValueRef cudaEntryPoint = LLVM.GetNamedFunction(module, entryPointName);
+            LLVMValueRef cudaEntryPoint = GetNamedFunction(module, entryPointName);
             if (cudaEntryPoint.Pointer != IntPtr.Zero)
             {
-                cudaEntryPoint.SetLinkage(LLVMLinkage.LLVMExternalLinkage);
+                SetLinkage(cudaEntryPoint, LLVMLinkage.LLVMExternalLinkage);
                 return cudaEntryPoint;
             }
 
             var entryPointType = CreatePTXKernelFunctionType(unit, entryPoint, out int parameterOffset);
-            cudaEntryPoint = LLVM.AddFunction(module, entryPointName, entryPointType);
-            cudaEntryPoint.SetLinkage(LLVMLinkage.LLVMExternalLinkage);
+            cudaEntryPoint = AddFunction(module, entryPointName, entryPointType);
+            SetLinkage(cudaEntryPoint, LLVMLinkage.LLVMExternalLinkage);
 
-            var entryBlock = cudaEntryPoint.AppendBasicBlock("Main");
-            var exitBlock = cudaEntryPoint.AppendBasicBlock("Exit");
-            using (var builder = new IRBuilder(unit.LLVMContext))
+            var entryBlock = AppendBasicBlock(cudaEntryPoint, "Main");
+            var exitBlock = AppendBasicBlock(cudaEntryPoint, "Exit");
+
+            var builder = CreateBuilderInContext(unit.LLVMContext);
+            PositionBuilderAtEnd(builder, entryBlock);
+
+            // Create a proper entry point for the virtual entry point
+            var indexValue = CreateIndexValue(unit, entryPoint, builder, deviceFunctions);
+            var groupIndexValue = CreateGroupIndexValue(unit, entryPoint, builder, deviceFunctions);
+            if (!entryPoint.IsGroupedIndexEntry)
             {
-                builder.PositionBuilderAtEnd(entryBlock);
+                // We have to generate code for an implictly grouped kernel
+                // -> Compute the actual global idx
+                indexValue = CreateGlobalIndexValue(
+                    unit,
+                    entryPoint,
+                    builder,
+                    deviceFunctions,
+                    indexValue,
+                    groupIndexValue);
 
-                // Create a proper entry point for the virtual entry point
-                var indexValue = CreateIndexValue(unit, entryPoint, builder, deviceFunctions);
-                var groupIndexValue = CreateGroupIndexValue(unit, entryPoint, builder, deviceFunctions);
-                if  (!entryPoint.IsGroupedIndexEntry)
+                // Append a new main block that contains the actual body
+                var mainBlock = AppendBasicBlock(cudaEntryPoint, "Core");
+
+                // Emit the required check (custom dimension size is stored in parameter 0).
+                // This check is required to ensure that the index is always smaller than the
+                // specified user size. Otherwise, the index might be larger due to custom blocking!
+                Debug.Assert(parameterOffset > 0);
+                var rangeComparisonResult = CreateGlobalIndexRangeComparison(
+                    unit,
+                    entryPoint,
+                    builder,
+                    deviceFunctions,
+                    indexValue,
+                    GetParam(cudaEntryPoint, 0));
+                BuildCondBr(builder, rangeComparisonResult, mainBlock, exitBlock);
+
+                // Move builder to main block to emit the actual kernel body
+                PositionBuilderAtEnd(builder, mainBlock);
+            }
+            else
+            {
+                Debug.Assert(parameterOffset < 1);
+                indexValue = CreateGroupedIndex(
+                    unit,
+                    entryPoint,
+                    builder,
+                    deviceFunctions,
+                    indexValue,
+                    groupIndexValue);
+            }
+
+            // Call the virtual entry point
+            LLVMValueRef[] kernelValues = new LLVMValueRef[entryPoint.NumCustomParameters + 1];
+            kernelValues[0] = indexValue;
+
+            var kernelParameters = GetParams(cudaEntryPoint);
+            var uniformVariables = entryPoint.UniformVariables;
+            for (int i = 0, kernelParamIdx = parameterOffset, e = uniformVariables.Length; i < e; ++i, ++kernelParamIdx)
+            {
+                var variable = uniformVariables[i];
+                LLVMValueRef kernelParam;
+                var kernelValue = kernelParam = kernelParameters[kernelParamIdx];
+                if (variable.VariableType.IsPassedViaPtr())
                 {
-                    // We have to generate code for an implictly grouped kernel
-                    // -> Compute the actual global idx
-                    indexValue = CreateGlobalIndexValue(
-                        unit,
-                        entryPoint,
-                        builder,
-                        deviceFunctions,
-                        indexValue,
-                        groupIndexValue);
+                    // We have to generate a local alloca and store the current parameter value
+                    kernelValue = BuildAlloca(builder, TypeOf(kernelParam), string.Empty);
+                    BuildStore(builder, kernelParam, kernelValue);
+                }
+                kernelValues[variable.Index] = kernelValue;
+            }
 
-                    // Append a new main block that contains the actual body
-                    var mainBlock = cudaEntryPoint.AppendBasicBlock("Core");
+            var sharedMemoryVariables = entryPoint.SharedMemoryVariables;
+            foreach (var variable in sharedMemoryVariables)
+            {
+                // This type can be: ArrayType<T> or VariableType<T>
+                var variableType = unit.GetType(variable.Type);
+                var variableElementType = unit.GetType(variable.ElementType);
+                var sharedVariable = GetUndef(variableType);
+                if (variable.IsArray)
+                {
+                    // However, ArrayType<T> encapsulates the type ArrayView<T, Index>
+                    var genericArrayView = GetUndef(GetStructElementTypes(variableType)[0]);
+                    var arrayType = ArrayType(variableElementType, variable.Count != null ? variable.Count.Value : 0);
+                    var sharedMem = DeclareSharedMemoryVariable(unit, builder, arrayType);
+                    genericArrayView = BuildInsertValue(builder, genericArrayView, sharedMem, 0, string.Empty);
+                    LLVMValueRef intIndex;
 
-                    // Emit the required check (custom dimension size is stored in parameter 0).
-                    // This check is required to ensure that the index is always smaller than the
-                    // specified user size. Otherwise, the index might be larger due to custom blocking!
-                    Debug.Assert(parameterOffset > 0);
-                    var rangeComparisonResult = CreateGlobalIndexRangeComparison(
-                        unit,
-                        entryPoint,
-                        builder,
-                        deviceFunctions,
-                        indexValue,
-                        cudaEntryPoint.GetParam(0));
-                    builder.CreateCondBr(rangeComparisonResult, mainBlock, exitBlock);
+                    if (variable.Count != null)
+                        intIndex = ConstInt(context.Int32Type, variable.Count.Value, false);
+                    else
+                    {
+                        // Attach the right length information that is given via a parameter
+                        Debug.Assert(variable.SharedMemoryIndex >= 0);
+                        intIndex = kernelParameters[uniformVariables.Length + variable.SharedMemoryIndex];
+                    }
 
-                    // Move builder to main block to emit the actual kernel body
-                    builder.PositionBuilderAtEnd(mainBlock);
+                    var indexInstance = GetUndef(unit.GetType(typeof(Index)));
+                    indexInstance = BuildInsertValue(builder, indexInstance, intIndex, 0, string.Empty);
+                    genericArrayView = BuildInsertValue(builder, genericArrayView, indexInstance, 1, string.Empty);
+                    sharedVariable = BuildInsertValue(builder, sharedVariable, genericArrayView, 0, string.Empty);
                 }
                 else
                 {
-                    Debug.Assert(parameterOffset < 1);
-                    indexValue = CreateGroupedIndex(
-                        unit,
-                        entryPoint,
-                        builder,
-                        deviceFunctions,
-                        indexValue,
-                        groupIndexValue);
+                    var sharedMem = DeclareSharedMemoryVariable(unit, builder, variableElementType);
+                    // Insert pointer into variable view
+                    sharedVariable = BuildInsertValue(builder, sharedVariable, sharedMem, 0, string.Empty);
                 }
 
-                // Call the virtual entry point
-                LLVMValueRef[] kernelValues = new LLVMValueRef[entryPoint.NumCustomParameters + 1];
-                kernelValues[0] = indexValue;
 
-                var kernelParameters = cudaEntryPoint.GetParams();
-                var uniformVariables = entryPoint.UniformVariables;
-                for (int i = 0, kernelParamIdx = parameterOffset, e = uniformVariables.Length; i < e; ++i, ++kernelParamIdx)
-                {
-                    var variable = uniformVariables[i];
-                    LLVMValueRef kernelParam;
-                    var kernelValue = kernelParam = kernelParameters[kernelParamIdx];
-                    if (variable.VariableType.IsPassedViaPtr())
-                    {
-                        // We have to generate a local alloca and store the current parameter value
-                        kernelValue = builder.CreateAlloca(kernelParam.TypeOf(), string.Empty);
-                        builder.CreateStore(kernelParam, kernelValue);
-                    }
-                    kernelValues[variable.Index] = kernelValue;
-                }
-
-                var sharedMemoryVariables = entryPoint.SharedMemoryVariables;
-                foreach (var variable in sharedMemoryVariables)
-                {
-                    // This type can be: ArrayType<T> or VariableType<T>
-                    var variableType = unit.GetType(variable.Type);
-                    var variableElementType = unit.GetType(variable.ElementType);
-                    var sharedVariable = LLVM.GetUndef(variableType);
-                    if (variable.IsArray)
-                    {
-                        // However, ArrayType<T> encapsulates the type ArrayView<T, Index>
-                        var genericArrayView = LLVM.GetUndef(variableType.GetStructElementTypes()[0]);
-                        var arrayType = LLVM.ArrayType(variableElementType, (uint)(variable.Count != null ? variable.Count.Value : 0));
-                        var sharedMem = DeclareSharedMemoryVariable(unit, builder, arrayType);
-                        genericArrayView = builder.CreateInsertValue(genericArrayView, sharedMem, 0, string.Empty);
-                        LLVMValueRef intIndex;
-
-                        if (variable.Count != null)
-                            intIndex = LLVMExtensions.ConstInt(context.Int32TypeInContext(), variable.Count.Value, false);
-                        else
-                        {
-                            // Attach the right length information that is given via a parameter
-                            Debug.Assert(variable.SharedMemoryIndex >= 0);
-                            intIndex = kernelParameters[uniformVariables.Length + variable.SharedMemoryIndex];
-                        }
-
-                        var indexInstance = LLVM.GetUndef(unit.GetType(typeof(Index)));
-                        indexInstance = builder.CreateInsertValue(indexInstance, intIndex, 0, string.Empty);
-                        genericArrayView = builder.CreateInsertValue(genericArrayView, indexInstance, 1, string.Empty);
-                        sharedVariable = builder.CreateInsertValue(sharedVariable, genericArrayView, 0, string.Empty);
-                    }
-                    else
-                    {
-                        var sharedMem = DeclareSharedMemoryVariable(unit, builder, variableElementType);
-                        // Insert pointer into variable view
-                        sharedVariable = builder.CreateInsertValue(sharedVariable, sharedMem, 0, string.Empty);
-                    }
-
-
-                    // Setup the pointer as generic pointer
-                    kernelValues[variable.Index] = sharedVariable;
-                }
-
-                // Declare external entry point
-                var virtualEntryPoint = unit.GetMethod(entryPoint.MethodInfo);
-                builder.CreateCall(virtualEntryPoint.LLVMFunction, kernelValues, string.Empty);
-
-                // Verify method access in the scope of implicitly-grouped kernels
-                if (!entryPoint.IsGroupedIndexEntry)
-                {
-                    virtualEntryPoint.VisitCalls((instruction, calledMethod) =>
-                    {
-                        CodeGenerator.VerifyAccessToMethodInImplicitlyGroupedKernel(
-                            unit.CompilationContext,
-                            calledMethod.MethodBase,
-                            entryPoint);
-                    });
-                }
-
-                // Jump to exit block
-                builder.CreateBr(exitBlock);
-
-                // Build exit block
-                builder.PositionBuilderAtEnd(exitBlock);
-                builder.CreateRetVoid();
+                // Setup the pointer as generic pointer
+                kernelValues[variable.Index] = sharedVariable;
             }
+
+            // Declare external entry point
+            var virtualEntryPoint = unit.GetMethod(entryPoint.MethodInfo);
+            BuildCall(builder, virtualEntryPoint.LLVMFunction, kernelValues);
+
+            // Verify method access in the scope of implicitly-grouped kernels
+            if (!entryPoint.IsGroupedIndexEntry)
+            {
+                virtualEntryPoint.VisitCalls((instruction, calledMethod) =>
+                {
+                    CodeGenerator.VerifyAccessToMethodInImplicitlyGroupedKernel(
+                        unit.CompilationContext,
+                        calledMethod.MethodBase,
+                        entryPoint);
+                });
+            }
+
+            // Jump to exit block
+            BuildBr(builder, exitBlock);
+
+            // Build exit block
+            PositionBuilderAtEnd(builder, exitBlock);
+            BuildRetVoid(builder);
 
             unit.Optimize();
 
@@ -702,17 +709,17 @@ namespace ILGPU.Backends
             // Add required metdata for entry point
             var context = unit.LLVMContext;
 
-            var kernelMd = context.MDNodeInContext(new LLVMValueRef[]
+            var values = new LLVMValueRef[]
             {
                 generatedEntryPoint,
-                context.MDStringInContext("kernel", 6),
-                LLVM.ConstInt(context.Int32TypeInContext(), 1, false)
-            });
-
-            LLVM.AddNamedMetadataOperand(module, "nvvm.annotations", kernelMd);
+                MDStringInContext(context, "kernel", 6),
+                ConstInt(context.Int32Type, 1, false)
+            };
+            var kernelMd = MDNodeInContext(context, out values[0], values.Length);
+            AddNamedMetadataOperand(module, "nvvm.annotations", kernelMd);
 
             // Perform NVVM reflect pass
-            LLVMExtensions.PreparePTXModule(
+            PreparePTXModule(
                 module,
                 generatedEntryPoint,
                 unit.HasFlags(CompileUnitFlags.PTXFlushDenormalsToZero | CompileUnitFlags.FastMath),

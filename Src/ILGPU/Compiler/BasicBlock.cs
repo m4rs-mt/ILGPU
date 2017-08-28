@@ -9,14 +9,15 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -132,9 +133,9 @@ namespace ILGPU.Compiler
         private Type IntPtrType => Unit.IntPtrType;
 
         /// <summary>
-        /// Returns the used instruction builder.
+        /// Returns the used builder.
         /// </summary>
-        private IRBuilder InstructionBuilder => BlockHost.InstructionBuilder;
+        private LLVMBuilderRef Builder => BlockHost.Builder;
 
         /// <summary>
         /// Returns the current compilation context.
@@ -241,18 +242,18 @@ namespace ILGPU.Compiler
                 value = peekedValue.Value;
 
                 // Move to current block to place the phi node
-                var currentBlock = InstructionBuilder.GetInsertBlock();
-                var firstInstruction = LLVM.GetFirstInstruction(LLVMBlock);
+                var currentBlock = GetInsertBlock(Builder);
+                var firstInstruction = GetFirstInstruction(LLVMBlock);
                 if (firstInstruction.Pointer != IntPtr.Zero)
-                    InstructionBuilder.PositionBuilderBefore(firstInstruction);
+                    PositionBuilderBefore(Builder, firstInstruction);
                 else
-                    InstructionBuilder.PositionBuilderAtEnd(LLVMBlock);
+                    PositionBuilderAtEnd(Builder, LLVMBlock);
 
                 // Insert the actual phi node
-                var phi = InstructionBuilder.CreatePhi(value.LLVMValue.TypeOf(), string.Empty);
+                var phi = BuildPhi(Builder, TypeOf(value.LLVMValue), string.Empty);
 
                 // Recover insert location
-                InstructionBuilder.PositionBuilderAtEnd(currentBlock);
+                PositionBuilderAtEnd(Builder, currentBlock);
 
                 value = new Value(value.ValueType, phi);
                 var incompletePhi = new IncompletePhi(
@@ -284,7 +285,7 @@ namespace ILGPU.Compiler
             foreach (var pred in predecessors)
             {
                 // Append possible conversion instructions to the right block
-                var currentBlock = InstructionBuilder.GetInsertBlock();
+                var currentBlock = GetInsertBlock(Builder);
 
                 // Get the related pred value
                 var predValue = pred.GetValue(incompletePhi.VariableRef);
@@ -292,25 +293,25 @@ namespace ILGPU.Compiler
                 // Position builder in the pred block
                 // Ensure that we dont add an instruction behind the terminator (if it exists)
                 var predBlock = pred.LLVMBlock;
-                InstructionBuilder.PositionBuilderAtEnd(predBlock);
-                var predTerminator = predBlock.GetBasicBlockTerminator();
+                PositionBuilderAtEnd(Builder, predBlock);
+                var predTerminator = GetBasicBlockTerminator(predBlock);
                 if (predTerminator.Pointer == IntPtr.Zero)
-                    InstructionBuilder.PositionBuilderAtEnd(predBlock);
+                    PositionBuilderAtEnd(Builder, predBlock);
                 else
-                    InstructionBuilder.PositionBuilderBefore(predTerminator);
+                    PositionBuilderBefore(Builder, predTerminator);
 
                 // Convert the value into the target type
                 var convertedValue = Convert(predValue, incompletePhi.PhiType);
 
                 // Position builder at the previous insert block
-                InstructionBuilder.PositionBuilderAtEnd(currentBlock);
+                PositionBuilderAtEnd(Builder, currentBlock);
 
                 // Register the pred value
                 phiValues[offset] = convertedValue.LLVMValue;
                 phiBlocks[offset] = pred.LLVMBlock;
                 ++offset;
             }
-            phi.AddIncoming(phiValues, phiBlocks, (uint)phiValues.Length);
+            AddIncoming(phi, out phiValues[0], out phiBlocks[0], phiValues.Length);
         }
 
         /// <summary>

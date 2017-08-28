@@ -9,9 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -53,13 +53,13 @@ namespace ILGPU.Backends.ABI
         #region Methods
 
         /// <summary cref="ABISpecification.GetSizeOf(Type)"/>
-        public override uint GetSizeOf(Type type)
+        public override int GetSizeOf(Type type)
         {
-            return (uint)type.SizeOf();
+            return type.SizeOf();
         }
 
         /// <summary cref="ABISpecification.GetAlignmentOf(Type)"/>
-        public override uint GetAlignmentOf(Type type)
+        public override int GetAlignmentOf(Type type)
         {
             return GetSizeOf(type);
         }

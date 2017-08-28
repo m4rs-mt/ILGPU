@@ -9,7 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using LLVMSharp;
+using ILGPU.LLVM;
 using System;
 using System.Reflection;
 using System.Text;
@@ -35,7 +35,7 @@ namespace ILGPU.Compiler.Intrinsic
         /// <param name="args">The method arguments.</param>
         /// <param name="codeGenerator">The associated code generator.</param>
         internal InvocationContext(
-            IRBuilder builder,
+            LLVMBuilderRef builder,
             Method callerMethod,
             MethodBase method,
             Value[] args,
@@ -72,7 +72,7 @@ namespace ILGPU.Compiler.Intrinsic
         /// Returns the current instruction builder.
         /// </summary>
         [CLSCompliant(false)]
-        public IRBuilder Builder { get; }
+        public LLVMBuilderRef Builder { get; }
 
         /// <summary>
         /// Represents the caller method.
@@ -87,7 +87,7 @@ namespace ILGPU.Compiler.Intrinsic
         /// <summary>
         /// Returns the associated module.
         /// </summary>
-        public System.Reflection.Module Module => Method.Module;
+        public Module Module => Method.Module;
 
         /// <summary>
         /// Returns the associated code generator.
@@ -215,7 +215,7 @@ namespace ILGPU.Compiler.Intrinsic
         /// <returns>True, iff the first and second invocation contexts are the same.</returns>
         public static bool operator ==(InvocationContext first, InvocationContext second)
         {
-            if (first.Method != second.Method || first.Builder != second.Builder)
+            if (first.Method != second.Method)
                 return false;
             var firstLength = first.methodArguments?.Length;
             var secondLength = second.methodArguments?.Length;
@@ -237,7 +237,7 @@ namespace ILGPU.Compiler.Intrinsic
         /// <returns>True, iff the first and second invocation contexts are not the same.</returns>
         public static bool operator !=(InvocationContext first, InvocationContext second)
         {
-            if (first.Method != second.Method || first.Builder != second.Builder)
+            if (first.Method != second.Method)
                 return true;
             var firstLength = first.methodArguments?.Length;
             var secondLength = second.methodArguments?.Length;

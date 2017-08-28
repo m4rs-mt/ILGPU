@@ -9,8 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Util;
-using LLVMSharp;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -22,11 +21,11 @@ namespace ILGPU.Compiler
         private void MakeReturn()
         {
             if (Method.IsVoid)
-                InstructionBuilder.CreateRetVoid();
+                BuildRetVoid(Builder);
             else
             {
                 var returnValue = CurrentBlock.Pop(Method.ReturnType);
-                InstructionBuilder.CreateRet(returnValue.LLVMValue);
+                BuildRet(Builder, returnValue.LLVMValue);
             }
         }
 
@@ -37,7 +36,7 @@ namespace ILGPU.Compiler
         private void MakeBranch(ILInstructionBranchTargets targets)
         {
             var block = bbMapping[targets.UnconditionalBranchTarget.Value];
-            InstructionBuilder.CreateBr(block.LLVMBlock);
+            BuildBr(Builder, block.LLVMBlock);
         }
 
         /// <summary>
@@ -51,7 +50,8 @@ namespace ILGPU.Compiler
             var condition = CreateCompare(compareType, unsigned);
             var ifBlock = bbMapping[targets.ConditionalBranchIfTarget.Value];
             var elseBlock = bbMapping[targets.ConditionalBranchElseTarget.Value];
-            InstructionBuilder.CreateCondBr(
+            BuildCondBr(
+                Builder, 
                 condition.LLVMValue,
                 ifBlock.LLVMBlock,
                 elseBlock.LLVMBlock);
@@ -65,16 +65,17 @@ namespace ILGPU.Compiler
         {
             var switchValue = CurrentBlock.PopInt();
             var defaultBlock = bbMapping[targets.SwitchDefaultTarget.Value];
-            var @switch = InstructionBuilder.CreateSwitch(
+            var @switch = BuildSwitch(
+                Builder, 
                 switchValue.LLVMValue,
                 defaultBlock.LLVMBlock,
-                (uint)(targets.Count - 1));
+                targets.Count - 1);
             for (int i = 1, e = targets.Count; i < e; ++i)
             {
                 var block = bbMapping[targets[i]];
-                LLVM.AddCase(
+                AddCase(
                     @switch,
-                    LLVMExtensions.ConstInt(LLVMContext.Int32TypeInContext(), i - 1, true), block.LLVMBlock);
+                    ConstInt(LLVMContext.Int32Type, i - 1, true), block.LLVMBlock);
             }
         }
     }

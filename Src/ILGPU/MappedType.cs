@@ -9,7 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using LLVMSharp;
+using ILGPU.LLVM;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;

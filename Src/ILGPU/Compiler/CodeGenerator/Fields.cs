@@ -9,12 +9,13 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Diagnostics;
 using System.Reflection;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -35,13 +36,13 @@ namespace ILGPU.Compiler
                 var mappedType = Unit.GetObjectType(value.ValueType.GetElementType());
                 if (mappedType.TryResolveOffset(field, out int offset))
                 {
-                    value = new Value(field.FieldType, InstructionBuilder.CreateStructGEP(value.LLVMValue, (uint)offset, name));
+                    value = new Value(field.FieldType, BuildStructGEP(Builder, value.LLVMValue, offset, name));
                     break;
                 }
                 var baseType = value.ValueType.BaseType;
                 if (baseType == null)
                     throw new InvalidOperationException();
-                value = new Value(baseType, InstructionBuilder.CreateStructGEP(value.LLVMValue, 0, name));
+                value = new Value(baseType, BuildStructGEP(Builder, value.LLVMValue, 0, name));
             }
             while (value.ValueType.BaseType != null);
             return value.LLVMValue;
@@ -59,7 +60,7 @@ namespace ILGPU.Compiler
             if (value.ValueType.IsTreatedAsPtr())
             {
                 var address = LoadFieldAddress(field, value);
-                CurrentBlock.Push(field.FieldType, InstructionBuilder.CreateLoad(address, name));
+                CurrentBlock.Push(field.FieldType, BuildLoad(Builder, address, name));
             }
             else
             {
@@ -69,13 +70,13 @@ namespace ILGPU.Compiler
                     var mappedType = Unit.GetObjectType(value.ValueType);
                     if (mappedType.TryResolveOffset(field, out int offset))
                     {
-                        value = new Value(field.FieldType, InstructionBuilder.CreateExtractValue(value.LLVMValue, (uint)offset, name));
+                        value = new Value(field.FieldType, BuildExtractValue(Builder, value.LLVMValue, offset, name));
                         break;
                     }
                     var baseType = value.ValueType.BaseType;
                     if (baseType == null)
                         throw new InvalidOperationException();
-                    value = new Value(baseType, InstructionBuilder.CreateExtractValue(value.LLVMValue, 0, name));
+                    value = new Value(baseType, BuildExtractValue(Builder, value.LLVMValue, 0, name));
                 }
                 while (value.ValueType.BaseType != null);
                 CurrentBlock.Push(value);
@@ -123,7 +124,7 @@ namespace ILGPU.Compiler
             var value = CurrentBlock.Pop(field.FieldType);
             var fieldValue = CurrentBlock.Pop();
             var fieldAddress = LoadFieldAddress(field, fieldValue);
-            InstructionBuilder.CreateStore(value.LLVMValue, fieldAddress);
+            BuildStore(Builder, value.LLVMValue, fieldAddress);
         }
 
         /// <summary>

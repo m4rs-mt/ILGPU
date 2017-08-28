@@ -9,10 +9,11 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System.Diagnostics;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -71,7 +72,7 @@ namespace ILGPU.Compiler
                 }
                 return new Value(
                     typeof(bool),
-                    InstructionBuilder.CreateICmp(intPredicate, left.LLVMValue, right.LLVMValue, "icmp"));
+                    BuildICmp(Builder, intPredicate, left.LLVMValue, right.LLVMValue, "icmp"));
             }
             else if (left.BasicValueType.IsFloat())
             {
@@ -103,7 +104,7 @@ namespace ILGPU.Compiler
                 }
                 return new Value(
                     typeof(bool),
-                    InstructionBuilder.CreateFCmp(realPredicate, left.LLVMValue, right.LLVMValue, "fcmp"));
+                    BuildFCmp(Builder, realPredicate, left.LLVMValue, right.LLVMValue, "fcmp"));
             }
             else
                 throw CompilationContext.GetNotSupportedException(

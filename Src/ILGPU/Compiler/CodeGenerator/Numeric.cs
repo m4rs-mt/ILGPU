@@ -9,8 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Util;
-using LLVMSharp;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -22,7 +23,7 @@ namespace ILGPU.Compiler
         private void MakeNumericAnd()
         {
             var type = CurrentBlock.PopArithmeticArgs(out LLVMValueRef left, out LLVMValueRef right);
-            CurrentBlock.Push(type, InstructionBuilder.CreateAnd(left, right, string.Empty));
+            CurrentBlock.Push(type, BuildAnd(Builder, left, right, string.Empty));
         }
 
         /// <summary>
@@ -31,7 +32,7 @@ namespace ILGPU.Compiler
         private void MakeNumericOr()
         {
             var type = CurrentBlock.PopArithmeticArgs(out LLVMValueRef left, out LLVMValueRef right);
-            CurrentBlock.Push(type, InstructionBuilder.CreateOr(left, right, string.Empty));
+            CurrentBlock.Push(type, BuildOr(Builder, left, right, string.Empty));
         }
 
         /// <summary>
@@ -40,7 +41,7 @@ namespace ILGPU.Compiler
         private void MakeNumericXor()
         {
             var type = CurrentBlock.PopArithmeticArgs(out LLVMValueRef left, out LLVMValueRef right);
-            CurrentBlock.Push(type, InstructionBuilder.CreateXor(left, right, string.Empty));
+            CurrentBlock.Push(type, BuildXor(Builder, left, right, string.Empty));
         }
 
         /// <summary>
@@ -49,7 +50,7 @@ namespace ILGPU.Compiler
         private void MakeNumericShl()
         {
             var type = CurrentBlock.PopArithmeticArgs(out LLVMValueRef left, out LLVMValueRef right);
-            CurrentBlock.Push(type, InstructionBuilder.CreateShl(left, right, string.Empty));
+            CurrentBlock.Push(type, BuildShl(Builder, left, right, string.Empty));
         }
 
         /// <summary>
@@ -61,9 +62,9 @@ namespace ILGPU.Compiler
             var type = CurrentBlock.PopArithmeticArgs(out LLVMValueRef left, out LLVMValueRef right);
             var name = string.Empty;
             if (forceUnsigned || type.IsUnsignedInt())
-                CurrentBlock.Push(type, InstructionBuilder.CreateLShr(left, right, name));
+                CurrentBlock.Push(type, BuildLShr(Builder, left, right, name));
             else
-                CurrentBlock.Push(type, InstructionBuilder.CreateAShr(left, right, name));
+                CurrentBlock.Push(type, BuildAShr(Builder, left, right, name));
         }
 
         /// <summary>
@@ -74,9 +75,9 @@ namespace ILGPU.Compiler
             var value = CurrentBlock.Pop();
             var name = string.Empty;
             if (value.ValueType.IsFloat())
-                CurrentBlock.Push(value.ValueType, InstructionBuilder.CreateFNeg(value.LLVMValue, name));
+                CurrentBlock.Push(value.ValueType, BuildFNeg(Builder, value.LLVMValue, name));
             else
-                CurrentBlock.Push(value.ValueType, InstructionBuilder.CreateNeg(value.LLVMValue, name));
+                CurrentBlock.Push(value.ValueType, BuildNeg(Builder, value.LLVMValue, name));
         }
 
         /// <summary>
@@ -85,7 +86,7 @@ namespace ILGPU.Compiler
         private void MakeNumericNot()
         {
             var value = CurrentBlock.Pop();
-            CurrentBlock.Push(value.ValueType, InstructionBuilder.CreateNot(value.LLVMValue, string.Empty));
+            CurrentBlock.Push(value.ValueType, BuildNot(Builder, value.LLVMValue, string.Empty));
         }
     }
 }

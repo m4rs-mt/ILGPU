@@ -9,10 +9,11 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -49,22 +50,22 @@ namespace ILGPU.Compiler
             if (valueBasicValueType.IsInt())
             {
                 if (targetBasicValueType == BasicValueType.Ptr)
-                    targetValue = InstructionBuilder.CreateIntToPtr(value.LLVMValue, llvmType, name);
+                    targetValue = BuildIntToPtr(Builder, value.LLVMValue, llvmType, name);
                 else if (targetBasicValueType.IsFloat())
                 {
                     if (forceUnsigned || targetBasicValueType.IsUnsignedInt())
-                        targetValue = InstructionBuilder.CreateUIToFP(value.LLVMValue, llvmType, name);
+                        targetValue = BuildUIToFP(Builder, value.LLVMValue, llvmType, name);
                     else
-                        targetValue = InstructionBuilder.CreateSIToFP(value.LLVMValue, llvmType, name);
+                        targetValue = BuildSIToFP(Builder, value.LLVMValue, llvmType, name);
                 }
                 else if (valueBasicValueType > targetBasicValueType)
-                    targetValue = InstructionBuilder.CreateTrunc(value.LLVMValue, llvmType, name);
+                    targetValue = BuildTrunc(Builder, value.LLVMValue, llvmType, name);
                 else if (valueBasicValueType < targetBasicValueType)
                 {
                     if (forceUnsigned || valueBasicValueType.IsUnsignedInt() || valueBasicValueType == BasicValueType.UInt1)
-                        targetValue = InstructionBuilder.CreateZExt(value.LLVMValue, llvmType, name);
+                        targetValue = BuildZExt(Builder, value.LLVMValue, llvmType, name);
                     else
-                        targetValue = InstructionBuilder.CreateSExt(value.LLVMValue, llvmType, name);
+                        targetValue = BuildSExt(Builder, value.LLVMValue, llvmType, name);
                 }
                 else
                     throw CompilationContext.GetNotSupportedException(ErrorMessages.NotSupportedIntConversion);
@@ -74,14 +75,14 @@ namespace ILGPU.Compiler
                 if (targetBasicValueType.IsInt())
                 {
                     if (forceUnsigned || targetBasicValueType.IsUnsignedInt())
-                        targetValue = InstructionBuilder.CreateFPToUI(value.LLVMValue, llvmType, name);
+                        targetValue = BuildFPToUI(Builder, value.LLVMValue, llvmType, name);
                     else
-                        targetValue = InstructionBuilder.CreateFPToSI(value.LLVMValue, llvmType, name);
+                        targetValue = BuildFPToSI(Builder, value.LLVMValue, llvmType, name);
                 }
                 else if (valueBasicValueType > targetBasicValueType)
-                    targetValue = InstructionBuilder.CreateFPTrunc(value.LLVMValue, llvmType, name);
+                    targetValue = BuildFPTrunc(Builder, value.LLVMValue, llvmType, name);
                 else if (valueBasicValueType < targetBasicValueType)
-                    targetValue = InstructionBuilder.CreateFPExt(value.LLVMValue, llvmType, name);
+                    targetValue = BuildFPExt(Builder, value.LLVMValue, llvmType, name);
                 else
                     throw CompilationContext.GetNotSupportedException(ErrorMessages.NotSupportedFloatConversion);
             }
@@ -89,11 +90,11 @@ namespace ILGPU.Compiler
             {
                 if (targetBasicValueType.IsInt())
                 {
-                    var intPtr = InstructionBuilder.CreatePtrToInt(value.LLVMValue, Unit.NativeIntPtrType, name);
+                    var intPtr = BuildPtrToInt(Builder, value.LLVMValue, Unit.NativeIntPtrType, name);
                     return CreateConversion(new Value(Unit.IntPtrType, intPtr), targetType);
                 }
                 else if (targetBasicValueType == BasicValueType.Ptr)
-                    targetValue = InstructionBuilder.CreateBitCast(value.LLVMValue, llvmType, name);
+                    targetValue = BuildBitCast(Builder, value.LLVMValue, llvmType, name);
                 else
                     throw CompilationContext.GetNotSupportedException(ErrorMessages.NotSupportedPointerConversion);
             }
@@ -127,7 +128,7 @@ namespace ILGPU.Compiler
                     throw new InvalidOperationException();
                 value = new Value(
                     value.ValueType.BaseType,
-                    InstructionBuilder.CreateStructGEP(value.LLVMValue, 0, string.Empty));
+                    BuildStructGEP(Builder, value.LLVMValue, 0, string.Empty));
             }
             return value;
         }

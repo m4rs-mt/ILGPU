@@ -9,15 +9,15 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Resources;
-using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler.Intrinsic
 {
@@ -304,9 +304,9 @@ namespace ILGPU.Compiler.Intrinsic
             // First arg is a VariableView<T>
             // Extract the pointer from the tuple
             var variableView = args[0];
-            var ptr = builder.CreateExtractValue(variableView.LLVMValue, 0, "ptr");
+            var ptr = BuildExtractValue(builder, variableView.LLVMValue, 0, "ptr");
             var elementType = variableView.ValueType.GetGenericArguments()[0];
-            ptr = builder.CreateBitCast(ptr, Unit.GetType(elementType.MakePointerType()), "ptrT");
+            ptr = BuildBitCast(builder, ptr, Unit.GetType(elementType.MakePointerType()), "ptrT");
 
             var value = args[1].LLVMValue;
 
@@ -314,11 +314,11 @@ namespace ILGPU.Compiler.Intrinsic
             {
                 case AtomicIntrinsicKind.CmpXch:
                     var cmpxch =
-                        LLVM.BuildAtomicCmpXchg(builder.GetBuilderRef(), ptr, value, args[2].LLVMValue,
+                        BuildAtomicCmpXchg(builder, ptr, value, args[2].LLVMValue,
                         LLVMAtomicOrdering.LLVMAtomicOrderingSequentiallyConsistent, LLVMAtomicOrdering.LLVMAtomicOrderingSequentiallyConsistent, false);
                     return new Value(
                         elementType,
-                        builder.CreateExtractValue(cmpxch, 0, string.Empty));
+                        BuildExtractValue(builder, cmpxch, 0, string.Empty));
                 case AtomicIntrinsicKind.AddF32:
                     return MakeAtomicAdd(context, ptr, kind);
                 case AtomicIntrinsicKind.IncU32:
@@ -328,7 +328,7 @@ namespace ILGPU.Compiler.Intrinsic
                 default:
                     return new Value(
                         elementType,
-                        builder.CreateAtomicRMW((LLVMAtomicRMWBinOp)kind, ptr, value, LLVMAtomicOrdering.LLVMAtomicOrderingSequentiallyConsistent, false));
+                        BuildAtomicRMW(builder, (LLVMAtomicRMWBinOp)kind, ptr, value, LLVMAtomicOrdering.LLVMAtomicOrderingSequentiallyConsistent, false));
             }
 
         }
@@ -424,13 +424,13 @@ namespace ILGPU.Compiler.Intrinsic
             var builder = context.Builder;
             var args = context.GetArgs();
             LLVMValueRef ptrValue;
-            var ptrType = LLVM.PointerType(LLVM.VoidTypeInContext(context.LLVMContext), 0);
+            var ptrType = context.LLVMContext.VoidPtrType;
             if (sourceType.IsPointer)
-                ptrValue = builder.CreatePointerCast(args[1].LLVMValue, ptrType, string.Empty);
+                ptrValue = BuildPointerCast(builder, args[1].LLVMValue, ptrType, string.Empty);
             else
-                ptrValue = builder.CreateIntToPtr(args[1].LLVMValue, ptrType, string.Empty);
+                ptrValue = BuildIntToPtr(builder, args[1].LLVMValue, ptrType, string.Empty);
             // Since this is a constructor, we have to store the value into the instance value
-            builder.CreateStore(ptrValue, args[0].LLVMValue);
+            BuildStore(builder, ptrValue, args[0].LLVMValue);
             return null;
         }
 
@@ -444,11 +444,11 @@ namespace ILGPU.Compiler.Intrinsic
         {
             var builder = context.Builder;
             var args = context.GetArgs();
-            var firstVal = builder.CreatePtrToInt(args[0].LLVMValue, Unit.NativeIntPtrType, string.Empty);
-            var secondVal = builder.CreatePtrToInt(args[1].LLVMValue, Unit.NativeIntPtrType, string.Empty);
+            var firstVal = BuildPtrToInt(builder, args[0].LLVMValue, Unit.NativeIntPtrType, string.Empty);
+            var secondVal = BuildPtrToInt(builder, args[1].LLVMValue, Unit.NativeIntPtrType, string.Empty);
             return new Value(
                 typeof(bool),
-                builder.CreateICmp(predicate, firstVal, secondVal, string.Empty));
+                BuildICmp(builder, predicate, firstVal, secondVal, string.Empty));
         }
 
         /// <summary>
@@ -458,12 +458,12 @@ namespace ILGPU.Compiler.Intrinsic
         /// <returns>The resulting value.</returns>
         protected virtual Value? MakeCastIntToIntPtr(InvocationContext context)
         {
-            var ptrType = LLVM.PointerType(LLVM.VoidTypeInContext(context.LLVMContext), 0);
             return new Value(
                 typeof(IntPtr),
-                context.Builder.CreateIntToPtr(
+                BuildIntToPtr(
+                    context.Builder,
                     context.GetArgs()[0].LLVMValue,
-                    ptrType,
+                    context.LLVMContext.VoidPtrType,
                     string.Empty));
         }
 
@@ -476,7 +476,8 @@ namespace ILGPU.Compiler.Intrinsic
         {
             return new Value(
                 typeof(IntPtr),
-                context.Builder.CreateLoad(
+                BuildLoad(
+                    context.Builder,
                     context.GetArgs()[0].LLVMValue,
                     string.Empty));
         }
@@ -491,10 +492,11 @@ namespace ILGPU.Compiler.Intrinsic
         {
             // Load ptr value from instance
             var builder = context.Builder;
-            var ptr = builder.CreateLoad(context.GetArgs()[0].LLVMValue, string.Empty);
+            var ptr = BuildLoad(builder, context.GetArgs()[0].LLVMValue, string.Empty);
             return new Value(
                 intType,
-                context.Builder.CreatePtrToInt(
+                BuildPtrToInt(
+                    builder,
                     ptr,
                     Unit.GetType(intType),
                     string.Empty));
@@ -510,14 +512,14 @@ namespace ILGPU.Compiler.Intrinsic
         {
             var builder = context.Builder;
             var args = context.GetArgs();
-            var ptrType = LLVM.PointerType(Unit.GetType(BasicValueType.Int8), 0);
-            var ptr = builder.CreateBitCast(args[0].LLVMValue, ptrType, string.Empty);
+            var ptrType = context.LLVMContext.VoidPtrType;
+            var ptr = BuildBitCast(builder, args[0].LLVMValue, ptrType, string.Empty);
             var add = positive ?
-                builder.CreateAdd(ptr, args[1].LLVMValue, string.Empty) :
-                builder.CreateSub(ptr, args[1].LLVMValue, string.Empty);
+                BuildAdd(builder, ptr, args[1].LLVMValue, string.Empty) :
+                BuildSub(builder, ptr, args[1].LLVMValue, string.Empty);
             return new Value(
                 args[0].ValueType,
-                builder.CreateBitCast(add, args[0].LLVMValue.TypeOf(), string.Empty));
+                BuildBitCast(builder, add, TypeOf(args[0].LLVMValue), string.Empty));
         }
 
         #endregion
@@ -688,7 +690,7 @@ namespace ILGPU.Compiler.Intrinsic
                     ErrorMessages.NotSupportedActivatorOperation, context.Method.Name);
             var targetType = genericArgs[0];
             var llvmTargetType = context.Unit.GetType(targetType);
-            return new Value(targetType, LLVM.ConstNull(llvmTargetType));
+            return new Value(targetType, ConstNull(llvmTargetType));
         }
 
         #endregion
@@ -709,14 +711,14 @@ namespace ILGPU.Compiler.Intrinsic
             var type = genericArgs.Length > 0 ? genericArgs[0] : null;
             var llvmType = context.Unit.GetType(type);
             var builder = context.Builder;
-            var int32Type = context.LLVMContext.Int32TypeInContext();
+            var int32Type = context.LLVMContext.Int32Type;
 
             switch (kind)
             {
                 case InteropIntrinsicKind.DestroyStructure:
-                    return new Value(type, builder.CreateStore(args[0].LLVMValue, LLVM.ConstNull(llvmType)));
+                    return new Value(type, BuildStore(builder, args[0].LLVMValue, ConstNull(llvmType)));
                 case InteropIntrinsicKind.SizeOf:
-                    return new Value(typeof(int), builder.CreateTruncOrBitCast(llvmType.SizeOf(), int32Type, string.Empty));
+                    return new Value(typeof(int), BuildTruncOrBitCast(builder, SizeOf(llvmType), int32Type, string.Empty));
                 case InteropIntrinsicKind.OffsetOf:
                     {
                         if (type.IsPrimitive)
@@ -724,11 +726,11 @@ namespace ILGPU.Compiler.Intrinsic
                                 ErrorMessages.CannotTakeFieldOffsetOfPrimitiveType, type);
                         // Argument is a GEP
                         var testVal = args[0].LLVMValue;
-                        var gepSource = testVal.GetOperand(0);
+                        var gepSource = GetOperand(testVal, 0);
                         // First argument is the string const
-                        var stringConst = gepSource.GetOperand(0);
-                        var stringPtr = stringConst.GetAsString(out size_t size);
-                        var sizeVal = size.Pointer.ToInt32();
+                        var stringConst = GetOperand(gepSource, 0);
+                        var stringPtr = GetAsString(stringConst, out IntPtr size);
+                        var sizeVal = size.ToInt32();
                         if (sizeVal < 2)
                             throw compilationContext.GetNotSupportedException(
                                 ErrorMessages.CannotFindFieldOfType, string.Empty, type);
@@ -739,10 +741,14 @@ namespace ILGPU.Compiler.Intrinsic
                             throw compilationContext.GetNotSupportedException(
                                 ErrorMessages.CannotFindFieldOfType, fieldName, type);
 
-                        var offsetPointer = builder.CreateInBoundsGEP(
-                            LLVM.ConstPointerNull(llvmType),
-                            new LLVMValueRef[] { LLVM.ConstInt(int32Type, (ulong)offset, false) }, string.Empty);
-                        var intOffset = builder.CreatePtrToInt(offsetPointer, int32Type, string.Empty);
+                        var index = ConstInt(int32Type, offset, false);
+                        var offsetPointer = BuildInBoundsGEP(
+                            builder,
+                            ConstPointerNull(llvmType),
+                            out index,
+                            1,
+                            string.Empty);
+                        var intOffset = BuildPtrToInt(builder, offsetPointer, int32Type, string.Empty);
 
                         return new Value(typeof(int), intOffset);
                     }

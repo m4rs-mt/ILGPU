@@ -9,8 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.LLVM;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 
 namespace ILGPU.Compiler

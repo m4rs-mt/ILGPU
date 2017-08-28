@@ -10,11 +10,12 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Compiler.Intrinsic;
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Reflection;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -27,7 +28,7 @@ namespace ILGPU.Compiler
         /// <param name="args">The call arguments</param>
         private void CreateCall(MethodBase target, Value[] args)
         {
-            var intrinsicContext = new InvocationContext(InstructionBuilder, Method, target, args, this);
+            var intrinsicContext = new InvocationContext(Builder, Method, target, args, this);
             // Check for remapping first
             var remappedContext = Unit.RemapIntrinsic(intrinsicContext);
             if (remappedContext != null)
@@ -43,7 +44,7 @@ namespace ILGPU.Compiler
                 var llvmArgs = new LLVMValueRef[args.Length];
                 for (int i = 0, e = args.Length; i < e; ++i)
                     llvmArgs[i] = args[i].LLVMValue;
-                var call = InstructionBuilder.CreateCall(method.LLVMFunction, llvmArgs, string.Empty);
+                var call = BuildCall(Builder, method.LLVMFunction, llvmArgs);
                 if (!method.IsVoid)
                     methodInvocationResult = new Value(method.ReturnType, call);
             }

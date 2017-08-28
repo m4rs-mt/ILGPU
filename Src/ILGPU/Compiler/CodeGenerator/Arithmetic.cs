@@ -10,12 +10,13 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Compiler.Intrinsic;
+using ILGPU.LLVM;
 using ILGPU.Resources;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Diagnostics;
 using System.Reflection;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -81,7 +82,7 @@ namespace ILGPU.Compiler
             LLVMValueRef right)
         {
             if (!Unit.HandleIntrinsic(new InvocationContext(
-                InstructionBuilder,
+                Builder,
                 Method,
                 targetMethod, new Value[]
             {
@@ -104,13 +105,13 @@ namespace ILGPU.Compiler
             Type type = CurrentBlock.PopArithmeticArgs(out LLVMValueRef left, out LLVMValueRef right);
             var name = string.Empty;
             if (type.GetBasicValueType() == BasicValueType.Ptr)
-                CurrentBlock.Push(type, InstructionBuilder.CreateInBoundsGEP(left, new LLVMValueRef[] { right }, name));
+                CurrentBlock.Push(type, BuildInBoundsGEP(Builder, left, right));
             else if (type.IsFloat())
-                CurrentBlock.Push(type, InstructionBuilder.CreateFAdd(left, right, name));
+                CurrentBlock.Push(type, BuildFAdd(Builder, left, right, name));
             else
             {
                 Debug.Assert(type.IsInt());
-                CurrentBlock.Push(type, InstructionBuilder.CreateAdd(left, right, name));
+                CurrentBlock.Push(type, BuildAdd(Builder, left, right, name));
             }
         }
 
@@ -126,13 +127,13 @@ namespace ILGPU.Compiler
             var name = string.Empty;
             if (type.GetBasicValueType() == BasicValueType.Ptr)
             {
-                right = InstructionBuilder.CreateSub(LLVM.ConstPointerNull(right.TypeOf()), right, name);
-                CurrentBlock.Push(type, InstructionBuilder.CreateInBoundsGEP(left, new LLVMValueRef[] { right }, name));
+                right = BuildSub(Builder, ConstPointerNull(TypeOf(right)), right, name);
+                CurrentBlock.Push(type, BuildInBoundsGEP(Builder, left, right));
             }
             if (type.IsFloat())
-                CurrentBlock.Push(type, InstructionBuilder.CreateFSub(left, right, name));
+                CurrentBlock.Push(type, BuildFSub(Builder, left, right, name));
             else
-                CurrentBlock.Push(type, InstructionBuilder.CreateSub(left, right, name));
+                CurrentBlock.Push(type, BuildSub(Builder, left, right, name));
         }
 
         /// <summary>
@@ -155,10 +156,10 @@ namespace ILGPU.Compiler
                         left,
                         right);
                 else
-                    CurrentBlock.Push(type, InstructionBuilder.CreateFMul(left, right, name));
+                    CurrentBlock.Push(type, BuildFMul(Builder, left, right, name));
             }
             else
-                CurrentBlock.Push(type, InstructionBuilder.CreateMul(left, right, name));
+                CurrentBlock.Push(type, BuildMul(Builder, left, right, name));
         }
 
         /// <summary>
@@ -179,12 +180,12 @@ namespace ILGPU.Compiler
                         left,
                         right);
                 else
-                    CurrentBlock.Push(type, InstructionBuilder.CreateFDiv(left, right, name));
+                    CurrentBlock.Push(type, BuildFDiv(Builder, left, right, name));
             }
             else if (forceUnsigned || basicValueType.IsUnsignedInt())
-                CurrentBlock.Push(type, InstructionBuilder.CreateUDiv(left, right, name));
+                CurrentBlock.Push(type, BuildUDiv(Builder, left, right, name));
             else
-                CurrentBlock.Push(type, InstructionBuilder.CreateSDiv(left, right, name));
+                CurrentBlock.Push(type, BuildSDiv(Builder, left, right, name));
         }
 
         /// <summary>
@@ -205,12 +206,12 @@ namespace ILGPU.Compiler
                         left,
                         right);
                 else
-                    CurrentBlock.Push(type, InstructionBuilder.CreateFRem(left, right, name));
+                    CurrentBlock.Push(type, BuildFRem(Builder, left, right, name));
             }
             else if (forceUnsigned || basicValueType.IsUnsignedInt())
-                CurrentBlock.Push(type, InstructionBuilder.CreateURem(left, right, name));
+                CurrentBlock.Push(type, BuildURem(Builder, left, right, name));
             else
-                CurrentBlock.Push(type, InstructionBuilder.CreateSRem(left, right, name));
+                CurrentBlock.Push(type, BuildSRem(Builder, left, right, name));
         }
     }
 }

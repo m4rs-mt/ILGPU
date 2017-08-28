@@ -9,7 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using LLVMSharp;
+using ILGPU.LLVM;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -62,7 +62,7 @@ namespace ILGPU.Backends.ABI
             // We have to add an additional byte to match the .Net
             // We have to add an additional bytes to match the .Net
             // type alignment of an empty struct.
-            structElements.Add(LLVMContext.Int8TypeInContext());
+            structElements.Add(LLVMContext.Int8Type);
         }
 
         #endregion

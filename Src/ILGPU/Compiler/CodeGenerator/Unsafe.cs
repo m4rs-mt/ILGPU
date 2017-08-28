@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Resources;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU.Compiler
 {
@@ -22,12 +23,12 @@ namespace ILGPU.Compiler
         {
             var size = CurrentBlock.Pop();
             var arrayLength = size.LLVMValue;
-            if (!arrayLength.IsConstant())
+            if (!IsConstant(arrayLength))
                 throw CompilationContext.GetNotSupportedException(
                     ErrorMessages.NotSupportedUnsafeAllocation);
             // Allocate the element data first in a local alloca
-            var llvmElementType = LLVMContext.Int8TypeInContext();
-            var arrayData = InstructionBuilder.CreateArrayAlloca(llvmElementType, arrayLength, "localloc");
+            var llvmElementType = LLVMContext.Int8Type;
+            var arrayData = BuildArrayAlloca(Builder, llvmElementType, arrayLength, "localloc");
             CurrentBlock.Push(typeof(byte).MakePointerType(), arrayData);
         }
 

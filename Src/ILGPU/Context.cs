@@ -11,10 +11,11 @@
 
 using ILGPU.Backends;
 using ILGPU.Compiler.Intrinsic;
+using ILGPU.LLVM;
 using ILGPU.Util;
-using LLVMSharp;
 using System;
 using System.Collections.Generic;
+using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU
 {
@@ -44,30 +45,30 @@ namespace ILGPU
         /// </summary>
         public Context()
         {
-            LLVMContext = LLVM.ContextCreate();
+            LLVMContext = ContextCreate();
 
-            OptimizeModulePassManager = LLVM.CreatePassManager();
-            LLVM.AddPromoteMemoryToRegisterPass(OptimizeModulePassManager);
-            LLVM.AddCFGSimplificationPass(OptimizeModulePassManager);
-            LLVM.AddScalarReplAggregatesPassSSA(OptimizeModulePassManager);
+            OptimizeModulePassManager = CreatePassManager();
+            AddPromoteMemoryToRegisterPass(OptimizeModulePassManager);
+            AddCFGSimplificationPass(OptimizeModulePassManager);
+            AddScalarReplAggregatesPassSSA(OptimizeModulePassManager);
 
-            var passManagerBuilder = LLVM.PassManagerBuilderCreate();
+            var passManagerBuilder = PassManagerBuilderCreate();
             try
             {
-                LLVM.PassManagerBuilderSetOptLevel(passManagerBuilder, 3);
-                LLVM.PassManagerBuilderSetSizeLevel(passManagerBuilder, 1);
+                PassManagerBuilderSetOptLevel(passManagerBuilder, 3);
+                PassManagerBuilderSetSizeLevel(passManagerBuilder, 1);
 
-                KernelModulePassManager = LLVM.CreatePassManager();
-                LLVM.AddAlwaysInlinerPass(KernelModulePassManager);
-                LLVM.AddGlobalDCEPass(KernelModulePassManager);
-                LLVM.AddPromoteMemoryToRegisterPass(KernelModulePassManager);
-                LLVM.AddCFGSimplificationPass(KernelModulePassManager);
-                LLVM.AddScalarReplAggregatesPassSSA(KernelModulePassManager);
-                LLVM.PassManagerBuilderPopulateModulePassManager(passManagerBuilder, KernelModulePassManager);
+                KernelModulePassManager = CreatePassManager();
+                AddAlwaysInlinerPass(KernelModulePassManager);
+                AddGlobalDCEPass(KernelModulePassManager);
+                AddPromoteMemoryToRegisterPass(KernelModulePassManager);
+                AddCFGSimplificationPass(KernelModulePassManager);
+                AddScalarReplAggregatesPassSSA(KernelModulePassManager);
+                PassManagerBuilderPopulateModulePassManager(passManagerBuilder, KernelModulePassManager);
             }
             finally
             {
-                LLVM.PassManagerBuilderDispose(passManagerBuilder);
+                PassManagerBuilderDispose(passManagerBuilder);
             }
         }
 
@@ -173,19 +174,19 @@ namespace ILGPU
         {
             if (OptimizeModulePassManager.Pointer != IntPtr.Zero)
             {
-                LLVM.DisposePassManager(OptimizeModulePassManager);
+                DisposePassManager(OptimizeModulePassManager);
                 OptimizeModulePassManager = default(LLVMPassManagerRef);
             }
 
             if (KernelModulePassManager.Pointer != IntPtr.Zero)
             {
-                LLVM.DisposePassManager(KernelModulePassManager);
+                DisposePassManager(KernelModulePassManager);
                 KernelModulePassManager = default(LLVMPassManagerRef);
             }
 
             if (LLVMContext.Pointer != IntPtr.Zero)
             {
-                LLVM.ContextDispose(LLVMContext);
+                ContextDispose(LLVMContext);
                 LLVMContext = default(LLVMContextRef);
             }
         }
