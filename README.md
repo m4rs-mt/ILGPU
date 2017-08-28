@@ -49,8 +49,11 @@ Copyright (c) 2016-2017 Marcel Koester (www.ilgpu.net). All rights reserved.
 Different parts of ILGPU require different third-party libraries.
 * ILGPU Dependencies
     - LLVM (http://www.llvm.org/)
-    - LLVMSharp (http://www.llvmsharp.org/)
     - System.Runtime.CompilerServices.Unsafe (https://www.nuget.org/packages/system.runtime.CompilerServices.Unsafe/)
 
 Detailed copyright and license information of these dependencies can be found in
 LICENSE-3RD-PARTY.txt.
+
+Note that ILGPU uses automatically generated bindings for the LLVM C-API.
+These bindings where generated using the ClangSharpPInvokeGenerator project by
+Mukul Sabharwal: https://github.com/Microsoft/ClangSharp.
