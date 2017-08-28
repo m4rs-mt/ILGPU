@@ -179,6 +179,22 @@ namespace ILGPU.Compiler.DebugInformation
             return SequencePointEnumerator.Empty;
         }
 
+        /// <summary>
+        /// Loads the scopes of the given method.
+        /// </summary>
+        /// <param name="methodBase">The method base.</param>
+        /// <returns>A scope-enumerator that targets the given method.</returns>
+        /// <remarks>
+        /// If no debug information could be loaded for the given method, an empty
+        /// <see cref="ScopeEnumerator"/> will be returned.
+        /// </remarks>
+        public ScopeEnumerator LoadScopes(MethodBase methodBase)
+        {
+            if (TryLoadDebugInformation(methodBase, out MethodDebugInformation methodDebugInformation))
+                return methodDebugInformation.CreateScopeEnumerator();
+            return ScopeEnumerator.Empty;
+        }
+
         #endregion
 
         #region IDisposable

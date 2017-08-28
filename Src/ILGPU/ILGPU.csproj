@@ -65,7 +65,10 @@
     <Compile Include="Compiler\DebugInformation\AssemblyDebugInformation.cs" />
     <Compile Include="Compiler\DebugInformation\DebugInformationManager.cs" />
     <Compile Include="Compiler\DebugInformation\IDebugInformationEnumerator.cs" />
+    <Compile Include="Compiler\DebugInformation\LocalVariable.cs" />
     <Compile Include="Compiler\DebugInformation\MethodDebugInformation.cs" />
+    <Compile Include="Compiler\DebugInformation\Scope.cs" />
+    <Compile Include="Compiler\DebugInformation\ScopeEnumerator.cs" />
     <Compile Include="Compiler\DebugInformation\SequencePointEnumerator.cs" />
     <Compile Include="Compiler\DebugInformation\SequencePoint.cs" />
     <Compile Include="Reduction.cs" />

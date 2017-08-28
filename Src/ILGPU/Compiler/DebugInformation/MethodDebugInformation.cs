@@ -125,6 +125,15 @@ namespace ILGPU.Compiler.DebugInformation
             return new SequencePointEnumerator(SequencePointArray);
         }
 
+        /// <summary>
+        /// Creates a new scope enumerator for the current method.
+        /// </summary>
+        /// <returns>The create scope enumerator.</returns>
+        public ScopeEnumerator CreateScopeEnumerator()
+        {
+            return new ScopeEnumerator(this);
+        }
+
         #endregion
     }
 }
