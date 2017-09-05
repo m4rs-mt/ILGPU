@@ -45,7 +45,7 @@ FunctionPass* CreateNVVMReflectPass(LLVMBool ftz, LLVMBool fm)
 
 extern "C"
 {
-    void ILGPULLVM_API RunNVVMReflectPassOnFunction(LLVMModuleRef module, LLVMValueRef func, LLVMBool ftz, LLVMBool fm)
+    void ILGPULLVM_API ILGPU_RunNVVMReflectPassOnFunction(LLVMModuleRef module, LLVMValueRef func, LLVMBool ftz, LLVMBool fm)
     {
         auto target = unwrap(func);
         legacy::FunctionPassManager fpm(unwrap(module));
@@ -53,14 +53,14 @@ extern "C"
         fpm.run(*(Function*)target);
     }
 
-    void ILGPULLVM_API RunNVVMReflectPass(LLVMModuleRef module, LLVMBool ftz, LLVMBool fm)
+    void ILGPULLVM_API ILGPU_RunNVVMReflectPass(LLVMModuleRef module, LLVMBool ftz, LLVMBool fm)
     {
         legacy::PassManager pm;
         pm.add(CreateNVVMReflectPass(ftz, fm));
         pm.run(*unwrap(module));
     }
 
-    void ILGPULLVM_API PreparePTXModule(LLVMModuleRef module, LLVMValueRef entry, LLVMBool ftz, LLVMBool fm)
+    void ILGPULLVM_API ILGPU_PreparePTXModule(LLVMModuleRef module, LLVMValueRef entry, LLVMBool ftz, LLVMBool fm)
     {
         auto entryPoint = unwrap<GlobalValue>(entry);
         legacy::PassManager pm;

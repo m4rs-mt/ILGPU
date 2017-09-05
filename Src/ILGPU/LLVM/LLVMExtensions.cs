@@ -17,10 +17,8 @@ namespace ILGPU.LLVM
 {
     partial class LLVMMethods
     {
-        public const string ExtensionsLibraryName = "ILGPU.LLVM.dll";
-
-        [DllImport(ExtensionsLibraryName, EntryPoint = "PreparePTXModule", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void PreparePTXModule(LLVMModuleRef module, LLVMValueRef entryPoint, LLVMBool ftz, LLVMBool fm);
+        [DllImport(LibraryName, EntryPoint = "ILGPU_PreparePTXModule", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void PreparePTXModule(LLVMModuleRef module, LLVMValueRef entryPoint, LLVMBool ftz, LLVMBool fm);
     }
 }
 

@@ -200,25 +200,23 @@
     <Compile Include="Warp.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\X64\libLLVM.dll">
-      <Link>X64\libLLVM.dll</Link>
+    <None Include="..\X64\LLVM.dll">
+      <Link>X64\LLVM.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\X86\libLLVM.dll">
-      <Link>X86\libLLVM.dll</Link>
+    <None Include="..\X64\LLVM.pdb">
+      <Link>X64\LLVM.pdb</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\X86\LLVM.dll">
+      <Link>X86\LLVM.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\X86\LLVM.pdb">
+      <Link>X86\LLVM.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\X64\ILGPU.LLVM.dll">
-      <Link>X64\ILGPU.LLVM.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\X86\ILGPU.LLVM.dll">
-      <Link>X86\ILGPU.LLVM.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="ArrayViews.tt">

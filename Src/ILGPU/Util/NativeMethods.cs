@@ -26,8 +26,7 @@ namespace ILGPU.Util
                 return;
             LLVMLibLoaded = true;
 
-            if (!DLLLoader.LoadLib(LLVMMethods.LibraryName) ||
-                !DLLLoader.LoadLib(LLVMMethods.ExtensionsLibraryName))
+            if (!DLLLoader.LoadLib(LLVMMethods.LibraryName))
                 throw new InvalidOperationException(ErrorMessages.CannotLoadLLVMLib);
         }
     }
