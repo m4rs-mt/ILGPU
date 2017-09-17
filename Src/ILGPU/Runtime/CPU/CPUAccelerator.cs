@@ -9,9 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-// Uncomment this line to enable internal CPU-accelerator-runtime debugging
-// #define DEBUG_CPU_ACCELERATOR_RUNTIME
-
 using ILGPU.Backends;
 using ILGPU.Compiler;
 using ILGPU.Resources;
@@ -99,13 +96,9 @@ namespace ILGPU.Runtime.CPU
 
             // Setup assembly and module builder for dynamic code generation
             var assemblyName = new AssemblyName(nameof(CPUAccelerator));
-#if DEBUG_CPU_ACCELERATOR_RUNTIME
-            assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndSave);
-            moduleBuilder = assemblyBuilder.DefineDynamicModule(nameof(CPUAccelerator), "Debug.dll");
-#else
-            assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+
+            assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             moduleBuilder = assemblyBuilder.DefineDynamicModule(nameof(CPUAccelerator));
-#endif
 
             NumThreads = numThreads;
             WarpSize = warpSize;
@@ -431,9 +424,6 @@ namespace ILGPU.Runtime.CPU
                 out taskType,
                 out ConstructorInfo taskConstructor,
                 out taskArgumentMapping);
-#if DEBUG_CPU_ACCELERATOR_RUNTIME
-            assemblyBuilder.Save("Debug.dll");
-#endif
 
             // Launcher(Kernel, AcceleratorStream, [Index], ...)
             funcParamTypes[Kernel.KernelInstanceParamIdx] = typeof(Kernel);

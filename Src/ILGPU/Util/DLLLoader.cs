@@ -12,7 +12,6 @@
 using System;
 using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices;
 
 namespace ILGPU.Util
 {
@@ -21,31 +20,33 @@ namespace ILGPU.Util
     /// </summary>
     public static class DLLLoader
     {
-#if WIN
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1060:MovePInvokesToNativeMethodsClass", Justification = "This is a custom DLL-loading wrapper and not a general collection of native methods")]
-        [DllImport("kernel32", BestFitMapping = false, ThrowOnUnmappableChar = true)]
-        private static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr), In] string fileName);
+        private const string PathVariable = "PATH";
 
         /// <summary>
-        /// Loads the given library into the current process.
+        /// Adds the default search directory (../X86/ or ../X64/) to the search path.
         /// </summary>
-        /// <param name="libName">The library name.</param>
-        /// <returns>True, iff the library was loaded successfully.</returns>
-        public static bool LoadLib(string libName)
+        public static void AddDefaultX86X64SearchPath()
         {
+            AddSearchPath(Environment.Is64BitProcess ? "X64" : "X86");
+        }
+
+        /// <summary>
+        /// Adds the given sub directory to the current search path.
+        /// </summary>
+        /// <param name="subDirectory">The sub directory to add.</param>
+        public static void AddSearchPath(string subDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(subDirectory))
+                throw new ArgumentNullException(nameof(subDirectory));
             var rootDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            string llvmLibPath;
-            if (Environment.Is64BitProcess)
-                llvmLibPath = Path.Combine(rootDir, "X64", libName);
-            else
-                llvmLibPath = Path.Combine(rootDir, "X86", libName);
-            return LoadLibrary(llvmLibPath) != IntPtr.Zero;
+            rootDir = Path.Combine(rootDir, subDirectory);
+            var currentPath = Environment.GetEnvironmentVariable(PathVariable);
+            if (currentPath.Contains(rootDir))
+                return;
+            if (!currentPath.EndsWith(";", StringComparison.Ordinal))
+                currentPath += ";";
+            currentPath += rootDir + ";";
+            Environment.SetEnvironmentVariable(PathVariable, currentPath, EnvironmentVariableTarget.Process);
         }
-#else
-        public static bool LoadLib(string libName)
-        {
-            throw new NotImplementedException();
-        }
-#endif
     }
 }

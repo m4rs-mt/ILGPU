@@ -25,15 +25,6 @@ namespace ILGPU
     /// <remarks>Members of this class are not thread safe.</remarks>
     public sealed class Context : DisposeBase
     {
-        #region Static
-
-        static Context()
-        {
-            NativeMethods.LoadLLVMLib();
-        }
-
-        #endregion
-
         #region Instance
 
         private int compileUnitCounter = 0;

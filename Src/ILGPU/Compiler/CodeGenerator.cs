@@ -65,8 +65,6 @@ namespace ILGPU.Compiler
                 method.MethodBase == disassembledMethod.Method,
                 "The provided disassembled method does not match the given method for code generation");
 
-            CompilationContext.VerifyEnteredMethod(method.MethodBase);
-
             this.disassembledMethod = disassembledMethod;
             Builder = CreateBuilderInContext(unit.LLVMContext);
 

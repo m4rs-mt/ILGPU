@@ -98,16 +98,6 @@ namespace ILGPU
         }
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="method"></param>
-        public void VerifyEnteredMethod(MethodBase method)
-        {
-            Debug.Assert(method != null, "Invalid method");
-            Debug.Assert(calledMethods.Contains(method), $"Method '{method}' not entered");
-        }
-
-        /// <summary>
         /// Computes a new string containing call-stack information.
         /// </summary>
         /// <param name="target">The target builder.</param>

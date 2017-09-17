@@ -44,11 +44,6 @@ namespace ILGPU.Runtime
     {
         #region Static
 
-        static Accelerator()
-        {
-            NativeMethods.LoadLLVMLib();
-        }
-
         /// <summary>
         /// Represents the list of available accelerators.
         /// </summary>
