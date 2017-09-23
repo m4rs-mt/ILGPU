@@ -367,7 +367,7 @@ namespace ILGPU
         /// <summary>
         /// Computes asin(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>asin(value).</returns>
         [PTXMathFunction("__nv_asin")]
         [MathIntrinsic(MathIntrinsicKind.AsinF64)]
@@ -379,7 +379,7 @@ namespace ILGPU
         /// <summary>
         /// Computes asin(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>asin(value).</returns>
         [PTXMathFunction("__nv_asinf")]
         [MathIntrinsic(MathIntrinsicKind.AsinF32)]
@@ -391,7 +391,7 @@ namespace ILGPU
         /// <summary>
         /// Computes sin(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>sin(value).</returns>
         [PTXMathFunction("__nv_sin")]
         [MathIntrinsic(MathIntrinsicKind.SinF64)]
@@ -403,7 +403,7 @@ namespace ILGPU
         /// <summary>
         /// Computes sin(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>sin(value).</returns>
         [PTXMathFunction("__nv_sinf")]
         [PTXFastMathFunction("__nv_fast_sinf")]
@@ -416,7 +416,7 @@ namespace ILGPU
         /// <summary>
         /// Computes sinh(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>sinh(value).</returns>
         [PTXMathFunction("__nv_sinh")]
         [MathIntrinsic(MathIntrinsicKind.SinHF64)]
@@ -428,7 +428,7 @@ namespace ILGPU
         /// <summary>
         /// Computes sinh(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>sinh(value).</returns>
         [PTXMathFunction("__nv_sinhf")]
         [MathIntrinsic(MathIntrinsicKind.SinHF32)]
@@ -440,7 +440,7 @@ namespace ILGPU
         /// <summary>
         /// Computes acos(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>acos(value).</returns>
         [PTXMathFunction("__nv_acos")]
         [MathIntrinsic(MathIntrinsicKind.AcosF64)]
@@ -452,7 +452,7 @@ namespace ILGPU
         /// <summary>
         /// Computes acos(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>acos(value).</returns>
         [PTXMathFunction("__nv_acosf")]
         [MathIntrinsic(MathIntrinsicKind.AcosF32)]
@@ -464,7 +464,7 @@ namespace ILGPU
         /// <summary>
         /// Computes cos(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>cos(value).</returns>
         [PTXMathFunction("__nv_cos")]
         [MathIntrinsic(MathIntrinsicKind.CosF64)]
@@ -476,7 +476,7 @@ namespace ILGPU
         /// <summary>
         /// Computes cos(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>cos(value).</returns>
         [PTXMathFunction("__nv_cosf")]
         [PTXFastMathFunction("__nv_fast_cosf")]
@@ -489,7 +489,7 @@ namespace ILGPU
         /// <summary>
         /// Computes cosh(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>cosh(value).</returns>
         [PTXMathFunction("__nv_cosh")]
         [MathIntrinsic(MathIntrinsicKind.CosHF64)]
@@ -501,7 +501,7 @@ namespace ILGPU
         /// <summary>
         /// Computes cosh(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>cosh(value).</returns>
         [PTXMathFunction("__nv_coshf")]
         [MathIntrinsic(MathIntrinsicKind.CosHF32)]
@@ -513,7 +513,7 @@ namespace ILGPU
         /// <summary>
         /// Computes atan(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>atan(value).</returns>
         [PTXMathFunction("__nv_atan")]
         [MathIntrinsic(MathIntrinsicKind.AtanF64)]
@@ -525,7 +525,7 @@ namespace ILGPU
         /// <summary>
         /// Computes atan(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>atan(value).</returns>
         [PTXMathFunction("__nv_atanf")]
         [MathIntrinsic(MathIntrinsicKind.AtanF32)]
@@ -563,7 +563,7 @@ namespace ILGPU
         /// <summary>
         /// Computes tan(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>tan(value).</returns>
         [PTXMathFunction("__nv_tan")]
         [MathIntrinsic(MathIntrinsicKind.TanF64)]
@@ -575,7 +575,7 @@ namespace ILGPU
         /// <summary>
         /// Computes tan(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>tan(value).</returns>
         [PTXMathFunction("__nv_tanf")]
         [PTXFastMathFunction("__nv_fast_tanf")]
@@ -588,7 +588,7 @@ namespace ILGPU
         /// <summary>
         /// Computes tanh(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>tanh(value).</returns>
         [PTXMathFunction("__nv_tanh")]
         [MathIntrinsic(MathIntrinsicKind.TanhF64)]
@@ -600,7 +600,7 @@ namespace ILGPU
         /// <summary>
         /// Computes tanh(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <returns>tanh(value).</returns>
         [PTXMathFunction("__nv_tanhf")]
         [MathIntrinsic(MathIntrinsicKind.TanhF32)]
@@ -612,7 +612,7 @@ namespace ILGPU
         /// <summary>
         /// Computes sin(value) and cos(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <param name="sin">The result of sin(value).</param>
         /// <param name="cos">The result of cos(value).</param>
         /// <returns>tanh(value).</returns>
@@ -627,7 +627,7 @@ namespace ILGPU
         /// <summary>
         /// Computes sin(value) and cos(value).
         /// </summary>
-        /// <param name="value">The value in radiants.</param>
+        /// <param name="value">The value in radians.</param>
         /// <param name="sin">The result of sin(value).</param>
         /// <param name="cos">The result of cos(value).</param>
         /// <returns>tanh(value).</returns>
@@ -1471,6 +1471,54 @@ namespace ILGPU
             if (value > 0f)
                 return 1;
             return 0;
+        }
+
+        #endregion
+
+        #region Deg & Rad
+
+        /// <summary>
+        /// Converts the given value in degrees to radians.
+        /// </summary>
+        /// <param name="degrees">The value in degrees to convert.</param>
+        /// <returns>The converted value in radians.</returns>
+        public static double DegToRad(double degrees)
+        {
+            const double _PIOver180 = Math.PI / 180.0;
+            return degrees * _PIOver180;
+        }
+
+        /// <summary>
+        /// Converts the given value in degrees to radians.
+        /// </summary>
+        /// <param name="degrees">The value in degrees to convert.</param>
+        /// <returns>The converted value in radians.</returns>
+        public static float DegToRad(float degrees)
+        {
+            const float _PIOver180 = PI / 180.0f;
+            return degrees * _PIOver180;
+        }
+
+        /// <summary>
+        /// Converts the given value in radians to degrees.
+        /// </summary>
+        /// <param name="radians">The value in radians to convert.</param>
+        /// <returns>The converted value in degrees.</returns>
+        public static double RadToDeg(double radians)
+        {
+            const double _180OverPi = 180.0 / Math.PI;
+            return radians * _180OverPi;
+        }
+
+        /// <summary>
+        /// Converts the given value in radians to degrees.
+        /// </summary>
+        /// <param name="radians">The value in radians to convert.</param>
+        /// <returns>The converted value in degrees.</returns>
+        public static float RadToDeg(float radians)
+        {
+            const float _180OverPi = 180.0f / PI;
+            return radians * _180OverPi;
         }
 
         #endregion
