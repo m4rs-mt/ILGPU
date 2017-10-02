@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Resources;
+using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 
@@ -35,7 +36,7 @@ namespace ILGPU.Runtime.Cuda
             : base(accelerator, extent)
         {
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuMemAlloc_v2(
+                CudaAPI.Current.AllocateMemory(
                     out IntPtr resultPtr,
                     new IntPtr(extent.Size * ElementSize)));
             Pointer = resultPtr;
@@ -55,14 +56,14 @@ namespace ILGPU.Runtime.Cuda
             switch (acceleratorType)
             {
                 case AcceleratorType.CPU:
-                    CudaException.ThrowIfFailed(CudaNativeMethods.cuMemcpyDtoH(
+                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
                         target.Pointer,
                         GetSubView(sourceOffset).Pointer,
                         new IntPtr(target.LengthInBytes),
                         stream));
                     break;
                 case AcceleratorType.Cuda:
-                    CudaException.ThrowIfFailed(CudaNativeMethods.cuMemcpyDtoD(
+                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
                         target.Pointer,
                         GetSubView(sourceOffset).Pointer,
                         new IntPtr(target.LengthInBytes),
@@ -83,14 +84,14 @@ namespace ILGPU.Runtime.Cuda
             switch (acceleratorType)
             {
                 case AcceleratorType.CPU:
-                    CudaException.ThrowIfFailed(CudaNativeMethods.cuMemcpyHtoD(
+                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
                         GetSubView(targetOffset).Pointer,
                         source.Pointer,
                         new IntPtr(source.LengthInBytes),
                         stream));
                     break;
                 case AcceleratorType.Cuda:
-                    CudaException.ThrowIfFailed(CudaNativeMethods.cuMemcpyDtoD(
+                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
                         GetSubView(targetOffset).Pointer,
                         source.Pointer,
                         new IntPtr(source.LengthInBytes),
@@ -104,7 +105,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="MemoryBuffer.MemSetToZero(AcceleratorStream)"/>
         public override void MemSetToZero(AcceleratorStream stream)
         {
-            CudaNativeMethods.cuMemsetD8_v2(Pointer, 0, new IntPtr(LengthInBytes));
+            CudaAPI.Current.Memset(Pointer, 0, new IntPtr(LengthInBytes));
         }
 
         #endregion
@@ -117,7 +118,7 @@ namespace ILGPU.Runtime.Cuda
             if (Pointer == IntPtr.Zero)
                 return;
 
-            CudaException.ThrowIfFailed(CudaNativeMethods.cuMemFree_v2(Pointer));
+            CudaException.ThrowIfFailed(CudaAPI.Current.FreeMemory(Pointer));
             Pointer = IntPtr.Zero;
         }
 

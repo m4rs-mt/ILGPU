@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Compiler;
+using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -49,8 +50,8 @@ namespace ILGPU.Runtime.Cuda
             MethodInfo launcher)
             : base(accelerator, kernel, launcher)
         {
-            CudaException.ThrowIfFailed(CudaNativeMethods.cuModuleLoadData(out modulePtr, kernel.GetBuffer()));
-            CudaException.ThrowIfFailed(CudaNativeMethods.cuModuleGetFunction(out functionPtr, modulePtr, kernel.EntryName));
+            CudaException.ThrowIfFailed(CudaAPI.Current.LoadModule(out modulePtr, kernel.GetBuffer()));
+            CudaException.ThrowIfFailed(CudaAPI.Current.GetModuleFunction(out functionPtr, modulePtr, kernel.EntryName));
         }
 
         #endregion
@@ -76,7 +77,7 @@ namespace ILGPU.Runtime.Cuda
         {
             if (modulePtr != IntPtr.Zero)
             {
-                CudaException.ThrowIfFailed(CudaNativeMethods.cuModuleUnload(modulePtr));
+                CudaException.ThrowIfFailed(CudaAPI.Current.DestroyModule(modulePtr));
                 functionPtr = IntPtr.Zero;
                 modulePtr = IntPtr.Zero;
             }

@@ -102,8 +102,8 @@ namespace ILGPU.Backends
         /// <summary>
         /// Maps major and minor versions of Cuda devices to their corresponding PTX architecture.
         /// </summary>
-        private static readonly IReadOnlyDictionary<ulong, PTXArchitecture> ArchitectureLookup =
-            new Dictionary<ulong, PTXArchitecture>
+        private static readonly IReadOnlyDictionary<long, PTXArchitecture> ArchitectureLookup =
+            new Dictionary<long, PTXArchitecture>
         {
             { (2L << 32) | 0L, PTXArchitecture.SM_20 },
             { (2L << 32) | 1L, PTXArchitecture.SM_21 },
@@ -127,9 +127,9 @@ namespace ILGPU.Backends
         /// <param name="minor">The minor version.</param>
         /// <returns>The resolved PTX version.</returns>
         [CLSCompliant(false)]
-        public static PTXArchitecture GetArchitecture(uint major, uint minor)
+        public static PTXArchitecture GetArchitecture(int major, int minor)
         {
-            if (!ArchitectureLookup.TryGetValue(((ulong)major << 32) | minor, out PTXArchitecture result))
+            if (!ArchitectureLookup.TryGetValue(((long)major << 32) | (long)minor, out PTXArchitecture result))
                 return PTXArchitecture.SM_50;
             return result;
         }

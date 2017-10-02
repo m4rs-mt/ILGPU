@@ -12,6 +12,7 @@
 using ILGPU.Backends;
 using ILGPU.Compiler;
 using ILGPU.Resources;
+using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
@@ -20,7 +21,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -139,6 +139,11 @@ namespace ILGPU.Runtime.Cuda
         private static List<AcceleratorId> cudaAccelerators;
 
         /// <summary>
+        /// Returns the current Cuda-driver API.
+        /// </summary>
+        public static CudaAPI CurrentAPI => CudaAPI.Current;
+
+        /// <summary>
         /// Returns a list of available Cuda accelerators.
         /// </summary>
         public static IReadOnlyList<AcceleratorId> CudaAccelerators
@@ -148,25 +153,18 @@ namespace ILGPU.Runtime.Cuda
                 if (cudaAccelerators == null)
                 {
                     // Resolve all devices
-                    CudaException.ThrowIfFailed(
-                        CudaNativeMethods.cuDeviceGetCount(out int numDevices));
+                    if (CurrentAPI.GetDeviceCount(out int numDevices) != CudaError.CUDA_SUCCESS)
+                        return cudaAccelerators = new List<AcceleratorId>();
                     cudaAccelerators = new List<AcceleratorId>(numDevices);
                     for (int i = 0; i < numDevices; ++i)
                     {
                         CudaException.ThrowIfFailed(
-                            CudaNativeMethods.cuDeviceGet(out int deviceId, i));
-                        cudaAccelerators.Add(new AcceleratorId(AcceleratorType.Cuda, deviceId));
+                            CurrentAPI.GetDevice(out int device, i));
+                        cudaAccelerators.Add(new AcceleratorId(AcceleratorType.Cuda, device));
                     }
                 }
                 return cudaAccelerators;
             }
-        }
-
-        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline")]
-        static CudaAccelerator()
-        {
-            // Ensure that the driver api is initialized
-            CudaNativeMethods.cuInit(0);
         }
 
         /// <summary>
@@ -180,7 +178,7 @@ namespace ILGPU.Runtime.Cuda
             Backend.EnsureRunningOnPlatform(TargetPlatform.X64);
 
             int data = 0;
-            var err = CudaNativeMethods.cuPointerGetAttribute(
+            var err = CurrentAPI.GetPointerAttribute(
                     new IntPtr(Unsafe.AsPointer(ref data)),
                     PointerAttribute.CU_POINTER_ATTRIBUTE_MEMORY_TYPE,
                     value);
@@ -223,7 +221,7 @@ namespace ILGPU.Runtime.Cuda
             : base(context, AcceleratorType.Cuda)
         {
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuCtxCreate_v2(out contextPtr, flags, deviceId));
+                CurrentAPI.CreateContext(out contextPtr, flags, deviceId));
             DeviceId = deviceId;
 
             SetupAccelerator();
@@ -251,7 +249,7 @@ namespace ILGPU.Runtime.Cuda
                 throw new ArgumentNullException(nameof(d3d11Device));
 
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuD3D11CtxCreate_v2(out contextPtr, out int deviceId, flags, d3d11Device));
+                CurrentAPI.CreateContextD3D11(out contextPtr, out int deviceId, flags, d3d11Device));
             MakeCurrentInternal();
             DeviceId = deviceId;
 
@@ -263,12 +261,9 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         private void SetupName()
         {
-            const int MaxAcceleratorNameLength = 2048;
-            var nameBuffer = new byte[MaxAcceleratorNameLength];
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuDeviceGetName(nameBuffer, nameBuffer.Length, DeviceId));
-            var endIdx = Array.FindIndex(nameBuffer, 0, c => c == 0);
-            Name = Encoding.ASCII.GetString(nameBuffer, 0, endIdx);
+                CurrentAPI.GetDeviceName(out string name, DeviceId));
+            Name = name;
         }
 
         /// <summary>
@@ -280,54 +275,53 @@ namespace ILGPU.Runtime.Cuda
             DefaultStream = CudaStream.Default;
 
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuDeviceComputeCapability(out uint major, out uint minor, DeviceId));
+                CurrentAPI.GetDeviceComputeCapability(out int major, out int minor, DeviceId));
             Architecture = PTXBackend.GetArchitecture(major, minor);
 
-            IntPtr total = IntPtr.Zero;
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuDeviceTotalMem_v2(ref total, DeviceId));
-            MemorySize = total.ToInt64();
+                CurrentAPI.GetTotalDeviceMemory(out long total, DeviceId));
+            MemorySize = total;
 
             // Resolve max grid size
             MaxGridSize = new Index3(
-                CudaNativeMethods.cuDeviceGetAttribute(
+                CurrentAPI.GetDeviceAttribute(
                     DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X, DeviceId),
-                CudaNativeMethods.cuDeviceGetAttribute(
+                CurrentAPI.GetDeviceAttribute(
                     DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y, DeviceId),
-                CudaNativeMethods.cuDeviceGetAttribute(
+                CurrentAPI.GetDeviceAttribute(
                     DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z, DeviceId));
 
             // Resolve max group size
             MaxGroupSize = new Index3(
-                CudaNativeMethods.cuDeviceGetAttribute(
+                CurrentAPI.GetDeviceAttribute(
                     DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X, DeviceId),
-                CudaNativeMethods.cuDeviceGetAttribute(
+                CurrentAPI.GetDeviceAttribute(
                     DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Y, DeviceId),
-                CudaNativeMethods.cuDeviceGetAttribute(
+                CurrentAPI.GetDeviceAttribute(
                     DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Z, DeviceId));
 
             // Resolve max threads per group
-            MaxThreadsPerGroup = CudaNativeMethods.cuDeviceGetAttribute(
+            MaxThreadsPerGroup = CurrentAPI.GetDeviceAttribute(
                 DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, DeviceId);
 
             // Resolve max shared memory per block
-            MaxSharedMemoryPerGroup = CudaNativeMethods.cuDeviceGetAttribute(
+            MaxSharedMemoryPerGroup = CurrentAPI.GetDeviceAttribute(
                 DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK, DeviceId);
 
             // Resolve total constant memory
-            MaxConstantMemory = CudaNativeMethods.cuDeviceGetAttribute(
+            MaxConstantMemory = CurrentAPI.GetDeviceAttribute(
                 DeviceAttribute.CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY, DeviceId);
 
             // Resolve clock rate
-            ClockRate = CudaNativeMethods.cuDeviceGetAttribute(
+            ClockRate = CurrentAPI.GetDeviceAttribute(
                 DeviceAttribute.CU_DEVICE_ATTRIBUTE_CLOCK_RATE, DeviceId);
 
             // Resolve warp size
-            WarpSize = CudaNativeMethods.cuDeviceGetAttribute(
+            WarpSize = CurrentAPI.GetDeviceAttribute(
                 DeviceAttribute.CU_DEVICE_ATTRIBUTE_WARP_SIZE, DeviceId);
 
             // Resolve number of multiprocessors
-            NumMultiprocessors = CudaNativeMethods.cuDeviceGetAttribute(
+            NumMultiprocessors = CurrentAPI.GetDeviceAttribute(
                 DeviceAttribute.CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, DeviceId);
         }
 
@@ -369,7 +363,7 @@ namespace ILGPU.Runtime.Cuda
             {
                 MakeCurrentInternal();
                 CudaException.ThrowIfFailed(
-                    CudaNativeMethods.cuCtxGetSharedMemConfig(out CudaSharedMemoryConfiguration result));
+                    CurrentAPI.GetSharedMemoryConfig(out CudaSharedMemoryConfiguration result));
                 return result;
             }
             set
@@ -379,7 +373,7 @@ namespace ILGPU.Runtime.Cuda
                     value > CudaSharedMemoryConfiguration.EightByteBankSize)
                     throw new ArgumentOutOfRangeException(nameof(value));
                 CudaException.ThrowIfFailed(
-                    CudaNativeMethods.cuCtxSetSharedMemConfig(value));
+                    CurrentAPI.SetSharedMemoryConfig(value));
             }
         }
 
@@ -392,7 +386,7 @@ namespace ILGPU.Runtime.Cuda
             {
                 MakeCurrentInternal();
                 CudaException.ThrowIfFailed(
-                    CudaNativeMethods.cuCtxGetCacheConfig(out CudaCacheConfiguration result));
+                    CurrentAPI.GetCacheConfig(out CudaCacheConfiguration result));
                 return result;
             }
             set
@@ -402,7 +396,7 @@ namespace ILGPU.Runtime.Cuda
                     value > CudaCacheConfiguration.PreferEqual)
                     throw new ArgumentOutOfRangeException(nameof(value));
                 CudaException.ThrowIfFailed(
-                    CudaNativeMethods.cuCtxSetCacheConfig(value));
+                    CurrentAPI.SetCacheConfig(value));
             }
         }
 
@@ -429,7 +423,7 @@ namespace ILGPU.Runtime.Cuda
         private void MakeCurrentInternal()
         {
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuCtxSetCurrent(contextPtr));
+                CurrentAPI.SetCurrentContext(contextPtr));
         }
 
         /// <summary cref="Accelerator.Allocate{T, TIndex}(TIndex)"/>
@@ -495,7 +489,7 @@ namespace ILGPU.Runtime.Cuda
         public override void Synchronize()
         {
             MakeCurrentInternal();
-            CudaException.ThrowIfFailed(CudaNativeMethods.cuCtxSynchronize());
+            CudaException.ThrowIfFailed(CurrentAPI.SynchronizeContext());
         }
 
         /// <summary cref="Accelerator.MakeCurrent"/>
@@ -513,8 +507,8 @@ namespace ILGPU.Runtime.Cuda
         {
             MakeCurrent();
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuMemGetInfo_v2(out IntPtr free, out IntPtr total));
-            return free.ToInt64();
+                CurrentAPI.GetMemoryInfo(out long free, out long total));
+            return free;
         }
 
         #endregion
@@ -529,7 +523,7 @@ namespace ILGPU.Runtime.Cuda
                 return false;
 
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuDeviceCanAccessPeer(out int canAccess, DeviceId, cudaAccelerator.DeviceId));
+                CurrentAPI.CanAccessPeer(out int canAccess, DeviceId, cudaAccelerator.DeviceId));
             return canAccess != 0;
         }
 
@@ -545,7 +539,7 @@ namespace ILGPU.Runtime.Cuda
                     RuntimeErrorMessages.CannotEnablePeerAccessToDifferentAcceleratorKind);
 
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuCtxEnablePeerAccess(cudaAccelerator.ContextPtr, 0));
+                CurrentAPI.EnablePeerAccess(cudaAccelerator.ContextPtr, 0));
             CachedPeerAccelerators.Add(otherAccelerator);
         }
 
@@ -559,7 +553,7 @@ namespace ILGPU.Runtime.Cuda
             Debug.Assert(cudaAccelerator != null, "Invalid EnablePeerAccess method");
 
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuCtxDisablePeerAccess(cudaAccelerator.ContextPtr));
+                CurrentAPI.DisablePeerAccess(cudaAccelerator.ContextPtr));
             CachedPeerAccelerators.Remove(otherAccelerator);
         }
 
@@ -657,6 +651,13 @@ namespace ILGPU.Runtime.Cuda
 
             // Emit kernel launch
 
+            // Load current driver API
+            ilGenerator.Emit(
+                OpCodes.Call,
+                typeof(CudaAPI).GetProperty(
+                    nameof(CudaAPI.Current),
+                    BindingFlags.Public | BindingFlags.Static).GetGetMethod());
+
             // Load function ptr
             KernelLauncherBuilder.EmitLoadKernelArgument<CudaKernel>(Kernel.KernelInstanceParamIdx, ilGenerator);
             ilGenerator.Emit(
@@ -695,9 +696,9 @@ namespace ILGPU.Runtime.Cuda
             // Dispatch kernel
             ilGenerator.Emit(
                 OpCodes.Call,
-                typeof(CudaNativeMethods).GetMethod(
-                    nameof(CudaNativeMethods.cuLaunchKernel),
-                    BindingFlags.Public | BindingFlags.Static));
+                typeof(CudaAPI).GetMethod(
+                    nameof(CudaAPI.LaunchKernel),
+                    BindingFlags.Public | BindingFlags.Instance));
 
             // Emit ThrowIfFailed
             ilGenerator.Emit(
@@ -726,7 +727,7 @@ namespace ILGPU.Runtime.Cuda
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuOccupancyMaxActiveBlocksPerMultiprocessor(
+                CurrentAPI.ComputeOccupancyMaxActiveBlocksPerMultiprocessor(
                     out int numGroups,
                     cudaKernel.FunctionPtr,
                     groupSize,
@@ -748,11 +749,11 @@ namespace ILGPU.Runtime.Cuda
             Backend.EnsureRunningOnNativePlatform();
 
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuOccupancyMaxPotentialBlockSize(
+                CurrentAPI.ComputeOccupancyMaxPotentialBlockSize(
                     out minGridSize,
                     out int groupSize,
                     cudaKernel.FunctionPtr,
-                    new CudaNativeMethods.CUoccupancyB2DSize(
+                    new ComputeDynamicMemorySizeForBlockSize(
                         targetGroupSize => new IntPtr(computeSharedMemorySize(targetGroupSize))),
                     IntPtr.Zero,
                     maxGroupSize));
@@ -773,7 +774,7 @@ namespace ILGPU.Runtime.Cuda
             Backend.EnsureRunningOnNativePlatform();
 
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuOccupancyMaxPotentialBlockSize(
+                CurrentAPI.ComputeOccupancyMaxPotentialBlockSize(
                     out minGridSize,
                     out int groupSize,
                     cudaKernel.FunctionPtr,
@@ -792,7 +793,7 @@ namespace ILGPU.Runtime.Cuda
         {
             if (contextPtr != IntPtr.Zero)
             {
-                CudaException.ThrowIfFailed(CudaNativeMethods.cuCtxDestroy_v2(contextPtr));
+                CudaException.ThrowIfFailed(CurrentAPI.DestroyContext(contextPtr));
                 contextPtr = IntPtr.Zero;
             }
         }

@@ -9,9 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Runtime.Cuda.API;
 using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
 
@@ -24,16 +24,6 @@ namespace ILGPU.Runtime.Cuda
     [Serializable]
     public sealed class CudaException : Exception
     {
-        #region Static
-
-        private static string GetErrorString(CudaError error)
-        {
-            ThrowIfFailed(CudaNativeMethods.cuGetErrorString(error, out IntPtr ptr));
-            return Marshal.PtrToStringAnsi(ptr);
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
@@ -49,7 +39,7 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="error">The Cuda runtime error.</param>
         private CudaException(CudaError error)
-            : base(GetErrorString(error))
+            : base(CudaAPI.Current.GetErrorString(error))
         {
             Error = error.ToString();
         }

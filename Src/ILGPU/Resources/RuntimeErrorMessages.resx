@@ -120,6 +120,12 @@
   <data name="CannotEnablePeerAccessToDifferentAcceleratorKind" xml:space="preserve">
     <value>Cannot enable peer access to an accelerator of a different kind</value>
   </data>
+  <data name="CannotResolveErrorString" xml:space="preserve">
+    <value>Error-description string could not be resolved</value>
+  </data>
+  <data name="CudaNotSupported" xml:space="preserve">
+    <value>Cuda is not supported on this platform</value>
+  </data>
   <data name="InvalidCustomGroupSize" xml:space="preserve">
     <value>Invalid custom group size &gt; 0 in a grouped-index scenario</value>
   </data>

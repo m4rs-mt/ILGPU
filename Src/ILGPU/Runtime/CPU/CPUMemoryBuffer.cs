@@ -11,6 +11,7 @@
 
 using ILGPU.Resources;
 using ILGPU.Runtime.Cuda;
+using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -75,7 +76,7 @@ namespace ILGPU.Runtime.CPU
                         target.LengthInBytes);
                     break;
                 case AcceleratorType.Cuda:
-                    CudaException.ThrowIfFailed(CudaNativeMethods.cuMemcpyHtoD(
+                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
                         target.Pointer,
                         GetSubView(sourceOffset).Pointer,
                         new IntPtr(target.LengthInBytes),
@@ -103,7 +104,7 @@ namespace ILGPU.Runtime.CPU
                         source.LengthInBytes);
                     break;
                 case AcceleratorType.Cuda:
-                    CudaException.ThrowIfFailed(CudaNativeMethods.cuMemcpyDtoH(
+                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
                         GetSubView(targetOffset).Pointer,
                         source.Pointer,
                         new IntPtr(source.LengthInBytes),

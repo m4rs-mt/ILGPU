@@ -19,7 +19,7 @@ namespace ILGPU.Resources {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class RuntimeErrorMessages {
@@ -66,6 +66,24 @@ namespace ILGPU.Resources {
         internal static string CannotEnablePeerAccessToDifferentAcceleratorKind {
             get {
                 return ResourceManager.GetString("CannotEnablePeerAccessToDifferentAcceleratorKind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error-description string could not be resolved.
+        /// </summary>
+        internal static string CannotResolveErrorString {
+            get {
+                return ResourceManager.GetString("CannotResolveErrorString", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cuda is not supported on this platform.
+        /// </summary>
+        internal static string CudaNotSupported {
+            get {
+                return ResourceManager.GetString("CudaNotSupported", resourceCulture);
             }
         }
         

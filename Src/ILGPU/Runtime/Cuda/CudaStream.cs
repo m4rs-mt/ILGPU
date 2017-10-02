@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 
@@ -38,7 +39,7 @@ namespace ILGPU.Runtime.Cuda
         internal CudaStream()
         {
             CudaException.ThrowIfFailed(
-                CudaNativeMethods.cuStreamCreate(out streamPtr, StreamFlags.CU_STREAM_DEFAULT));
+                CudaAPI.Current.CreateStream(out streamPtr, StreamFlags.CU_STREAM_DEFAULT));
         }
 
         #endregion
@@ -57,7 +58,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="AcceleratorStream.Synchronize"/>
         public override void Synchronize()
         {
-            CudaException.ThrowIfFailed(CudaNativeMethods.cuStreamSynchronize(streamPtr));
+            CudaException.ThrowIfFailed(CudaAPI.Current.SynchronizeStream(streamPtr));
         }
 
         #endregion
@@ -69,7 +70,7 @@ namespace ILGPU.Runtime.Cuda
         {
             if (streamPtr != IntPtr.Zero)
             {
-                CudaException.ThrowIfFailed(CudaNativeMethods.cuStreamDestroy_v2(streamPtr));
+                CudaException.ThrowIfFailed(CudaAPI.Current.DestroyStream(streamPtr));
                 streamPtr = IntPtr.Zero;
             }
         }
