@@ -301,7 +301,7 @@ namespace ILGPU.Runtime.Cuda
                     DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Z, DeviceId));
 
             // Resolve max threads per group
-            MaxThreadsPerGroup = CurrentAPI.GetDeviceAttribute(
+            MaxNumThreadsPerGroup = CurrentAPI.GetDeviceAttribute(
                 DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, DeviceId);
 
             // Resolve max shared memory per block
@@ -323,6 +323,10 @@ namespace ILGPU.Runtime.Cuda
             // Resolve number of multiprocessors
             NumMultiprocessors = CurrentAPI.GetDeviceAttribute(
                 DeviceAttribute.CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, DeviceId);
+
+            // Result max number of threads per multiprocessor
+            MaxNumThreadsPerMultiprocessor = CurrentAPI.GetDeviceAttribute(
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR, DeviceId);
         }
 
         #endregion
@@ -451,7 +455,7 @@ namespace ILGPU.Runtime.Cuda
         {
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
-            if (customGroupSize < 0 || customGroupSize > MaxThreadsPerGroup)
+            if (customGroupSize < 0 || customGroupSize > MaxNumThreadsPerGroup)
                 throw new ArgumentOutOfRangeException(nameof(customGroupSize));
             if (kernel.EntryPoint.IsGroupedIndexEntry)
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);

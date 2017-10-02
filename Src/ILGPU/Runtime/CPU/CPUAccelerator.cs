@@ -126,10 +126,11 @@ namespace ILGPU.Runtime.CPU
             Name = nameof(CPUAccelerator);
             MemorySize = long.MaxValue;
             MaxGridSize = new Index3(int.MaxValue, int.MaxValue, int.MaxValue);
-            MaxThreadsPerGroup = NumThreads;
+            MaxNumThreadsPerGroup = NumThreads;
             MaxSharedMemoryPerGroup = int.MaxValue;
             MaxConstantMemory = int.MaxValue;
             NumMultiprocessors = 1;
+            MaxNumThreadsPerMultiprocessor = NumThreads;
         }
 
         #endregion

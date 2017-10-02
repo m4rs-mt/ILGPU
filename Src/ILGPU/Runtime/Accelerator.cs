@@ -182,7 +182,13 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the maximum number of threads in a group.
         /// </summary>
-        public int MaxThreadsPerGroup { get; protected set; }
+        public int MaxNumThreadsPerGroup { get; protected set; }
+
+        /// <summary>
+        /// Returns the maximum number of threads in a group.
+        /// </summary>
+        [Obsolete("Use MaxNumThreadsPerGroup instead")]
+        public int MaxThreadsPerGroup => MaxNumThreadsPerGroup;
 
         /// <summary>
         /// Returns the maximum number of shared memory per thread group in bytes.
@@ -203,6 +209,16 @@ namespace ILGPU.Runtime
         /// Returns the number of available multiprocessors.
         /// </summary>
         public int NumMultiprocessors { get; protected set; }
+
+        /// <summary>
+        /// Returns the maximum number of threads per multiprocessor.
+        /// </summary>
+        public int MaxNumThreadsPerMultiprocessor { get; protected set; }
+
+        /// <summary>
+        /// Returns the maximum number of threads of this accelerator.
+        /// </summary>
+        public int MaxNumThreads => NumMultiprocessors * MaxNumThreadsPerMultiprocessor;
 
         #endregion
 
@@ -442,7 +458,7 @@ namespace ILGPU.Runtime
                 kernel,
                 groupSize,
                 dynamicSharedMemorySizeInBytes);
-            return (maxActiveGroups * groupSize) / (float)MaxThreadsPerGroup;
+            return (maxActiveGroups * groupSize) / (float)MaxNumThreadsPerGroup;
         }
 
         /// <summary>
@@ -659,7 +675,7 @@ namespace ILGPU.Runtime
         /// <returns>The string representation of this accelerator.</returns>
         public override string ToString()
         {
-            return $"{Name} [WarpSize: {WarpSize}, MaxThreadsPerGroup: {MaxThreadsPerGroup}, MemorySize: {MemorySize}]";
+            return $"{Name} [WarpSize: {WarpSize}, MaxNumThreadsPerGroup: {MaxNumThreadsPerGroup}, MemorySize: {MemorySize}]";
         }
 
         #endregion
