@@ -409,7 +409,7 @@ namespace ILGPU.Lightning
                 endBit,
                 bufferCache,
                 stream);
-            LightningContext.Reorder<TValue>(
+            Accelerator.Reorder<TValue>(
                 valuesSource,
                 valuesTarget,
                 indexTargetView);
@@ -419,7 +419,7 @@ namespace ILGPU.Lightning
 
     }
 
-    partial class LightningContext
+    partial class RadixSortExtensions
     {
         #region RadixSortPairs
 
@@ -429,13 +429,15 @@ namespace ILGPU.Lightning
         /// <summary>
         /// Performs a radix-sort-pairs operation on the given key-value pairs.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source keys.</param>
         /// <param name="target">The target keys.</param>
         /// <param name="valuesSource">The source values.</param>
         /// <param name="valuesTarget">The target values.</param>
 <#      GenerateMethodParameterDocumentation(config); #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= sortingName #>(
+        public static void <#= sortingName #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             ArrayView<<#= valueType.Type #>> valuesSource,
@@ -443,18 +445,20 @@ namespace ILGPU.Lightning
 <#      GenerateMethodParameterDeclaration(config, true); #>
         {
             <#= sortingName #>(
+				accelerator,
                 source,
                 target,
                 valuesSource,
                 valuesTarget,
 <#              GenerateMethodArguments(config); #>
-                DefaultCache,
-                Accelerator.DefaultStream);
+                accelerator.MemoryCache,
+                accelerator.DefaultStream);
         }
 
         /// <summary>
         /// Performs a radix-sort-pairs operation on the given key-value pairs.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source keys.</param>
         /// <param name="target">The target keys.</param>
         /// <param name="valuesSource">The source values.</param>
@@ -462,7 +466,8 @@ namespace ILGPU.Lightning
 <#      GenerateMethodParameterDocumentation(config); #>
         /// <param name="stream">The accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= sortingName #>(
+        public static void <#= sortingName #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             ArrayView<<#= valueType.Type #>> valuesSource,
@@ -471,18 +476,20 @@ namespace ILGPU.Lightning
             AcceleratorStream stream)
         {
             <#= sortingName #>(
+				accelerator,
                 source,
                 target,
                 valuesSource,
                 valuesTarget,
 <#              GenerateMethodArguments(config); #>
-                DefaultCache,
+                accelerator.MemoryCache,
                 stream);
         }
 
         /// <summary>
         /// Performs a radix-sort-pairs operation on the given key-value pairs.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source keys.</param>
         /// <param name="target">The target keys.</param>
         /// <param name="valuesSource">The source values.</param>
@@ -490,7 +497,8 @@ namespace ILGPU.Lightning
 <#      GenerateMethodParameterDocumentation(config); #>
         /// <param name="cache">The target cache.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= sortingName #>(
+        public static void <#= sortingName #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             ArrayView<<#= valueType.Type #>> valuesSource,
@@ -499,18 +507,20 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache)
         {
             <#= sortingName #>(
+				accelerator,
                 source,
                 target,
                 valuesSource,
                 valuesTarget,
 <#              GenerateMethodArguments(config); #>
                 cache,
-                Accelerator.DefaultStream);
+                accelerator.DefaultStream);
         }
 
         /// <summary>
         /// Performs a radix-sort-pairs operation on the given key-value pairs.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source keys.</param>
         /// <param name="target">The target keys.</param>
         /// <param name="valuesSource">The source values.</param>
@@ -519,7 +529,8 @@ namespace ILGPU.Lightning
         /// <param name="cache">The target cache.</param>
         /// <param name="stream">The accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= sortingName #>(
+        public static void <#= sortingName #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             ArrayView<<#= valueType.Type #>> valuesSource,
@@ -528,7 +539,8 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache,
             AcceleratorStream stream)
         {
-            radixSortPairsImplementation.<#= sortingName #>(
+			var context = LightningContext.Get(accelerator);
+            context.RadixSortPairsImplementation.<#= sortingName #>(
                 source,
                 target,
                 valuesSource,
@@ -541,6 +553,7 @@ namespace ILGPU.Lightning
         /// <summary>
         /// Performs a radix-sort-pairs operation on the given key-value pairs.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source keys.</param>
         /// <param name="target">The target keys.</param>
         /// <param name="valuesSource">The source values.</param>
@@ -549,7 +562,8 @@ namespace ILGPU.Lightning
         /// <param name="beginBit">The begin bit of the sort operation.</param>
         /// <param name="endBit">The end bit for of sort operation.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= sortingName #>(
+        public static void <#= sortingName #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             ArrayView<<#= valueType.Type #>> valuesSource,
@@ -559,6 +573,7 @@ namespace ILGPU.Lightning
             int endBit)
         {
             <#= sortingName #>(
+				accelerator,
                 source,
                 target,
                 valuesSource,
@@ -566,13 +581,14 @@ namespace ILGPU.Lightning
 <#              GenerateMethodArguments(config); #>
                 beginBit,
                 endBit,
-                DefaultCache,
-                Accelerator.DefaultStream);
+                accelerator.MemoryCache,
+                accelerator.DefaultStream);
         }
 
         /// <summary>
         /// Performs a radix-sort-pairs operation on the given key-value pairs.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source keys.</param>
         /// <param name="target">The target keys.</param>
         /// <param name="valuesSource">The source values.</param>
@@ -582,7 +598,8 @@ namespace ILGPU.Lightning
         /// <param name="endBit">The end bit for of sort operation.</param>
         /// <param name="stream">The accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= sortingName #>(
+        public static void <#= sortingName #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             ArrayView<<#= valueType.Type #>> valuesSource,
@@ -593,6 +610,7 @@ namespace ILGPU.Lightning
             AcceleratorStream stream)
         {
             <#= sortingName #>(
+				accelerator,
                 source,
                 target,
                 valuesSource,
@@ -600,13 +618,14 @@ namespace ILGPU.Lightning
 <#              GenerateMethodArguments(config); #>
                 beginBit,
                 endBit,
-                DefaultCache,
+                accelerator.MemoryCache,
                 stream);
         }
 
         /// <summary>
         /// Performs a radix-sort-pairs operation on the given key-value pairs.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source keys.</param>
         /// <param name="target">The target keys.</param>
         /// <param name="valuesSource">The source values.</param>
@@ -616,7 +635,8 @@ namespace ILGPU.Lightning
         /// <param name="endBit">The end bit for of sort operation.</param>
         /// <param name="cache">The target cache.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= sortingName #>(
+        public static void <#= sortingName #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             ArrayView<<#= valueType.Type #>> valuesSource,
@@ -627,6 +647,7 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache)
         {
             <#= sortingName #>(
+				accelerator,
                 source,
                 target,
                 valuesSource,
@@ -635,12 +656,13 @@ namespace ILGPU.Lightning
                 beginBit,
                 endBit,
                 cache,
-                Accelerator.DefaultStream);
+                accelerator.DefaultStream);
         }
 
         /// <summary>
         /// Performs a radix-sort-pairs operation on the given key-value pairs.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source keys.</param>
         /// <param name="target">The target keys.</param>
         /// <param name="valuesSource">The source values.</param>
@@ -651,7 +673,8 @@ namespace ILGPU.Lightning
         /// <param name="cache">The target cache.</param>
         /// <param name="stream">The accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= sortingName #>(
+        public static void <#= sortingName #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             ArrayView<<#= valueType.Type #>> valuesSource,
@@ -662,7 +685,8 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache,
             AcceleratorStream stream)
         {
-            radixSortPairsImplementation.<#= sortingName #>(
+			var context = LightningContext.Get(accelerator);
+            context.RadixSortPairsImplementation.<#= sortingName #>(
                 source,
                 target,
                 valuesSource,

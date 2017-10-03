@@ -9,8 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details.
 // -----------------------------------------------------------------------------
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace ILGPU.Lightning
 {
     /// <summary>

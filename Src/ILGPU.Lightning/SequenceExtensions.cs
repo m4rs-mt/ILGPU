@@ -156,7 +156,7 @@ namespace ILGPU.Lightning
     #endregion
 
     /// <summary>
-    /// Sequencer functionality for lightning contexts.
+    /// Sequencer functionality for accelerators.
     /// </summary>
     public static class SequenceExtensions
     {
@@ -165,16 +165,16 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="minDataSize">The minimum data size for maximum occupancy.</param>
         /// <returns>The loaded sequencer.</returns>
         private static Action<AcceleratorStream, Index, ArrayView<T>, Index, Index, TSequencer> CreateRawSequencer<T, TSequencer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             out Index minDataSize)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            var result = context.LoadAutoGroupedKernel<Action<AcceleratorStream, Index, ArrayView<T>, Index, Index, TSequencer>>(
+            var result = accelerator.LoadAutoGroupedKernel<Action<AcceleratorStream, Index, ArrayView<T>, Index, Index, TSequencer>>(
                 SequenceImpl<T, TSequencer>.KernelMethod, out int groupSize, out int minGridSize);
             minDataSize = groupSize * minGridSize;
             return result;
@@ -185,14 +185,14 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded sequencer.</returns>
         public static Sequencer<T, TSequencer> CreateSequencer<T, TSequencer>(
-            this LightningContext context)
+            this Accelerator accelerator)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            var rawSequencer = context.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
+            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
             return (stream, view, sequencer) =>
             {
                 if (!view.IsValid)
@@ -208,14 +208,14 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded sequencer.</returns>
         public static BatchedSequencer<T, TSequencer> CreateBatchedSequencer<T, TSequencer>(
-            this LightningContext context)
+            this Accelerator accelerator)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            var rawSequencer = context.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
+            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
             return (stream, view, sequenceLength, sequencer) =>
             {
                 if (!view.IsValid)
@@ -233,14 +233,14 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded sequencer.</returns>
         public static BatchedSequencer<T, TSequencer> CreateRepeatedSequencer<T, TSequencer>(
-            this LightningContext context)
+            this Accelerator accelerator)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            var rawSequencer = context.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
+            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
             return (stream, view, sequenceBatchLength, sequencer) =>
             {
                 if (!view.IsValid)
@@ -259,14 +259,14 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded sequencer.</returns>
         public static RepeatedBatchedSequencer<T, TSequencer> CreateRepeatedBatchedSequencer<T, TSequencer>(
-            this LightningContext context)
+            this Accelerator accelerator)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            var rawSequencer = context.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
+            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
             return (stream, view, sequenceLength, sequenceBatchLength, sequencer) =>
             {
                 if (!view.IsValid)
@@ -287,19 +287,19 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="view">The target view.</param>
         /// <param name="sequencer">The used sequencer.</param>
         public static void Sequence<T, TSequencer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> view,
             TSequencer sequencer)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            context.CreateSequencer<T, TSequencer>()(
+            accelerator.CreateSequencer<T, TSequencer>()(
                 stream,
                 view,
                 sequencer);
@@ -311,17 +311,17 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="view">The target view.</param>
         /// <param name="sequencer">The used sequencer.</param>
         public static void Sequence<T, TSequencer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> view,
             TSequencer sequencer)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            context.Sequence(context.DefaultStream, view, sequencer);
+            accelerator.Sequence(accelerator.DefaultStream, view, sequencer);
         }
 
         /// <summary>
@@ -333,13 +333,13 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="view">The target view.</param>
         /// <param name="sequenceLength">The length of a single sequence.</param>
         /// <param name="sequencer">The used sequencer.</param>
         public static void RepeatedSequence<T, TSequencer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> view,
             Index sequenceLength,
@@ -347,7 +347,7 @@ namespace ILGPU.Lightning
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            context.CreateRepeatedSequencer<T, TSequencer>()(
+            accelerator.CreateRepeatedSequencer<T, TSequencer>()(
                 stream,
                 view,
                 sequenceLength,
@@ -363,20 +363,20 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="view">The target view.</param>
         /// <param name="sequenceLength">The length of a single sequence.</param>
         /// <param name="sequencer">The used sequencer.</param>
         public static void RepeatedSequence<T, TSequencer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> view,
             Index sequenceLength,
             TSequencer sequencer)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            context.RepeatedSequence(
-                context.DefaultStream,
+            accelerator.RepeatedSequence(
+                accelerator.DefaultStream,
                 view,
                 sequenceLength,
                 sequencer);
@@ -391,13 +391,13 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="view">The target view.</param>
         /// <param name="sequenceBatchLength">The length of a single batch.</param>
         /// <param name="sequencer">The used sequencer.</param>
         public static void BatchedSequence<T, TSequencer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> view,
             Index sequenceBatchLength,
@@ -405,7 +405,7 @@ namespace ILGPU.Lightning
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            context.CreateBatchedSequencer<T, TSequencer>()(
+            accelerator.CreateBatchedSequencer<T, TSequencer>()(
                 stream,
                 view,
                 sequenceBatchLength,
@@ -421,20 +421,20 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="view">The target view.</param>
         /// <param name="sequenceBatchLength">The length of a single batch.</param>
         /// <param name="sequencer">The used sequencer.</param>
         public static void BatchedSequence<T, TSequencer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> view,
             Index sequenceBatchLength,
             TSequencer sequencer)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            context.BatchedSequence(
-                context.DefaultStream,
+            accelerator.BatchedSequence(
+                accelerator.DefaultStream,
                 view,
                 sequenceBatchLength,
                 sequencer);
@@ -455,14 +455,14 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="view">The target view.</param>
         /// <param name="sequenceLength">The length of a single sequence.</param>
         /// <param name="sequenceBatchLength">The length of a single batch.</param>
         /// <param name="sequencer">The used sequencer.</param>
         public static void RepeatedBatchedSequence<T, TSequencer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> view,
             Index sequenceLength,
@@ -471,7 +471,7 @@ namespace ILGPU.Lightning
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            context.CreateRepeatedBatchedSequencer<T, TSequencer>()(
+            accelerator.CreateRepeatedBatchedSequencer<T, TSequencer>()(
                 stream,
                 view,
                 sequenceLength,
@@ -494,13 +494,13 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="view">The target view.</param>
         /// <param name="sequenceLength">The length of a single sequence.</param>
         /// <param name="sequenceBatchLength">The length of a single batch.</param>
         /// <param name="sequencer">The used sequencer.</param>
         public static void RepeatedBatchedSequence<T, TSequencer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> view,
             Index sequenceLength,
             Index sequenceBatchLength,
@@ -508,8 +508,8 @@ namespace ILGPU.Lightning
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            context.RepeatedBatchedSequence(
-                context.DefaultStream,
+            accelerator.RepeatedBatchedSequence(
+                accelerator.DefaultStream,
                 view,
                 sequenceLength,
                 sequenceBatchLength,

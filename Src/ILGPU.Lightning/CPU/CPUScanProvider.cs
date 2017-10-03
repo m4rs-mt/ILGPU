@@ -9,17 +9,18 @@
 // Illinois Open Source License. See LICENSE.txt for details.
 // -----------------------------------------------------------------------------
 
+using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 
 namespace ILGPU.Lightning
 {
-    partial class LightningContext
+    partial class ScanExtensions
     {
         partial struct ScanExtension
         {
             public ScanProviderImplementation CreateCPUExtension(CPUAccelerator accelerator)
             {
-                return new CPU.CPUScanProviderImplementation(LightningContext);
+                return new CPU.CPUScanProviderImplementation(accelerator);
             }
         }
     }
@@ -31,8 +32,8 @@ namespace ILGPU.Lightning.CPU
     {
         #region Instance
 
-        internal CPUScanProviderImplementation(LightningContext lightningContext)
-            : base(lightningContext)
+        internal CPUScanProviderImplementation(Accelerator accelerator)
+            : base(accelerator)
         { }
 
         #endregion

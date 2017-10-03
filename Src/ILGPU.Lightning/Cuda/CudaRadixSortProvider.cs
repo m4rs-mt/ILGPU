@@ -9,17 +9,18 @@
 // Illinois Open Source License. See LICENSE.txt for details.
 // -----------------------------------------------------------------------------
 
+using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 
 namespace ILGPU.Lightning
 {
-    partial class LightningContext
+    partial class RadixSortExtensions
     {
         partial struct RadixSortExtension
         {
             public RadixSortProviderImplementation CreateCudaExtension(CudaAccelerator accelerator)
             {
-                return new Cuda.CudaRadixSortProviderImplementation(LightningContext);
+                return new Cuda.CudaRadixSortProviderImplementation(accelerator);
             }
         }
 
@@ -27,7 +28,7 @@ namespace ILGPU.Lightning
         {
             public RadixSortPairsProviderImplementation CreateCudaExtension(CudaAccelerator accelerator)
             {
-                return new Cuda.CudaRadixSortPairsProviderImplementation(LightningContext);
+                return new Cuda.CudaRadixSortPairsProviderImplementation(accelerator);
             }
         }
     }
@@ -39,8 +40,8 @@ namespace ILGPU.Lightning.Cuda
     {
         #region Instance
 
-        internal CudaRadixSortProviderImplementation(LightningContext lightningContext)
-            : base(lightningContext)
+        internal CudaRadixSortProviderImplementation(Accelerator accelerator)
+            : base(accelerator)
         { }
 
         #endregion
@@ -50,8 +51,8 @@ namespace ILGPU.Lightning.Cuda
     {
         #region Instance
 
-        internal CudaRadixSortPairsProviderImplementation(LightningContext lightningContext)
-            : base(lightningContext)
+        internal CudaRadixSortPairsProviderImplementation(Accelerator accelerator)
+            : base(accelerator)
         { }
 
         #endregion

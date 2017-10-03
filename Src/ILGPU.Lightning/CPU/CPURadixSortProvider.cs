@@ -9,17 +9,18 @@
 // Illinois Open Source License. See LICENSE.txt for details.
 // -----------------------------------------------------------------------------
 
+using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 
 namespace ILGPU.Lightning
 {
-    partial class LightningContext
+    partial class RadixSortExtensions
     {
         partial struct RadixSortExtension
         {
             public RadixSortProviderImplementation CreateCPUExtension(CPUAccelerator accelerator)
             {
-                return new CPU.CPURadixSortProviderImplementation(LightningContext);
+                return new CPU.CPURadixSortProviderImplementation(accelerator);
             }
         }
 
@@ -27,7 +28,7 @@ namespace ILGPU.Lightning
         {
             public RadixSortPairsProviderImplementation CreateCPUExtension(CPUAccelerator accelerator)
             {
-                return new CPU.CPURadixSortPairsProviderImplementation(LightningContext);
+                return new CPU.CPURadixSortPairsProviderImplementation(accelerator);
             }
         }
     }
@@ -39,8 +40,8 @@ namespace ILGPU.Lightning.CPU
     {
         #region Instance
 
-        internal CPURadixSortProviderImplementation(LightningContext lightningContext)
-            : base(lightningContext)
+        internal CPURadixSortProviderImplementation(Accelerator accelerator)
+            : base(accelerator)
         { }
 
         #endregion
@@ -50,8 +51,8 @@ namespace ILGPU.Lightning.CPU
     {
         #region Instance
 
-        internal CPURadixSortPairsProviderImplementation(LightningContext lightningContext)
-            : base(lightningContext)
+        internal CPURadixSortPairsProviderImplementation(Accelerator accelerator)
+            : base(accelerator)
         { }
 
         #endregion

@@ -226,7 +226,7 @@ namespace ILGPU.Lightning
 
     }
 
-    partial class LightningContext
+    partial class RadixSortExtensions
     {
         #region RadixSort
 
@@ -234,84 +234,96 @@ namespace ILGPU.Lightning
         /// <summary>
         /// Performs a radix-sort operation on the given elements.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
 <#      GenerateMethodParameterDocumentation(config); #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target
 <#      GenerateMethodParameterDeclaration(config, true); #>
         {
             <#= config.Name #>(
+				accelerator,
                 source,
                 target,
 <#              GenerateMethodArguments(config); #>
-                DefaultCache,
-                Accelerator.DefaultStream);
+                accelerator.MemoryCache,
+                accelerator.DefaultStream);
         }
 
         /// <summary>
         /// Performs a radix-sort operation on the given elements.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
 <#      GenerateMethodParameterDocumentation(config); #>
         /// <param name="stream">The accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
 <#          GenerateMethodParameterDeclaration(config); #>
             AcceleratorStream stream)
         {
             <#= config.Name #>(
+				accelerator,
                 source,
                 target,
 <#              GenerateMethodArguments(config); #>
-                DefaultCache,
+                accelerator.MemoryCache,
                 stream);
         }
 
         /// <summary>
         /// Performs a radix-sort operation on the given elements.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
 <#      GenerateMethodParameterDocumentation(config); #>
         /// <param name="cache">The target cache.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
 <#          GenerateMethodParameterDeclaration(config); #>
             MemoryBufferCache cache)
         {
             <#= config.Name #>(
+				accelerator,
                 source,
                 target,
 <#              GenerateMethodArguments(config); #>
                 cache,
-                Accelerator.DefaultStream);
+                accelerator.DefaultStream);
         }
 
         /// <summary>
         /// Performs a radix-sort operation on the given elements.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
         <#      GenerateMethodParameterDocumentation(config); #>
         /// <param name="cache">The target cache.</param>
         /// <param name="stream">The accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
 <#          GenerateMethodParameterDeclaration(config); #>
             MemoryBufferCache cache,
             AcceleratorStream stream)
         {
-            radixSortImplementation.<#= config.Name #>(
+			var context = LightningContext.Get(accelerator);
+            context.RadixSortImplementation.<#= config.Name #>(
                 source,
                 target,
 <#              GenerateMethodArguments(config); #>
@@ -322,13 +334,15 @@ namespace ILGPU.Lightning
         /// <summary>
         /// Performs a radix-sort operation on the given elements.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
         <#      GenerateMethodParameterDocumentation(config); #>
         /// <param name="beginBit">The begin bit of the sort operation.</param>
         /// <param name="endBit">The end bit for of sort operation.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
 <#          GenerateMethodParameterDeclaration(config); #>
@@ -336,18 +350,20 @@ namespace ILGPU.Lightning
             int endBit)
         {
             <#= config.Name #>(
+				accelerator,
                 source,
                 target,
 <#              GenerateMethodArguments(config); #>
                 beginBit,
                 endBit,
-                DefaultCache,
-                Accelerator.DefaultStream);
+                accelerator.MemoryCache,
+                accelerator.DefaultStream);
         }
 
         /// <summary>
         /// Performs a radix-sort operation on the given elements.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
 <#      GenerateMethodParameterDocumentation(config); #>
@@ -355,7 +371,8 @@ namespace ILGPU.Lightning
         /// <param name="endBit">The end bit for of sort operation.</param>
         /// <param name="stream">The accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
 <#          GenerateMethodParameterDeclaration(config); #>
@@ -364,18 +381,20 @@ namespace ILGPU.Lightning
             AcceleratorStream stream)
         {
             <#= config.Name #>(
+				accelerator,
                 source,
                 target,
 <#              GenerateMethodArguments(config); #>
                 beginBit,
                 endBit,
-                DefaultCache,
+                accelerator.MemoryCache,
                 stream);
         }
 
         /// <summary>
         /// Performs a radix-sort operation on the given elements.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
 <#      GenerateMethodParameterDocumentation(config); #>
@@ -383,7 +402,8 @@ namespace ILGPU.Lightning
         /// <param name="endBit">The end bit for of sort operation.</param>
         /// <param name="cache">The target cache.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
 <#          GenerateMethodParameterDeclaration(config); #>
@@ -392,18 +412,20 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache)
         {
             <#= config.Name #>(
+				accelerator,
                 source,
                 target,
 <#              GenerateMethodArguments(config); #>
                 beginBit,
                 endBit,
                 cache,
-                Accelerator.DefaultStream);
+                accelerator.DefaultStream);
         }
 
         /// <summary>
         /// Performs a radix-sort operation on the given elements.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
 <#      GenerateMethodParameterDocumentation(config); #>
@@ -412,7 +434,8 @@ namespace ILGPU.Lightning
         /// <param name="cache">The target cache.</param>
         /// <param name="stream">The accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
 <#          GenerateMethodParameterDeclaration(config); #>
@@ -421,7 +444,8 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache,
             AcceleratorStream stream)
         {
-            radixSortImplementation.<#= config.Name #>(
+			var context = LightningContext.Get(accelerator);
+            context.RadixSortImplementation.<#= config.Name #>(
                 source,
                 target,
 <#              GenerateMethodArguments(config); #>

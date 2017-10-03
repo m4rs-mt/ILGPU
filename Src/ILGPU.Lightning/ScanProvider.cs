@@ -11,23 +11,21 @@
 
 using ILGPU.Runtime;
 using ILGPU.Util;
+using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Lightning
 {
     /// <summary>
     /// Represents a platform and accelerator-specific implementation of a scan operation.
     /// </summary>
-    internal abstract partial class ScanProviderImplementation : LightningContextObject
+    internal abstract partial class ScanProviderImplementation : LightningObject
     {
         #region Instance
 
-        protected ScanProviderImplementation(LightningContext lightningContext)
-            : base(lightningContext)
+        protected ScanProviderImplementation(Accelerator accelerator)
+            : base(accelerator)
         { }
-
-        #endregion
-
-        #region Methods
 
         #endregion
 
@@ -44,15 +42,15 @@ namespace ILGPU.Lightning
     /// Represents a scan provider for a scan operation.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed partial class ScanProvider : LightningContextObject
+    public sealed partial class ScanProvider : LightningObject
     {
         #region Instance
 
         private MemoryBufferCache bufferCache;
         private ScanProviderImplementation implementation;
 
-        internal ScanProvider(LightningContext lightningContext, ScanProviderImplementation implementation)
-            : base(lightningContext)
+        internal ScanProvider(Accelerator accelerator, ScanProviderImplementation implementation)
+            : base(accelerator)
         {
             bufferCache = new MemoryBufferCache(Accelerator);
             this.implementation = implementation;
@@ -67,7 +65,7 @@ namespace ILGPU.Lightning
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "bufferCache", Justification = "Dispose method will be invoked by a helper method")]
+        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "bufferCache", Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
             Dispose(ref bufferCache);
@@ -77,69 +75,42 @@ namespace ILGPU.Lightning
         #endregion
     }
 
-    partial class LightningContext
+    /// <summary>
+    /// Scan functionality for accelerators.
+    /// </summary>
+    public static partial class ScanExtensions
     {
-        #region Instance
-
-        /// <summary>
-        /// Internal scan implementation.
-        /// </summary>
-        private ScanProviderImplementation scanImplementation;
-
-        /// <summary>
-        /// Initializes the scan implementation
-        /// </summary>
-        private void InitScan()
-        {
-            scanImplementation = CreateScanProviderImplementation();
-        }
-
-        /// <summary>
-        /// Disposes the scan implementation.
-        /// </summary>
-        private void DisposeScan()
-        {
-            Dispose(ref scanImplementation);
-        }
-
-        #endregion
-
         #region Scan
 
         /// <summary>
         /// Extension provider for scan extensions
         /// </summary>
         partial struct ScanExtension : IAcceleratorExtensionProvider<ScanProviderImplementation>
-        {
-            public ScanExtension(LightningContext lightningContext)
-            {
-                LightningContext = lightningContext;
-            }
-
-            /// <summary>
-            /// Returns the current lightning context.
-            /// </summary>
-            public LightningContext LightningContext { get; }
-        }
+        { }
 
         /// <summary>
         /// Creates a new provider implementation for scan.
         /// </summary>
-        /// <returns>The created scan provider.</returns>
-        private ScanProviderImplementation CreateScanProviderImplementation()
+        /// <param name="accelerator">The accelerator.</param>
+        /// <returns>The created provider.</returns>
+        internal static ScanProviderImplementation CreateScanProviderImplementation(this Accelerator accelerator)
         {
-            return Accelerator.CreateExtension<ScanProviderImplementation, ScanExtension>(
-                new ScanExtension(this));
+            return accelerator.CreateExtension<ScanProviderImplementation, ScanExtension>(
+                new ScanExtension());
         }
 
         /// <summary>
         /// Creates a new specialized scan provider that has its own cache.
         /// Note that the resulting provider has to be disposed manually.
         /// </summary>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created provider.</returns>
-        public ScanProvider CreateScanProvider()
+        [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "This is a construction method")]
+        public static ScanProvider CreateScanProvider(this Accelerator accelerator)
         {
-            return new ScanProvider(this, CreateScanProviderImplementation());
+            if (accelerator == null)
+                throw new ArgumentNullException(nameof(accelerator));
+            return new ScanProvider(accelerator, accelerator.CreateScanProviderImplementation());
         }
 
         #endregion

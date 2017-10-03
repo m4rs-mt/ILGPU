@@ -88,7 +88,7 @@ namespace ILGPU.Lightning
         where TTransformer : struct, ITransformer<TSource, TTarget>;
 
     /// <summary>
-    /// Reorder functionality for lightning contexts.
+    /// Reorder functionality for accelerators.
     /// </summary>
     public static class ReorderExtensions
     {
@@ -101,15 +101,15 @@ namespace ILGPU.Lightning
         /// <typeparam name="TSource">The source value type of the transformation.</typeparam>
         /// <typeparam name="TTarget">The target value type of the transformation.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
         public static ReorderTransformer<TSource, TTarget, TTransformer> CreateReorderTransformer<TSource, TTarget, TTransformer>(
-            this LightningContext context)
+            this Accelerator accelerator)
             where TSource : struct
             where TTarget : struct
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
-            var baseTransformer = context.CreateTransformer<Index, TTarget, ReorderTransformWrapper<TSource, TTarget, TTransformer>>();
+            var baseTransformer = accelerator.CreateTransformer<Index, TTarget, ReorderTransformWrapper<TSource, TTarget, TTransformer>>();
             return (stream, source, target, reorderView, transformer) =>
             {
                 if (!source.IsValid)
@@ -129,18 +129,18 @@ namespace ILGPU.Lightning
         /// The values are reordered according to: target(idx) = source(reorderView(idx)).
         /// </summary>
         /// <typeparam name="T">The type of the elements to reorder.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="source">The source elements to transform</param>
         /// <param name="target">The target elements that will contain the transformed values.</param>
         /// <param name="reorderView">The view of indices such that target(idx) = source(reorderView(idx)).</param>
         public static void Reorder<T>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> source,
             ArrayView<T> target,
             ArrayView<Index> reorderView)
             where T : struct
         {
-            context.Reorder(context.DefaultStream, source, target, reorderView);
+            accelerator.Reorder(accelerator.DefaultStream, source, target, reorderView);
         }
 
         /// <summary>
@@ -148,20 +148,20 @@ namespace ILGPU.Lightning
         /// The values are reordered according to: target(idx) = source(reorderView(idx)).
         /// </summary>
         /// <typeparam name="T">The type of the elements to reorder.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
         /// <param name="target">The target elements that will contain the transformed values.</param>
         /// <param name="reorderView">The view of indices such that target(idx) = source(reorderView(idx)).</param>
         public static void Reorder<T>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> source,
             ArrayView<T> target,
             ArrayView<Index> reorderView)
             where T : struct
         {
-            context.ReorderTransform<T, IdentityTransformer<T>>(
+            accelerator.ReorderTransform<T, IdentityTransformer<T>>(
                 stream,
                 source,
                 target,
@@ -175,13 +175,13 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The type of the elements to reorder and transform.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="source">The source elements to transform</param>
         /// <param name="target">The target elements that will contain the transformed values.</param>
         /// <param name="reorderView">The view of indices such that target(idx) = transform(source(reorderView(idx))).</param>
         /// <param name="transformer">The used transformer.</param>
         public static void ReorderTransform<T, TTransformer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> source,
             ArrayView<T> target,
             ArrayView<Index> reorderView,
@@ -189,8 +189,8 @@ namespace ILGPU.Lightning
             where T : struct
             where TTransformer : struct, ITransformer<T, T>
         {
-            context.ReorderTransform<T, T, TTransformer>(
-                context.DefaultStream,
+            accelerator.ReorderTransform<T, T, TTransformer>(
+                accelerator.DefaultStream,
                 source,
                 target,
                 reorderView,
@@ -203,14 +203,14 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The type of the elements to reorder and transform.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
         /// <param name="target">The target elements that will contain the transformed values.</param>
         /// <param name="reorderView">The view of indices such that target(idx) = transform(source(reorderView(idx))).</param>
         /// <param name="transformer">The used transformer.</param>
         public static void ReorderTransform<T, TTransformer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> source,
             ArrayView<T> target,
@@ -219,7 +219,7 @@ namespace ILGPU.Lightning
             where T : struct
             where TTransformer : struct, ITransformer<T, T>
         {
-            context.ReorderTransform<T, T, TTransformer>(
+            accelerator.ReorderTransform<T, T, TTransformer>(
                 stream,
                 source,
                 target,
@@ -234,14 +234,14 @@ namespace ILGPU.Lightning
         /// <typeparam name="TSource">The source type of the elements to reorder and transform.</typeparam>
         /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
         /// <param name="target">The target elements that will contain the transformed values.</param>
         /// <param name="reorderView">The view of indices such that target(idx) = transform(source(reorderView(idx))).</param>
         /// <param name="transformer">The used transformer.</param>
         public static void ReorderTransform<TSource, TTarget, TTransformer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<TSource> source,
             ArrayView<TTarget> target,
@@ -251,7 +251,7 @@ namespace ILGPU.Lightning
             where TTarget : struct
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
-            context.Transform(
+            accelerator.Transform(
                 stream,
                 reorderView,
                 target,

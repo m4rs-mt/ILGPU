@@ -115,7 +115,7 @@ namespace ILGPU.Lightning
 
     }
 
-    partial class LightningContext
+    partial class ScanExtensions
     {
         #region Scan
 
@@ -123,73 +123,85 @@ namespace ILGPU.Lightning
         /// <summary>
         /// Performs a scan operation on the given elements using the default cache.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target)
         {
             <#= config.Name #>(
+				accelerator,
                 source,
                 target,
-                DefaultCache,
-                Accelerator.DefaultStream);
+                accelerator.MemoryCache,
+                accelerator.DefaultStream);
         }
 
         /// <summary>
         /// Performs a scan operation on the given elements using the default cache.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
         /// <param name="stream">The accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             AcceleratorStream stream)
         {
             <#= config.Name #>(
+				accelerator,
                 source,
                 target,
-                DefaultCache,
+                accelerator.MemoryCache,
                 stream);
         }
 
         /// <summary>
         /// Performs a scan operation on the given elements.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
         /// <param name="cache">The target cache.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             MemoryBufferCache cache)
         {
             <#= config.Name #>(
+				accelerator,
                 source,
                 target,
-                cache,
-                Accelerator.DefaultStream);
+				cache,
+				accelerator.DefaultStream);
         }
 
         /// <summary>
         /// Performs a scan operation on the given elements.
         /// </summary>
+        /// <param name="accelerator">The current accelerator.</param>
         /// <param name="source">The source elements.</param>
         /// <param name="target">The target elements.</param>
         /// <param name="cache">The target cache.</param>
         /// <param name="stream">The accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void <#= config.Name #>(
+        public static void <#= config.Name #>(
+			this Accelerator accelerator,
             ArrayView<<#= config.Type #>> source,
             ArrayView<<#= config.Type #>> target,
             MemoryBufferCache cache,
             AcceleratorStream stream)
         {
-            scanImplementation.<#= config.Name #>(
+            var context = LightningContext.Get(accelerator);
+			context.ScanImplementation.<#= config.Name #>(
                 source,
                 target,
                 cache,

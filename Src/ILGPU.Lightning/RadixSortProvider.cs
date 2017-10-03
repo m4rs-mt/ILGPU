@@ -11,23 +11,21 @@
 
 using ILGPU.Runtime;
 using ILGPU.Util;
+using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Lightning
 {
     /// <summary>
     /// Represents a platform and accelerator-specific implementation of a radix-sort operation.
     /// </summary>
-    internal abstract partial class RadixSortProviderImplementation : LightningContextObject
+    internal abstract partial class RadixSortProviderImplementation : LightningObject
     {
         #region Instance
 
-        protected RadixSortProviderImplementation(LightningContext lightningContext)
-            : base(lightningContext)
+        protected RadixSortProviderImplementation(Accelerator accelerator)
+            : base(accelerator)
         { }
-
-        #endregion
-
-        #region Methods
 
         #endregion
 
@@ -44,30 +42,26 @@ namespace ILGPU.Lightning
     /// Represents a radix-sort provider for a radix-sort operation.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed partial class RadixSortProvider : LightningContextObject
+    public sealed partial class RadixSortProvider : LightningObject
     {
         #region Instance
 
         private MemoryBufferCache bufferCache;
         private RadixSortProviderImplementation implementation;
 
-        internal RadixSortProvider(LightningContext lightningContext, RadixSortProviderImplementation implementation)
-            : base(lightningContext)
+        internal RadixSortProvider(Accelerator accelerator, RadixSortProviderImplementation implementation)
+            : base(accelerator)
         {
-            bufferCache = new MemoryBufferCache(Accelerator);
+            bufferCache = new MemoryBufferCache(accelerator);
             this.implementation = implementation;
         }
-
-        #endregion
-
-        #region Methods
 
         #endregion
 
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "bufferCache", Justification = "Dispose method will be invoked by a helper method")]
+        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "bufferCache", Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
             Dispose(ref bufferCache);
@@ -77,68 +71,42 @@ namespace ILGPU.Lightning
         #endregion
     }
 
-    partial class LightningContext
+    /// <summary>
+    /// Radix-sort functionality for accelerators.
+    /// </summary>
+    public static partial class RadixSortExtensions
     {
-        #region Instance
-
-        /// <summary>
-        /// Internal radix-sort implementation.
-        /// </summary>
-        private RadixSortProviderImplementation radixSortImplementation;
-
-        /// <summary>
-        /// </summary>
-        private void InitRadixSort()
-        {
-            radixSortImplementation = CreateRadixSortProviderImplementation();
-        }
-
-        /// <summary>
-        /// Disposes the radix-sort implementation.
-        /// </summary>
-        private void DisposeRadixSort()
-        {
-            Dispose(ref radixSortImplementation);
-        }
-
-        #endregion
-
         #region RadixSort
 
         /// <summary>
         /// Extension provider for radix-sort extensions
         /// </summary>
         partial struct RadixSortExtension : IAcceleratorExtensionProvider<RadixSortProviderImplementation>
-        {
-            public RadixSortExtension(LightningContext lightningContext)
-            {
-                LightningContext = lightningContext;
-            }
-
-            /// <summary>
-            /// Returns the current lightning context.
-            /// </summary>
-            public LightningContext LightningContext { get; }
-        }
+        { }
 
         /// <summary>
         /// Creates a new provider implementation for radix sort.
         /// </summary>
-        /// <returns>The created scan provider.</returns>
-        private RadixSortProviderImplementation CreateRadixSortProviderImplementation()
+        /// <param name="accelerator">The accelerator.</param>
+        /// <returns>The created provider.</returns>
+        internal static RadixSortProviderImplementation CreateRadixSortProviderImplementation(this Accelerator accelerator)
         {
-            return Accelerator.CreateExtension<RadixSortProviderImplementation, RadixSortExtension>(
-                new RadixSortExtension(this));
+            return accelerator.CreateExtension<RadixSortProviderImplementation, RadixSortExtension>(
+                new RadixSortExtension());
         }
 
         /// <summary>
         /// Creates a new specialized radix-sort provider that has its own cache.
         /// Note that the resulting provider has to be disposed manually.
         /// </summary>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created provider.</returns>
-        public RadixSortProvider CreateRadixSortProvider()
+        [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "This is a construction method")]
+        public static RadixSortProvider CreateRadixSortProvider(this Accelerator accelerator)
         {
-            return new RadixSortProvider(this, CreateRadixSortProviderImplementation());
+            if (accelerator == null)
+                throw new ArgumentNullException(nameof(accelerator));
+            return new RadixSortProvider(accelerator, accelerator.CreateRadixSortProviderImplementation());
         }
 
         #endregion

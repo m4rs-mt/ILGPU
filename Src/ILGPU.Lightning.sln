@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.13
+VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Lightning", "ILGPU.Lightning\ILGPU.Lightning.csproj", "{FEF34CD0-7986-47D6-91D5-B264EBEC0F90}"
 EndProject
@@ -9,9 +9,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ILGPU.Lightning.Native", "I
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{29A096B0-F0BD-438E-9AD4-629D9E38E9ED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LLVMSharp", "..\ILGPU\LLVMSharp\LLVMSharp.csproj", "{E230F816-0E92-4AE4-83E4-24D74DEB9609}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU", "..\ILGPU\Src\ILGPU\ILGPU.csproj", "{30A409A1-B627-4ED0-9CDD-69BA19996E7B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU", "..\ILGPU\Src\ILGPU\ILGPU.csproj", "{30A409A1-B627-4ED0-9CDD-69BA19996E7B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{A374B733-93D0-4BD7-97DA-7A677D5C68E0}"
 	ProjectSection(SolutionItems) = preProject
@@ -51,18 +49,6 @@ Global
 		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Release|x64.Build.0 = Release|x64
 		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Release|x86.ActiveCfg = Release|Win32
 		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Release|x86.Build.0 = Release|Win32
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Debug|x64.Build.0 = Debug|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Debug|x86.Build.0 = Debug|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Release|x64.ActiveCfg = Release|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Release|x64.Build.0 = Release|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Release|x86.ActiveCfg = Release|Any CPU
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609}.Release|x86.Build.0 = Release|Any CPU
 		{30A409A1-B627-4ED0-9CDD-69BA19996E7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{30A409A1-B627-4ED0-9CDD-69BA19996E7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30A409A1-B627-4ED0-9CDD-69BA19996E7B}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -80,7 +66,9 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{E230F816-0E92-4AE4-83E4-24D74DEB9609} = {29A096B0-F0BD-438E-9AD4-629D9E38E9ED}
 		{30A409A1-B627-4ED0-9CDD-69BA19996E7B} = {29A096B0-F0BD-438E-9AD4-629D9E38E9ED}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E123F77E-B3AF-4C32-A183-E63F8DEF5BA7}
 	EndGlobalSection
 EndGlobal

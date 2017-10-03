@@ -231,7 +231,7 @@ namespace ILGPU.Lightning
     #endregion
 
     /// <summary>
-    /// Reduction functionality for lightning contexts.
+    /// Reduction functionality for accelerators.
     /// </summary>
     public static class ReductionExtensions
     {
@@ -240,13 +240,13 @@ namespace ILGPU.Lightning
         /// <summary>
         /// Computes a grouped reduction dimension for reduction-kernel dispatch.
         /// </summary>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="dataLength">The number of data elements to reduce.</param>
         /// <returns>The grouped reduction dimension for reduction-kernel dispatch.</returns>
-        private static GroupedIndex ComputeReductionDimension(LightningContext context, Index dataLength)
+        private static GroupedIndex ComputeReductionDimension(Accelerator accelerator, Index dataLength)
         {
-            var warpSize = context.WarpSize;
-            var groupSize = Math.Max(warpSize, (context.MaxThreadsPerGroup / warpSize) * warpSize);
+            var warpSize = accelerator.WarpSize;
+            var groupSize = Math.Max(warpSize, (accelerator.MaxNumThreadsPerGroup / warpSize) * warpSize);
             if (groupSize < 2)
                 throw new NotSupportedException("The given accelerator does not support reductions");
             var gridSize = Math.Min((dataLength + groupSize - 1) / groupSize, groupSize);
@@ -256,12 +256,12 @@ namespace ILGPU.Lightning
         /// <summary>
         /// Computes the required number of temp-storage elements for the a reduction and the given data length.
         /// </summary>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="dataLength">The number of data elements to reduce.</param>
         /// <returns>The required number of temp-storage elements.</returns>
-        public static Index ComputeReductionTempStorageSize(this LightningContext context, Index dataLength)
+        public static Index ComputeReductionTempStorageSize(this Accelerator accelerator, Index dataLength)
         {
-            return ComputeReductionDimension(context, dataLength).GroupIdx;
+            return ComputeReductionDimension(accelerator, dataLength).GroupIdx;
         }
 
         #endregion
@@ -274,17 +274,17 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created reduction handler.</returns>
         public static AtomicReduction<T, TShuffleDown, TReduction> CreateAtomicReduction<T, TShuffleDown, TReduction>(
-            this LightningContext context)
+            this Accelerator accelerator)
             where T : struct
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IAtomicReduction<T>
         {
-            var kernel = context.LoadKernel<Action<AcceleratorStream, GroupedIndex, ArrayView<T>, ArrayView<T>, TShuffleDown, TReduction>>(
+            var kernel = accelerator.LoadKernel<Action<AcceleratorStream, GroupedIndex, ArrayView<T>, ArrayView<T>, TShuffleDown, TReduction>>(
                 ReductionImpl<T, TShuffleDown, TReduction, AtomicReductionFinalizer<T, TReduction>>.KernelMethod);
-            var initializer = context.CreateInitializer<T>();
+            var initializer = accelerator.CreateInitializer<T>();
             return (stream, input, output, shuffleDown, reduction) =>
             {
                 if (!input.IsValid)
@@ -295,7 +295,7 @@ namespace ILGPU.Lightning
                     throw new ArgumentNullException(nameof(output));
                 if (output.Length < 1)
                     throw new ArgumentOutOfRangeException(nameof(output));
-                var dimension = ComputeReductionDimension(context, input.Length);
+                var dimension = ComputeReductionDimension(accelerator, input.Length);
                 initializer(stream, output, reduction.NeutralElement);
                 kernel(stream, dimension, input, output, shuffleDown, reduction);
             };
@@ -308,19 +308,19 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         /// <returns>The created reduction handler.</returns>
         public static AtomicReduction<T> CreateAtomicReduction<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             TShuffleDown shuffleDown,
             TReduction reduction)
             where T : struct
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IAtomicReduction<T>
         {
-            var reductionDel = context.CreateAtomicReduction<T, TShuffleDown, TReduction>();
+            var reductionDel = accelerator.CreateAtomicReduction<T, TShuffleDown, TReduction>();
             return (stream, input, output) =>
             {
                 reductionDel(stream, input, output, shuffleDown, reduction);
@@ -333,14 +333,14 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="output">The output view to store the reduced value.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         public static void AtomicReduce<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> input,
             ArrayView<T> output,
@@ -350,7 +350,7 @@ namespace ILGPU.Lightning
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IAtomicReduction<T>
         {
-            context.CreateAtomicReduction<T, TShuffleDown, TReduction>()(
+            accelerator.CreateAtomicReduction<T, TShuffleDown, TReduction>()(
                 stream,
                 input,
                 output,
@@ -364,13 +364,13 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="output">The output view to store the reduced value.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         public static void AtomicReduce<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> input,
             ArrayView<T> output,
             TShuffleDown shuffleDown,
@@ -379,8 +379,8 @@ namespace ILGPU.Lightning
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IAtomicReduction<T>
         {
-            context.AtomicReduce(
-                context.DefaultStream,
+            accelerator.AtomicReduce(
+                accelerator.DefaultStream,
                 input,
                 output,
                 shuffleDown,
@@ -393,7 +393,7 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
@@ -401,7 +401,7 @@ namespace ILGPU.Lightning
         /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
         /// <returns>The reduced value.</returns>
         public static T AtomicReduce<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> input,
             TShuffleDown shuffleDown,
@@ -410,15 +410,15 @@ namespace ILGPU.Lightning
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IAtomicReduction<T>
         {
-            var output = context.DefaultCache.Allocate<T>(1);
-            context.AtomicReduce(
+            var output = accelerator.MemoryCache.Allocate<T>(1);
+            accelerator.AtomicReduce(
                 stream,
                 input,
                 output,
                 shuffleDown,
                 reduction);
             stream.Synchronize();
-            context.DefaultCache.CopyTo(out T result, 0);
+            accelerator.MemoryCache.CopyTo(out T result, 0);
             return result;
         }
 
@@ -428,14 +428,14 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
         /// <returns>The reduced value.</returns>
         public static T AtomicReduce<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> input,
             TShuffleDown shuffleDown,
             TReduction reduction)
@@ -443,8 +443,8 @@ namespace ILGPU.Lightning
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IAtomicReduction<T>
         {
-            return context.AtomicReduce(
-                context.DefaultStream,
+            return accelerator.AtomicReduce(
+                accelerator.DefaultStream,
                 input,
                 shuffleDown,
                 reduction);
@@ -456,7 +456,7 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
@@ -464,7 +464,7 @@ namespace ILGPU.Lightning
         /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
         /// <returns>The reduced value.</returns>
         public static Task<T> AtomicReduceAsync<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> input,
             TShuffleDown shuffleDown,
@@ -475,7 +475,7 @@ namespace ILGPU.Lightning
         {
             return Task.Run(() =>
             {
-                return context.AtomicReduce(
+                return accelerator.AtomicReduce(
                     stream,
                     input,
                     shuffleDown,
@@ -489,14 +489,14 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
         /// <returns>The reduced value.</returns>
         public static Task<T> AtomicReduceAsync<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> input,
             TShuffleDown shuffleDown,
             TReduction reduction)
@@ -504,8 +504,8 @@ namespace ILGPU.Lightning
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IAtomicReduction<T>
         {
-            return context.AtomicReduceAsync(
-                context.DefaultStream,
+            return accelerator.AtomicReduceAsync(
+                accelerator.DefaultStream,
                 input,
                 shuffleDown,
                 reduction);
@@ -521,17 +521,17 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created reduction handler.</returns>
         public static Reduction<T, TShuffleDown, TReduction> CreateReduction<T, TShuffleDown, TReduction>(
-            this LightningContext context)
+            this Accelerator accelerator)
             where T : struct
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IReduction<T>
         {
-            var kernel = context.LoadKernel<Action<AcceleratorStream, GroupedIndex, ArrayView<T>, ArrayView<T>, TShuffleDown, TReduction>>(
+            var kernel = accelerator.LoadKernel<Action<AcceleratorStream, GroupedIndex, ArrayView<T>, ArrayView<T>, TShuffleDown, TReduction>>(
                 ReductionImpl<T, TShuffleDown, TReduction, DefaultReductionFinalizer<T, TReduction>>.KernelMethod);
-            var initializer = context.CreateInitializer<T>();
+            var initializer = accelerator.CreateInitializer<T>();
             return (stream, input, output, temp, shuffleDown, reduction) =>
             {
                 if (!input.IsValid)
@@ -544,7 +544,7 @@ namespace ILGPU.Lightning
                     throw new ArgumentOutOfRangeException(nameof(output));
                 if (!temp.IsValid)
                     throw new ArgumentNullException(nameof(temp));
-                var dimension = ComputeReductionDimension(context, input.Length);
+                var dimension = ComputeReductionDimension(accelerator, input.Length);
                 if (temp.Length < dimension.GroupIdx)
                     throw new ArgumentOutOfRangeException(nameof(temp), $"Temp space must be at least {dimension.GroupIdx} elements large");
                 initializer(stream, temp, reduction.NeutralElement);
@@ -559,19 +559,19 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         /// <returns>The created reduction handler.</returns>
         public static Reduction<T> CreateReduction<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             TShuffleDown shuffleDown,
             TReduction reduction)
             where T : struct
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IReduction<T>
         {
-            var reductionDel = context.CreateReduction<T, TShuffleDown, TReduction>();
+            var reductionDel = accelerator.CreateReduction<T, TShuffleDown, TReduction>();
             return (stream, input, output, temp) =>
             {
                 reductionDel(stream, input, output, temp, shuffleDown, reduction);
@@ -584,7 +584,7 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="output">The output view to store the reduced value.</param>
@@ -592,7 +592,7 @@ namespace ILGPU.Lightning
         /// <param name="reduction">The reduction logic.</param>
         /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
         public static void Reduce<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> input,
             ArrayView<T> output,
@@ -606,9 +606,9 @@ namespace ILGPU.Lightning
                 throw new ArgumentNullException(nameof(input));
             if (input.Length < 1)
                 throw new ArgumentOutOfRangeException(nameof(input));
-            var tempStorageSize = context.ComputeReductionTempStorageSize(input.Length);
-            var temp = context.DefaultCache.Allocate<T>(tempStorageSize);
-            context.CreateReduction<T, TShuffleDown, TReduction>()(
+            var tempStorageSize = accelerator.ComputeReductionTempStorageSize(input.Length);
+            var temp = accelerator.MemoryCache.Allocate<T>(tempStorageSize);
+            accelerator.CreateReduction<T, TShuffleDown, TReduction>()(
                 stream,
                 input,
                 output,
@@ -623,14 +623,14 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="output">The output view to store the reduced value.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
         public static void Reduce<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> input,
             ArrayView<T> output,
             TShuffleDown shuffleDown,
@@ -639,8 +639,8 @@ namespace ILGPU.Lightning
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IReduction<T>
         {
-            context.Reduce(
-                context.DefaultStream,
+            accelerator.Reduce(
+                accelerator.DefaultStream,
                 input,
                 output,
                 shuffleDown,
@@ -653,7 +653,7 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="output">The output view to store the reduced value.</param>
@@ -661,7 +661,7 @@ namespace ILGPU.Lightning
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         public static void Reduce<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> input,
             ArrayView<T> output,
@@ -672,7 +672,7 @@ namespace ILGPU.Lightning
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IReduction<T>
         {
-            context.CreateReduction<T, TShuffleDown, TReduction>()(
+            accelerator.CreateReduction<T, TShuffleDown, TReduction>()(
                 stream,
                 input,
                 output,
@@ -687,14 +687,14 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="output">The output view to store the reduced value.</param>
         /// <param name="temp">The temporary view to store the temporary values.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         public static void Reduce<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> input,
             ArrayView<T> output,
             ArrayView<T> temp,
@@ -704,8 +704,8 @@ namespace ILGPU.Lightning
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IReduction<T>
         {
-            context.Reduce(
-                context.DefaultStream,
+            accelerator.Reduce(
+                accelerator.DefaultStream,
                 input,
                 output,
                 temp,
@@ -719,7 +719,7 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
@@ -727,7 +727,7 @@ namespace ILGPU.Lightning
         /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
         /// <returns>The reduced value.</returns>
         public static T Reduce<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> input,
             TShuffleDown shuffleDown,
@@ -740,11 +740,11 @@ namespace ILGPU.Lightning
                 throw new ArgumentNullException(nameof(input));
             if (input.Length < 1)
                 throw new ArgumentOutOfRangeException(nameof(input));
-            var tempStorageSize = context.ComputeReductionTempStorageSize(input.Length);
-            var storage = context.DefaultCache.Allocate<T>(tempStorageSize + 1);
+            var tempStorageSize = accelerator.ComputeReductionTempStorageSize(input.Length);
+            var storage = accelerator.MemoryCache.Allocate<T>(tempStorageSize + 1);
             var output = storage.GetSubView(0, 1);
             var temp = storage.GetSubView(1);
-            context.Reduce(
+            accelerator.Reduce(
                 stream,
                 input,
                 output,
@@ -752,7 +752,7 @@ namespace ILGPU.Lightning
                 shuffleDown,
                 reduction);
             stream.Synchronize();
-            context.DefaultCache.CopyTo(out T result, 0);
+            accelerator.MemoryCache.CopyTo(out T result, 0);
             return result;
         }
 
@@ -762,14 +762,14 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
         /// <returns>The reduced value.</returns>
         public static T Reduce<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> input,
             TShuffleDown shuffleDown,
             TReduction reduction)
@@ -777,8 +777,8 @@ namespace ILGPU.Lightning
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IReduction<T>
         {
-            return context.Reduce(
-                context.DefaultStream,
+            return accelerator.Reduce(
+                accelerator.DefaultStream,
                 input,
                 shuffleDown,
                 reduction);
@@ -790,7 +790,7 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
@@ -798,7 +798,7 @@ namespace ILGPU.Lightning
         /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
         /// <returns>The reduced value.</returns>
         public static Task<T> ReduceAsync<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> input,
             TShuffleDown shuffleDown,
@@ -809,7 +809,7 @@ namespace ILGPU.Lightning
         {
             return Task.Run(() =>
             {
-                return context.Reduce(
+                return accelerator.Reduce(
                     stream,
                     input,
                     shuffleDown,
@@ -823,14 +823,14 @@ namespace ILGPU.Lightning
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="input">The input elements to reduce.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
         /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
         /// <returns>The reduced value.</returns>
         public static Task<T> ReduceAsync<T, TShuffleDown, TReduction>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> input,
             TShuffleDown shuffleDown,
             TReduction reduction)
@@ -838,8 +838,8 @@ namespace ILGPU.Lightning
             where TShuffleDown : struct, IShuffleDown<T>
             where TReduction : struct, IReduction<T>
         {
-            return context.ReduceAsync(
-                context.DefaultStream,
+            return accelerator.ReduceAsync(
+                accelerator.DefaultStream,
                 input,
                 shuffleDown,
                 reduction);

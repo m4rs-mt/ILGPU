@@ -44,7 +44,6 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AcceleratorExtensions.cs" />
     <Compile Include="ArrayExtensions.cs" />
     <Compile Include="ArrayViewExtensions.cs" />
     <Compile Include="CPU\CPURadixSortProvider.cs" />
@@ -79,16 +78,8 @@
     <Compile Include="GridExtensions.cs" />
     <Compile Include="GroupExtensions.cs" />
     <Compile Include="InitializeExtensions.cs" />
-    <Compile Include="KernelLoader.cs" />
-    <Compile Include="KernelLoaders.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>KernelLoaders.tt</DependentUpon>
-    </Compile>
-    <Compile Include="LightningContext.Static.cs" />
-    <Compile Include="LightningContextObject.cs" />
-    <Compile Include="CompiledKernelCache.cs" />
     <Compile Include="LightningContext.cs" />
+    <Compile Include="LightningObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RadixSortPairsProvider.cs" />
     <Compile Include="RadixSortProvider.cs" />
@@ -126,11 +117,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Sequencers.tt</DependentUpon>
     </Compile>
-    <Compile Include="SharedMemoryKernelLoaders.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>SharedMemoryKernelLoaders.tt</DependentUpon>
-    </Compile>
     <Compile Include="TransformExtensions.cs" />
     <Compile Include="VectorExtensions.cs" />
   </ItemGroup>
@@ -146,10 +132,6 @@
     <Content Include="ReductionOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ReductionOperations.cs</LastGenOutput>
-    </Content>
-    <Content Include="SharedMemoryKernelLoaders.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>SharedMemoryKernelLoaders.cs</LastGenOutput>
     </Content>
     <None Include="Basic.tt" />
     <Content Include="CPU\CPUScanProviders.tt">
@@ -175,10 +157,6 @@
     <Content Include="Cuda\CudaScanProviders.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CudaScanProviders.cs</LastGenOutput>
-    </Content>
-    <Content Include="KernelLoaders.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>KernelLoaders.cs</LastGenOutput>
     </Content>
     <Content Include="RadixSortPairsProviders.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

@@ -55,7 +55,7 @@ namespace ILGPU.Lightning
         where T : struct;
 
     /// <summary>
-    /// Initialize functionality for lightning contexts.
+    /// Initialize functionality for accelerators.
     /// </summary>
     public static class InitializeExtensions
     {
@@ -65,15 +65,15 @@ namespace ILGPU.Lightning
         /// Creates a raw initializer that is defined by the given element type.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="minDataSize">The minimum data size for maximum occupancy.</param>
         /// <returns>The loaded initializer.</returns>
         private static Action<AcceleratorStream, Index, ArrayView<T>, T> CreateRawInitializer<T>(
-            this LightningContext context,
+            this Accelerator accelerator,
             out Index minDataSize)
             where T : struct
         {
-            var result = context.LoadAutoGroupedKernel<Action<AcceleratorStream, Index, ArrayView<T>, T>>(
+            var result = accelerator.LoadAutoGroupedKernel<Action<AcceleratorStream, Index, ArrayView<T>, T>>(
                 InitializeImpl<T>.KernelMethod, out int groupSize, out int minGridSize);
             minDataSize = groupSize * minGridSize;
             return result;
@@ -83,13 +83,13 @@ namespace ILGPU.Lightning
         /// Creates an initializer that is defined by the given element type.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
         public static Initializer<T> CreateInitializer<T>(
-            this LightningContext context)
+            this Accelerator accelerator)
             where T : struct
         {
-            var rawInitializer = context.CreateRawInitializer<T>(out Index minDataSize);
+            var rawInitializer = accelerator.CreateRawInitializer<T>(out Index minDataSize);
             return (stream, view, value) =>
             {
                 if (!view.IsValid)
@@ -104,34 +104,34 @@ namespace ILGPU.Lightning
         /// Performs an initialization on the given view.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="view">The element view.</param>
         /// <param name="value">The target value.</param>
         public static void Initialize<T>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> view,
             T value)
             where T : struct
         {
-            context.Initialize(context.DefaultStream, view, value);
+            accelerator.Initialize(accelerator.DefaultStream, view, value);
         }
 
         /// <summary>
         /// Performs an initialization on the given view.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="view">The element view.</param>
         /// <param name="value">The target value.</param>
         public static void Initialize<T>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> view,
             T value)
             where T : struct
         {
-            context.CreateInitializer<T>()(
+            accelerator.CreateInitializer<T>()(
                 stream,
                 view,
                 value);

@@ -11,23 +11,21 @@
 
 using ILGPU.Runtime;
 using ILGPU.Util;
+using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Lightning
 {
     /// <summary>
     /// Represents a platform and accelerator-specific implementation of a radix-sort-pairs operation.
     /// </summary>
-    internal abstract partial class RadixSortPairsProviderImplementation : LightningContextObject
+    internal abstract partial class RadixSortPairsProviderImplementation : LightningObject
     {
         #region Instance
 
-        protected RadixSortPairsProviderImplementation(LightningContext lightningContext)
-            : base(lightningContext)
+        protected RadixSortPairsProviderImplementation(Accelerator accelerator)
+            : base(accelerator)
         { }
-
-        #endregion
-
-        #region Methods
 
         #endregion
 
@@ -44,15 +42,17 @@ namespace ILGPU.Lightning
     /// Represents a platform and accelerator-specific implementation of a radix-sort-pairs operation.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed partial class RadixSortPairsProvider : LightningContextObject
+    public sealed partial class RadixSortPairsProvider : LightningObject
     {
         #region Instance
 
         private MemoryBufferCache bufferCache;
         private RadixSortPairsProviderImplementation implementation;
 
-        internal RadixSortPairsProvider(LightningContext lightningContext, RadixSortPairsProviderImplementation implementation)
-            : base(lightningContext)
+        internal RadixSortPairsProvider(
+            Accelerator accelerator,
+            RadixSortPairsProviderImplementation implementation)
+            : base(accelerator)
         {
             bufferCache = new MemoryBufferCache(Accelerator);
             this.implementation = implementation;
@@ -60,14 +60,10 @@ namespace ILGPU.Lightning
 
         #endregion
 
-        #region Methods
-
-        #endregion
-
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "bufferCache", Justification = "Dispose method will be invoked by a helper method")]
+        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "bufferCache", Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
             Dispose(ref bufferCache);
@@ -82,7 +78,7 @@ namespace ILGPU.Lightning
     /// </summary>
     /// <typeparam name="TValue">The value type of the value elements to be sorted.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed partial class RadixSortPairsProvider<TValue> : LightningContextObject
+    public sealed partial class RadixSortPairsProvider<TValue> : LightningObject
         where TValue : struct
     {
         #region Instance
@@ -93,14 +89,14 @@ namespace ILGPU.Lightning
         private Sequencer<Index, Sequencers.IndexSequencer> sequencer;
 
         internal RadixSortPairsProvider(
-            LightningContext lightningContext,
+            Accelerator accelerator,
             RadixSortPairsProviderImplementation implementation)
-            : base(lightningContext)
+            : base(accelerator)
         {
             bufferCache = new MemoryBufferCache(Accelerator);
             sequenceCache = new MemoryBufferCache(Accelerator);
             this.implementation = implementation;
-            sequencer = lightningContext.CreateSequencer<
+            sequencer = accelerator.CreateSequencer<
                 Index, Sequencers.IndexSequencer>();
         }
 
@@ -123,68 +119,40 @@ namespace ILGPU.Lightning
         #endregion
     }
 
-    partial class LightningContext
+    partial class RadixSortExtensions
     {
-        #region Instance
-
-        /// <summary>
-        /// Internal radix-sort-pairs implementation.
-        /// </summary>
-        private RadixSortPairsProviderImplementation radixSortPairsImplementation;
-
-        /// <summary>
-        /// </summary>
-        private void InitRadixSortPairs()
-        {
-            radixSortPairsImplementation = CreateRadixSortPairsProviderImplementation();
-        }
-
-        /// <summary>
-        /// Disposes the radix-sort-pairs implementation.
-        /// </summary>
-        private void DisposeRadixSortPairs()
-        {
-            Dispose(ref radixSortPairsImplementation);
-        }
-
-        #endregion
-
-        #region RadixSort
+        #region RadixSortPairs
 
         /// <summary>
         /// Extension provider for radix-sort-pairs extensions
         /// </summary>
         partial struct RadixSortPairsExtension : IAcceleratorExtensionProvider<RadixSortPairsProviderImplementation>
-        {
-            public RadixSortPairsExtension(LightningContext lightningContext)
-            {
-                LightningContext = lightningContext;
-            }
-
-            /// <summary>
-            /// Returns the current lightning context.
-            /// </summary>
-            public LightningContext LightningContext { get; }
-        }
+        { }
 
         /// <summary>
         /// Creates a new provider key-value-pair-sorting implementation for radix sort.
         /// </summary>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created scan provider.</returns>
-        private RadixSortPairsProviderImplementation CreateRadixSortPairsProviderImplementation()
+        internal static RadixSortPairsProviderImplementation CreateRadixSortPairsProviderImplementation(
+            this Accelerator accelerator)
         {
-            return Accelerator.CreateExtension<RadixSortPairsProviderImplementation, RadixSortPairsExtension>(
-                new RadixSortPairsExtension(this));
+            return accelerator.CreateExtension<RadixSortPairsProviderImplementation, RadixSortPairsExtension>(
+                new RadixSortPairsExtension());
         }
 
         /// <summary>
         /// Creates a new specialized key-value-pair-sorting provider for radix sort that has its own cache.
         /// Note that the resulting provider has to be disposed manually.
         /// </summary>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created provider.</returns>
-        public RadixSortPairsProvider CreateRadixSortPairsProvider()
+        [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "This is a construction method")]
+        public static RadixSortPairsProvider CreateRadixSortPairsProvider(this Accelerator accelerator)
         {
-            return new RadixSortPairsProvider(this, CreateRadixSortPairsProviderImplementation());
+            if (accelerator == null)
+                throw new ArgumentNullException(nameof(accelerator));
+            return new RadixSortPairsProvider(accelerator, accelerator.CreateRadixSortPairsProviderImplementation());
         }
 
         /// <summary>
@@ -192,11 +160,15 @@ namespace ILGPU.Lightning
         /// Note that the resulting provider has to be disposed manually.
         /// </summary>
         /// <typeparam name="TValue">The value type of the value elements to be sorted.</typeparam>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created provider.</returns>
-        public RadixSortPairsProvider<TValue> CreateRadixSortPairsProvider<TValue>()
+        [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "This is a construction method")]
+        public static RadixSortPairsProvider<TValue> CreateRadixSortPairsProvider<TValue>(this Accelerator accelerator)
             where TValue : struct
         {
-            return new RadixSortPairsProvider<TValue>(this, CreateRadixSortPairsProviderImplementation());
+            if (accelerator == null)
+                throw new ArgumentNullException(nameof(accelerator));
+            return new RadixSortPairsProvider<TValue>(accelerator, accelerator.CreateRadixSortPairsProviderImplementation());
         }
 
         #endregion

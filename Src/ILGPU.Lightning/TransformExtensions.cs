@@ -109,7 +109,7 @@ namespace ILGPU.Lightning
         where TTransformer : struct, ITransformer<TSource, TTarget>;
 
     /// <summary>
-    /// Transformer functionality for lightning contexts.
+    /// Transformer functionality for accelerators.
     /// </summary>
     public static class TransformExtensions
     {
@@ -120,17 +120,17 @@ namespace ILGPU.Lightning
         /// <typeparam name="TSource">The source value type of the transformation.</typeparam>
         /// <typeparam name="TTarget">The target value type of the transformation.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="minDataSize">The minimum data size for maximum occupancy.</param>
         /// <returns>The loaded transformer.</returns>
         private static Action<AcceleratorStream, Index, ArrayView<TSource>, ArrayView<TTarget>, TTransformer> CreateRawTransformer<TSource, TTarget, TTransformer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             out Index minDataSize)
             where TSource : struct
             where TTarget : struct
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
-            var result = context.LoadAutoGroupedKernel<Action<AcceleratorStream, Index, ArrayView<TSource>, ArrayView<TTarget>, TTransformer>>(
+            var result = accelerator.LoadAutoGroupedKernel<Action<AcceleratorStream, Index, ArrayView<TSource>, ArrayView<TTarget>, TTransformer>>(
                 TransformImpl<TSource, TTarget, TTransformer>.KernelMethod, out int groupSize, out int minGridSize);
             minDataSize = groupSize * minGridSize;
             return result;
@@ -143,15 +143,15 @@ namespace ILGPU.Lightning
         /// <typeparam name="TSource">The source value type of the transformation.</typeparam>
         /// <typeparam name="TTarget">The target value type of the transformation.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
         public static Transformer<TSource, TTarget, TTransformer> CreateTransformer<TSource, TTarget, TTransformer>(
-            this LightningContext context)
+            this Accelerator accelerator)
             where TSource : struct
             where TTarget : struct
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
-            var rawTransformer = context.CreateRawTransformer<TSource, TTarget, TTransformer>(out Index minDataSize);
+            var rawTransformer = accelerator.CreateRawTransformer<TSource, TTarget, TTransformer>(out Index minDataSize);
             return (stream, source, target, transformer) =>
             {
                 if (!source.IsValid)
@@ -171,14 +171,14 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The type of the elements to transform.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
         public static Transformer<T, T, TTransformer> CreateTransformer<T, TTransformer>(
-            this LightningContext context)
+            this Accelerator accelerator)
             where T : struct
             where TTransformer : struct, ITransformer<T, T>
         {
-            return context.CreateTransformer<T, T, TTransformer>();
+            return accelerator.CreateTransformer<T, T, TTransformer>();
         }
 
         /// <summary>
@@ -186,13 +186,13 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The type of the elements to transform.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
         /// <param name="target">The target elements that will contain the transformed values.</param>
         /// <param name="transformer">The used transformer.</param>
         public static void Transform<T, TTransformer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> source,
             ArrayView<T> target,
@@ -200,7 +200,7 @@ namespace ILGPU.Lightning
             where T : struct
             where TTransformer : struct, ITransformer<T, T>
         {
-            context.CreateTransformer<T, TTransformer>()(
+            accelerator.CreateTransformer<T, TTransformer>()(
                 stream,
                 source,
                 target,
@@ -212,19 +212,19 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The type of the elements to transform.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="source">The source elements to transform</param>
         /// <param name="target">The target elements that will contain the transformed values.</param>
         /// <param name="transformer">The used transformer.</param>
         public static void Transform<T, TTransformer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<T> source,
             ArrayView<T> target,
             TTransformer transformer)
             where T : struct
             where TTransformer : struct, ITransformer<T, T>
         {
-            context.Transform<T, TTransformer>(context.DefaultStream, source, target, transformer);
+            accelerator.Transform<T, TTransformer>(accelerator.DefaultStream, source, target, transformer);
         }
 
         /// <summary>
@@ -233,13 +233,13 @@ namespace ILGPU.Lightning
         /// <typeparam name="TSource">The source type of the elements to transform.</typeparam>
         /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
         /// <param name="target">The target elements that will contain the transformed values.</param>
         /// <param name="transformer">The used transformer.</param>
         public static void Transform<TSource, TTarget, TTransformer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<TSource> source,
             ArrayView<TTarget> target,
@@ -248,7 +248,7 @@ namespace ILGPU.Lightning
             where TTarget : struct
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
-            context.CreateTransformer<TSource, TTarget, TTransformer>()(
+            accelerator.CreateTransformer<TSource, TTarget, TTransformer>()(
                 stream,
                 source,
                 target,
@@ -261,12 +261,12 @@ namespace ILGPU.Lightning
         /// <typeparam name="TSource">The source type of the elements to transform.</typeparam>
         /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="context">The lightning context.</param>
+        /// <param name="accelerator">The accelerator.</param>
         /// <param name="source">The source elements to transform</param>
         /// <param name="target">The target elements that will contain the transformed values.</param>
         /// <param name="transformer">The used transformer.</param>
         public static void Transform<TSource, TTarget, TTransformer>(
-            this LightningContext context,
+            this Accelerator accelerator,
             ArrayView<TSource> source,
             ArrayView<TTarget> target,
             TTransformer transformer)
@@ -274,7 +274,7 @@ namespace ILGPU.Lightning
             where TTarget : struct
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
-            context.Transform(context.DefaultStream, source, target, transformer);
+            accelerator.Transform(accelerator.DefaultStream, source, target, transformer);
         }
     }
 }

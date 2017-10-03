@@ -9,17 +9,18 @@
 // Illinois Open Source License. See LICENSE.txt for details.
 // -----------------------------------------------------------------------------
 
+using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 
 namespace ILGPU.Lightning
 {
-    partial class LightningContext
+    partial class ScanExtensions
     {
         partial struct ScanExtension
         {
             public ScanProviderImplementation CreateCudaExtension(CudaAccelerator accelerator)
             {
-                return new Cuda.CudaScanProviderImplementation(LightningContext);
+                return new Cuda.CudaScanProviderImplementation(accelerator);
             }
         }
     }
@@ -31,8 +32,8 @@ namespace ILGPU.Lightning.Cuda
     {
         #region Instance
 
-        internal CudaScanProviderImplementation(LightningContext lightningContext)
-            : base(lightningContext)
+        internal CudaScanProviderImplementation(Accelerator accelerator)
+            : base(accelerator)
         { }
 
         #endregion
