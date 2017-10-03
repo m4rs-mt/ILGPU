@@ -203,6 +203,15 @@ namespace ILGPU.Runtime.Cuda
         { }
 
         /// <summary>
+        /// Constructs a new Cuda accelerator targeting the default device.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="flags">The compile-unit flags.</param>
+        public CudaAccelerator(Context context, CompileUnitFlags flags)
+            : this(context, 0, flags)
+        { }
+
+        /// <summary>
         /// Constructs a new Cuda accelerator.
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
@@ -216,12 +225,37 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         /// <param name="deviceId">The target device id.</param>
-        /// <param name="flags">The accelerator flags.</param>
-        public CudaAccelerator(Context context, int deviceId, CudaAcceleratorFlags flags)
+        /// <param name="flags">The compile-unit flags.</param>
+        public CudaAccelerator(Context context, int deviceId, CompileUnitFlags flags)
+            : this(context, deviceId, CudaAcceleratorFlags.ScheduleAuto, flags)
+        { }
+
+        /// <summary>
+        /// Constructs a new Cuda accelerator.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="deviceId">The target device id.</param>
+        /// <param name="acceleratorFlags">The accelerator flags.</param>
+        public CudaAccelerator(Context context, int deviceId, CudaAcceleratorFlags acceleratorFlags)
+            : this(context, deviceId, acceleratorFlags, DefaultFlags)
+        { }
+
+        /// <summary>
+        /// Constructs a new Cuda accelerator.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="deviceId">The target device id.</param>
+        /// <param name="acceleratorFlags">The accelerator flags.</param>
+        /// <param name="flags">The compile-unit flags.</param>
+        public CudaAccelerator(
+            Context context,
+            int deviceId,
+            CudaAcceleratorFlags acceleratorFlags,
+            CompileUnitFlags flags)
             : base(context, AcceleratorType.Cuda)
         {
             CudaException.ThrowIfFailed(
-                CurrentAPI.CreateContext(out contextPtr, flags, deviceId));
+                CurrentAPI.CreateContext(out contextPtr, acceleratorFlags, deviceId));
             DeviceId = deviceId;
 
             SetupAccelerator();
@@ -241,19 +275,48 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         /// <param name="d3d11Device">A pointer to a valid D3D11 device.</param>
-        /// <param name="flags">The accelerator flags.</param>
-        public CudaAccelerator(Context context, IntPtr d3d11Device, CudaAcceleratorFlags flags)
+        /// <param name="flags">The compile-unit flags.</param>
+        public CudaAccelerator(Context context, IntPtr d3d11Device, CompileUnitFlags flags)
+            : this(context, d3d11Device, CudaAcceleratorFlags.ScheduleAuto)
+        { }
+
+        /// <summary>
+        /// Constructs a new Cuda accelerator.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="d3d11Device">A pointer to a valid D3D11 device.</param>
+        /// <param name="acceleratorFlags">The accelerator flags.</param>
+        public CudaAccelerator(
+            Context context,
+            IntPtr d3d11Device,
+            CudaAcceleratorFlags acceleratorFlags)
+            : this(context, d3d11Device, acceleratorFlags, DefaultFlags)
+        { }
+
+        /// <summary>
+        /// Constructs a new Cuda accelerator.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="d3d11Device">A pointer to a valid D3D11 device.</param>
+        /// <param name="acceleratorFlags">The accelerator flags.</param>
+        /// <param name="flags">The compile-unit flags.</param>
+        public CudaAccelerator(
+            Context context,
+            IntPtr d3d11Device,
+            CudaAcceleratorFlags acceleratorFlags,
+            CompileUnitFlags flags)
             : base(context, AcceleratorType.Cuda)
         {
             if (d3d11Device == IntPtr.Zero)
                 throw new ArgumentNullException(nameof(d3d11Device));
 
             CudaException.ThrowIfFailed(
-                CurrentAPI.CreateContextD3D11(out contextPtr, out int deviceId, flags, d3d11Device));
+                CurrentAPI.CreateContextD3D11(out contextPtr, out int deviceId, acceleratorFlags, d3d11Device));
             MakeCurrentInternal();
             DeviceId = deviceId;
 
             SetupAccelerator();
+            InitBackend(CreateBackend(), flags);
         }
 
         /// <summary>
@@ -437,8 +500,8 @@ namespace ILGPU.Runtime.Cuda
             return new CudaMemoryBuffer<T, TIndex>(this, extent);
         }
 
-        /// <summary cref="Accelerator.LoadKernel(CompiledKernel)"/>
-        public override Kernel LoadKernel(CompiledKernel kernel)
+        /// <summary cref="Accelerator.LoadKernelInternal(CompiledKernel)"/>
+        protected override Kernel LoadKernelInternal(CompiledKernel kernel)
         {
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
@@ -448,8 +511,8 @@ namespace ILGPU.Runtime.Cuda
                 GenerateKernelLauncherMethod(kernel, 0));
         }
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernel(CompiledKernel, int)"/>
-        public override Kernel LoadImplicitlyGroupedKernel(
+        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(CompiledKernel, int)"/>
+        protected override Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
             int customGroupSize)
         {
@@ -465,9 +528,9 @@ namespace ILGPU.Runtime.Cuda
                 GenerateKernelLauncherMethod(kernel, customGroupSize));
         }
 
-        /// <summary cref="Accelerator.LoadAutoGroupedKernel(CompiledKernel, out int, out int)"/>
+        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
         [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "The object must not be disposed here")]
-        public override Kernel LoadAutoGroupedKernel(
+        protected override Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
             out int groupSize,
             out int minGridSize)
@@ -795,11 +858,13 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (contextPtr != IntPtr.Zero)
-            {
-                CudaException.ThrowIfFailed(CurrentAPI.DestroyContext(contextPtr));
-                contextPtr = IntPtr.Zero;
-            }
+            base.Dispose(disposing);
+
+            if (contextPtr == IntPtr.Zero)
+                return;
+
+            CudaException.ThrowIfFailed(CurrentAPI.DestroyContext(contextPtr));
+            contextPtr = IntPtr.Zero;
         }
 
         #endregion

@@ -54,9 +54,28 @@ namespace ILGPU.Runtime.CPU
         /// Constructs a new CPU runtime.
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
+        /// <param name="flags">The compile-unit flags.</param>
+        public CPUAccelerator(Context context, CompileUnitFlags flags)
+            : this(context, Environment.ProcessorCount, flags)
+        { }
+
+        /// <summary>
+        /// Constructs a new CPU runtime.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
         /// <param name="numThreads">The number of threads for paralllel processing.</param>
         public CPUAccelerator(Context context, int numThreads)
             : this(context, numThreads, ThreadPriority.Normal)
+        { }
+
+        /// <summary>
+        /// Constructs a new CPU runtime.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="numThreads">The number of threads for paralllel processing.</param>
+        /// <param name="flags">The compile-unit flags.</param>
+        public CPUAccelerator(Context context, int numThreads, CompileUnitFlags flags)
+            : this(context, numThreads, ThreadPriority.Normal, flags)
         { }
 
         /// <summary>
@@ -74,6 +93,21 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         /// <param name="numThreads">The number of threads for paralllel processing.</param>
+        /// <param name="warpSize">The number of threads per warp.</param>
+        /// <param name="flags">The compile-unit flags.</param>
+        public CPUAccelerator(
+            Context context,
+            int numThreads,
+            int warpSize,
+            CompileUnitFlags flags)
+            : this(context, numThreads, warpSize, ThreadPriority.Normal, flags)
+        { }
+
+        /// <summary>
+        /// Constructs a new CPU runtime.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="numThreads">The number of threads for paralllel processing.</param>
         /// <param name="threadPriority">The thread priority of the execution threads.</param>
         public CPUAccelerator(Context context, int numThreads, ThreadPriority threadPriority)
             : this(context, numThreads, 1, threadPriority)
@@ -84,9 +118,41 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         /// <param name="numThreads">The number of threads for paralllel processing.</param>
+        /// <param name="threadPriority">The thread priority of the execution threads.</param>
+        /// <param name="flags">The compile-unit flags.</param>
+        public CPUAccelerator(
+            Context context,
+            int numThreads,
+            ThreadPriority threadPriority,
+            CompileUnitFlags flags)
+            : this(context, numThreads, 1, threadPriority, flags)
+        { }
+
+        /// <summary>
+        /// Constructs a new CPU runtime.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="numThreads">The number of threads for paralllel processing.</param>
         /// <param name="warpSize">The number of threads per warp.</param>
         /// <param name="threadPriority">The thread priority of the execution threads.</param>
         public CPUAccelerator(Context context, int numThreads, int warpSize, ThreadPriority threadPriority)
+            : this(context, numThreads, warpSize, threadPriority, DefaultFlags)
+        { }
+
+        /// <summary>
+        /// Constructs a new CPU runtime.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="numThreads">The number of threads for paralllel processing.</param>
+        /// <param name="warpSize">The number of threads per warp.</param>
+        /// <param name="threadPriority">The thread priority of the execution threads.</param>
+        /// <param name="flags">The compile-unit flags.</param>
+        public CPUAccelerator(
+            Context context,
+            int numThreads,
+            int warpSize,
+            ThreadPriority threadPriority,
+            CompileUnitFlags flags)
             : base(context, AcceleratorType.CPU)
         {
             if (numThreads < 1)
@@ -131,6 +197,8 @@ namespace ILGPU.Runtime.CPU
             MaxConstantMemory = int.MaxValue;
             NumMultiprocessors = 1;
             MaxNumThreadsPerMultiprocessor = NumThreads;
+
+            InitBackend(CreateBackend(), flags);
         }
 
         #endregion
@@ -191,14 +259,14 @@ namespace ILGPU.Runtime.CPU
                     typeof(CPUKernelExecutionHandler)));
         }
 
-        /// <summary cref="Accelerator.LoadKernel(CompiledKernel)"/>
-        public override Kernel LoadKernel(CompiledKernel kernel)
+        /// <summary cref="Accelerator.LoadKernelInternal(CompiledKernel)"/>
+        protected override Kernel LoadKernelInternal(CompiledKernel kernel)
         {
             return LoadKernel(kernel, 0);
         }
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernel(CompiledKernel, int)"/>
-        public override Kernel LoadImplicitlyGroupedKernel(
+        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(CompiledKernel, int)"/>
+        protected override Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
             int customGroupSize)
         {
@@ -207,8 +275,8 @@ namespace ILGPU.Runtime.CPU
             return LoadKernel(kernel, customGroupSize);
         }
 
-        /// <summary cref="Accelerator.LoadAutoGroupedKernel(CompiledKernel, out int, out int)"/>
-        public override Kernel LoadAutoGroupedKernel(
+        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
+        protected override Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
             out int groupSize,
             out int minGridSize)
@@ -951,6 +1019,8 @@ namespace ILGPU.Runtime.CPU
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
+            base.Dispose(disposing);
+
             if (threads == null)
                 return;
             lock (taskSynchronizationObject)

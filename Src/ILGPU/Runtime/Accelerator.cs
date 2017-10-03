@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends;
-using ILGPU.Compiler;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
@@ -40,9 +39,26 @@ namespace ILGPU.Runtime
     /// Represents a general abstract accelerator.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract class Accelerator : DisposeBase
+    public abstract partial class Accelerator : DisposeBase
     {
         #region Static
+
+        /// <summary>
+        /// Represents the default flags of a new lightning context.
+        /// </summary>
+        public static readonly CompileUnitFlags DefaultFlags = CompileUnitFlags.UseGPUMath;
+
+        /// <summary>
+        /// Represents the default flags of a new lightning context.
+        /// </summary>
+        public static readonly CompileUnitFlags FastMathFlags =
+            DefaultFlags | CompileUnitFlags.FastMath | CompileUnitFlags.PTXFlushDenormalsToZero;
+
+        /// <summary>
+        /// Represents the default flags of a new lightning context.
+        /// </summary>
+        public static readonly CompileUnitFlags FastMath32BitFloatsFlags =
+            FastMathFlags | CompileUnitFlags.Force32BitFloats;
 
         /// <summary>
         /// Represents the list of available accelerators.
@@ -74,15 +90,30 @@ namespace ILGPU.Runtime
         /// <returns>The created accelerator.</returns>
         public static Accelerator Create(Context context, AcceleratorId acceleratorId)
         {
+            return Create(context, acceleratorId, DefaultFlags);
+        }
+
+        /// <summary>
+        /// Creates the specified accelerator using the provided accelerator id.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="acceleratorId">The specified accelerator id.</param>
+        /// <param name="flags">The compile-unit flags.</param>
+        /// <returns>The created accelerator.</returns>
+        public static Accelerator Create(
+            Context context,
+            AcceleratorId acceleratorId,
+            CompileUnitFlags flags)
+        {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
 
             switch (acceleratorId.AcceleratorType)
             {
                 case AcceleratorType.CPU:
-                    return new CPU.CPUAccelerator(context);
+                    return new CPU.CPUAccelerator(context, flags);
                 case AcceleratorType.Cuda:
-                    return new Cuda.CudaAccelerator(context, acceleratorId.DeviceId);
+                    return new Cuda.CudaAccelerator(context, acceleratorId.DeviceId, flags);
                 default:
                     throw new ArgumentException(RuntimeErrorMessages.NotSupportedTargetAccelerator, nameof(acceleratorId));
             }
@@ -119,6 +150,25 @@ namespace ILGPU.Runtime
         #region Instance
 
         /// <summary>
+        /// The default backend instance.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private Backend backend;
+
+        /// <summary>
+        /// The default compile unit.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private CompileUnit compileUnit;
+
+        /// <summary>
+        /// The default memory cache for operations that require additional
+        /// temporary memory.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private MemoryBufferCache memoryCache;
+
+        /// <summary>
         /// Contains a collection of all peer accelerators.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -133,6 +183,18 @@ namespace ILGPU.Runtime
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             AcceleratorType = type;
+            memoryCache = new MemoryBufferCache(this);
+        }
+
+        /// <summary>
+        /// Initializes the associated backend.
+        /// </summary>
+        /// <param name="compilationBackend">The associated backend.</param>
+        /// <param name="flags">The compile-unit flags.</param>
+        protected void InitBackend(Backend compilationBackend, CompileUnitFlags flags)
+        {
+            backend = compilationBackend;
+            compileUnit = Context.CreateCompileUnit(backend, flags);
         }
 
         #endregion
@@ -219,6 +281,21 @@ namespace ILGPU.Runtime
         /// Returns the maximum number of threads of this accelerator.
         /// </summary>
         public int MaxNumThreads => NumMultiprocessors * MaxNumThreadsPerMultiprocessor;
+
+        /// <summary>
+        /// Returns the internal backend of this lightning context.
+        /// </summary>
+        public Backend Backend => backend;
+
+        /// <summary>
+        /// Returns the internal compile unit of this lightning context.
+        /// </summary>
+        public CompileUnit CompileUnit => compileUnit;
+
+        /// <summary>
+        /// Returns the default memory-buffer cache that can be used by several operations.
+        /// </summary>
+        public MemoryBufferCache MemoryCache => memoryCache;
 
         #endregion
 
@@ -313,54 +390,6 @@ namespace ILGPU.Runtime
         {
             return Allocate<T>(new Index3(width, height, depth));
         }
-
-        /// <summary>
-        /// Loads the given kernel.
-        /// Note that implictly-grouped kernels will be launched with a group size
-        /// of the current warp size of the accelerator.
-        /// </summary>
-        /// <param name="kernel">The kernel to load.</param>
-        /// <returns>The loaded kernel.</returns>
-        public abstract Kernel LoadKernel(CompiledKernel kernel);
-
-        /// <summary>
-        /// Loads the given implicitly-grouped kernel.
-        /// </summary>
-        /// <param name="kernel">The kernel to load.</param>
-        /// <param name="customGroupSize">The custom group size to use.</param>
-        /// <returns>The loaded kernel.</returns>
-        /// <remarks>
-        /// Note that implictly-grouped kernel will be launched with the given
-        /// group size.
-        /// </remarks>
-        public abstract Kernel LoadImplicitlyGroupedKernel(
-            CompiledKernel kernel,
-            int customGroupSize);
-
-        /// <summary>
-        /// Loads the given implicitly-grouped kernel while using an automatically
-        /// computed grouping configuration.
-        /// </summary>
-        /// <param name="kernel">The kernel to load.</param>
-        /// <returns>The loaded kernel.</returns>
-        public Kernel LoadAutoGroupedKernel(
-            CompiledKernel kernel)
-        {
-            return LoadAutoGroupedKernel(kernel, out int groupSize, out int minGridSize);
-        }
-
-        /// <summary>
-        /// Loads the given implicitly-grouped kernel while using an automatically
-        /// computed grouping configuration.
-        /// </summary>
-        /// <param name="kernel">The kernel to load.</param>
-        /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
-        /// <returns>The loaded kernel.</returns>
-        public abstract Kernel LoadAutoGroupedKernel(
-            CompiledKernel kernel,
-            out int groupSize,
-            out int minGridSize);
 
         /// <summary>
         /// Creates a new accelerator stream.
@@ -664,6 +693,22 @@ namespace ILGPU.Runtime
             int dynamicSharedMemorySizeInBytes,
             int maxGroupSize,
             out int minGridSize);
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary cref="DisposeBase.Dispose(bool)"/>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "memoryCache", Justification = "Dispose method will be invoked by a helper method")]
+        protected override void Dispose(bool disposing)
+        {
+            Dispose(ref backend);
+            Dispose(ref compileUnit);
+            Dispose(ref memoryCache);
+
+            foreach (var kernel in kernelCache.Values)
+                kernel.Kernel.Dispose();
+        }
 
         #endregion
 
