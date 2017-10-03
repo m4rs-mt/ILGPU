@@ -1,0 +1,141 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2017 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: SharedMemoryKernelLoaders.tt/SharedMemoryKernelLoaders.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../Basic.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<# var typeParameterRanges = Enumerable.Range(0, 11); #>
+<# var sharedMemoryTypeParameterRanges = Enumerable.Range(0, 4); #>
+<# var delegateRange = from r in typeParameterRanges
+    let range = Enumerable.Range(1, r + 1)
+    select new
+    {
+        TypeParams = string.Join(", ", from rangeIdx in range select $"T{rangeIdx}"),
+        TypeRestrictions = string.Join(" ", from rangeIdx in range select $"where T{rangeIdx} : struct"),
+        TypeParamDocumentation = string.Join("        /// ", from rangeIdx in range select
+            $"<typeparam name=\"T{rangeIdx}\">Parameter type of parameter {rangeIdx}.</typeparam>{Environment.NewLine}"), 
+    }; #>
+<# var sharedMemoryDelegateRange = from r in sharedMemoryTypeParameterRanges
+    let range = Enumerable.Range(1, r + 1)
+    select new
+    {
+        Count = r + 1,
+        TypeParams = string.Join(", ", from rangeIdx in range select $"TShared{rangeIdx}"),
+        TypeRestrictions = string.Join(" ", from rangeIdx in range select $"where TShared{rangeIdx} : struct"),
+        TypeParamDocumentation = string.Join("        /// ", from rangeIdx in range select
+            $"<typeparam name=\"TShared{rangeIdx}\">Parameter type of shared-memory parameter {rangeIdx}.</typeparam>{Environment.NewLine}"), 
+    }; #>
+
+using ILGPU.Runtime;
+using System;
+using System.Diagnostics.CodeAnalysis;
+
+namespace ILGPU.Runtime
+{
+    /// <summary>
+    /// Contains extensions for convenient kernel loading of default kernels.
+    /// </summary>
+    public static class SharedMemoryKernelLoaders
+    {
+<# foreach (var delegateParams in delegateRange) { #>
+<# foreach (var sharedMemParams in sharedMemoryDelegateRange) { #>
+<#      // LoadKernel #>
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <#= sharedMemParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels are not supported in shared-memory scenarios.
+        /// </remarks>
+        [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
+        public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadSharedMemoryKernel<#= sharedMemParams.Count #><TIndex, <#= delegateParams.TypeParams #>, <#= sharedMemParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<TIndex, <#= delegateParams.TypeParams #>, <#= sharedMemParams.TypeParams #>> action)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+            <#= sharedMemParams.TypeRestrictions #>
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            return accelerator.LoadKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(action.Method);
+        }
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that launches
+        /// the loaded kernel with the default stream.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <#= sharedMemParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels are not supported in shared-memory scenarios.
+        /// </remarks>
+        [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
+        public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadSharedMemoryStreamKernel<#= sharedMemParams.Count #><TIndex, <#= delegateParams.TypeParams #>, <#= sharedMemParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<TIndex, <#= delegateParams.TypeParams #>, <#= sharedMemParams.TypeParams #>> action)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+            <#= sharedMemParams.TypeRestrictions #>
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            return accelerator.LoadStreamKernel<Action<TIndex, <#= delegateParams.TypeParams #>>>(action.Method);
+        }
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that is associated
+        /// with the given accelerator stream. Consequently, the resulting delegate
+        /// cannot receive other accelerator streams.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <#= sharedMemParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="stream">The accelerator stream to use.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels are not supported in shared-memory scenarios.
+        /// </remarks>
+        [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter")]
+        public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadSharedMemoryStreamKernel<#= sharedMemParams.Count #><TIndex, <#= delegateParams.TypeParams #>, <#= sharedMemParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<TIndex, <#= delegateParams.TypeParams #>, <#= sharedMemParams.TypeParams #>> action,
+            AcceleratorStream stream)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+            <#= sharedMemParams.TypeRestrictions #>
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            return accelerator.LoadStreamKernel<Action<TIndex, <#= delegateParams.TypeParams #>>>(
+                action.Method,
+                stream);
+        }
+
+<#  } #>
+<#  } #>
+    }
+}

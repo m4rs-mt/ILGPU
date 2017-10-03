@@ -253,3 +253,5 @@ Src/ILGPU/GroupedIndices.cs
 Src/ILGPU/ReductionOperations.cs
 Src/ILGPU/ShuffleOperations.cs
 Src/ILGPU/Runtime/MemoryBuffers.cs
+Src/ILGPU/Runtime/KernelLoaders.cs
+Src/ILGPU/Runtime/SharedMemoryKernelLoaders.cs

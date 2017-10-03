@@ -76,10 +76,20 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
         </Compile>
+        <Compile Update="Runtime\KernelLoaders.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>KernelLoaders.tt</DependentUpon>
+        </Compile>
         <Compile Update="Runtime\MemoryBuffers.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>MemoryBuffers.tt</DependentUpon>
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>MemoryBuffers.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Runtime\SharedMemoryKernelLoaders.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>SharedMemoryKernelLoaders.tt</DependentUpon>
         </Compile>
         <Compile Update="ShuffleOperations.cs">
             <DesignTime>True</DesignTime>
@@ -105,9 +115,17 @@
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>ReductionOperations.cs</LastGenOutput>
         </None>
+        <None Update="Runtime\KernelLoaders.tt">
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>KernelLoaders.cs</LastGenOutput>
+        </None>
         <None Update="Runtime\MemoryBuffers.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
+        </None>
+        <None Update="Runtime\SharedMemoryKernelLoaders.tt">
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>SharedMemoryKernelLoaders.cs</LastGenOutput>
         </None>
         <None Update="ShuffleOperations.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
