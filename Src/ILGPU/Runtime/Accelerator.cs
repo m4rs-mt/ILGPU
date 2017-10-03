@@ -147,6 +147,15 @@ namespace ILGPU.Runtime
 
         #endregion
 
+        #region Events
+
+        /// <summary>
+        /// Will be raised iff the accelerator is disposed.
+        /// </summary>
+        public event EventHandler Disposed;
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -702,6 +711,11 @@ namespace ILGPU.Runtime
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "memoryCache", Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
+            if (backend == null)
+                return;
+
+            Disposed?.Invoke(this, EventArgs.Empty);
+
             Dispose(ref backend);
             Dispose(ref compileUnit);
             Dispose(ref memoryCache);
