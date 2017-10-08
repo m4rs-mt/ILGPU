@@ -1523,6 +1523,62 @@ namespace ILGPU
 
         #endregion
 
+        #region Int Divisions
+
+        /// <summary>
+        /// Realizes an integer division of <paramref name="numerator"/>
+        /// divided by <paramref name="denominator"/> while rounding the result
+        /// down to zero.
+        /// </summary>
+        /// <param name="numerator">The numerator.</param>
+        /// <param name="denominator">The denominator.</param>
+        /// <returns>The numerator divided by the denominator rounded to zero.</returns>
+        public static int DivRoundDown(int numerator, int denominator)
+        {
+            return numerator / denominator;
+        }
+
+        /// <summary>
+        /// Realizes an integer division of <paramref name="numerator"/>
+        /// divided by <paramref name="denominator"/> while rounding the result
+        /// up (away from zero).
+        /// </summary>
+        /// <param name="numerator">The numerator.</param>
+        /// <param name="denominator">The denominator.</param>
+        /// <returns>The numerator divided by the denominator rounded up (away from zero).</returns>
+        public static int DivRoundUp(int numerator, int denominator)
+        {
+            return (numerator - denominator + 1) / denominator;
+        }
+
+        /// <summary>
+        /// Realizes an integer division of <paramref name="numerator"/>
+        /// divided by <paramref name="denominator"/> while rounding the result
+        /// down to zero.
+        /// </summary>
+        /// <param name="numerator">The numerator.</param>
+        /// <param name="denominator">The denominator.</param>
+        /// <returns>The numerator divided by the denominator rounded to zero.</returns>
+        public static long DivRoundDown(long numerator, long denominator)
+        {
+            return numerator / denominator;
+        }
+
+        /// <summary>
+        /// Realizes an integer division of <paramref name="numerator"/>
+        /// divided by <paramref name="denominator"/> while rounding the result
+        /// up (away from zero).
+        /// </summary>
+        /// <param name="numerator">The numerator.</param>
+        /// <param name="denominator">The denominator.</param>
+        /// <returns>The numerator divided by the denominator rounded up (away from zero).</returns>
+        public static long DivRoundUp(long numerator, long denominator)
+        {
+            return (numerator - denominator + 1L) / denominator;
+        }
+
+        #endregion
+
         #endregion
     }
 }
