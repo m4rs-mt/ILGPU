@@ -259,6 +259,7 @@ namespace ILGPU.Runtime.Cuda
             DeviceId = deviceId;
 
             SetupAccelerator();
+            InitBackend(CreateBackend(), flags);
         }
 
         /// <summary>
@@ -762,7 +763,7 @@ namespace ILGPU.Runtime.Cuda
 
             // Dispatch kernel
             ilGenerator.Emit(
-                OpCodes.Call,
+                OpCodes.Callvirt,
                 typeof(CudaAPI).GetMethod(
                     nameof(CudaAPI.LaunchKernel),
                     BindingFlags.Public | BindingFlags.Instance));
