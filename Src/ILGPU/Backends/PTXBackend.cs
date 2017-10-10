@@ -13,6 +13,8 @@ using ILGPU.Backends.ABI;
 using ILGPU.Compiler;
 using ILGPU.LLVM;
 using ILGPU.Resources;
+using ILGPU.Runtime.Cuda;
+using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
@@ -172,27 +174,36 @@ namespace ILGPU.Backends
         /// <summary>
         /// Resolves a lib-device-filename pattern for the given gpu architecture.
         /// </summary>
+        /// <param name="gpuArch">The desired GPU architecture.</param>
+        /// <param name="driverVersion">The current driver version.</param>
         /// <returns>The resolved lib-device pattern.</returns>
-        static string ResolveLibDevicePattern(PTXArchitecture gpuArch)
+        static string ResolveLibDevicePattern(PTXArchitecture gpuArch, int driverVersion)
         {
-            switch (gpuArch)
+            if (driverVersion < 9000)
             {
-                case PTXArchitecture.SM_30:
-                case PTXArchitecture.SM_60:
-                case PTXArchitecture.SM_61:
-                case PTXArchitecture.SM_62:
-                    return "libdevice.compute_30.*.bc";
-                case PTXArchitecture.SM_20:
-                case PTXArchitecture.SM_21:
-                    return "libdevice.compute_20.*.bc";
-                case PTXArchitecture.SM_35:
-                case PTXArchitecture.SM_37:
-                    return "libdevice.compute_35.*.bc";
-                case PTXArchitecture.SM_50:
-                case PTXArchitecture.SM_52:
-                    return "libdevice.compute_50.*.bc";
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(gpuArch));
+                switch (gpuArch)
+                {
+                    case PTXArchitecture.SM_30:
+                    case PTXArchitecture.SM_60:
+                    case PTXArchitecture.SM_61:
+                    case PTXArchitecture.SM_62:
+                        return "libdevice.compute_30.*.bc";
+                    case PTXArchitecture.SM_20:
+                    case PTXArchitecture.SM_21:
+                        return "libdevice.compute_20.*.bc";
+                    case PTXArchitecture.SM_35:
+                    case PTXArchitecture.SM_37:
+                        return "libdevice.compute_35.*.bc";
+                    case PTXArchitecture.SM_50:
+                    case PTXArchitecture.SM_52:
+                        return "libdevice.compute_50.*.bc";
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(gpuArch));
+                }
+            }
+            else
+            {
+                return "libdevice.*.bc";
             }
         }
 
@@ -227,7 +238,9 @@ namespace ILGPU.Backends
             : base(context, platform, GetLLVMTriple(platform), gpuArch.ToString().ToLower())
         {
             // Determine the correct lib-device version.
-            var pattern = ResolveLibDevicePattern(gpuArch);
+            CudaException.ThrowIfFailed(
+                CudaAPI.Current.GetDriverVersion(out int driverVersion));
+            var pattern = ResolveLibDevicePattern(gpuArch, driverVersion);
             var files = Directory.GetFiles(libDeviceDir, pattern);
             if (files.Length < 1)
                 throw new ArgumentException(ErrorMessages.LibDeviceNotFound);
