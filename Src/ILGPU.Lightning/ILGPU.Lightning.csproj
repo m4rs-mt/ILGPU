@@ -119,6 +119,11 @@
     </Compile>
     <Compile Include="TransformExtensions.cs" />
     <Compile Include="VectorExtensions.cs" />
+    <Compile Include="Random\Random.cs" />
+    <Compile Include="Random\XorShift32.cs" />
+    <Compile Include="Random\XorShift128.cs" />
+    <Compile Include="Random\XorShift128Plus.cs" />
+    <Compile Include="Random\XorShift64Star.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\X64\ILGPU.Lightning.Native.dll">
