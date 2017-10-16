@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="ArrayExtensions.cs" />
     <Compile Include="ArrayViewExtensions.cs" />
+    <Compile Include="Obsolete\CompiledKernelCache.cs" />
     <Compile Include="CPU\CPURadixSortProvider.cs" />
     <Compile Include="CPU\CPUScanProvider.cs" />
     <Compile Include="CPU\CPUScanProviders.cs">
@@ -78,8 +79,42 @@
     <Compile Include="GridExtensions.cs" />
     <Compile Include="GroupExtensions.cs" />
     <Compile Include="InitializeExtensions.cs" />
-    <Compile Include="LightningContext.cs" />
+    <Compile Include="Obsolete\InitializeExtensions.cs" />
+    <Compile Include="Obsolete\KernelLoaders.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>KernelLoaders.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Obsolete\LightningContext.cs" />
+    <Compile Include="Obsolete\LightningContext.Static.cs" />
+    <Compile Include="NewLightningContext.cs" />
     <Compile Include="LightningObject.cs" />
+    <Compile Include="Obsolete\RadixSortPairsProviders.cs">
+      <DependentUpon>RadixSortPairsProviders.tt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Obsolete\RadixSortProvider.cs" />
+    <Compile Include="Obsolete\RadixSortProviders.cs">
+      <DependentUpon>RadixSortProviders.tt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Obsolete\ReductionExtensions.cs" />
+    <Compile Include="Obsolete\ReorderExtensions.cs" />
+    <Compile Include="Obsolete\ScanProvider.cs" />
+    <Compile Include="Obsolete\ScanProviders.cs">
+      <DependentUpon>ScanProviders.tt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Obsolete\SequenceExtensions.cs" />
+    <Compile Include="Obsolete\SharedMemoryKernelLoaders.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>SharedMemoryKernelLoaders.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Obsolete\TransformExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RadixSortPairsProvider.cs" />
     <Compile Include="RadixSortProvider.cs" />
@@ -129,6 +164,26 @@
     <Content Include="..\X64\ILGPU.Lightning.Native.dll">
       <Link>X64\ILGPU.Lightning.Native.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Obsolete\KernelLoaders.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>KernelLoaders.cs</LastGenOutput>
+    </Content>
+    <Content Include="Obsolete\RadixSortPairsProviders.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RadixSortPairsProviders.cs</LastGenOutput>
+    </Content>
+    <Content Include="Obsolete\RadixSortProviders.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RadixSortProviders.cs</LastGenOutput>
+    </Content>
+    <Content Include="Obsolete\ScanProviders.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ScanProviders.cs</LastGenOutput>
+    </Content>
+    <Content Include="Obsolete\SharedMemoryKernelLoaders.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SharedMemoryKernelLoaders.cs</LastGenOutput>
     </Content>
     <Content Include="ReductionOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

@@ -256,3 +256,8 @@ Src/ILGPU.Lightning/Cuda/CudaScanProviders.cs
 Src/ILGPU.Lightning/ReductionOperations.cs
 Src/ILGPU.Lightning/RadixSortPairsProviders.cs
 Src/ILGPU.Lightning/RadixSortProviders.cs
+Src/ILGPU.Lightning/Obsolete/ScanProviders.cs
+Src/ILGPU.Lightning/Obsolete/RadixSortProviders.cs
+Src/ILGPU.Lightning/Obsolete/RadixSortPairsProviders.cs
+Src/ILGPU.Lightning/Obsolete/SharedMemoryKernelLoaders.cs
+Src/ILGPU.Lightning/Obsolete/KernelLoaders.cs

@@ -1,0 +1,231 @@
+﻿// -----------------------------------------------------------------------------
+//                              ILGPU.Lightning
+//                   Copyright (c) 2017 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: RadixSortProviders.tt/RadixSortProviders.cs (obsolete)
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../../ILGPU/Src/ILGPU/Basic.tt" #>
+<#@ include file="../Basic.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ILGPU.Runtime;
+using System;
+
+#pragma warning disable IDE0001 // Simplify Names
+
+namespace ILGPU.Lightning
+{
+    partial class LightningContext
+    {
+        #region RadixSort
+
+<# foreach (var config in RadixSortConfigurations) { #>
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        [Obsolete("Use Accelerator.<#= config.Name #>. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target
+<#      GenerateMethodParameterDeclaration(config, true); #>
+        {
+            Accelerator.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                Accelerator.DefaultStream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="stream">The accelerator stream.</param>
+        [Obsolete("Use Accelerator.<#= config.Name #>. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            AcceleratorStream stream)
+        {
+            Accelerator.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="cache">The target cache.</param>
+        [Obsolete("Use Accelerator.<#= config.Name #>. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            MemoryBufferCache cache)
+        {
+            Accelerator.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                cache);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+        <#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [Obsolete("Use Accelerator.<#= config.Name #>. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            Accelerator.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                cache,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+        <#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        [Obsolete("Use Accelerator.<#= config.Name #>. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit)
+        {
+            Accelerator.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [Obsolete("Use Accelerator.<#= config.Name #>. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            AcceleratorStream stream)
+        {
+            Accelerator.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                stream);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="cache">The target cache.</param>
+        [Obsolete("Use Accelerator.<#= config.Name #>. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache)
+        {
+            Accelerator.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                cache);
+        }
+
+        /// <summary>
+        /// Performs a radix-sort operation on the given elements.
+        /// </summary>
+        /// <param name="source">The source elements.</param>
+        /// <param name="target">The target elements.</param>
+<#      GenerateMethodParameterDocumentation(config); #>
+        /// <param name="beginBit">The begin bit of the sort operation.</param>
+        /// <param name="endBit">The end bit for of sort operation.</param>
+        /// <param name="cache">The target cache.</param>
+        /// <param name="stream">The accelerator stream.</param>
+        [Obsolete("Use Accelerator.<#= config.Name #>. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public void <#= config.Name #>(
+            ArrayView<<#= config.Type #>> source,
+            ArrayView<<#= config.Type #>> target,
+<#          GenerateMethodParameterDeclaration(config); #>
+            int beginBit,
+            int endBit,
+            MemoryBufferCache cache,
+            AcceleratorStream stream)
+        {
+            Accelerator.<#= config.Name #>(
+                source,
+                target,
+<#              GenerateMethodArguments(config); #>
+                beginBit,
+                endBit,
+                cache,
+                stream);
+        }
+
+<# } #>
+
+        #endregion
+    }
+}
+
+#pragma warning restore IDE0001

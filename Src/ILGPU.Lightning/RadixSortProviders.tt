@@ -17,8 +17,8 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
-using System;
 using ILGPU.Runtime;
+using System;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable IDE0001 // Simplify Names
@@ -322,7 +322,7 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache,
             AcceleratorStream stream)
         {
-			var context = LightningContext.Get(accelerator);
+			var context = NewLightningContext.Get(accelerator);
             context.RadixSortImplementation.<#= config.Name #>(
                 source,
                 target,
@@ -444,7 +444,7 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache,
             AcceleratorStream stream)
         {
-			var context = LightningContext.Get(accelerator);
+			var context = NewLightningContext.Get(accelerator);
             context.RadixSortImplementation.<#= config.Name #>(
                 source,
                 target,

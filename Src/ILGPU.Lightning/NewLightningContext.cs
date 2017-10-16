@@ -3,7 +3,7 @@
 //                   Copyright (c) 2017 ILGPU Lightning Project
 //                                www.ilgpu.net
 //
-// File: LightningContext.cs
+// File: NewLightningContext.cs
 //
 // This file is part of ILGPU and is distributed under the University of
 // Illinois Open Source License. See LICENSE.txt for details.
@@ -20,7 +20,7 @@ namespace ILGPU.Lightning
     /// <summary>
     /// Represents a wrapper object for accelerator instances.
     /// </summary>
-    internal sealed partial class LightningContext : LightningObject
+    internal sealed partial class NewLightningContext : LightningObject
     {
         #region Constants
 
@@ -36,8 +36,8 @@ namespace ILGPU.Lightning
         /// <summary>
         /// Represents a cache for lightning contexts.
         /// </summary>
-        private static readonly Dictionary<Accelerator, LightningContext> cache =
-            new Dictionary<Accelerator, LightningContext>();
+        private static readonly Dictionary<Accelerator, NewLightningContext> cache =
+            new Dictionary<Accelerator, NewLightningContext>();
 
         /// <summary>
         /// Dispose callback that is invoked by every accelerator.
@@ -52,7 +52,7 @@ namespace ILGPU.Lightning
             accelerator.Disposed -= DisposedCallback;
             lock (cache)
             {
-                if (!cache.TryGetValue(accelerator, out LightningContext lc))
+                if (!cache.TryGetValue(accelerator, out NewLightningContext lc))
                     return;
                 cache.Remove(accelerator);
                 lc.Dispose();
@@ -66,16 +66,16 @@ namespace ILGPU.Lightning
         /// <returns>The associated lightning context.</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Object references will be stored in a local cache")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static LightningContext Get(Accelerator accelerator)
+        public static NewLightningContext Get(Accelerator accelerator)
         {
             if (accelerator == null)
                 throw new ArgumentNullException(nameof(accelerator));
 
             lock (cache)
             {
-                if (!cache.TryGetValue(accelerator, out LightningContext result))
+                if (!cache.TryGetValue(accelerator, out NewLightningContext result))
                 {
-                    result = new LightningContext(accelerator);
+                    result = new NewLightningContext(accelerator);
                     accelerator.Disposed += DisposedCallback;
                     cache.Add(accelerator, result);
                 }
@@ -106,7 +106,7 @@ namespace ILGPU.Lightning
         /// Constructs a new lightning context.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
-        private LightningContext(Accelerator accelerator)
+        private NewLightningContext(Accelerator accelerator)
             : base(accelerator)
         {
             scanImplementation = Accelerator.CreateScanProviderImplementation();

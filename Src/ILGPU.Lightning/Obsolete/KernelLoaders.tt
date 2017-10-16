@@ -1,0 +1,241 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2017 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: KernelLoaders.tt/KernelLoaders.cs (obsolete)
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../../ILGPU/Src/ILGPU/Basic.tt" #>
+<#@ include file="../Basic.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<# var typeParameterRanges = Enumerable.Range(0, 14); #>
+<# var delegateRange = from r in typeParameterRanges
+    let range = Enumerable.Range(1, r + 1)
+    select new
+    {
+        TypeParams = string.Join(", ", from rangeIdx in range select $"T{rangeIdx}"),
+        TypeRestrictions = string.Join(" ", from rangeIdx in range select $"where T{rangeIdx} : struct"),
+        TypeParamDocumentation = string.Join("        /// ", from rangeIdx in range select
+            $"<typeparam name=\"T{rangeIdx}\">Parameter type of parameter {rangeIdx}.</typeparam>{Environment.NewLine}"), 
+    }; #>
+
+using ILGPU.Runtime;
+using System;
+
+#pragma warning disable IDE0001 // Simplify Names
+
+namespace ILGPU.Lightning
+{
+    partial class LightningContext
+    {
+<# foreach (var delegateParams in delegateRange) { #>
+<#      // LoadKernel #>
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels will be launched with a group size
+        /// of the current warp size of the accelerator.
+        /// </remarks>
+        [Obsolete("Use Accelerator.LoadKernel. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            return Accelerator.LoadKernel<TIndex, <#= delegateParams.TypeParams #>>(action);
+        }
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that launches
+        /// the loaded kernel with the default stream.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels will be launched with a group size
+        /// of the current warp size of the accelerator.
+        /// </remarks>
+        [Obsolete("Use Accelerator.LoadStreamKernel. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public Action<TIndex, <#= delegateParams.TypeParams #>> LoadStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            return Accelerator.LoadStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(action);
+        }
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that is associated
+        /// with the given accelerator stream. Consequently, the resulting delegate
+        /// cannot receive other accelerator streams.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="stream">The accelerator stream to use.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels will be launched with a group size
+        /// of the current warp size of the accelerator.
+        /// </remarks>
+        [Obsolete("Use Accelerator.LoadStreamKernel. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public Action<TIndex, <#= delegateParams.TypeParams #>> LoadStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            AcceleratorStream stream)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            return Accelerator.LoadStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(action, stream);
+        }
+
+<#      // LoadImplicitlyGroupedKernel #>
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// group size.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="customGroupSize">The custom group size to use.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernel will be launched with the given
+        /// group size.
+        /// </remarks>
+        [Obsolete("Use Accelerator.LoadImplicitlyGroupedKernel. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadImplicitlyGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            int customGroupSize)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            return Accelerator.LoadImplicitlyGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(action, customGroupSize);
+        }
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that launches
+        /// the loaded kernel with the default stream.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="customGroupSize">The custom group size to use.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernel will be launched with the given
+        /// group size.
+        /// </remarks>
+        [Obsolete("Use Accelerator.LoadImplicitlyGroupedStreamKernel. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public Action<TIndex, <#= delegateParams.TypeParams #>> LoadImplicitlyGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            int customGroupSize)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            return Accelerator.LoadImplicitlyGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(action, customGroupSize);
+        }
+
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that is associated
+        /// with the given accelerator stream. Consequently, the resulting delegate
+        /// cannot receive other accelerator streams.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="customGroupSize">The custom group size to use.</param>
+        /// <param name="stream">The accelerator stream to use.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernel will be launched with the given
+        /// group size.
+        /// </remarks>
+        [Obsolete("Use Accelerator.LoadImplicitlyGroupedStreamKernel. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public Action<TIndex, <#= delegateParams.TypeParams #>> LoadImplicitlyGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            int customGroupSize,
+            AcceleratorStream stream)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            return Accelerator.LoadImplicitlyGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(action, customGroupSize, stream);
+        }
+
+<#      // LoadAutoGroupedKernel #>
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        [Obsolete("Use Accelerator.LoadAutoGroupedKernel. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            return Accelerator.LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(action);
+        }
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that launches
+        /// the loaded kernel with the default stream.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        [Obsolete("Use Accelerator.LoadAutoGroupedStreamKernel. Refer to http://www.ilgpu.net/Documentation/UpgradeGuide020")]
+        public Action<TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            return Accelerator.LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(action);
+        }
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that is associated
+        /// with the given accelerator stream. Consequently, the resulting delegate
+        /// cannot receive other accelerator streams.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="stream">The accelerator stream to use.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        public Action<TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            AcceleratorStream stream)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            return Accelerator.LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(action, stream);
+        }
+
+<#  } #>
+    }
+}
+
+#pragma warning restore IDE0001
