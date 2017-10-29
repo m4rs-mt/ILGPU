@@ -20,7 +20,7 @@
     <copyright>Copyright (c) 2016-2017 Marcel Koester. All rights reserved.</copyright>
     <tags>ilgpu gpu msil il cil cpu ptx llvm nvidia amd amp opencl cuda compiler jit</tags>
     <dependencies>
-      <dependency id="System.Runtime.CompilerServices.Unsafe" version="4.3.0" />
+      <dependency id="System.Runtime.CompilerServices.Unsafe" version="4.4.0" />
     </dependencies>
   </metadata>
   <files>
