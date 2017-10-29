@@ -25,7 +25,9 @@ foreach ($lib in $libs)
 
 link /dll /def:$defName /machine:$targetArch /out:$dllName $libs /debug:full
 popd
-$targetDllPath = "../../../Src/$targetArch"
+$targetDllPath = "../../../$targetArch"
 mkdir $targetDllPath -Force
-cp "$llvmPath/$dllName" "$targetDllPath/$dllName" -Force
-cp "$llvmPath/$pdbName" "$targetDllPath/$pdbName" -Force
+$targetDllPath = "$targetDllPath/Windows"
+mkdir $targetDllPath -Force
+cp "$llvmPath/$dllName" "$targetDllPath/ILGPU_$dllName" -Force
+cp "$llvmPath/$pdbName" "$targetDllPath/ILGPU_$pdbName" -Force

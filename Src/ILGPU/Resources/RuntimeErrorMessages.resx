@@ -153,6 +153,9 @@
   <data name="NotSupportedKernel" xml:space="preserve">
     <value>Not supported kernel</value>
   </data>
+  <data name="NotSupportedOSPlatform" xml:space="preserve">
+    <value>Not supported OS platform</value>
+  </data>
   <data name="NotSupportedTargetAccelerator" xml:space="preserve">
     <value>Not supported target accelerator</value>
   </data>

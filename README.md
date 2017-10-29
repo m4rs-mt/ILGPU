@@ -2,9 +2,9 @@
 
 ILGPU requires Visual Studio 2017 and several extensions:
 * Visual Studio 2017 (Community edition or higher) with C++ support
-* CUDA 8.0 SDK (https://developer.nvidia.com/cuda-toolkit) 
-  in order to execute kernels on NVIDIA gpus
-* CMAKE (https://cmake.org/)
+* CUDA 8.0 SDK or higher (https://developer.nvidia.com/cuda-toolkit) 
+  in order to execute kernels on NVIDIA GPUs
+* CMAKE (https://cmake.org/, Windows requires CMAKE >= 3.9.1)
   ensure that cmake is added to your path
 * Python 2.7 (required for LLVM build, https://www.python.org/download/releases/2.7/)
 
@@ -25,17 +25,9 @@ integration into other projects).
 
 # Use ILGPU
 
-There are two possibilities to use ILGPU in your project without building a
-Nuget package:
-* Include the desired ILGPU projects in your solution by adding them as
-  additional projects. Add references to these included solution projects to
-  your derived project. This will automatically copy all required native
-  libraries to your output directory.
-* Reference the built files manually. You can also make explicit references
-  to the built libraries. In this case, however, you have to ensure that the
-  required native libraries (in the X86 and X64 directories) are in directory of
-  your library/application. Otherwise, the ILGPU runtime cannot load the
-  required libraries at runtime.
+Build a nuget package in order to include the native libraries in the correct configuration.
+Execute "BuildNuGetPackage.bat" in the .nuget directory from a Visual Studio command prompt 
+to build a custom nuget package.
 
 # License information
 

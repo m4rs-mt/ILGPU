@@ -9,8 +9,9 @@ $buildEnvMapping = @{ "X86" = "$buildToolsPath/vcvars32.bat"; "X64" = "$buildToo
 
 function BuildCommandInNativeEnv($arch, $command)
 {
+    $current = (pwd).Path
     $envMap = $buildEnvMapping.Get_Item($arch)
-    cmd /c """"$envMap""" & powershell -ExecutionPolicy Unrestricted -command ""$command"""
+    cmd /c """"$envMap""" & powershell -ExecutionPolicy Unrestricted -command ""cd $current; $command"""
 }
 
 # Build LLVM

@@ -169,6 +169,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Not supported OS platform.
+        /// </summary>
+        internal static string NotSupportedOSPlatform {
+            get {
+                return ResourceManager.GetString("NotSupportedOSPlatform", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported target accelerator.
         /// </summary>
         internal static string NotSupportedTargetAccelerator {

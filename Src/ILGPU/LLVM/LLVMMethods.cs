@@ -21,7 +21,7 @@ namespace ILGPU.LLVM
     [GeneratedCode(CodeGeneratorConstants.GeneratorName, CodeGeneratorConstants.GeneratorVersion)]
     public static partial class LLVMMethods
     {
-        public const string LibraryName = "LLVM";
+        public const string LibraryName = "ILGPU_LLVM";
 
         [DllImport(LibraryName, EntryPoint = "LLVMVerifyModule", CallingConvention = CallingConvention.Cdecl)]
         public static extern LLVMBool VerifyModule(LLVMModuleRef @M, LLVMVerifierFailureAction @Action, out IntPtr @OutMessage);

@@ -141,22 +141,6 @@
         </None>
     </ItemGroup>
     <ItemGroup>
-        <None Include="..\X64\LLVM.dll">
-            <Link>X64\LLVM.dll</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Include="..\X64\LLVM.pdb">
-            <Link>X64\LLVM.pdb</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Include="..\X86\LLVM.dll">
-            <Link>X86\LLVM.dll</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Include="..\X86\LLVM.pdb">
-            <Link>X86\LLVM.pdb</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
         <None Include="packages.config" />
     </ItemGroup>
     <ItemGroup>

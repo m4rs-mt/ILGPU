@@ -9,18 +9,64 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 
 namespace ILGPU.Util
 {
     /// <summary>
+    /// Represents an operating system.
+    /// </summary>
+    public enum OSPlatform
+    {
+        /// <summary>
+        /// The windows operating system.
+        /// </summary>
+        Windows,
+    }
+
+    /// <summary>
     /// A helper class for injecting native libraries from the X64 or the X86 lib folder.
     /// </summary>
     public static class DLLLoader
     {
-        private const string PathVariable = "PATH";
+        private static readonly IReadOnlyDictionary<OSPlatform, string> LibraryPathVariableNames = new Dictionary<OSPlatform, string>()
+        {
+            { OSPlatform.Windows, "PATH" },
+        };
+
+        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline")]
+        static DLLLoader()
+        {
+            CurrentOSPlatform = OSPlatform.Windows;
+#if NETCOREAPP2_0
+            var platform = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
+            var supportedPlatforms = Enum.GetNames(typeof(OSPlatform));
+            for (int i = 0, e = supportedPlatforms.Length; i < e; ++i)
+            {
+                if (platform.Contains(supportedPlatforms[i]))
+                {
+                    CurrentOSPlatform = (OSPlatform)i;
+                    break;
+                }
+            }
+#endif
+            LibraryPathVariable = LibraryPathVariableNames[CurrentOSPlatform];
+        }
+
+        /// <summary>
+        /// Returns the current OS platform.
+        /// </summary>
+        public static OSPlatform CurrentOSPlatform { get; }
+
+        /// <summary>
+        /// Returns the current dynamic-library-path variable.
+        /// </summary>
+        public static string LibraryPathVariable { get; }
 
         /// <summary>
         /// Adds the default search directory (../X86/ or ../X64/) to the search path.
@@ -39,14 +85,24 @@ namespace ILGPU.Util
             if (string.IsNullOrWhiteSpace(subDirectory))
                 throw new ArgumentNullException(nameof(subDirectory));
             var rootDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            rootDir = Path.Combine(rootDir, subDirectory);
-            var currentPath = Environment.GetEnvironmentVariable(PathVariable);
-            if (currentPath.Contains(rootDir))
-                return;
-            if (!currentPath.EndsWith(";", StringComparison.Ordinal))
-                currentPath += ";";
-            currentPath += rootDir + ";";
-            Environment.SetEnvironmentVariable(PathVariable, currentPath, EnvironmentVariableTarget.Process);
+            var libDir = Path.Combine(rootDir, subDirectory);
+            libDir = Path.Combine(libDir, CurrentOSPlatform.ToString());
+
+            switch (CurrentOSPlatform)
+            {
+                case OSPlatform.Windows:
+                    var currentPath = Environment.GetEnvironmentVariable(LibraryPathVariable) ?? string.Empty;
+                    if (currentPath.Contains(libDir))
+                        return;
+                    if (currentPath.Length > 0 &&
+                        !currentPath.EndsWith(Path.PathSeparator.ToString(), StringComparison.Ordinal))
+                        currentPath += Path.PathSeparator;
+                    currentPath += libDir;
+                    Environment.SetEnvironmentVariable(LibraryPathVariable, currentPath, EnvironmentVariableTarget.Process);
+                    break;
+                default:
+                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedOSPlatform);
+            }
         }
     }
 }
