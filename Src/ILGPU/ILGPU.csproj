@@ -51,10 +51,10 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>AtomicFunctions.tt</DependentUpon>
         </Compile>
-        <Compile Update="Basic.cs">
+        <Compile Update="TypeInformation.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
-            <DependentUpon>Basic.tt</DependentUpon>
+            <DependentUpon>TypeInformation.tt</DependentUpon>
         </Compile>
         <Compile Update="GroupedIndices.cs">
             <DesignTime>True</DesignTime>
@@ -131,13 +131,13 @@
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>ShuffleOperations.cs</LastGenOutput>
         </None>
-        <None Update="Basic.tt">
+        <None Update="TypeInformation.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>Basic.cs</LastGenOutput>
         </None>
-        <None Update="Basic.tt">
+        <None Update="TypeInformation.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>Basic.cs</LastGenOutput>
+            <LastGenOutput>TypeInformation.cs</LastGenOutput>
         </None>
     </ItemGroup>
     <ItemGroup>
