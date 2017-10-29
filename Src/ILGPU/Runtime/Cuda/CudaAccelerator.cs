@@ -501,8 +501,8 @@ namespace ILGPU.Runtime.Cuda
             return new CudaMemoryBuffer<T, TIndex>(this, extent);
         }
 
-        /// <summary cref="Accelerator.LoadKernelInternal(CompiledKernel)"/>
-        protected override Kernel LoadKernelInternal(CompiledKernel kernel)
+        /// <summary cref="Accelerator.LoadKernel(CompiledKernel)"/>
+        public override Kernel LoadKernel(CompiledKernel kernel)
         {
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
@@ -512,8 +512,8 @@ namespace ILGPU.Runtime.Cuda
                 GenerateKernelLauncherMethod(kernel, 0));
         }
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(CompiledKernel, int)"/>
-        protected override Kernel LoadImplicitlyGroupedKernelInternal(
+        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernel(CompiledKernel, int)"/>
+        public override Kernel LoadImplicitlyGroupedKernel(
             CompiledKernel kernel,
             int customGroupSize)
         {
@@ -529,9 +529,9 @@ namespace ILGPU.Runtime.Cuda
                 GenerateKernelLauncherMethod(kernel, customGroupSize));
         }
 
-        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
+        /// <summary cref="Accelerator.LoadAutoGroupedKernel(CompiledKernel, out int, out int)"/>
         [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "The object must not be disposed here")]
-        protected override Kernel LoadAutoGroupedKernelInternal(
+        public override Kernel LoadAutoGroupedKernel(
             CompiledKernel kernel,
             out int groupSize,
             out int minGridSize)

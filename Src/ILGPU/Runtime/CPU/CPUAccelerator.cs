@@ -259,14 +259,14 @@ namespace ILGPU.Runtime.CPU
                     typeof(CPUKernelExecutionHandler)));
         }
 
-        /// <summary cref="Accelerator.LoadKernelInternal(CompiledKernel)"/>
-        protected override Kernel LoadKernelInternal(CompiledKernel kernel)
+        /// <summary cref="Accelerator.LoadKernel(CompiledKernel)"/>
+        public override Kernel LoadKernel(CompiledKernel kernel)
         {
             return LoadKernel(kernel, 0);
         }
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(CompiledKernel, int)"/>
-        protected override Kernel LoadImplicitlyGroupedKernelInternal(
+        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernel(CompiledKernel, int)"/>
+        public override Kernel LoadImplicitlyGroupedKernel(
             CompiledKernel kernel,
             int customGroupSize)
         {
@@ -275,8 +275,8 @@ namespace ILGPU.Runtime.CPU
             return LoadKernel(kernel, customGroupSize);
         }
 
-        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
-        protected override Kernel LoadAutoGroupedKernelInternal(
+        /// <summary cref="Accelerator.LoadAutoGroupedKernel(CompiledKernel, out int, out int)"/>
+        public override Kernel LoadAutoGroupedKernel(
             CompiledKernel kernel,
             out int groupSize,
             out int minGridSize)

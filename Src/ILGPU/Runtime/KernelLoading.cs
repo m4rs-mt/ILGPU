@@ -20,7 +20,7 @@ namespace ILGPU.Runtime
 {
     partial class Accelerator
     {
-        #region Internal Kernel Loading
+        #region Direct Kernel Loading
 
         /// <summary>
         /// Loads the given kernel.
@@ -29,7 +29,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="kernel">The kernel to load.</param>
         /// <returns>The loaded kernel.</returns>
-        protected abstract Kernel LoadKernelInternal(CompiledKernel kernel);
+        public abstract Kernel LoadKernel(CompiledKernel kernel);
 
         /// <summary>
         /// Loads the given implicitly-grouped kernel.
@@ -41,9 +41,20 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernel will be launched with the given
         /// group size.
         /// </remarks>
-        protected abstract Kernel LoadImplicitlyGroupedKernelInternal(
+        public abstract Kernel LoadImplicitlyGroupedKernel(
             CompiledKernel kernel,
             int customGroupSize);
+
+        /// <summary>
+        /// Loads the given implicitly-grouped kernel while using an automatically
+        /// computed grouping configuration.
+        /// </summary>
+        /// <param name="kernel">The kernel to load.</param>
+        /// <returns>The loaded kernel.</returns>
+        public Kernel LoadAutoGroupedKernel(CompiledKernel kernel)
+        {
+            return LoadAutoGroupedKernel(kernel, out int groupSize, out int minGridSize);
+        }
 
         /// <summary>
         /// Loads the given implicitly-grouped kernel while using an automatically
@@ -53,7 +64,7 @@ namespace ILGPU.Runtime
         /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
         /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
         /// <returns>The loaded kernel.</returns>
-        protected abstract Kernel LoadAutoGroupedKernelInternal(
+        public abstract Kernel LoadAutoGroupedKernel(
             CompiledKernel kernel,
             out int groupSize,
             out int minGridSize);
@@ -106,7 +117,7 @@ namespace ILGPU.Runtime
             /// <summary cref="IKernelLoader.LoadKernel(Accelerator, CompiledKernel)"/>
             public CachedKernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel)
             {
-                return new CachedKernel(accelerator.LoadKernelInternal(compiledKernel));
+                return new CachedKernel(accelerator.LoadKernel(compiledKernel));
             }
 
             /// <summary cref="IKernelLoader.FetchInformation(CachedKernel)"/>
@@ -137,7 +148,7 @@ namespace ILGPU.Runtime
             public CachedKernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel)
             {
                 return new CachedKernel(
-                    accelerator.LoadImplicitlyGroupedKernelInternal(compiledKernel, GroupSize),
+                    accelerator.LoadImplicitlyGroupedKernel(compiledKernel, GroupSize),
                     GroupSize,
                     0);
             }
@@ -170,7 +181,7 @@ namespace ILGPU.Runtime
             /// <summary cref="IKernelLoader.LoadKernel(Accelerator, CompiledKernel)"/>
             public CachedKernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel)
             {
-                var kernel = accelerator.LoadAutoGroupedKernelInternal(compiledKernel, out groupSize, out minGridSize);
+                var kernel = accelerator.LoadAutoGroupedKernel(compiledKernel, out groupSize, out minGridSize);
                 return new CachedKernel(kernel, groupSize, minGridSize);
             }
 
