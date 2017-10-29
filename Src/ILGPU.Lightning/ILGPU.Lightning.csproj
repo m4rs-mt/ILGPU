@@ -162,7 +162,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\X64\ILGPU.Lightning.Native.dll">
-      <Link>X64\ILGPU.Lightning.Native.dll</Link>
+      <Link>X64\Windows\ILGPU.Lightning.Native.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Obsolete\KernelLoaders.tt">

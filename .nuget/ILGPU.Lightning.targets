@@ -6,8 +6,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)X64\ILGPU.Lightning.Native.dll">
-      <Link>X64\ILGPU.Lightning.Native.dll</Link>
+    <Content Include="$(MSBuildThisFileDirectory)X64\Windows\ILGPU.Lightning.Native.dll">
+      <Link>X64\Windows\ILGPU.Lightning.Native.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
