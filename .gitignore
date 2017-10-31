@@ -243,6 +243,7 @@ ModelManifest.xml
 .fake/
 
 # Ignore specific template outputs
+Src/ILGPU.Lightning/TypeInformation.cs
 Src/ILGPU.Lightning/KernelLoaders.cs
 Src/ILGPU.Lightning/SharedMemoryKernelLoaders.cs
 Src/ILGPU.Lightning/Sequencers.cs

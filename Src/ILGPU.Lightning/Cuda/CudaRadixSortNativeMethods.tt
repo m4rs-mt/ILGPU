@@ -10,7 +10,7 @@
 // -----------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
-<#@ include file="../../../ILGPU/Src/ILGPU/Basic.tt" #>
+<#@ include file="../TypeInformation.tt"#>
 <#@ include file="../Basic.tt"#>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>

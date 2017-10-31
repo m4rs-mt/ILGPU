@@ -1,25 +1,8 @@
 # Build instructions
 
 ILGPU requires Visual Studio 2017 and several extensions:
-* Visual Studio 2017 (Community edition or higher) with C++ support and
-  the Visual Studio 2015 C++ Toolset
-* CUDA 8.0 SDK (https://developer.nvidia.com/cuda-toolkit) 
-  Refer to https://www.olegtarasov.me/how-to-build-cuda-toolkit-projects-in-visual-studio-2017/
-  in order to build Cuda projects with Visual Studio 2017
-
-# Setup ILGPU Dependency
-
-Reference the ILGPU compiler by executing the following command from a
-command prompt in the current directory:
-
-mklink /J ILGPU [Path to ILGPU lib]
-
-# Build native libraries
-
-We have to build all native libraries first. Use the PowerShell to execute the
-"BuildNativeLibs.ps1" script in the root directory. This script will download
-all required dependencies and build the required libraries in the correct
-configuration.
+* Visual Studio 2017 (Community edition or higher) with C++ support
+* CUDA 9.0 SDK (https://developer.nvidia.com/cuda-toolkit) 
 
 # Build ILGPU.Lightning
 

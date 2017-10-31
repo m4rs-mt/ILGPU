@@ -11,6 +11,8 @@
     <AssemblyName>ILGPU.Lightning</AssemblyName>
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -22,7 +24,7 @@
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>..\..\Bin\Debug\ILGPU.Lightning.XML</DocumentationFile>
     <RunCodeAnalysis>true</RunCodeAnalysis>
-    <CodeAnalysisRuleSet>..\..\ILGPU\Src\ILGPU.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\ILGPU.Lightning.ruleset</CodeAnalysisRuleSet>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -38,10 +40,16 @@
     <CodeAnalysisRuleSet>..\..\ILGPU\Src\ILGPU.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ILGPU, Version=0.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\ILGPU.0.2.0\lib\net46\Release\ILGPU.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.4.0\lib\netstandard1.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArrayExtensions.cs" />
@@ -153,6 +161,11 @@
       <DependentUpon>Sequencers.tt</DependentUpon>
     </Compile>
     <Compile Include="TransformExtensions.cs" />
+    <Compile Include="TypeInformation.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>TypeInformation.tt</DependentUpon>
+    </Compile>
     <Compile Include="VectorExtensions.cs" />
     <Compile Include="Random\Random.cs" />
     <Compile Include="Random\XorShift32.cs" />
@@ -188,6 +201,10 @@
     <Content Include="ReductionOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ReductionOperations.cs</LastGenOutput>
+    </Content>
+    <Content Include="TypeInformation.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TypeInformation.cs</LastGenOutput>
     </Content>
     <None Include="Basic.tt" />
     <Content Include="CPU\CPUScanProviders.tt">
@@ -230,15 +247,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Sequencers.cs</LastGenOutput>
     </Content>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\ILGPU\Src\ILGPU\ILGPU.csproj">
-      <Project>{30a409a1-b627-4ed0-9cdd-69ba19996e7b}</Project>
-      <Name>ILGPU</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
@@ -249,6 +261,13 @@
   <PropertyGroup>
     <TransformOnBuild>true</TransformOnBuild>
   </PropertyGroup>
+  <Import Project="..\packages\ILGPU.0.2.0\build\ILGPU.targets" Condition="Exists('..\packages\ILGPU.0.2.0\build\ILGPU.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\ILGPU.0.2.0\build\ILGPU.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILGPU.0.2.0\build\ILGPU.targets'))" />
+  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

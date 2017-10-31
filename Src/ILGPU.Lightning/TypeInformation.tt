@@ -1,0 +1,110 @@
+﻿// -----------------------------------------------------------------------------
+//                                   ILGPU
+//                     Copyright (c) 2016-2017 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: TypeInformation.tt
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#+
+public enum TypeInformationKind
+{
+    Default,
+    SignedInt,
+    UnsignedInt,
+    Float,
+}
+
+public class TypeInformation
+{
+    public TypeInformation(
+        string name,
+        string type,
+        TypeInformationKind kind)
+    {
+        Name = name;
+        Type = type;
+        Kind = kind;
+    }
+
+    public string Name { get; }
+
+    public string Type { get; }
+
+    public TypeInformationKind Kind { get; }
+
+    public bool IsInt => IsSignedInt || IsUnsignedInt;
+
+    public bool IsSignedInt => Kind == TypeInformationKind.SignedInt;
+
+    public bool IsUnsignedInt => Kind == TypeInformationKind.UnsignedInt;
+
+    public bool IsFloat => Kind == TypeInformationKind.Float;
+};
+
+public static readonly TypeInformation[] SignedIntTypes =
+    {
+        new TypeInformation("Int8", "sbyte", TypeInformationKind.SignedInt),
+        new TypeInformation("Int16", "short", TypeInformationKind.SignedInt),
+        new TypeInformation("Int32", "int", TypeInformationKind.SignedInt),
+        new TypeInformation("Int64", "long", TypeInformationKind.SignedInt),
+    };
+
+public static readonly TypeInformation[] UnsignedIntTypes =
+    {
+        new TypeInformation("UInt8", "byte", TypeInformationKind.UnsignedInt),
+        new TypeInformation("UInt16", "ushort", TypeInformationKind.UnsignedInt),
+        new TypeInformation("UInt32", "uint", TypeInformationKind.UnsignedInt),
+        new TypeInformation("UInt64", "ulong", TypeInformationKind.UnsignedInt),
+    };
+
+public static readonly TypeInformation[] IntTypes = SignedIntTypes.Concat(UnsignedIntTypes).ToArray();
+
+public static readonly TypeInformation[] FloatTypes =
+    {
+        new TypeInformation("Float", "float", TypeInformationKind.Float),
+        new TypeInformation("Double", "double", TypeInformationKind.Float),
+    };
+
+public static readonly TypeInformation[] NumericTypes = IntTypes.Concat(FloatTypes).ToArray();
+
+// Atomic information
+
+public class AtomicTypeInformation : TypeInformation
+{
+    public AtomicTypeInformation(
+        string name,
+        string type,
+        TypeInformationKind kind)
+        : base(name, type, kind)
+    { }
+}
+
+public static readonly AtomicTypeInformation[] AtomicSignedIntTypes =
+    {
+        new AtomicTypeInformation("Int32", "int", TypeInformationKind.SignedInt),
+        new AtomicTypeInformation("Int64", "long", TypeInformationKind.SignedInt),
+    };
+
+public static readonly AtomicTypeInformation[] AtomicUnsignedIntTypes =
+    {
+        new AtomicTypeInformation("UInt32", "uint", TypeInformationKind.UnsignedInt),
+        new AtomicTypeInformation("UInt64", "ulong", TypeInformationKind.UnsignedInt),
+    };
+
+public static readonly AtomicTypeInformation[] AtomicIntTypes = AtomicSignedIntTypes.Concat(AtomicUnsignedIntTypes).ToArray();
+
+public static readonly AtomicTypeInformation[] AtomicFloatTypes =
+    {
+        new AtomicTypeInformation("Float", "float", TypeInformationKind.Float),
+        new AtomicTypeInformation("Double", "double", TypeInformationKind.Float),
+    };
+
+public static readonly AtomicTypeInformation[] AtomicNumericTypes = AtomicIntTypes.Concat(AtomicFloatTypes).ToArray();
+#>
