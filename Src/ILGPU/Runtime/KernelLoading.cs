@@ -29,6 +29,10 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="kernel">The kernel to load.</param>
         /// <returns>The loaded kernel.</returns>
+        /// <remarks>
+        /// Note that the returned kernel will not be managed by the kernel cache.
+        /// Hence, it has to be disposed manually.
+        /// </remarks>
         public abstract Kernel LoadKernel(CompiledKernel kernel);
 
         /// <summary>
@@ -41,6 +45,10 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernel will be launched with the given
         /// group size.
         /// </remarks>
+        /// <remarks>
+        /// Note that the returned kernel will not be managed by the kernel cache.
+        /// Hence, it has to be disposed manually.
+        /// </remarks>
         public abstract Kernel LoadImplicitlyGroupedKernel(
             CompiledKernel kernel,
             int customGroupSize);
@@ -51,6 +59,10 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="kernel">The kernel to load.</param>
         /// <returns>The loaded kernel.</returns>
+        /// <remarks>
+        /// Note that the returned kernel will not be managed by the kernel cache.
+        /// Hence, it has to be disposed manually.
+        /// </remarks>
         public Kernel LoadAutoGroupedKernel(CompiledKernel kernel)
         {
             return LoadAutoGroupedKernel(kernel, out int groupSize, out int minGridSize);
@@ -64,6 +76,10 @@ namespace ILGPU.Runtime
         /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
         /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
         /// <returns>The loaded kernel.</returns>
+        /// <remarks>
+        /// Note that the returned kernel will not be managed by the kernel cache.
+        /// Hence, it has to be disposed manually.
+        /// </remarks>
         public abstract Kernel LoadAutoGroupedKernel(
             CompiledKernel kernel,
             out int groupSize,
