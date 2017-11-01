@@ -93,6 +93,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>KernelLoaders.tt</DependentUpon>
     </Compile>
+    <Compile Include="Obsolete\KernelLoading.cs" />
     <Compile Include="Obsolete\LightningContext.cs" />
     <Compile Include="Obsolete\LightningContext.Static.cs" />
     <Compile Include="NewLightningContext.cs" />
