@@ -13,7 +13,7 @@
       Samples can be found in the GitHub repository: https://github.com/m4rs-mt/ILGPU.Samples
     </description>
     <summary>
-      ILGPU.Lightning offers several high-level programming functions that simplify programming with ILGPU. It simplifies kernel loading, adds kernel caches and provides useful generic GPU algorithms (e.g. sequence, transform, reorder, scan, radix sort and reduce). All algorithms and functions work with CPU and GPU accelerators for easy and fast development, debugging, simulation and deployment processes.
+      ILGPU.Lightning offers several high-level programming functions that simplify programming with ILGPU. It provides useful generic GPU algorithms (e.g. sequence, transform, reorder, scan, radix sort and reduce). All algorithms and functions work with CPU and GPU accelerators for easy and fast development, debugging, simulation and deployment processes.
     </summary>
     <releaseNotes>http://www.ilgpu.net/releases/ILGPU.Lightning.ReleaseNotes.txt</releaseNotes>
     <copyright>Copyright © 2017 ILGPU Lightning Project. All rights reserved.</copyright>
