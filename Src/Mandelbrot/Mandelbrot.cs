@@ -10,7 +10,9 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU;
-using ILGPU.Lightning;
+using ILGPU.Runtime;
+using ILGPU.Runtime.CPU;
+using ILGPU.Runtime.Cuda;
 
 namespace Mandelbrot
 {
@@ -57,7 +59,7 @@ namespace Mandelbrot
 
 
         private static Context context;
-        private static LightningContext lc;
+        private static Accelerator accelerator;
         private static System.Action<Index, int, int, int, ArrayView<int>> mandelbrot_kernel;
 
         /// <summary>
@@ -68,11 +70,11 @@ namespace Mandelbrot
         {
             context = new Context();
             if (withCUDA)
-                lc = LightningContext.CreateCudaContext(context);
+                accelerator = new CudaAccelerator(context);
             else
-                lc = LightningContext.CreateCPUContext(context);
+                accelerator = new CPUAccelerator(context);
 
-            mandelbrot_kernel = lc.LoadAutoGroupedStreamKernel<
+            mandelbrot_kernel = accelerator.LoadAutoGroupedStreamKernel<
                 Index, int, int, int, ArrayView<int>>(MandelbrotKernel);
         }
 
@@ -82,7 +84,7 @@ namespace Mandelbrot
         /// </summary>
         public static void Dispose()
         {
-            lc.Dispose();
+            accelerator.Dispose();
             context.Dispose();
         }
 
@@ -97,11 +99,11 @@ namespace Mandelbrot
         public static void CalcGPU(int[] buffer, int width, int height, int max_iterations)
         {
             int num_values = buffer.Length;
-            var dev_out = lc.Allocate<int>(num_values);
+            var dev_out = accelerator.Allocate<int>(num_values);
 
             // Launch kernel
             mandelbrot_kernel(num_values, width, height, max_iterations, dev_out.View);
-            lc.Synchronize();
+            accelerator.Synchronize();
             dev_out.CopyTo(buffer, 0, 0, num_values);
 
             dev_out.Dispose();

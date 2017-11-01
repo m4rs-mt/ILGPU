@@ -108,32 +108,26 @@ namespace AdvancedAtomics
             Atomic.Add(dataView.GetVariableView(0), value);
         }
 
-        static void CompileAndLaunchKernel(
-            SimpleKernel.SampleKernelLoader loader,
+        static void LaunchKernel(
             Accelerator accelerator,
-            string methodName)
+            Action<Index, ArrayView<double>, double> method)
         {
-            loader.CompileAndLaunchKernel(
-                accelerator,
-                typeof(Program).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static),
-                kernel =>
-                {
-                    Console.WriteLine("Launching: " + methodName);
+            Console.WriteLine("Launching: " + method.Method.Name);
 
-                    using (var buffer = accelerator.Allocate<double>(1))
-                    {
-                        buffer.MemSetToZero();
+            var kernel = accelerator.LoadAutoGroupedStreamKernel(method);
+            using (var buffer = accelerator.Allocate<double>(1))
+            {
+                buffer.MemSetToZero();
 
-                        kernel.Launch(1024, buffer.View, 2.0);
+                kernel(1024, buffer.View, 2.0);
 
-                        // Wait for the kernel to finish...
-                        accelerator.Synchronize();
+                // Wait for the kernel to finish...
+                accelerator.Synchronize();
 
-                        var data = buffer.GetAsArray();
-                        for (int i = 0, e = data.Length; i < e; ++i)
-                            Console.WriteLine($"Data[{i}] = {data[i]}");
-                    }
-                });
+                var data = buffer.GetAsArray();
+                for (int i = 0, e = data.Length; i < e; ++i)
+                    Console.WriteLine($"Data[{i}] = {data[i]}");
+            }
         }
 
         /// <summary>
@@ -153,12 +147,9 @@ namespace AdvancedAtomics
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
-                        using (var loader = new SimpleKernel.SampleKernelLoader())
-                        {
-                            CompileAndLaunchKernel(loader, accelerator, nameof(AddDoubleAtomicKernel));
-                            CompileAndLaunchKernel(loader, accelerator, nameof(AddDoubleAtomicILGPUFunctionsKernel));
-                            CompileAndLaunchKernel(loader, accelerator, nameof(AddDoubleBuiltInKernel));
-                        }
+                        LaunchKernel(accelerator, AddDoubleAtomicKernel);
+                        LaunchKernel(accelerator, AddDoubleAtomicILGPUFunctionsKernel);
+                        LaunchKernel(accelerator, AddDoubleBuiltInKernel);
                     }
                 }
             }

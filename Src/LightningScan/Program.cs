@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Lightning;
+using ILGPU.Runtime;
 using System;
 
 namespace LightningScan
@@ -22,29 +23,28 @@ namespace LightningScan
             using (var context = new Context())
             {
                 // For each available accelerator...
-                foreach (var acceleratorId in LightningContext.Accelerators)
+                foreach (var acceleratorId in Accelerator.Accelerators)
                 {
-                    // A lightning context encapsulates an ILGPU accelerator
-                    using (var lc = LightningContext.CreateContext(context, acceleratorId))
+                    using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
-                        Console.WriteLine($"Performing operations on {lc}");
+                        Console.WriteLine($"Performing operations on {accelerator}");
 
-                        var sourceBuffer = lc.Allocate<int>(32);
-                        lc.Initialize(sourceBuffer.View, 2);
+                        var sourceBuffer = accelerator.Allocate<int>(32);
+                        accelerator.Initialize(sourceBuffer.View, 2);
 
                         // The parallel scan implementation needs temporary storage.
                         // By default, the lightning context hosts a memory-buffer cache
                         // for operations that require a temporary cache.
 
                         // Computes an inclusive parallel scan
-                        using (var targetBuffer = lc.Allocate<int>(32))
+                        using (var targetBuffer = accelerator.Allocate<int>(32))
                         {
                             // This overload uses the default accelerator stream and
                             // the default memory-buffer cache of the lightning context.
-                            lc.InclusiveScan(sourceBuffer.View, targetBuffer.View);
+                            accelerator.InclusiveScan(sourceBuffer.View, targetBuffer.View);
 
                             Console.WriteLine("Inclusive Scan:");
-                            lc.Synchronize();
+                            accelerator.Synchronize();
 
                             var data = targetBuffer.GetAsArray();
                             for (int i = 0, e = data.Length; i < e; ++i)
@@ -52,14 +52,14 @@ namespace LightningScan
                         }
 
                         // Computes an exclusive parallel scan
-                        using (var targetBuffer = lc.Allocate<int>(32))
+                        using (var targetBuffer = accelerator.Allocate<int>(32))
                         {
                             // This overload uses the default accelerator stream and
                             // the default memory-buffer cache of the lightning context.
-                            lc.ExclusiveScan(sourceBuffer.View, targetBuffer.View);
+                            accelerator.ExclusiveScan(sourceBuffer.View, targetBuffer.View);
 
                             Console.WriteLine("Exclusive Scan:");
-                            lc.Synchronize();
+                            accelerator.Synchronize();
 
                             var data = targetBuffer.GetAsArray();
                             for (int i = 0, e = data.Length; i < e; ++i)
@@ -69,30 +69,30 @@ namespace LightningScan
                         // A ScanProvider that hosts its own memory-buffer cache to allow
                         // for parallel invocations of different operations that require
                         // an extra cache.
-                        using (var scanProvider = lc.CreateScanProvider())
+                        using (var scanProvider = accelerator.CreateScanProvider())
                         {
-                            using (var targetBuffer = lc.Allocate<int>(32))
+                            using (var targetBuffer = accelerator.Allocate<int>(32))
                             {
                                 // This overload uses the default accelerator stream and
                                 // the internal memory-buffer cache of the scan provider.
                                 scanProvider.InclusiveScan(sourceBuffer.View, targetBuffer.View);
 
                                 Console.WriteLine("Inclusive Scan:");
-                                lc.Synchronize();
+                                accelerator.Synchronize();
 
                                 var data = targetBuffer.GetAsArray();
                                 for (int i = 0, e = data.Length; i < e; ++i)
                                     Console.WriteLine($"Data[{i}] = {data[i]}");
                             }
 
-                            using (var targetBuffer = lc.Allocate<int>(32))
+                            using (var targetBuffer = accelerator.Allocate<int>(32))
                             {
                                 // This overload uses the default accelerator stream and
                                 // the internal memory-buffer cache of the scan provider.
                                 scanProvider.ExclusiveScan(sourceBuffer.View, targetBuffer.View);
 
                                 Console.WriteLine("Exclusive Scan:");
-                                lc.Synchronize();
+                                accelerator.Synchronize();
 
                                 var data = targetBuffer.GetAsArray();
                                 for (int i = 0, e = data.Length; i < e; ++i)

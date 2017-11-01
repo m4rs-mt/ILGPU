@@ -92,34 +92,26 @@ namespace SimpleConstants
             WriteEnabledValue = index;
         }
 
-        static void CompileAndLaunchKernel(
-            SimpleKernel.SampleKernelLoader loader,
+        static void LaunchKernel(
             Accelerator accelerator,
-            string methodName,
-            int? expectedValue,
-            CompileUnitFlags flags)
+            Action<Index, ArrayView<int>> method,
+            int? expectedValue)
         {
-            loader.CompileAndLaunchKernel(
-                accelerator,
-                typeof(Program).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static),
-                flags,
-                kernel =>
+            var kernel = accelerator.LoadAutoGroupedStreamKernel(method);
+            using (var buffer = accelerator.Allocate<int>(1024))
+            {
+                kernel(buffer.Length, buffer.View);
+
+                // Wait for the kernel to finish...
+                accelerator.Synchronize();
+
+                if (expectedValue.HasValue)
                 {
-                    using (var buffer = accelerator.Allocate<int>(1024))
-                    {
-                        kernel.Launch(buffer.Length, buffer.View);
-
-                        // Wait for the kernel to finish...
-                        accelerator.Synchronize();
-
-                        if (expectedValue.HasValue)
-                        {
-                            var data = buffer.GetAsArray();
-                            for (int i = 0, e = data.Length; i < e; ++i)
-                                Debug.Assert(data[i] == expectedValue);
-                        }
-                    }
-                });
+                    var data = buffer.GetAsArray();
+                    for (int i = 0, e = data.Length; i < e; ++i)
+                        Debug.Assert(data[i] == expectedValue);
+                }
+            }
         }
 
         /// <summary>
@@ -134,82 +126,73 @@ namespace SimpleConstants
                 foreach (var acceleratorId in Accelerator.Accelerators)
                 {
                     // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId))
+                    using (var accelerator = Accelerator.Create(context, acceleratorId, CompileUnitFlags.None))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
-                        using (var loader = new SimpleKernel.SampleKernelLoader())
+                        // Launch ConstantKernel:
+                        LaunchKernel(
+                            accelerator,
+                            ConstantKernel,
+                            ConstantValue);
+
+                        // Launch StaticFieldAccessKernel:
+                        LaunchKernel(
+                            accelerator,
+                            StaticFieldAccessKernel,
+                            ReadOnlyValue);
+
+                        // Launch StaticNonReadOnlyFieldAccessKernel:
+                        try
                         {
-                            // Launch ConstantKernel:
-                            CompileAndLaunchKernel(
-                                loader,
+                            LaunchKernel(
                                 accelerator,
-                                nameof(ConstantKernel),
-                                ConstantValue,
-                                CompileUnitFlags.None);
-
-                            // Launch StaticFieldAccessKernel:
-                            CompileAndLaunchKernel(
-                                loader,
-                                accelerator,
-                                nameof(StaticFieldAccessKernel),
-                                ReadOnlyValue,
-                                CompileUnitFlags.None);
-
-                            // Launch StaticNonReadOnlyFieldAccessKernel:
-                            try
-                            {
-                                CompileAndLaunchKernel(
-                                    loader,
-                                    accelerator,
-                                    nameof(StaticNonReadOnlyFieldAccessKernel),
-                                    WriteEnabledValue,
-                                    CompileUnitFlags.None);
-                            }
-                            catch (NotSupportedException)
-                            {
-                                // All kernels reject read accesses to write-enabled static fields by default.
-                                // However, you can disable this restriction via:
-                                // CompileUnitFlags.InlineMutableStaticFieldValues.
-                                Console.WriteLine("Rejected reading a write-enabled static field");
-                            }
-
-                            // Launch StaticNonReadOnlyFieldAccessKernel while inlining static field values:
-                            CompileAndLaunchKernel(
-                                loader,
-                                accelerator,
-                                nameof(StaticNonReadOnlyFieldAccessKernel),
-                                WriteEnabledValue,
-                                CompileUnitFlags.InlineMutableStaticFieldValues);
-                            // Note that a change of the field WriteEnabledValue will not change the result
-                            // of a previously compiled kernel that accessed the field WriteEnabledValue.
-
-                            // Launch StaticFieldWriteAccessKernel:
-                            try
-                            {
-                                CompileAndLaunchKernel(
-                                    loader,
-                                    accelerator,
-                                    nameof(StaticFieldWriteAccessKernel),
-                                    WriteEnabledValue,
-                                    CompileUnitFlags.None);
-                            }
-                            catch (NotSupportedException)
-                            {
-                                // All kernels reject write accesses to static fields by default.
-                                // However, you can skip such assignments by via:
-                                // CompileUnitFlags.IgnoreStaticFieldStores.
-                                Console.WriteLine("Rejected write to static field");
-                            }
-
-                            // Launch StaticFieldWriteAccessKernel while ignoring static stores:
-                            CompileAndLaunchKernel(
-                                loader,
-                                accelerator,
-                                nameof(StaticFieldWriteAccessKernel),
-                                null,
-                                CompileUnitFlags.IgnoreStaticFieldStores);
+                                StaticNonReadOnlyFieldAccessKernel,
+                                WriteEnabledValue);
                         }
+                        catch (NotSupportedException)
+                        {
+                            // All kernels reject read accesses to write-enabled static fields by default.
+                            // However, you can disable this restriction via:
+                            // CompileUnitFlags.InlineMutableStaticFieldValues.
+                            Console.WriteLine("Rejected reading a write-enabled static field");
+                        }
+
+                        // Launch StaticFieldWriteAccessKernel:
+                        try
+                        {
+                            LaunchKernel(
+                                accelerator,
+                                StaticFieldWriteAccessKernel,
+                                WriteEnabledValue);
+                        }
+                        catch (NotSupportedException)
+                        {
+                            // All kernels reject write accesses to static fields by default.
+                            // However, you can skip such assignments by via:
+                            // CompileUnitFlags.IgnoreStaticFieldStores.
+                            Console.WriteLine("Rejected write to static field");
+                        }
+                    }
+
+                    using (var accelerator = Accelerator.Create(context, acceleratorId, CompileUnitFlags.InlineMutableStaticFieldValues))
+                    {
+                        // Launch StaticNonReadOnlyFieldAccessKernel while inlining static field values:
+                        LaunchKernel(
+                            accelerator,
+                            StaticNonReadOnlyFieldAccessKernel,
+                            WriteEnabledValue);
+                        // Note that a change of the field WriteEnabledValue will not change the result
+                        // of a previously compiled kernel that accessed the field WriteEnabledValue.
+                    }
+
+                    using (var accelerator = Accelerator.Create(context, acceleratorId, CompileUnitFlags.IgnoreStaticFieldStores))
+                    {
+                        // Launch StaticFieldWriteAccessKernel while ignoring static stores:
+                        LaunchKernel(
+                            accelerator,
+                            StaticFieldWriteAccessKernel,
+                            null);
                     }
                 }
             }

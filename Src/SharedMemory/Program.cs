@@ -96,43 +96,6 @@ namespace SharedMemory
         }
 
         /// <summary>
-        /// Compiles and launches an explicltly-grouped kernel.
-        /// </summary>
-        static void CompileAndLaunchKernel(
-            Accelerator accelerator,
-            MethodInfo method,
-            Index numElementsToLaunch,
-            Index groupSize,
-            Action<Kernel, GroupedIndex> launcher)
-        {
-            // Create a backend for this device
-            using (var backend = accelerator.CreateBackend())
-            {
-                // Create a new compile unit using the created backend
-                using (var compileUnit = accelerator.Context.CreateCompileUnit(backend))
-                {
-                    // Resolve and compile method into a kernel
-                    var compiledKernel = backend.Compile(compileUnit, method);
-                    // Info: use compiledKernel.GetBuffer() to retrieve the compiled kernel program data
-
-                    // -------------------------------------------------------------------------------
-                    // Load the explicitly grouped kernel
-                    var kernel = accelerator.LoadKernel(compiledKernel);
-                    // -------------------------------------------------------------------------------
-
-                    launcher(
-                        kernel,
-                        new GroupedIndex(
-                            (numElementsToLaunch + groupSize - 1) / groupSize, // Compute the number of groups (round up)
-                            groupSize));                                       // Use the given group size
-
-                    accelerator.Synchronize();
-                    kernel.Dispose();
-                }
-            }
-        }
-
-        /// <summary>
         /// Launches a simple 1D kernel using shared memory.
         /// </summary>
         static void Main(string[] args)
@@ -150,7 +113,7 @@ namespace SharedMemory
 
                         // The maximum group size in this example is 128 since the second
                         // kernel has a shared-memory array of 128 elements.
-                        var groupSize = Math.Min(accelerator.MaxThreadsPerGroup, 128);
+                        var groupSize = Math.Min(accelerator.MaxNumThreadsPerGroup, 128);
 
                         var data = Enumerable.Range(1, 128).ToArray();
 
@@ -159,56 +122,47 @@ namespace SharedMemory
                             // Initialize data source
                             dataSource.CopyFrom(data, 0, 0, data.Length);
 
+                            var dimension = new GroupedIndex(
+                                (dataSource.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
+                                groupSize);                                      // Use the given group size
+
                             using (var dataTarget = accelerator.Allocate<int>(data.Length))
                             {
-                                CompileAndLaunchKernel(
-                                    accelerator,
-                                    typeof(Program).GetMethod(nameof(SharedMemoryVariableKernel), BindingFlags.NonPublic | BindingFlags.Static),
-                                    dataSource.Length,                // The minimum number of required threads to process each element
-                                    groupSize,
-                                    (kernel, dimension) =>
-                                    {
-                                        dataTarget.MemSetToZero();
+                                var sharedMemVarKernel = accelerator.LoadSharedMemoryStreamKernel1<
+                                    GroupedIndex, ArrayView<int>, ArrayView<int>, VariableView<int>>(SharedMemoryVariableKernel);
+                                dataTarget.MemSetToZero();
 
-                                        // Note that *no* value is passed for the shared-memory variable
-                                        // since shared memory is handled automatically inside the runtime
-                                        // and shared memory has to be initialized inside a kernel.
-                                        // The delegate type for this kernel would be:
-                                        // Action<GroupedIndex, ArrayView<int>, ArrayView<int>>.
-                                        kernel.Launch(dimension, dataSource.View, dataTarget.View);
+                                // Note that *no* value is passed for the shared-memory variable
+                                // since shared memory is handled automatically inside the runtime
+                                // and shared memory has to be initialized inside a kernel.
+                                // The delegate type for this kernel would be:
+                                // Action<GroupedIndex, ArrayView<int>, ArrayView<int>>.
+                                sharedMemVarKernel(dimension, dataSource.View, dataTarget.View);
 
-                                        accelerator.Synchronize();
+                                accelerator.Synchronize();
 
-                                        Console.WriteLine("Shared-memory kernel");
-                                        var target = dataTarget.GetAsArray();
-                                        for (int i = 0, e = target.Length; i < e; ++i)
-                                            Console.WriteLine($"Data[{i}] = {target[i]}");
-                                    });
+                                Console.WriteLine("Shared-memory kernel");
+                                var target = dataTarget.GetAsArray();
+                                for (int i = 0, e = target.Length; i < e; ++i)
+                                    Console.WriteLine($"Data[{i}] = {target[i]}");
 
+                                var sharedMemArrKernel = accelerator.LoadSharedMemoryStreamKernel1<
+                                    GroupedIndex, ArrayView<int>, ArrayView<int>, ArrayView<int>>(SharedMemoryArrayKernel);
+                                dataTarget.MemSetToZero();
 
-                                CompileAndLaunchKernel(
-                                    accelerator,
-                                    typeof(Program).GetMethod(nameof(SharedMemoryArrayKernel), BindingFlags.NonPublic | BindingFlags.Static),
-                                    dataSource.Length,                // The minimum number of required threads to process each element
-                                    groupSize,
-                                    (kernel, dimension) =>
-                                    {
-                                        dataTarget.MemSetToZero();
+                                // Note that *no* value is passed for the shared-memory variable
+                                // since shared memory is handled automatically inside the runtime
+                                // and shared memory has to be initialized inside a kernel.
+                                // The delegate type for this kernel would be:
+                                // Action<GroupedIndex, ArrayView<int>, ArrayView<int>>.
+                                sharedMemArrKernel(dimension, dataSource.View, dataTarget.View);
 
-                                        // Note that *no* value is passed for the shared-memory variable
-                                        // since shared memory is handled automatically inside the runtime
-                                        // and shared memory has to be initialized inside a kernel.
-                                        // The delegate type for this kernel would be:
-                                        // Action<GroupedIndex, ArrayView<int>, ArrayView<int>>.
-                                        kernel.Launch(dimension, dataSource.View, dataTarget.View);
+                                accelerator.Synchronize();
 
-                                        accelerator.Synchronize();
-
-                                        Console.WriteLine("Shared-memory-array kernel");
-                                        var target = dataTarget.GetAsArray();
-                                        for (int i = 0, e = target.Length; i < e; ++i)
-                                            Console.WriteLine($"Data[{i}] = {target[i]}");
-                                    });
+                                Console.WriteLine("Shared-memory-array kernel");
+                                target = dataTarget.GetAsArray();
+                                for (int i = 0, e = target.Length; i < e; ++i)
+                                    Console.WriteLine($"Data[{i}] = {target[i]}");
                             }
                         }
                     }

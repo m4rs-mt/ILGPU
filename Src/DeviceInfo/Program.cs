@@ -27,7 +27,7 @@ namespace DeviceInfo
         {
             Console.WriteLine($"Name: {accelerator.Name}");
             Console.WriteLine($"MemorySize: {accelerator.MemorySize}");
-            Console.WriteLine($"MaxThreadsPerGroup: {accelerator.MaxThreadsPerGroup}");
+            Console.WriteLine($"MaxThreadsPerGroup: {accelerator.MaxNumThreadsPerGroup}");
             Console.WriteLine($"MaxSharedMemoryPerGroup: {accelerator.MaxSharedMemoryPerGroup}");
             Console.WriteLine($"MaxGridSize: {accelerator.MaxGridSize}");
             Console.WriteLine($"MaxConstantMemory: {accelerator.MaxConstantMemory}");

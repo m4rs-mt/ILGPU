@@ -83,30 +83,25 @@ namespace AdvancedViews
                     using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
-                        using (var loader = new SimpleKernel.SampleKernelLoader())
+                        var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                            Index, ArrayView<int>, ArrayView<ComposedStructure>, int>(MyKernel);
+
+                        using (var elementsBuffer = accelerator.Allocate<int>(1024))
                         {
-                            loader.CompileAndLaunchKernel(
-                                accelerator,
-                                typeof(Program).GetMethod(nameof(MyKernel), BindingFlags.NonPublic | BindingFlags.Static),
-                                kernel =>
-                                {
-                                    var elementsBuffer = accelerator.Allocate<int>(1024);
-                                    var composedStructBuffer = accelerator.Allocate<ComposedStructure>(1);
-                                    elementsBuffer.MemSetToZero();
-                                    composedStructBuffer.MemSetToZero();
+                            using (var composedStructBuffer = accelerator.Allocate<ComposedStructure>(1))
+                            {
+                                elementsBuffer.MemSetToZero();
+                                composedStructBuffer.MemSetToZero();
 
-                                    kernel.Launch(elementsBuffer.Length, elementsBuffer.View, composedStructBuffer.View, 0);
+                                kernel(elementsBuffer.Length, elementsBuffer.View, composedStructBuffer.View, 0);
 
-                                    accelerator.Synchronize();
+                                accelerator.Synchronize();
 
-                                    var composedResult = composedStructBuffer[0];
-                                    Console.WriteLine("Composed.SomeElement = " + composedResult.SomeElement);
-                                    Console.WriteLine("Composed.SomeOtherElement = " + composedResult.SomeOtherElement);
-                                    Console.WriteLine("Composed.ElementCounter = " + composedResult.ElementCounter);
-
-                                    composedStructBuffer.Dispose();
-                                    elementsBuffer.Dispose();
-                                });
+                                var composedResult = composedStructBuffer[0];
+                                Console.WriteLine("Composed.SomeElement = " + composedResult.SomeElement);
+                                Console.WriteLine("Composed.SomeOtherElement = " + composedResult.SomeOtherElement);
+                                Console.WriteLine("Composed.ElementCounter = " + composedResult.ElementCounter);
+                            }
                         }
                     }
                 }

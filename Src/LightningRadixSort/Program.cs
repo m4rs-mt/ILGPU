@@ -12,6 +12,7 @@
 using ILGPU;
 using ILGPU.Lightning;
 using ILGPU.Lightning.Sequencers;
+using ILGPU.Runtime;
 using System;
 
 namespace LightningRadixSort
@@ -23,29 +24,29 @@ namespace LightningRadixSort
             using (var context = new Context())
             {
                 // For each available accelerator...
-                foreach (var acceleratorId in LightningContext.Accelerators)
+                foreach (var acceleratorId in Accelerator.Accelerators)
                 {
                     // A lightning context encapsulates an ILGPU accelerator
-                    using (var lc = LightningContext.CreateContext(context, acceleratorId))
+                    using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
-                        Console.WriteLine($"Performing operations on {lc}");
+                        Console.WriteLine($"Performing operations on {accelerator}");
 
-                        var sourceBuffer = lc.Allocate<uint>(32);
-                        lc.Sequence(sourceBuffer.View, new UInt32Sequencer());
+                        var sourceBuffer = accelerator.Allocate<uint>(32);
+                        accelerator.Sequence(sourceBuffer.View, new UInt32Sequencer());
 
                         // The parallel radix-sort implementation needs temporary storage.
                         // By default, the lightning context hosts a memory-buffer cache
                         // for operations that require a temporary cache.
 
                         // Performs a descending radix-sort operation
-                        using (var targetBuffer = lc.Allocate<uint>(32))
+                        using (var targetBuffer = accelerator.Allocate<uint>(32))
                         {
                             // This overload uses the default accelerator stream and
                             // the default memory-buffer cache of the lightning context.
-                            lc.DescendingRadixSort(sourceBuffer.View, targetBuffer.View);
+                            accelerator.DescendingRadixSort(sourceBuffer.View, targetBuffer.View);
 
                             Console.WriteLine("Descending RadixSort:");
-                            lc.Synchronize();
+                            accelerator.Synchronize();
 
                             var data = targetBuffer.GetAsArray();
                             for (int i = 0, e = data.Length; i < e; ++i)
@@ -53,14 +54,14 @@ namespace LightningRadixSort
                         }
 
                         // Performs an ascending radix-sort operation
-                        using (var targetBuffer = lc.Allocate<uint>(32))
+                        using (var targetBuffer = accelerator.Allocate<uint>(32))
                         {
                             // This overload uses the default accelerator stream and
                             // the default memory-buffer cache of the lightning context.
-                            lc.RadixSort(sourceBuffer.View, targetBuffer.View);
+                            accelerator.RadixSort(sourceBuffer.View, targetBuffer.View);
 
                             Console.WriteLine("RadixSort:");
-                            lc.Synchronize();
+                            accelerator.Synchronize();
 
                             var data = targetBuffer.GetAsArray();
                             for (int i = 0, e = data.Length; i < e; ++i)
@@ -70,30 +71,30 @@ namespace LightningRadixSort
                         // A RadixSortProvider hosts its own memory-buffer cach to allow 
                         // for parallel invocations of different operations that require
                         // an extra cache.
-                        using (var radixSortProvider = lc.CreateRadixSortProvider())
+                        using (var radixSortProvider = accelerator.CreateRadixSortProvider())
                         {
-                            using (var targetBuffer = lc.Allocate<uint>(32))
+                            using (var targetBuffer = accelerator.Allocate<uint>(32))
                             {
                                 // This overload uses the default accelerator stream and
                                 // the internal memory-buffer cache of the scan provider.
-                                lc.DescendingRadixSort(sourceBuffer.View, targetBuffer.View);
+                                accelerator.DescendingRadixSort(sourceBuffer.View, targetBuffer.View);
 
                                 Console.WriteLine("Descending RadixSort:");
-                                lc.Synchronize();
+                                accelerator.Synchronize();
 
                                 var data = targetBuffer.GetAsArray();
                                 for (int i = 0, e = data.Length; i < e; ++i)
                                     Console.WriteLine($"Data[{i}] = {data[i]}");
                             }
 
-                            using (var targetBuffer = lc.Allocate<uint>(32))
+                            using (var targetBuffer = accelerator.Allocate<uint>(32))
                             {
                                 // This overload uses the default accelerator stream and
                                 // the internal memory-buffer cache of the scan provider.
-                                lc.RadixSort(sourceBuffer.View, targetBuffer.View);
+                                accelerator.RadixSort(sourceBuffer.View, targetBuffer.View);
 
                                 Console.WriteLine("RadixSort:");
-                                lc.Synchronize();
+                                accelerator.Synchronize();
 
                                 var data = targetBuffer.GetAsArray();
                                 for (int i = 0, e = data.Length; i < e; ++i)

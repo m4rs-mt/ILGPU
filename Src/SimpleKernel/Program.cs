@@ -40,47 +40,6 @@ namespace SimpleKernel
             dataView[index] = index + constant;
         }
 
-        static void CompileAndLaunchKernel(Accelerator accelerator)
-        {
-            // Create a backend for this device
-            using (var backend = accelerator.CreateBackend())
-            {
-                // Create a new compile unit using the created backend
-                using (var compileUnit = accelerator.Context.CreateCompileUnit(backend))
-                {
-                    // Resolve and compile method into a kernel
-                    var method = typeof(Program).GetMethod(nameof(MyKernel), BindingFlags.NonPublic | BindingFlags.Static);
-                    var compiledKernel = backend.Compile(compileUnit, method);
-                    // Info: use compiledKernel.GetBuffer() to retrieve the compiled kernel program data
-
-                    // Load and initialize kernel on the target accelerator
-                    var kernel = accelerator.LoadAutoGroupedKernel(compiledKernel);
-
-                    using (var buffer = accelerator.Allocate<int>(1024))
-                    {
-                        // Launch buffer.Length many threads and pass a view to buffer
-                        kernel.Launch(buffer.Length, buffer.View, 42);
-
-                        // Note that the kernel launch involve boxing. In order to avoid boxing
-                        // use typed launcher delegates as shown in the SimpleKernelDelegates sample.
-
-                        // Wait for the kernel to finish...
-                        accelerator.Synchronize();
-
-                        // Resolve and verify data
-                        var data = buffer.GetAsArray();
-                        for (int i = 0, e = data.Length; i < e; ++i)
-                        {
-                            if (data[i] != 42 + i)
-                                Console.WriteLine($"Error at element location {i}: {data[i]} found");
-                        }
-                    }
-
-                    kernel.Dispose();
-                }
-            }
-        }
-
         /// <summary>
         /// Launches a simple 1D kernel.
         /// </summary>
@@ -97,8 +56,34 @@ namespace SimpleKernel
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
-                        // Launch kernel using simple kernel loader
-                        CompileAndLaunchKernel(accelerator);
+                        // Compiles and loads the implicitly grouped kernel with an automatically determined
+                        // group size and an associated default stream.
+                        // This function automatically compiles the kernel (or loads the kernel from cache)
+                        // and returns a specialized high-performance kernel launcher.
+                        // Use LoadAutoGroupedKernel to create a launcher that requires an additional accelerator-stream
+                        // parameter. In this case the corresponding call will look like this:
+                        // var kernel = accelerator.LoadautoGroupedKernel<Index, ArrayView<int>, int>(MyKernel);
+                        // For more detail refer to the ImplicitlyGroupedKernels or ExplicitlyGroupedKernels sample.
+                        var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                            Index, ArrayView<int>, int>(MyKernel);
+
+                        using (var buffer = accelerator.Allocate<int>(1024))
+                        {
+                            // Launch buffer.Length many threads and pass a view to buffer
+                            // Note that the kernel launch does not involve any boxing
+                            kernel(buffer.Length, buffer.View, 42);
+
+                            // Wait for the kernel to finish...
+                            accelerator.Synchronize();
+
+                            // Resolve and verify data
+                            var data = buffer.GetAsArray();
+                            for (int i = 0, e = data.Length; i < e; ++i)
+                            {
+                                if (data[i] != 42 + i)
+                                    Console.WriteLine($"Error at element location {i}: {data[i]} found");
+                            }
+                        }
                     }
                 }
             }

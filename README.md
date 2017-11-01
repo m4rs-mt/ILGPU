@@ -10,7 +10,7 @@ you can directly use all of Visual Studio's CPU debugging features.
 
 Note that this is not possible when your code is executed on the GPU;
 in order to execute your code on the CPU, you have to create a CPU context instead of a GPU context
-(e.g. by replacing **CreateCudaContext** with **CreateCPUContext**).
+(e.g. by replacing **new CudaAccelerator** with **new CPUAccelerator**).
 
 # Build Instructions
 
@@ -33,10 +33,6 @@ These samples explain the basic and more advanced capabilities of ILGPU, respect
 ## ILGPU.Lightning
 
 These samples show how to leverage ILGPU.Lightning for even more comfortable GPU programming.
-
-## ILGPU.SharpDX
-
-These samples demonstrate how ILGPU.SharpDX can be used to integrate ILGPU and SharpDX more conveniently.
 
 ## Remarks
 

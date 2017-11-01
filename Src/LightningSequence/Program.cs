@@ -12,6 +12,7 @@
 using ILGPU;
 using ILGPU.Lightning;
 using ILGPU.Lightning.Sequencers;
+using ILGPU.Runtime;
 using System;
 
 namespace LightningSequence
@@ -69,20 +70,20 @@ namespace LightningSequence
         /// <summary>
         /// Demonstrates the sequence functionality.
         /// </summary>
-        /// <param name="lc">The target lightning context.</param>
-        static void Sequence(LightningContext lc)
+        /// <param name="accelerator">The target accelerator.</param>
+        static void Sequence(Accelerator accelerator)
         {
-            using (var buffer = lc.Allocate<int>(64))
+            using (var buffer = accelerator.Allocate<int>(64))
             {
                 // Creates a sequence (from 0 to buffer.Length / 2 - 1).
                 // Note that in this case, the sequencer uses the default accelerator stream.
-                lc.Sequence(buffer.View.GetSubView(0, buffer.Length / 2), new Int32Sequencer());
+                accelerator.Sequence(buffer.View.GetSubView(0, buffer.Length / 2), new Int32Sequencer());
 
                 // Creates a sequence (from 0 to buffer.Length / 2 - 1).
                 // Note that this overload requires an explicit accelerator stream.
-                lc.Sequence(lc.DefaultStream, buffer.View.GetSubView(buffer.Length / 2), new Int32Sequencer());
+                accelerator.Sequence(accelerator.DefaultStream, buffer.View.GetSubView(buffer.Length / 2), new Int32Sequencer());
 
-                lc.Synchronize();
+                accelerator.Synchronize();
 
                 var data = buffer.GetAsArray();
                 for (int i = 0, e = data.Length; i < e; ++i)
@@ -90,11 +91,11 @@ namespace LightningSequence
             }
 
             // Custom sequencer
-            using (var buffer = lc.Allocate<CustomStruct>(64))
+            using (var buffer = accelerator.Allocate<CustomStruct>(64))
             {
-                lc.Sequence(buffer.View, new CustomSequencer(32));
+                accelerator.Sequence(buffer.View, new CustomSequencer(32));
 
-                lc.Synchronize();
+                accelerator.Synchronize();
 
                 var data = buffer.GetAsArray();
                 for (int i = 0, e = data.Length; i < e; ++i)
@@ -104,15 +105,15 @@ namespace LightningSequence
             // Calling the convenient Sequence function on the lightning context
             // involves internal heap allocations. This can be avoided by constructing
             // a sequencer explicitly:
-            var sequencer = lc.CreateSequencer<CustomStruct, CustomSequencer>();
-            using (var buffer = lc.Allocate<CustomStruct>(64))
+            var sequencer = accelerator.CreateSequencer<CustomStruct, CustomSequencer>();
+            using (var buffer = accelerator.Allocate<CustomStruct>(64))
             {
                 sequencer(
-                    lc.DefaultStream,
+                    accelerator.DefaultStream,
                     buffer.View,
                     new CustomSequencer(64));
 
-                lc.Synchronize();
+                accelerator.Synchronize();
 
                 var data = buffer.GetAsArray();
                 for (int i = 0, e = data.Length; i < e; ++i)
@@ -123,29 +124,29 @@ namespace LightningSequence
         /// <summary>
         /// Demonstrates the repeated-sequence functionality.
         /// </summary>
-        /// <param name="lc">The target lightning context.</param>
-        static void RepeatedSequence(LightningContext lc)
+        /// <param name="accl">The target accelerator.</param>
+        static void RepeatedSequence(Accelerator accl)
         {
-            using (var buffer = lc.Allocate<int>(64))
+            using (var buffer = accl.Allocate<int>(64))
             {
                 // Creates a sequence (from 0 to buffer.Length / 2 - 1):
                 // - [0, sequenceLength - 1] = [0, sequenceLength]
                 // - [sequenceLength, sequenceLength * 2 -1] = [0, sequenceLength]
                 // Note that the sequencer uses the default accelerator stream in this case.
-                lc.RepeatedSequence(
+                accl.RepeatedSequence(
                     buffer.View.GetSubView(0, buffer.Length / 2),
                     2
                     , new Int32Sequencer());
 
                 // Creates a sequence (from 0 to buffer.Length / 2 - 1).
                 // Note that this overload requires an explicit accelerator stream.
-                lc.RepeatedSequence(
-                    lc.DefaultStream,
+                accl.RepeatedSequence(
+                    accl.DefaultStream,
                     buffer.View.GetSubView(buffer.Length / 2),
                     4,
                     new Int32Sequencer());
 
-                lc.Synchronize();
+                accl.Synchronize();
 
                 var data = buffer.GetAsArray();
                 for (int i = 0, e = data.Length; i < e; ++i)
@@ -159,29 +160,29 @@ namespace LightningSequence
         /// <summary>
         /// Demonstrates the batched-sequence functionality.
         /// </summary>
-        /// <param name="lc">The target lightning context.</param>
-        static void BatchedSequence(LightningContext lc)
+        /// <param name="accl">The target accelerator.</param>
+        static void BatchedSequence(Accelerator accl)
         {
-            using (var buffer = lc.Allocate<int>(64))
+            using (var buffer = accl.Allocate<int>(64))
             {
                 // Creates a sequence (from 0 to buffer.Length / 2 - 1):
                 // - [0, sequenceBatchLength - 1] = 0,,
                 // - [sequenceBatchLength, sequenceBatchLength * 2 -1] = 1,
                 // Note that in this case, the sequencer uses the default accelerator stream.
-                lc.BatchedSequence(
+                accl.BatchedSequence(
                     buffer.View.GetSubView(0, buffer.Length / 2),
                     2
                     , new Int32Sequencer());
 
                 // Creates a sequence (from 0 to buffer.Length / 2 - 1).
                 // Note that this overload requires an explicit accelerator stream.
-                lc.BatchedSequence(
-                    lc.DefaultStream,
+                accl.BatchedSequence(
+                    accl.DefaultStream,
                     buffer.View.GetSubView(buffer.Length / 2),
                     4,
                     new Int32Sequencer());
 
-                lc.Synchronize();
+                accl.Synchronize();
 
                 var data = buffer.GetAsArray();
                 for (int i = 0, e = data.Length; i < e; ++i)
@@ -192,10 +193,10 @@ namespace LightningSequence
         /// <summary>
         /// Demonstrates the repeated-batched-sequence functionality.
         /// </summary>
-        /// <param name="lc">The target lightning context.</param>
-        static void RepeatedBatchedSequence(LightningContext lc)
+        /// <param name="accl">The target accelerator.</param>
+        static void RepeatedBatchedSequence(Accelerator accl)
         {
-            using (var buffer = lc.Allocate<int>(64))
+            using (var buffer = accl.Allocate<int>(64))
             {
                 // Creates a sequence (from 0 to buffer.Length / 2 - 1):
                 // - [0, sequenceLength - 1] = 
@@ -207,7 +208,7 @@ namespace LightningSequence
                 //       - [sequenceLength + sequenceBatchLength, sequenceLength + sequenceBatchLength * 2 - 1] = sequencer(1),
                 //       - ...
                 // Note that the sequencer uses the default accelerator stream in this case.
-                lc.RepeatedBatchedSequence(
+                accl.RepeatedBatchedSequence(
                     buffer.View.GetSubView(0, buffer.Length / 2),
                     2,
                     4,
@@ -215,14 +216,14 @@ namespace LightningSequence
 
                 // Creates a sequence (from 0 to buffer.Length / 2 - 1).
                 // Note that this overload requires an explicit accelerator stream.
-                lc.RepeatedBatchedSequence(
-                    lc.DefaultStream,
+                accl.RepeatedBatchedSequence(
+                    accl.DefaultStream,
                     buffer.View.GetSubView(buffer.Length / 2),
                     6,
                     8,
                     new Int32Sequencer());
 
-                lc.Synchronize();
+                accl.Synchronize();
 
                 var data = buffer.GetAsArray();
                 for (int i = 0, e = data.Length; i < e; ++i)
@@ -235,17 +236,16 @@ namespace LightningSequence
             using (var context = new Context())
             {
                 // For each available accelerator...
-                foreach (var acceleratorId in LightningContext.Accelerators)
+                foreach (var acceleratorId in Accelerator.Accelerators)
                 {
-                    // A lightning context encapsulates an ILGPU accelerator
-                    using (var lc = LightningContext.CreateContext(context, acceleratorId))
+                    using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
-                        Console.WriteLine($"Performing operations on {lc}");
+                        Console.WriteLine($"Performing operations on {accelerator}");
 
-                        Sequence(lc);
-                        RepeatedSequence(lc);
-                        BatchedSequence(lc);
-                        RepeatedBatchedSequence(lc);
+                        Sequence(accelerator);
+                        RepeatedSequence(accelerator);
+                        BatchedSequence(accelerator);
+                        RepeatedBatchedSequence(accelerator);
                     }
                 }
             }

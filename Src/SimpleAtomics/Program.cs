@@ -53,37 +53,6 @@ namespace SimpleAtomics
             Atomic.Xor(dataView.GetVariableView(6), constant);
         }
 
-        static void CompileAndLaunchKernel(
-            SimpleKernel.SampleKernelLoader loader,
-            Accelerator accelerator,
-            MethodInfo method)
-        {
-            Console.WriteLine("Invoking kernel method: " + method);
-
-            loader.CompileAndLaunchKernel(
-                accelerator,
-                method,
-                kernel =>
-                {
-                    using (var buffer = accelerator.Allocate<int>(7))
-                    {
-                        // Initialize buffer to zero
-                        buffer.MemSetToZero();
-
-                        // Launch buffer.Length many threads and pass a view to buffer
-                        kernel.Launch(1024, buffer.View, 4);
-
-                        // Wait for the kernel to finish...
-                        accelerator.Synchronize();
-
-                        // Resolve data
-                        var data = buffer.GetAsArray();
-                        for (int i = 0, e = data.Length; i < e; ++i)
-                            Console.WriteLine($"Data[{i}] = {data[i]}");
-                    }
-                });
-        }
-
         /// <summary>
         /// Launches a simple 1D kernel.
         /// </summary>
@@ -98,15 +67,24 @@ namespace SimpleAtomics
                     // Create default accelerator for the given accelerator id
                     using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
-                        using (var loader = new SimpleKernel.SampleKernelLoader())
+                        Console.WriteLine($"Performing operations on {accelerator}");
+                        var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                            Index, ArrayView<int>, int>(AtomicOperationKernel);
+                        using (var buffer = accelerator.Allocate<int>(7))
                         {
-                            Console.WriteLine($"Performing operations on {accelerator}");
-                            CompileAndLaunchKernel(
-                                loader,
-                                accelerator,
-                                typeof(Program).GetMethod(
-                                    nameof(AtomicOperationKernel),
-                                    BindingFlags.NonPublic | BindingFlags.Static));
+                            // Initialize buffer to zero
+                            buffer.MemSetToZero();
+
+                            // Launch buffer.Length many threads and pass a view to buffer
+                            kernel(1024, buffer.View, 4);
+
+                            // Wait for the kernel to finish...
+                            accelerator.Synchronize();
+
+                            // Resolve data
+                            var data = buffer.GetAsArray();
+                            for (int i = 0, e = data.Length; i < e; ++i)
+                                Console.WriteLine($"Data[{i}] = {data[i]}");
                         }
                     }
                 }

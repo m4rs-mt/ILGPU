@@ -14,7 +14,7 @@ using ILGPU.Runtime;
 using System;
 using System.Reflection;
 
-namespace ImplicitlyGroupedKernelDelegates
+namespace LowLevelKernelCompilation
 {
     class Program
     {
@@ -42,6 +42,83 @@ namespace ImplicitlyGroupedKernelDelegates
         }
 
         /// <summary>
+        /// Explicitly-grouped kernels receive an index type (first parameter) of type:
+        /// <see cref="GroupedIndex"/>, <see cref="GroupedIndex2"/> or <see cref="GroupedIndex3"/>.
+        /// These kernel types expose the underlying blocking/grouping semantics of a GPU
+        /// and allow for highly efficient implementation of kernels for different GPUs.
+        /// The semantics of theses kernels are equivalent to kernel implementations in CUDA.
+        /// Explicitly-grouped kernels can use warp and group-based intrinsics without
+        /// restrictions (in contrast to implicitly-grouped kernels).
+        /// An explicitly-grouped kernel can be loaded with:
+        /// - LoadKernel
+        /// </summary>
+        /// <param name="index">The current thread index.</param>
+        /// <param name="dataView">The view pointing to our memory buffer.</param>
+        /// <param name="constant">A uniform constant.</param>
+        static void GroupedKernel(
+            GroupedIndex index,          // The grouped thread index (1D in this case)
+            ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
+            int constant)                // A sample uniform constant
+        {
+            // Compute the global 1D index for accessing the data view
+            var globalIndex = index.ComputeGlobalIndex();
+
+            if (globalIndex < dataView.Length)
+                dataView[globalIndex] = globalIndex + constant;
+
+            // Note: this explicitly grouped kernel implements the same functionality 
+            // as MyKernel in the ImplicitlyGroupedKernels sample.
+        }
+
+        /// <summary>
+        /// Compiles and launches an explicltly-grouped kernel.
+        /// </summary>
+        static void CompileAndLaunchKernel(Accelerator accelerator, int groupSize)
+        {
+            // Create a backend for this device
+            using (var backend = accelerator.CreateBackend())
+            {
+                // Create a new compile unit using the created backend
+                using (var compileUnit = accelerator.Context.CreateCompileUnit(backend))
+                {
+                    // Resolve and compile method into a kernel
+                    var method = typeof(Program).GetMethod(nameof(GroupedKernel), BindingFlags.NonPublic | BindingFlags.Static);
+                    var compiledKernel = backend.Compile(compileUnit, method);
+                    // Info: use compiledKernel.GetBuffer() to retrieve the compiled kernel program data
+
+                    // -------------------------------------------------------------------------------
+                    // Load the explicitly grouped kernel
+                    // Note that the kernel has to be disposed manually.
+                    var kernel = accelerator.LoadKernel(compiledKernel);
+                    var launcher = kernel.CreateStreamLauncherDelegate<Action<GroupedIndex, ArrayView<int>, int>>();
+                    // -------------------------------------------------------------------------------
+
+                    using (var buffer = accelerator.Allocate<int>(1024))
+                    {
+                        // You can also use kernel.Launch; however, the generic launch method involves boxing.
+                        launcher(
+                            new GroupedIndex(
+                                (buffer.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
+                                groupSize),                                        // Use the given group size
+                            buffer.View,
+                            42);
+
+                        accelerator.Synchronize();
+
+                            // Resolve and verify data
+                            var data = buffer.GetAsArray();
+                            for (int i = 0, e = data.Length; i < e; ++i)
+                            {
+                                if (data[i] != 42 + i)
+                                    Console.WriteLine($"Error at element location {i}: {data[i]} found");
+                            }
+                    }
+                    kernel.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
         /// Compiles and launches an implicitly-grouped kernel.
         /// </summary>
         static void CompileAndLaunchImplicitlyGroupedKernel(Accelerator accelerator, int groupSize)
@@ -59,13 +136,15 @@ namespace ImplicitlyGroupedKernelDelegates
 
                     // -------------------------------------------------------------------------------
                     // Load the implicitly grouped kernel with the custom group size
+                    // Note that the kernel has to be disposed manually.
                     var kernel = accelerator.LoadImplicitlyGroupedKernel(compiledKernel, groupSize);
                     var launcher = kernel.CreateStreamLauncherDelegate<Action<Index, ArrayView<int>, int>>();
                     // -------------------------------------------------------------------------------
 
                     using (var buffer = accelerator.Allocate<int>(1024))
                     {
-                        // Launch buffer.Length many threads and pass a view to buffer
+                        // Launch buffer.Length many threads and pass a view to buffer.
+                        // You can also use kernel.Launch; however, the generic launch method involves boxing.
                         launcher(buffer.Length, buffer.View, 42);
 
                         // Wait for the kernel to finish...
@@ -105,13 +184,15 @@ namespace ImplicitlyGroupedKernelDelegates
 
                     // -------------------------------------------------------------------------------
                     // Load the implicitly grouped kernel with an automatically determined group size.
+                    // Note that the kernel has to be disposed manually.
                     var kernel = accelerator.LoadAutoGroupedKernel(compiledKernel);
                     var launcher = kernel.CreateStreamLauncherDelegate<Action<Index, ArrayView<int>, int>>();
                     // -------------------------------------------------------------------------------
 
                     using (var buffer = accelerator.Allocate<int>(1024))
                     {
-                        // Launch buffer.Length many threads and pass a view to buffer
+                        // Launch buffer.Length many threads and pass a view to buffer.
+                        // You can also use kernel.Launch; however, the generic launch method involves boxing.
                         launcher(buffer.Length, buffer.View, 42);
 
                         // Wait for the kernel to finish...
@@ -160,6 +241,10 @@ namespace ImplicitlyGroupedKernelDelegates
                         // dramatic performance decreases since many lanes of a warp might remain
                         // unused.
                         CompileAndLaunchImplicitlyGroupedKernel(accelerator, accelerator.WarpSize);
+
+                        // Compiles and launches an explicitly-grouped kernel with a custom group
+                        // size.
+                        CompileAndLaunchKernel(accelerator, accelerator.WarpSize);
                     }
                 }
             }

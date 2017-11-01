@@ -11,6 +11,7 @@
 
 using ILGPU;
 using ILGPU.Lightning;
+using ILGPU.Runtime;
 using System;
 
 namespace LightningTransform
@@ -57,57 +58,56 @@ namespace LightningTransform
             using (var context = new Context())
             {
                 // For each available accelerator...
-                foreach (var acceleratorId in LightningContext.Accelerators)
+                foreach (var acceleratorId in Accelerator.Accelerators)
                 {
-                    // A lightning context encapsulates an ILGPU accelerator
-                    using (var lc = LightningContext.CreateContext(context, acceleratorId))
+                    using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
-                        Console.WriteLine($"Performing operations on {lc}");
+                        Console.WriteLine($"Performing operations on {accelerator}");
 
-                        var sourceBuffer = lc.Allocate<int>(64);
-                        lc.Initialize(sourceBuffer.View, 2);
+                        var sourceBuffer = accelerator.Allocate<int>(64);
+                        accelerator.Initialize(sourceBuffer.View, 2);
 
-                        using (var targetBuffer = lc.Allocate<CustomStruct>(64))
+                        using (var targetBuffer = accelerator.Allocate<CustomStruct>(64))
                         {
                             // Transforms the first half.
                             // Note that the transformer uses the default accelerator stream in this case.
-                            lc.Transform(
+                            accelerator.Transform(
                                 sourceBuffer.View.GetSubView(0, sourceBuffer.Length / 2),
                                 targetBuffer.View,
                                 new IntToCustomStructTransformer());
 
                             // Transforms the second half.
                             // Note that this overload requires an explicit accelerator stream.
-                            lc.Transform(
-                                lc.DefaultStream,
+                            accelerator.Transform(
+                                accelerator.DefaultStream,
                                 sourceBuffer.View.GetSubView(sourceBuffer.Length / 2),
                                 targetBuffer.View.GetSubView(sourceBuffer.Length / 2),
                                 new IntToCustomStructTransformer());
 
-                            lc.Synchronize();
+                            accelerator.Synchronize();
 
                             var data = targetBuffer.GetAsArray();
                             for (int i = 0, e = data.Length; i < e; ++i)
                                 Console.WriteLine($"Data[{i}] = {data[i]}");
                         }
 
-                        using (var targetBuffer = lc.Allocate<CustomStruct>(64))
+                        using (var targetBuffer = accelerator.Allocate<CustomStruct>(64))
                         {
                             // Calling the convenient Transform function on the lightning context
                             // involves internal heap allocations. This can be avoided by constructing
                             // a transformer explicitly:
-                            var transformer = lc.CreateTransformer<int, CustomStruct, IntToCustomStructTransformer>();
+                            var transformer = accelerator.CreateTransformer<int, CustomStruct, IntToCustomStructTransformer>();
 
                             // We can now use the transformer without any further heap allocations
                             // during the invocation. Note that the transformer requires an explicit
                             // accelerator stream.
                             transformer(
-                                lc.DefaultStream,
+                                accelerator.DefaultStream,
                                 sourceBuffer.View,
                                 targetBuffer.View,
                                 new IntToCustomStructTransformer());
 
-                            lc.Synchronize();
+                            accelerator.Synchronize();
 
                             var data = targetBuffer.GetAsArray();
                             for (int i = 0, e = data.Length; i < e; ++i)

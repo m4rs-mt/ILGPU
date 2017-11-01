@@ -57,35 +57,29 @@ namespace SimpleMath
                     using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
-                        using (var loader = new SimpleKernel.SampleKernelLoader())
-                        {
-                            loader.CompileAndLaunchKernel(
-                                accelerator,
-                                typeof(Program).GetMethod(nameof(MathKernel), BindingFlags.NonPublic | BindingFlags.Static),
-                                kernel =>
-                                {
-                                    var buffer = accelerator.Allocate<float>(128);
-                                    var buffer2 = accelerator.Allocate<double>(128);
-                                    var buffer3 = accelerator.Allocate<double>(128);
+                        var kernel = accelerator.LoadAutoGroupedStreamKernel<
+                            Index, ArrayView<float>, ArrayView<double>, ArrayView<double>>(MathKernel);
 
-                                    // Launch buffer.Length many threads
-                                    kernel.Launch(buffer.Length, buffer.View, buffer2.View, buffer3.View);
+                        var buffer = accelerator.Allocate<float>(128);
+                        var buffer2 = accelerator.Allocate<double>(128);
+                        var buffer3 = accelerator.Allocate<double>(128);
 
-                                    // Wait for the kernel to finish...
-                                    accelerator.Synchronize();
+                        // Launch buffer.Length many threads
+                        kernel(buffer.Length, buffer.View, buffer2.View, buffer3.View);
 
-                                    // Resolve and verify data
-                                    var data = buffer.GetAsArray();
-                                    var data2 = buffer2.GetAsArray();
-                                    var data3 = buffer3.GetAsArray();
-                                    for (int i = 0, e = data.Length; i < e; ++i)
-                                        Console.WriteLine($"Math results: {data[i]} (float) {data2[i]} (double [GPUMath]) {data3[i]} (double [.Net Math])");
+                        // Wait for the kernel to finish...
+                        accelerator.Synchronize();
 
-                                    buffer.Dispose();
-                                    buffer2.Dispose();
-                                    buffer3.Dispose();
-                                });
-                        }
+                        // Resolve and verify data
+                        var data = buffer.GetAsArray();
+                        var data2 = buffer2.GetAsArray();
+                        var data3 = buffer3.GetAsArray();
+                        for (int i = 0, e = data.Length; i < e; ++i)
+                            Console.WriteLine($"Math results: {data[i]} (float) {data2[i]} (double [GPUMath]) {data3[i]} (double [.Net Math])");
+
+                        buffer.Dispose();
+                        buffer2.Dispose();
+                        buffer3.Dispose();
                     }
                 }
             }

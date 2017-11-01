@@ -134,37 +134,6 @@ namespace WarpShuffle
         }
 
         /// <summary>
-        /// Compiles and launches an explicltly-grouped kernel.
-        /// </summary>
-        static void CompileAndLaunchKernel(
-            Accelerator accelerator,
-            MethodInfo method,
-            Action<Kernel, GroupedIndex> launcher)
-        {
-            // Create a backend for this device
-            using (var backend = accelerator.CreateBackend())
-            {
-                // Create a new compile unit using the created backend
-                using (var compileUnit = accelerator.Context.CreateCompileUnit(backend))
-                {
-                    // Resolve and compile method into a kernel
-                    var compiledKernel = backend.Compile(compileUnit, method);
-                    // Info: use compiledKernel.GetBuffer() to retrieve the compiled kernel program data
-
-                    // -------------------------------------------------------------------------------
-                    // Load the explicitly grouped kernel
-                    var kernel = accelerator.LoadKernel(compiledKernel);
-                    // -------------------------------------------------------------------------------
-
-                    launcher(kernel, new GroupedIndex(1, accelerator.WarpSize));
-
-                    accelerator.Synchronize();
-                    kernel.Dispose();
-                }
-            }
-        }
-
-        /// <summary>
         /// Launches a simple 1D kernel using warp intrinsics.
         /// </summary>
         static void Main(string[] args)
@@ -180,62 +149,46 @@ namespace WarpShuffle
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
+                        var dimension = new GroupedIndex(1, accelerator.WarpSize);
                         using (var dataTarget = accelerator.Allocate<int>(accelerator.WarpSize))
                         {
-                            CompileAndLaunchKernel(
-                                accelerator,
-                                typeof(Program).GetMethod(nameof(ShuffleDownKernel), BindingFlags.NonPublic | BindingFlags.Static),
-                                (kernel, dimension) =>
-                                {
-                                    dataTarget.MemSetToZero();
+                            // Load the explicitly grouped kernel
+                            var shuffleDownKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<int>>(ShuffleDownKernel);
+                            dataTarget.MemSetToZero();
 
-                                    kernel.Launch(dimension, dataTarget.View);
+                            shuffleDownKernel(dimension, dataTarget.View);
+                            accelerator.Synchronize();
 
-                                    accelerator.Synchronize();
+                            Console.WriteLine("Shuffle-down kernel");
+                            var target = dataTarget.GetAsArray();
+                            for (int i = 0, e = target.Length; i < e; ++i)
+                                Console.WriteLine($"Data[{i}] = {target[i]}");
 
-                                    Console.WriteLine("Shuffle-down kernel");
-                                    var target = dataTarget.GetAsArray();
-                                    for (int i = 0, e = target.Length; i < e; ++i)
-                                        Console.WriteLine($"Data[{i}] = {target[i]}");
-                                });
+                            // Load the explicitly grouped kernel
+                            var reduceKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<int>>(ReduceKernel);
+                            dataTarget.MemSetToZero();
 
+                            reduceKernel(dimension, dataTarget.View);
+                            accelerator.Synchronize();
 
-                            CompileAndLaunchKernel(
-                                accelerator,
-                                typeof(Program).GetMethod(nameof(ReduceKernel), BindingFlags.NonPublic | BindingFlags.Static),
-                                (kernel, dimension) =>
-                                {
-                                    dataTarget.MemSetToZero();
-
-                                    kernel.Launch(dimension, dataTarget.View);
-
-                                    accelerator.Synchronize();
-
-                                    Console.WriteLine("Reduce kernel");
-                                    var target = dataTarget.GetAsArray();
-                                    for (int i = 0, e = target.Length; i < e; ++i)
-                                        Console.WriteLine($"Data[{i}] = {target[i]}");
-                                });
+                            Console.WriteLine("Reduce kernel");
+                            target = dataTarget.GetAsArray();
+                            for (int i = 0, e = target.Length; i < e; ++i)
+                                Console.WriteLine($"Data[{i}] = {target[i]}");
                         }
 
                         using (var dataTarget = accelerator.Allocate<long>(accelerator.WarpSize))
                         {
-                            CompileAndLaunchKernel(
-                                accelerator,
-                                typeof(Program).GetMethod(nameof(CustomShuffleReduceKernel), BindingFlags.NonPublic | BindingFlags.Static),
-                                (kernel, dimension) =>
-                                {
+                            var customShuffleReduceKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<long>>(CustomShuffleReduceKernel);
                                     dataTarget.MemSetToZero();
 
-                                    kernel.Launch(dimension, dataTarget.View);
+                            customShuffleReduceKernel(dimension, dataTarget.View);
+                            accelerator.Synchronize();
 
-                                    accelerator.Synchronize();
-
-                                    Console.WriteLine("Custom shuffle-reduce kernel");
-                                    var target = dataTarget.GetAsArray();
-                                    for (int i = 0, e = target.Length; i < e; ++i)
-                                        Console.WriteLine($"Data[{i}] = {target[i]}");
-                                });
+                            Console.WriteLine("Custom shuffle-reduce kernel");
+                            var target = dataTarget.GetAsArray();
+                            for (int i = 0, e = target.Length; i < e; ++i)
+                                Console.WriteLine($"Data[{i}] = {target[i]}");
                         }
                     }
                 }

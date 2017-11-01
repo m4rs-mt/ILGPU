@@ -389,20 +389,12 @@ namespace IndexImplementation
                         AllocND(accelerator, (idx, dimension) => idx.ComputeLinearIndex(dimension));
                         AllocND(accelerator, (idx, dimension) => (long)idx.ComputeLinearIndex(dimension));
 
-                        using (var loader = new SimpleKernel.SampleKernelLoader())
+                        var kernel = accelerator.LoadAutoGroupedStreamKernel<Index, ArrayView<int, MyIndex4>>(MyKernelND);
+                        using (var buffer = accelerator.Allocate<int, MyIndex4>(Dimension))
                         {
-                            loader.CompileAndLaunchKernel(
-                                accelerator,
-                                typeof(Program).GetMethod(nameof(MyKernelND), BindingFlags.NonPublic | BindingFlags.Static),
-                                kernel =>
-                                {
-                                    using (var buffer = accelerator.Allocate<int, MyIndex4>(Dimension))
-                                    {
-                                        kernel.Launch(Dimension.Size, buffer.View);
+                            kernel(Dimension.Size, buffer.View);
 
-                                        accelerator.Synchronize();
-                                    }
-                                });
+                            accelerator.Synchronize();
                         }
                     }
                 }
