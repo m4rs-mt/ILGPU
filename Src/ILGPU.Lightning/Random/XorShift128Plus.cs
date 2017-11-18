@@ -124,7 +124,8 @@ namespace ILGPU.Lightning.Random
         public long Next(long minValue, long maxValue)
         {
             Debug.Assert(minValue < maxValue, "Values out of range");
-            return (int)(maxValue * NextFloat()) + minValue;
+            var dist = maxValue - minValue;
+            return (long)GPUMath.RoundToEven(dist * NextDouble()) + minValue;
         }
 
         #endregion
