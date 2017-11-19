@@ -79,8 +79,8 @@ namespace ILGPU.Compiler
             });
             InstructionHandlers.Add(ILInstructionType.Brtrue, (generator, instruction) =>
             {
-                generator.CurrentBlock.Push(typeof(bool), ConstInt(generator.LLVMContext.Int1Type, 1, false));
-                generator.MakeBranch(instruction.GetArgumentAs<ILInstructionBranchTargets>(), CompareType.Equal, true);
+                generator.CurrentBlock.Push(typeof(bool), ConstInt(generator.LLVMContext.Int1Type, 0, false));
+                generator.MakeBranch(instruction.GetArgumentAs<ILInstructionBranchTargets>(), CompareType.NotEqual, true);
             });
 
             InstructionHandlers.Add(ILInstructionType.Beq, (generator, instruction) => generator.MakeBranch(instruction.GetArgumentAs<ILInstructionBranchTargets>(), CompareType.Equal, instruction.HasFlags(ILInstructionFlags.Unsigned)));
