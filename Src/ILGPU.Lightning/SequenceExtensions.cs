@@ -216,15 +216,15 @@ namespace ILGPU.Lightning
             where TSequencer : struct, ISequencer<T>
         {
             var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
-            return (stream, view, sequenceLength, sequencer) =>
+            return (stream, view, sequenceBatchLength, sequencer) =>
             {
                 if (!view.IsValid)
                     throw new ArgumentNullException(nameof(view));
                 if (view.Length < 1)
                     throw new ArgumentOutOfRangeException(nameof(view));
-                if (sequenceLength < 1)
-                    throw new ArgumentOutOfRangeException(nameof(sequenceLength));
-                rawSequencer(stream, view.Length, view, sequenceLength, 1, sequencer);
+                if (sequenceBatchLength < 1)
+                    throw new ArgumentOutOfRangeException(nameof(sequenceBatchLength));
+                rawSequencer(stream, view.Length, view, view.Length, sequenceBatchLength, sequencer);
             };
         }
 
@@ -235,21 +235,21 @@ namespace ILGPU.Lightning
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded sequencer.</returns>
-        public static BatchedSequencer<T, TSequencer> CreateRepeatedSequencer<T, TSequencer>(
+        public static RepeatedSequencer<T, TSequencer> CreateRepeatedSequencer<T, TSequencer>(
             this Accelerator accelerator)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
             var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
-            return (stream, view, sequenceBatchLength, sequencer) =>
+            return (stream, view, sequenceLength, sequencer) =>
             {
                 if (!view.IsValid)
                     throw new ArgumentNullException(nameof(view));
                 if (view.Length < 1)
                     throw new ArgumentOutOfRangeException(nameof(view));
-                if (sequenceBatchLength < 1)
-                    throw new ArgumentOutOfRangeException(nameof(sequenceBatchLength));
-                rawSequencer(stream, view.Length, view, view.Length, sequenceBatchLength, sequencer);
+                if (sequenceLength < 1)
+                    throw new ArgumentOutOfRangeException(nameof(sequenceLength));
+                rawSequencer(stream, view.Length, view, sequenceLength, 1, sequencer);
             };
         }
 
