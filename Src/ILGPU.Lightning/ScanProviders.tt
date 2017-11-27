@@ -200,7 +200,7 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache,
             AcceleratorStream stream)
         {
-            var context = NewLightningContext.Get(accelerator);
+            var context = LightningContext.Get(accelerator);
 			context.ScanImplementation.<#= config.Name #>(
                 source,
                 target,

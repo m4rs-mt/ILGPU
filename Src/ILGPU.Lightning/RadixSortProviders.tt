@@ -322,7 +322,7 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache,
             AcceleratorStream stream)
         {
-			var context = NewLightningContext.Get(accelerator);
+			var context = LightningContext.Get(accelerator);
             context.RadixSortImplementation.<#= config.Name #>(
                 source,
                 target,
@@ -444,7 +444,7 @@ namespace ILGPU.Lightning
             MemoryBufferCache cache,
             AcceleratorStream stream)
         {
-			var context = NewLightningContext.Get(accelerator);
+			var context = LightningContext.Get(accelerator);
             context.RadixSortImplementation.<#= config.Name #>(
                 source,
                 target,

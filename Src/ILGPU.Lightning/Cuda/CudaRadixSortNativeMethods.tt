@@ -28,7 +28,7 @@ namespace ILGPU.Lightning.Cuda
     static partial class CudaNativeMethods
     {
 <# foreach (var config in RadixSortConfigurations) { #>
-        [DllImport(NewLightningContext.NativeLibName, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LightningContext.NativeLibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern CudaError <#= config.CudaNativeMethodName #>(
             [In] IntPtr tempStorage,
             [In, Out] ref IntPtr tempStorageSize,
@@ -45,7 +45,7 @@ namespace ILGPU.Lightning.Cuda
 
 <# foreach (var config in RadixSortConfigurations) { #>
 <#      foreach (var valueType in GetRadixSortPairTypes(config)) { #>
-        [DllImport(NewLightningContext.NativeLibName, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LightningContext.NativeLibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern CudaError <#= config.CudaNativeMethodName #><#= valueType.Name #>Pairs(
             [In] IntPtr tempStorage,
             [In, Out] ref IntPtr tempStorageSize,

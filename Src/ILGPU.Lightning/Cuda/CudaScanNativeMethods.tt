@@ -28,7 +28,7 @@ namespace ILGPU.Lightning.Cuda
     static partial class CudaNativeMethods
     {
 <# foreach (var config in ScanConfigurations) { #>
-        [DllImport(NewLightningContext.NativeLibName, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LightningContext.NativeLibName, CallingConvention = CallingConvention.Cdecl)]
         public static extern CudaError <#= config.CudaNativeMethodName #>(
             [In] IntPtr tempStorage,
             [In, Out] ref IntPtr tempStorageSize,
