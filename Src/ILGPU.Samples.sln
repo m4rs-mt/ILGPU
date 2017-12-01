@@ -1,10 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2005
+VisualStudioVersion = 15.0.27004.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.SharpDX.SampleBuffer", "ILGPU.SharpDX.SampleBuffer\ILGPU.SharpDX.SampleBuffer.csproj", "{83299C9F-1A2F-45BF-BB06-E30E0DE8F9A5}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceInfo", "DeviceInfo\DeviceInfo.csproj", "{715584CD-87DA-4F1F-86C3-A3D9AB50EE53}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ILGPU", "ILGPU", "{60D61949-4B05-4BAB-9BF7-C8BA2EF905AB}"
@@ -43,8 +41,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleStructures", "SimpleS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleConstants", "SimpleConstants\SimpleConstants.csproj", "{AE391688-AA58-49E1-B0E8-9FDA25DA23BD}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ILGU.SharpDX", "ILGU.SharpDX", "{B2E1E074-796A-4649-902B-AE279E3AF083}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningSequence", "LightningSequence\LightningSequence.csproj", "{B3E1FB45-B89D-4B48-B6C8-EE94AA5355F3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningInitialize", "LightningInitialize\LightningInitialize.csproj", "{D06E4E0F-9F88-4F14-A611-2F72B9394928}"
@@ -71,10 +67,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{83299C9F-1A2F-45BF-BB06-E30E0DE8F9A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{83299C9F-1A2F-45BF-BB06-E30E0DE8F9A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{83299C9F-1A2F-45BF-BB06-E30E0DE8F9A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{83299C9F-1A2F-45BF-BB06-E30E0DE8F9A5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{715584CD-87DA-4F1F-86C3-A3D9AB50EE53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{715584CD-87DA-4F1F-86C3-A3D9AB50EE53}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{715584CD-87DA-4F1F-86C3-A3D9AB50EE53}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -176,7 +168,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{83299C9F-1A2F-45BF-BB06-E30E0DE8F9A5} = {B2E1E074-796A-4649-902B-AE279E3AF083}
 		{715584CD-87DA-4F1F-86C3-A3D9AB50EE53} = {A0D83DD0-4DFE-4350-A652-8AB0B0F62F02}
 		{BB818792-0B95-477F-AF76-B617088E4B65} = {A0D83DD0-4DFE-4350-A652-8AB0B0F62F02}
 		{1B1ADAAB-8B74-4FDA-B7CF-8DAC6F3E18CC} = {A0D83DD0-4DFE-4350-A652-8AB0B0F62F02}
