@@ -12,6 +12,7 @@
 using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
@@ -27,6 +28,31 @@ namespace ILGPU.Util
         /// The windows operating system.
         /// </summary>
         Windows,
+
+        /// <summary>
+        /// The Linux/Ubuntu operating system.
+        /// </summary>
+        Ubuntu,
+
+        /// <summary>
+        /// The Linux/CentOS operating system.
+        /// </summary>
+        Fedora,
+
+        /// <summary>
+        /// The Linux/CentOS operating system.
+        /// </summary>
+        CentOS,
+
+        /// <summary>
+        /// The Linux/Debian operating system.
+        /// </summary>
+        Debian,
+
+        /// <summary>
+        /// The MacOS operating system.
+        /// </summary>
+        Darwin
     }
 
     /// <summary>
@@ -37,6 +63,11 @@ namespace ILGPU.Util
         private static readonly IReadOnlyDictionary<OSPlatform, string> LibraryPathVariableNames = new Dictionary<OSPlatform, string>()
         {
             { OSPlatform.Windows, "PATH" },
+            { OSPlatform.Ubuntu, "LD_LIBRARY_PATH" },
+            { OSPlatform.Fedora, "LD_LIBRARY_PATH" },
+            { OSPlatform.CentOS, "LD_LIBRARY_PATH" },
+            { OSPlatform.Debian, "LD_LIBRARY_PATH" },
+            { OSPlatform.Darwin, "DYLD_LIBRARY_PATH" },
         };
 
         [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline")]
@@ -101,7 +132,18 @@ namespace ILGPU.Util
                     Environment.SetEnvironmentVariable(LibraryPathVariable, currentPath, EnvironmentVariableTarget.Process);
                     break;
                 default:
-                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedOSPlatform);
+                    // Look for all dynamic libraries in this folder and symlink them to the current target directory
+                    // TODO: this is a workaround for the limited DLLImport functionality of dotnetcore.
+                    // As soon as this functionality is extended, we can remove this workaround and adapt the search path.
+                    foreach (var file in Directory.GetFiles(libDir))
+                    {
+                        var targetPath = Path.Combine(rootDir, Path.GetFileName(file));
+                        if (File.Exists(targetPath))
+                            File.Delete(targetPath);
+                        using (var p = Process.Start("ln", $"-s \"{file}\" \"{targetPath}\""))
+                            p.WaitForExit();
+                    }
+                    break;
             }
         }
     }

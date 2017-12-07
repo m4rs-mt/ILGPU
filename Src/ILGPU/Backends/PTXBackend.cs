@@ -97,6 +97,24 @@ namespace ILGPU.Backends
         const string X86Layout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64";
         const string X64Layout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64";
 
+        /// <summary>
+        /// Represents possible environmet variables of the Cuda SDK.
+        /// </summary>
+        private static readonly string[] CudaPathVariables =
+        {
+            "CUDA_PATH",
+            "CUDA_HOME"
+        };
+
+        /// <summary>
+        /// Represents possible locations of libdevice.
+        /// </summary>
+        private static readonly string[] LibDeviceLocations =
+        {
+            "libdevice",
+            "nvvm/libdevice"
+        };
+
         #endregion
 
         #region Static
@@ -157,18 +175,34 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
+        /// Determines the current Cuda directory.
+        /// </summary>
+        /// <returns>The current Cuda directory.</returns>
+        private static string ResolveCudaDir()
+        {
+            foreach (var variable in CudaPathVariables)
+            {
+                var cudaPath = Environment.GetEnvironmentVariable(variable) ?? string.Empty;
+                if (Directory.Exists(cudaPath))
+                    return cudaPath;
+            }
+            throw new InvalidOperationException(ErrorMessages.CudaPathNotFound);
+        }
+
+        /// <summary>
         /// Determines the current lib-device directory.
         /// </summary>
         /// <returns>The current lib-device directory.</returns>
         public static string ResolveLibDeviceDir()
         {
-            var path = Environment.GetEnvironmentVariable("CUDA_PATH");
-            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
-                throw new InvalidOperationException(ErrorMessages.CudaPathNotFound);
-            path = Path.Combine(path, "nvvm/libdevice");
-            if (!Directory.Exists(path))
-                throw new InvalidOperationException(ErrorMessages.LibDevicePathNotFound);
-            return path;
+            var cudaPath = ResolveCudaDir();
+            foreach (var location in LibDeviceLocations)
+            {
+                var path = Path.Combine(cudaPath, location);
+                if (Directory.Exists(path))
+                    return path;
+            }
+            throw new InvalidOperationException(ErrorMessages.LibDevicePathNotFound);
         }
 
         /// <summary>
