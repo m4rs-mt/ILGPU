@@ -10,11 +10,13 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.Compiler.DebugInformation;
 using ILGPU.Compiler.Intrinsic;
 using ILGPU.LLVM;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using static ILGPU.LLVM.LLVMMethods;
 
 namespace ILGPU
@@ -30,6 +32,7 @@ namespace ILGPU
         private int compileUnitCounter = 0;
         private readonly List<IDeviceFunctions> deviceFunctions = new List<IDeviceFunctions>(10);
         private readonly List<IDeviceTypes> deviceTypes = new List<IDeviceTypes>(10);
+        private DebugInformationManager debugInformationManager = new DebugInformationManager();
 
         /// <summary>
         /// Constructs a new ILGPU main context
@@ -92,6 +95,11 @@ namespace ILGPU
         /// Returns the custom device-type handlers.
         /// </summary>
         public IReadOnlyList<IDeviceTypes> DeviceTypes => deviceTypes;
+
+        /// <summary>
+        /// Returns the encapsulated debug-information manager.
+        /// </summary>
+        public DebugInformationManager DebugInformationManager => debugInformationManager;
 
         #endregion
 
@@ -161,6 +169,7 @@ namespace ILGPU
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
+        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "debugInformationManager", Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
             if (OptimizeModulePassManager.Pointer != IntPtr.Zero)
@@ -180,6 +189,7 @@ namespace ILGPU
                 ContextDispose(LLVMContext);
                 LLVMContext = default(LLVMContextRef);
             }
+            Dispose(ref debugInformationManager);
         }
 
         #endregion

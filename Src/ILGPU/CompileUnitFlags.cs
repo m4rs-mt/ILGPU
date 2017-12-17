@@ -25,9 +25,14 @@ namespace ILGPU
         None = 0,
 
         /// <summary>
+        /// Enables debug information (if available),
+        /// </summary>
+        EnableDebugInformation = 1 << 0,
+
+        /// <summary>
         /// Enables assertions.
         /// </summary>
-        EnableAssertions = 1 << 0,
+        EnableAssertions = 1 << 1,
 
         /// <summary>
         /// Loads from mutable static fields are rejected by default.
@@ -35,19 +40,19 @@ namespace ILGPU
         /// compilation. Adding this flags causes values from mutable
         /// static fields to be inlined instead of rejected.
         /// </summary>
-        InlineMutableStaticFieldValues = 1 << 1,
+        InlineMutableStaticFieldValues = 1 << 2,
 
         /// <summary>
         /// Stores to static fields are rejected by default.
         /// Adding this flag causes stores to static fields
         /// to be silently ignored instead of rejected.
         /// </summary>
-        IgnoreStaticFieldStores = 1 << 2,
+        IgnoreStaticFieldStores = 1 << 3,
 
         /// <summary>
         /// Represents fast math compilation flags.
         /// </summary>
-        FastMath = 1 << 3,
+        FastMath = 1 << 4,
 
         /// <summary>
         /// Forces the use of 32bit floats instead of 64bit floats.
@@ -55,14 +60,14 @@ namespace ILGPU
         /// all 64bit float conversions. This settings might improve
         /// performance dramatically but might cause precision loss.
         /// </summary>
-        Force32BitFloats = 1 << 4,
+        Force32BitFloats = 1 << 5,
 
         /// <summary>
         /// Forces the use of the gpu-math library in all possible
         /// situations. This applies to default floating-point operations
         /// like x/y or x*y.
         /// </summary>
-        UseGPUMath = 1 << 5,
+        UseGPUMath = 1 << 6,
 
         /// <summary>
         /// Flushes denormals in floats to zero.

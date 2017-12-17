@@ -173,14 +173,15 @@ namespace ILGPU
         /// </summary>
         /// <param name="compilationContext">The current compilation context.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Disassemble(CompilationContext compilationContext)
+        private void Disassemble(CompilationContext compilationContext)
         {
             Debug.Assert(compilationContext != null, "Invalid compilation context");
             if (DisassembledMethod != null)
                 return;
             DisassembledMethod = DisassembledMethod.Disassemble(
                 MethodBase,
-                compilationContext.NotSupportedILInstructionHandler);
+                compilationContext.NotSupportedILInstructionHandler,
+                compilationContext.CurrentSequencePointEnumerator);
             if (DisassembledMethod.Method.GetMethodBody().ExceptionHandlingClauses.Count > 0)
                 throw compilationContext.GetNotSupportedException(
                     ErrorMessages.CustomExceptionSemantics, MethodBase.Name);

@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Compiler.DebugInformation;
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -624,6 +625,28 @@ namespace ILGPU.Compiler
             ushort popCount,
             ushort pushCount,
             object argument)
+            : this(offset, type, flagsContext, popCount, pushCount, argument, null)
+        { }
+
+        /// <summary>
+        /// Constructs a new il instruction.
+        /// </summary>
+        /// <param name="offset">The instruction offset in bytes.</param>
+        /// <param name="type">The instruction type.</param>
+        /// <param name="flagsContext">The flags context.</param>
+        /// <param name="popCount">The number of elements to pop from the stack.</param>
+        /// <param name="pushCount">The number of elements to push onto the stack.</param>
+        /// <param name="argument">The instruction argument.</param>
+        /// <param name="sequencePoint">The current sequence point.</param>
+        [CLSCompliant(false)]
+        public ILInstruction(
+            int offset,
+            ILInstructionType type,
+            ILInstructionFlagsContext flagsContext,
+            ushort popCount,
+            ushort pushCount,
+            object argument,
+            SequencePoint? sequencePoint)
         {
             Offset = offset;
             InstructionType = type;
@@ -631,6 +654,7 @@ namespace ILGPU.Compiler
             PopCount = popCount;
             PushCount = pushCount;
             Argument = argument;
+            SequencePoint = sequencePoint;
         }
 
         #endregion
@@ -680,6 +704,11 @@ namespace ILGPU.Compiler
         public bool IsTerminator =>
             InstructionType == ILInstructionType.Ret ||
             Argument is ILInstructionBranchTargets;
+
+        /// <summary>
+        /// Returns the associated sequence point.
+        /// </summary>
+        public SequencePoint? SequencePoint { get; }
 
         #endregion
 

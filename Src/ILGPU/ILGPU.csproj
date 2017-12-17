@@ -33,6 +33,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="System.Reflection.Metadata" Version="1.5.0" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.4.0" />
     </ItemGroup>
 
@@ -139,9 +140,6 @@
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>TypeInformation.cs</LastGenOutput>
         </None>
-    </ItemGroup>
-    <ItemGroup>
-        <None Include="packages.config" />
     </ItemGroup>
     <ItemGroup>
         <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />

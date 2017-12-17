@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Compiler;
+using ILGPU.Compiler.DebugInformation;
 using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
@@ -26,16 +27,52 @@ namespace ILGPU
     /// <remarks>Members of this class are not thread safe.</remarks>
     sealed class CompilationContext
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents a single stack element during processing.
+        /// </summary>
+        private struct CallStackEntry
+        {
+            /// <summary>
+            /// Constructs a new call-stack entry.
+            /// </summary>
+            /// <param name="method">The method.</param>
+            /// <param name="sequencePointEnumerator">The assocated sequence-point enumerator.</param>
+            public CallStackEntry(
+                MethodBase method,
+                SequencePointEnumerator sequencePointEnumerator)
+            {
+                Method = method;
+                SequencePointEnumerator = sequencePointEnumerator;
+            }
+
+            /// <summary>
+            /// Returns the assocated method.
+            /// </summary>
+            public MethodBase Method { get; }
+
+            /// <summary>
+            /// Returns the assocated sequence-point enumerator.
+            /// </summary>
+            public SequencePointEnumerator SequencePointEnumerator { get; }
+        }
+
+        #endregion
+
         #region Instance
 
         private readonly HashSet<MethodBase> calledMethods = new HashSet<MethodBase>();
-        private readonly Stack<MethodBase> callStack = new Stack<MethodBase>();
+        private readonly Stack<CallStackEntry> callStack = new Stack<CallStackEntry>();
 
         /// <summary>
         /// Constructs a new compilation context.
         /// </summary>
-        public CompilationContext()
+        /// <param name="compileUnit">The associated compile unit.</param>
+        public CompilationContext(CompileUnit compileUnit)
         {
+            Debug.Assert(compileUnit != null, "Invalid compile unit");
+            CompileUnit = compileUnit;
             NotSupportedILInstructionHandler = (sender, opCode) =>
             {
                 switch (opCode)
@@ -57,6 +94,11 @@ namespace ILGPU
         #region Properties
 
         /// <summary>
+        /// Returns the associated compile unit.
+        /// </summary>
+        public CompileUnit CompileUnit { get; }
+
+        /// <summary>
         /// Returns an event handler that can the handle <see cref="DisassemblerContext.NotSupportedILInstruction"/>
         /// event of a <see cref="DisassemblerContext"/>.
         /// </summary>
@@ -65,7 +107,18 @@ namespace ILGPU
         /// <summary>
         /// Returns the current method that is being processed.
         /// </summary>
-        public MethodBase CurrentMethod => callStack.Count > 0 ? callStack.Peek() : null;
+        public MethodBase CurrentMethod => callStack.Count > 0 ? callStack.Peek().Method : null;
+
+        /// <summary>
+        /// Returns the assocated debug-information manager.
+        /// </summary>
+        public DebugInformationManager DebugInformationManager => CompileUnit.Context.DebugInformationManager;
+
+        /// <summary>
+        /// Returns the current sequence-point enumerator.
+        /// </summary>
+        public SequencePointEnumerator CurrentSequencePointEnumerator =>
+            callStack.Count > 0 ? callStack.Peek().SequencePointEnumerator : SequencePointEnumerator.Empty;
 
         #endregion
 
@@ -81,7 +134,16 @@ namespace ILGPU
             if (calledMethods.Contains(method))
                 throw GetNotSupportedException(ErrorMessages.NotSupportedRecursiveProgram);
             calledMethods.Add(method);
-            callStack.Push(method);
+            // Always use sequence-point information during debugging for
+            // proper error messages
+#if DEBUG
+            var enumerator = DebugInformationManager.LoadSequencePoints(method);
+#else
+            var enumerator = CompileUnit.UseDebugInformation ?
+                DebugInformationManager.LoadSequencePoints(method) :
+                SequencePointEnumerator.Empty;
+#endif
+            callStack.Push(new CallStackEntry(method, enumerator));
         }
 
         /// <summary>
@@ -92,7 +154,7 @@ namespace ILGPU
         {
             Debug.Assert(method != null, "Invalid method");
             Debug.Assert(calledMethods.Contains(method), "Method not registered");
-            Debug.Assert(callStack.Peek() == method, "Method not on top of stack");
+            Debug.Assert(callStack.Peek().Method == method, "Method not on top of stack");
             callStack.Pop();
             calledMethods.Remove(method);
         }
@@ -108,9 +170,15 @@ namespace ILGPU
             foreach (var entry in callStack)
             {
                 target.Append(prefix);
-                target.Append(entry.DeclaringType.Name);
+                target.Append(entry.Method.DeclaringType.Name);
                 target.Append('.');
-                target.AppendLine(entry.Name);
+                target.Append(entry.Method.Name);
+                if (entry.SequencePointEnumerator.TryGetCurrentDebugLocationString(out string debugLocationString))
+                {
+                    target.Append(" at ");
+                    target.Append(debugLocationString);
+                }
+                target.AppendLine();
             }
         }
 
@@ -188,7 +256,15 @@ namespace ILGPU
                 builder.Append("Current method: ");
                 builder.Append(CurrentMethod.DeclaringType.Name);
                 builder.Append('.');
-                builder.AppendLine(CurrentMethod.Name);
+                builder.Append(CurrentMethod.Name);
+
+                if (CurrentSequencePointEnumerator.TryGetCurrentDebugLocationString(out string debugLocationString))
+                {
+                    builder.Append(" at ");
+                    builder.Append(debugLocationString);
+                }
+
+                builder.AppendLine();
                 builder.AppendLine("Method callstack:");
                 ComputeCallStackString(builder, "\t");
             }

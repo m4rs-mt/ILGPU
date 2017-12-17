@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Compiler.DebugInformation;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
@@ -30,9 +31,11 @@ namespace ILGPU.Compiler
 
         internal DisassembledMethod(
             MethodBase method,
-            List<ILInstruction> instructions,
+            IReadOnlyList<ILInstruction> instructions,
             int maxStackSize)
         {
+            Debug.Assert(method != null, "Invalid method");
+            Debug.Assert(instructions != null && instructions.Count > 0, "Invalid instructions");
             Method = method;
             Instructions = instructions;
             MaxStackSize = maxStackSize;
@@ -46,6 +49,11 @@ namespace ILGPU.Compiler
         /// Returns the method that was disassembled.
         /// </summary>
         public MethodBase Method { get; }
+
+        /// <summary>
+        /// Returns the first disassembled instruction.
+        /// </summary>
+        public ILInstruction FirstInstruction => Instructions[0];
 
         /// <summary>
         /// Returns the disassembled instructions.
@@ -122,7 +130,18 @@ namespace ILGPU.Compiler
         /// <returns>The disassembled method.</returns>
         public static DisassembledMethod Disassemble(MethodBase method)
         {
-            var context = new DisassemblerContext(method);
+            return Disassemble(method, SequencePointEnumerator.Empty);
+        }
+
+        /// <summary>
+        /// Disassembles the given method.
+        /// </summary>
+        /// <param name="method">The method to disassemble.</param>
+        /// <param name="sequencePointEnumerator">The assocated sequence-point enumerator.</param>
+        /// <returns>The disassembled method.</returns>
+        public static DisassembledMethod Disassemble(MethodBase method, SequencePointEnumerator sequencePointEnumerator)
+        {
+            var context = new DisassemblerContext(method, sequencePointEnumerator);
             return context.Disassemble();
         }
 
@@ -136,7 +155,22 @@ namespace ILGPU.Compiler
             MethodBase method,
             EventHandler<ILOpCode> notSupportedILinstructionHandler)
         {
-            var context = new DisassemblerContext(method);
+            return Disassemble(method, notSupportedILinstructionHandler, SequencePointEnumerator.Empty);
+        }
+
+        /// <summary>
+        /// Disassembles the given method.
+        /// </summary>
+        /// <param name="method">The method to disassemble.</param>
+        /// <param name="notSupportedILinstructionHandler">Event handler for IL instructions that are not supported.</param>
+        /// <param name="sequencePointEnumerator">The assocated sequence-point enumerator.</param>
+        /// <returns>The disassembled method.</returns>
+        internal static DisassembledMethod Disassemble(
+            MethodBase method,
+            EventHandler<ILOpCode> notSupportedILinstructionHandler,
+            SequencePointEnumerator sequencePointEnumerator)
+        {
+            var context = new DisassemblerContext(method, sequencePointEnumerator);
             context.NotSupportedILInstruction += notSupportedILinstructionHandler;
             return context.Disassemble();
         }
@@ -202,12 +236,18 @@ namespace ILGPU.Compiler
         private readonly List<ILInstruction> instructions;
 
         /// <summary>
+        /// Represents the associated sequence-point enumerator.
+        /// </summary>
+        private SequencePointEnumerator debugInformationEnumerator;
+
+        /// <summary>
         /// Constructs a new disassembler.
         /// </summary>
         /// <param name="methodBase">The target method.</param>
-        public DisassemblerContext(MethodBase methodBase)
+        /// <param name="sequencePointEnumerator">The assocated sequence-point enumerator.</param>
+        public DisassemblerContext(MethodBase methodBase, SequencePointEnumerator sequencePointEnumerator)
         {
-            MethodBase = methodBase;
+            MethodBase = methodBase ?? throw new ArgumentNullException(nameof(methodBase));
             if (MethodBase is MethodInfo)
                 MethodGenericArguments = MethodBase.GetGenericArguments();
             else
@@ -215,6 +255,7 @@ namespace ILGPU.Compiler
             TypeGenericArguments = MethodBase.DeclaringType.GetGenericArguments();
             MethodBody = MethodBase.GetMethodBody();
             Debug.Assert(MethodBody != null, "Invalid method body");
+            debugInformationEnumerator = sequencePointEnumerator ?? SequencePointEnumerator.Empty;
             il = MethodBody.GetILAsByteArray();
             instructions = new List<ILInstruction>(il.Length);
         }
@@ -253,6 +294,11 @@ namespace ILGPU.Compiler
         /// </summary>
         public Type[] TypeGenericArguments { get; }
 
+        /// <summary>
+        /// Returns the current sequence point.
+        /// </summary>
+        public SequencePoint? CurrentSequencePoint { get; private set; }
+
         #endregion
 
         #region Methods
@@ -268,6 +314,8 @@ namespace ILGPU.Compiler
             {
                 instructionOffset = ilOffset;
                 var opCode = ReadOpCode();
+                if (debugInformationEnumerator.MoveTo(instructionOffset))
+                    CurrentSequencePoint = debugInformationEnumerator.Current;
                 if (PrefixHandlers.TryGetValue(opCode, out PrefixHandler prefixHandler))
                     prefixHandler(this);
                 else if (OpCodeHandlers.TryGetValue(opCode, out OpCodeHandler opCodeHandler))
@@ -336,7 +384,12 @@ namespace ILGPU.Compiler
             ushort pushCount,
             object argument = null)
         {
-            AppendInstructionWithFlags(type, popCount, pushCount, ILInstructionFlags.None, argument);
+            AppendInstructionWithFlags(
+                type,
+                popCount,
+                pushCount,
+                ILInstructionFlags.None,
+                argument);
         }
 
         /// <summary>
@@ -361,7 +414,8 @@ namespace ILGPU.Compiler
                 new ILInstructionFlagsContext(additionalFlags | flags, flagsArgument),
                 popCount,
                 pushCount,
-                argument));
+                argument,
+                CurrentSequencePoint));
         }
 
         #region Metadata

@@ -109,7 +109,7 @@ namespace ILGPU
             AddScalarReplAggregatesPassSSA(CodeGenFunctionPassManager);
 
             abiSpecification = backend.CreateABISpecification(this);
-            CompilationContext = new CompilationContext();
+            CompilationContext = new CompilationContext(this);
         }
 
         #endregion
@@ -130,6 +130,11 @@ namespace ILGPU
         /// Returns true iff the current flags contain the <see cref="CompileUnitFlags.Force32BitFloats"/> flag.
         /// </summary>
         public bool Force32BitFloats => HasFlags(CompileUnitFlags.Force32BitFloats);
+
+        /// <summary>
+        /// Returns true iff the current flags contain the <see cref="CompileUnitFlags.EnableDebugInformation"/> flag.
+        /// </summary>
+        public bool UseDebugInformation => HasFlags(CompileUnitFlags.EnableDebugInformation);
 
         /// <summary>
         /// Returns the associated context.
