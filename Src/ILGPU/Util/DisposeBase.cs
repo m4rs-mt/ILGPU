@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using System;
+using System.Threading;
 
 namespace ILGPU.Util
 {
@@ -18,12 +19,14 @@ namespace ILGPU.Util
     /// </summary>
     public abstract class DisposeBase : IDisposable
     {
+        private volatile int disposeBarrier = 0;
+
         /// <summary>
         /// Triggers the 'dispose' functionality of this object.
         /// </summary>
         public void Dispose()
         {
-            Dispose(true);
+            DisposeDriver(true);
             GC.SuppressFinalize(this);
         }
 
@@ -32,8 +35,18 @@ namespace ILGPU.Util
        /// </summary>
         ~DisposeBase()
         {
-            // Finalizer calls Dispose(false)
-            Dispose(false);
+            DisposeDriver(false);
+        }
+
+        /// <summary>
+        /// Thread-safe wrapper for the actual dispose functionality.
+        /// </summary>
+        /// <param name="disposing">True, iff the method is not called by the finalizer.</param>
+        private void DisposeDriver(bool disposing)
+        {
+            if (Interlocked.CompareExchange(ref disposeBarrier, 1, 0) != 0)
+                return;
+            Dispose(disposing);
         }
 
         /// <summary>
