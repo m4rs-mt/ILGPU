@@ -1021,8 +1021,6 @@ namespace ILGPU.Runtime.CPU
         {
             base.Dispose(disposing);
 
-            if (threads == null)
-                return;
             lock (taskSynchronizationObject)
             {
                 running = false;

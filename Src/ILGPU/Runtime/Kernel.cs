@@ -11,7 +11,6 @@
 
 using ILGPU.Compiler;
 using ILGPU.Resources;
-using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Reflection;
@@ -24,7 +23,7 @@ namespace ILGPU.Runtime
     /// Represents the base class for all runtime kernels.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract class Kernel : DisposeBase
+    public abstract class Kernel : AcceleratorObject
     {
         #region Constants
 
@@ -57,8 +56,8 @@ namespace ILGPU.Runtime
             Accelerator accelerator,
             CompiledKernel compiledKernel,
             MethodInfo launcher)
+            : base(accelerator)
         {
-            Accelerator = accelerator ?? throw new ArgumentNullException(nameof(accelerator));
             CompiledKernel = compiledKernel ?? throw new ArgumentNullException(nameof(compiledKernel));
             Launcher = launcher;
         }
@@ -66,11 +65,6 @@ namespace ILGPU.Runtime
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Returns the associated accelerator.
-        /// </summary>
-        public Accelerator Accelerator { get; }
 
         /// <summary>
         /// Returns the associated context.

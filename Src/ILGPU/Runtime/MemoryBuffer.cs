@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -22,7 +21,7 @@ namespace ILGPU.Runtime
     /// of ILGPU runtime kernels.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract class MemoryBuffer : DisposeBase, IMemoryBuffer
+    public abstract class MemoryBuffer : AcceleratorObject, IMemoryBuffer
     {
         #region Instance
 
@@ -32,21 +31,16 @@ namespace ILGPU.Runtime
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="length">The length in elements.</param>
         protected MemoryBuffer(Accelerator accelerator, int length)
+            : base(accelerator)
         {
             if (length < 1)
                 throw new ArgumentOutOfRangeException(nameof(length));
-            Accelerator = accelerator ?? throw new ArgumentNullException(nameof(accelerator));
             Length = length;
         }
 
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Returns the associated accelerator.
-        /// </summary>
-        public Accelerator Accelerator { get; }
 
         /// <summary>
         /// Returns the native pointer.

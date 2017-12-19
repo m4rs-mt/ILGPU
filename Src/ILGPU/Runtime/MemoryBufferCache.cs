@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Util;
-using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -24,7 +23,7 @@ namespace ILGPU.Runtime
     /// buffer will be freed and a new buffer will be allocated.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed class MemoryBufferCache : DisposeBase
+    public sealed class MemoryBufferCache : AcceleratorObject
     {
         #region Instance
 
@@ -48,8 +47,8 @@ namespace ILGPU.Runtime
         /// <param name="accelerator">The associated accelerator to allocate memory on.</param>
         /// <param name="initialLength">The initial length of the buffer.</param>
         public MemoryBufferCache(Accelerator accelerator, Index initialLength)
+            : base(accelerator)
         {
-            Accelerator = accelerator ?? throw new ArgumentNullException(nameof(accelerator));
             if (initialLength > 0)
                 cache = accelerator.Allocate<byte, Index>(initialLength);
         }
@@ -57,11 +56,6 @@ namespace ILGPU.Runtime
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Returns the associated accelerator.
-        /// </summary>
-        public Accelerator Accelerator { get; }
 
         /// <summary>
         /// Returns the current cached size in bytes.

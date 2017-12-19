@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System;
 using System.Threading.Tasks;
 
@@ -20,7 +19,7 @@ namespace ILGPU.Runtime
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
-    public abstract class AcceleratorStream : DisposeBase
+    public abstract class AcceleratorStream : AcceleratorObject
     {
         #region Instance
 
@@ -29,7 +28,9 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Constructs a new accelerator stream.
         /// </summary>
-        protected AcceleratorStream()
+        /// <param name="accelerator">The associated accelerator.</param>
+        protected AcceleratorStream(Accelerator accelerator)
+            : base(accelerator)
         {
             synchronizeAction = () => Synchronize();
         }

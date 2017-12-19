@@ -861,9 +861,6 @@ namespace ILGPU.Runtime.Cuda
         {
             base.Dispose(disposing);
 
-            if (contextPtr == IntPtr.Zero)
-                return;
-
             CudaException.ThrowIfFailed(CurrentAPI.DestroyContext(contextPtr));
             contextPtr = IntPtr.Zero;
         }
