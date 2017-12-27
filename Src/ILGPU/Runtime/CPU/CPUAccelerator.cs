@@ -198,6 +198,7 @@ namespace ILGPU.Runtime.CPU
             NumMultiprocessors = 1;
             MaxNumThreadsPerMultiprocessor = NumThreads;
 
+            Bind();
             InitBackend(CreateBackend(), flags);
         }
 
@@ -226,8 +227,8 @@ namespace ILGPU.Runtime.CPU
             return new MSILBackend(Context);
         }
 
-        /// <summary cref="Accelerator.Allocate{T, TIndex}(TIndex)"/>
-        public override MemoryBuffer<T, TIndex> Allocate<T, TIndex>(TIndex extent)
+        /// <summary cref="Accelerator.AllocateInternal{T, TIndex}(TIndex)"/>
+        protected override MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(TIndex extent)
         {
             return new CPUMemoryBuffer<T, TIndex>(this, extent);
         }
@@ -259,14 +260,14 @@ namespace ILGPU.Runtime.CPU
                     typeof(CPUKernelExecutionHandler)));
         }
 
-        /// <summary cref="Accelerator.LoadKernel(CompiledKernel)"/>
-        public override Kernel LoadKernel(CompiledKernel kernel)
+        /// <summary cref="Accelerator.LoadKernelInternal(CompiledKernel)"/>
+        protected override Kernel LoadKernelInternal(CompiledKernel kernel)
         {
             return LoadKernel(kernel, 0);
         }
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernel(CompiledKernel, int)"/>
-        public override Kernel LoadImplicitlyGroupedKernel(
+        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(CompiledKernel, int)"/>
+        protected override Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
             int customGroupSize)
         {
@@ -275,8 +276,8 @@ namespace ILGPU.Runtime.CPU
             return LoadKernel(kernel, customGroupSize);
         }
 
-        /// <summary cref="Accelerator.LoadAutoGroupedKernel(CompiledKernel, out int, out int)"/>
-        public override Kernel LoadAutoGroupedKernel(
+        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
+        protected override Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
             out int groupSize,
             out int minGridSize)
@@ -286,51 +287,45 @@ namespace ILGPU.Runtime.CPU
             return LoadKernel(kernel, groupSize);
         }
 
-        /// <summary cref="Accelerator.CreateStream"/>
-        public override AcceleratorStream CreateStream()
+        /// <summary cref="Accelerator.CreateStreamInternal"/>
+        protected override AcceleratorStream CreateStreamInternal()
         {
-            return new CPUStream();
+            return new CPUStream(this);
         }
 
         /// <summary cref="Accelerator.Synchronize"/>
-        public override void Synchronize()
+        protected override void SynchronizeInternal()
         { }
 
-        /// <summary cref="Accelerator.MakeCurrent"/>
-        public override void MakeCurrent()
+        /// <summary cref="Accelerator.OnBind"/>
+        protected override void OnBind()
+        { }
+
+        /// <summary cref="Accelerator.OnUnbind"/>
+        protected override void OnUnbind()
         { }
 
         #endregion
 
         #region Peer Access
 
-        /// <summary cref="Accelerator.CanAccessPeer(Accelerator)"/>
-        public override bool CanAccessPeer(Accelerator otherAccelerator)
+        /// <summary cref="Accelerator.CanAccessPeerInternal(Accelerator)"/>
+        protected override bool CanAccessPeerInternal(Accelerator otherAccelerator)
         {
             return (otherAccelerator as CPUAccelerator) != null;
         }
 
-        /// <summary cref="Accelerator.EnablePeerAccess(Accelerator)"/>
-        public override void EnablePeerAccess(Accelerator otherAccelerator)
+        /// <summary cref="Accelerator.EnablePeerAccessInternal(Accelerator)"/>
+        protected override void EnablePeerAccessInternal(Accelerator otherAccelerator)
         {
-            if (HasPeerAccess(otherAccelerator))
-                return;
-
-            var cudaAccelerator = otherAccelerator as CPUAccelerator;
-            if (cudaAccelerator == null)
+            if (otherAccelerator as CPUAccelerator == null)
                 throw new InvalidOperationException(RuntimeErrorMessages.CannotEnablePeerAccessToDifferentAcceleratorKind);
-
-            CachedPeerAccelerators.Add(otherAccelerator);
         }
 
         /// <summary cref="Accelerator.DisablePeerAccess(Accelerator)"/>
-        public override void DisablePeerAccess(Accelerator otherAccelerator)
+        protected override void DisablePeerAccessInternal(Accelerator otherAccelerator)
         {
-            if (!HasPeerAccess(otherAccelerator))
-                return;
-
             Debug.Assert(otherAccelerator is CPUAccelerator, "Invalid EnablePeerAccess method");
-            CachedPeerAccelerators.Remove(otherAccelerator);
         }
 
         #endregion

@@ -15,7 +15,6 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
 {
@@ -159,6 +158,12 @@ namespace ILGPU.Runtime
         #region Instance
 
         /// <summary>
+        /// Main object for accelerator synchronization.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly object syncRoot = new object();
+
+        /// <summary>
         /// The default backend instance.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -176,12 +181,6 @@ namespace ILGPU.Runtime
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private MemoryBufferCache memoryCache;
-
-        /// <summary>
-        /// Contains a collection of all peer accelerators.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly HashSet<Accelerator> storedPeerAccelerators = new HashSet<Accelerator>();
 
         /// <summary>
         /// Constructs a new accelerator.
@@ -230,16 +229,6 @@ namespace ILGPU.Runtime
         /// Returns the memory size in bytes.
         /// </summary>
         public long MemorySize { get; protected set; }
-
-        /// <summary>
-        /// Returns the accelerators for which the peer access has been enabled.
-        /// </summary>
-        public IReadOnlyCollection<Accelerator> PeerAccelerators => storedPeerAccelerators;
-
-        /// <summary>
-        /// Returns the cached peer accesses.
-        /// </summary>
-        protected HashSet<Accelerator> CachedPeerAccelerators => storedPeerAccelerators;
 
         /// <summary>
         /// Returns the name of the device.
@@ -334,7 +323,21 @@ namespace ILGPU.Runtime
         /// <typeparam name="TIndex">The index type.</typeparam>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated buffer on the this accelerator.</returns>
-        public abstract MemoryBuffer<T, TIndex> Allocate<T, TIndex>(TIndex extent)
+        public MemoryBuffer<T, TIndex> Allocate<T, TIndex>(TIndex extent)
+            where T : struct
+            where TIndex : struct, IIndex, IGenericIndex<TIndex>
+        {
+            Bind(); return AllocateInternal<T, TIndex>(extent);
+        }
+
+        /// <summary>
+        /// Allocates a buffer with the specified number of elements on this accelerator.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <param name="extent">The extent (number of elements to allocate).</param>
+        /// <returns>An allocated buffer on the this accelerator.</returns>
+        protected abstract MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(TIndex extent)
             where T : struct
             where TIndex : struct, IIndex, IGenericIndex<TIndex>;
 
@@ -405,53 +408,29 @@ namespace ILGPU.Runtime
         /// Creates a new accelerator stream.
         /// </summary>
         /// <returns>The created accelerator stream.</returns>
-        public abstract AcceleratorStream CreateStream();
+        public AcceleratorStream CreateStream()
+        {
+            Bind(); return CreateStreamInternal();
+        }
+
+        /// <summary>
+        /// Creates a new accelerator stream.
+        /// </summary>
+        /// <returns>The created accelerator stream.</returns>
+        protected abstract AcceleratorStream CreateStreamInternal();
 
         /// <summary>
         /// Synchronizes pending operations.
         /// </summary>
-        public abstract void Synchronize();
-
-        /// <summary>
-        /// Makes this accelerator the current one for this thread.
-        /// </summary>
-        public abstract void MakeCurrent();
-
-        #endregion
-
-        #region Peer Access
-
-        /// <summary>
-        /// Returns true iff peer access between the current and the given accelerator has been enabled.
-        /// </summary>
-        /// <param name="accelerator">The target accelerator.</param>
-        /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasPeerAccess(Accelerator accelerator)
+        public void Synchronize()
         {
-            return storedPeerAccelerators.Contains(accelerator);
+            Bind(); SynchronizeInternal();
         }
 
         /// <summary>
-        /// Returns true iff the current accelerator can directly access the memory
-        /// of the given accelerator.
+        /// Synchronizes pending operations.
         /// </summary>
-        /// <param name="otherAccelerator">The other accelerator.</param>
-        /// <returns>True, iff the current accelerator can directly access the memory
-        /// of the given accelerator.</returns>
-        public abstract bool CanAccessPeer(Accelerator otherAccelerator);
-
-        /// <summary>
-        /// Enables peer access to the given accelerator.
-        /// </summary>
-        /// <param name="otherAccelerator">The other accelerator.</param>
-        public abstract void EnablePeerAccess(Accelerator otherAccelerator);
-
-        /// <summary>
-        /// Disables peer access to the given accelerator.
-        /// </summary>
-        /// <param name="otherAccelerator">The other accelerator.</param>
-        public abstract void DisablePeerAccess(Accelerator otherAccelerator);
+        protected abstract void SynchronizeInternal();
 
         #endregion
 
@@ -542,6 +521,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentNullException(nameof(groupSize));
             if (dynamicSharedMemorySizeInBytes < 0)
                 throw new ArgumentOutOfRangeException(nameof(dynamicSharedMemorySizeInBytes));
+            Bind();
             return EstimateMaxActiveGroupsPerMultiprocessorInternal(
                 kernel,
                 groupSize,
@@ -640,6 +620,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentNullException(nameof(computeSharedMemorySize));
             if (maxGroupSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(maxGroupSize));
+            Bind();
             return EstimateGroupSizeInternal(
                 kernel,
                 computeSharedMemorySize,
@@ -682,6 +663,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentOutOfRangeException(nameof(dynamicSharedMemorySizeInBytes));
             if (maxGroupSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(maxGroupSize));
+            Bind();
             return EstimateGroupSizeInternal(
                 kernel,
                 dynamicSharedMemorySizeInBytes,
@@ -716,6 +698,12 @@ namespace ILGPU.Runtime
                 return;
 
             Disposed?.Invoke(this, EventArgs.Empty);
+
+            if (disposing && currentAccelerator == this)
+            {
+                OnUnbind();
+                currentAccelerator = null;
+            }
 
             Dispose(ref backend);
             Dispose(ref compileUnit);

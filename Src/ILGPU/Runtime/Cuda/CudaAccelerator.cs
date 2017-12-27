@@ -193,6 +193,8 @@ namespace ILGPU.Runtime.Cuda
         #region Instance
 
         private IntPtr contextPtr;
+        private CudaSharedMemoryConfiguration sharedMemoryConfiguration;
+        private CudaCacheConfiguration cacheConfiguration;
 
         /// <summary>
         /// Constructs a new Cuda accelerator targeting the default device.
@@ -313,7 +315,6 @@ namespace ILGPU.Runtime.Cuda
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.CreateContextD3D11(out contextPtr, out int deviceId, acceleratorFlags, d3d11Device));
-            MakeCurrentInternal();
             DeviceId = deviceId;
 
             SetupAccelerator();
@@ -321,22 +322,16 @@ namespace ILGPU.Runtime.Cuda
         }
 
         /// <summary>
-        /// Setups the accelerator name.
-        /// </summary>
-        private void SetupName()
-        {
-            CudaException.ThrowIfFailed(
-                CurrentAPI.GetDeviceName(out string name, DeviceId));
-            Name = name;
-        }
-
-        /// <summary>
         /// Setups all required settings.
         /// </summary>
         private void SetupAccelerator()
         {
-            SetupName();
-            DefaultStream = CudaStream.Default;
+            Bind();
+
+            CudaException.ThrowIfFailed(
+                CurrentAPI.GetDeviceName(out string name, DeviceId));
+            Name = name;
+            DefaultStream = new CudaStream(this, IntPtr.Zero);
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetDeviceComputeCapability(out int major, out int minor, DeviceId));
@@ -391,6 +386,12 @@ namespace ILGPU.Runtime.Cuda
             // Result max number of threads per multiprocessor
             MaxNumThreadsPerMultiprocessor = CurrentAPI.GetDeviceAttribute(
                 DeviceAttribute.CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR, DeviceId);
+
+            // Resolve cache configuration
+            CudaException.ThrowIfFailed(
+                CurrentAPI.GetSharedMemoryConfig(out sharedMemoryConfiguration));
+            CudaException.ThrowIfFailed(
+                CurrentAPI.GetCacheConfig(out cacheConfiguration));
         }
 
         #endregion
@@ -427,19 +428,14 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         public CudaSharedMemoryConfiguration SharedMemoryConfiguration
         {
-            get
-            {
-                MakeCurrentInternal();
-                CudaException.ThrowIfFailed(
-                    CurrentAPI.GetSharedMemoryConfig(out CudaSharedMemoryConfiguration result));
-                return result;
-            }
+            get => sharedMemoryConfiguration;
             set
             {
-                MakeCurrentInternal();
                 if (value < CudaSharedMemoryConfiguration.Default ||
                     value > CudaSharedMemoryConfiguration.EightByteBankSize)
                     throw new ArgumentOutOfRangeException(nameof(value));
+                sharedMemoryConfiguration = value;
+                Bind();
                 CudaException.ThrowIfFailed(
                     CurrentAPI.SetSharedMemoryConfig(value));
             }
@@ -450,19 +446,14 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         public CudaCacheConfiguration CacheConfiguration
         {
-            get
-            {
-                MakeCurrentInternal();
-                CudaException.ThrowIfFailed(
-                    CurrentAPI.GetCacheConfig(out CudaCacheConfiguration result));
-                return result;
-            }
+            get => cacheConfiguration;
             set
             {
-                MakeCurrentInternal();
                 if (value < CudaCacheConfiguration.Default ||
                     value > CudaCacheConfiguration.PreferEqual)
                     throw new ArgumentOutOfRangeException(nameof(value));
+                cacheConfiguration = value;
+                Bind();
                 CudaException.ThrowIfFailed(
                     CurrentAPI.SetCacheConfig(value));
             }
@@ -484,25 +475,14 @@ namespace ILGPU.Runtime.Cuda
             return new PTXBackend(Context, Architecture);
         }
 
-        /// <summary>
-        /// Makes this accelerator the current one.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void MakeCurrentInternal()
-        {
-            CudaException.ThrowIfFailed(
-                CurrentAPI.SetCurrentContext(contextPtr));
-        }
-
         /// <summary cref="Accelerator.Allocate{T, TIndex}(TIndex)"/>
-        public override MemoryBuffer<T, TIndex> Allocate<T, TIndex>(TIndex extent)
+        protected override MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(TIndex extent)
         {
-            MakeCurrentInternal();
             return new CudaMemoryBuffer<T, TIndex>(this, extent);
         }
 
-        /// <summary cref="Accelerator.LoadKernel(CompiledKernel)"/>
-        public override Kernel LoadKernel(CompiledKernel kernel)
+        /// <summary cref="Accelerator.LoadKernelInternal(CompiledKernel)"/>
+        protected override Kernel LoadKernelInternal(CompiledKernel kernel)
         {
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
@@ -512,8 +492,8 @@ namespace ILGPU.Runtime.Cuda
                 GenerateKernelLauncherMethod(kernel, 0));
         }
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernel(CompiledKernel, int)"/>
-        public override Kernel LoadImplicitlyGroupedKernel(
+        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(CompiledKernel, int)"/>
+        protected override Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
             int customGroupSize)
         {
@@ -529,9 +509,9 @@ namespace ILGPU.Runtime.Cuda
                 GenerateKernelLauncherMethod(kernel, customGroupSize));
         }
 
-        /// <summary cref="Accelerator.LoadAutoGroupedKernel(CompiledKernel, out int, out int)"/>
+        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
         [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "The object must not be disposed here")]
-        public override Kernel LoadAutoGroupedKernel(
+        protected override Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
             out int groupSize,
             out int minGridSize)
@@ -548,22 +528,29 @@ namespace ILGPU.Runtime.Cuda
         }
 
         /// <summary cref="Accelerator.CreateStream"/>
-        public override AcceleratorStream CreateStream()
+        protected override AcceleratorStream CreateStreamInternal()
         {
-            return new CudaStream();
+            return new CudaStream(this);
         }
 
         /// <summary cref="Accelerator.Synchronize"/>
-        public override void Synchronize()
+        protected override void SynchronizeInternal()
         {
-            MakeCurrentInternal();
             CudaException.ThrowIfFailed(CurrentAPI.SynchronizeContext());
         }
 
-        /// <summary cref="Accelerator.MakeCurrent"/>
-        public override void MakeCurrent()
+        /// <summary cref="Accelerator.OnBind"/>
+        protected override void OnBind()
         {
-            MakeCurrentInternal();
+            CudaException.ThrowIfFailed(
+                CurrentAPI.SetCurrentContext(contextPtr));
+        }
+
+        /// <summary cref="Accelerator.OnUnbind"/>
+        protected override void OnUnbind()
+        {
+            CudaException.ThrowIfFailed(
+                CurrentAPI.SetCurrentContext(IntPtr.Zero));
         }
 
         /// <summary>
@@ -573,7 +560,7 @@ namespace ILGPU.Runtime.Cuda
         [SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate", Justification = "This method implies a native method invocation")]
         public long GetFreeMemory()
         {
-            MakeCurrent();
+            Bind();
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetMemoryInfo(out long free, out long total));
             return free;
@@ -583,8 +570,8 @@ namespace ILGPU.Runtime.Cuda
 
         #region Peer Access
 
-        /// <summary cref="Accelerator.CanAccessPeer(Accelerator)"/>
-        public override bool CanAccessPeer(Accelerator otherAccelerator)
+        /// <summary cref="Accelerator.CanAccessPeerInternal(Accelerator)"/>
+        protected override bool CanAccessPeerInternal(Accelerator otherAccelerator)
         {
             var cudaAccelerator = otherAccelerator as CudaAccelerator;
             if (cudaAccelerator == null)
@@ -595,8 +582,8 @@ namespace ILGPU.Runtime.Cuda
             return canAccess != 0;
         }
 
-        /// <summary cref="Accelerator.EnablePeerAccess(Accelerator)"/>
-        public override void EnablePeerAccess(Accelerator otherAccelerator)
+        /// <summary cref="Accelerator.EnablePeerAccessInternal(Accelerator)"/>
+        protected override void EnablePeerAccessInternal(Accelerator otherAccelerator)
         {
             if (HasPeerAccess(otherAccelerator))
                 return;
@@ -608,11 +595,10 @@ namespace ILGPU.Runtime.Cuda
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.EnablePeerAccess(cudaAccelerator.ContextPtr, 0));
-            CachedPeerAccelerators.Add(otherAccelerator);
         }
 
-        /// <summary cref="Accelerator.DisablePeerAccess(Accelerator)"/>
-        public override void DisablePeerAccess(Accelerator otherAccelerator)
+        /// <summary cref="Accelerator.DisablePeerAccessInternal(Accelerator)"/>
+        protected override void DisablePeerAccessInternal(Accelerator otherAccelerator)
         {
             if (!HasPeerAccess(otherAccelerator))
                 return;
@@ -622,7 +608,6 @@ namespace ILGPU.Runtime.Cuda
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.DisablePeerAccess(cudaAccelerator.ContextPtr));
-            CachedPeerAccelerators.Remove(otherAccelerator);
         }
 
         #endregion

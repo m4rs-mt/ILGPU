@@ -18,6 +18,18 @@ namespace ILGPU.Runtime.CPU
     /// </summary>
     sealed class CPUStream : AcceleratorStream
     {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new CPU stream.
+        /// </summary>
+        /// <param name="accelerator">The associated accelerator.</param>
+        internal CPUStream(Accelerator accelerator)
+            : base(accelerator)
+        { }
+
+        #endregion
+
         #region Methods
 
         /// <summary cref="AcceleratorStream.Synchronize"/>

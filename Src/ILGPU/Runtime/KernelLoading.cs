@@ -33,7 +33,23 @@ namespace ILGPU.Runtime
         /// Note that the returned kernel will not be managed by the kernel cache.
         /// Hence, it has to be disposed manually.
         /// </remarks>
-        public abstract Kernel LoadKernel(CompiledKernel kernel);
+        public Kernel LoadKernel(CompiledKernel kernel)
+        {
+            Bind(); return LoadKernelInternal(kernel);
+        }
+
+        /// <summary>
+        /// Loads the given kernel.
+        /// Note that implictly-grouped kernels will be launched with a group size
+        /// of the current warp size of the accelerator.
+        /// </summary>
+        /// <param name="kernel">The kernel to load.</param>
+        /// <returns>The loaded kernel.</returns>
+        /// <remarks>
+        /// Note that the returned kernel will not be managed by the kernel cache.
+        /// Hence, it has to be disposed manually.
+        /// </remarks>
+        protected abstract Kernel LoadKernelInternal(CompiledKernel kernel);
 
         /// <summary>
         /// Loads the given implicitly-grouped kernel.
@@ -49,7 +65,26 @@ namespace ILGPU.Runtime
         /// Note that the returned kernel will not be managed by the kernel cache.
         /// Hence, it has to be disposed manually.
         /// </remarks>
-        public abstract Kernel LoadImplicitlyGroupedKernel(
+        public Kernel LoadImplicitlyGroupedKernel(CompiledKernel kernel, int customGroupSize)
+        {
+            Bind(); return LoadImplicitlyGroupedKernelInternal(kernel, customGroupSize);
+        }
+
+        /// <summary>
+        /// Loads the given implicitly-grouped kernel.
+        /// </summary>
+        /// <param name="kernel">The kernel to load.</param>
+        /// <param name="customGroupSize">The custom group size to use.</param>
+        /// <returns>The loaded kernel.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernel will be launched with the given
+        /// group size.
+        /// </remarks>
+        /// <remarks>
+        /// Note that the returned kernel will not be managed by the kernel cache.
+        /// Hence, it has to be disposed manually.
+        /// </remarks>
+        protected abstract Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
             int customGroupSize);
 
@@ -80,7 +115,27 @@ namespace ILGPU.Runtime
         /// Note that the returned kernel will not be managed by the kernel cache.
         /// Hence, it has to be disposed manually.
         /// </remarks>
-        public abstract Kernel LoadAutoGroupedKernel(
+        public Kernel LoadAutoGroupedKernel(
+            CompiledKernel kernel,
+            out int groupSize,
+            out int minGridSize)
+        {
+            Bind(); return LoadAutoGroupedKernelInternal(kernel, out groupSize, out minGridSize);
+        }
+
+        /// <summary>
+        /// Loads the given implicitly-grouped kernel while using an automatically
+        /// computed grouping configuration.
+        /// </summary>
+        /// <param name="kernel">The kernel to load.</param>
+        /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
+        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
+        /// <returns>The loaded kernel.</returns>
+        /// <remarks>
+        /// Note that the returned kernel will not be managed by the kernel cache.
+        /// Hence, it has to be disposed manually.
+        /// </remarks>
+        protected abstract Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
             out int groupSize,
             out int minGridSize);

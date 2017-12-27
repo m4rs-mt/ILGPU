@@ -21,22 +21,27 @@ namespace ILGPU.Runtime.Cuda
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
     public sealed class CudaStream : AcceleratorStream
     {
-        #region Constants
-
-        internal static readonly CudaStream Default = new CudaStream(IntPtr.Zero);
-
-        #endregion
-
         #region Instance
 
         private IntPtr streamPtr;
 
-        private CudaStream(IntPtr ptr)
+        /// <summary>
+        /// Constructs a new cuda stream from the given native pointer.
+        /// </summary>
+        /// <param name="accelerator">The associated accelerator.</param>
+        /// <param name="ptr">The native stream pointer.</param>
+        internal CudaStream(Accelerator accelerator, IntPtr ptr)
+            : base(accelerator)
         {
             streamPtr = ptr;
         }
 
-        internal CudaStream()
+        /// <summary>
+        /// Constructs a new cuda stream.
+        /// </summary>
+        /// <param name="accelerator">The associated accelerator.</param>
+        internal CudaStream(Accelerator accelerator)
+            : base(accelerator)
         {
             CudaException.ThrowIfFailed(
                 CudaAPI.Current.CreateStream(out streamPtr, StreamFlags.CU_STREAM_DEFAULT));
