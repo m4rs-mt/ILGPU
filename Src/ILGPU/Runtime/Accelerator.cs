@@ -191,7 +191,7 @@ namespace ILGPU.Runtime
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             AcceleratorType = type;
-            InitChildObjects();
+            InitGC();
             memoryCache = new MemoryBufferCache(this);
         }
 
@@ -709,9 +709,8 @@ namespace ILGPU.Runtime
             Dispose(ref compileUnit);
             Dispose(ref memoryCache);
 
-            foreach (var kernel in kernelCache.Values)
-                kernel.Kernel.Dispose();
             DisposeChildObjects();
+            DisposeGC();
         }
 
         #endregion

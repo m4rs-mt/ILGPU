@@ -14,12 +14,28 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
 {
     partial class Accelerator
     {
-        #region Kernel Cache
+        #region Constants
+
+        /// <summary>
+        /// Constant to control GC invocations.
+        /// </summary>
+        private const int NumberNewKernelsUntilGC = 128;
+
+        /// <summary>
+        /// Minimum number of kernel objects before we apply GC.
+        /// </summary>
+        /// <remarks>Should be less or equal to <see cref="NumberNewKernelsUntilGC"/></remarks>
+        private const int MinNumberOfKernelsInGC = 128;
+
+        #endregion
+
+        #region Nested Types
 
         /// <summary>
         /// A cached kernel key.
@@ -33,7 +49,7 @@ namespace ILGPU.Runtime
             /// </summary>
             /// <param name="method">The kernel method.</param>
             /// <param name="implicitGroupSize">The implicit group size (if any).</param>
-            public CachedKernelKey(MethodInfo method, int? implicitGroupSize)
+            public CachedKernelKey(MethodInfo method, int implicitGroupSize)
             {
                 Method = method;
                 ImplicitGroupSize = implicitGroupSize;
@@ -49,9 +65,9 @@ namespace ILGPU.Runtime
             public MethodInfo Method { get; }
 
             /// <summary>
-            /// Returns the associated implicit group size (if any).
+            /// Returns the associated implicit group size.
             /// </summary>
-            public int? ImplicitGroupSize { get; }
+            public int ImplicitGroupSize { get; }
 
             #endregion
 
@@ -64,8 +80,7 @@ namespace ILGPU.Runtime
             /// <returns>True, iff the given cached key is equal to the current one.</returns>
             public bool Equals(CachedKernelKey key)
             {
-                return key.Method == Method &&
-                    key.ImplicitGroupSize == ImplicitGroupSize;
+                return key.Method == Method && key.ImplicitGroupSize == ImplicitGroupSize;
             }
 
             #endregion
@@ -74,7 +89,7 @@ namespace ILGPU.Runtime
 
             public override int GetHashCode()
             {
-                return Method.GetHashCode() ^ (ImplicitGroupSize ?? 1);
+                return Method.GetHashCode() ^ ImplicitGroupSize;
             }
 
             public override bool Equals(object obj)
@@ -99,16 +114,7 @@ namespace ILGPU.Runtime
         {
             #region Instance
 
-            /// <summary>
-            /// Constructs a new cached kernel.
-            /// </summary>
-            /// <param name="kernel">The kernel to cache.</param>
-            public CachedKernel(Kernel kernel)
-            {
-                Kernel = kernel;
-                GroupSize = 0;
-                MinGridSize = 0;
-            }
+            private WeakReference<Kernel> kernelReference;
 
             /// <summary>
             /// Constructs a new cached kernel.
@@ -117,11 +123,11 @@ namespace ILGPU.Runtime
             /// <param name="groupSize">The computed group size.</param>
             /// <param name="minGridSize">The computed minimum grid size.</param>
             public CachedKernel(
-                Kernel kernel,
+                WeakReference<Kernel> kernel,
                 int groupSize,
                 int minGridSize)
             {
-                Kernel = kernel;
+                kernelReference = kernel;
                 GroupSize = groupSize;
                 MinGridSize = minGridSize;
             }
@@ -129,11 +135,6 @@ namespace ILGPU.Runtime
             #endregion
 
             #region Properties
-
-            /// <summary>
-            /// Returns the cached kernel.
-            /// </summary>
-            public Kernel Kernel { get; }
 
             /// <summary>
             /// Returns the computed group size.
@@ -146,11 +147,132 @@ namespace ILGPU.Runtime
             public int MinGridSize { get; }
 
             #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Tries to resolve the associated kernel.
+            /// </summary>
+            /// <param name="kernel">The resolved kernel.</param>
+            /// <returns>True, iff the associated kernel could be resolved.</returns>
+            public bool TryGetKernel(out Kernel kernel)
+            {
+                return kernelReference.TryGetTarget(out kernel);
+            }
+
+            /// <summary>
+            /// Tries to update the internal weak reference or creates a new one
+            /// pointing to the given target.
+            /// </summary>
+            /// <param name="target">The new target kernel.</param>
+            /// <returns>An updated weak reference that points to the given target.</returns>
+            public WeakReference<Kernel> UpdateReference(Kernel target)
+            {
+                if (kernelReference != null)
+                    kernelReference.SetTarget(target);
+                else
+                    kernelReference = new WeakReference<Kernel>(target);
+                return kernelReference;
+            }
+
+            #endregion
         }
 
+        /// <summary>
+        /// Represents a generic kernel loader.
+        /// </summary>
+        private interface IKernelLoader
+        {
+            /// <summary>
+            /// Returns the custom group size.
+            /// </summary>
+            int GroupSize { get; set; }
+
+            /// <summary>
+            /// Returns the custom min grid size.
+            /// </summary>
+            int MinGridSize { get; set; }
+
+            /// <summary>
+            /// Loads the given kernel using the given accelerator.
+            /// </summary>
+            /// <param name="accelerator">The target accelerator for the loading operation.</param>
+            /// <param name="compiledKernel">The compiled kernel to load.</param>
+            /// <returns>The loaded kernel.</returns>
+            Kernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel);
+        }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// A cache for compiled kernel objects.
+        /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly Dictionary<MethodInfo, CompiledKernel> compiledKernelCache =
-            new Dictionary<MethodInfo, CompiledKernel>();
+        private Dictionary<MethodInfo, WeakReference<CompiledKernel>> compiledKernelCache =
+            new Dictionary<MethodInfo, WeakReference<CompiledKernel>>();
+
+        /// <summary>
+        /// A cache for loaded kernel objects.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private Dictionary<CachedKernelKey, CachedKernel> kernelCache =
+            new Dictionary<CachedKernelKey, CachedKernel>();
+
+        #endregion
+
+        #region Internal Properties
+
+        /// <summary>
+        /// True, iff a GC run is requested to clean disposed child kernels.
+        /// </summary>
+        /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
+        private bool RequestKernelCacheGC_SyncRoot =>
+            (compiledKernelCache.Count % NumberNewKernelsUntilGC) == 0 ||
+            (kernelCache.Count % NumberNewKernelsUntilGC) == 0;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Loads a kernel specified by the given method.
+        /// </summary>
+        /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
+        /// <param name="method">The method to compile into a kernel.</param>
+        /// <param name="kernelLoader">The kernel loader.</param>
+        /// <returns>The loaded kernel.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Kernel LoadGenericKernel<TKernelLoader>(
+            MethodInfo method,
+            ref TKernelLoader kernelLoader)
+            where TKernelLoader : struct, IKernelLoader
+        {
+            if (method == null)
+                throw new ArgumentNullException(nameof(method));
+            var cachedKey = new CachedKernelKey(method, kernelLoader.GroupSize);
+            lock (syncRoot)
+            {
+                if (!kernelCache.TryGetValue(cachedKey, out CachedKernel cached) ||
+                    !cached.TryGetKernel(out Kernel result))
+                {
+                    var compiledKernel = CompileKernel(method);
+                    result = kernelLoader.LoadKernel(this, compiledKernel);
+                    kernelCache[cachedKey] = new CachedKernel(
+                        cached.UpdateReference(result),
+                        kernelLoader.GroupSize,
+                        kernelLoader.MinGridSize);
+                }
+                else
+                {
+                    kernelLoader.MinGridSize = cached.MinGridSize;
+                    kernelLoader.GroupSize = cached.GroupSize;
+                }
+                RequestGC_SyncRoot();
+                return result;
+            }
+        }
 
         /// <summary>
         /// Compiles the given method into a <see cref="CompiledKernel"/>.
@@ -161,12 +283,49 @@ namespace ILGPU.Runtime
         {
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
-            if (!compiledKernelCache.TryGetValue(method, out CompiledKernel result))
+            lock (syncRoot)
             {
-                result = Backend.Compile(CompileUnit, method);
-                compiledKernelCache.Add(method, result);
+                if (!compiledKernelCache.TryGetValue(method, out WeakReference<CompiledKernel> cached) ||
+                    !cached.TryGetTarget(out CompiledKernel result))
+                {
+                    result = Backend.Compile(CompileUnit, method);
+                    if (cached == null)
+                        compiledKernelCache.Add(method, new WeakReference<CompiledKernel>(result));
+                    else
+                        cached.SetTarget(result);
+                }
+                RequestGC_SyncRoot();
+                return result;
             }
-            return result;
+        }
+
+        /// <summary>
+        /// GC method to clean disposed kernels.
+        /// </summary>
+        /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
+        private void KernelCacheGC_SyncRoot()
+        {
+            if (compiledKernelCache.Count >= MinNumberOfKernelsInGC)
+            {
+                var oldCompiledKernels = compiledKernelCache;
+                compiledKernelCache = new Dictionary<MethodInfo, WeakReference<CompiledKernel>>();
+                foreach (var entry in oldCompiledKernels)
+                {
+                    if (entry.Value.TryGetTarget(out CompiledKernel _))
+                        compiledKernelCache.Add(entry.Key, entry.Value);
+                }
+            }
+
+            if (kernelCache.Count >= MinNumberOfKernelsInGC)
+            {
+                var oldKernels = kernelCache;
+                kernelCache = new Dictionary<CachedKernelKey, CachedKernel>();
+                foreach (var entry in oldKernels)
+                {
+                    if (entry.Value.TryGetKernel(out Kernel _))
+                        kernelCache.Add(entry.Key, entry.Value);
+                }
+            }
         }
 
         #endregion

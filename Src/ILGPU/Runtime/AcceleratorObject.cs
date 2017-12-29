@@ -14,7 +14,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace ILGPU.Runtime
 {
@@ -52,46 +51,29 @@ namespace ILGPU.Runtime
 
     partial class Accelerator
     {
-        #region Instance
+        #region Constants
 
         /// <summary>
         /// Constant to control GC invocations.
         /// </summary>
-        private const int NumberNewChildObjectsUntilGC = 8192;
+        private const int NumberNewChildObjectsUntilGC = 4096;
 
         /// <summary>
         /// Minimum number of child objects before we apply GC.
         /// </summary>
-        private const int MinNumberOfChildObjectsInGC = 100;
+        /// <remarks>Should be less or equal to <see cref="NumberNewChildObjectsUntilGC"/></remarks>
+        private const int MinNumberOfChildObjectsInGC = 1024;
 
-        /// <summary>
-        /// Main object for child synchronization.
-        /// Note that this is a different synchronization object than the main
-        /// <see cref="syncRoot"/> object.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly object childSyncRoot = new object();
+        #endregion
 
-        /// <summary>
-        /// The child-object GC thread
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Thread childObjectGCThread;
+        #region Instance
 
         /// <summary>
         /// The list of linked child objects.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private List<WeakReference<AcceleratorObject>> childObjects = new List<WeakReference<AcceleratorObject>>();
-
-        /// <summary>
-        /// Initializes the child-object functionality.
-        /// </summary>
-        private void InitChildObjects()
-        {
-            childObjectGCThread = new Thread(ChildObjectsGCThread);
-            childObjectGCThread.Start();
-        }
+        private List<WeakReference<AcceleratorObject>> childObjects =
+            new List<WeakReference<AcceleratorObject>>();
 
         #endregion
 
@@ -105,10 +87,17 @@ namespace ILGPU.Runtime
         {
             get
             {
-                lock (childSyncRoot)
+                lock (syncRoot)
                     return childObjects.Count;
             }
         }
+
+        /// <summary>
+        /// True, iff a GC run is requested to clean disposed child objects.
+        /// </summary>
+        /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
+        private bool RequestChildObjectsGC_SyncRoot =>
+            (childObjects.Count % NumberNewChildObjectsUntilGC) == 0;
 
         #endregion
 
@@ -123,11 +112,10 @@ namespace ILGPU.Runtime
             where T : AcceleratorObject
         {
             var objRef = new WeakReference<AcceleratorObject>(child);
-            lock (childSyncRoot)
+            lock (syncRoot)
             {
                 childObjects.Add(objRef);
-                if ((childObjects.Count % NumberNewChildObjectsUntilGC) == 0)
-                    Monitor.Pulse(childSyncRoot);
+                RequestGC_SyncRoot();
             }
         }
 
@@ -141,42 +129,32 @@ namespace ILGPU.Runtime
         /// </summary>
         private void DisposeChildObjects()
         {
-            lock (childSyncRoot)
+            lock (syncRoot)
             {
                 foreach (var childObject in childObjects)
                 {
                     if (childObject.TryGetTarget(out AcceleratorObject obj))
                         obj.Dispose();
                 }
-                childObjects = null;
-                Monitor.Pulse(childSyncRoot);
+                childObjects.Clear();
             }
-            childObjectGCThread.Join();
         }
 
         /// <summary>
-        /// GC thread to remove disposed children.
+        /// GC method to clean disposed child objects.
         /// </summary>
-        private void ChildObjectsGCThread()
+        /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
+        private void ChildObjectsGC_SyncRoot()
         {
-            for (; ;)
+            if (childObjects.Count < MinNumberOfChildObjectsInGC)
+                return;
+
+            var oldObjects = childObjects;
+            childObjects = new List<WeakReference<AcceleratorObject>>();
+            foreach (var childObject in oldObjects)
             {
-                lock (childSyncRoot)
-                {
-                    while (childObjects != null && childObjects.Count < MinNumberOfChildObjectsInGC)
-                        Monitor.Wait(childSyncRoot);
-
-                    if (childObjects == null)
-                        break;
-
-                    var collectedObjects = new List<WeakReference<AcceleratorObject>>();
-                    foreach (var childObject in childObjects)
-                    {
-                        if (childObject.TryGetTarget(out AcceleratorObject obj))
-                            collectedObjects.Add(childObject);
-                    }
-                    childObjects = collectedObjects;
-                }
+                if (childObject.TryGetTarget(out AcceleratorObject obj))
+                    childObjects.Add(childObject);
             }
         }
 

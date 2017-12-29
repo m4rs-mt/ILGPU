@@ -11,8 +11,6 @@
 
 using ILGPU.Compiler;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -31,7 +29,6 @@ namespace ILGPU.Runtime
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
-        /// Hence, it has to be disposed manually.
         /// </remarks>
         public Kernel LoadKernel(CompiledKernel kernel)
         {
@@ -47,7 +44,6 @@ namespace ILGPU.Runtime
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
-        /// Hence, it has to be disposed manually.
         /// </remarks>
         protected abstract Kernel LoadKernelInternal(CompiledKernel kernel);
 
@@ -63,7 +59,6 @@ namespace ILGPU.Runtime
         /// </remarks>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
-        /// Hence, it has to be disposed manually.
         /// </remarks>
         public Kernel LoadImplicitlyGroupedKernel(CompiledKernel kernel, int customGroupSize)
         {
@@ -82,7 +77,6 @@ namespace ILGPU.Runtime
         /// </remarks>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
-        /// Hence, it has to be disposed manually.
         /// </remarks>
         protected abstract Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
@@ -96,7 +90,6 @@ namespace ILGPU.Runtime
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
-        /// Hence, it has to be disposed manually.
         /// </remarks>
         public Kernel LoadAutoGroupedKernel(CompiledKernel kernel)
         {
@@ -113,7 +106,6 @@ namespace ILGPU.Runtime
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
-        /// Hence, it has to be disposed manually.
         /// </remarks>
         public Kernel LoadAutoGroupedKernel(
             CompiledKernel kernel,
@@ -133,7 +125,6 @@ namespace ILGPU.Runtime
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
-        /// Hence, it has to be disposed manually.
         /// </remarks>
         protected abstract Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
@@ -143,26 +134,6 @@ namespace ILGPU.Runtime
         #endregion
 
         #region Generic Kernel Loading
-
-        /// <summary>
-        /// Represents a generic kernel loader.
-        /// </summary>
-        private interface IKernelLoader
-        {
-            /// <summary>
-            /// Loads the given kernel using the given accelerator.
-            /// </summary>
-            /// <param name="accelerator">The target accelerator for the loading operation.</param>
-            /// <param name="compiledKernel">The compiled kernel to load.</param>
-            /// <returns>The loaded kernel.</returns>
-            CachedKernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel);
-
-            /// <summary>
-            /// Fetches information from the given cached kernel.
-            /// </summary>
-            /// <param name="cachedKernel">The cached kernel.</param>
-            void FetchInformation(CachedKernel cachedKernel);
-        }
 
         /// <summary>
         /// Represents a launcher provider to create launcher delegates.
@@ -184,16 +155,23 @@ namespace ILGPU.Runtime
         /// </summary>
         private struct DefaultKernelLoader : IKernelLoader
         {
+            public static readonly DefaultKernelLoader Default = new DefaultKernelLoader()
+            {
+                GroupSize = 0,
+                MinGridSize = 0,
+            };
+
+            /// <summary cref="IKernelLoader.GroupSize"/>
+            public int GroupSize { get; set; }
+
+            /// <summary cref="IKernelLoader.MinGridSize"/>
+            public int MinGridSize { get; set; }
 
             /// <summary cref="IKernelLoader.LoadKernel(Accelerator, CompiledKernel)"/>
-            public CachedKernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel)
+            public Kernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel)
             {
-                return new CachedKernel(accelerator.LoadKernel(compiledKernel));
+                return accelerator.LoadKernel(compiledKernel);
             }
-
-            /// <summary cref="IKernelLoader.FetchInformation(CachedKernel)"/>
-            public void FetchInformation(CachedKernel cachedKernel)
-            { }
         }
 
         /// <summary>
@@ -208,26 +186,19 @@ namespace ILGPU.Runtime
             public GroupedKernelLoader(int groupSize)
             {
                 GroupSize = groupSize;
+                MinGridSize = 0;
             }
 
-            /// <summary>
-            /// Returns the custom group size.
-            /// </summary>
-            public int GroupSize { get; private set; }
+            /// <summary cref="IKernelLoader.GroupSize"/>
+            public int GroupSize { get; set; }
+
+            /// <summary cref="IKernelLoader.MinGridSize"/>
+            public int MinGridSize { get; set; }
 
             /// <summary cref="IKernelLoader.LoadKernel(Accelerator, CompiledKernel)"/>
-            public CachedKernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel)
+            public Kernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel)
             {
-                return new CachedKernel(
-                    accelerator.LoadImplicitlyGroupedKernel(compiledKernel, GroupSize),
-                    GroupSize,
-                    0);
-            }
-
-            /// <summary cref="IKernelLoader.FetchInformation(CachedKernel)"/>
-            public void FetchInformation(CachedKernel cachedKernel)
-            {
-                GroupSize = cachedKernel.GroupSize;
+                return accelerator.LoadImplicitlyGroupedKernel(compiledKernel, GroupSize);
             }
         }
 
@@ -236,31 +207,28 @@ namespace ILGPU.Runtime
         /// </summary>
         private struct AutoKernelLoader : IKernelLoader
         {
-            private int groupSize;
-            private int minGridSize;
+            public static readonly AutoKernelLoader Default = new AutoKernelLoader()
+            {
+                GroupSize = -1,
+                MinGridSize = -1,
+            };
 
-            /// <summary>
-            /// Returns the computed group size.
-            /// </summary>
-            public int GroupSize => groupSize;
+            /// <summary cref="IKernelLoader.GroupSize"/>
+            public int GroupSize { get; set; }
 
-            /// <summary>
-            /// Returns the computed minumum grid size.
-            /// </summary>
-            public int MinGridSize => minGridSize;
+            /// <summary cref="IKernelLoader.MinGridSize"/>
+            public int MinGridSize { get; set; }
 
             /// <summary cref="IKernelLoader.LoadKernel(Accelerator, CompiledKernel)"/>
-            public CachedKernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel)
+            public Kernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel)
             {
-                var kernel = accelerator.LoadAutoGroupedKernel(compiledKernel, out groupSize, out minGridSize);
-                return new CachedKernel(kernel, groupSize, minGridSize);
-            }
-
-            /// <summary cref="IKernelLoader.FetchInformation(CachedKernel)"/>
-            public void FetchInformation(CachedKernel cachedKernel)
-            {
-                groupSize = cachedKernel.GroupSize;
-                minGridSize = cachedKernel.MinGridSize;
+                var result = accelerator.LoadAutoGroupedKernel(
+                    compiledKernel,
+                    out int groupSize,
+                    out int minGridSize);
+                GroupSize = groupSize;
+                MinGridSize = minGridSize;
+                return result;
             }
         }
 
@@ -317,39 +285,6 @@ namespace ILGPU.Runtime
             }
         }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly Dictionary<CachedKernelKey, CachedKernel> kernelCache =
-            new Dictionary<CachedKernelKey, CachedKernel>();
-
-        /// <summary>
-        /// Loads a kernel specified by the given method.
-        /// </summary>
-        /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="groupSize">The custom group size for implicitly-grouped kernels (if any).</param>
-        /// <param name="kernelLoader">The kernel loader.</param>
-        /// <returns>The loaded kernel.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Kernel LoadGenericKernel<TKernelLoader>(
-            MethodInfo method,
-            int? groupSize,
-            ref TKernelLoader kernelLoader)
-            where TKernelLoader : struct, IKernelLoader
-        {
-            if (method == null)
-                throw new ArgumentNullException(nameof(method));
-            var cachedKey = new CachedKernelKey(method, groupSize);
-            if (kernelCache.TryGetValue(cachedKey, out CachedKernel result))
-            {
-                kernelLoader.FetchInformation(result);
-                return result.Kernel;
-            }
-            var compiledKernel = CompileKernel(method);
-            var kernel = kernelLoader.LoadKernel(this, compiledKernel);
-            kernelCache.Add(cachedKey, kernel);
-            return kernel.Kernel;
-        }
-
         /// <summary>
         /// Loads a kernel specified by the given method and returns a launcher of the specified type.
         /// Note that implictly-grouped kernels will be launched with a group size
@@ -359,21 +294,19 @@ namespace ILGPU.Runtime
         /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
         /// <typeparam name="TLauncherProvider">The type of the custom launcher provider.</typeparam>
         /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="groupSize">The custom group size for implicitly-grouped kernels (if any).</param>
         /// <param name="kernelLoader">The kernel loader.</param>
         /// <param name="launcherProvider">The launcher provider.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private TDelegate LoadGenericKernel<TDelegate, TKernelLoader, TLauncherProvider>(
             MethodInfo method,
-            int? groupSize,
             ref TKernelLoader kernelLoader,
             ref TLauncherProvider launcherProvider)
             where TDelegate : class
             where TKernelLoader : struct, IKernelLoader
             where TLauncherProvider : struct, ILauncherProvider
         {
-            var kernel = LoadGenericKernel(method, groupSize, ref kernelLoader);
+            var kernel = LoadGenericKernel(method, ref kernelLoader);
             return launcherProvider.CreateLauncher<TDelegate>(kernel);
         }
 
@@ -390,8 +323,8 @@ namespace ILGPU.Runtime
         /// <remarks>Note that the returned kernel must not be disposed manually.</remarks>
         public Kernel LoadKernel(MethodInfo method)
         {
-            var loader = new DefaultKernelLoader();
-            return LoadGenericKernel(method, 0, ref loader);
+            var loader = DefaultKernelLoader.Default;
+            return LoadGenericKernel(method, ref loader);
         }
 
         /// <summary>
@@ -405,7 +338,7 @@ namespace ILGPU.Runtime
         public Kernel LoadImplicitlyGroupedKernel(MethodInfo method, int customGroupSize)
         {
             var loader = new GroupedKernelLoader(customGroupSize);
-            return LoadGenericKernel(method, customGroupSize, ref loader);
+            return LoadGenericKernel(method, ref loader);
         }
 
         /// <summary>
@@ -417,8 +350,8 @@ namespace ILGPU.Runtime
         /// <remarks>Note that the returned kernel must not be disposed manually.</remarks>
         public Kernel LoadAutoGroupedKernel(MethodInfo method)
         {
-            var loader = new AutoKernelLoader();
-            return LoadGenericKernel(method, null, ref loader);
+            var loader = AutoKernelLoader.Default;
+            return LoadGenericKernel(method, ref loader);
         }
 
         /// <summary>
@@ -432,8 +365,8 @@ namespace ILGPU.Runtime
         /// <remarks>Note that the returned kernel must not be disposed manually.</remarks>
         public Kernel LoadAutoGroupedKernel(MethodInfo method, out int groupSize, out int minGridSize)
         {
-            var loader = new AutoKernelLoader();
-            var result = LoadGenericKernel(method, null, ref loader);
+            var loader = AutoKernelLoader.Default;
+            var result = LoadGenericKernel(method, ref loader);
             groupSize = loader.GroupSize;
             minGridSize = loader.MinGridSize;
             return result;
@@ -453,11 +386,10 @@ namespace ILGPU.Runtime
         public TDelegate LoadKernel<TDelegate>(MethodInfo method)
             where TDelegate : class
         {
-            var loader = new DefaultKernelLoader();
+            var loader = DefaultKernelLoader.Default;
             var launcher = new LauncherProvider();
             return LoadGenericKernel<TDelegate, DefaultKernelLoader, LauncherProvider>(
                 method,
-                0,
                 ref loader,
                 ref launcher);
         }
@@ -476,11 +408,10 @@ namespace ILGPU.Runtime
         public TDelegate LoadStreamKernel<TDelegate>(MethodInfo method)
             where TDelegate : class
         {
-            var loader = new DefaultKernelLoader();
+            var loader = DefaultKernelLoader.Default;
             var launcher = new DefaultStreamLauncherProvider();
             return LoadGenericKernel<TDelegate, DefaultKernelLoader, DefaultStreamLauncherProvider>(
                 method,
-                0,
                 ref loader,
                 ref launcher);
         }
@@ -501,11 +432,10 @@ namespace ILGPU.Runtime
         public TDelegate LoadStreamKernel<TDelegate>(MethodInfo method, AcceleratorStream stream)
             where TDelegate : class
         {
-            var loader = new DefaultKernelLoader();
+            var loader = DefaultKernelLoader.Default;
             var launcher = new StreamLauncherProvider(stream);
             return LoadGenericKernel<TDelegate, DefaultKernelLoader, StreamLauncherProvider>(
                 method,
-                0,
                 ref loader,
                 ref launcher);
         }
@@ -528,7 +458,6 @@ namespace ILGPU.Runtime
             var launcher = new LauncherProvider();
             return LoadGenericKernel<TDelegate, GroupedKernelLoader, LauncherProvider>(
                 method,
-                customGroupSize,
                 ref loader,
                 ref launcher);
         }
@@ -551,7 +480,6 @@ namespace ILGPU.Runtime
             var launcher = new DefaultStreamLauncherProvider();
             return LoadGenericKernel<TDelegate, GroupedKernelLoader, DefaultStreamLauncherProvider>(
                 method,
-                customGroupSize,
                 ref loader,
                 ref launcher);
         }
@@ -579,7 +507,6 @@ namespace ILGPU.Runtime
             var launcher = new StreamLauncherProvider(stream);
             return LoadGenericKernel<TDelegate, GroupedKernelLoader, StreamLauncherProvider>(
                 method,
-                customGroupSize,
                 ref loader,
                 ref launcher);
         }
@@ -598,11 +525,10 @@ namespace ILGPU.Runtime
             out int minGridSize)
             where TDelegate : class
         {
-            var loader = new AutoKernelLoader();
+            var loader = AutoKernelLoader.Default;
             var launcher = new LauncherProvider();
             var result = LoadGenericKernel<TDelegate, AutoKernelLoader, LauncherProvider>(
                 method,
-                null,
                 ref loader,
                 ref launcher);
             groupSize = loader.GroupSize;
@@ -619,11 +545,10 @@ namespace ILGPU.Runtime
         public TDelegate LoadAutoGroupedKernel<TDelegate>(MethodInfo method)
             where TDelegate : class
         {
-            var loader = new AutoKernelLoader();
+            var loader = AutoKernelLoader.Default;
             var launcher = new LauncherProvider();
             return LoadGenericKernel<TDelegate, AutoKernelLoader, LauncherProvider>(
                 method,
-                null,
                 ref loader,
                 ref launcher);
         }
@@ -642,11 +567,10 @@ namespace ILGPU.Runtime
             out int minGridSize)
             where TDelegate : class
         {
-            var loader = new AutoKernelLoader();
+            var loader = AutoKernelLoader.Default;
             var launcher = new DefaultStreamLauncherProvider();
             var result = LoadGenericKernel<TDelegate, AutoKernelLoader, DefaultStreamLauncherProvider>(
                 method,
-                null,
                 ref loader,
                 ref launcher);
             groupSize = loader.GroupSize;
@@ -663,11 +587,10 @@ namespace ILGPU.Runtime
         public TDelegate LoadAutoGroupedStreamKernel<TDelegate>(MethodInfo method)
             where TDelegate : class
         {
-            var loader = new AutoKernelLoader();
+            var loader = AutoKernelLoader.Default;
             var launcher = new DefaultStreamLauncherProvider();
             return LoadGenericKernel<TDelegate, AutoKernelLoader, DefaultStreamLauncherProvider>(
                 method,
-                null,
                 ref loader,
                 ref launcher);
         }
@@ -689,11 +612,10 @@ namespace ILGPU.Runtime
             out int minGridSize)
             where TDelegate : class
         {
-            var loader = new AutoKernelLoader();
+            var loader = AutoKernelLoader.Default;
             var launcher = new StreamLauncherProvider(stream);
             var result = LoadGenericKernel<TDelegate, AutoKernelLoader, StreamLauncherProvider>(
                 method,
-                null,
                 ref loader,
                 ref launcher);
             groupSize = loader.GroupSize;
@@ -712,11 +634,10 @@ namespace ILGPU.Runtime
         public TDelegate LoadAutoGroupedStreamKernel<TDelegate>(MethodInfo method, AcceleratorStream stream)
             where TDelegate : class
         {
-            var loader = new AutoKernelLoader();
+            var loader = AutoKernelLoader.Default;
             var launcher = new StreamLauncherProvider(stream);
             return LoadGenericKernel<TDelegate, AutoKernelLoader, StreamLauncherProvider>(
                 method,
-                null,
                 ref loader,
                 ref launcher);
         }
