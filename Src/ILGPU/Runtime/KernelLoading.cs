@@ -9,7 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends;
 using ILGPU.Compiler;
+using ILGPU.Resources;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -18,6 +20,38 @@ namespace ILGPU.Runtime
 {
     partial class Accelerator
     {
+        #region Kernel Creation
+
+        /// <summary>
+        /// Adjusts and verifies a customm group size of a specific kernel.
+        /// Note that this function ensures that implicitly grouped kernels
+        /// without an explicit group size will be launched with a group size
+        /// that is equal to the available warp size.
+        /// </summary>
+        /// <param name="customGroupSize">The custom group size to adjust and verify.</param>
+        /// <param name="entryPoint">The kernel entry point.</param>
+        internal void AdjustAndVerifyKernelGroupSize(
+            ref int customGroupSize,
+            EntryPoint entryPoint)
+        {
+            if (customGroupSize < 0)
+                throw new ArgumentOutOfRangeException(nameof(customGroupSize));
+
+            if (entryPoint.IsGroupedIndexEntry)
+            {
+                if (customGroupSize > 0)
+                    throw new InvalidOperationException(RuntimeErrorMessages.InvalidCustomGroupSize);
+            }
+            else if (customGroupSize == 0)
+                customGroupSize = WarpSize;
+
+            var maxNumThreadsPerGroup = entryPoint.Specialization.MaxNumThreadsPerGroup;
+            if (maxNumThreadsPerGroup.HasValue && customGroupSize > maxNumThreadsPerGroup.Value)
+                throw new InvalidOperationException(RuntimeErrorMessages.InvalidKernelSpecializationGroupSize);
+        }
+
+        #endregion
+
         #region Direct Kernel Loading
 
         /// <summary>
@@ -294,19 +328,21 @@ namespace ILGPU.Runtime
         /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
         /// <typeparam name="TLauncherProvider">The type of the custom launcher provider.</typeparam>
         /// <param name="method">The method to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
         /// <param name="launcherProvider">The launcher provider.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private TDelegate LoadGenericKernel<TDelegate, TKernelLoader, TLauncherProvider>(
             MethodInfo method,
+            KernelSpecialization specialization,
             ref TKernelLoader kernelLoader,
             ref TLauncherProvider launcherProvider)
             where TDelegate : class
             where TKernelLoader : struct, IKernelLoader
             where TLauncherProvider : struct, ILauncherProvider
         {
-            var kernel = LoadGenericKernel(method, ref kernelLoader);
+            var kernel = LoadGenericKernel(method, specialization, ref kernelLoader);
             return launcherProvider.CreateLauncher<TDelegate>(kernel);
         }
 
@@ -323,8 +359,21 @@ namespace ILGPU.Runtime
         /// <remarks>Note that the returned kernel must not be disposed manually.</remarks>
         public Kernel LoadKernel(MethodInfo method)
         {
+            return LoadKernel(method, KernelSpecialization.Empty);
+        }
+
+        /// <summary>
+        /// Loads the given kernel. Implictly-grouped kernels will be launched
+        /// with a group size of the current warp size of the accelerator.
+        /// </summary>
+        /// <param name="method">The method to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <returns>The loaded kernel.</returns>
+        /// <remarks>Note that the returned kernel must not be disposed manually.</remarks>
+        public Kernel LoadKernel(MethodInfo method, KernelSpecialization specialization)
+        {
             var loader = DefaultKernelLoader.Default;
-            return LoadGenericKernel(method, ref loader);
+            return LoadGenericKernel(method, specialization, ref loader);
         }
 
         /// <summary>
@@ -338,7 +387,7 @@ namespace ILGPU.Runtime
         public Kernel LoadImplicitlyGroupedKernel(MethodInfo method, int customGroupSize)
         {
             var loader = new GroupedKernelLoader(customGroupSize);
-            return LoadGenericKernel(method, ref loader);
+            return LoadGenericKernel(method, new KernelSpecialization(customGroupSize, null), ref loader);
         }
 
         /// <summary>
@@ -351,7 +400,7 @@ namespace ILGPU.Runtime
         public Kernel LoadAutoGroupedKernel(MethodInfo method)
         {
             var loader = AutoKernelLoader.Default;
-            return LoadGenericKernel(method, ref loader);
+            return LoadGenericKernel(method, KernelSpecialization.Empty, ref loader);
         }
 
         /// <summary>
@@ -366,7 +415,7 @@ namespace ILGPU.Runtime
         public Kernel LoadAutoGroupedKernel(MethodInfo method, out int groupSize, out int minGridSize)
         {
             var loader = AutoKernelLoader.Default;
-            var result = LoadGenericKernel(method, ref loader);
+            var result = LoadGenericKernel(method, KernelSpecialization.Empty, ref loader);
             groupSize = loader.GroupSize;
             minGridSize = loader.MinGridSize;
             return result;
@@ -386,10 +435,29 @@ namespace ILGPU.Runtime
         public TDelegate LoadKernel<TDelegate>(MethodInfo method)
             where TDelegate : class
         {
+            return LoadKernel<TDelegate>(method, KernelSpecialization.Empty);
+        }
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <typeparam name="TDelegate">The delegate type.</typeparam>
+        /// <param name="method">The method to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels will be launched with a group size
+        /// of the current warp size of the accelerator.
+        /// </remarks>
+        public TDelegate LoadKernel<TDelegate>(MethodInfo method, KernelSpecialization specialization)
+            where TDelegate : class
+        {
             var loader = DefaultKernelLoader.Default;
             var launcher = new LauncherProvider();
             return LoadGenericKernel<TDelegate, DefaultKernelLoader, LauncherProvider>(
                 method,
+                specialization,
                 ref loader,
                 ref launcher);
         }
@@ -408,10 +476,29 @@ namespace ILGPU.Runtime
         public TDelegate LoadStreamKernel<TDelegate>(MethodInfo method)
             where TDelegate : class
         {
+            return LoadStreamKernel<TDelegate>(method, KernelSpecialization.Empty);
+        }
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that launches
+        /// the loaded kernel with the default stream.
+        /// </summary>
+        /// <typeparam name="TDelegate">The delegate type.</typeparam>
+        /// <param name="method">The method to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels will be launched with a group size
+        /// of the current warp size of the accelerator.
+        /// </remarks>
+        public TDelegate LoadStreamKernel<TDelegate>(MethodInfo method, KernelSpecialization specialization)
+            where TDelegate : class
+        {
             var loader = DefaultKernelLoader.Default;
             var launcher = new DefaultStreamLauncherProvider();
             return LoadGenericKernel<TDelegate, DefaultKernelLoader, DefaultStreamLauncherProvider>(
                 method,
+                specialization,
                 ref loader,
                 ref launcher);
         }
@@ -432,10 +519,31 @@ namespace ILGPU.Runtime
         public TDelegate LoadStreamKernel<TDelegate>(MethodInfo method, AcceleratorStream stream)
             where TDelegate : class
         {
+            return LoadStreamKernel<TDelegate>(method, stream, KernelSpecialization.Empty);
+        }
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that is associated
+        /// with the given accelerator stream. Consequently, the resulting delegate
+        /// cannot receive other accelerator streams.
+        /// </summary>
+        /// <typeparam name="TDelegate">The delegate type.</typeparam>
+        /// <param name="method">The method to compile into a kernel.</param>
+        /// <param name="stream">The accelerator stream to use.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels will be launched with a group size
+        /// of the current warp size of the accelerator.
+        /// </remarks>
+        public TDelegate LoadStreamKernel<TDelegate>(MethodInfo method, AcceleratorStream stream, KernelSpecialization specialization)
+            where TDelegate : class
+        {
             var loader = DefaultKernelLoader.Default;
             var launcher = new StreamLauncherProvider(stream);
             return LoadGenericKernel<TDelegate, DefaultKernelLoader, StreamLauncherProvider>(
                 method,
+                specialization,
                 ref loader,
                 ref launcher);
         }
@@ -458,6 +566,7 @@ namespace ILGPU.Runtime
             var launcher = new LauncherProvider();
             return LoadGenericKernel<TDelegate, GroupedKernelLoader, LauncherProvider>(
                 method,
+                new KernelSpecialization(customGroupSize, null),
                 ref loader,
                 ref launcher);
         }
@@ -480,6 +589,7 @@ namespace ILGPU.Runtime
             var launcher = new DefaultStreamLauncherProvider();
             return LoadGenericKernel<TDelegate, GroupedKernelLoader, DefaultStreamLauncherProvider>(
                 method,
+                new KernelSpecialization(customGroupSize, null),
                 ref loader,
                 ref launcher);
         }
@@ -507,6 +617,7 @@ namespace ILGPU.Runtime
             var launcher = new StreamLauncherProvider(stream);
             return LoadGenericKernel<TDelegate, GroupedKernelLoader, StreamLauncherProvider>(
                 method,
+                new KernelSpecialization(customGroupSize, null),
                 ref loader,
                 ref launcher);
         }
@@ -529,6 +640,7 @@ namespace ILGPU.Runtime
             var launcher = new LauncherProvider();
             var result = LoadGenericKernel<TDelegate, AutoKernelLoader, LauncherProvider>(
                 method,
+                KernelSpecialization.Empty,
                 ref loader,
                 ref launcher);
             groupSize = loader.GroupSize;
@@ -549,6 +661,7 @@ namespace ILGPU.Runtime
             var launcher = new LauncherProvider();
             return LoadGenericKernel<TDelegate, AutoKernelLoader, LauncherProvider>(
                 method,
+                KernelSpecialization.Empty,
                 ref loader,
                 ref launcher);
         }
@@ -571,6 +684,7 @@ namespace ILGPU.Runtime
             var launcher = new DefaultStreamLauncherProvider();
             var result = LoadGenericKernel<TDelegate, AutoKernelLoader, DefaultStreamLauncherProvider>(
                 method,
+                KernelSpecialization.Empty,
                 ref loader,
                 ref launcher);
             groupSize = loader.GroupSize;
@@ -591,6 +705,7 @@ namespace ILGPU.Runtime
             var launcher = new DefaultStreamLauncherProvider();
             return LoadGenericKernel<TDelegate, AutoKernelLoader, DefaultStreamLauncherProvider>(
                 method,
+                KernelSpecialization.Empty,
                 ref loader,
                 ref launcher);
         }
@@ -616,6 +731,7 @@ namespace ILGPU.Runtime
             var launcher = new StreamLauncherProvider(stream);
             var result = LoadGenericKernel<TDelegate, AutoKernelLoader, StreamLauncherProvider>(
                 method,
+                KernelSpecialization.Empty,
                 ref loader,
                 ref launcher);
             groupSize = loader.GroupSize;
@@ -638,6 +754,7 @@ namespace ILGPU.Runtime
             var launcher = new StreamLauncherProvider(stream);
             return LoadGenericKernel<TDelegate, AutoKernelLoader, StreamLauncherProvider>(
                 method,
+                KernelSpecialization.Empty,
                 ref loader,
                 ref launcher);
         }

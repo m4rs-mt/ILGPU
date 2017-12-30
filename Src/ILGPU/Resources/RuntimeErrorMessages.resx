@@ -135,6 +135,9 @@
   <data name="InvalidGroupDimension" xml:space="preserve">
     <value>Invalid group dimension</value>
   </data>
+  <data name="InvalidKernelSpecializationGroupSize" xml:space="preserve">
+    <value>The given kernel specialization is not compatible with the defined group size.</value>
+  </data>
   <data name="InvalidNumberOfDynamicallySharedMemoryVariableArgs" xml:space="preserve">
     <value>The number of provided shared-memory array sizes does not match the required length</value>
   </data>
@@ -152,6 +155,9 @@
   </data>
   <data name="NotSupportedKernel" xml:space="preserve">
     <value>Not supported kernel</value>
+  </data>
+  <data name="NotSupportedKernelSpecialization" xml:space="preserve">
+    <value>The given kernel specialization is not compatible with the current accelerator.</value>
   </data>
   <data name="NotSupportedOSPlatform" xml:space="preserve">
     <value>Not supported OS platform</value>

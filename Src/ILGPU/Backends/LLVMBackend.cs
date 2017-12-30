@@ -179,14 +179,14 @@ namespace ILGPU.Backends
         }
 
         /// <summary cref="Backend.Compile(CompileUnit, MethodInfo)"/>
-        public override CompiledKernel Compile(CompileUnit unit, MethodInfo entry)
+        public override CompiledKernel Compile(CompileUnit unit, MethodInfo entry, KernelSpecialization specialization)
         {
             if (unit == null)
                 throw new ArgumentNullException(nameof(unit));
             if (entry == null)
                 throw new ArgumentNullException(nameof(entry));
 
-            var entryPoint = new EntryPoint(entry, unit);
+            var entryPoint = new EntryPoint(entry, unit, specialization);
             // Ensure that the entry point is contained in the lib
             var backendEntry = CreateEntry(unit, entryPoint, out string entryPointName);
 

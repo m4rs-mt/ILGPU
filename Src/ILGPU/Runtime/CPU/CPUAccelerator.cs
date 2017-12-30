@@ -463,17 +463,7 @@ namespace ILGPU.Runtime.CPU
             int customGroupSize)
         {
             var entryPoint = kernel.EntryPoint;
-
-            if (customGroupSize < 0)
-                throw new ArgumentOutOfRangeException(nameof(customGroupSize));
-
-            if (entryPoint.IsGroupedIndexEntry)
-            {
-                if (customGroupSize > 0)
-                    throw new InvalidOperationException(RuntimeErrorMessages.InvalidCustomGroupSize);
-            }
-            else if (customGroupSize == 0)
-                customGroupSize = WarpSize;
+            AdjustAndVerifyKernelGroupSize(ref customGroupSize, entryPoint);
 
             var uniformVariables = entryPoint.UniformVariables;
             var numUniformVariables = uniformVariables.Length;

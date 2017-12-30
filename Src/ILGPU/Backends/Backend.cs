@@ -11,6 +11,7 @@
 
 using ILGPU.Compiler;
 using ILGPU.Resources;
+using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 using System.Reflection;
@@ -156,7 +157,23 @@ namespace ILGPU.Backends
         /// <param name="unit">The compile unit to compile.</param>
         /// <param name="entry">The desired entry point.</param>
         /// <returns>The compiled kernel that represents the compilation result.</returns>
-        public abstract CompiledKernel Compile(CompileUnit unit, MethodInfo entry);
+        public CompiledKernel Compile(CompileUnit unit, MethodInfo entry)
+        {
+            return Compile(unit, entry, KernelSpecialization.Empty);
+        }
+
+        /// <summary>
+        /// Compiles a given compile unit with the specified entry point using
+        /// the given kernel specialization.
+        /// </summary>
+        /// <param name="unit">The compile unit to compile.</param>
+        /// <param name="entry">The desired entry point.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <returns>The compiled kernel that represents the compilation result.</returns>
+        public abstract CompiledKernel Compile(
+            CompileUnit unit,
+            MethodInfo entry,
+            KernelSpecialization specialization);
 
         #endregion
     }

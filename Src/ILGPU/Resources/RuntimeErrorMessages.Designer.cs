@@ -115,6 +115,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The given kernel specialization is not compatible with the defined group size..
+        /// </summary>
+        internal static string InvalidKernelSpecializationGroupSize {
+            get {
+                return ResourceManager.GetString("InvalidKernelSpecializationGroupSize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The number of provided shared-memory array sizes does not match the required length.
         /// </summary>
         internal static string InvalidNumberOfDynamicallySharedMemoryVariableArgs {
@@ -165,6 +174,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedKernel {
             get {
                 return ResourceManager.GetString("NotSupportedKernel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The given kernel specialization is not compatible with the current accelerator..
+        /// </summary>
+        internal static string NotSupportedKernelSpecialization {
+            get {
+                return ResourceManager.GetString("NotSupportedKernelSpecialization", resourceCulture);
             }
         }
         

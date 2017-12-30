@@ -91,6 +91,11 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
+        /// Returns the associated specialization.
+        /// </summary>
+        public KernelSpecialization Specialization => CompiledKernel.Specialization;
+
+        /// <summary>
         /// Returns the default stream of the associated accelerator.
         /// </summary>
         internal AcceleratorStream DefaultStream => Accelerator.DefaultStream;

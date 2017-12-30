@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Compiler;
+using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -40,7 +41,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// A cached kernel key.
         /// </summary>
-        private struct CachedKernelKey : IEquatable<CachedKernelKey>
+        private struct CachedCompiledKernelKey : IEquatable<CachedCompiledKernelKey>
         {
             #region Instance
 
@@ -48,11 +49,11 @@ namespace ILGPU.Runtime
             /// Constructs a new kernel key.
             /// </summary>
             /// <param name="method">The kernel method.</param>
-            /// <param name="implicitGroupSize">The implicit group size (if any).</param>
-            public CachedKernelKey(MethodInfo method, int implicitGroupSize)
+            /// <param name="specialization">The kernel specialization.</param>
+            public CachedCompiledKernelKey(MethodInfo method, KernelSpecialization specialization)
             {
                 Method = method;
-                ImplicitGroupSize = implicitGroupSize;
+                Specialization = specialization;
             }
 
             #endregion
@@ -63,6 +64,77 @@ namespace ILGPU.Runtime
             /// Returns the associated kernel method.
             /// </summary>
             public MethodInfo Method { get; }
+
+            /// <summary>
+            /// Returns the associated kernel specialization.
+            /// </summary>
+            public KernelSpecialization Specialization { get; }
+
+            #endregion
+
+            #region IEquatable
+
+            /// <summary>
+            /// Returns true iff the given cached key is equal to the current one.
+            /// </summary>
+            /// <param name="key">The other key.</param>
+            /// <returns>True, iff the given cached key is equal to the current one.</returns>
+            public bool Equals(CachedCompiledKernelKey key)
+            {
+                return key.Method == Method &&
+                    key.Specialization.Equals(key);
+            }
+
+            #endregion
+
+            #region Object
+
+            public override int GetHashCode()
+            {
+                return Method.GetHashCode() ^ Specialization.GetHashCode();
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is CachedCompiledKernelKey other)
+                    return Equals(other);
+                return false;
+            }
+
+            public override string ToString()
+            {
+                return $"{Method} [Specialization: {Specialization}]";
+            }
+
+            #endregion
+        }
+
+        /// <summary>
+        /// A cached kernel key.
+        /// </summary>
+        private struct CachedKernelKey : IEquatable<CachedKernelKey>
+        {
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new kernel key.
+            /// </summary>
+            /// <param name="compiledKernelKey">The compiled kernel key for lookup purposes.</param>
+            /// <param name="implicitGroupSize">The implicit group size (if any).</param>
+            public CachedKernelKey(CachedCompiledKernelKey compiledKernelKey, int implicitGroupSize)
+            {
+                CompiledKernelKey = compiledKernelKey;
+                ImplicitGroupSize = implicitGroupSize;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// The associated compiled kernel key for lookup purposes.
+            /// </summary>
+            public CachedCompiledKernelKey CompiledKernelKey { get; }
 
             /// <summary>
             /// Returns the associated implicit group size.
@@ -80,7 +152,8 @@ namespace ILGPU.Runtime
             /// <returns>True, iff the given cached key is equal to the current one.</returns>
             public bool Equals(CachedKernelKey key)
             {
-                return key.Method == Method && key.ImplicitGroupSize == ImplicitGroupSize;
+                return key.Equals(CompiledKernelKey) &&
+                    key.ImplicitGroupSize == ImplicitGroupSize;
             }
 
             #endregion
@@ -89,19 +162,19 @@ namespace ILGPU.Runtime
 
             public override int GetHashCode()
             {
-                return Method.GetHashCode() ^ ImplicitGroupSize;
+                return CompiledKernelKey.GetHashCode() ^ ImplicitGroupSize;
             }
 
             public override bool Equals(object obj)
             {
-                if (obj is CachedKernelKey)
-                    return Equals((CachedKernelKey)obj);
+                if (obj is CachedKernelKey other)
+                    return Equals(other);
                 return false;
             }
 
             public override string ToString()
             {
-                return Method.ToString();
+                return $"{CompiledKernelKey} [GroupSize: {ImplicitGroupSize}]";
             }
 
             #endregion
@@ -210,8 +283,8 @@ namespace ILGPU.Runtime
         /// A cache for compiled kernel objects.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Dictionary<MethodInfo, WeakReference<CompiledKernel>> compiledKernelCache =
-            new Dictionary<MethodInfo, WeakReference<CompiledKernel>>();
+        private Dictionary<CachedCompiledKernelKey, WeakReference<CompiledKernel>> compiledKernelCache =
+            new Dictionary<CachedCompiledKernelKey, WeakReference<CompiledKernel>>();
 
         /// <summary>
         /// A cache for loaded kernel objects.
@@ -241,23 +314,26 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
         /// <param name="method">The method to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
         /// <returns>The loaded kernel.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Kernel LoadGenericKernel<TKernelLoader>(
             MethodInfo method,
+            KernelSpecialization specialization,
             ref TKernelLoader kernelLoader)
             where TKernelLoader : struct, IKernelLoader
         {
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
-            var cachedKey = new CachedKernelKey(method, kernelLoader.GroupSize);
+            var cachedCompiledKernelKey = new CachedCompiledKernelKey(method, specialization);
+            var cachedKey = new CachedKernelKey(cachedCompiledKernelKey, kernelLoader.GroupSize);
             lock (syncRoot)
             {
                 if (!kernelCache.TryGetValue(cachedKey, out CachedKernel cached) ||
                     !cached.TryGetKernel(out Kernel result))
                 {
-                    var compiledKernel = CompileKernel(method);
+                    var compiledKernel = CompileKernel(method, specialization);
                     result = kernelLoader.LoadKernel(this, compiledKernel);
                     kernelCache[cachedKey] = new CachedKernel(
                         cached.UpdateReference(result),
@@ -277,20 +353,39 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Compiles the given method into a <see cref="CompiledKernel"/>.
         /// </summary>
-        /// <param name="method">The method to compile into a <see cref="CompiledKernel"/> .</param>
+        /// <param name="method">The method to compile into a <see cref="CompiledKernel"/>.</param>
         /// <returns>The compiled kernel.</returns>
         public CompiledKernel CompileKernel(MethodInfo method)
         {
+            return CompileKernel(method, KernelSpecialization.Empty);
+        }
+
+        /// <summary>
+        /// Compiles the given method into a <see cref="CompiledKernel"/> using the given
+        /// kernel specialization.
+        /// </summary>
+        /// <param name="method">The method to compile into a <see cref="CompiledKernel"/>.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <returns>The compiled kernel.</returns>
+        public CompiledKernel CompileKernel(MethodInfo method, KernelSpecialization specialization)
+        {
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
+
+            // Check for compatiblity
+            if (!specialization.IsCompatibleWith(this))
+                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernelSpecialization);
+
+            // Check and update cache
+            var cachedKey = new CachedCompiledKernelKey(method, specialization);
             lock (syncRoot)
             {
-                if (!compiledKernelCache.TryGetValue(method, out WeakReference<CompiledKernel> cached) ||
+                if (!compiledKernelCache.TryGetValue(cachedKey, out WeakReference<CompiledKernel> cached) ||
                     !cached.TryGetTarget(out CompiledKernel result))
                 {
-                    result = Backend.Compile(CompileUnit, method);
+                    result = Backend.Compile(CompileUnit, method, specialization);
                     if (cached == null)
-                        compiledKernelCache.Add(method, new WeakReference<CompiledKernel>(result));
+                        compiledKernelCache.Add(cachedKey, new WeakReference<CompiledKernel>(result));
                     else
                         cached.SetTarget(result);
                 }
@@ -308,7 +403,7 @@ namespace ILGPU.Runtime
             if (compiledKernelCache.Count >= MinNumberOfKernelsInGC)
             {
                 var oldCompiledKernels = compiledKernelCache;
-                compiledKernelCache = new Dictionary<MethodInfo, WeakReference<CompiledKernel>>();
+                compiledKernelCache = new Dictionary<CachedCompiledKernelKey, WeakReference<CompiledKernel>>();
                 foreach (var entry in oldCompiledKernels)
                 {
                     if (entry.Value.TryGetTarget(out CompiledKernel _))

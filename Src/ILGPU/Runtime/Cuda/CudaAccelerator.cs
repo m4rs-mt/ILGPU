@@ -626,17 +626,7 @@ namespace ILGPU.Runtime.Cuda
         private MethodInfo GenerateKernelLauncherMethod(CompiledKernel kernel, int customGroupSize)
         {
             var entryPoint = kernel.EntryPoint;
-
-            if (customGroupSize < 0)
-                throw new ArgumentOutOfRangeException(nameof(customGroupSize));
-
-            if (entryPoint.IsGroupedIndexEntry)
-            {
-                if (customGroupSize > 0)
-                    throw new InvalidOperationException(RuntimeErrorMessages.InvalidCustomGroupSize);
-            }
-            else if (customGroupSize == 0)
-                customGroupSize = WarpSize;
+            AdjustAndVerifyKernelGroupSize(ref customGroupSize, entryPoint);
 
             var kernelParamTypes = entryPoint.CreateCustomParameterTypes();
             int numKernelParams = kernelParamTypes.Length;

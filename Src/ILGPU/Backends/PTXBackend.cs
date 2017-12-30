@@ -97,6 +97,11 @@ namespace ILGPU.Backends
         const string X86Layout = "e-p:32:32:32-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64";
         const string X64Layout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64";
 
+        const string LLVMAnnotationsName = "nvvm.annotations";
+        const string KernelAnnotationName = "kernel";
+        const string MaxNumThreadsPerGroupAnnotationAnnotationName = "maxntidx";
+        const string MinNumGroupsPerMultiprocessorAnnotationName = "minctasm";
+
         /// <summary>
         /// Represents possible environmet variables of the Cuda SDK.
         /// </summary>
@@ -759,11 +764,43 @@ namespace ILGPU.Backends
             var values = new LLVMValueRef[]
             {
                 generatedEntryPoint,
-                MDStringInContext(context, "kernel", 6),
+                MDStringInContext(context, KernelAnnotationName, KernelAnnotationName.Length),
                 ConstInt(context.Int32Type, 1, false)
             };
-            var kernelMd = MDNodeInContext(context, out values[0], values.Length);
-            AddNamedMetadataOperand(module, "nvvm.annotations", kernelMd);
+
+            AddNamedMetadataOperand(module, LLVMAnnotationsName,
+                MDNodeInContext(context, out values[0], values.Length));
+
+            var specialization = entryPoint.Specialization;
+            if (specialization.MaxNumThreadsPerGroup.HasValue)
+            {
+                var maxThreadsPerGroupAnnotation = new LLVMValueRef[]
+                {
+                    generatedEntryPoint,
+                    MDStringInContext(
+                        context,
+                        MaxNumThreadsPerGroupAnnotationAnnotationName,
+                        MaxNumThreadsPerGroupAnnotationAnnotationName.Length),
+                    ConstInt(context.Int32Type, specialization.MaxNumThreadsPerGroup.Value, false)
+                };
+                AddNamedMetadataOperand(module, LLVMAnnotationsName,
+                    MDNodeInContext(context, out maxThreadsPerGroupAnnotation[0], maxThreadsPerGroupAnnotation.Length));
+            }
+
+            if (specialization.MinNumGroupsPerMultiprocessor.HasValue)
+            {
+                var minNumGroupsAnnotation = new LLVMValueRef[]
+                {
+                    generatedEntryPoint,
+                    MDStringInContext(
+                        context,
+                        MinNumGroupsPerMultiprocessorAnnotationName,
+                        MinNumGroupsPerMultiprocessorAnnotationName.Length),
+                    ConstInt(context.Int32Type, specialization.MinNumGroupsPerMultiprocessor.Value, false)
+                };
+                AddNamedMetadataOperand(module, LLVMAnnotationsName,
+                    MDNodeInContext(context, out minNumGroupsAnnotation[0], minNumGroupsAnnotation.Length));
+            }
 
             // Perform NVVM reflect pass
             PreparePTXModule(

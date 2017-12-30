@@ -85,10 +85,14 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="unit">The compile unit to compile.</param>
         /// <param name="entry">The desired entry point.</param>
+        /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The compiled kernel that represents the compilation result.</returns>
-        public override CompiledKernel Compile(CompileUnit unit, MethodInfo entry)
+        public override CompiledKernel Compile(
+            CompileUnit unit,
+            MethodInfo entry,
+            KernelSpecialization specialization)
         {
-            var entryPoint = new EntryPoint(entry, unit);
+            var entryPoint = new EntryPoint(entry, unit, specialization);
             CheckMethod(unit, entry, entryPoint);
             return new CompiledKernel(Context, entry, new byte[] { }, entry.Name, entryPoint);
         }

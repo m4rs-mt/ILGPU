@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Compiler;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
@@ -199,10 +200,15 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="methodInfo">The targeted method.</param>
         /// <param name="unit">The unit in the current context.</param>
-        public EntryPoint(MethodInfo methodInfo, CompileUnit unit)
+        /// <param name="specialization">The kernel specialization.</param>
+        public EntryPoint(
+            MethodInfo methodInfo,
+            CompileUnit unit,
+            KernelSpecialization specialization)
         {
             MethodInfo = methodInfo;
             NumDynamicallySizedSharedMemoryVariables = 0;
+            Specialization = specialization;
 
             if (!methodInfo.IsStatic)
                 throw new NotSupportedException(ErrorMessages.InvalidEntryPointInstanceKernelMethod);
@@ -338,6 +344,11 @@ namespace ILGPU.Backends
         /// to the virtual entry point.
         /// </summary>
         public int NumCustomParameters => NumUniformVariables + SharedMemoryVariables.Length;
+
+        /// <summary>
+        /// Returns the associated launch specification.
+        /// </summary>
+        public KernelSpecialization Specialization { get; }
 
         #endregion
 

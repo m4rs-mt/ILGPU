@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.Runtime;
 using System.Reflection;
 
 namespace ILGPU.Compiler
@@ -71,6 +72,11 @@ namespace ILGPU.Compiler
         public IndexType IndexType => EntryPoint.Type;
 
         /// <summary>
+        /// Returns the associated kernel specialization.
+        /// </summary>
+        public KernelSpecialization Specialization => EntryPoint.Specialization;
+
+        /// <summary>
         /// Returns the internally used entry point.
         /// </summary>
         internal EntryPoint EntryPoint { get; }
@@ -91,41 +97,6 @@ namespace ILGPU.Compiler
         #endregion
 
         #region Object
-
-        /// <summary>
-        /// Returns true iff the given object is equal to the current kernel.
-        /// </summary>
-        /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current kernel.</returns>
-        public override bool Equals(object obj)
-        {
-            var other = obj as CompiledKernel;
-            if (other == null)
-                return false;
-            if (Context != other.Context ||
-                SourceMethod != other.SourceMethod ||
-                EntryName != other.EntryName ||
-                buffer.Length != other.buffer.Length)
-                return false;
-            for (int i = 0, e = buffer.Length; i < e; ++i)
-            {
-                if (buffer[i] != other.buffer[i])
-                    return false;
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Returns the hash code of this kernel.
-        /// </summary>
-        /// <returns>The hash code of this kernel.</returns>
-        public override int GetHashCode()
-        {
-            return Context.GetHashCode() ^
-                SourceMethod.GetHashCode() ^
-                EntryName.GetHashCode() ^
-                buffer.Length.GetHashCode();
-        }
 
         /// <summary>
         /// Returns the string representation of this kernel.
