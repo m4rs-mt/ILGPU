@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <ItemGroup>
-        <Reference Include="ILGPU" Condition="'$(TargetFramework)' != 'netcoreapp.2.0'">
-            <HintPath>$(MSBuildThisFileDirectory)../lib/net46/$(Configuration)/ILGPU.dll</HintPath>
-        </Reference>
-        <Reference Include="ILGPU" Condition="'$(TargetFramework)' == 'netcoreapp2.0'">
-            <HintPath>$(MSBuildThisFileDirectory)../lib/netcoreapp2.0/$(Configuration)/ILGPU.dll</HintPath>
+        <Reference Include="ILGPU">
+            <HintPath>$(MSBuildThisFileDirectory)../lib/netstandard2.0/$(Configuration)/ILGPU.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>

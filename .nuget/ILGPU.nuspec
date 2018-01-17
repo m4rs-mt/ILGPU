@@ -20,8 +20,11 @@
     <copyright>Copyright (c) 2016-2018 Marcel Koester. All rights reserved.</copyright>
     <tags>ilgpu gpu msil il cil cpu ptx llvm nvidia amd amp opencl cuda compiler jit</tags>
     <dependencies>
-      <dependency id="System.Runtime.CompilerServices.Unsafe" version="4.4.0" />
+      <dependency id="System.Reflection.Emit" version="4.3.0" />
+      <dependency id="System.Reflection.Emit.ILGeneration" version="4.3.0" />
+      <dependency id="System.Reflection.Emit.Lightweight" version="4.3.0" />
       <dependency id="System.Reflection.Metadata" version="1.5.0" />
+      <dependency id="System.Runtime.CompilerServices.Unsafe" version="4.4.0" />
     </dependencies>
   </metadata>
   <files>
@@ -32,16 +35,10 @@
     <file src="..\X86\Windows\ILGPU_LLVM.dll" target="build\X86\Windows\ILGPU_LLVM.dll" />
     <file src="..\X64\Windows\ILGPU_LLVM.dll" target="build\X64\Windows\ILGPU_LLVM.dll" />
 
-    <file src="..\Bin\Debug\net46\ILGPU.dll" target="lib\net46\Debug\ILGPU.dll" />
-    <file src="..\Bin\Debug\net46\ILGPU.xml" target="lib\net46\Debug\ILGPU.xml" />
+    <file src="..\Bin\Debug\netstandard2.0\ILGPU.dll" target="lib\netstandard2.0\Debug\ILGPU.dll" />
+    <file src="..\Bin\Debug\netstandard2.0\ILGPU.xml" target="lib\netstandard2.0\Debug\ILGPU.xml" />
 
-    <file src="..\Bin\Release\net46\ILGPU.dll" target="lib\net46\Release\ILGPU.dll" />
-    <file src="..\Bin\Release\net46\ILGPU.xml" target="lib\net46\Release\ILGPU.xml" />
-
-    <file src="..\Bin\Debug\netcoreapp2.0\ILGPU.dll" target="lib\netcoreapp2.0\Debug\ILGPU.dll" />
-    <file src="..\Bin\Debug\netcoreapp2.0\ILGPU.xml" target="lib\netcoreapp2.0\Debug\ILGPU.xml" />
-
-    <file src="..\Bin\Release\netcoreapp2.0\ILGPU.dll" target="lib\netcoreapp2.0\Release\ILGPU.dll" />
-    <file src="..\Bin\Release\netcoreapp2.0\ILGPU.xml" target="lib\netcoreapp2.0\Release\ILGPU.xml" />
+    <file src="..\Bin\Release\netstandard2.0\ILGPU.dll" target="lib\netstandard2.0\Release\ILGPU.dll" />
+    <file src="..\Bin\Release\netstandard2.0\ILGPU.xml" target="lib\netstandard2.0\Release\ILGPU.xml" />
   </files>
 </package>

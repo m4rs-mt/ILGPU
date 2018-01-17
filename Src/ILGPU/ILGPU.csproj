@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net46;netcoreapp2.0</TargetFrameworks>
+        <TargetFrameworks>netstandard2.0;net47</TargetFrameworks>
         <OutputPath>../../Bin/$(Configuration)/</OutputPath>
         <DocumentationFile>../../Bin/$(Configuration)/ILGPU.xml</DocumentationFile>
         <!--<Optimize>true</Optimize>-->
@@ -18,14 +18,14 @@
         <NeutralLanguage>en-US</NeutralLanguage>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net46|AnyCPU'">
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net47|AnyCPU'">
         <DebugType>full</DebugType>
         <DebugSymbols>true</DebugSymbols>
         <CodeAnalysisRuleSet>../ILGPU.ruleset</CodeAnalysisRuleSet>
         <RunCodeAnalysis>true</RunCodeAnalysis>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net46|AnyCPU'">
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net47|AnyCPU'">
         <DebugType>pdbonly</DebugType>
         <DebugSymbols>true</DebugSymbols>
         <CodeAnalysisRuleSet>../ILGPU.ruleset</CodeAnalysisRuleSet>
@@ -33,6 +33,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
+        <PackageReference Include="System.Reflection.Emit.ILGeneration" Version="4.3.0" />
+        <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.3.0" />
         <PackageReference Include="System.Reflection.Metadata" Version="1.5.0" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.4.0" />
     </ItemGroup>

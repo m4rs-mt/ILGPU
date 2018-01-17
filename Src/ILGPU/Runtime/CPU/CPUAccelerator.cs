@@ -629,7 +629,7 @@ namespace ILGPU.Runtime.CPU
                     FieldAttributes.Public);
             }
 
-            taskType = taskBuilder.CreateType();
+            taskType = taskBuilder.CreateTypeInfo();
             taskConstructor = taskType.GetConstructor(CPUAcceleratorTask.ConstructorParameterTypes);
 
             // Map the final fields
