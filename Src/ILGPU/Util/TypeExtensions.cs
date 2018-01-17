@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                    ILGPU
-//                     Copyright (c) 2016-2017 Marcel Koester
+//                     Copyright (c) 2016-2018 Marcel Koester
 //                                www.ilgpu.net
 //
 // File: TypeExtensions.cs
