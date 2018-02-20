@@ -16,7 +16,7 @@
       ILGPU.Lightning offers several high-level programming functions that simplify programming with ILGPU. It provides useful generic GPU algorithms (e.g. sequence, transform, reorder, scan, radix sort and reduce). All algorithms and functions work with CPU and GPU accelerators for easy and fast development, debugging, simulation and deployment processes.
     </summary>
     <releaseNotes>http://www.ilgpu.net/releases/ILGPU.Lightning.ReleaseNotes.txt</releaseNotes>
-    <copyright>Copyright © 2017 ILGPU Lightning Project. All rights reserved.</copyright>
+    <copyright>Copyright © 2017-2018 ILGPU Lightning Project. All rights reserved.</copyright>
     <tags>ilgpu gpu llvm nvidia amd amp opencl cuda scan prefix sum sort reduce parallel foreach</tags>
     <dependencies>
       <dependency id="ILGPU" version="0.2.0" />
@@ -27,10 +27,10 @@
     <file src="..\LICENSE-3RD-PARTY.txt" target="" />
 
     <file src="ILGPU.Lightning.targets" target="build\ILGPU.Lightning.targets" />
-    <file src="..\Bin\Release\X64\Windows\ILGPU.Lightning.Native.dll" target="build\X64\Windows\ILGPU.Lightning.Native.dll" />
-    <file src="..\Bin\Debug\ILGPU.Lightning.dll" target="lib\net46\Debug\ILGPU.Lightning.dll" />
-    <file src="..\Bin\Debug\ILGPU.Lightning.xml" target="lib\net46\Debug\ILGPU.Lightning.xml" />
-    <file src="..\Bin\Release\ILGPU.Lightning.dll" target="lib\net46\Release\ILGPU.Lightning.dll" />
-    <file src="..\Bin\Release\ILGPU.Lightning.xml" target="lib\net46\Release\ILGPU.Lightning.xml" />
+    <file src="..\Bin\Release\netstandard2.0\X64\Windows\ILGPU.Lightning.Native.dll" target="build\X64\Windows\ILGPU.Lightning.Native.dll" />
+    <file src="..\Bin\Debug\netstandard2.0\ILGPU.Lightning.dll" target="lib\netstandard2.0\Debug\ILGPU.Lightning.dll" />
+    <file src="..\Bin\Debug\netstandard2.0\ILGPU.Lightning.xml" target="lib\netstandard2.0\Debug\ILGPU.Lightning.xml" />
+    <file src="..\Bin\Release\netstandard2.0\ILGPU.Lightning.dll" target="lib\netstandard2.0\Release\ILGPU.Lightning.dll" />
+    <file src="..\Bin\Release\netstandard2.0\ILGPU.Lightning.xml" target="lib\netstandard2.0\Release\ILGPU.Lightning.xml" />
   </files>
 </package>
