@@ -136,16 +136,16 @@ namespace ILGPU.Lightning.Random
         }
 
         /// <summary>
-        /// Generates a random int in [minValue..maxValue].
+        /// Generates a random int in [minValue..maxValue[.
         /// </summary>
         /// <param name="minValue">The minimum value (inclusive)</param>
-        /// <param name="maxValue">The maximum values (inclusive)</param>
-        /// <returns>A random int in [minValue..maxValue].</returns>
+        /// <param name="maxValue">The maximum values (exclusive)</param>
+        /// <returns>A random int in [minValue..maxValue[.</returns>
         public int Next(int minValue, int maxValue)
         {
             Debug.Assert(minValue < maxValue, "Values out of range");
             var dist = maxValue - minValue;
-            return (int)GPUMath.RoundToEven(dist * NextFloat()) + minValue;
+            return Math.Min((int)(NextFloat() * dist) + minValue, maxValue - 1);
         }
 
         #endregion
