@@ -1,10 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2005
+VisualStudioVersion = 15.0.27130.2026
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Lightning", "ILGPU.Lightning\ILGPU.Lightning.csproj", "{FEF34CD0-7986-47D6-91D5-B264EBEC0F90}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ILGPU.Lightning.Native", "ILGPU.Lightning.Native\ILGPU.Lightning.Native.vcxproj", "{023FD7A3-E60A-4411-8015-24A72FC53BCC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{A374B733-93D0-4BD7-97DA-7A677D5C68E0}"
@@ -13,28 +11,22 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{A374B733
 		..\.nuget\ILGPU.Lightning.targets = ..\.nuget\ILGPU.Lightning.targets
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ILGPU.Lightning", "ILGPU.Lightning\ILGPU.Lightning.csproj", "{89B89E70-2720-4069-B0FD-50E6A2AE30E3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
-		Debug|x64 = Debug|x64
 		Release|Any CPU = Release|Any CPU
-		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FEF34CD0-7986-47D6-91D5-B264EBEC0F90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FEF34CD0-7986-47D6-91D5-B264EBEC0F90}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FEF34CD0-7986-47D6-91D5-B264EBEC0F90}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{FEF34CD0-7986-47D6-91D5-B264EBEC0F90}.Debug|x64.Build.0 = Debug|Any CPU
-		{FEF34CD0-7986-47D6-91D5-B264EBEC0F90}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FEF34CD0-7986-47D6-91D5-B264EBEC0F90}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FEF34CD0-7986-47D6-91D5-B264EBEC0F90}.Release|x64.ActiveCfg = Release|Any CPU
-		{FEF34CD0-7986-47D6-91D5-B264EBEC0F90}.Release|x64.Build.0 = Release|Any CPU
 		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Debug|Any CPU.ActiveCfg = Release|x64
-		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Debug|x64.ActiveCfg = Release|x64
-		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Debug|x64.Build.0 = Release|x64
+		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Debug|Any CPU.Build.0 = Release|x64
 		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Release|Any CPU.ActiveCfg = Release|x64
-		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Release|x64.ActiveCfg = Release|x64
-		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Release|x64.Build.0 = Release|x64
+		{023FD7A3-E60A-4411-8015-24A72FC53BCC}.Release|Any CPU.Build.0 = Release|x64
+		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

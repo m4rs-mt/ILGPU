@@ -2,7 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Reference Include="ILGPU.Lightning">
-      <HintPath>$(MSBuildThisFileDirectory)..\lib\net46\$(Configuration)\ILGPU.Lightning.dll</HintPath>
+      <HintPath>$(MSBuildThisFileDirectory)../lib/netstandard2.0/$(Configuration)/ILGPU.Lightning.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
