@@ -1,6 +1,6 @@
 /// -----------------------------------------------------------------------------
 //                              ILGPU.Lightning
-//                   Copyright (c) 2017 ILGPU Lightning Project
+//                Copyright (c) 2017-2018 ILGPU Lightning Project
 //                                www.ilgpu.net
 //
 // File: SegmentedRadixSortUnsigned.cu

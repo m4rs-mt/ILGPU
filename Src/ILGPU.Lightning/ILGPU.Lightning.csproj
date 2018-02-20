@@ -2,8 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>1.0.0.0</Version>
+    <Version>0.3.0</Version>
     <Platforms>AnyCPU</Platforms>
+    <Copyright>Copyright © 2017-2018 ILGPU Lightning Project</Copyright>
+    <Authors>Marcel Koester, Denis Mueller, Christian Hauck</Authors>
+    <AssemblyVersion>0.3.0.0</AssemblyVersion>
+    <FileVersion>0.3.0.0</FileVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

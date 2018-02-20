@@ -2,7 +2,7 @@
                              ILGPU.Lightning License
 ********************************************************************************
 University of Illinois/NCSA Open Source License
-Copyright (c) 2016-2017 ILGPU.Lightning Team
+Copyright (c) 2016-2018 ILGPU.Lightning Team
 All rights reserved.
 
 Developed by:           Marcel Koester (m4rs@m4rs.net)
