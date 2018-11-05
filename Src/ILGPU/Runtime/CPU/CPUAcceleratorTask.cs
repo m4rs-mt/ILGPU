@@ -13,7 +13,6 @@ using ILGPU.Resources;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace ILGPU.Runtime.CPU
 {
@@ -21,23 +20,17 @@ namespace ILGPU.Runtime.CPU
     /// Execution delegate for CPU kernels inside the runtime system.
     /// </summary>
     /// <param name="task">The referenced task.</param>
-    /// <param name="groupBarrier">The current group barrier.</param>
-    /// <param name="sharedMemory">An array view pointing to available shared memory.</param>
+    /// <param name="groupContext">The current group context.</param>
     /// <param name="runtimeThreadOffset">The thread offset within the current group (WarpId * WarpSize + WarpThreadIdx).</param>
     /// <param name="groupSize">The group size in the scope of the runtime system.</param>
-    /// <param name="numRuntimeGroups">The currently used number of processing threads.</param>
-    /// <param name="numUsedRuntimeThreads">The currently used number of processing threads.</param>
     /// <param name="chunkSize">The size of a grid-idx chunk to process.</param>
     /// <param name="chunkOffset">The offset of the current processing chunk.</param>
     /// <param name="targetDimension">The target kernel dimension.</param>
     public delegate void CPUKernelExecutionHandler(
         CPUAcceleratorTask task,
-        Barrier groupBarrier,
-        ArrayView<byte> sharedMemory,
+        CPURuntimeGroupContext groupContext,
         int runtimeThreadOffset,
         int groupSize,
-        int numRuntimeGroups,
-        int numUsedRuntimeThreads,
         int chunkSize,
         int chunkOffset,
         int targetDimension);
@@ -48,6 +41,13 @@ namespace ILGPU.Runtime.CPU
     public class CPUAcceleratorTask
     {
         #region Static
+
+        internal const int GroupContextIndex = 1;
+        internal const int RuntimeThreadOffsetIndex = 2;
+        internal const int RuntimeGroupSizeIndex = 3;
+        internal const int ChunkSizeIndex = 4;
+        internal const int ChunkSizeOffsetIndex = 5;
+        internal const int TargetDimensionIndex = 6;
 
         /// <summary>
         /// Contains the required parameter types of the default task constructor.
@@ -67,16 +67,13 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         internal static readonly Type[] ExecuteParameterTypes =
         {
-            typeof(CPUAcceleratorTask), // task
-            typeof(Barrier),            // groupBarrier
-            typeof(ArrayView<byte>),    // sharedMemory
-            typeof(int),                // runtimeThreadOffset
-            typeof(int),                // groupSize
-            typeof(int),                // numRuntimeGroups
-            typeof(int),                // numUsedRuntimeThreads
-            typeof(int),                // chunkSize
-            typeof(int),                // chunkOffset
-            typeof(int)                 // targetDimension
+            typeof(CPUAcceleratorTask),     // task
+            typeof(CPURuntimeGroupContext), // groupContext
+            typeof(int),                    // runtimeThreadOffset
+            typeof(int),                    // groupSize
+            typeof(int),                    // chunkSize
+            typeof(int),                    // chunkOffset
+            typeof(int)                     // targetDimension
         };
 
         #endregion
@@ -177,35 +174,26 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Executes this task inside the runtime system.
         /// </summary>
-        /// <param name="sharedMemory">An array view pointing to available shared memory.</param>
-        /// <param name="groupBarrier">The current group barrier.</param>
+        /// <param name="groupContext">The current group context.</param>
         /// <param name="runtimeThreadOffset">The thread offset within the current group (WarpId * WarpSize + WarpThreadIdx).</param>
         /// <param name="groupSize">The group size in the scope of the runtime system.</param>
-        /// <param name="numRuntimeGroups">The currently used number of processing threads.</param>
-        /// <param name="numUsedRuntimeThreads">The currently used number of processing threads.</param>
         /// <param name="chunkSize">The size of a grid-idx chunk to process.</param>
         /// <param name="chunkOffset">The offset of the current processing chunk.</param>
         /// <param name="targetDimension">The target kernel dimension.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Execute(
-            Barrier groupBarrier,
-            ArrayView<byte> sharedMemory,
+            CPURuntimeGroupContext groupContext,
             int runtimeThreadOffset,
             int groupSize,
-            int numRuntimeGroups,
-            int numUsedRuntimeThreads,
             int chunkSize,
             int chunkOffset,
             int targetDimension)
         {
             KernelExecutionDelegate(
                 this,
-                groupBarrier,
-                sharedMemory,
+                groupContext,
                 runtimeThreadOffset,
                 groupSize,
-                numRuntimeGroups,
-                numUsedRuntimeThreads,
                 chunkSize,
                 chunkOffset,
                 targetDimension);

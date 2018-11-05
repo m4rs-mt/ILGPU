@@ -124,15 +124,6 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The number of provided shared-memory array sizes does not match the required length.
-        /// </summary>
-        internal static string InvalidNumberOfDynamicallySharedMemoryVariableArgs {
-            get {
-                return ResourceManager.GetString("InvalidNumberOfDynamicallySharedMemoryVariableArgs", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to The number of provided arguments does not match the required length.
         /// </summary>
         internal static string InvalidNumberOfUniformArgs {
@@ -192,6 +183,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedOSPlatform {
             get {
                 return ResourceManager.GetString("NotSupportedOSPlatform", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported PTX architecture.
+        /// </summary>
+        internal static string NotSupportedPTXArchitecture {
+            get {
+                return ResourceManager.GetString("NotSupportedPTXArchitecture", resourceCulture);
             }
         }
         

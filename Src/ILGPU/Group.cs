@@ -9,7 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Compiler.Intrinsic;
+using ILGPU.Frontend.Intrinsic;
+using ILGPU.IR.Values;
 using ILGPU.Runtime.CPU;
 
 namespace ILGPU
@@ -22,16 +23,44 @@ namespace ILGPU
         #region Properties
 
         /// <summary>
+        /// Returns X the dimension of the number of threads per group per grid element
+        /// in the scheduled thread grid.
+        /// </summary>
+        /// <returns>The X thread dimension for a single group.</returns>
+        public static int DimensionX
+        {
+            [GridIntrinsic(GridIntrinsicKind.GetGroupDimension, DeviceConstantDimension3D.X)]
+            get => CPURuntimeGroupContext.Current.GroupDimensionX;
+        }
+
+        /// <summary>
+        /// Returns Y the dimension of the number of threads per group per grid element
+        /// in the scheduled thread grid.
+        /// </summary>
+        /// <returns>The Y thread dimension for a single group.</returns>
+        public static int DimensionY
+        {
+            [GridIntrinsic(GridIntrinsicKind.GetGroupDimension, DeviceConstantDimension3D.Y)]
+            get => CPURuntimeGroupContext.Current.GroupDimensionY;
+        }
+
+        /// <summary>
+        /// Returns Z the dimension of the number of threads per group per grid element
+        /// in the scheduled thread grid.
+        /// </summary>
+        /// <returns>The Z thread dimension for a single group.</returns>
+        public static int DimensionZ
+        {
+            [GridIntrinsic(GridIntrinsicKind.GetGroupDimension, DeviceConstantDimension3D.Z)]
+            get => CPURuntimeGroupContext.Current.GroupDimensionZ;
+        }
+
+        /// <summary>
         /// Returns the dimension of the number of threads per group per grid element
         /// in the scheduled thread grid.
         /// </summary>
         /// <returns>The thread dimension for a single group.</returns>
-        public static Index3 Dimension
-        {
-            [GridIntrinsic(GridIntrinsicKind.GetGroupDimension)]
-            get;
-            internal set;
-        }
+        public static Index3 Dimension => new Index3(DimensionX, DimensionY, DimensionZ);
 
         #endregion
 

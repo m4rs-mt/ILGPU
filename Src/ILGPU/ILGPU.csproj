@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.0;net47</TargetFrameworks>
+        <TargetFrameworks>net47;netcoreapp2.0</TargetFrameworks>
         <OutputPath>../../Bin/$(Configuration)/</OutputPath>
         <DocumentationFile>../../Bin/$(Configuration)/ILGPU.xml</DocumentationFile>
+        <Configurations>Debug;Release;DebugVerification</Configurations>
         <!--<Optimize>true</Optimize>-->
     </PropertyGroup>
 
@@ -12,12 +13,17 @@
         <Copyright>Copyright © 2016-2018 Marcel Koester</Copyright>
         <Company />
         <Authors>Marcel Koester</Authors>
-        <Version>0.3.0</Version>
+        <Version>0.4.0</Version>
         <Description>ILGPU Just-In-Time Compiler</Description>
         <PackageProjectUrl>www.ilgpu.net</PackageProjectUrl>
         <NeutralLanguage>en-US</NeutralLanguage>
-        <AssemblyVersion>0.3.0.0</AssemblyVersion>
-        <FileVersion>0.3.0.0</FileVersion>
+        <LangVersion>7.2</LangVersion>
+        <AssemblyVersion>0.4.0.0</AssemblyVersion>
+        <FileVersion>0.4.0.0</FileVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVerification|AnyCPU'">
+      <DefineConstants>DEBUG;TRACE;VERIFICATION</DefineConstants>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net47|AnyCPU'">
@@ -27,23 +33,35 @@
         <RunCodeAnalysis>true</RunCodeAnalysis>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='DebugVerification|net47|AnyCPU'">
+      <DebugType>full</DebugType>
+      <DebugSymbols>true</DebugSymbols>
+      <CodeAnalysisRuleSet>../ILGPU.ruleset</CodeAnalysisRuleSet>
+      <RunCodeAnalysis>true</RunCodeAnalysis>
+    </PropertyGroup>
+
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net47|AnyCPU'">
         <DebugType>pdbonly</DebugType>
         <DebugSymbols>true</DebugSymbols>
-        <CodeAnalysisRuleSet>../ILGPU.ruleset</CodeAnalysisRuleSet>
-        <RunCodeAnalysis>true</RunCodeAnalysis>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
+        <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
         <PackageReference Include="System.Reflection.Emit.ILGeneration" Version="4.3.0" />
-        <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.3.0" />
-        <PackageReference Include="System.Reflection.Metadata" Version="1.5.0" />
-        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.4.0" />
+        <PackageReference Include="System.Reflection.Metadata" Version="1.6.0" />
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.2" />
     </ItemGroup>
 
     <ItemGroup>
         <Folder Include="Properties/" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="IR\Construction\CompareOperations.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>CompareOperations.tt</DependentUpon>
+      </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -57,6 +75,16 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>AtomicFunctions.tt</DependentUpon>
         </Compile>
+        <Compile Update="Runtime\KernelLoaders.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>KernelLoaders.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Runtime\MemoryBuffers.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>MemoryBuffers.tt</DependentUpon>
+        </Compile>
         <Compile Update="TypeInformation.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
@@ -67,10 +95,15 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>GroupedIndices.tt</DependentUpon>
         </Compile>
-        <Compile Update="ReductionOperations.cs">
+        <Compile Update="IR\Construction\CompareOperations.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
-            <DependentUpon>ReductionOperations.tt</DependentUpon>
+            <DependentUpon>CompareOperations.tt</DependentUpon>
+        </Compile>
+        <Compile Update="IR\Construction\ArithmeticOperations.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>ArithmeticOperations.tt</DependentUpon>
         </Compile>
         <Compile Update="Resources\ErrorMessages.Designer.cs">
             <DesignTime>True</DesignTime>
@@ -82,21 +115,6 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
         </Compile>
-        <Compile Update="Runtime\KernelLoaders.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>KernelLoaders.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Runtime\MemoryBuffers.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>MemoryBuffers.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Runtime\SharedMemoryKernelLoaders.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>SharedMemoryKernelLoaders.tt</DependentUpon>
-        </Compile>
         <Compile Update="ShuffleOperations.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
@@ -104,7 +122,6 @@
         </Compile>
     </ItemGroup>
     <ItemGroup>
-        <None Remove="Basic.cs" />
         <None Update="ArrayViews.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>ArrayViews.cs</LastGenOutput>
@@ -117,21 +134,25 @@
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>GroupedIndices.cs</LastGenOutput>
         </None>
-        <None Update="ReductionOperations.tt">
+        <None Update="IR\Construction\CompareOperations.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>CompareOperations.txt</LastGenOutput>
+        </None>
+        <None Update="IR\Construction\CompareOperations.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>ReductionOperations.cs</LastGenOutput>
+            <LastGenOutput>CompareOperations.cs</LastGenOutput>
+        </None>
+        <None Update="IR\Construction\ArithmeticOperations.tt">
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>ArithmeticOperations.cs</LastGenOutput>
         </None>
         <None Update="Runtime\KernelLoaders.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>KernelLoaders.cs</LastGenOutput>
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>KernelLoaders.cs</LastGenOutput>
         </None>
         <None Update="Runtime\MemoryBuffers.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
-        </None>
-        <None Update="Runtime\SharedMemoryKernelLoaders.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>SharedMemoryKernelLoaders.cs</LastGenOutput>
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
         </None>
         <None Update="ShuffleOperations.tt">
             <Generator>TextTemplatingFileGenerator</Generator>

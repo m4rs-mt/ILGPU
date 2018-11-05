@@ -21,7 +21,7 @@ namespace ILGPU.Runtime.CPU
     /// <summary>
     /// Represents a runtime context for thread groups.
     /// </summary>
-    sealed class CPURuntimeGroupContext : DisposeBase
+    public sealed class CPURuntimeGroupContext : DisposeBase
     {
         #region Thread Static
 
@@ -32,20 +32,87 @@ namespace ILGPU.Runtime.CPU
         private static CPURuntimeGroupContext currentContext;
 
         /// <summary>
-        /// A counter for the computation of interlocked group counters.
-        /// </summary>
-        private int groupCounter;
-
-        /// <summary>
         /// Returns the current group runtime context.
         /// </summary>
-        public static CPURuntimeGroupContext Current => currentContext;
+        public static CPURuntimeGroupContext Current
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                if (currentContext == null)
+                    throw new InvalidKernelOperationException();
+                return currentContext;
+            }
+        }
 
         #endregion
 
         #region Instance
 
+        /// <summary>
+        /// The X dimension of the scheduled thread grid
+        /// of the debug CPU accelerator.
+        /// </summary>
+        private volatile int gridDimensionXValue;
+
+        /// <summary>
+        /// The Y dimension of the scheduled thread grid
+        /// of the debug CPU accelerator.
+        /// </summary>
+        private volatile int gridDimensionYValue;
+
+        /// <summary>
+        /// The Z dimension of the scheduled thread grid
+        /// of the debug CPU accelerator.
+        /// </summary>
+        private volatile int gridDimensionZValue;
+
+        /// <summary>
+        /// The X dimension of the scheduled thread group
+        /// of the debug CPU accelerator.
+        /// </summary>
+        private volatile int groupDimensionXValue;
+
+        /// <summary>
+        /// The Y dimension of the scheduled thread group
+        /// of the debug CPU accelerator.
+        /// </summary>
+        private volatile int groupDimensionYValue;
+
+        /// <summary>
+        /// The Z dimension of the scheduled thread group
+        /// of the debug CPU accelerator.
+        /// </summary>
+        private volatile int groupDimensionZValue;
+
+        /// <summary>
+        /// A counter for the computation of interlocked group counters.
+        /// </summary>
+        private volatile int groupCounter;
+
+        /// <summary>
+        /// The general group barrier.
+        /// </summary>
         private Barrier groupBarrier;
+
+        /// <summary>
+        /// The current shared memory offset for allocation.
+        /// </summary>
+        private volatile int sharedMemoryOffset = 0;
+
+        /// <summary>
+        /// The global shared memory lock variable.
+        /// </summary>
+        private volatile int sharedMemoryLock = 0;
+
+        /// <summary>
+        /// The current shared-memory view.
+        /// </summary>
+        private ArrayView<byte> currentSharedMemoryView;
+
+        /// <summary>
+        /// The actual shared-memory buffer.
+        /// </summary>
         private MemoryBufferCache sharedMemoryBuffer;
 
         /// <summary>
@@ -64,28 +131,87 @@ namespace ILGPU.Runtime.CPU
         #region Properties
 
         /// <summary>
-        /// Returns the current group dimension.
+        /// Returns the X dimension of the scheduled thread grid.
         /// </summary>
-        public Index3 GroupDim { get; private set; }
+        public int GridDimensionX => gridDimensionXValue;
+
+        /// <summary>
+        /// Returns the X dimension of the scheduled thread grid.
+        /// </summary>
+        public int GridDimensionY => gridDimensionYValue;
+
+        /// <summary>
+        /// Returns the X dimension of the scheduled thread grid.
+        /// </summary>
+        public int GridDimensionZ => gridDimensionZValue;
+
+        /// <summary>
+        /// Returns X the dimension of the number of threads per group per grid element
+        /// in the scheduled thread grid.
+        /// </summary>
+        public int GroupDimensionX => groupDimensionXValue;
+
+        /// <summary>
+        /// Returns Y the dimension of the number of threads per group per grid element
+        /// in the scheduled thread grid.
+        /// </summary>
+        public int GroupDimensionY => groupDimensionYValue;
+
+        /// <summary>
+        /// Returns Z the dimension of the number of threads per group per grid element
+        /// in the scheduled thread grid.
+        /// </summary>
+        public int GroupDimensionZ => groupDimensionZValue;
 
         /// <summary>
         /// Returns the current total group size in number of threads.
         /// </summary>
-        public int GroupSize => GroupDim.Size;
+        public int GroupSize => groupDimensionXValue * groupDimensionYValue * groupDimensionZValue;
 
         /// <summary>
         /// Returns the associated shared memory.
         /// </summary>
         public ArrayView<byte> SharedMemory { get; private set; }
 
-        /// <summary>
-        /// Returns the associated warp size.
-        /// </summary>
-        public int WarpSize { get; }
-
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Executes a thread barrier.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView<T> AllocateSharedMemory<T>(int length)
+            where T : struct
+        {
+            var isMainThread = Interlocked.CompareExchange(ref sharedMemoryLock, 1, 0) == 0;
+            if (isMainThread)
+            {
+                var sizeInBytes = length * Interop.SizeOf<T>();
+                // We can allocate the required memory
+                currentSharedMemoryView = SharedMemory.GetSubView(sharedMemoryOffset, sizeInBytes);
+                sharedMemoryOffset += sizeInBytes;
+            }
+            Barrier();
+            var result = currentSharedMemoryView;
+            if (isMainThread)
+                Interlocked.Exchange(ref sharedMemoryLock, 0);
+            Barrier();
+            Debug.Assert(result.Length >= length * Interop.SizeOf<T>(), "Invalid shared memory allocation");
+            return result.Cast<T>();
+        }
+
+        /// <summary>
+        /// This method waits for all threads to complete and
+        /// resets all information that might be required for the next
+        /// thread index.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WaitForNextThreadIndex()
+        {
+            Interlocked.Exchange(ref sharedMemoryOffset, 0);
+            Barrier();
+        }
 
         /// <summary>
         /// Executes a thread barrier.
@@ -143,12 +269,22 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Initializes this context.
         /// </summary>
+        /// <param name="gridDim">The grid dimension.</param>
         /// <param name="groupDim">The group dimension.</param>
         /// <param name="sharedMemSize">The required shared-memory size in bytes used by this group.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(Index3 groupDim, int sharedMemSize)
+        internal void Initialize(in Index3 gridDim, in Index3 groupDim, int sharedMemSize)
         {
-            GroupDim = groupDim;
+            gridDimensionXValue = gridDim.X;
+            gridDimensionYValue = gridDim.Y;
+            gridDimensionZValue = gridDim.Z;
+
+            groupDimensionXValue = groupDim.X;
+            groupDimensionYValue = groupDim.Y;
+            groupDimensionZValue = groupDim.Z;
+
+            sharedMemoryOffset = 0;
+            sharedMemoryLock = 0;
 
             var currentBarrierCount = groupBarrier.ParticipantCount;
             if (currentBarrierCount > GroupSize)
@@ -160,21 +296,15 @@ namespace ILGPU.Runtime.CPU
                 SharedMemory = sharedMemoryBuffer.Allocate<byte>(sharedMemSize);
             else
                 SharedMemory = new ArrayView<byte>();
+            currentSharedMemoryView = default;
         }
 
         /// <summary>
         /// Makes the current context the active one for this thread.
         /// </summary>
-        /// <param name="sharedMemory">Outputs the current shared-memory view.</param>
-        /// <param name="groupSynchronizationBarrier">Outputs the current group barrier.</param>
-        /// <returns>The associated shared memory.</returns>
-        internal void MakeCurrent(
-            out ArrayView<byte> sharedMemory,
-            out Barrier groupSynchronizationBarrier)
+        internal void MakeCurrent()
         {
             currentContext = this;
-            sharedMemory = SharedMemory;
-            groupSynchronizationBarrier = groupBarrier;
         }
 
         #endregion

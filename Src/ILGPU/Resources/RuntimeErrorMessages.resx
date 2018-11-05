@@ -138,9 +138,6 @@
   <data name="InvalidKernelSpecializationGroupSize" xml:space="preserve">
     <value>The given kernel specialization is not compatible with the defined group size.</value>
   </data>
-  <data name="InvalidNumberOfDynamicallySharedMemoryVariableArgs" xml:space="preserve">
-    <value>The number of provided shared-memory array sizes does not match the required length</value>
-  </data>
   <data name="InvalidNumberOfUniformArgs" xml:space="preserve">
     <value>The number of provided arguments does not match the required length</value>
   </data>
@@ -161,6 +158,9 @@
   </data>
   <data name="NotSupportedOSPlatform" xml:space="preserve">
     <value>Not supported OS platform</value>
+  </data>
+  <data name="NotSupportedPTXArchitecture" xml:space="preserve">
+    <value>Not supported PTX architecture</value>
   </data>
   <data name="NotSupportedTargetAccelerator" xml:space="preserve">
     <value>Not supported target accelerator</value>

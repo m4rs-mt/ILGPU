@@ -13,8 +13,9 @@ using ILGPU.Backends;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Runtime
 {
@@ -43,43 +44,22 @@ namespace ILGPU.Runtime
         #region Static
 
         /// <summary>
-        /// Represents the default flags of a new lightning context.
+        /// Detectes all accelerators.
         /// </summary>
-        public static readonly CompileUnitFlags DefaultFlags = CompileUnitFlags.UseGPUMath;
-
-        /// <summary>
-        /// Represents the default flags of a new lightning context.
-        /// </summary>
-        public static readonly CompileUnitFlags FastMathFlags =
-            DefaultFlags | CompileUnitFlags.FastMath | CompileUnitFlags.PTXFlushDenormalsToZero;
-
-        /// <summary>
-        /// Represents the default flags of a new lightning context.
-        /// </summary>
-        public static readonly CompileUnitFlags FastMath32BitFloatsFlags =
-            FastMathFlags | CompileUnitFlags.Force32BitFloats;
-
-        /// <summary>
-        /// Represents the list of available accelerators.
-        /// </summary>
-        private static List<AcceleratorId> accelerators;
-
-        /// <summary>
-        /// Returns a list of available accelerators.
-        /// </summary>
-        public static IReadOnlyList<AcceleratorId> Accelerators
+        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline",
+            Justification = "Complex initialization logic is required in this case")]
+        static Accelerator()
         {
-            get
-            {
-                if (accelerators == null)
-                {
-                    accelerators = new List<AcceleratorId>(4);
-                    accelerators.AddRange(Cuda.CudaAccelerator.CudaAccelerators);
-                    accelerators.Add(new AcceleratorId(AcceleratorType.CPU, 0));
-                }
-                return accelerators;
-            }
+            var accelerators = ImmutableArray.CreateBuilder<AcceleratorId>(2);
+            accelerators.AddRange(CPU.CPUAccelerator.CPUAccelerators);
+            accelerators.AddRange(Cuda.CudaAccelerator.CudaAccelerators);
+            Accelerators = accelerators.ToImmutable();
         }
+
+        /// <summary>
+        /// Represents all available accelerators.
+        /// </summary>
+        public static ImmutableArray<AcceleratorId> Accelerators { get; }
 
         /// <summary>
         /// Creates the specified accelerator using the provided accelerator id.
@@ -89,59 +69,18 @@ namespace ILGPU.Runtime
         /// <returns>The created accelerator.</returns>
         public static Accelerator Create(Context context, AcceleratorId acceleratorId)
         {
-            return Create(context, acceleratorId, DefaultFlags);
-        }
-
-        /// <summary>
-        /// Creates the specified accelerator using the provided accelerator id.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="acceleratorId">The specified accelerator id.</param>
-        /// <param name="flags">The compile-unit flags.</param>
-        /// <returns>The created accelerator.</returns>
-        public static Accelerator Create(
-            Context context,
-            AcceleratorId acceleratorId,
-            CompileUnitFlags flags)
-        {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
 
             switch (acceleratorId.AcceleratorType)
             {
                 case AcceleratorType.CPU:
-                    return new CPU.CPUAccelerator(context, flags);
+                    return new CPU.CPUAccelerator(context);
                 case AcceleratorType.Cuda:
-                    return new Cuda.CudaAccelerator(context, acceleratorId.DeviceId, flags);
+                    return new Cuda.CudaAccelerator(context, acceleratorId.DeviceId);
                 default:
                     throw new ArgumentException(RuntimeErrorMessages.NotSupportedTargetAccelerator, nameof(acceleratorId));
             }
-        }
-
-        /// <summary>
-        /// Tries to resolve the accelerator type of the given pointer.
-        /// </summary>
-        /// <param name="value">The pointer to check.</param>
-        /// <returns>A value of the <see cref="AcceleratorType"/> enum iff the type could be rsesolved.</returns>
-        public static AcceleratorType? TryResolvePointerType(IntPtr value)
-        {
-            // Try to copy data from the associated accelerator
-            try
-            {
-                // Try to detect whether this pointer is a cuda pointer...
-                var cudaMemoryType = Cuda.CudaAccelerator.GetCudaMemoryType(value);
-                if (cudaMemoryType != Cuda.CudaMemoryType.None && cudaMemoryType != Cuda.CudaMemoryType.Host)
-                    return AcceleratorType.Cuda;
-            }
-            catch (Exception e) when (
-                e is DllNotFoundException || // The driver api could not be found
-                e is EntryPointNotFoundException || // The driver api does not support this feature
-                e is TypeInitializationException || // The general accelerator class could not be initialized
-                e is Cuda.CudaException) // An internal cuda exception was thrown
-            {
-                // We cannot resolve any information from cuda...
-            }
-            return AcceleratorType.CPU;
         }
 
         #endregion
@@ -164,18 +103,6 @@ namespace ILGPU.Runtime
         private readonly object syncRoot = new object();
 
         /// <summary>
-        /// The default backend instance.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Backend backend;
-
-        /// <summary>
-        /// The default compile unit.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private CompileUnit compileUnit;
-
-        /// <summary>
         /// The default memory cache for operations that require additional
         /// temporary memory.
         /// </summary>
@@ -193,17 +120,6 @@ namespace ILGPU.Runtime
             AcceleratorType = type;
             InitGC();
             memoryCache = new MemoryBufferCache(this);
-        }
-
-        /// <summary>
-        /// Initializes the associated backend.
-        /// </summary>
-        /// <param name="compilationBackend">The associated backend.</param>
-        /// <param name="flags">The compile-unit flags.</param>
-        protected void InitBackend(Backend compilationBackend, CompileUnitFlags flags)
-        {
-            backend = compilationBackend;
-            compileUnit = Context.CreateCompileUnit(backend, flags);
         }
 
         #endregion
@@ -282,14 +198,9 @@ namespace ILGPU.Runtime
         public int MaxNumThreads => NumMultiprocessors * MaxNumThreadsPerMultiprocessor;
 
         /// <summary>
-        /// Returns the internal backend of this lightning context.
+        /// Returns the primary backend of this accelerator.
         /// </summary>
-        public Backend Backend => backend;
-
-        /// <summary>
-        /// Returns the internal compile unit of this lightning context.
-        /// </summary>
-        public CompileUnit CompileUnit => compileUnit;
+        public Backend Backend { get; protected set; }
 
         /// <summary>
         /// Returns the default memory-buffer cache that can be used by several operations.
@@ -309,12 +220,6 @@ namespace ILGPU.Runtime
         /// <returns>The created extension.</returns>
         public abstract TExtension CreateExtension<TExtension, TExtensionProvider>(TExtensionProvider provider)
             where TExtensionProvider : IAcceleratorExtensionProvider<TExtension>;
-
-        /// <summary>
-        /// Creates a new backend that is compatible with this accelerator.
-        /// </summary>
-        /// <returns>The created compatible backend.</returns>
-        public abstract Backend CreateBackend();
 
         /// <summary>
         /// Allocates a buffer with the specified number of elements on this accelerator.
@@ -691,12 +596,10 @@ namespace ILGPU.Runtime
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "memoryCache", Justification = "Dispose method will be invoked by a helper method")]
+        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "memoryCache",
+            Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
-            if (backend == null)
-                return;
-
             Disposed?.Invoke(this, EventArgs.Empty);
 
             if (disposing && currentAccelerator == this)
@@ -705,8 +608,6 @@ namespace ILGPU.Runtime
                 currentAccelerator = null;
             }
 
-            Dispose(ref backend);
-            Dispose(ref compileUnit);
             Dispose(ref memoryCache);
 
             DisposeChildObjects();

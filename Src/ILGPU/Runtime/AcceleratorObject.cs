@@ -18,14 +18,38 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.Runtime
 {
     /// <summary>
+    /// Represents an abstract accelerator object.
+    /// </summary>
+    public interface IAcceleratorObject : IDisposable
+    {
+        /// <summary>
+        /// Returns the associated accelerator.
+        /// </summary>
+        Accelerator Accelerator { get; }
+
+        /// <summary>
+        /// Returns the accelerator type of this object.
+        /// </summary>
+        AcceleratorType AcceleratorType { get; }
+    }
+
+    /// <summary>
     /// Represents the base class for all accelerator-dependent objects.
     /// </summary>
     /// <remarks>
     /// Note that accelerator objects are destroyed when their parent accelerator object is destroyed.
     /// </remarks>
-    public abstract class AcceleratorObject : DisposeBase
+    public abstract class AcceleratorObject : DisposeBase, IAcceleratorObject
     {
         #region Instance
+
+        /// <summary>
+        /// Constructs an accelerator object that lives on the CPU.
+        /// </summary>
+        protected AcceleratorObject()
+        {
+            AcceleratorType = AcceleratorType.CPU;
+        }
 
         /// <summary>
         /// Constructs an accelerator object.
@@ -34,6 +58,7 @@ namespace ILGPU.Runtime
         protected AcceleratorObject(Accelerator accelerator)
         {
             Accelerator = accelerator ?? throw new ArgumentNullException(nameof(accelerator));
+            AcceleratorType = accelerator.AcceleratorType;
             accelerator.RegisterChildObject(this);
         }
 
@@ -45,6 +70,11 @@ namespace ILGPU.Runtime
         /// Returns the associated accelerator.
         /// </summary>
         public Accelerator Accelerator { get; }
+
+        /// <summary>
+        /// Returns the accelerator type of this object.
+        /// </summary>
+        public AcceleratorType AcceleratorType { get; }
 
         #endregion
     }

@@ -9,7 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Compiler;
+using ILGPU.Backends.PTX;
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
@@ -46,12 +46,35 @@ namespace ILGPU.Runtime.Cuda
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods", MessageId = "0", Justification = "Will be verified in the constructor of the base class")]
         internal CudaKernel(
             CudaAccelerator accelerator,
-            CompiledKernel kernel,
+            PTXCompiledKernel kernel,
             MethodInfo launcher)
             : base(accelerator, kernel, launcher)
         {
-            CudaException.ThrowIfFailed(CudaAPI.Current.LoadModule(out modulePtr, kernel.GetBuffer()));
-            CudaException.ThrowIfFailed(CudaAPI.Current.GetModuleFunction(out functionPtr, modulePtr, kernel.EntryName));
+#if DEBUG
+            var kernelLoaded = CudaAPI.Current.LoadModule(
+                out modulePtr,
+                kernel.PTXAssembly,
+                out string errorLog);
+            if (kernelLoaded != CudaError.CUDA_SUCCESS)
+            {
+                Debug.WriteLine("Kernel loading failed:");
+                if (string.IsNullOrWhiteSpace(errorLog))
+                    Debug.WriteLine(">> No error information available");
+                else
+                    Debug.WriteLine(errorLog);
+            }
+            CudaException.ThrowIfFailed(kernelLoaded);
+#else
+            CudaException.ThrowIfFailed(
+                CudaAPI.Current.LoadModule(
+                    out modulePtr,
+                    kernel.PTXAssembly));
+#endif
+            CudaException.ThrowIfFailed(
+                CudaAPI.Current.GetModuleFunction(
+                    out functionPtr,
+                    modulePtr,
+                    PTXCompiledKernel.EntryName));
         }
 
         #endregion
@@ -75,12 +98,9 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (modulePtr != IntPtr.Zero)
-            {
-                CudaException.ThrowIfFailed(CudaAPI.Current.DestroyModule(modulePtr));
-                functionPtr = IntPtr.Zero;
-                modulePtr = IntPtr.Zero;
-            }
+            CudaException.ThrowIfFailed(CudaAPI.Current.DestroyModule(modulePtr));
+            functionPtr = IntPtr.Zero;
+            modulePtr = IntPtr.Zero;
         }
 
         #endregion

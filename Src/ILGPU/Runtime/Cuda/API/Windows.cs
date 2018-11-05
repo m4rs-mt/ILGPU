@@ -209,10 +209,18 @@ namespace ILGPU.Runtime.Cuda.API
             [In] CudaError error,
             [Out] out IntPtr pStr);
 
-        [DllImport(LibName)]
+        [DllImport(LibName, BestFitMapping = false, CharSet = CharSet.Ansi, ThrowOnUnmappableChar = true)]
         private static extern CudaError cuModuleLoadData(
             [Out] out IntPtr module,
-            [In] byte[] moduleData);
+            [In, MarshalAs(UnmanagedType.LPStr)] string moduleData);
+
+        [DllImport(LibName, BestFitMapping = false, CharSet = CharSet.Ansi, ThrowOnUnmappableChar = true)]
+        private static extern CudaError cuModuleLoadDataEx(
+            [Out] out IntPtr module,
+            [In, MarshalAs(UnmanagedType.LPStr)] string moduleData,
+            [In] int numOptions,
+            [In] IntPtr jitOptions,
+            [In] IntPtr jitOptionValues);
 
         [DllImport(LibName)]
         private static extern CudaError cuModuleUnload(IntPtr module);
@@ -562,10 +570,26 @@ namespace ILGPU.Runtime.Cuda.API
 
         #region Kernel Methods
 
-        /// <summary cref="CudaAPI.LoadModule(out IntPtr, byte[])"/>
-        public override CudaError LoadModule(out IntPtr module, byte[] moduleData)
+        /// <summary cref="CudaAPI.LoadModule(out IntPtr, string)"/>
+        public override CudaError LoadModule(out IntPtr module, string moduleData)
         {
             return cuModuleLoadData(out module, moduleData);
+        }
+
+        /// <summary cref="CudaAPI.LoadModule(out IntPtr, string, int, IntPtr, IntPtr)"/>
+        public override CudaError LoadModule(
+            out IntPtr kernelModule,
+            string moduleData,
+            int numOptions,
+            IntPtr jitOptions,
+            IntPtr jitOptionValues)
+        {
+            return cuModuleLoadDataEx(
+                out kernelModule,
+                moduleData,
+                numOptions,
+                jitOptions,
+                jitOptionValues);
         }
 
         /// <summary cref="CudaAPI.DestroyModule(IntPtr)"/>

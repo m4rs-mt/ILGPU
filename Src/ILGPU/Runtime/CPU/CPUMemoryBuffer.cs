@@ -14,7 +14,7 @@ using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace ILGPU.Runtime.CPU
@@ -31,18 +31,6 @@ namespace ILGPU.Runtime.CPU
         #region Instance
 
         /// <summary>
-        /// Holds the gc handle of the pinned object.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private GCHandle gcHandle;
-
-        /// <summary>
-        /// A handle to the managed array.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private T[] array;
-
-        /// <summary>
         /// Constructs a new pinned array.
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
@@ -50,35 +38,32 @@ namespace ILGPU.Runtime.CPU
         internal CPUMemoryBuffer(CPUAccelerator accelerator, TIndex extent)
             : base(accelerator, extent)
         {
-            array = new T[extent.Size];
-            gcHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
-            Pointer = gcHandle.AddrOfPinnedObject();
+            NativePtr = Marshal.AllocHGlobal(extent.Size * Interop.SizeOf<T>());
         }
 
         #endregion
 
         #region Methods
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToViewInternal(ArrayView{T, Index}, AcceleratorType, TIndex, AcceleratorStream)"/>
-        protected internal override unsafe void CopyToViewInternal(
-            ArrayView<T, Index> target,
-            AcceleratorType acceleratorType,
-            TIndex sourceOffset,
-            AcceleratorStream stream)
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToViewInternal(AcceleratorStream, ArrayView{T}, Index)"/>
+        protected unsafe internal override void CopyToViewInternal(
+            AcceleratorStream stream,
+            ArrayView<T> target,
+            Index sourceOffset)
         {
-            switch (acceleratorType)
+            var sourceAddress = ComputeEffectiveAddress(sourceOffset);
+            switch (target.AcceleratorType)
             {
                 case AcceleratorType.CPU:
-                    Buffer.MemoryCopy(
-                        GetSubView(sourceOffset).Pointer.ToPointer(),
-                        target.Pointer.ToPointer(),
-                        target.LengthInBytes,
-                        target.LengthInBytes);
+                    Unsafe.CopyBlock(
+                        target.LoadEffectiveAddress(),
+                        sourceAddress,
+                        (uint)target.LengthInBytes);
                     break;
                 case AcceleratorType.Cuda:
                     CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
-                        target.Pointer,
-                        GetSubView(sourceOffset).Pointer,
+                        new IntPtr(target.LoadEffectiveAddress()),
+                        new IntPtr(sourceAddress),
                         new IntPtr(target.LengthInBytes),
                         stream));
                     break;
@@ -87,26 +72,25 @@ namespace ILGPU.Runtime.CPU
             }
         }
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromViewInternal(ArrayView{T, Index}, AcceleratorType, TIndex, AcceleratorStream)"/>
-        protected internal override unsafe void CopyFromViewInternal(
-            ArrayView<T, Index> source,
-            AcceleratorType acceleratorType,
-            TIndex targetOffset,
-            AcceleratorStream stream)
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromViewInternal(AcceleratorStream, ArrayView{T}, Index)"/>
+        protected unsafe internal override void CopyFromViewInternal(
+            AcceleratorStream stream,
+            ArrayView<T> source,
+            Index targetOffset)
         {
-            switch (acceleratorType)
+            var targetAddress = ComputeEffectiveAddress(targetOffset);
+            switch (source.AcceleratorType)
             {
                 case AcceleratorType.CPU:
-                    Buffer.MemoryCopy(
-                        source.Pointer.ToPointer(),
-                        GetSubView(targetOffset).Pointer.ToPointer(),
-                        source.LengthInBytes,
-                        source.LengthInBytes);
+                    Unsafe.CopyBlock(
+                        targetAddress,
+                        source.LoadEffectiveAddress(),
+                        (uint)source.LengthInBytes);
                     break;
                 case AcceleratorType.Cuda:
                     CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
-                        GetSubView(targetOffset).Pointer,
-                        source.Pointer,
+                        new IntPtr(targetAddress),
+                        new IntPtr(source.LoadEffectiveAddress()),
                         new IntPtr(source.LengthInBytes),
                         stream));
                     break;
@@ -116,18 +100,10 @@ namespace ILGPU.Runtime.CPU
         }
 
         /// <summary cref="MemoryBuffer.MemSetToZero(AcceleratorStream)"/>
-        public override void MemSetToZero(AcceleratorStream stream)
+        public unsafe override void MemSetToZero(AcceleratorStream stream)
         {
-            Array.Clear(array, 0, array.Length);
-        }
-
-        /// <summary>
-        /// Returns the managed array.
-        /// </summary>
-        /// <returns>The managed array.</returns>
-        public T[] GetArray()
-        {
-            return array;
+            stream.Synchronize();
+            Unsafe.InitBlock(NativePtr.ToPointer(), 0, (uint)LengthInBytes);
         }
 
         #endregion
@@ -137,11 +113,8 @@ namespace ILGPU.Runtime.CPU
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (array == null)
-                return;
-
-            gcHandle.Free();
-            array = null;
+            Marshal.FreeHGlobal(NativePtr);
+            NativePtr = IntPtr.Zero;
         }
 
         #endregion

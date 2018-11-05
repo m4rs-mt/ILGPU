@@ -1,0 +1,184 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2018 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: ArithmeticOperations.tt/ArithmeticOperations.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#
+var unaryOperations = new []
+    {
+        new { Name = "Not", BoolPrefix = "!", Prefix = "~", Suffix = "", Ints = true, Floats = false },
+        new { Name = "Neg", BoolPrefix = "", Prefix = "-", Suffix = "", Ints = true, Floats = false },
+        new { Name = "Abs", BoolPrefix = "", Prefix = "XMath.Abs(", Suffix = ")", Ints = true, Floats = true },
+        new { Name = "RcpF", BoolPrefix = "", Prefix = "XMath.Rcp(", Suffix = ")", Ints = false, Floats = true },
+
+        new { Name = "IsNaNF", BoolPrefix = "", Prefix = "XMath.IsNaN(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "IsInfF", BoolPrefix = "", Prefix = "XMath.IsInfinity(", Suffix = ")", Ints = false, Floats = true },
+
+        new { Name = "SqrtF", BoolPrefix = "", Prefix = "XMath.Sqrt(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "RsqrtF", BoolPrefix = "", Prefix = "XMath.Rsqrt(", Suffix = ")", Ints = false, Floats = true },
+
+        // new { Name = "AsinF", BoolPrefix = "", Prefix = "XMath.Asin(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "SinF", BoolPrefix = "", Prefix = "XMath.Sin(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "SinHF", BoolPrefix = "", Prefix = "XMath.Sinh(", Suffix = ")", Ints = false, Floats = true },
+
+        // new { Name = "AcosF", BoolPrefix = "", Prefix = "XMath.Acos(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "CosF", BoolPrefix = "", Prefix = "XMath.Cos(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "CosHF", BoolPrefix = "", Prefix = "XMath.Cosh(", Suffix = ")", Ints = false, Floats = true },
+
+        new { Name = "TanF", BoolPrefix = "", Prefix = "XMath.Tan(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "TanHF", BoolPrefix = "", Prefix = "XMath.Tanh(", Suffix = ")", Ints = false, Floats = true },
+
+        // new { Name = "AtanF", BoolPrefix = "", Prefix = "XMath.Atan(", Suffix = ")", Ints = false, Floats  = true },
+
+        new { Name = "ExpF", BoolPrefix = "", Prefix = "XMath.Exp(", Suffix = ")", Ints = false, Floats  = true },
+        new { Name = "Exp2F", BoolPrefix = "", Prefix = "XMath.Exp2(", Suffix = ")", Ints = false, Floats  = true },
+
+        new { Name = "FloorF", BoolPrefix = "", Prefix = "XMath.Floor(", Suffix = ")", Ints = false, Floats  = true },
+        new { Name = "CeilingF", BoolPrefix = "", Prefix = "XMath.Ceiling(", Suffix = ")", Ints = false, Floats  = true },
+
+        new { Name = "LogF", BoolPrefix = "", Prefix = "XMath.Log(", Suffix = ")", Ints = false, Floats  = true },
+        new { Name = "Log2F", BoolPrefix = "", Prefix = "XMath.Log2(", Suffix = ")", Ints = false, Floats  = true },
+        new { Name = "Log10F", BoolPrefix = "", Prefix = "XMath.Log10(", Suffix = ")", Ints = false, Floats  = true },
+
+    };
+
+var binaryOperations = new []
+    {
+        new { Name = "Add", BoolSupport = false, Prefix = "", Operation = " + ", Suffix = "", Ints = true, Floats = true },
+        new { Name = "Sub", BoolSupport = false, Prefix = "", Operation = " - ", Suffix = "", Ints = true, Floats = true },
+        new { Name = "Mul", BoolSupport = false, Prefix = "", Operation = " * ", Suffix = "", Ints = true, Floats = true },
+        new { Name = "Div", BoolSupport = false, Prefix = "", Operation = " / ", Suffix = "", Ints = true, Floats = true },
+        new { Name = "Rem", BoolSupport = false, Prefix = "", Operation = " % ", Suffix = "", Ints = true, Floats = true },
+
+        new { Name = "And", BoolSupport = true, Prefix = "", Operation = " & ", Suffix = "", Ints = true, Floats = false },
+        new { Name = "Or", BoolSupport = true, Prefix = "", Operation = " | ", Suffix = "", Ints = true, Floats = false },
+        new { Name = "Xor", BoolSupport = true, Prefix = "", Operation = " ^ ", Suffix = "", Ints = true, Floats = false },
+
+        new { Name = "Shl", BoolSupport = false, Prefix = "", Operation = " << (int)", Suffix = "", Ints = true, Floats = false },
+        new { Name = "Shr", BoolSupport = false, Prefix = "", Operation = " >> (int)", Suffix = "", Ints = true, Floats  = false },
+
+        new { Name = "Min", BoolSupport = false, Prefix = "XMath.Min(", Operation = ", ", Suffix = ")", Ints = true, Floats = true },
+        new { Name = "Max", BoolSupport = false, Prefix = "XMath.Max(", Operation = ", ", Suffix = ")", Ints  = true, Floats = true },
+
+        // new { Name = "Atan2F", BoolSupport = false, Prefix = "XMath.Atan2(", Operation = ", ", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "PowF", BoolSupport = false, Prefix = "XMath.Pow(", Operation = ", ", Suffix = ")", Ints = false, Floats  = true },
+    };
+#>
+
+using ILGPU.IR.Values;
+using System;
+using System.Diagnostics.CodeAnalysis;
+
+namespace ILGPU.IR.Construction
+{
+    partial class IRBuilder
+    {
+        [SuppressMessage("Microsoft.Maintainability", "CA1505:AvoidUnmaintainableCode")]
+        [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
+        private ValueReference UnaryArithmeticFoldConstants(
+            PrimitiveValue value,
+            UnaryArithmeticKind kind)
+        {
+            switch (kind)
+            {
+<#    foreach (var operation in unaryOperations) { #>
+                case UnaryArithmeticKind.<#= operation.Name #>:
+                    {
+                        switch (value.BasicValueType)
+                        {
+<#          if (operation.Floats) { #>
+                            case BasicValueType.Float32:
+                                return CreatePrimitiveValue(<#= operation.Prefix #>value.Float32Value<#= operation.Suffix #>);
+                            case BasicValueType.Float64:
+                                return CreatePrimitiveValue(<#= operation.Prefix #>value.Float64Value<#= operation.Suffix #>);
+<#          } if (operation.Ints) { #>
+<#              if (!string.IsNullOrEmpty(operation.BoolPrefix)) { #>
+                            case BasicValueType.Int1:
+                                return CreatePrimitiveValue(<#= operation.BoolPrefix #>value.Int1Value<#= operation.Suffix #>);
+<#              } #>
+                            case BasicValueType.Int8:
+                                return CreatePrimitiveValue((sbyte)<#= operation.Prefix #>value.Int8Value<#= operation.Suffix #>);
+                            case BasicValueType.Int16:
+                                return CreatePrimitiveValue((short)<#= operation.Prefix #>value.Int16Value<#= operation.Suffix #>);
+                            case BasicValueType.Int32:
+                                return CreatePrimitiveValue(<#= operation.Prefix #>value.Int32Value<#= operation.Suffix #>);
+                            case BasicValueType.Int64:
+                                return CreatePrimitiveValue(<#= operation.Prefix #>value.Int64Value<#= operation.Suffix #>);
+<#          } #>
+                        }
+                        throw new NotSupportedException();
+                    }
+<#    } #>
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        [SuppressMessage("Microsoft.Maintainability", "CA1505:AvoidUnmaintainableCode")]
+        [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
+        private ValueReference BinaryArithmeticFoldConstants(
+            PrimitiveValue left,
+            PrimitiveValue right,
+            BinaryArithmeticKind kind,
+            ArithmeticFlags flags)
+        {
+            var isUnsigned = (flags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
+            switch (kind)
+            {
+<#    foreach (var operation in binaryOperations) { #>
+                case BinaryArithmeticKind.<#= operation.Name #>:
+                    {
+                        switch (left.BasicValueType)
+                        {
+<#          if (operation.Floats) { #>
+                            case BasicValueType.Float32:
+                                return CreatePrimitiveValue(<#= operation.Prefix #>left.Float32Value<#= operation.Operation #>right.Float32Value<#= operation.Suffix #>);
+                            case BasicValueType.Float64:
+                                return CreatePrimitiveValue(<#= operation.Prefix #>left.Float64Value<#= operation.Operation #>right.Float64Value<#= operation.Suffix #>);
+<#          } if (operation.Ints) { #>
+<#              if (operation.BoolSupport) { #>
+                            case BasicValueType.Int1:
+                                return CreatePrimitiveValue(<#= operation.Prefix #>left.Int1Value<#= operation.Operation #>right.Int1Value<#= operation.Suffix #>);
+<#              } #>
+                            case BasicValueType.Int8:
+                                if (isUnsigned)
+                                    return CreatePrimitiveValue((byte)(<#= operation.Prefix #>left.UInt8Value<#= operation.Operation #>right.UInt8Value<#= operation.Suffix #>));
+                                else
+                                    return CreatePrimitiveValue((sbyte)(<#= operation.Prefix #>left.Int8Value<#= operation.Operation #>right.Int8Value<#= operation.Suffix #>));
+                            case BasicValueType.Int16:
+                                if (isUnsigned)
+                                    return CreatePrimitiveValue((ushort)(<#= operation.Prefix #>left.UInt16Value<#= operation.Operation #>right.UInt16Value<#= operation.Suffix #>));
+                                else
+                                    return CreatePrimitiveValue((short)(<#= operation.Prefix #>left.Int16Value<#= operation.Operation #>right.Int16Value<#= operation.Suffix #>));
+                            case BasicValueType.Int32:
+                                if (isUnsigned)
+                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt32Value<#= operation.Operation #>right.UInt32Value<#= operation.Suffix #>);
+                                else
+                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Int32Value<#= operation.Operation #>right.Int32Value<#= operation.Suffix #>);
+                            case BasicValueType.Int64:
+                                if (isUnsigned)
+                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt64Value<#= operation.Operation #>right.UInt64Value<#= operation.Suffix #>);
+                                else
+                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Int64Value<#= operation.Operation #>right.Int64Value<#= operation.Suffix #>);
+<#          } #>
+                        }
+                        throw new NotSupportedException();
+                    }
+<#    } #>
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+    }
+}

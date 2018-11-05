@@ -21,7 +21,7 @@ namespace ILGPU
     /// </summary>
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
-    public struct Index : IIntrinsicIndex, IGenericIndex<Index>
+    public readonly struct Index : IIntrinsicIndex, IGenericIndex<Index>
     {
         #region Static
 
@@ -59,7 +59,7 @@ namespace ILGPU
         /// <returns>The minimum of first and second value.</returns>
         public static Index Min(Index first, Index second)
         {
-            return new Index(GPUMath.Min(first.X, second.X));
+            return new Index(XMath.Min(first.X, second.X));
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace ILGPU
         /// <returns>The maximum of first and second value.</returns>
         public static Index Max(Index first, Index second)
         {
-            return new Index(GPUMath.Max(first.X, second.X));
+            return new Index(XMath.Max(first.X, second.X));
         }
 
         /// <summary>
@@ -82,14 +82,14 @@ namespace ILGPU
         /// <returns>The clamped value in the interval [min, max].</returns>
         public static Index Clamp(Index value, Index min, Index max)
         {
-            return new Index(GPUMath.Clamp(value.X, min.X, max.X));
+            return new Index(XMath.Clamp(value.X, min.X, max.X));
         }
 
         #endregion
 
         #region Instance
 
-        private int x;
+        internal readonly int x;
 
         /// <summary>
         /// Constructs a new 1D index.
@@ -407,6 +407,16 @@ namespace ILGPU
         public static implicit operator Index(int idx)
         {
             return new Index(idx);
+        }
+
+        /// <summary>
+        /// Implictly converts an index to an uint.
+        /// </summary>
+        /// <param name="idx">The index to convert.</param>
+        [CLSCompliant(false)]
+        public static explicit operator uint(Index idx)
+        {
+            return (uint)idx.X;
         }
 
         #endregion

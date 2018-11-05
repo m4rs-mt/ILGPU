@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Resources;
-using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -46,8 +45,6 @@ namespace ILGPU.Runtime.Cuda.API
     {
         #region Static
 
-        private static readonly CudaAPI current = InitializeAPI();
-
 #pragma warning disable IDE0002 // Simplify Member Access
         // Access cannot be simplified (dotnetcore build)
         private static CudaAPI InitializeAPI()
@@ -55,7 +52,7 @@ namespace ILGPU.Runtime.Cuda.API
             CudaAPI result;
             try
             {
-                if (DLLLoader.CurrentOSPlatform == Util.OSPlatform.Windows)
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     result = new CudaAPIWindows();
                 else
                     result = new CudaAPIUnix();
@@ -75,7 +72,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// <summary>
         /// Returns the driver API for the current platform.
         /// </summary>
-        public static CudaAPI Current => current;
+        public static CudaAPI Current { get; } = InitializeAPI();
 
         #endregion
 
@@ -578,7 +575,65 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="kernelModule">The loaded module.</param>
         /// <param name="moduleData">The module data to load.</param>
         /// <returns>The error status.</returns>
-        public abstract CudaError LoadModule(out IntPtr kernelModule, byte[] moduleData);
+        public abstract CudaError LoadModule(out IntPtr kernelModule, string moduleData);
+
+        /// <summary>
+        /// Loads the given kernel module into driver memory.
+        /// </summary>
+        /// <param name="kernelModule">The loaded module.</param>
+        /// <param name="moduleData">The module data to load.</param>
+        /// <param name="numOptions">The number of jit options.</param>
+        /// <param name="jitOptions">The jit options.</param>
+        /// <param name="jitOptionValues">The jit values.</param>
+        /// <returns>The error status.</returns>
+        public abstract CudaError LoadModule(
+            out IntPtr kernelModule,
+            string moduleData,
+            int numOptions,
+            IntPtr jitOptions,
+            IntPtr jitOptionValues);
+
+        /// <summary>
+        /// Loads the given kernel module into driver memory.
+        /// </summary>
+        /// <param name="kernelModule">The loaded module.</param>
+        /// <param name="moduleData">The module data to load.</param>
+        /// <param name="errorLog">The error log.</param>
+        /// <returns>The error status.</returns>
+        public unsafe CudaError LoadModule(
+            out IntPtr kernelModule,
+            string moduleData,
+            out string errorLog)
+        {
+            const int BufferSize = 1024;
+            const int NumOptions = 2;
+
+            // TODO: add support for debug information
+
+            var options = stackalloc int[NumOptions];
+            options[0] = 5; // CU_JIT_ERROR_LOG_BUFFER
+            options[1] = 6; // CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES
+
+            var errorBuffer = stackalloc byte[BufferSize];
+
+            var optionValues = stackalloc byte[NumOptions * sizeof(void*)];
+            var values = (void**)optionValues;
+            values[0] = errorBuffer;
+            values[1] = (void*)BufferSize;
+
+            var result = LoadModule(
+                out kernelModule,
+                moduleData,
+                NumOptions,
+                new IntPtr(options),
+                new IntPtr(optionValues));
+
+            if (result != CudaError.CUDA_SUCCESS)
+                errorLog = Encoding.ASCII.GetString(errorBuffer, BufferSize);
+            else
+                errorLog = null;
+            return result;
+        }
 
         /// <summary>
         /// Unlods the given module.
@@ -626,6 +681,59 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr stream,
             IntPtr args,
             IntPtr kernelArgs);
+
+        /// <summary>
+        /// Launches the given kernel function using a bulk structure.
+        /// </summary>
+        /// <param name="kernelFunction">The function to launch.</param>
+        /// <param name="gridDimX">The grid dimension in X dimension.</param>
+        /// <param name="gridDimY">The grid dimension in Y dimension.</param>
+        /// <param name="gridDimZ">The grid dimension in Z dimension.</param>
+        /// <param name="blockDimX">The block dimension in X dimension.</param>
+        /// <param name="blockDimY">The block dimension in Y dimension.</param>
+        /// <param name="blockDimZ">The block dimension in Z dimension.</param>
+        /// <param name="sharedMemSizeInBytes">The shared-memory size in bytes.</param>
+        /// <param name="stream">The associated accelerator stream.</param>
+        /// <param name="argument">The argument structure.</param>
+        /// <param name="argumentLength">The length of the memory region in bytes.</param>
+        /// <returns>The error status.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe CudaError LaunchKernelWithStruct<T>(
+            IntPtr kernelFunction,
+            int gridDimX,
+            int gridDimY,
+            int gridDimZ,
+            int blockDimX,
+            int blockDimY,
+            int blockDimZ,
+            int sharedMemSizeInBytes,
+            IntPtr stream,
+            ref T argument,
+            int argumentLength)
+            where T : struct
+        {
+            var argumentLengthPtrSize = new IntPtr(argumentLength);
+            var kernelArgs = stackalloc byte[sizeof(void*) * 5];
+            var kernelArgsPtr = (void**)kernelArgs;
+            kernelArgsPtr[0] = (void*)0x1;
+            kernelArgsPtr[1] = Unsafe.AsPointer(ref argument);
+            kernelArgsPtr[2] = (void*)0x2;
+            kernelArgsPtr[3] = &argumentLengthPtrSize;
+            kernelArgsPtr[4] = (void*)0x0;
+
+            return LaunchKernel(
+                kernelFunction,
+                gridDimX,
+                gridDimY,
+                gridDimZ,
+                blockDimX,
+                blockDimY,
+                blockDimZ,
+                sharedMemSizeInBytes,
+                stream,
+                IntPtr.Zero,
+                new IntPtr(kernelArgs));
+        }
 
         /// <summary>
         /// Computes the maximum number of blocks for maximum occupancy. 

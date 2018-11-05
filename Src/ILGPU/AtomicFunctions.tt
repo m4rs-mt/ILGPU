@@ -20,9 +20,9 @@
 var atomicSignedIntAndFloatTypes = AtomicSignedIntTypes.Concat(AtomicFloatTypes).ToArray();
 var atomicUnsignedIntAndFloatTypes = AtomicUnsignedIntTypes.Concat(AtomicFloatTypes).ToArray();
 #>
-using ILGPU.Compiler.Intrinsic;
+using ILGPU.Frontend.Intrinsic;
+using ILGPU.IR.Values;
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -37,8 +37,7 @@ namespace ILGPU
 <#      if (type.IsUnsignedInt) { #>
         [CLSCompliant(false)]
 <#      } #>
-        [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
-        public struct CompareExchange<#= type.Name #> : ICompareExchangeOperation<<#= type.Type #>>
+        public readonly struct CompareExchange<#= type.Name #> : ICompareExchangeOperation<<#= type.Type #>>
         {
             /// <summary>
             /// Realizes an atomic compare-exchange operation.
@@ -47,9 +46,9 @@ namespace ILGPU
             /// <param name="compare">The expected comparison value.</param>
             /// <param name="value">The target value.</param>
             /// <returns>The old value.</returns>
-            public <#= type.Type #> CompareExchange(VariableView<<#= type.Type #>> target, <#= type.Type #> compare, <#= type.Type #> value)
+            public <#= type.Type #> CompareExchange(ref <#= type.Type #> target, <#= type.Type #> compare, <#= type.Type #> value)
             {
-                return Atomic.CompareExchange(target, compare, value);
+                return Atomic.CompareExchange(ref target, compare, value);
             }
         }
 
@@ -68,10 +67,11 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The value to add.</param>
         /// <returns>The old value that was stored at the target location.</returns>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Add)]
-        public static unsafe <#= type.Type #> Add(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.None)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value)
         {
-            return Interlocked.Add(ref Unsafe.AsRef<<#= type.Type #>>(target.Pointer.ToPointer()), value) - value;
+            return Interlocked.Add(ref target, value) - value;
         }
 
 <#      } #>
@@ -96,56 +96,31 @@ namespace ILGPU
         /// <param name="value">The value to add.</param>
         /// <returns>The old value that was stored at the target location.</returns>
         [CLSCompliant(false)]
-        [AtomicIntrinsic(AtomicIntrinsicKind.Add)]
-        public static <#= type.Type #> Add(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.Unsigned)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value)
         {
-            return MakeAtomic(target, value, new Add<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+            return MakeAtomic(ref target, value, new Add<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
         }
 
 <#      } #>
 
-        #endregion
-
-        #region Sub
-
-<#      foreach (var type in atomicSignedIntAndFloatTypes) { #>
+<#      foreach (var type in AtomicFloatTypes) { #>
         /// <summary>
-        /// Atommically subtracts the given value and the value at the target location
+        /// Atommically adds the given value and the value at the target location
         /// and returns the old value.
         /// </summary>
         /// <param name="target">The target location.</param>
-        /// <param name="value">The value to subtract.</param>
-        /// <returns>The old value that was stored at the target location.</returns>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Sub)]
-        public static <#= type.Type #> Sub(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
-        {
-            return Add(target, -value);
-        }
-
-<#      } #>
-
-
-<#      foreach (var type in AtomicUnsignedIntTypes) { #>
-        struct Sub<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
-        {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
-            {
-                return current - value;
-            }
-        }
-
-        /// <summary>
-        /// Atommically subtracts the given value and the value at the target location
-        /// and returns the old value.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="value">The value to subtract.</param>
+        /// <param name="value">The value to add.</param>
         /// <returns>The old value that was stored at the target location.</returns>
         [CLSCompliant(false)]
-        [AtomicIntrinsic(AtomicIntrinsicKind.Sub)]
-        public static <#= type.Type #> Sub(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+<#          if (type.Type != "double") { #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.None)]
+<#          } #>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value)
         {
-            return MakeAtomic(target, value, new Sub<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+            return MakeAtomic(ref target, value, new Add<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
         }
 
 <#      } #>
@@ -159,7 +134,7 @@ namespace ILGPU
         {
             public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
             {
-                return GPUMath.Max(current, value);
+                return XMath.Max(current, value);
             }
         }
 
@@ -172,13 +147,14 @@ namespace ILGPU
         /// <returns>The old value that was stored at the target location.</returns>
 <#      if (type.IsUnsignedInt) { #>
         [CLSCompliant(false)]
+        [AtomicIntrinsic(AtomicIntrinsicKind.Max, AtomicFlags.Unsigned)]
+<#      } else if (type.IsInt) { #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Max, AtomicFlags.None)]
 <#      } #>
-<#      if (type.IsInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Max)]
-<#      } #>
-        public static <#= type.Type #> Max(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= type.Type #> Max(ref <#= type.Type #> target, <#= type.Type #> value)
         {
-            return MakeAtomic(target, value, new Max<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+            return MakeAtomic(ref target, value, new Max<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
         }
 
 <#      } #>
@@ -192,7 +168,7 @@ namespace ILGPU
         {
             public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
             {
-                return GPUMath.Min(current, value);
+                return XMath.Min(current, value);
             }
         }
 
@@ -205,13 +181,14 @@ namespace ILGPU
         /// <returns>The old value that was stored at the target location.</returns>
 <#      if (type.IsUnsignedInt) { #>
         [CLSCompliant(false)]
+        [AtomicIntrinsic(AtomicIntrinsicKind.Min, AtomicFlags.Unsigned)]
+<#      } else if (type.IsInt) { #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Min, AtomicFlags.None)]
 <#      } #>
-<#      if (type.IsInt) { #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Min)]
-<#      } #>
-        public static <#= type.Type #> Min(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= type.Type #> Min(ref <#= type.Type #> target, <#= type.Type #> value)
         {
-            return MakeAtomic(target, value, new Min<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+            return MakeAtomic(ref target, value, new Min<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
         }
 
 <#      } #>
@@ -238,11 +215,14 @@ namespace ILGPU
         /// <returns>The old value that was stored at the target location.</returns>
 <#      if (type.IsUnsignedInt) { #>
         [CLSCompliant(false)]
+        [AtomicIntrinsic(AtomicIntrinsicKind.And, AtomicFlags.Unsigned)]
+<#      } else if (type.IsInt) { #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.And, AtomicFlags.None)]
 <#      } #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.And)]
-        public static <#= type.Type #> And(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= type.Type #> And(ref <#= type.Type #> target, <#= type.Type #> value)
         {
-            return MakeAtomic(target, value, new And<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+            return MakeAtomic(ref target, value, new And<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
         }
 
 <#      } #>
@@ -269,11 +249,14 @@ namespace ILGPU
         /// <returns>The old value that was stored at the target location.</returns>
 <#      if (type.IsUnsignedInt) { #>
         [CLSCompliant(false)]
+        [AtomicIntrinsic(AtomicIntrinsicKind.Or, AtomicFlags.Unsigned)]
+<#      } else if (type.IsInt) { #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Or, AtomicFlags.None)]
 <#      } #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Or)]
-        public static <#= type.Type #> Or(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= type.Type #> Or(ref <#= type.Type #> target, <#= type.Type #> value)
         {
-            return MakeAtomic(target, value, new Or<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+            return MakeAtomic(ref target, value, new Or<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
         }
 
 <#      } #>
@@ -300,11 +283,14 @@ namespace ILGPU
         /// <returns>The old value that was stored at the target location.</returns>
 <#      if (type.IsUnsignedInt) { #>
         [CLSCompliant(false)]
+        [AtomicIntrinsic(AtomicIntrinsicKind.Xor, AtomicFlags.Unsigned)]
+<#      } else if (type.IsInt) { #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Xor, AtomicFlags.None)]
 <#      } #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Xor)]
-        public static <#= type.Type #> Xor(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= type.Type #> Xor(ref <#= type.Type #> target, <#= type.Type #> value)
         {
-            return MakeAtomic(target, value, new Xor<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+            return MakeAtomic(ref target, value, new Xor<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
         }
 
 <#      } #>
@@ -322,11 +308,14 @@ namespace ILGPU
         /// <returns>The old value.</returns>
 <#      if (type.IsUnsignedInt) { #>
         [CLSCompliant(false)]
+        [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.Unsigned)]
+<#      } else if (type.IsInt) { #>
+        [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.None)]
 <#      } #>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Xch)]
-        public static unsafe <#= type.Type #> Exchange(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= type.Type #> Exchange(ref <#= type.Type #> target, <#= type.Type #> value)
         {
-            return Interlocked.Exchange(ref Unsafe.AsRef<<#= type.Type #>>(target.Pointer.ToPointer()), value);
+            return Interlocked.Exchange(ref target, value);
         }
 
 <#      } #>
@@ -343,10 +332,11 @@ namespace ILGPU
         /// <param name="compare">The expected comparison value.</param>
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
-        [AtomicIntrinsic(AtomicIntrinsicKind.CmpXch)]
-        public static unsafe <#= type.Type #> CompareExchange(VariableView<<#= type.Type #>> target, <#= type.Type #> compare, <#= type.Type #> value)
+        [AtomicIntrinsic(AtomicIntrinsicKind.CompareExchange, AtomicFlags.None)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= type.Type #> CompareExchange(ref <#= type.Type #> target, <#= type.Type #> compare, <#= type.Type #> value)
         {
-            return Interlocked.CompareExchange(ref Unsafe.AsRef<<#= type.Type #>>(target.Pointer.ToPointer()), value, compare);
+            return Interlocked.CompareExchange(ref target, value, compare);
         }
 
 <#      } #>

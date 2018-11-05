@@ -101,37 +101,43 @@ namespace ILGPU.Runtime
                 cache = Accelerator.Allocate<byte, Index>(numElements * ArrayView<T>.ElementSize);
             }
             Debug.Assert(numElements <= GetCacheSize<T>());
-            return cache.View.Cast<T>().GetSubView(0, numElements);
+            return cache.View.Cast<T>().GetSubView(0, numElements).AsLinearView();
         }
 
         /// <summary>
         /// Copies a single element of this buffer to the given target variable
         /// in CPU memory.
         /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
         /// <param name="target">The target location.</param>
         /// <param name="targetIndex">The target index.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyTo<T>(out T target, Index targetIndex)
+        public unsafe void CopyTo<T>(AcceleratorStream stream, out T target, Index targetIndex)
             where T : struct
         {
-            target = default(T);
-            var ptr = Interop.GetAddress(ref target);
-            var view = new ArrayView<T>(ptr, 1);
-            cache.CopyToView(view.Cast<byte>(), AcceleratorType.CPU, targetIndex);
+            target = default;
+            using (var wrapper = ViewPointerWrapper.Create(ref target))
+            {
+                var view = new ArrayView<T>(wrapper, 0, 1);
+                cache.CopyToView(stream, view.Cast<byte>(), targetIndex);
+            }
         }
 
         /// <summary>
         /// Copies a single element from CPU memory to this buffer.
         /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
         /// <param name="source">The source value.</param>
         /// <param name="sourceIndex">The target index.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyFrom<T>(T source, Index sourceIndex)
+        public unsafe void CopyFrom<T>(AcceleratorStream stream, T source, Index sourceIndex)
             where T : struct
         {
-            var ptr = Interop.GetAddress(ref source);
-            var view = new ArrayView<T>(ptr, 1);
-            cache.CopyFromView(view.Cast<byte>(), AcceleratorType.CPU, sourceIndex);
+            using (var wrapper = ViewPointerWrapper.Create(ref source))
+            {
+                var view = new ArrayView<T>(wrapper, 0, 1);
+                cache.CopyFromView(stream, view.Cast<byte>(), sourceIndex);
+            }
         }
 
         #endregion

@@ -9,7 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Compiler.Intrinsic;
+using ILGPU.Frontend.Intrinsic;
+using ILGPU.IR.Values;
 using System.Threading;
 
 namespace ILGPU
@@ -22,7 +23,7 @@ namespace ILGPU
         /// <summary>
         /// A memory fence at the group level.
         /// </summary>
-        [MemoryFenceIntrinsic(MemoryFenceIntrinsicKind.GroupLevel)]
+        [MemoryBarrierIntrinsic(MemoryBarrierKind.GroupLevel)]
         public static void GroupLevel()
         {
             Interlocked.MemoryBarrier();
@@ -31,7 +32,7 @@ namespace ILGPU
         /// <summary>
         /// A memory fence at the device level.
         /// </summary>
-        [MemoryFenceIntrinsic(MemoryFenceIntrinsicKind.DeviceLevel)]
+        [MemoryBarrierIntrinsic(MemoryBarrierKind.DeviceLevel)]
         public static void DeviceLevel()
         {
             Interlocked.MemoryBarrier();
@@ -40,7 +41,7 @@ namespace ILGPU
         /// <summary>
         /// A memory fence at the system level.
         /// </summary>
-        [MemoryFenceIntrinsic(MemoryFenceIntrinsicKind.SystemLevel)]
+        [MemoryBarrierIntrinsic(MemoryBarrierKind.SystemLevel)]
         public static void SystemLevel()
         {
             Interlocked.MemoryBarrier();

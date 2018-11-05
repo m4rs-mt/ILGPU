@@ -10,12 +10,13 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends;
-using ILGPU.Compiler;
+using ILGPU.Backends.IL;
+using ILGPU.Backends.PTX;
 using ILGPU.Resources;
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -25,108 +26,6 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.Runtime.Cuda
 {
     /// <summary>
-    /// Represents the accelerator flags for a Cuda accelerator.
-    /// </summary>
-    [SuppressMessage("Microsoft.Design", "CA1008:EnumsShouldHaveZeroValue")]
-    [Flags]
-    public enum CudaAcceleratorFlags
-    {
-        /// <summary>
-        /// Automatic scheduling (default).
-        /// </summary>
-        ScheduleAuto = 0,
-
-        /// <summary>
-        /// Spin scheduling.
-        /// </summary>
-        ScheduleSpin = 1,
-
-        /// <summary>
-        /// Yield scheduling
-        /// </summary>
-        ScheduleYield = 2,
-
-        /// <summary>
-        /// Blocking synchronization as default scheduling.
-        /// </summary>
-        ScheduleBlockingSync = 4,
-    }
-
-    /// <summary>
-    /// Represents a cache configuration of a device.
-    /// </summary>
-    public enum CudaCacheConfiguration
-    {
-        /// <summary>
-        /// The default cache configuration.
-        /// </summary>
-        Default = 0,
-
-        /// <summary>
-        /// Prefer shared cache.
-        /// </summary>
-        PreferShared = 1,
-
-        /// <summary>
-        /// Prefer L1 cache.
-        /// </summary>
-        PreferL1 = 2,
-
-        /// <summary>
-        /// Prefer shared or L1 cache.
-        /// </summary>
-        PreferEqual = 3
-    }
-
-    /// <summary>
-    /// Represents a shared-memory configuration of a device.
-    /// </summary>
-    public enum CudaSharedMemoryConfiguration
-    {
-        /// <summary>
-        /// The default shared-memory configuration.
-        /// </summary>
-        Default = 0,
-
-        /// <summary>
-        /// Setup a bank size of 4 byte.
-        /// </summary>
-        FourByteBankSize = 1,
-
-        /// <summary>
-        /// Setup a bank size of 8 byte.
-        /// </summary>
-        EightByteBankSize = 2
-    }
-
-    /// <summary>
-    /// Represents the type of a device pointer.
-    /// </summary>
-    public enum CudaMemoryType
-    {
-        /// <summary>
-        /// Represents no known memory type.
-        /// </summary>
-        None = 0,
-        /// <summary>
-        /// Represents a host pointer.
-        /// </summary>
-        Host = 1,
-        /// <summary>
-        /// Represents a device pointer.
-        /// </summary>
-        Device = 2,
-        /// <summary>
-        /// Represents a pointer to a Cuda array.
-        /// </summary>
-        Array = 3,
-        /// <summary>
-        /// Represents a unified-memory pointer.
-        /// </summary>
-        Unified = 4,
-    }
-
-    /// <summary>
     /// Represents a Cuda accelerator.
     /// </summary>
     public sealed class CudaAccelerator : Accelerator
@@ -134,9 +33,64 @@ namespace ILGPU.Runtime.Cuda
         #region Static
 
         /// <summary>
-        /// Represents the list of available Cuda accelerators.
+        /// Represents the <see cref="CudaAPI.Current"/> property.
         /// </summary>
-        private static List<AcceleratorId> cudaAccelerators;
+        private static readonly MethodInfo GetCudaAPIMethod = typeof(CudaAPI).GetProperty(
+            nameof(CudaAPI.Current),
+            BindingFlags.Public | BindingFlags.Static).GetGetMethod();
+
+        /// <summary>
+        /// Represents the <see cref="CudaStream.StreamPtr"/> property.
+        /// </summary>
+        private static readonly MethodInfo GetStreamPtrMethod = typeof(CudaStream).GetProperty(
+            nameof(CudaStream.StreamPtr),
+            BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false);
+
+        /// <summary>
+        /// Represents the <see cref="CudaKernel.FunctionPtr"/> property.
+        /// </summary>
+        private static readonly MethodInfo GetFunctionPtrMethod = typeof(CudaKernel).GetProperty(
+            nameof(CudaKernel.FunctionPtr),
+            BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false);
+
+        /// <summary>
+        /// Represents the <see cref="CudaAPI.LaunchKernelWithStruct{T}(IntPtr, int, int, int, int, int, int, int, IntPtr, ref T, int)"/>
+        /// method.
+        /// </summary>
+        private static readonly MethodInfo LaunchKernelMethod = typeof(CudaAPI).GetMethod(
+            nameof(CudaAPI.LaunchKernelWithStruct),
+            BindingFlags.Public | BindingFlags.Instance);
+
+        /// <summary>
+        /// Represents the <see cref="CudaException.ThrowIfFailed(CudaError)" /> method.
+        /// </summary>
+        private static readonly MethodInfo ThrowIfFailedMethod = typeof(CudaException).GetMethod(
+            nameof(CudaException.ThrowIfFailed),
+            BindingFlags.Public | BindingFlags.Static);
+
+        /// <summary>
+        /// Detects all cuda accelerators.
+        /// </summary>
+        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline",
+            Justification = "Complex initialization logic is required in this case")]
+        static CudaAccelerator()
+        {
+            CudaAccelerators = ImmutableArray<AcceleratorId>.Empty;
+
+            // Resolve all devices
+            if (CurrentAPI.GetDeviceCount(out int numDevices) != CudaError.CUDA_SUCCESS ||
+                numDevices < 1)
+                return;
+
+            var accelerators = ImmutableArray.CreateBuilder<AcceleratorId>(numDevices);
+            for (int i = 0; i < numDevices; ++i)
+            {
+                if (CurrentAPI.GetDevice(out int device, i) != CudaError.CUDA_SUCCESS)
+                    continue;
+                accelerators.Add(new AcceleratorId(AcceleratorType.Cuda, device));
+            }
+            CudaAccelerators = accelerators.ToImmutable();
+        }
 
         /// <summary>
         /// Returns the current Cuda-driver API.
@@ -144,28 +98,9 @@ namespace ILGPU.Runtime.Cuda
         public static CudaAPI CurrentAPI => CudaAPI.Current;
 
         /// <summary>
-        /// Returns a list of available Cuda accelerators.
+        /// Represents the list of available Cuda accelerators.
         /// </summary>
-        public static IReadOnlyList<AcceleratorId> CudaAccelerators
-        {
-            get
-            {
-                if (cudaAccelerators == null)
-                {
-                    // Resolve all devices
-                    if (CurrentAPI.GetDeviceCount(out int numDevices) != CudaError.CUDA_SUCCESS)
-                        return cudaAccelerators = new List<AcceleratorId>();
-                    cudaAccelerators = new List<AcceleratorId>(numDevices);
-                    for (int i = 0; i < numDevices; ++i)
-                    {
-                        CudaException.ThrowIfFailed(
-                            CurrentAPI.GetDevice(out int device, i));
-                        cudaAccelerators.Add(new AcceleratorId(AcceleratorType.Cuda, device));
-                    }
-                }
-                return cudaAccelerators;
-            }
-        }
+        public static ImmutableArray<AcceleratorId> CudaAccelerators { get; }
 
         /// <summary>
         /// Resolves the memory type of the given device pointer.
@@ -175,7 +110,7 @@ namespace ILGPU.Runtime.Cuda
         public static unsafe CudaMemoryType GetCudaMemoryType(IntPtr value)
         {
             // This functionality requires unified addresses (X64)
-            Backend.EnsureRunningOnPlatform(TargetPlatform.X64);
+            Backends.Backend.EnsureRunningOnPlatform(TargetPlatform.X64);
 
             int data = 0;
             var err = CurrentAPI.GetPointerAttribute(
@@ -205,15 +140,6 @@ namespace ILGPU.Runtime.Cuda
         { }
 
         /// <summary>
-        /// Constructs a new Cuda accelerator targeting the default device.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="flags">The compile-unit flags.</param>
-        public CudaAccelerator(Context context, CompileUnitFlags flags)
-            : this(context, 0, flags)
-        { }
-
-        /// <summary>
         /// Constructs a new Cuda accelerator.
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
@@ -227,33 +153,11 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         /// <param name="deviceId">The target device id.</param>
-        /// <param name="flags">The compile-unit flags.</param>
-        public CudaAccelerator(Context context, int deviceId, CompileUnitFlags flags)
-            : this(context, deviceId, CudaAcceleratorFlags.ScheduleAuto, flags)
-        { }
-
-        /// <summary>
-        /// Constructs a new Cuda accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="deviceId">The target device id.</param>
         /// <param name="acceleratorFlags">The accelerator flags.</param>
-        public CudaAccelerator(Context context, int deviceId, CudaAcceleratorFlags acceleratorFlags)
-            : this(context, deviceId, acceleratorFlags, DefaultFlags)
-        { }
-
-        /// <summary>
-        /// Constructs a new Cuda accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="deviceId">The target device id.</param>
-        /// <param name="acceleratorFlags">The accelerator flags.</param>
-        /// <param name="flags">The compile-unit flags.</param>
         public CudaAccelerator(
             Context context,
             int deviceId,
-            CudaAcceleratorFlags acceleratorFlags,
-            CompileUnitFlags flags)
+            CudaAcceleratorFlags acceleratorFlags)
             : base(context, AcceleratorType.Cuda)
         {
             CudaException.ThrowIfFailed(
@@ -261,7 +165,6 @@ namespace ILGPU.Runtime.Cuda
             DeviceId = deviceId;
 
             SetupAccelerator();
-            InitBackend(CreateBackend(), flags);
         }
 
         /// <summary>
@@ -278,36 +181,11 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
         /// <param name="d3d11Device">A pointer to a valid D3D11 device.</param>
-        /// <param name="flags">The compile-unit flags.</param>
-        public CudaAccelerator(Context context, IntPtr d3d11Device, CompileUnitFlags flags)
-            : this(context, d3d11Device, CudaAcceleratorFlags.ScheduleAuto)
-        { }
-
-        /// <summary>
-        /// Constructs a new Cuda accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="d3d11Device">A pointer to a valid D3D11 device.</param>
         /// <param name="acceleratorFlags">The accelerator flags.</param>
         public CudaAccelerator(
             Context context,
             IntPtr d3d11Device,
             CudaAcceleratorFlags acceleratorFlags)
-            : this(context, d3d11Device, acceleratorFlags, DefaultFlags)
-        { }
-
-        /// <summary>
-        /// Constructs a new Cuda accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="d3d11Device">A pointer to a valid D3D11 device.</param>
-        /// <param name="acceleratorFlags">The accelerator flags.</param>
-        /// <param name="flags">The compile-unit flags.</param>
-        public CudaAccelerator(
-            Context context,
-            IntPtr d3d11Device,
-            CudaAcceleratorFlags acceleratorFlags,
-            CompileUnitFlags flags)
             : base(context, AcceleratorType.Cuda)
         {
             if (d3d11Device == IntPtr.Zero)
@@ -318,7 +196,6 @@ namespace ILGPU.Runtime.Cuda
             DeviceId = deviceId;
 
             SetupAccelerator();
-            InitBackend(CreateBackend(), flags);
         }
 
         /// <summary>
@@ -332,10 +209,6 @@ namespace ILGPU.Runtime.Cuda
                 CurrentAPI.GetDeviceName(out string name, DeviceId));
             Name = name;
             DefaultStream = new CudaStream(this, IntPtr.Zero);
-
-            CudaException.ThrowIfFailed(
-                CurrentAPI.GetDeviceComputeCapability(out int major, out int minor, DeviceId));
-            Architecture = PTXBackend.GetArchitecture(major, minor);
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetTotalDeviceMemory(out long total, DeviceId));
@@ -392,6 +265,12 @@ namespace ILGPU.Runtime.Cuda
                 CurrentAPI.GetSharedMemoryConfig(out sharedMemoryConfiguration));
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetCacheConfig(out cacheConfiguration));
+
+            // Setup architecture and backend
+            CudaException.ThrowIfFailed(
+                CurrentAPI.GetDeviceComputeCapability(out int major, out int minor, DeviceId));
+            Architecture = PTXArchitectureUtils.GetArchitecture(major, minor);
+            base.Backend = new PTXBackend(Context, Architecture, Backends.Backend.OSPlatform);
         }
 
         #endregion
@@ -459,6 +338,11 @@ namespace ILGPU.Runtime.Cuda
             }
         }
 
+        /// <summary>
+        /// Returns the PTX backend of this accelerator.
+        /// </summary>
+        public new PTXBackend Backend => base.Backend as PTXBackend;
+
         #endregion
 
         #region Methods
@@ -467,12 +351,6 @@ namespace ILGPU.Runtime.Cuda
         public override TExtension CreateExtension<TExtension, TExtensionProvider>(TExtensionProvider provider)
         {
             return provider.CreateCudaExtension(this);
-        }
-
-        /// <summary cref="Accelerator.CreateBackend"/>
-        public override Backend CreateBackend()
-        {
-            return new PTXBackend(Context, Architecture);
         }
 
         /// <summary cref="Accelerator.Allocate{T, TIndex}(TIndex)"/>
@@ -486,10 +364,12 @@ namespace ILGPU.Runtime.Cuda
         {
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
+            if (!(kernel is PTXCompiledKernel ptxKernel))
+                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
             return new CudaKernel(
                 this,
-                kernel,
-                GenerateKernelLauncherMethod(kernel, 0));
+                ptxKernel,
+                GenerateKernelLauncherMethod(ptxKernel, 0));
         }
 
         /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(CompiledKernel, int)"/>
@@ -501,16 +381,19 @@ namespace ILGPU.Runtime.Cuda
                 throw new ArgumentNullException(nameof(kernel));
             if (customGroupSize < 0 || customGroupSize > MaxNumThreadsPerGroup)
                 throw new ArgumentOutOfRangeException(nameof(customGroupSize));
+            if (!(kernel is PTXCompiledKernel ptxKernel))
+                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
             if (kernel.EntryPoint.IsGroupedIndexEntry)
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
             return new CudaKernel(
                 this,
-                kernel,
-                GenerateKernelLauncherMethod(kernel, customGroupSize));
+                ptxKernel,
+                GenerateKernelLauncherMethod(ptxKernel, customGroupSize));
         }
 
         /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
-        [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "The object must not be disposed here")]
+        [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope",
+            Justification = "The object must not be disposed here")]
         protected override Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
             out int groupSize,
@@ -518,12 +401,14 @@ namespace ILGPU.Runtime.Cuda
         {
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
+            if (!(kernel is PTXCompiledKernel ptxKernel))
+                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
             if (kernel.EntryPoint.IsGroupedIndexEntry)
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
 
-            var result = new CudaKernel(this, kernel, null);
+            var result = new CudaKernel(this, ptxKernel, null);
             groupSize = EstimateGroupSizeInternal(result, 0, 0, out minGridSize);
-            result.Launcher = GenerateKernelLauncherMethod(kernel, groupSize);
+            result.Launcher = GenerateKernelLauncherMethod(ptxKernel, groupSize);
             return result;
         }
 
@@ -557,7 +442,8 @@ namespace ILGPU.Runtime.Cuda
         /// Queries the amount of free memory.
         /// </summary>
         /// <returns>The amount of free memory in bytes.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate", Justification = "This method implies a native method invocation")]
+        [SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate",
+            Justification = "This method implies a native method invocation")]
         public long GetFreeMemory()
         {
             Bind();
@@ -623,136 +509,90 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="kernel">The kernel to generate a launcher for.</param>
         /// <param name="customGroupSize">The custom group size used for automatic blocking.</param>
         /// <returns>The generated launcher method.</returns>
-        private MethodInfo GenerateKernelLauncherMethod(CompiledKernel kernel, int customGroupSize)
+        private MethodInfo GenerateKernelLauncherMethod(PTXCompiledKernel kernel, int customGroupSize)
         {
             var entryPoint = kernel.EntryPoint;
             AdjustAndVerifyKernelGroupSize(ref customGroupSize, entryPoint);
 
-            var kernelParamTypes = entryPoint.CreateCustomParameterTypes();
-            int numKernelParams = kernelParamTypes.Length;
-            var groupSizeOffset = entryPoint.IsGroupedIndexEntry ? 0 : 1;
-            var funcParamTypes = new Type[numKernelParams + Kernel.KernelParameterOffset];
+            // Add support for by ref parameters
+            if (entryPoint.HasByRefParameters)
+                throw new NotSupportedException("Not supported by reference parameters");
 
-            // Launcher(Kernel, AcceleratorStream, [Index], ...)
-            funcParamTypes[Kernel.KernelInstanceParamIdx] = typeof(Kernel);
-            funcParamTypes[Kernel.KernelStreamParamIdx] = typeof(AcceleratorStream);
-            funcParamTypes[Kernel.KernelParamDimensionIdx] = entryPoint.KernelIndexType;
-            kernelParamTypes.CopyTo(funcParamTypes, Kernel.KernelParameterOffset);
+            // Create kernel mapping for all input parametes
+            var parameters = entryPoint.Parameters;
+            var argumentMapping = Backend.KernelArgumentMapper.CreateMapping(
+                parameters,
+                !entryPoint.IsGroupedIndexEntry ? entryPoint.UngroupedIndexType : null)
+                as PTXArgumentMapper.EntryPointMapping;
 
-            // Create the actual launcher method
-            var func = new DynamicMethod(kernel.EntryName, typeof(void), funcParamTypes, typeof(KernelLauncherBuilder));
-            var funcParams = func.GetParameters();
-            var ilGenerator = func.GetILGenerator();
+            var launcher = entryPoint.CreateLauncherMethod(Context);
+            var emitter = new ILEmitter(launcher.ILGenerator);
 
             // Allocate array of pointers as kernel argument(s)
-            var kernelArguments = ilGenerator.DeclareLocal(typeof(IntPtr));
-            ilGenerator.Emit(OpCodes.Ldc_I4, IntPtr.Size * (numKernelParams + groupSizeOffset));
-            ilGenerator.Emit(OpCodes.Conv_U);
-            ilGenerator.Emit(OpCodes.Localloc);
-            ilGenerator.Emit(OpCodes.Stloc, kernelArguments);
-
-            var newIntPtr = typeof(IntPtr).GetConstructor(new Type[] { typeof(void).MakePointerType() });
+            var argumentBuffer = argumentMapping.EmitEntryPointMapping(
+                emitter,
+                Kernel.KernelParameterOffset);
 
             // Add the actual dispatch-size information to the kernel parameters
-            if (groupSizeOffset > 0)
+            if (!entryPoint.IsGroupedIndexEntry)
             {
                 // Load data pointer
-                ilGenerator.Emit(OpCodes.Ldloc, kernelArguments);
+                emitter.Emit(LocalOperation.LoadAddress, argumentBuffer);
 
                 // Store custom dispatch-size information
-                ilGenerator.Emit(OpCodes.Ldarga, Kernel.KernelParamDimensionIdx);
-                ilGenerator.Emit(OpCodes.Conv_I);
-                ilGenerator.Emit(OpCodes.Newobj, newIntPtr);
-
-                // Store param address
-                ilGenerator.Emit(OpCodes.Stind_I);
-            }
-
-            // Fill uniform variables
-            for (int i = 0; i < numKernelParams; ++i)
-            {
-                // Load data pointer
-                ilGenerator.Emit(OpCodes.Ldloc, kernelArguments);
-                ilGenerator.Emit(OpCodes.Ldc_I4, (i + groupSizeOffset) * IntPtr.Size);
-                ilGenerator.Emit(OpCodes.Add);
-
-                // Store param address in native memory
-                var param = funcParams[i + Kernel.KernelParameterOffset];
-                ilGenerator.Emit(OpCodes.Ldarga, param.Position);
-                ilGenerator.Emit(OpCodes.Conv_I);
-                ilGenerator.Emit(OpCodes.Newobj, newIntPtr);
-
-                // Store param address
-                ilGenerator.Emit(OpCodes.Stind_I);
+                emitter.Emit(ArgumentOperation.Load, Kernel.KernelParamDimensionIdx);
+                emitter.Emit(OpCodes.Stfld, argumentMapping.KernelLengthField);
             }
 
             // Compute sizes of dynamic-shared variables
             var sharedMemSize = KernelLauncherBuilder.EmitSharedMemorySizeComputation(
                 entryPoint,
-                ilGenerator,
-                paramIdx => funcParams[paramIdx + Kernel.KernelParameterOffset]);
+                emitter);
 
             // Emit kernel launch
 
             // Load current driver API
-            ilGenerator.Emit(
-                OpCodes.Call,
-                typeof(CudaAPI).GetProperty(
-                    nameof(CudaAPI.Current),
-                    BindingFlags.Public | BindingFlags.Static).GetGetMethod());
+            emitter.EmitCall(GetCudaAPIMethod);
 
             // Load function ptr
-            KernelLauncherBuilder.EmitLoadKernelArgument<CudaKernel>(Kernel.KernelInstanceParamIdx, ilGenerator);
-            ilGenerator.Emit(
-                OpCodes.Call,
-                typeof(CudaKernel).GetProperty(
-                    nameof(CudaKernel.FunctionPtr),
-                    BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false));
+            KernelLauncherBuilder.EmitLoadKernelArgument<CudaKernel, ILEmitter>(Kernel.KernelInstanceParamIdx, emitter);
+            emitter.EmitCall(GetFunctionPtrMethod);
 
             // Load dimensions
             KernelLauncherBuilder.EmitLoadDimensions(
                 entryPoint,
-                ilGenerator,
+                emitter,
                 Kernel.KernelParamDimensionIdx,
                 () => { },
                 customGroupSize);
 
             // Load shared-mem size
-            ilGenerator.Emit(OpCodes.Ldloc, sharedMemSize);
+            emitter.Emit(LocalOperation.Load, sharedMemSize);
 
             // Load stream
-            KernelLauncherBuilder.EmitLoadAcceleratorStream<CudaStream>(Kernel.KernelStreamParamIdx, ilGenerator);
-            ilGenerator.Emit(
-                OpCodes.Call,
-                typeof(CudaStream).GetProperty(
-                    nameof(CudaStream.StreamPtr),
-                    BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false));
+            KernelLauncherBuilder.EmitLoadAcceleratorStream<CudaStream, ILEmitter>(
+                Kernel.KernelStreamParamIdx,
+                emitter);
+            emitter.EmitCall(GetStreamPtrMethod);
 
             // Load kernel args
-            ilGenerator.Emit(OpCodes.Ldloc, kernelArguments);
+            emitter.Emit(LocalOperation.LoadAddress, argumentBuffer);
 
-            // Load additional kernel args
-            ilGenerator.Emit(OpCodes.Ldsfld, typeof(IntPtr).GetField(
-                nameof(IntPtr.Zero),
-                BindingFlags.Public | BindingFlags.Static));
+            // Load buffer length
+            emitter.EmitConstant(argumentMapping.ArgumentSize);
 
             // Dispatch kernel
-            ilGenerator.Emit(
-                OpCodes.Callvirt,
-                typeof(CudaAPI).GetMethod(
-                    nameof(CudaAPI.LaunchKernel),
-                    BindingFlags.Public | BindingFlags.Instance));
+            emitter.EmitCall(
+                LaunchKernelMethod.MakeGenericMethod(
+                    argumentMapping.TargetType));
 
             // Emit ThrowIfFailed
-            ilGenerator.Emit(
-                OpCodes.Call,
-                typeof(CudaException).GetMethod(
-                    nameof(CudaException.ThrowIfFailed),
-                    BindingFlags.Public | BindingFlags.Static));
+            emitter.EmitCall(ThrowIfFailedMethod);
 
-            ilGenerator.Emit(OpCodes.Ret);
+            emitter.Emit(OpCodes.Ret);
+            emitter.Finish();
 
-            return func;
+            return launcher.Finish();
         }
 
         #endregion
@@ -789,7 +629,7 @@ namespace ILGPU.Runtime.Cuda
             if (cudaKernel == null)
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
-            Backend.EnsureRunningOnNativePlatform();
+            Backends.Backend.EnsureRunningOnNativePlatform();
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.ComputeOccupancyMaxPotentialBlockSize(
@@ -814,7 +654,7 @@ namespace ILGPU.Runtime.Cuda
             if (cudaKernel == null)
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
-            Backend.EnsureRunningOnNativePlatform();
+            Backends.Backend.EnsureRunningOnNativePlatform();
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.ComputeOccupancyMaxPotentialBlockSize(

@@ -372,4 +372,22 @@
   <data name="NotSupportedSizeOf" xml:space="preserve">
     <value>Could not resolve the native size of the type '{0}'</value>
   </data>
+  <data name="CouldNotDeserializeMethod" xml:space="preserve">
+    <value>Could not load method '{0}'</value>
+  </data>
+  <data name="CouldNotDeserializeType" xml:space="preserve">
+    <value>Could not load type '{0}'</value>
+  </data>
+  <data name="ContextFlagsAreNotCompatible" xml:space="preserve">
+    <value>The context flags '{0}' of the deserialized context are not compatible with the current flags '{1}'</value>
+  </data>
+  <data name="AssemblyVersionNotCompatible" xml:space="preserve">
+    <value>The assembly version '{0}' is not compatible with the current version '{1}'</value>
+  </data>
+  <data name="AllocaAnalysisRequiresTopLevelFunction" xml:space="preserve">
+    <value>The allocation analysis requires a top-level function</value>
+  </data>
+  <data name="CannotDeserializeDuplicateNodeId" xml:space="preserve">
+    <value>Duplicate node id '{0}' detected</value>
+  </data>
 </root>

@@ -21,7 +21,7 @@ namespace ILGPU
     /// </summary>
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
-    public struct Index3 : IIntrinsicIndex, IGenericIndex<Index3>
+    public readonly struct Index3 : IIntrinsicIndex, IGenericIndex<Index3>
     {
         #region Static
 
@@ -75,9 +75,9 @@ namespace ILGPU
         public static Index3 Min(Index3 first, Index3 second)
         {
             return new Index3(
-                GPUMath.Min(first.X, second.X),
-                GPUMath.Min(first.Y, second.Y),
-                GPUMath.Min(first.Z, second.Z));
+                XMath.Min(first.X, second.X),
+                XMath.Min(first.Y, second.Y),
+                XMath.Min(first.Z, second.Z));
         }
 
         /// <summary>
@@ -89,9 +89,9 @@ namespace ILGPU
         public static Index3 Max(Index3 first, Index3 second)
         {
             return new Index3(
-                GPUMath.Max(first.X, second.X),
-                GPUMath.Max(first.Y, second.Y),
-                GPUMath.Max(first.Z, second.Z));
+                XMath.Max(first.X, second.X),
+                XMath.Max(first.Y, second.Y),
+                XMath.Max(first.Z, second.Z));
         }
 
         /// <summary>
@@ -104,18 +104,18 @@ namespace ILGPU
         public static Index3 Clamp(Index3 value, Index3 min, Index3 max)
         {
             return new Index3(
-                GPUMath.Clamp(value.X, min.X, max.X),
-                GPUMath.Clamp(value.Y, min.Y, max.Y),
-                GPUMath.Clamp(value.Z, min.Z, max.Z));
+                XMath.Clamp(value.X, min.X, max.X),
+                XMath.Clamp(value.Y, min.Y, max.Y),
+                XMath.Clamp(value.Z, min.Z, max.Z));
         }
 
         #endregion
 
         #region Instance
 
-        private int x;
-        private int y;
-        private int z;
+        internal readonly int x;
+        internal readonly int y;
+        internal readonly int z;
 
         /// <summary>
         /// Constructs a new 3D index.

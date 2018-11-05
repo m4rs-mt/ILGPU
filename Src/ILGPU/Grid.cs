@@ -9,7 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Compiler.Intrinsic;
+using ILGPU.Frontend.Intrinsic;
+using ILGPU.IR.Values;
+using ILGPU.Runtime.CPU;
 
 namespace ILGPU
 {
@@ -21,15 +23,40 @@ namespace ILGPU
         #region Properties
 
         /// <summary>
+        /// Returns the X dimension of the scheduled thread grid.
+        /// </summary>
+        /// <returns>The X grid dimension.</returns>
+        public static int DimensionX
+        {
+            [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.X)]
+            get => CPURuntimeGroupContext.Current.GridDimensionX;
+        }
+
+        /// <summary>
+        /// Returns the Y dimension of the scheduled thread grid.
+        /// </summary>
+        /// <returns>The Y grid dimension.</returns>
+        public static int DimensionY
+        {
+            [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.Y)]
+            get => CPURuntimeGroupContext.Current.GridDimensionY;
+        }
+
+        /// <summary>
+        /// Returns the Z dimension of the scheduled thread grid.
+        /// </summary>
+        /// <returns>The Z grid dimension.</returns>
+        public static int DimensionZ
+        {
+            [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.Z)]
+            get => CPURuntimeGroupContext.Current.GridDimensionZ;
+        }
+
+        /// <summary>
         /// Returns the dimension of the scheduled thread grid.
         /// </summary>
         /// <returns>The grid dimension.</returns>
-        public static Index3 Dimension
-        {
-            [GridIntrinsic(GridIntrinsicKind.GetGridDimension)]
-            get;
-            internal set;
-        }
+        public static Index3 Dimension => new Index3(DimensionX, DimensionY, DimensionZ);
 
         #endregion
 

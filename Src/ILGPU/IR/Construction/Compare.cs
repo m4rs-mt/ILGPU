@@ -1,0 +1,105 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2018 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: Compare.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+using ILGPU.IR.Types;
+using ILGPU.IR.Values;
+using System.Diagnostics;
+
+namespace ILGPU.IR.Construction
+{
+    partial class IRBuilder
+    {
+        /// <summary>
+        /// Creates a compare operation.
+        /// </summary>
+        /// <param name="left">The left operand.</param>
+        /// <param name="right">The right operand.</param>
+        /// <param name="kind">The operation kind.</param>
+        /// <returns>A node that represents the compare operation.</returns>
+        public ValueReference CreateCompare(
+            Value left,
+            Value right,
+            CompareKind kind) =>
+            CreateCompare(left, right, kind, CompareFlags.None);
+
+        /// <summary>
+        /// Creates a compare operation.
+        /// </summary>
+        /// <param name="left">The left operand.</param>
+        /// <param name="right">The right operand.</param>
+        /// <param name="kind">The operation kind.</param>
+        /// <param name="flags">Operation flags.</param>
+        /// <returns>A node that represents the compare operation.</returns>
+        public ValueReference CreateCompare(
+            Value left,
+            Value right,
+            CompareKind kind,
+            CompareFlags flags)
+        {
+            Debug.Assert(left != null, "Invalid left node");
+            Debug.Assert(right != null, "Invalid right node");
+
+            var leftValue = left as PrimitiveValue;
+            var rightValue = right as PrimitiveValue;
+            if (leftValue != null && rightValue != null)
+                return CompareFoldConstants(leftValue, rightValue, kind, flags);
+
+            if (leftValue != null)
+            {
+                return CreateCompare(
+                    right,
+                    left,
+                    CompareValue.InvertIfNonCommutative(kind),
+                    flags);
+            }
+
+            if (left.Type is PrimitiveType leftType &&
+                leftType.BasicValueType == BasicValueType.Int1)
+            {
+                var isEqual = kind == CompareKind.Equal;
+                // Bool comparison -> convert to logical operation
+                if (rightValue != null)
+                {
+                    if (isEqual)
+                    {
+                        if (rightValue.Int1Value)
+                            return left;
+                        return CreateArithmetic(left, UnaryArithmeticKind.Not);
+                    }
+                    else
+                    {
+                        if (rightValue.Int1Value)
+                            return CreateArithmetic(left, UnaryArithmeticKind.Not);
+                        return left;
+                    }
+                }
+
+                var result = CreateArithmetic(
+                    left,
+                    right,
+                    BinaryArithmeticKind.Xor);
+                // Equal comparison?
+                if (isEqual)
+                    result = CreateArithmetic(result, UnaryArithmeticKind.Not);
+                return result;
+            }
+
+            return CreateUnifiedValue(new CompareValue(
+                Generation,
+                left,
+                right,
+                kind,
+                flags,
+                CreatePrimitiveType(BasicValueType.Int1)));
+        }
+
+    }
+}

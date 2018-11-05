@@ -106,13 +106,15 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Copies the contents to this buffer from the given array.
         /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
         /// <param name="source">The source array.</param>
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
         /// <remarks>Note that the input array will stored as a transposed array to match the target layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814:PreferJaggedArraysOverMultidimensional", MessageId = "0#")]
+        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "source")]
         public void CopyFrom(
+            AcceleratorStream stream,
             T[,] source,
             Index2 sourceOffset,
             Index2 targetOffset,
@@ -141,6 +143,7 @@ namespace ILGPU.Runtime
             }
 
             buffer.CopyFrom(
+                stream,
                 tempBuffer,
                 0,
                 targetOffset,
@@ -150,13 +153,15 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Copies the contents of this buffer to the given array.
         /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
         /// <param name="target">The target array.</param>
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
         /// <remarks>Note that the output array will contain the data as a transposed array to match the source layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814:PreferJaggedArraysOverMultidimensional", MessageId = "0#")]
+        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "target")]
         public void CopyTo(
+            AcceleratorStream stream,
             T[,] target,
             Index2 sourceOffset,
             Index2 targetOffset,
@@ -174,7 +179,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
 
             var tempBuffer = new T[extent.Size];
-            buffer.CopyTo(tempBuffer, sourceOffset, 0, extent);
+            buffer.CopyTo(stream, tempBuffer, sourceOffset, 0, extent);
 
             for (int i = 0; i < extent.X; ++i)
             {
@@ -202,7 +207,7 @@ namespace ILGPU.Runtime
         /// <returns>The converted linear view.</returns>
         public ArrayView<T> AsLinearView()
         {
-            return new ArrayView<T>(View.AsLinearView());
+            return View.AsLinearView();
         }
 
         #endregion
@@ -234,13 +239,15 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Copies the contents of this buffer from the given array.
         /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
         /// <param name="source">The source array.</param>
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
         /// <remarks>Note that the input array will stored as a transposed array to match the target layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814:PreferJaggedArraysOverMultidimensional", MessageId = "0#")]
+        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "source")]
         public void CopyFrom(
+            AcceleratorStream stream,
             T[,,] source,
             Index3 sourceOffset,
             Index3 targetOffset,
@@ -276,6 +283,7 @@ namespace ILGPU.Runtime
             }
 
             buffer.CopyFrom(
+                stream,
                 tempBuffer,
                 0,
                 targetOffset,
@@ -285,13 +293,15 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Copies the contents to this buffer to the given array.
         /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
         /// <param name="target">The target array.</param>
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
         /// <remarks>Note that the output array will contain the data as a transposed array to match the source layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814:PreferJaggedArraysOverMultidimensional", MessageId = "0#")]
+        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "target")]
         public void CopyTo(
+            AcceleratorStream stream,
             T[,,] target,
             Index3 sourceOffset,
             Index3 targetOffset,
@@ -313,7 +323,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
 
             var tempBuffer = new T[extent.Size];
-            buffer.CopyTo(tempBuffer, sourceOffset, 0, extent);
+            buffer.CopyTo(stream, tempBuffer, sourceOffset, 0, extent);
 
             for (int i = 0; i < extent.X; ++i)
             {
@@ -358,7 +368,7 @@ namespace ILGPU.Runtime
         /// <returns>The converted linear view.</returns>
         public ArrayView<T> AsLinearView()
         {
-            return new ArrayView<T>(View.AsLinearView());
+            return View.AsLinearView();
         }
 
         #endregion

@@ -61,6 +61,33 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The allocation analysis requires a top-level function.
+        /// </summary>
+        internal static string AllocaAnalysisRequiresTopLevelFunction {
+            get {
+                return ResourceManager.GetString("AllocaAnalysisRequiresTopLevelFunction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The assembly version &apos;{0}&apos; is not compatible with the current version &apos;{1}&apos;.
+        /// </summary>
+        internal static string AssemblyVersionNotCompatible {
+            get {
+                return ResourceManager.GetString("AssemblyVersionNotCompatible", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Duplicate node id &apos;{0}&apos; detected.
+        /// </summary>
+        internal static string CannotDeserializeDuplicateNodeId {
+            get {
+                return ResourceManager.GetString("CannotDeserializeDuplicateNodeId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot find the field &apos;{0}&apos; of type &apos;{1}&apos;.
         /// </summary>
         internal static string CannotFindFieldOfType {
@@ -84,6 +111,33 @@ namespace ILGPU.Resources {
         internal static string CannotTakeFieldOffsetOfPrimitiveType {
             get {
                 return ResourceManager.GetString("CannotTakeFieldOffsetOfPrimitiveType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The context flags &apos;{0}&apos; of the deserialized context are not compatible with the current flags &apos;{1}&apos;.
+        /// </summary>
+        internal static string ContextFlagsAreNotCompatible {
+            get {
+                return ResourceManager.GetString("ContextFlagsAreNotCompatible", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not load method &apos;{0}&apos;.
+        /// </summary>
+        internal static string CouldNotDeserializeMethod {
+            get {
+                return ResourceManager.GetString("CouldNotDeserializeMethod", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not load type &apos;{0}&apos;.
+        /// </summary>
+        internal static string CouldNotDeserializeType {
+            get {
+                return ResourceManager.GetString("CouldNotDeserializeType", resourceCulture);
             }
         }
         

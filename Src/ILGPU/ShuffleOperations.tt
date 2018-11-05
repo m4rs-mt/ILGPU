@@ -3,7 +3,7 @@
 //                     Copyright (c) 2016-2018 Marcel Koester
 //                                www.ilgpu.net
 //
-// File: ReductionOperations.tt/ReductionOperations.cs
+// File: ShuffleOperations.tt/ShuffleOperations.cs
 //
 // This file is part of ILGPU and is distributed under the University of
 // Illinois Open Source License. See LICENSE.txt for details
@@ -30,7 +30,6 @@ var operations = new []
         new { Name = "Xor", Param = "mask" },
     };
 #>
-using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.ShuffleOperations
 {
@@ -42,8 +41,7 @@ namespace ILGPU.ShuffleOperations
 <#      if (type.IsUnsignedInt) { #>
     [CLSCompliant(false)]
 <#      } #>
-    [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
-    public struct Shuffle<#= op.Name #><#= type.Name #> : IShuffle<#= op.Name #><<#= type.Type #>>
+    public readonly struct Shuffle<#= op.Name #><#= type.Name #> : IShuffle<#= op.Name #><<#= type.Type #>>
     {
         /// <summary>
         /// Performs the shuffle operation.

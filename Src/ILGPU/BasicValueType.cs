@@ -24,6 +24,52 @@ namespace ILGPU
         /// <summary>
         /// Represents an 1-bit integer.
         /// </summary>
+        Int1,
+
+        /// <summary>
+        /// Represents an 8-bit integer.
+        /// </summary>
+        Int8,
+
+        /// <summary>
+        /// Represents a 16-bit integer.
+        /// </summary>
+        Int16,
+
+        /// <summary>
+        /// Represents a 32-bit integer.
+        /// </summary>
+        Int32,
+
+        /// <summary>
+        /// Represents a 64-bit integer.
+        /// </summary>
+        Int64,
+
+        /// <summary>
+        /// Represents a 32-bit float.
+        /// </summary>
+        Float32,
+
+        /// <summary>
+        /// Represents a 64-bit float.
+        /// </summary>
+        Float64,
+    }
+
+    /// <summary>
+    /// Represents an arithmetic basic value type.
+    /// </summary>
+    public enum ArithmeticBasicValueType
+    {
+        /// <summary>
+        /// Represent a non-arithemtic value type.
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// Represents an 1-bit integer.
+        /// </summary>
         UInt1,
 
         /// <summary>
@@ -32,19 +78,9 @@ namespace ILGPU
         Int8,
 
         /// <summary>
-        /// Represents an 8-bit unsigned integer.
-        /// </summary>
-        UInt8,
-
-        /// <summary>
         /// Represents a 16-bit integer.
         /// </summary>
         Int16,
-
-        /// <summary>
-        /// Represents a 16-bit unsigned integer.
-        /// </summary>
-        UInt16,
 
         /// <summary>
         /// Represents a 32-bit integer.
@@ -52,38 +88,38 @@ namespace ILGPU
         Int32,
 
         /// <summary>
-        /// Represents a 32-bit unsigned integer.
-        /// </summary>
-        UInt32,
-
-        /// <summary>
         /// Represents a 64-bit integer.
         /// </summary>
         Int64,
 
         /// <summary>
-        /// Represents a 64-bit unsigned integer.
-        /// </summary>
-        UInt64,
-
-        /// <summary>
         /// Represents a 32-bit float.
         /// </summary>
-        Single,
+        Float32,
 
         /// <summary>
         /// Represents a 64-bit float.
         /// </summary>
-        Double,
+        Float64,
 
         /// <summary>
-        /// Represents general a pointer type.
+        /// Represents an 8-bit unsigned integer.
         /// </summary>
-        Ptr,
+        UInt8,
 
         /// <summary>
-        /// Represents an array type.
+        /// Represents a 16-bit unsigned integer.
         /// </summary>
-        Array,
+        UInt16,
+
+        /// <summary>
+        /// Represents a 32-bit unsigned integer.
+        /// </summary>
+        UInt32,
+
+        /// <summary>
+        /// Represents a 64-bit unsigned integer.
+        /// </summary>
+        UInt64,
     }
 }

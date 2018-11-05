@@ -9,12 +9,12 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Compiler;
 using ILGPU.Resources;
+using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace ILGPU.Backends
@@ -22,173 +22,77 @@ namespace ILGPU.Backends
     /// <summary>
     /// Represents a kernel entry point.
     /// </summary>
-    sealed class EntryPoint
+    public sealed class EntryPoint
     {
-        #region Constants
-
-        private static readonly Type VariableViewType = typeof(VariableView<>);
-        private static readonly Type ArrayViewType = typeof(ArrayView<>);
-
-        #endregion
-
-        #region Static
-
-        /// <summary>
-        /// Resolves the element-type of a shared-memoery variable.
-        /// </summary>
-        /// <param name="parameterType">The given parameter type.</param>
-        /// <param name="isArray">True, iff the parameter type specifies an array view.</param>
-        /// <returns>The resolved element type.</returns>
-        private static Type GetSharedVariableElementType(Type parameterType, out bool isArray)
-        {
-            var args = parameterType.GetGenericArguments();
-            if (args.Length == 1 && VariableViewType.MakeGenericType(args) == parameterType)
-                isArray = false;
-            else if (args.Length == 1 && ArrayViewType.MakeGenericType(args) == parameterType)
-                isArray = true;
-            else
-                throw new NotSupportedException(string.Format(
-                    ErrorMessages.NotSupportedSharedMemoryVariableType, parameterType));
-            return args[0];
-        }
-
-        #endregion
-
         #region Nested Types
 
         /// <summary>
-        /// Represents a single variable that is allocated
-        /// in shared memory. This can be a single elementatry variable
-        /// or an array of elements.
+        /// The parameter specification of an entry point.
         /// </summary>
-        public struct SharedMemoryVariable
+        public readonly struct ParameterSpecification
         {
-            public SharedMemoryVariable(
-                int index,
-                int sharedMemoryIndex,
-                Type type,
-                Type elementType,
-                bool isArray,
-                int? count,
-                int size)
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new parameter specification.
+            /// </summary>
+            /// <param name="parameterTypes">The parameter types.</param>
+            internal ParameterSpecification(ImmutableArray<Type> parameterTypes)
             {
-                Index = index;
-                SharedMemoryIndex = sharedMemoryIndex;
-                Type = type;
-                ElementType = elementType;
-                IsArray = isArray;
-                Count = count;
-                ElementSize = size;
+                ParameterTypes = parameterTypes;
             }
 
-            /// <summary>
-            /// The parameter index.
-            /// </summary>
-            public int Index { get; }
+            #endregion
+
+            #region Properties
 
             /// <summary>
-            /// The shared-memory index.
+            /// Returns the number of parameter types.
             /// </summary>
-            public int SharedMemoryIndex { get; }
+            public int NumParameters => ParameterTypes.Length;
 
             /// <summary>
-            /// Returns the type of the variable.
+            /// Returns the desired kernel launcher parameter types (including references).
             /// </summary>
-            public Type Type { get; }
+            public ImmutableArray<Type> ParameterTypes { get; }
 
             /// <summary>
-            /// Returns the element type of the variable.
+            /// Returns the underlying parameter type (without references).
             /// </summary>
-            public Type ElementType { get; }
-
-            /// <summary>
-            /// Returns true iff this shared variable represents an array.
-            /// </summary>
-            public bool IsArray { get; }
-
-            /// <summary>
-            /// Returns null, if the number of elements is unbounded (dynamically
-            /// sized in case of an array, or simply constant in case of a variable)
-            /// or the actual number of requested elements.
-            /// </summary>
-            public int? Count { get; }
-
-            /// <summary>
-            /// Returns true iff this shared variable represents a dynamically-sized array.
-            /// </summary>
-            public bool IsDynamicallySizedArray => IsArray && !Count.HasValue;
-
-            /// <summary>
-            /// Returns the size of the element type in bytes.
-            /// </summary>
-            public int ElementSize { get; }
-
-            /// <summary>
-            /// Returns the size in bytes of this shared-memory variable.
-            /// Note that an <see cref="InvalidOperationException"/> will be thrown, iff
-            /// this variable is a dynamically-sized array.
-            /// </summary>
-            public int Size
+            /// <param name="index"></param>
+            /// <returns></returns>
+            public Type this[int index]
             {
                 get
                 {
-                    if (!IsArray)
-                        return ElementSize;
-                    if (!Count.HasValue)
-                        throw new InvalidOperationException("Cannot query size in bytes of a dynamically sized array");
-                    return ElementSize * Count.Value;
+                    var type = ParameterTypes[index];
+                    return type.IsByRef ? type.GetElementType() : type;
                 }
             }
 
-            /// <summary>
-            /// Returns the string representation of this variable.
-            /// </summary>
-            /// <returns>The string representation of this variable.</returns>
-            public override string ToString()
-            {
-                return $"Idx: '{Index}', ElementType: '{ElementType}', Count: {Count}";
-            }
-        }
+            #endregion
 
-        /// <summary>
-        /// Represents a uniform variable.
-        /// </summary>
-        public struct UniformVariable
-        {
-            public UniformVariable(
-                int index,
-                Type variableType,
-                int size)
+            #region Methods
+
+            /// <summary>
+            /// Returns true if the specified parameter is passed by reference.
+            /// </summary>
+            /// <param name="parameterIndex">The parameter index.</param>
+            /// <returns>True, if the specified parameter is passed by reference.</returns>
+            public bool IsByRef(int parameterIndex) =>
+                ParameterTypes[parameterIndex].IsByRef;
+
+            /// <summary>
+            /// Copies the parameter types to the given array.
+            /// </summary>
+            /// <param name="target">The target array.</param>
+            /// <param name="offset">The target offset to copy to.</param>
+            public void CopyTo(Type[] target, int offset)
             {
-                Index = index;
-                VariableType = variableType;
-                Size = size;
+                ParameterTypes.CopyTo(target, offset);
             }
 
-            /// <summary>
-            /// The parameter index.
-            /// </summary>
-            public int Index { get; }
-
-            /// <summary>
-            /// Returns the type of the variable.
-            /// </summary>
-            public Type VariableType { get; }
-
-            /// <summary>
-            /// Returns the size in bytes.
-            /// </summary>
-            [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode", Justification = "This property might be useful in the future")]
-            public int Size { get; }
-
-            /// <summary>
-            /// Returns the string representation of this variable.
-            /// </summary>
-            /// <returns>The string representation of this variable.</returns>
-            public override string ToString()
-            {
-                return $"Idx: '{Index}', Type: '{VariableType}'";
-            }
+            #endregion
         }
 
         #endregion
@@ -198,85 +102,52 @@ namespace ILGPU.Backends
         /// <summary>
         /// Constructs a new entry point targeting the given method.
         /// </summary>
-        /// <param name="methodInfo">The targeted method.</param>
-        /// <param name="unit">The unit in the current context.</param>
+        /// <param name="methodSource">The source method.</param>
+        /// <param name="sharedMemorySize">The size of the shared memory in bytes.</param>
         /// <param name="specialization">The kernel specialization.</param>
-        public EntryPoint(
-            MethodInfo methodInfo,
-            CompileUnit unit,
-            KernelSpecialization specialization)
+        internal EntryPoint(
+            MethodInfo methodSource,
+            int sharedMemorySize,
+            in KernelSpecialization specialization)
         {
-            MethodInfo = methodInfo;
-            NumDynamicallySizedSharedMemoryVariables = 0;
+            MethodInfo = methodSource;
+            if (MethodInfo == null)
+                throw new NotSupportedException("Not supported entry point without a valid .Net runtime entry");
             Specialization = specialization;
+            SharedMemorySize = sharedMemorySize;
 
-            if (!methodInfo.IsStatic)
+            if (!MethodInfo.IsStatic)
                 throw new NotSupportedException(ErrorMessages.InvalidEntryPointInstanceKernelMethod);
 
-            var @params = methodInfo.GetParameters();
-            if (@params.Length < 1)
+            var parameters = MethodInfo.GetParameters();
+            if (parameters.Length < 1)
                 throw new ArgumentException(ErrorMessages.InvalidEntryPointIndexParameter);
-            KernelIndexType = UngroupedIndexType = @params[0].ParameterType;
-            Type = KernelIndexType.GetIndexType();
-            if (Type == IndexType.None)
+            KernelIndexType = UngroupedIndexType = parameters[0].ParameterType;
+            IndexType = KernelIndexType.GetIndexType();
+            if (IndexType == IndexType.None)
                 throw new NotSupportedException(ErrorMessages.InvalidEntryPointIndexParameterOfWrongType);
-            UngroupedIndexType = Type.GetUngroupedIndexType().GetManagedIndexType();
+            UngroupedIndexType = IndexType.GetUngroupedIndexType().GetManagedIndexType();
 
             // Compute the number of actual parameters
-            var uniformVariables = new List<UniformVariable>(@params.Length - 1 + (methodInfo.IsStatic ? 1 : 0));
-            var sharedMemoryVariables = new List<SharedMemoryVariable>(@params.Length - 1);
+            var parameterTypes = ImmutableArray.CreateBuilder<Type>(
+                parameters.Length - 1 + (!MethodInfo.IsStatic ? 1 : 0));
 
-            if (!methodInfo.IsStatic)
-                uniformVariables.Add(
-                    new UniformVariable(0,
-                    methodInfo.DeclaringType.MakePointerType(),
-                    unit.IntPtrType.SizeOf()));
-            for (int i = 1, e = @params.Length; i < e; ++i)
+            // TODO: enhance performance by passing arguments by ref
+            // TODO: implement additional backend support
+            for (int i = 1, e = parameters.Length; i < e; ++i)
             {
-                var param = @params[i];
-                if (SharedMemoryAttribute.TryGetSharedMemoryCount(param, out int? count))
-                {
-                    var elementType = GetSharedVariableElementType(param.ParameterType, out bool isArray);
-                    var paramSize = elementType.SizeOf();
-                    if (!isArray && count != null && count.Value != 1)
-                        throw new NotSupportedException(ErrorMessages.InvalidUseOfVariableViewsInSharedMemory);
-                    int sharedMemoryVariableIndex = -1;
-                    if (isArray && count == null)
-                    {
-                        sharedMemoryVariableIndex = NumDynamicallySizedSharedMemoryVariables;
-                        NumDynamicallySizedSharedMemoryVariables += 1;
-                    }
-                    sharedMemoryVariables.Add(
-                        new SharedMemoryVariable(i,
-                        sharedMemoryVariableIndex,
-                        param.ParameterType,
-                        elementType,
-                        isArray,
-                        count,
-                        paramSize));
-                }
-                else
-                {
-                    var paramSize = param.ParameterType.SizeOf();
-                    uniformVariables.Add(
-                        new UniformVariable(i,
-                        param.ParameterType,
-                        paramSize));
-                }
-            }
-
-            UniformVariables = uniformVariables.ToArray();
-            SharedMemoryVariables = sharedMemoryVariables.ToArray();
-
-            if (Type < IndexType.GroupedIndex1D && SharedMemoryVariables.Length > 0)
-                throw new NotSupportedException(ErrorMessages.NotSupportedUseOfSharedMemory);
-
-            foreach (var variable in uniformVariables)
-            {
-                if (variable.VariableType != variable.VariableType.GetLLVMTypeRepresentation())
+                var type = parameters[i].ParameterType;
+                if (type.IsPointer || type.IsPassedViaPtr())
                     throw new NotSupportedException(string.Format(
-                        ErrorMessages.NotSupportedKernelParameterType, variable));
+                        ErrorMessages.NotSupportedKernelParameterType, i));
+                parameterTypes.Add(type);
             }
+
+            Parameters = new ParameterSpecification(
+                parameterTypes.MoveToImmutable());
+
+            for (int i = 0, e = Parameters.NumParameters; i < e; ++i)
+                HasByRefParameters |= Parameters.IsByRef(i);
         }
 
         #endregion
@@ -291,7 +162,7 @@ namespace ILGPU.Backends
         /// <summary>
         /// Returns the index type of the index parameter.
         /// </summary>
-        public IndexType Type { get; }
+        public IndexType IndexType { get; }
 
         /// <summary>
         /// Returns true iff the entry-point type = grouped index.
@@ -301,8 +172,8 @@ namespace ILGPU.Backends
             get
             {
                 return
-                    Type >= IndexType.GroupedIndex1D &&
-                    Type <= IndexType.GroupedIndex3D;
+                    IndexType >= IndexType.GroupedIndex1D &&
+                    IndexType <= IndexType.GroupedIndex3D;
             }
         }
 
@@ -319,57 +190,87 @@ namespace ILGPU.Backends
         public Type KernelIndexType { get; }
 
         /// <summary>
-        /// Returns the uniform variables that are passed to the kernel.
+        /// Returns the parameter specification of arguments that are passed to the kernel.
         /// </summary>
-        public UniformVariable[] UniformVariables { get; }
+        public ParameterSpecification Parameters { get; }
 
         /// <summary>
-        /// Returns the number of uniform parameters that have to be passed
-        /// to the virtual entry point.
+        /// Returns true if the parameter specification contains by reference parameters.
         /// </summary>
-        public int NumUniformVariables => UniformVariables.Length;
-
-        /// <summary>
-        /// Returns the shared-memory variables that are requested by the kernel.
-        /// </summary>
-        public SharedMemoryVariable[] SharedMemoryVariables { get; }
-
-        /// <summary>
-        /// Returns the number of dynamically sized shared-memory variables.
-        /// </summary>
-        public int NumDynamicallySizedSharedMemoryVariables { get; }
-
-        /// <summary>
-        /// Returns the number of custom parameters that have to be passed
-        /// to the virtual entry point.
-        /// </summary>
-        public int NumCustomParameters => NumUniformVariables + SharedMemoryVariables.Length;
+        public bool HasByRefParameters { get; }
 
         /// <summary>
         /// Returns the associated launch specification.
         /// </summary>
         public KernelSpecialization Specialization { get; }
 
+        /// <summary>
+        /// Returns the number of index parameters when all structures
+        /// are flattended into scalar parameters.
+        /// </summary>
+        public int NumFlattendedIndexParameters
+        {
+            get
+            {
+                switch (IndexType)
+                {
+                    case IndexType.Index1D:
+                        return 1;
+                    case IndexType.Index2D:
+                        return 2;
+                    case IndexType.Index3D:
+                        return 3;
+                    case IndexType.GroupedIndex1D:
+                        return 2;
+                    case IndexType.GroupedIndex2D:
+                        return 4;
+                    case IndexType.GroupedIndex3D:
+                        return 6;
+                    default:
+                        throw new InvalidOperationException();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns the amount of shared memory.
+        /// </summary>
+        public int SharedMemorySize { get; }
+
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Creates a signature for the actual kernel entry point.
+        /// Creates a new launcher method.
         /// </summary>
-        /// <returns>A signature for the actual kernel entry point.</returns>
-        public Type[] CreateCustomParameterTypes()
+        /// <param name="context">The current context.</param>
+        /// <returns>The method emitter that represents the launcher method.</returns>
+        internal Context.MethodEmitter CreateLauncherMethod(Context context)
         {
-            var argTypes = new Type[UniformVariables.Length + NumDynamicallySizedSharedMemoryVariables];
+            Debug.Assert(context != null, "Invalid context");
+            var parameterTypes = new Type[
+                Parameters.NumParameters + Kernel.KernelParameterOffset];
 
-            for (int i = 0, e = UniformVariables.Length; i < e; ++i)
-                argTypes[i] = UniformVariables[i].VariableType;
+            // Launcher(Kernel, AcceleratorStream, [Index], ...)
+            parameterTypes[Kernel.KernelInstanceParamIdx] = typeof(Kernel);
+            parameterTypes[Kernel.KernelStreamParamIdx] = typeof(AcceleratorStream);
+            parameterTypes[Kernel.KernelParamDimensionIdx] = KernelIndexType;
+            Parameters.CopyTo(parameterTypes, Kernel.KernelParameterOffset);
 
-            // Attach length information to dynamically sized variables using runtime information
-            for (int i = 0, e = NumDynamicallySizedSharedMemoryVariables; i < e; ++i)
-                argTypes[i + UniformVariables.Length] = typeof(int);
+            var result = context.DefineRuntimeMethod(typeof(void), parameterTypes);
+            // TODO: we have to port the following snippet to .Net Core
+            // in order to support "in" parameters
+            //if (Parameters.IsByRef(i))
+            //{
+            //    var paramIndex = Kernel.KernelParameterOffset + i;
+            //    result.MethodBuilder.DefineParameter(
+            //        paramIndex,
+            //        ParameterAttributes.In,
+            //        null);
+            //}
 
-            return argTypes;
+            return result;
         }
 
         #endregion

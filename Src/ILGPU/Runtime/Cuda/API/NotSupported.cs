@@ -1,4 +1,15 @@
-﻿using ILGPU.Resources;
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2018 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: NotSupported.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+using ILGPU.Resources;
 using System;
 
 namespace ILGPU.Runtime.Cuda.API
@@ -286,8 +297,19 @@ namespace ILGPU.Runtime.Cuda.API
 
         #region Kernel Methods
 
-        /// <summary cref="CudaAPI.LoadModule(out IntPtr, byte[])"/>
-        public override CudaError LoadModule(out IntPtr module, byte[] moduleData)
+        /// <summary cref="CudaAPI.LoadModule(out IntPtr, string)"/>
+        public override CudaError LoadModule(out IntPtr module, string moduleData)
+        {
+            throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
+        }
+
+        /// <summary cref="CudaAPI.LoadModule(out IntPtr, string, int, IntPtr, IntPtr)"/>
+        public override CudaError LoadModule(
+            out IntPtr kernelModule,
+            string moduleData,
+            int numOptions,
+            IntPtr jitOptions,
+            IntPtr jitOptionValues)
         {
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
         }

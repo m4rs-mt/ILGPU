@@ -9,7 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Compiler;
+using ILGPU.Backends;
 using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
@@ -383,7 +383,7 @@ namespace ILGPU.Runtime
                 if (!compiledKernelCache.TryGetValue(cachedKey, out WeakReference<CompiledKernel> cached) ||
                     !cached.TryGetTarget(out CompiledKernel result))
                 {
-                    result = Backend.Compile(CompileUnit, method, specialization);
+                    result = Backend.Compile(method, specialization);
                     if (cached == null)
                         compiledKernelCache.Add(cachedKey, new WeakReference<CompiledKernel>(result));
                     else

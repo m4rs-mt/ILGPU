@@ -255,3 +255,5 @@ Src/ILGPU/TypeInformation.cs
 Src/ILGPU/Runtime/MemoryBuffers.cs
 Src/ILGPU/Runtime/KernelLoaders.cs
 Src/ILGPU/Runtime/SharedMemoryKernelLoaders.cs
+Src/ILGPU/IR/Construction/ArithmeticOperations.cs
+Src/ILGPU/IR/Construction/CompareOperations.cs

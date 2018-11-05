@@ -9,7 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Compiler;
+using ILGPU.Backends;
 using ILGPU.Util;
 using System;
 using System.Reflection;

@@ -39,73 +39,83 @@ namespace ILGPU.Runtime.Cuda
                 CudaAPI.Current.AllocateMemory(
                     out IntPtr resultPtr,
                     new IntPtr(extent.Size * ElementSize)));
-            Pointer = resultPtr;
+            NativePtr = resultPtr;
         }
 
         #endregion
 
         #region Methods
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToViewInternal(ArrayView{T, Index}, AcceleratorType, TIndex, AcceleratorStream)"/>
-        protected internal override void CopyToViewInternal(
-            ArrayView<T, Index> target,
-            AcceleratorType acceleratorType,
-            TIndex sourceOffset,
-            AcceleratorStream stream)
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToViewInternal(AcceleratorStream, ArrayView{T}, Index)"/>
+        protected unsafe internal override void CopyToViewInternal(
+            AcceleratorStream stream,
+            ArrayView<T> target,
+            Index sourceOffset)
         {
-            switch (acceleratorType)
+            using (var binding = Accelerator.BindScoped())
             {
-                case AcceleratorType.CPU:
-                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
-                        target.Pointer,
-                        GetSubView(sourceOffset).Pointer,
-                        new IntPtr(target.LengthInBytes),
-                        stream));
-                    break;
-                case AcceleratorType.Cuda:
-                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
-                        target.Pointer,
-                        GetSubView(sourceOffset).Pointer,
-                        new IntPtr(target.LengthInBytes),
-                        stream));
-                    break;
-                default:
-                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                var targetBuffer = target.Source;
+                var sourceAddress = new IntPtr(ComputeEffectiveAddress(sourceOffset));
+                var targetAddress = new IntPtr(target.LoadEffectiveAddress());
+                switch (targetBuffer.AcceleratorType)
+                {
+                    case AcceleratorType.CPU:
+                        CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
+                            targetAddress,
+                            sourceAddress,
+                            new IntPtr(target.LengthInBytes),
+                            stream));
+                        break;
+                    case AcceleratorType.Cuda:
+                        CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
+                            targetAddress,
+                            sourceAddress,
+                            new IntPtr(target.LengthInBytes),
+                            stream));
+                        break;
+                    default:
+                        throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                }
             }
         }
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromViewInternal(ArrayView{T, Index}, AcceleratorType, TIndex, AcceleratorStream)"/>
-        protected internal override void CopyFromViewInternal(
-            ArrayView<T, Index> source,
-            AcceleratorType acceleratorType,
-            TIndex targetOffset,
-            AcceleratorStream stream)
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromViewInternal(AcceleratorStream, ArrayView{T}, Index)"/>
+        protected unsafe internal override void CopyFromViewInternal(
+            AcceleratorStream stream,
+            ArrayView<T> source,
+            Index targetOffset)
         {
-            switch (acceleratorType)
+            using (var binding = Accelerator.BindScoped())
             {
-                case AcceleratorType.CPU:
-                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
-                        GetSubView(targetOffset).Pointer,
-                        source.Pointer,
-                        new IntPtr(source.LengthInBytes),
-                        stream));
-                    break;
-                case AcceleratorType.Cuda:
-                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
-                        GetSubView(targetOffset).Pointer,
-                        source.Pointer,
-                        new IntPtr(source.LengthInBytes),
-                        stream));
-                    break;
-                default:
-                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                var sourceAddress = new IntPtr(source.LoadEffectiveAddress());
+                var targetAddress = new IntPtr(ComputeEffectiveAddress(targetOffset));
+                switch (source.AcceleratorType)
+                {
+                    case AcceleratorType.CPU:
+                        CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
+                            targetAddress,
+                            sourceAddress,
+                            new IntPtr(source.LengthInBytes),
+                            stream));
+                        break;
+                    case AcceleratorType.Cuda:
+                        CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
+                            targetAddress,
+                            sourceAddress,
+                            new IntPtr(source.LengthInBytes),
+                            stream));
+                        break;
+                    default:
+                        throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                }
             }
         }
 
         /// <summary cref="MemoryBuffer.MemSetToZero(AcceleratorStream)"/>
         public override void MemSetToZero(AcceleratorStream stream)
         {
-            CudaAPI.Current.Memset(Pointer, 0, new IntPtr(LengthInBytes));
+            using (var binding = Accelerator.BindScoped())
+                CudaAPI.Current.Memset(NativePtr, 0, new IntPtr(LengthInBytes));
         }
 
         #endregion
@@ -115,11 +125,8 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (Pointer == IntPtr.Zero)
-                return;
-
-            CudaException.ThrowIfFailed(CudaAPI.Current.FreeMemory(Pointer));
-            Pointer = IntPtr.Zero;
+            CudaException.ThrowIfFailed(CudaAPI.Current.FreeMemory(NativePtr));
+            NativePtr = IntPtr.Zero;
         }
 
         #endregion

@@ -12,13 +12,14 @@
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Runtime.Cuda
 {
     /// <summary>
     /// Represents a Cuda stream.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
+    [SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
     public sealed class CudaStream : AcceleratorStream
     {
         #region Instance
@@ -63,7 +64,11 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="AcceleratorStream.Synchronize"/>
         public override void Synchronize()
         {
-            CudaException.ThrowIfFailed(CudaAPI.Current.SynchronizeStream(streamPtr));
+            using (var binding = Accelerator.BindScoped())
+            {
+                CudaException.ThrowIfFailed(
+                    CudaAPI.Current.SynchronizeStream(streamPtr));
+            }
         }
 
         #endregion
@@ -74,10 +79,9 @@ namespace ILGPU.Runtime.Cuda
         protected override void Dispose(bool disposing)
         {
             if (streamPtr != IntPtr.Zero)
-            {
-                CudaException.ThrowIfFailed(CudaAPI.Current.DestroyStream(streamPtr));
-                streamPtr = IntPtr.Zero;
-            }
+                CudaException.ThrowIfFailed(
+                    CudaAPI.Current.DestroyStream(streamPtr));
+            streamPtr = IntPtr.Zero;
         }
 
         #endregion

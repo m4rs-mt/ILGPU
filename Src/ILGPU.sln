@@ -11,12 +11,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{CF6CEEF5
 		..\.nuget\ILGPU.targets = ..\.nuget\ILGPU.targets
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build Scripts", "Build Scripts", "{9F3934C1-FF10-4685-807E-A4C0BBA94CCA}"
-	ProjectSection(SolutionItems) = preProject
-		..\Build\BuildNativeLibs.ps1 = ..\Build\BuildNativeLibs.ps1
-		..\Build\BuildNativeLibs.sh = ..\Build\BuildNativeLibs.sh
-		..\Build\LinkLLVM.ps1 = ..\Build\LinkLLVM.ps1
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

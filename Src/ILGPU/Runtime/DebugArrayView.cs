@@ -10,28 +10,34 @@
 // -----------------------------------------------------------------------------
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
 {
     /// <summary>
-    /// Represents a debugger view for generic array views.
+    /// Base debug view.
     /// </summary>
-    sealed class DebugArrayView<T, TIndex>
+    abstract class BaseDebugArrayView<T>
         where T : struct
-        where TIndex : struct, IIndex, IGenericIndex<TIndex>
     {
         #region Instance
 
+        /// <summary>
+        /// Stores the associated view.
+        /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly ArrayView<T, TIndex> view;
+        protected readonly ArrayView<T> view;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private T[] data;
 
         /// <summary>
         /// Constructs a new debug view.
         /// </summary>
-        /// <param name="view">The target array view.</param>
-        public DebugArrayView(ArrayView<T, TIndex> view)
+        /// <param name="source">The source array view.</param>
+        protected BaseDebugArrayView(ArrayView<T> source)
         {
-            this.view = view;
+            view = source;
         }
 
         #endregion
@@ -43,15 +49,91 @@ namespace ILGPU.Runtime
         {
             get
             {
-                var data = new T[view.Length];
-                for (Index i = 0, e = view.Length; i < e; ++i)
+                if (data == null)
                 {
-                    var idx = view.Extent.ReconstructIndex(i);
-                    data[i] = view[idx];
+                    if (view.IsValid)
+                    {
+                        if (view.AcceleratorType == AcceleratorType.CPU)
+                            data = LoadCPUData();
+                        else
+                            data = LoadDeviceData();
+                    }
+                    else
+                        data = new T[0];
                 }
                 return data;
             }
         }
+
+        #endregion
+
+        #region Methods
+
+        private T[] LoadCPUData()
+        {
+            var result = new T[view.Length];
+            for (int i = 0, e = result.Length; i < e; ++i)
+                result[i] = view[i];
+            return result;
+        }
+
+        private unsafe T[] LoadDeviceData()
+        {
+            var elementSize = ArrayView<T>.ElementSize;
+            var rawData = view.Source.GetAsDebugRawArray(
+                view.Index * elementSize,
+                view.Extent * elementSize);
+
+            var result = new T[view.Length];
+            fixed (byte* ptr = &rawData.Array[rawData.Offset])
+            {
+                ref var castedPtr = ref Unsafe.AsRef<byte>(ptr);
+                for (Index i = 0, e = view.Length; i < e; ++i)
+                {
+                    ref var elementPtr = ref Interop.ComputeEffectiveAddress(
+                        ref castedPtr,
+                        i,
+                        elementSize);
+                    result[i] = Unsafe.As<byte, T>(ref elementPtr);
+                }
+            }
+            return result;
+        }
+
+        #endregion
+    }
+
+    /// <summary>public
+    /// Represents a debugger array view.
+    /// </summary>
+    sealed class DebugArrayView<T> : BaseDebugArrayView<T>
+        where T : struct
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new debug view.
+        /// </summary>
+        /// <param name="source">The target array view.</param>
+        public DebugArrayView(ArrayView<T> source)
+            : base(source)
+        { }
+
+        /// <summary>
+        /// Constructs a new debug view.
+        /// </summary>
+        /// <param name="source">The target array view.</param>
+        public DebugArrayView(ArrayView2D<T> source)
+            : this(source.AsLinearView())
+        { }
+
+        /// <summary>
+        /// Constructs a new debug view.
+        /// </summary>
+        /// <param name="source">The target array view.</param>
+        public DebugArrayView(ArrayView3D<T> source)
+            : this(source.AsLinearView())
+        { }
 
         #endregion
     }
@@ -59,59 +141,19 @@ namespace ILGPU.Runtime
     /// <summary>
     /// Represents a debugger view for generic array views.
     /// </summary>
-    sealed class DebugArrayView<T>
+    sealed class DebugArrayView<T, TIndex> : BaseDebugArrayView<T>
         where T : struct
+        where TIndex : struct, IIndex, IGenericIndex<TIndex>
     {
         #region Instance
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly DebugArrayView<T, Index> view;
-
         /// <summary>
         /// Constructs a new debug view.
         /// </summary>
-        /// <param name="view">The target array view.</param>
-        public DebugArrayView(ArrayView<T, Index> view)
-        {
-            this.view = new DebugArrayView<T, Index>(view);
-        }
-
-        /// <summary>
-        /// Constructs a new debug view.
-        /// </summary>
-        /// <param name="view">The target array view.</param>
-        public DebugArrayView(ArrayView<T> view)
-        {
-            this.view = new DebugArrayView<T, Index>(view);
-        }
-
-        /// <summary>
-        /// Constructs a new debug view.
-        /// </summary>
-        /// <param name="view">The target array view.</param>
-        public DebugArrayView(ArrayView2D<T> view)
-        {
-            this.view = new DebugArrayView<T, Index>(view.AsLinearView());
-        }
-
-        /// <summary>
-        /// Constructs a new debug view.
-        /// </summary>
-        /// <param name="view">The target array view.</param>
-        public DebugArrayView(ArrayView3D<T> view)
-        {
-            this.view = new DebugArrayView<T, Index>(view.AsLinearView());
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the encapsulated generic debug view.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public DebugArrayView<T, Index> View => view;
+        /// <param name="source">The target array view.</param>
+        public DebugArrayView(ArrayView<T, TIndex> source)
+            : base(source.AsLinearView())
+        { }
 
         #endregion
     }

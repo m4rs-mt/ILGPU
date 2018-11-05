@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.Backends.IL;
 using ILGPU.Resources;
 using System;
 using System.Diagnostics;
@@ -28,54 +29,55 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Emits code to create an Index instance from a loaded integer value.
         /// </summary>
-        /// <param name="ilGenerator">The target IL-instruction generator.</param>
-        public static void EmitLoadIndex(ILGenerator ilGenerator)
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
+        /// <param name="emitter">The target IL emitter.</param>
+        public static void EmitLoadIndex<TEmitter>(in TEmitter emitter)
+            where TEmitter : IILEmitter
         {
-            ilGenerator.Emit(OpCodes.Newobj, Index.MainConstructor);
+            emitter.EmitNewObject(Index.MainConstructor);
+        }
+
+        /// <summary>
+        /// Emits code for converting array views into ptr implementations.
+        /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
+        /// <param name="parameter">The source parameter that contains the array view.</param>
+        /// <param name="arrayViewElementType">The element type of the array view.</param>
+        /// <param name="emitter">The target IL emitter.</param>
+        public static ILLocal EmitLoadNativePtrImplementation<TEmitter>(
+            ParameterInfo parameter,
+            Type arrayViewElementType,
+            in TEmitter emitter)
+            where TEmitter : IILEmitter
+        {
+            var ptrViewType = typeof(PtrArrayViewImplementation<>).MakeGenericType(arrayViewElementType);
+
+            // Allocate a local for the target view
+            var tempLocal = emitter.DeclareLocal(ptrViewType);
+
+            // Convert view to ptr view
+            emitter.Emit(ArgumentOperation.Load, parameter.Position);
+            emitter.EmitNewObject(ptrViewType.GetConstructor(new Type[] { parameter.ParameterType }));
+            emitter.Emit(LocalOperation.Store, tempLocal);
+
+            return tempLocal;
         }
 
         /// <summary>
         /// Emits code for computing and loading the required shared-memory size.
         /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="entryPoint">The entry point for code generation.</param>
-        /// <param name="ilGenerator">The target IL-instruction generator.</param>
-        /// <param name="getDynSharedMemSizeParam">A function that resolves the length parameter for the referenced dynamically-sized shared-memory variable.</param>
-        public static LocalBuilder EmitSharedMemorySizeComputation(
+        /// <param name="emitter">The target IL emitter.</param>
+        public static ILLocal EmitSharedMemorySizeComputation<TEmitter>(
             EntryPoint entryPoint,
-            ILGenerator ilGenerator,
-            Func<int, ParameterInfo> getDynSharedMemSizeParam)
+            in TEmitter emitter)
+            where TEmitter : IILEmitter
         {
-            var dynSizedSharedMemVars = entryPoint.NumDynamicallySizedSharedMemoryVariables;
-
             // Compute sizes of dynamic-shared variables
-            var sharedMemSize = ilGenerator.DeclareLocal(typeof(int));
-
-            // Compute known shared-memory size
-            int staticSharedMemSize = 0;
-            foreach(var sharedMemVariable in entryPoint.SharedMemoryVariables)
-            {
-                if (sharedMemVariable.IsDynamicallySizedArray)
-                    continue;
-                staticSharedMemSize += sharedMemVariable.Size;
-            }
-
-            ilGenerator.Emit(OpCodes.Ldc_I4, staticSharedMemSize);
-            ilGenerator.Emit(OpCodes.Stloc, sharedMemSize);
-
-            // Emit code to compute the required amount of dynamic shared memory.
-            for (int i = 0; i < dynSizedSharedMemVars; ++i)
-            {
-                // Compute byte size for shared-mem variable i
-                var param = getDynSharedMemSizeParam(i + entryPoint.NumUniformVariables);
-                ilGenerator.Emit(OpCodes.Ldarg, param.Position);
-                ilGenerator.Emit(OpCodes.Ldc_I4, entryPoint.SharedMemoryVariables[i].ElementSize);
-                ilGenerator.Emit(OpCodes.Mul);
-
-                ilGenerator.Emit(OpCodes.Ldloc, sharedMemSize);
-                ilGenerator.Emit(OpCodes.Add);
-
-                ilGenerator.Emit(OpCodes.Stloc, sharedMemSize);
-            }
+            var sharedMemSize = emitter.DeclareLocal(typeof(int));
+            emitter.EmitConstant(entryPoint.SharedMemorySize);
+            emitter.Emit(LocalOperation.Store, sharedMemSize);
 
             return sharedMemSize;
         }
@@ -111,61 +113,62 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Emits code to convert an Index3 to a specific target type.
         /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="ungroupedIndexType">The index type (can be Index, Index2 or Index3).</param>
-        /// <param name="ilGenerator">The target IL-instruction generator.</param>
+        /// <param name="emitter">The target IL emitter.</param>
         /// <param name="loadIdx">A callback to load the referenced index value onto the stack.</param>
-        public static void EmitConvertIndex3ToTargetType(
+        public static void EmitConvertIndex3ToTargetType<TEmitter>(
             Type ungroupedIndexType,
-            ILGenerator ilGenerator,
+            in TEmitter emitter,
             Action loadIdx)
+            where TEmitter : IILEmitter
         {
             var numValues = (int)ungroupedIndexType.GetUngroupedIndexType();
             if (numValues > 3)
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedIndexType);
-            var idxLocal = ilGenerator.DeclareLocal(typeof(Index3));
+            var idxLocal = emitter.DeclareLocal(typeof(Index3));
             for (int i = 0; i < numValues; ++i)
             {
                 loadIdx();
 
-                ilGenerator.Emit(OpCodes.Stloc, idxLocal);
-                ilGenerator.Emit(OpCodes.Ldloca, idxLocal);
-                ilGenerator.Emit(OpCodes.Call, Index3ValueGetter[i]);
+                emitter.Emit(LocalOperation.Store, idxLocal);
+                emitter.Emit(LocalOperation.LoadAddress, idxLocal);
+                emitter.EmitCall(Index3ValueGetter[i]);
             }
             var mainConstructor = GetMainIndexConstructor(ungroupedIndexType);
-            ilGenerator.Emit(OpCodes.Newobj, mainConstructor);
+            emitter.EmitNewObject(mainConstructor);
         }
 
         /// <summary>
         /// Emits code to convert a linear index to a specific target type.
         /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="ungroupedIndexType">The index type (can be Index, Index2 or Index3).</param>
-        /// <param name="ilGenerator">The target IL-instruction generator.</param>
+        /// <param name="emitter">The target IL emitter.</param>
         /// <param name="loadDimension">A callback to load the referenced dimension value onto the stack.</param>
-        public static void EmitConvertFrom1DIndexToTargetIndexType(
+        public static void EmitConvertFrom1DIndexToTargetIndexType<TEmitter>(
             Type ungroupedIndexType,
-            ILGenerator ilGenerator,
+            in TEmitter emitter,
             Action loadDimension)
+            where TEmitter : IILEmitter
         {
             switch (ungroupedIndexType.GetUngroupedIndexType())
             {
                 case IndexType.Index1D:
                     // Invoke default constructor of the index class
-                    ilGenerator.Emit(
-                        OpCodes.Newobj,
+                    emitter.EmitNewObject(
                         GetMainIndexConstructor(ungroupedIndexType));
                     break;
                 case IndexType.Index2D:
                     loadDimension();
-                    ilGenerator.Emit(
-                        OpCodes.Call,
+                    emitter.EmitCall(
                         ungroupedIndexType.GetMethod(
                             nameof(Index2.ReconstructIndex),
                             BindingFlags.Public | BindingFlags.Static));
                     break;
                 case IndexType.Index3D:
                     loadDimension();
-                    ilGenerator.Emit(
-                        OpCodes.Call,
+                    emitter.EmitCall(
                         ungroupedIndexType.GetMethod(
                             nameof(Index3.ReconstructIndex),
                             BindingFlags.Public | BindingFlags.Static));
@@ -178,26 +181,33 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Emits code to load a 3D dimension of a grid or a group index.
         /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="indexType">The index type (can be Index, Index2 or Index3).</param>
-        /// <param name="ilGenerator">The target IL-instruction generator.</param>
+        /// <param name="emitter">The target IL emitter.</param>
         /// <param name="loadIdx">A callback to load the referenced index value onto the stack.</param>
-        private static void EmitLoadDimensions(Type indexType, ILGenerator ilGenerator, Action loadIdx)
+        private static void EmitLoadDimensions<TEmitter>(
+            Type indexType,
+            in TEmitter emitter,
+            Action loadIdx)
+            where TEmitter : IILEmitter
         {
-            EmitLoadDimensions(indexType, ilGenerator, loadIdx, offset => { });
+            EmitLoadDimensions(indexType, emitter, loadIdx, offset => { });
         }
 
         /// <summary>
         /// Emits code to load a 3D dimension of a grid or a group index.
         /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="indexType">The index type (can be Index, Index2 or Index3).</param>
-        /// <param name="ilGenerator">The target IL-instruction generator.</param>
+        /// <param name="emitter">The target IL emitter.</param>
         /// <param name="loadIdx">A callback to load the referenced index value onto the stack.</param>
         /// <param name="manipulateIdx">A callback to manipulate the loaded index of a given dimension.</param>
-        private static void EmitLoadDimensions(
+        private static void EmitLoadDimensions<TEmitter>(
             Type indexType,
-            ILGenerator ilGenerator,
+            in TEmitter emitter,
             Action loadIdx,
             Action<int> manipulateIdx)
+            where TEmitter : IILEmitter
         {
             var indexFieldGetter = new MethodInfo[]
             {
@@ -220,13 +230,13 @@ namespace ILGPU.Runtime
                 if (fieldGetter == null)
                     break;
                 loadIdx();
-                ilGenerator.Emit(OpCodes.Call, fieldGetter);
+                emitter.EmitCall(fieldGetter);
                 manipulateIdx(offset);
             }
 
             // Fill empty zeros
             for (; offset < indexFieldGetter.Length; ++offset)
-                ilGenerator.Emit(OpCodes.Ldc_I4_1);
+                emitter.Emit(OpCodes.Ldc_I4_1);
         }
 
         /// <summary>
@@ -235,19 +245,21 @@ namespace ILGPU.Runtime
         /// Howerver, using a custom <paramref name="convertIndex3Args"/> function allows to create
         /// and instantiate custom grid and group indices.
         /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="entryPoint">The entry point.</param>
-        /// <param name="ilGenerator">The target IL-instruction generator.</param>
+        /// <param name="emitter">The target IL emitter.</param>
         /// <param name="dimensionIdx">The argument index of the provided launch-dimension index.</param>
         /// <param name="convertIndex3Args">Allows to create and instantiate custom grid and group indices.</param>
-        public static void EmitLoadDimensions(
+        public static void EmitLoadDimensions<TEmitter>(
             EntryPoint entryPoint,
-            ILGenerator ilGenerator,
+            in TEmitter emitter,
             int dimensionIdx,
             Action convertIndex3Args)
+            where TEmitter : IILEmitter
         {
             EmitLoadDimensions(
                 entryPoint,
-                ilGenerator,
+                emitter,
                 dimensionIdx,
                 convertIndex3Args,
                 0);
@@ -259,17 +271,19 @@ namespace ILGPU.Runtime
         /// Howerver, using a custom <paramref name="convertIndex3Args"/> function allows to create
         /// and instantiate custom grid and group indices.
         /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="entryPoint">The entry point.</param>
-        /// <param name="ilGenerator">The target IL-instruction generator.</param>
+        /// <param name="emitter">The target IL emitter.</param>
         /// <param name="dimensionIdx">The argument index of the provided launch-dimension index.</param>
         /// <param name="convertIndex3Args">Allows to create and instantiate custom grid and group indices.</param>
         /// <param name="customGroupSize">The custom group size used for automatic blocking.</param>
-        public static void EmitLoadDimensions(
+        public static void EmitLoadDimensions<TEmitter>(
             EntryPoint entryPoint,
-            ILGenerator ilGenerator,
+            TEmitter emitter,
             int dimensionIdx,
             Action convertIndex3Args,
             int customGroupSize)
+            where TEmitter : IILEmitter
         {
             if (!entryPoint.IsGroupedIndexEntry)
             {
@@ -281,25 +295,25 @@ namespace ILGPU.Runtime
 
                 EmitLoadDimensions(
                     entryPoint.UngroupedIndexType,
-                    ilGenerator,
-                    () => ilGenerator.Emit(OpCodes.Ldarga, dimensionIdx),
+                    emitter,
+                    () => emitter.Emit(ArgumentOperation.LoadAddress, dimensionIdx),
                     dimIdx =>
                     {
                         if (dimIdx != 0 || customGroupSize < 1)
                             return;
                         // Convert requested index range to blocked range
-                        ilGenerator.Emit(OpCodes.Ldc_I4, customGroupSize - 1);
-                        ilGenerator.Emit(OpCodes.Add);
-                        ilGenerator.Emit(OpCodes.Ldc_I4, customGroupSize);
-                        ilGenerator.Emit(OpCodes.Div);
+                        emitter.EmitConstant(customGroupSize - 1);
+                        emitter.Emit(OpCodes.Add);
+                        emitter.EmitConstant(customGroupSize);
+                        emitter.Emit(OpCodes.Div);
                     });
 
                 convertIndex3Args();
 
                 // Custom grouping
-                ilGenerator.Emit(OpCodes.Ldc_I4, Math.Max(customGroupSize, 1));
-                ilGenerator.Emit(OpCodes.Ldc_I4_1);
-                ilGenerator.Emit(OpCodes.Ldc_I4_1);
+                emitter.EmitConstant(Math.Max(customGroupSize, 1));
+                emitter.Emit(OpCodes.Ldc_I4_1);
+                emitter.Emit(OpCodes.Ldc_I4_1);
 
                 convertIndex3Args();
             }
@@ -308,34 +322,32 @@ namespace ILGPU.Runtime
                 Debug.Assert(customGroupSize == 0, "Invalid custom group size");
 
                 var groupedIndexType = entryPoint.KernelIndexType;
-                var gridIdx = ilGenerator.DeclareLocal(entryPoint.UngroupedIndexType);
+                var gridIdx = emitter.DeclareLocal(entryPoint.UngroupedIndexType);
 
-                ilGenerator.Emit(OpCodes.Ldarga, dimensionIdx);
-                ilGenerator.Emit(
-                    OpCodes.Call,
+                emitter.Emit(ArgumentOperation.LoadAddress, dimensionIdx);
+                emitter.EmitCall(
                     groupedIndexType.GetProperty(
                         nameof(GroupedIndex.GridIdx),
                         BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false));
-                ilGenerator.Emit(OpCodes.Stloc, gridIdx);
+                emitter.Emit(LocalOperation.Store, gridIdx);
                 EmitLoadDimensions(
                     entryPoint.UngroupedIndexType,
-                    ilGenerator,
-                    () => ilGenerator.Emit(OpCodes.Ldloca, gridIdx));
+                    emitter,
+                    () => emitter.Emit(LocalOperation.LoadAddress, gridIdx));
                 convertIndex3Args();
 
-                var groupIdx = ilGenerator.DeclareLocal(entryPoint.UngroupedIndexType);
+                var groupIdx = emitter.DeclareLocal(entryPoint.UngroupedIndexType);
 
-                ilGenerator.Emit(OpCodes.Ldarga, dimensionIdx);
-                ilGenerator.Emit(
-                    OpCodes.Call,
+                emitter.Emit(ArgumentOperation.LoadAddress, dimensionIdx);
+                emitter.EmitCall(
                     groupedIndexType.GetProperty(
                         nameof(GroupedIndex.GroupIdx),
                         BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false));
-                ilGenerator.Emit(OpCodes.Stloc, groupIdx);
+                emitter.Emit(LocalOperation.Store, groupIdx);
                 EmitLoadDimensions(
                     entryPoint.UngroupedIndexType,
-                    ilGenerator,
-                    () => ilGenerator.Emit(OpCodes.Ldloca, groupIdx));
+                    emitter,
+                    () => emitter.Emit(LocalOperation.LoadAddress, groupIdx));
                 convertIndex3Args();
             }
         }
@@ -343,33 +355,41 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Emits code for loading a typed kernel from a generic kernel instance.
         /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <typeparam name="T">The kernel type.</typeparam>
         /// <param name="kernelArgumentIndex">The index of the launcher parameter.</param>
-        /// <param name="ilGenerator">The target IL-instruction generator.</param>
-        public static void EmitLoadKernelArgument<T>(int kernelArgumentIndex, ILGenerator ilGenerator)
+        /// <param name="emitter">The target IL emitter.</param>
+        public static void EmitLoadKernelArgument<T, TEmitter>(
+            int kernelArgumentIndex,
+            in TEmitter emitter)
             where T : Kernel
+            where TEmitter : IILEmitter
         {
             Debug.Assert(kernelArgumentIndex >= 0);
-            Debug.Assert(ilGenerator != null);
+            Debug.Assert(emitter != null);
 
-            ilGenerator.Emit(OpCodes.Ldarg, kernelArgumentIndex);
-            ilGenerator.Emit(OpCodes.Castclass, typeof(T));
+            emitter.Emit(ArgumentOperation.Load, kernelArgumentIndex);
+            emitter.Emit(OpCodes.Castclass, typeof(T));
         }
 
         /// <summary>
         /// Emits code for loading a typed accelerator stream from a generic accelerator-stream instance.
         /// </summary>
         /// <typeparam name="T">The kernel type.</typeparam>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="streamArgumentIndex">The index of the stream parameter.</param>
-        /// <param name="ilGenerator">The target IL-instruction generator.</param>
-        public static void EmitLoadAcceleratorStream<T>(int streamArgumentIndex, ILGenerator ilGenerator)
+        /// <param name="emitter">The target IL emitter.</param>
+        public static void EmitLoadAcceleratorStream<T, TEmitter>(
+            int streamArgumentIndex,
+            in TEmitter emitter)
             where T : AcceleratorStream
+            where TEmitter : IILEmitter
         {
             Debug.Assert(streamArgumentIndex >= 0);
-            Debug.Assert(ilGenerator != null);
+            Debug.Assert(emitter != null);
 
-            ilGenerator.Emit(OpCodes.Ldarg, streamArgumentIndex);
-            ilGenerator.Emit(OpCodes.Castclass, typeof(T));
+            emitter.Emit(ArgumentOperation.Load, streamArgumentIndex);
+            emitter.Emit(OpCodes.Castclass, typeof(T));
         }
 
         #endregion

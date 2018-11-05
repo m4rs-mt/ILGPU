@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends;
-using ILGPU.Compiler;
 using ILGPU.Resources;
 using System;
 using System.Reflection;
@@ -170,21 +169,6 @@ namespace ILGPU.Runtime
         #region Generic Kernel Loading
 
         /// <summary>
-        /// Represents a launcher provider to create launcher delegates.
-        /// </summary>
-        private interface ILauncherProvider
-        {
-            /// <summary>
-            /// Creates a launcher delegate for the given kernel.
-            /// </summary>
-            /// <typeparam name="TDelegate">The delegate type.</typeparam>
-            /// <param name="kernel">The kernel for the creation operation.</param>
-            /// <returns>A launcher delegate for the given kernel.</returns>
-            TDelegate CreateLauncher<TDelegate>(Kernel kernel)
-                where TDelegate : class;
-        }
-
-        /// <summary>
         /// Represents a default kernel loader.
         /// </summary>
         private struct DefaultKernelLoader : IKernelLoader
@@ -267,83 +251,26 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Represents a default launcher provider for kernels.
-        /// </summary>
-        private struct DefaultStreamLauncherProvider : ILauncherProvider
-        {
-            /// <summary cref="ILauncherProvider.CreateLauncher{TDelegate}(Kernel)"/>
-            public TDelegate CreateLauncher<TDelegate>(Kernel kernel)
-                where TDelegate : class
-            {
-                return kernel.CreateStreamLauncherDelegate<TDelegate>();
-            }
-        }
-
-        /// <summary>
-        /// Represents an implicit-stream-launcher provider for kernels.
-        /// </summary>
-        private struct StreamLauncherProvider : ILauncherProvider
-        {
-            /// <summary>
-            /// Constructs a new stream-launcher provider.
-            /// </summary>
-            /// <param name="stream">The associated accelerator stream.</param>
-            public StreamLauncherProvider(AcceleratorStream stream)
-            {
-                Stream = stream ?? throw new ArgumentNullException(nameof(stream));
-            }
-
-            /// <summary>
-            /// Returns the associated accelerator stream.
-            /// </summary>
-            public AcceleratorStream Stream { get; }
-
-            /// <summary cref="ILauncherProvider.CreateLauncher{TDelegate}(Kernel)"/>
-            public TDelegate CreateLauncher<TDelegate>(Kernel kernel)
-                where TDelegate : class
-            {
-                return kernel.CreateStreamLauncherDelegate<TDelegate>(Stream);
-            }
-        }
-
-        /// <summary>
-        /// Represents a launcher provider for kernels.
-        /// </summary>
-        private struct LauncherProvider : ILauncherProvider
-        {
-            /// <summary cref="ILauncherProvider.CreateLauncher{TDelegate}(Kernel)"/>
-            public TDelegate CreateLauncher<TDelegate>(Kernel kernel)
-                where TDelegate : class
-            {
-                return kernel.CreateLauncherDelegate<TDelegate>();
-            }
-        }
-
-        /// <summary>
         /// Loads a kernel specified by the given method and returns a launcher of the specified type.
         /// Note that implictly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </summary>
         /// <typeparam name="TDelegate">The delegate type.</typeparam>
         /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
-        /// <typeparam name="TLauncherProvider">The type of the custom launcher provider.</typeparam>
         /// <param name="method">The method to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
-        /// <param name="launcherProvider">The launcher provider.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private TDelegate LoadGenericKernel<TDelegate, TKernelLoader, TLauncherProvider>(
+        private TDelegate LoadGenericKernel<TDelegate, TKernelLoader>(
             MethodInfo method,
             KernelSpecialization specialization,
-            ref TKernelLoader kernelLoader,
-            ref TLauncherProvider launcherProvider)
+            ref TKernelLoader kernelLoader)
             where TDelegate : class
             where TKernelLoader : struct, IKernelLoader
-            where TLauncherProvider : struct, ILauncherProvider
         {
             var kernel = LoadGenericKernel(method, specialization, ref kernelLoader);
-            return launcherProvider.CreateLauncher<TDelegate>(kernel);
+            return kernel.CreateLauncherDelegate<TDelegate>();
         }
 
         #endregion
@@ -454,98 +381,10 @@ namespace ILGPU.Runtime
             where TDelegate : class
         {
             var loader = DefaultKernelLoader.Default;
-            var launcher = new LauncherProvider();
-            return LoadGenericKernel<TDelegate, DefaultKernelLoader, LauncherProvider>(
+            return LoadGenericKernel<TDelegate, DefaultKernelLoader>(
                 method,
                 specialization,
-                ref loader,
-                ref launcher);
-        }
-
-        /// <summary>
-        /// Loads the given kernel and returns a launcher delegate that launches
-        /// the loaded kernel with the default stream.
-        /// </summary>
-        /// <typeparam name="TDelegate">The delegate type.</typeparam>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        /// <remarks>
-        /// Note that implictly-grouped kernels will be launched with a group size
-        /// of the current warp size of the accelerator.
-        /// </remarks>
-        public TDelegate LoadStreamKernel<TDelegate>(MethodInfo method)
-            where TDelegate : class
-        {
-            return LoadStreamKernel<TDelegate>(method, KernelSpecialization.Empty);
-        }
-
-        /// <summary>
-        /// Loads the given kernel and returns a launcher delegate that launches
-        /// the loaded kernel with the default stream.
-        /// </summary>
-        /// <typeparam name="TDelegate">The delegate type.</typeparam>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="specialization">The kernel specialization.</param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        /// <remarks>
-        /// Note that implictly-grouped kernels will be launched with a group size
-        /// of the current warp size of the accelerator.
-        /// </remarks>
-        public TDelegate LoadStreamKernel<TDelegate>(MethodInfo method, KernelSpecialization specialization)
-            where TDelegate : class
-        {
-            var loader = DefaultKernelLoader.Default;
-            var launcher = new DefaultStreamLauncherProvider();
-            return LoadGenericKernel<TDelegate, DefaultKernelLoader, DefaultStreamLauncherProvider>(
-                method,
-                specialization,
-                ref loader,
-                ref launcher);
-        }
-
-        /// <summary>
-        /// Loads the given kernel and returns a launcher delegate that is associated
-        /// with the given accelerator stream. Consequently, the resulting delegate
-        /// cannot receive other accelerator streams.
-        /// </summary>
-        /// <typeparam name="TDelegate">The delegate type.</typeparam>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="stream">The accelerator stream to use.</param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        /// <remarks>
-        /// Note that implictly-grouped kernels will be launched with a group size
-        /// of the current warp size of the accelerator.
-        /// </remarks>
-        public TDelegate LoadStreamKernel<TDelegate>(MethodInfo method, AcceleratorStream stream)
-            where TDelegate : class
-        {
-            return LoadStreamKernel<TDelegate>(method, stream, KernelSpecialization.Empty);
-        }
-
-        /// <summary>
-        /// Loads the given kernel and returns a launcher delegate that is associated
-        /// with the given accelerator stream. Consequently, the resulting delegate
-        /// cannot receive other accelerator streams.
-        /// </summary>
-        /// <typeparam name="TDelegate">The delegate type.</typeparam>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="stream">The accelerator stream to use.</param>
-        /// <param name="specialization">The kernel specialization.</param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        /// <remarks>
-        /// Note that implictly-grouped kernels will be launched with a group size
-        /// of the current warp size of the accelerator.
-        /// </remarks>
-        public TDelegate LoadStreamKernel<TDelegate>(MethodInfo method, AcceleratorStream stream, KernelSpecialization specialization)
-            where TDelegate : class
-        {
-            var loader = DefaultKernelLoader.Default;
-            var launcher = new StreamLauncherProvider(stream);
-            return LoadGenericKernel<TDelegate, DefaultKernelLoader, StreamLauncherProvider>(
-                method,
-                specialization,
-                ref loader,
-                ref launcher);
+                ref loader);
         }
 
         /// <summary>
@@ -563,63 +402,10 @@ namespace ILGPU.Runtime
             where TDelegate : class
         {
             var loader = new GroupedKernelLoader(customGroupSize);
-            var launcher = new LauncherProvider();
-            return LoadGenericKernel<TDelegate, GroupedKernelLoader, LauncherProvider>(
+            return LoadGenericKernel<TDelegate, GroupedKernelLoader>(
                 method,
                 new KernelSpecialization(customGroupSize, null),
-                ref loader,
-                ref launcher);
-        }
-
-        /// <summary>
-        /// Loads the given kernel and returns a launcher delegate that launches
-        /// the loaded kernel with the default stream.
-        /// </summary>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="customGroupSize">The custom group size to use.</param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        /// <remarks>
-        /// Note that implictly-grouped kernel will be launched with the given
-        /// group size.
-        /// </remarks>
-        public TDelegate LoadImplicitlyGroupedStreamKernel<TDelegate>(MethodInfo method, int customGroupSize)
-            where TDelegate : class
-        {
-            var loader = new GroupedKernelLoader(customGroupSize);
-            var launcher = new DefaultStreamLauncherProvider();
-            return LoadGenericKernel<TDelegate, GroupedKernelLoader, DefaultStreamLauncherProvider>(
-                method,
-                new KernelSpecialization(customGroupSize, null),
-                ref loader,
-                ref launcher);
-        }
-
-        /// <summary>
-        /// Loads the given kernel and returns a launcher delegate that is associated
-        /// with the given accelerator stream. Consequently, the resulting delegate
-        /// cannot receive other accelerator streams.
-        /// </summary>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="customGroupSize">The custom group size to use.</param>
-        /// <param name="stream">The accelerator stream to use.</param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        /// <remarks>
-        /// Note that implictly-grouped kernel will be launched with the given
-        /// group size.
-        /// </remarks>
-        public TDelegate LoadImplicitlyGroupedStreamKernel<TDelegate>(
-            MethodInfo method,
-            int customGroupSize,
-            AcceleratorStream stream)
-            where TDelegate : class
-        {
-            var loader = new GroupedKernelLoader(customGroupSize);
-            var launcher = new StreamLauncherProvider(stream);
-            return LoadGenericKernel<TDelegate, GroupedKernelLoader, StreamLauncherProvider>(
-                method,
-                new KernelSpecialization(customGroupSize, null),
-                ref loader,
-                ref launcher);
+                ref loader);
         }
 
         /// <summary>
@@ -637,12 +423,10 @@ namespace ILGPU.Runtime
             where TDelegate : class
         {
             var loader = AutoKernelLoader.Default;
-            var launcher = new LauncherProvider();
-            var result = LoadGenericKernel<TDelegate, AutoKernelLoader, LauncherProvider>(
+            var result = LoadGenericKernel<TDelegate, AutoKernelLoader>(
                 method,
                 KernelSpecialization.Empty,
-                ref loader,
-                ref launcher);
+                ref loader);
             groupSize = loader.GroupSize;
             minGridSize = loader.MinGridSize;
             return result;
@@ -658,105 +442,10 @@ namespace ILGPU.Runtime
             where TDelegate : class
         {
             var loader = AutoKernelLoader.Default;
-            var launcher = new LauncherProvider();
-            return LoadGenericKernel<TDelegate, AutoKernelLoader, LauncherProvider>(
+            return LoadGenericKernel<TDelegate, AutoKernelLoader>(
                 method,
                 KernelSpecialization.Empty,
-                ref loader,
-                ref launcher);
-        }
-
-        /// <summary>
-        /// Loads the given kernel and returns a launcher delegate that launches
-        /// the loaded kernel with the default stream.
-        /// </summary>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        public TDelegate LoadAutoGroupedStreamKernel<TDelegate>(
-            MethodInfo method,
-            out int groupSize,
-            out int minGridSize)
-            where TDelegate : class
-        {
-            var loader = AutoKernelLoader.Default;
-            var launcher = new DefaultStreamLauncherProvider();
-            var result = LoadGenericKernel<TDelegate, AutoKernelLoader, DefaultStreamLauncherProvider>(
-                method,
-                KernelSpecialization.Empty,
-                ref loader,
-                ref launcher);
-            groupSize = loader.GroupSize;
-            minGridSize = loader.MinGridSize;
-            return result;
-        }
-
-        /// <summary>
-        /// Loads the given kernel and returns a launcher delegate that launches
-        /// the loaded kernel with the default stream.
-        /// </summary>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        public TDelegate LoadAutoGroupedStreamKernel<TDelegate>(MethodInfo method)
-            where TDelegate : class
-        {
-            var loader = AutoKernelLoader.Default;
-            var launcher = new DefaultStreamLauncherProvider();
-            return LoadGenericKernel<TDelegate, AutoKernelLoader, DefaultStreamLauncherProvider>(
-                method,
-                KernelSpecialization.Empty,
-                ref loader,
-                ref launcher);
-        }
-
-        /// <summary>
-        /// Loads the given kernel and returns a launcher delegate that is associated
-        /// with the given accelerator stream. Consequently, the resulting delegate
-        /// cannot receive other accelerator streams.
-        /// </summary>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="stream">The accelerator stream to use.</param>
-        /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        public TDelegate LoadAutoGroupedStreamKernel<TDelegate>(
-            MethodInfo method,
-            AcceleratorStream stream,
-            out int groupSize,
-            out int minGridSize)
-            where TDelegate : class
-        {
-            var loader = AutoKernelLoader.Default;
-            var launcher = new StreamLauncherProvider(stream);
-            var result = LoadGenericKernel<TDelegate, AutoKernelLoader, StreamLauncherProvider>(
-                method,
-                KernelSpecialization.Empty,
-                ref loader,
-                ref launcher);
-            groupSize = loader.GroupSize;
-            minGridSize = loader.MinGridSize;
-            return result;
-        }
-
-        /// <summary>
-        /// Loads the given kernel and returns a launcher delegate that is associated
-        /// with the given accelerator stream. Consequently, the resulting delegate
-        /// cannot receive other accelerator streams.
-        /// </summary>
-        /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="stream">The accelerator stream to use.</param>
-        /// <returns>The loaded kernel-launcher delegate.</returns>
-        public TDelegate LoadAutoGroupedStreamKernel<TDelegate>(MethodInfo method, AcceleratorStream stream)
-            where TDelegate : class
-        {
-            var loader = AutoKernelLoader.Default;
-            var launcher = new StreamLauncherProvider(stream);
-            return LoadGenericKernel<TDelegate, AutoKernelLoader, StreamLauncherProvider>(
-                method,
-                KernelSpecialization.Empty,
-                ref loader,
-                ref launcher);
+                ref loader);
         }
 
         #endregion

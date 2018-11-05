@@ -9,20 +9,18 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace ILGPU
 {
     /// <summary>
-    /// Represents a general view to a variable at a specific address on a gpu.
+    /// Represents a general view to a variable.
     /// </summary>
     /// <typeparam name="T">The type of the variable.</typeparam>
     [StructLayout(LayoutKind.Sequential)]
-    public struct VariableView<T> : IEquatable<VariableView<T>>
+    public readonly struct VariableView<T>
         where T : struct
     {
         #region Constants
@@ -36,25 +34,14 @@ namespace ILGPU
 
         #region Instance
 
-        private IntPtr ptr;
-
         /// <summary>
         /// Constructs a new variable view.
         /// </summary>
-        /// <param name="variableRef">A reference to the target variable.</param>
-        public VariableView(ref T variableRef)
+        /// <param name="baseView">The base view.</param>
+        public VariableView(ArrayView<T> baseView)
         {
-            ptr = Interop.GetAddress(ref variableRef);
-        }
-
-        /// <summary>
-        /// Constructs a new variable view.
-        /// </summary>
-        /// <param name="ptr">The target address of the variable.</param>
-        [SuppressMessage("Microsoft.Naming", "CA1720:IdentifiersShouldNotContainTypeNames", MessageId = "ptr")]
-        public VariableView(IntPtr ptr)
-        {
-            this.ptr = ptr;
+            Debug.Assert(baseView.IsValid && baseView.Length == 1, "Invalid base view");
+            BaseView = baseView;
         }
 
         #endregion
@@ -62,93 +49,23 @@ namespace ILGPU
         #region Properties
 
         /// <summary>
-        /// Returns true iff this view points to a valid location.
+        /// Returns the base view.
         /// </summary>
-        public bool IsValid => ptr != IntPtr.Zero;
+        public ArrayView<T> BaseView { get; }
 
         /// <summary>
-        /// Returns the in-memory address of the variable.
+        /// Returns true iff this view points to a valid location.
         /// </summary>
-        public IntPtr Pointer => ptr;
+        public bool IsValid => BaseView.IsValid;
 
         /// <summary>
         /// Accesses the stored value.
         /// </summary>
-        public T Value
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return Load(); }
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set { Store(value); }
-        }
-
-        /// <summary>
-        /// Returns a reference to the encapsulated variable.
-        /// </summary>
-        public ref T Ref => ref LoadRef();
+        public ref T Value => ref BaseView[0];
 
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// Loads a reference to the variable as ref T.
-        /// </summary>
-        /// <returns>A reference to the internal variable.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T LoadRef()
-        {
-            return ref Interop.GetRef<T>(ptr);
-        }
-
-        /// <summary>
-        /// Loads the variable as type T.
-        /// </summary>
-        /// <returns>The loaded variable.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T Load()
-        {
-            return Interop.PtrToStructure<T>(ptr);
-        }
-
-        /// <summary>
-        /// Stores the given value into the variable of type T.
-        /// </summary>
-        /// <param name="value">The value to store.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Store(T value)
-        {
-            Interop.StructureToPtr(value, ptr);
-        }
-
-        /// <summary>
-        /// Returns a sub-view to a particular sub-variable.
-        /// </summary>
-        /// <typeparam name="TOther">The target type.</typeparam>
-        /// <param name="offsetInBytes">The offset of the sub variable in bytes.</param>
-        /// <returns>The sub-variable view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VariableView<TOther> GetSubView<TOther>(int offsetInBytes)
-            where TOther : struct
-        {
-            Debug.Assert(offsetInBytes >= 0, "Offset out of range");
-            Debug.Assert(offsetInBytes + Interop.SizeOf<TOther>() <= VariableSize, "OutOfBounds sub view");
-            return new VariableView<TOther>(
-                Interop.LoadEffectiveAddress(ptr, 1, offsetInBytes));
-        }
-
-        /// <summary>
-        /// Casts the current variable view into another variable type.
-        /// </summary>
-        /// <typeparam name="TOther">The target type.</typeparam>
-        /// <returns>The casted variable view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VariableView<TOther> Cast<TOther>()
-            where TOther : struct
-        {
-            Debug.Assert(VariableSize >= Interop.SizeOf<TOther>(), "OutOfBounds cast");
-            return new VariableView<TOther>(ptr);
-        }
 
         /// <summary>
         /// Copies the current value to the memory location of the given view.
@@ -170,18 +87,21 @@ namespace ILGPU
             Value = sourceView.Value;
         }
 
-        #endregion
-
-        #region IEquatable
-
         /// <summary>
-        /// Returns true iff the given view is equal to the current view.
+        /// Creates a sub view into this view.
         /// </summary>
-        /// <param name="other">The other view.</param>
-        /// <returns>True, iff the given view is equal to the current view.</returns>
-        public bool Equals(VariableView<T> other)
+        /// <param name="offsetInBytes"></param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public VariableView<TOther> GetSubView<TOther>(int offsetInBytes)
+            where TOther : struct
         {
-            return other == this;
+            Debug.Assert(offsetInBytes >= 0, "Offset out of range");
+            Debug.Assert(offsetInBytes + Interop.SizeOf<TOther>() <= VariableSize, "OutOfBounds sub view");
+
+            var rawView = BaseView.Cast<byte>();
+            var subView = rawView.GetSubView(offsetInBytes);
+            var finalView = subView.Cast<TOther>();
+            return new VariableView<TOther>(finalView);
         }
 
         #endregion
@@ -189,60 +109,10 @@ namespace ILGPU
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current view.
-        /// </summary>
-        /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current view.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is VariableView<T>)
-                return Equals((VariableView<T>)obj);
-            return false;
-        }
-
-        /// <summary>
-        /// Returns the hash code of this view.
-        /// </summary>
-        /// <returns>The hash code of this view.</returns>
-        public override int GetHashCode()
-        {
-            return ptr.GetHashCode();
-        }
-
-        /// <summary>
         /// Returns the string representation of this view.
         /// </summary>
         /// <returns>The string representation of this view.</returns>
-        public override string ToString()
-        {
-            return ptr.ToString();
-        }
-
-        #endregion
-
-        #region Operators
-
-        /// <summary>
-        /// Returns true iff the first and second views are the same.
-        /// </summary>
-        /// <param name="first">The first object.</param>
-        /// <param name="second">The second object.</param>
-        /// <returns>True, iff the first and second views are the same.</returns>
-        public static bool operator ==(VariableView<T> first, VariableView<T> second)
-        {
-            return first.ptr == second.ptr;
-        }
-
-        /// <summary>
-        /// Returns true iff the first and second view are not the same.
-        /// </summary>
-        /// <param name="first">The first object.</param>
-        /// <param name="second">The second object.</param>
-        /// <returns>True, iff the first and second view are not the same.</returns>
-        public static bool operator !=(VariableView<T> first, VariableView<T> second)
-        {
-            return first.ptr != second.ptr;
-        }
+        public override string ToString() => BaseView.ToString();
 
         #endregion
     }

@@ -9,106 +9,122 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU
 {
-    partial struct ArrayView<T>
+    /// <summary>
+    /// Array view extension methods
+    /// </summary>
+    public static class ArrayViewExtensions
     {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new 1D array view.
-        /// </summary>
-        /// <param name="data">The data pointer to the first element.</param>
-        /// <param name="extent">The extent (number of elements).</param>
-        public ArrayView(IntPtr data, int extent)
-            : this(data, new Index(extent))
-        { }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Access the element at the given index.
-        /// </summary>
-        /// <param name="index">The element index.</param>
-        /// <returns>The element at the given index.</returns>
-        public T this[int index]
-        {
-            get { return Load(index); }
-            set { Store(index, value); }
-        }
-
-        #endregion
-
-        #region Methods
+        #region ArrayView
 
         /// <summary>
         /// Converts this view into a new 2D view.
         /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <returns>The converted 2D view.</returns>
-        public ArrayView2D<T> As2DView(int height)
+        public static ArrayView2D<T> As2DView<T>(this ArrayView<T> view, int height)
+            where T : struct
         {
-            return new ArrayView2D<T>(this, height);
+            return new ArrayView2D<T>(view, height);
         }
 
         /// <summary>
         /// Converts this view into a new 2D view.
         /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
         /// <param name="width">The width (number of elements in x direction).</param>
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <returns>The converted 2D view.</returns>
-        public ArrayView2D<T> As2DView(int width, int height)
+        public static ArrayView2D<T> As2DView<T>(this ArrayView<T> view, int width, int height)
+            where T : struct
         {
-            return new ArrayView2D<T>(this, width, height);
+            return new ArrayView2D<T>(view, width, height);
         }
 
         /// <summary>
         /// Converts this view into a new 2D view.
         /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
         /// <param name="extent">The extent.</param>
         /// <returns>The converted 2D view.</returns>
-        public ArrayView2D<T> As2DView(Index2 extent)
+        public static ArrayView2D<T> As2DView<T>(this ArrayView<T> view, Index2 extent)
+            where T : struct
         {
-            return new ArrayView2D<T>(this, extent);
+            return new ArrayView2D<T>(view, extent);
         }
 
         /// <summary>
         /// Converts this view into a new 3D view.
         /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <param name="depth">The depth (number of elements in z direction).</param>
         /// <returns>The converted 3D view.</returns>
-        public ArrayView3D<T> As3DView(int height, int depth)
+        public static ArrayView3D<T> As3DView<T>(this ArrayView<T> view, int height, int depth)
+            where T : struct
         {
-            return new ArrayView3D<T>(this, height, depth);
+            return new ArrayView3D<T>(view, height, depth);
         }
 
         /// <summary>
         /// Converts this view into a new 3D view.
         /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
         /// <param name="width">The width (number of elements in x direction).</param>
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <param name="depth">The depth (number of elements in z direction).</param>
         /// <returns>The converted 3D view.</returns>
-        public ArrayView3D<T> As3DView(int width, int height, int depth)
+        public static ArrayView3D<T> As3DView<T>(this ArrayView<T> view, int width, int height, int depth)
+            where T : struct
         {
-            return new ArrayView3D<T>(this, width, height, depth);
+            return new ArrayView3D<T>(view, width, height, depth);
         }
 
         /// <summary>
         /// Converts this view into a new 3D view.
         /// </summary>
+        /// <param name="view">The view.</param>
         /// <param name="extent">The extent.</param>
         /// <returns>The converted 3D view.</returns>
-        public ArrayView3D<T> As3DView(Index3 extent)
+        public static ArrayView3D<T> As3DView<T>(this ArrayView<T> view, Index3 extent)
+            where T : struct
         {
-            return new ArrayView3D<T>(this, extent);
+            return new ArrayView3D<T>(view, extent);
+        }
+
+        /// <summary>
+        /// Returns a variable view to the first element.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
+        /// <returns>The resolved variable view.</returns>
+        public static VariableView<T> GetVariableView<T>(this ArrayView<T> view)
+            where T : struct
+        {
+            return view.GetVariableView(Index.Zero);
+        }
+
+        /// <summary>
+        /// Returns a variable view to the given element.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
+        /// <param name="element">The element index.</param>
+        /// <returns>The resolved variable view.</returns>
+        public static VariableView<T> GetVariableView<T>(this ArrayView<T> view, Index element)
+            where T : struct
+        {
+            return new VariableView<T>(view.GetSubView(element, 1));
         }
 
         #endregion
@@ -117,16 +133,6 @@ namespace ILGPU
     partial struct ArrayView2D<T>
     {
         #region Instance
-
-        /// <summary>
-        /// Constructs a new 2D array view.
-        /// </summary>
-        /// <param name="data">The data pointer to the first element.</param>
-        /// <param name="width">The width (number of elements in x direction).</param>
-        /// <param name="height">The height (number of elements in y direction).</param>
-        public ArrayView2D(IntPtr data, int width, int height)
-            : this(data, new Index2(width, height))
-        { }
 
         /// <summary>
         /// Constructs a new 2D array view.
@@ -153,12 +159,8 @@ namespace ILGPU
         /// <param name="view">The linear view to the data.</param>
         /// <param name="extent">The extent (width, height) (number of elements).</param>
         public ArrayView2D(ArrayView<T> view, Index2 extent)
-        {
-            Debug.Assert(extent.X > 0, "Width of of range");
-            Debug.Assert(extent.Y > 0, "Height of of range");
-            Debug.Assert(view.Length >= extent.Size, "Extent out of range");
-            this.view = new ArrayView<T, Index2>(view.Pointer, extent);
-        }
+            : this(new ArrayView<T, Index2>(view, extent))
+        { }
 
         #endregion
 
@@ -193,26 +195,11 @@ namespace ILGPU
         /// <param name="y">The y index.</param>
         /// <returns>The element at the given index.</returns>
         [SuppressMessage("Microsoft.Design", "CA1023:IndexersShouldNotBeMultidimensional")]
-        public T this[int x, int y]
-        {
-            get { return Load(new Index2(x, y)); }
-            set { Store(new Index2(x, y), value); }
-        }
+        public ref T this[int x, int y] => ref BaseView[new Index2(x, y)];
 
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// Returns a variable view for the element at the given index.
-        /// </summary>
-        /// <param name="x">The x index.</param>
-        /// <param name="y">The y index.</param>
-        /// <returns>A variable view for the element at the given index.</returns>
-        public VariableView<T> GetVariableView(int x, int y)
-        {
-            return GetVariableView(new Index2(x, y));
-        }
 
         /// <summary>
         /// Returns a linear view to a single row.
@@ -225,32 +212,12 @@ namespace ILGPU
             return AsLinearView().GetSubView(y * Width, Width);
         }
 
-        /// <summary>
-        /// Converts the current view into a linear view.
-        /// </summary>
-        /// <returns>The converted linear view.</returns>
-        public ArrayView<T> AsLinearView()
-        {
-            return new ArrayView<T>(view.AsLinearView());
-        }
-
         #endregion
     }
 
     partial struct ArrayView3D<T>
     {
         #region Instance
-
-        /// <summary>
-        /// Constructs a new 3D array view.
-        /// </summary>
-        /// <param name="data">The data pointer to the first element.</param>
-        /// <param name="width">The width (number of elements in x direction).</param>
-        /// <param name="height">The height (number of elements in y direction).</param>
-        /// <param name="depth">The depth (number of elements in z direction).</param>
-        public ArrayView3D(IntPtr data, int width, int height, int depth)
-            : this(data, new Index3(width, height, depth))
-        { }
 
         /// <summary>
         /// Constructs a new 3D array view.
@@ -279,13 +246,8 @@ namespace ILGPU
         /// <param name="view">The linear view to the data.</param>
         /// <param name="extent">The extent (width, height, depth) (number of elements).</param>
         public ArrayView3D(ArrayView<T> view, Index3 extent)
-        {
-            Debug.Assert(extent.X > 0, "Width of of range");
-            Debug.Assert(extent.Y > 0, "Height of of range");
-            Debug.Assert(extent.Z > 0, "Depth of of range");
-            Debug.Assert(view.Length >= extent.Size, "Extent out of range");
-            this.view = new ArrayView<T, Index3>(view.Pointer, extent);
-        }
+            : this(new ArrayView<T, Index3>(view, extent))
+        { }
 
         #endregion
 
@@ -314,11 +276,7 @@ namespace ILGPU
         /// <param name="z">The z index.</param>
         /// <returns>The element at the given index.</returns>
         [SuppressMessage("Microsoft.Design", "CA1023:IndexersShouldNotBeMultidimensional")]
-        public T this[int x, int y, int z]
-        {
-            get { return Load(new Index3(x, y, z)); }
-            set { Store(new Index3(x, y, z), value); }
-        }
+        public ref T this[int x, int y, int z] => ref BaseView[new Index3(x, y, z)];
 
         #endregion
 
@@ -344,18 +302,8 @@ namespace ILGPU
         {
             Debug.Assert(z >= 0 && z < Depth, "z out of bounds");
             return new ArrayView2D<T>(
-                view.AsLinearView().GetSubView(z * Width * Height,
-                Width * Height),
+                BaseView.AsLinearView().GetSubView(z * Width * Height, Width * Height),
                 Height);
-        }
-
-        /// <summary>
-        /// Converts the current view into a linear view.
-        /// </summary>
-        /// <returns>The converted linear view.</returns>
-        public ArrayView<T> AsLinearView()
-        {
-            return new ArrayView<T>(view.AsLinearView());
         }
 
         #endregion

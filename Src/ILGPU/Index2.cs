@@ -21,7 +21,7 @@ namespace ILGPU
     /// </summary>
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
-    public struct Index2 : IIntrinsicIndex, IGenericIndex<Index2>
+    public readonly struct Index2 : IIntrinsicIndex, IGenericIndex<Index2>
     {
         #region Static
 
@@ -80,8 +80,8 @@ namespace ILGPU
         public static Index2 Min(Index2 first, Index2 second)
         {
             return new Index2(
-                GPUMath.Min(first.X, second.X),
-                GPUMath.Min(first.Y, second.Y));
+                XMath.Min(first.X, second.X),
+                XMath.Min(first.Y, second.Y));
         }
 
         /// <summary>
@@ -93,8 +93,8 @@ namespace ILGPU
         public static Index2 Max(Index2 first, Index2 second)
         {
             return new Index2(
-                GPUMath.Max(first.X, second.X),
-                GPUMath.Max(first.Y, second.Y));
+                XMath.Max(first.X, second.X),
+                XMath.Max(first.Y, second.Y));
         }
 
         /// <summary>
@@ -107,16 +107,16 @@ namespace ILGPU
         public static Index2 Clamp(Index2 value, Index2 min, Index2 max)
         {
             return new Index2(
-                GPUMath.Clamp(value.X, min.X, max.X),
-                GPUMath.Clamp(value.Y, min.Y, max.Y));
+                XMath.Clamp(value.X, min.X, max.X),
+                XMath.Clamp(value.Y, min.Y, max.Y));
         }
 
         #endregion
 
         #region Instance
 
-        private int x;
-        private int y;
+        internal readonly int x;
+        internal readonly int y;
 
         /// <summary>
         /// Constructs a new 2D index.

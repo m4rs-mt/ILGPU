@@ -19,13 +19,12 @@
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace ILGPU
 {
-<#  for (int i = 1; i <= 3; ++i) { #>
+<#  for (int i = 2; i <= 3; ++i) { #>
 <#      var typeName = i == 1 ? "ArrayView" : $"ArrayView{i}D"; #>
 <#      var indexType = i == 1 ? "Index" : $"Index{i}"; #>
     /// <summary>
@@ -33,9 +32,9 @@ namespace ILGPU
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     [DebuggerTypeProxy(typeof(DebugArrayView<>))]
-    [DebuggerDisplay("Extent = {Extent}, Length = {Length}, Ptr = {Pointer}")]
+    [DebuggerDisplay("Index = {Index}, Extent = {Extent}")]
     [StructLayout(LayoutKind.Sequential)]
-    public partial struct <#= typeName #><T> : IEquatable<<#= typeName #><T>>
+    public readonly partial struct <#= typeName #><T> : IArrayView<T, <#= indexType #>>
         where T : struct
     {
         #region Constants
@@ -49,27 +48,13 @@ namespace ILGPU
 
         #region Instance
 
-        private ArrayView<T, <#= indexType #>> view;
-
         /// <summary>
         /// Constructs a new <#= i #>D array view.
         /// </summary>
-        /// <param name="view">The source view.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public <#= typeName #>(ArrayView<T, <#= indexType #>> view)
+        /// <param name="baseView">The source view.</param>
+        public <#= typeName #>(ArrayView<T, <#= indexType #>> baseView)
         {
-            this.view = view;
-        }
-
-        /// <summary>
-        /// Constructs a new <#= i #>D array view.
-        /// </summary>
-        /// <param name="data">The data pointer to the first element.</param>
-        /// <param name="extent">The extent (number of elements).</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public <#= typeName #>(IntPtr data, <#= indexType #> extent)
-        {
-            view = new ArrayView<T, <#= indexType #>>(data, extent);
+            BaseView = baseView;
         }
 
         #endregion
@@ -77,101 +62,40 @@ namespace ILGPU
         #region Properties
 
         /// <summary>
-        /// Returns true iff this view points to a valid location.
+        /// Returns the associated buffer.
         /// </summary>
-        public bool IsValid => view.IsValid;
+        public ArrayView<T, <#= indexType #>> BaseView { get; }
 
         /// <summary>
-        /// Returns the in-memory address of the first element.
+        /// Returns true iff this view points to a valid location.
         /// </summary>
-        public IntPtr Pointer => view.Pointer;
+        public bool IsValid => BaseView.IsValid;
 
         /// <summary>
         /// Returns the length of this array view.
         /// </summary>
-        public int Length => view.Length;
+        public int Length => BaseView.Length;
 
         /// <summary>
         /// Returns the extent of this view.
         /// </summary>
-        public <#= indexType #> Extent => view.Extent;
+        public <#= indexType #> Extent => BaseView.Extent;
 
         /// <summary>
         /// Returns the length of this array view in bytes.
         /// </summary>
-        public int LengthInBytes => view.LengthInBytes;
+        public int LengthInBytes => BaseView.LengthInBytes;
 
         /// <summary>
         /// Access the element at the given index.
         /// </summary>
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1043:UseIntegralOrStringArgumentForIndexers")]
-        public T this[<#= indexType #> index]
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return view[index]; }
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set { view[index] = value; }
-        }
+        public ref T this[<#= indexType #> index] => ref BaseView[index];
 
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// Loads a reference to the element at the given index as ref T.
-        /// </summary>
-        /// <param name="index">The element index.</param>
-        /// <returns>The loaded reference to the desired element.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T LoadRef(<#= indexType #> index)
-        {
-            return ref view.LoadRef(index);
-        }
-
-        /// <summary>
-        /// Loads the element at the given index as T.
-        /// </summary>
-        /// <param name="index">The element index.</param>
-        /// <returns>The loaded element.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T Load(<#= indexType #> index)
-        {
-            return view.Load(index);
-        }
-
-        /// <summary>
-        /// Stores the value into the element at the given index as T.
-        /// </summary>
-        /// <param name="index">The element index.</param>
-        /// <param name="value">The value to store.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Store(<#= indexType #> index, T value)
-        {
-            view.Store(index, value);
-        }
-
-        /// <summary>
-        /// Returns a variable view that targets the first element.
-        /// </summary>
-        /// <returns>A variable view that targets the first element.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VariableView<T> GetVariableView()
-        {
-            return GetVariableView(<#= indexType #>.Zero);
-        }
-
-        /// <summary>
-        /// Returns a variable view that targets the element at the given index.
-        /// </summary>
-        /// <param name="index">The target index.</param>
-        /// <returns>A variable view that targets the element at the given index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VariableView<T> GetVariableView(<#= indexType #> index)
-        {
-            return view.GetVariableView(index);
-        }
 
         /// <summary>
         /// Returns a subview of the current view starting at the given offset.
@@ -179,10 +103,8 @@ namespace ILGPU
         /// <param name="offset">The starting offset.</param>
         /// <returns>The new subview.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public <#= typeName #><T> GetSubView(<#= indexType #> offset)
-        {
-            return new <#= typeName #><T>(view.GetSubView(offset));
-        }
+        public <#= typeName #><T> GetSubView(<#= indexType #> offset) =>
+            new <#= typeName #><T>(BaseView.GetSubView(offset));
 
         /// <summary>
         /// Returns a subview of the current view starting at the given offset.
@@ -190,113 +112,62 @@ namespace ILGPU
         /// <param name="offset">The starting offset.</param>
         /// <param name="subViewExtent">The extent of the new subview.</param>
         /// <returns>The new subview.</returns>
-        public <#= typeName #><T> GetSubView(<#= indexType #> offset, <#= indexType #> subViewExtent)
-        {
-            return new <#= typeName #><T>(view.GetSubView(offset, subViewExtent));
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public <#= typeName #><T> GetSubView(<#= indexType #> offset, <#= indexType #> subViewExtent) =>
+            new <#= typeName #><T>(BaseView.GetSubView(offset, subViewExtent));
 
         /// <summary>
         /// Casts the current array view into another array-view type.
         /// </summary>
         /// <typeparam name="TOther">The target type.</typeparam>
         /// <returns>The casted array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public <#= typeName #><TOther> Cast<TOther>()
-            where TOther : struct
-        {
-            return new <#= typeName #><TOther>(view.Cast<TOther>());
-        }
-
-        #endregion
-
-        #region IEquatable
+            where TOther : struct =>
+            new <#= typeName #><TOther>(BaseView.Cast<TOther>());
 
         /// <summary>
-        /// Returns true iff the given view is equal to the current view.
+        /// Converts the current view into a linear view.
         /// </summary>
-        /// <param name="other">The other view.</param>
-        /// <returns>True, iff the given view is equal to the current view.</returns>
-        public bool Equals(<#= typeName #><T> other)
-        {
-            return other == this;
-        }
+        /// <returns>The converted linear view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView<T> AsLinearView() => BaseView.AsLinearView();
+
+        /// <summary>
+        /// Returns a variable view that points to the element at the specified index.
+        /// </summary>
+        /// <param name="index">The variable index.</param>
+        /// <returns>The resolved variable view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public VariableView<T> GetVariableView(<#= indexType #> index) => BaseView.GetVariableView(index);
 
         #endregion
 
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current view.
-        /// </summary>
-        /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current view.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is <#= typeName #><T>)
-                return Equals((<#= typeName #><T>)obj);
-            return false;
-        }
-
-        /// <summary>
-        /// Returns the hash code of this view.
-        /// </summary>
-        /// <returns>The hash code of this view.</returns>
-        public override int GetHashCode()
-        {
-            return view.GetHashCode();
-        }
-
-        /// <summary>
         /// Returns the string representation of this view.
         /// </summary>
         /// <returns>The string representation of this view.</returns>
-        public override string ToString()
-        {
-            return view.ToString();
-        }
+        public override string ToString() => BaseView.ToString();
 
         #endregion
 
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first and second views are the same.
-        /// </summary>
-        /// <param name="first">The first object.</param>
-        /// <param name="second">The second object.</param>
-        /// <returns>True, iff the first and second views are the same.</returns>
-        public static bool operator ==(<#= typeName #><T> first, <#= typeName #><T> second)
-        {
-            return first.view == second.view;
-        }
-
-        /// <summary>
-        /// Returns true iff the first and second view are not the same.
-        /// </summary>
-        /// <param name="first">The first object.</param>
-        /// <param name="second">The second object.</param>
-        /// <returns>True, iff the first and second view are not the same.</returns>
-        public static bool operator !=(<#= typeName #><T> first, <#= typeName #><T> second)
-        {
-            return first.view != second.view;
-        }
-
-        /// <summary>
         /// Converts the given specialized array view into a corresponding generic view.
         /// </summary>
         /// <returns>The corresponding generic view.</returns>
-        public static implicit operator ArrayView<T, <#= indexType #>>(<#= typeName #><T> view)
-        {
-            return view.view;
-        }
+        public static implicit operator ArrayView<T, <#= indexType #>>(<#= typeName #><T> view) =>
+            view.BaseView;
 
         /// <summary>
         /// Converts the given generic array view into a corresponding specialized view.
         /// </summary>
         /// <returns>The corresponding specialized view.</returns>
-        public static implicit operator <#= typeName #><T>(ArrayView<T, <#= indexType #>> view)
-        {
-            return new <#= typeName #><T>(view);
-        }
+        public static implicit operator <#= typeName #><T>(ArrayView<T, <#= indexType #>> baseView) =>
+            new <#= typeName #><T>(baseView);
 
         #endregion
     }

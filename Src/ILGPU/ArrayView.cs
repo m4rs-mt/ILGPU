@@ -9,8 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Frontend.Intrinsic;
 using ILGPU.Runtime;
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -18,15 +18,66 @@ using System.Runtime.CompilerServices;
 namespace ILGPU
 {
     /// <summary>
-    /// Represents a generic view to an n-dimensional array on an accelerator.
+    /// Represents an abstract array view.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TIndex">The index type.</typeparam>
-    [DebuggerTypeProxy(typeof(DebugArrayView<,>))]
-    [DebuggerDisplay("Extent = {Extent}, Length = {Length}, Ptr = {Pointer}")]
-    public struct ArrayView<T, TIndex> : IEquatable<ArrayView<T, TIndex>>
+    public interface IArrayView<T, TIndex>
         where T : struct
         where TIndex : struct, IIndex, IGenericIndex<TIndex>
+    {
+        /// <summary>
+        /// Returns true iff this view points to a valid location.
+        /// </summary>
+        bool IsValid { get; }
+
+        /// <summary>
+        /// Returns the extent of this view.
+        /// </summary>
+        TIndex Extent { get; }
+
+        /// <summary>
+        /// Returns the length of this array view.
+        /// </summary>
+        int Length { get; }
+
+        /// <summary>
+        /// Returns the length of this array view in bytes.
+        /// </summary>
+        int LengthInBytes { get; }
+
+        /// <summary>
+        /// Access the element at the given index.
+        /// </summary>
+        /// <param name="index">The element index.</param>
+        /// <returns>The element at the given index.</returns>
+        ref T this[TIndex index] { get; }
+
+        /// <summary>
+        /// Converts the current view into a linear view.
+        /// </summary>
+        /// <returns>The converted linear view.</returns>
+        ArrayView<T> AsLinearView();
+    }
+
+    /// <summary>
+    /// Represents an abstract array view.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    [SuppressMessage("Microsoft.Design", "CA1040: AvoidEmptyInterfaces",
+        Justification = "Can be used in generic constraints")]
+    public interface IArrayView<T> : IArrayView<T, Index>
+        where T : struct
+    { }
+
+    /// <summary>
+    /// Represents a generic view to a contiguous chunk of memory.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    [DebuggerTypeProxy(typeof(DebugArrayView<>))]
+    [DebuggerDisplay("Index = {Index}, Length = {Length}, Source = {Source}")]
+    public readonly struct ArrayView<T> : IArrayView<T>
+        where T : struct
     {
         #region Constants
 
@@ -39,19 +90,21 @@ namespace ILGPU
 
         #region Instance
 
-        private IntPtr ptr;
-        private TIndex extent;
-
         /// <summary>
         /// Constructs a new array view.
         /// </summary>
-        /// <param name="data">The data pointer to the first element.</param>
-        /// <param name="extent">The extent (number of elements).</param>
-        public ArrayView(IntPtr data, TIndex extent)
+        /// <param name="source">The source buffer.</param>
+        /// <param name="index">The base index.</param>
+        /// <param name="length">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal ArrayView(ArrayViewSource source, Index index, Index length)
         {
-            Debug.Assert(extent.Size > 0, "Extent of of range");
-            ptr = data;
-            this.extent = extent;
+            Debug.Assert(source != null, "Invalid source buffer");
+            Debug.Assert(index >= 0, "Index of of range");
+            Debug.Assert(length > 0, "Length of of range");
+            Source = source;
+            Index = index;
+            Length = length;
         }
 
         #endregion
@@ -59,42 +112,88 @@ namespace ILGPU
         #region Properties
 
         /// <summary>
+        /// Returns the associated view source.
+        /// </summary>
+        internal ArrayViewSource Source { get; }
+
+        /// <summary>
+        /// Returns the associated accelerator type.
+        /// </summary>
+        internal AcceleratorType AcceleratorType => Source.AcceleratorType;
+
+        /// <summary>
         /// Returns true iff this view points to a valid location.
         /// </summary>
-        public bool IsValid => ptr != IntPtr.Zero;
+        public bool IsValid
+        {
+            [ViewIntrinsic(ViewIntrinsicKind.IsValidView)]
+            get => Source != null && Length > 0;
+        }
 
         /// <summary>
-        /// Returns the address of the first element.
+        /// Returns the index of this view.
         /// </summary>
-        public IntPtr Pointer => ptr;
-
-        /// <summary>
-        /// Returns the length of this array view.
-        /// </summary>
-        public int Length => extent.Size;
+        internal Index Index { get; }
 
         /// <summary>
         /// Returns the extent of this view.
         /// </summary>
-        public TIndex Extent => extent;
+        public Index Extent
+        {
+            [ViewIntrinsic(ViewIntrinsicKind.GetViewExtent)]
+            get => new Index(Length);
+        }
+
+        /// <summary>
+        /// Returns the length of this array view.
+        /// </summary>
+        public int Length
+        {
+            [ViewIntrinsic(ViewIntrinsicKind.GetViewLength)]
+            get;
+        }
 
         /// <summary>
         /// Returns the length of this array view in bytes.
         /// </summary>
-        public int LengthInBytes => Length * ElementSize;
+        public int LengthInBytes
+        {
+            [ViewIntrinsic(ViewIntrinsicKind.GetViewLengthInBytes)]
+            get => Length * ElementSize;
+        }
 
         /// <summary>
         /// Access the element at the given index.
         /// </summary>
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1043:UseIntegralOrStringArgumentForIndexers")]
-        public T this[TIndex index]
+        public unsafe ref T this[Index index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get { return Load(index); }
+            [ViewIntrinsic(ViewIntrinsicKind.GetViewElementAddressByIndex)]
+            get => ref this[index.X];
+        }
+
+        /// <summary>
+        /// Access the element at the given index.
+        /// </summary>
+        /// <param name="index">The element index.</param>
+        /// <returns>The element at the given index.</returns>
+        public unsafe ref T this[int index]
+        {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set { Store(index, value); }
+            [ViewIntrinsic(ViewIntrinsicKind.GetViewElementAddress)]
+            get
+            {
+                Debug.Assert(index >= 0 && index < Length, "Index out of range");
+                Debug.Assert(
+                    Source.AcceleratorType == AcceleratorType.CPU,
+                    "Cannot access a non-CPU buffer directly");
+                ref var ptr = ref Source.LoadEffectiveAddress(
+                    Index + index,
+                    ElementSize);
+                return ref Unsafe.As<byte, T>(ref ptr);
+            }
         }
 
         #endregion
@@ -102,91 +201,41 @@ namespace ILGPU
         #region Methods
 
         /// <summary>
-        /// Loads a reference to the element at the given index as ref T.
+        /// Loads the effective address of the current view.
         /// </summary>
-        /// <param name="index">The element index.</param>
-        /// <returns>The loaded reference to the desired element.</returns>
+        /// <returns>The effective address.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T LoadRef(TIndex index)
-        {
-            Debug.Assert(index.InBounds(extent), "Index ouf of bounds");
-            var elementIndex = index.ComputeLinearIndex(extent);
-            Debug.Assert(elementIndex >= 0 && elementIndex < Length, "Index ouf of bounds");
-            var elementPtr = Interop.LoadEffectiveAddress(ptr, ElementSize, elementIndex);
-            return ref Interop.GetRef<T>(elementPtr);
-        }
+        internal unsafe void* LoadEffectiveAddress() =>
+            Unsafe.AsPointer(ref Source.LoadEffectiveAddress(Index, ElementSize));
 
         /// <summary>
-        /// Loads the element at the given index as T.
+        /// Returns a subview of the current view starting at the given offset.
         /// </summary>
-        /// <param name="index">The element index.</param>
-        /// <returns>The loaded element.</returns>
+        /// <param name="index">The starting offset.</param>
+        /// <returns>The new subview.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T Load(TIndex index)
+        [ViewIntrinsic(ViewIntrinsicKind.GetSubViewImplicitLength)]
+        public ArrayView<T> GetSubView(int index)
         {
-            Debug.Assert(index.InBounds(extent), "Index ouf of bounds");
-            var elementIndex = index.ComputeLinearIndex(extent);
-            Debug.Assert(elementIndex >= 0 && elementIndex < Length, "Index ouf of bounds");
-            return Interop.PtrToStructure<T>(ptr, ElementSize, elementIndex);
-        }
-
-        /// <summary>
-        /// Stores the value into the element at the given index as T.
-        /// </summary>
-        /// <param name="index">The element index.</param>
-        /// <param name="value">The value to store.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Store(TIndex index, T value)
-        {
-            Debug.Assert(index.InBounds(extent), "Index ouf of bounds");
-            var elementIndex = index.ComputeLinearIndex(extent);
-            Debug.Assert(elementIndex >= 0 && elementIndex < Length, "Index ouf of bounds");
-            Interop.StructureToPtr(value, ptr, ElementSize, elementIndex);
-        }
-
-        /// <summary>
-        /// Returns a variable view that targets the element at the given index.
-        /// </summary>
-        /// <param name="index">The target index.</param>
-        /// <returns>A variable view that targets the element at the given index.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VariableView<T> GetVariableView(TIndex index)
-        {
-            Debug.Assert(index.InBounds(extent), "Index ouf of bounds");
-            var elementIndex = index.ComputeLinearIndex(extent);
-            Debug.Assert(elementIndex >= 0 && elementIndex < Length, "Index ouf of bounds");
-            return new VariableView<T>(
-                Interop.LoadEffectiveAddress(ptr, ElementSize, elementIndex));
+            Debug.Assert(index >= 0 && index < Length, "Offset ouf of bounds");
+            return GetSubView(index, Length - index);
         }
 
         /// <summary>
         /// Returns a subview of the current view starting at the given offset.
         /// </summary>
-        /// <param name="offset">The starting offset.</param>
+        /// <param name="index">The starting offset.</param>
+        /// <param name="subViewLength">The extent of the new subview.</param>
         /// <returns>The new subview.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T, TIndex> GetSubView(TIndex offset)
+        [ViewIntrinsic(ViewIntrinsicKind.GetSubView)]
+        public ArrayView<T> GetSubView(int index, int subViewLength)
         {
-            Debug.Assert(offset.InBounds(extent), "Offset ouf of bounds");
-            return GetSubView(offset, extent.Subtract(offset));
-        }
-
-        /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
-        /// </summary>
-        /// <param name="offset">The starting offset.</param>
-        /// <param name="subViewExtent">The extent of the new subview.</param>
-        /// <returns>The new subview.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T, TIndex> GetSubView(TIndex offset, TIndex subViewExtent)
-        {
-            Debug.Assert(offset.InBounds(extent), "Offset ouf of bounds");
-            var elementIndex = offset.ComputeLinearIndex(extent);
-            Debug.Assert(elementIndex >= 0 && elementIndex < Length, "Offset ouf of bounds");
-            Debug.Assert(offset.Add(subViewExtent).InBoundsInclusive(extent), "Subview out of range");
-            return new ArrayView<T, TIndex>(
-                Interop.LoadEffectiveAddress(ptr, ElementSize, elementIndex),
-                subViewExtent);
+            Debug.Assert(index >= 0 && index < Length, "Index out of bounds");
+            Debug.Assert(index < Length, "Index ouf of bounds");
+            Debug.Assert(index + subViewLength <= Length, "Subview out of range");
+            index += Index;
+            return new ArrayView<T>(Source, index, subViewLength);
         }
 
         /// <summary>
@@ -194,75 +243,30 @@ namespace ILGPU
         /// </summary>
         /// <typeparam name="TOther">The target type.</typeparam>
         /// <returns>The casted array view.</returns>
-        public ArrayView<TOther, TIndex> Cast<TOther>()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [ViewIntrinsic(ViewIntrinsicKind.CastView)]
+        public ArrayView<TOther> Cast<TOther>()
             where TOther : struct
         {
-            var newExtent = Extent.ComputedCastedExtent(extent, ElementSize, ArrayView<TOther, TIndex>.ElementSize);
-            return Cast<TOther, TIndex>(newExtent);
-        }
-
-        /// <summary>
-        /// Casts the current array view into another array-view type.
-        /// </summary>
-        /// <typeparam name="TOther">The target type.</typeparam>
-        /// <typeparam name="TOtherIndex">The target index type.</typeparam>
-        /// <returns>The casted array view.</returns>
-        public ArrayView<TOther, TOtherIndex> Cast<TOther, TOtherIndex>(TOtherIndex targetExtent)
-            where TOther : struct
-            where TOtherIndex : struct, IIndex, IGenericIndex<TOtherIndex>
-        {
-            Debug.Assert(targetExtent.Size > 0, "OutOfBounds cast");
-            Debug.Assert(targetExtent.Size * ArrayView<TOther, TOtherIndex>.ElementSize <= Extent.Size * ElementSize, "OutOfBounds cast");
-            return new ArrayView<TOther, TOtherIndex>(ptr, targetExtent);
+            var extent = new Index(Length);
+            var newExtent = extent.ComputedCastedExtent(
+                extent, ElementSize, ArrayView<TOther>.ElementSize);
+            var newIndex = extent.ComputedCastedExtent(
+                Index, ElementSize, ArrayView<TOther>.ElementSize);
+            return new ArrayView<TOther>(Source, newIndex, newExtent);
         }
 
         /// <summary>
         /// Converts the current view into a linear view.
         /// </summary>
         /// <returns>The converted linear view.</returns>
-        public ArrayView<T, Index> AsLinearView()
-        {
-            return new ArrayView<T, Index>(ptr, Length);
-        }
-
-        #endregion
-
-        #region IEquatable
-
-        /// <summary>
-        /// Returns true iff the given view is equal to the current view.
-        /// </summary>
-        /// <param name="other">The other view.</param>
-        /// <returns>True, iff the given view is equal to the current view.</returns>
-        public bool Equals(ArrayView<T, TIndex> other)
-        {
-            return other == this;
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [ViewIntrinsic(ViewIntrinsicKind.AsLinearView)]
+        public ArrayView<T> AsLinearView() => this;
 
         #endregion
 
         #region Object
-
-        /// <summary>
-        /// Returns true iff the given object is equal to the current view.
-        /// </summary>
-        /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current view.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is ArrayView<T, TIndex>)
-                return Equals((ArrayView<T, TIndex>)obj);
-            return false;
-        }
-
-        /// <summary>
-        /// Returns the hash code of this view.
-        /// </summary>
-        /// <returns>The hash code of this view.</returns>
-        public override int GetHashCode()
-        {
-            return ptr.GetHashCode();
-        }
 
         /// <summary>
         /// Returns the string representation of this view.
@@ -270,7 +274,7 @@ namespace ILGPU
         /// <returns>The string representation of this view.</returns>
         public override string ToString()
         {
-            return $"{ptr} [{extent}]";
+            return $"{Index} [{Length}]";
         }
 
         #endregion
@@ -278,25 +282,21 @@ namespace ILGPU
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first and second views are the same.
+        /// Converts a linear view to its explicit form.
         /// </summary>
-        /// <param name="first">The first object.</param>
-        /// <param name="second">The second object.</param>
-        /// <returns>True, iff the first and second views are the same.</returns>
-        public static bool operator ==(ArrayView<T, TIndex> first, ArrayView<T, TIndex> second)
+        /// <param name="view">The view to convert.</param>
+        public static implicit operator ArrayView<T, Index>(ArrayView<T> view)
         {
-            return first.ptr == second.ptr && first.extent.Equals(second.extent);
+            return new ArrayView<T, Index>(view, view.Length);
         }
 
         /// <summary>
-        /// Returns true iff the first and second view are not the same.
+        /// Converts a linear view from its explicit form.
         /// </summary>
-        /// <param name="first">The first object.</param>
-        /// <param name="second">The second object.</param>
-        /// <returns>True, iff the first and second view are not the same.</returns>
-        public static bool operator !=(ArrayView<T, TIndex> first, ArrayView<T, TIndex> second)
+        /// <param name="view">The view to convert.</param>
+        public static implicit operator ArrayView<T>(ArrayView<T, Index> view)
         {
-            return first.ptr != second.ptr || !first.extent.Equals(second.extent);
+            return view.AsLinearView();
         }
 
         #endregion
