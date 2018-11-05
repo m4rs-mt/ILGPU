@@ -1,4 +1,0 @@
-[submodule "LLVM"]
-	path = LLVM
-	url = https://github.com/llvm-mirror/llvm.git
-	branch = release_39
