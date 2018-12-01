@@ -13,7 +13,6 @@ using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Linq;
-using System.Reflection;
 
 namespace SharedMemory
 {
@@ -22,40 +21,37 @@ namespace SharedMemory
         /// <summary>
         /// Explicitly grouped kernels receive an index type (first parameter) of type:
         /// <see cref="GroupedIndex"/>, <see cref="GroupedIndex2"/> or <see cref="GroupedIndex3"/>.
-        /// Shared memory is only supported in explicitly-grouped kernel contexts.
-        /// Shared-memory parameters are automatically handled by the runtime and have to be
-        /// annotated with the SharedMemoryAttribute. Note that currently, the only supported
-        /// shared-memory parameters are VariableViews and ArrayViews.
+        /// Shared memory is only supported in explicitly-grouped kernel contexts and can be accesses
+        /// via the static <see cref="ILGPU.SharedMemory"/> class.
         /// </summary>
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
-        /// <param name="sharedVariable">Implicit shared-memory parameter that is handled by the runtime.</param>
         static void SharedMemoryVariableKernel(
             GroupedIndex index,               // The grouped thread index (1D in this case)
             ArrayView<int> dataView,          // A view to a chunk of memory (1D in this case)
-            ArrayView<int> outputView,        // A view to a chunk of memory (1D in this case)
-
-            [SharedMemory]                    // Declares a single variable of type int in 
-            VariableView<int> sharedVariable) // shared memory (= 4 bytes)
+            ArrayView<int> outputView)        // A view to a chunk of memory (1D in this case)
         {
             // Compute the global 1D index for accessing the data view
             var globalIndex = index.ComputeGlobalIndex();
 
+            // 'Allocate' a single shared memory variable of type int (= 4 bytes)
+            ref int sharedVariable = ref ILGPU.SharedMemory.Allocate<int>();
+
             // Initialize shared memory
             if (index.GroupIdx.IsFirst)
-                sharedVariable.Value = 0;
+                sharedVariable = 0;
             // Wait for the initialization to complete
             Group.Barrier();
 
             if (globalIndex < dataView.Length)
-                Atomic.Max(sharedVariable, dataView[globalIndex]);
+                Atomic.Max(ref sharedVariable, dataView[globalIndex]);
 
             // Wait for all threads to complete the maximum computation process
             Group.Barrier();
 
             // Write the maximum of all values into the data view
             if (globalIndex < outputView.Length)
-                outputView[globalIndex] = sharedVariable.Value;
+                outputView[globalIndex] = sharedVariable;
         }
 
         /// <summary>
@@ -68,13 +64,16 @@ namespace SharedMemory
         static void SharedMemoryArrayKernel(
             GroupedIndex index,          // The grouped thread index (1D in this case)
             ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
-            ArrayView<int> outputView,   // A view to a chunk of memory (1D in this case)
-
-            [SharedMemory(128)]          // Declares a shared-memory array with 128 elements of
-            ArrayView<int> sharedArray)  // type int = 4 * 128 = 512 bytes shared memory per group
+            ArrayView<int> outputView)   // A view to a chunk of memory (1D in this case)
         {
             // Compute the global 1D index for accessing the data view
             var globalIndex = index.ComputeGlobalIndex();
+
+            // Declares a shared-memory array with 128 elements of type int = 4 * 128 = 512 bytes
+            // of shared memory per group
+            // Note that an allocation of an array view (currently) requires a compile-time known
+            // constant array size.
+            ArrayView<int> sharedArray = ILGPU.SharedMemory.Allocate<int>(128);
 
             // Load the element into shared memory
             var value = globalIndex < dataView.Length ?
@@ -128,8 +127,8 @@ namespace SharedMemory
 
                             using (var dataTarget = accelerator.Allocate<int>(data.Length))
                             {
-                                var sharedMemVarKernel = accelerator.LoadSharedMemoryStreamKernel1<
-                                    GroupedIndex, ArrayView<int>, ArrayView<int>, VariableView<int>>(SharedMemoryVariableKernel);
+                                var sharedMemVarKernel = accelerator.LoadKernel<
+                                    GroupedIndex, ArrayView<int>, ArrayView<int>>(SharedMemoryVariableKernel);
                                 dataTarget.MemSetToZero();
 
                                 // Note that *no* value is passed for the shared-memory variable
@@ -146,8 +145,8 @@ namespace SharedMemory
                                 for (int i = 0, e = target.Length; i < e; ++i)
                                     Console.WriteLine($"Data[{i}] = {target[i]}");
 
-                                var sharedMemArrKernel = accelerator.LoadSharedMemoryStreamKernel1<
-                                    GroupedIndex, ArrayView<int>, ArrayView<int>, ArrayView<int>>(SharedMemoryArrayKernel);
+                                var sharedMemArrKernel = accelerator.LoadKernel<
+                                    GroupedIndex, ArrayView<int>, ArrayView<int>>(SharedMemoryArrayKernel);
                                 dataTarget.MemSetToZero();
 
                                 // Note that *no* value is passed for the shared-memory variable
