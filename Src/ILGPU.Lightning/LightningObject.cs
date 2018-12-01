@@ -10,8 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Runtime;
-using ILGPU.Util;
-using System;
 
 namespace ILGPU.Lightning
 {
@@ -20,7 +18,7 @@ namespace ILGPU.Lightning
     /// reference an accelerator.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract class LightningObject : DisposeBase
+    public abstract class LightningObject : AcceleratorObject
     {
         #region Instance
 
@@ -29,18 +27,8 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         protected LightningObject(Accelerator accelerator)
-        {
-            Accelerator = accelerator ?? throw new ArgumentNullException(nameof(accelerator));
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated accelerator.
-        /// </summary>
-        public Accelerator Accelerator { get; }
+            : base(accelerator)
+        { }
 
         #endregion
     }

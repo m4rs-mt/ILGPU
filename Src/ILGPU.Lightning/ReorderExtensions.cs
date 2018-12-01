@@ -27,7 +27,7 @@ namespace ILGPU.Lightning
     [SuppressMessage("Microsoft.Design", "CA1005:AvoidExcessiveParametersOnGenericTypes", Justification = "This struct should be as generic as possible")]
     [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    struct ReorderTransformWrapper<TSource, TTarget, TTransformer> : ITransformer<Index, TTarget>
+    readonly struct ReorderTransformWrapper<TSource, TTarget, TTransformer> : ITransformer<Index, TTarget>
         where TSource : struct
         where TTarget : struct
         where TTransformer : ITransformer<TSource, TTarget>
@@ -44,7 +44,7 @@ namespace ILGPU.Lightning
         /// <param name="transformer">The used transformer.</param>
         public ReorderTransformWrapper(
             ArrayView<TSource> sourceView,
-            TTransformer transformer)
+            in TTransformer transformer)
         {
             this.sourceView = sourceView;
             this.transformer = transformer;
@@ -130,25 +130,6 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <typeparam name="T">The type of the elements to reorder.</typeparam>
         /// <param name="accelerator">The accelerator.</param>
-        /// <param name="source">The source elements to transform</param>
-        /// <param name="target">The target elements that will contain the transformed values.</param>
-        /// <param name="reorderView">The view of indices such that target(idx) = source(reorderView(idx)).</param>
-        public static void Reorder<T>(
-            this Accelerator accelerator,
-            ArrayView<T> source,
-            ArrayView<T> target,
-            ArrayView<Index> reorderView)
-            where T : struct
-        {
-            accelerator.Reorder(accelerator.DefaultStream, source, target, reorderView);
-        }
-
-        /// <summary>
-        /// Reorders elements in the source view by storing the reordered elements in the target view.
-        /// The values are reordered according to: target(idx) = source(reorderView(idx)).
-        /// </summary>
-        /// <typeparam name="T">The type of the elements to reorder.</typeparam>
-        /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
         /// <param name="target">The target elements that will contain the transformed values.</param>
@@ -167,34 +148,6 @@ namespace ILGPU.Lightning
                 target,
                 reorderView,
                 new IdentityTransformer<T>());
-        }
-
-        /// <summary>
-        /// Reorders and transforms elements in the source view by storing the reordered elements in the target view.
-        /// The values are reordered according to: target(idx) = transform(source(reorderView(idx))).
-        /// </summary>
-        /// <typeparam name="T">The type of the elements to reorder and transform.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="accelerator">The accelerator.</param>
-        /// <param name="source">The source elements to transform</param>
-        /// <param name="target">The target elements that will contain the transformed values.</param>
-        /// <param name="reorderView">The view of indices such that target(idx) = transform(source(reorderView(idx))).</param>
-        /// <param name="transformer">The used transformer.</param>
-        public static void ReorderTransform<T, TTransformer>(
-            this Accelerator accelerator,
-            ArrayView<T> source,
-            ArrayView<T> target,
-            ArrayView<Index> reorderView,
-            TTransformer transformer)
-            where T : struct
-            where TTransformer : struct, ITransformer<T, T>
-        {
-            accelerator.ReorderTransform<T, T, TTransformer>(
-                accelerator.DefaultStream,
-                source,
-                target,
-                reorderView,
-                transformer);
         }
 
         /// <summary>

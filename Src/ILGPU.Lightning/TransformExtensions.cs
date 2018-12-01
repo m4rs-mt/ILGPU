@@ -11,6 +11,7 @@
 
 using ILGPU.Runtime;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace ILGPU.Lightning
@@ -37,8 +38,8 @@ namespace ILGPU.Lightning
     /// Represents a generic identity transformer.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
-    public struct IdentityTransformer<T> : ITransformer<T, T>
+    [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
+    public readonly struct IdentityTransformer<T> : ITransformer<T, T>
         where T : struct
     {
         #region ITransformer
@@ -48,10 +49,7 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <param name="value">The value to transform.</param>
         /// <returns>The unchanged input value.</returns>
-        public T Transform(T value)
-        {
-            return value;
-        }
+        public T Transform(T value) => value;
 
         #endregion
     }
@@ -75,7 +73,7 @@ namespace ILGPU.Lightning
                 nameof(Kernel),
                 BindingFlags.NonPublic | BindingFlags.Static);
 
-        private static void Kernel(
+        internal static void Kernel(
             Index index,
             ArrayView<TSource> source,
             ArrayView<TTarget> target,
@@ -98,7 +96,7 @@ namespace ILGPU.Lightning
     /// <param name="source">The source elements to transform</param>
     /// <param name="target">The target elements that will contain the transformed values.</param>
     /// <param name="transformer">The used transformer.</param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1005:AvoidExcessiveParametersOnGenericTypes", Justification = "Required to realize a generic implementation of a transformation")]
+    [SuppressMessage("Microsoft.Design", "CA1005:AvoidExcessiveParametersOnGenericTypes", Justification = "Required to realize a generic implementation of a transformation")]
     public delegate void Transformer<TSource, TTarget, TTransformer>(
         AcceleratorStream stream,
         ArrayView<TSource> source,
@@ -210,26 +208,6 @@ namespace ILGPU.Lightning
         /// <summary>
         /// Transforms elements in the source view into elements in the target view using the given transformer.
         /// </summary>
-        /// <typeparam name="T">The type of the elements to transform.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="accelerator">The accelerator.</param>
-        /// <param name="source">The source elements to transform</param>
-        /// <param name="target">The target elements that will contain the transformed values.</param>
-        /// <param name="transformer">The used transformer.</param>
-        public static void Transform<T, TTransformer>(
-            this Accelerator accelerator,
-            ArrayView<T> source,
-            ArrayView<T> target,
-            TTransformer transformer)
-            where T : struct
-            where TTransformer : struct, ITransformer<T, T>
-        {
-            accelerator.Transform<T, TTransformer>(accelerator.DefaultStream, source, target, transformer);
-        }
-
-        /// <summary>
-        /// Transforms elements in the source view into elements in the target view using the given transformer.
-        /// </summary>
         /// <typeparam name="TSource">The source type of the elements to transform.</typeparam>
         /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
@@ -253,28 +231,6 @@ namespace ILGPU.Lightning
                 source,
                 target,
                 transformer);
-        }
-
-        /// <summary>
-        /// Transforms elements in the source view into elements in the target view using the given transformer.
-        /// </summary>
-        /// <typeparam name="TSource">The source type of the elements to transform.</typeparam>
-        /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
-        /// <param name="accelerator">The accelerator.</param>
-        /// <param name="source">The source elements to transform</param>
-        /// <param name="target">The target elements that will contain the transformed values.</param>
-        /// <param name="transformer">The used transformer.</param>
-        public static void Transform<TSource, TTarget, TTransformer>(
-            this Accelerator accelerator,
-            ArrayView<TSource> source,
-            ArrayView<TTarget> target,
-            TTransformer transformer)
-            where TSource : struct
-            where TTarget : struct
-            where TTransformer : struct, ITransformer<TSource, TTarget>
-        {
-            accelerator.Transform(accelerator.DefaultStream, source, target, transformer);
         }
     }
 }

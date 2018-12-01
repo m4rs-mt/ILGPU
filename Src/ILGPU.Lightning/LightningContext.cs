@@ -3,7 +3,7 @@
 //                Copyright (c) 2017-2018 ILGPU Lightning Project
 //                                www.ilgpu.net
 //
-// File: NewLightningContext.cs
+// File: LightningContext.cs
 //
 // This file is part of ILGPU and is distributed under the University of
 // Illinois Open Source License. See LICENSE.txt for details.
@@ -13,7 +13,10 @@ using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace ILGPU.Lightning
 {
@@ -22,22 +25,23 @@ namespace ILGPU.Lightning
     /// </summary>
     internal sealed partial class LightningContext : LightningObject
     {
-        #region Constants
+        #region Static
 
         /// <summary>
-        /// Represents the name of the native library.
+        /// The current cache lock.
         /// </summary>
-        public const string NativeLibName = "ILGPU.Lightning.Native.dll";
-
-        #endregion
-
-        #region Static
+        private static readonly ReaderWriterLockSlim readerWriterLock;
 
         /// <summary>
         /// Represents a cache for lightning contexts.
         /// </summary>
-        private static readonly Dictionary<Accelerator, LightningContext> cache =
-            new Dictionary<Accelerator, LightningContext>();
+        private static readonly Dictionary<Accelerator, LightningContext> cache;
+
+        static LightningContext()
+        {
+            cache = new Dictionary<Accelerator, LightningContext>();
+            readerWriterLock = new ReaderWriterLockSlim();
+        }
 
         /// <summary>
         /// Dispose callback that is invoked by every accelerator.
@@ -46,16 +50,21 @@ namespace ILGPU.Lightning
         /// <param name="e">The event args (not used)</param>
         private static void DisposedCallback(object sender, EventArgs e)
         {
-            var accelerator = sender as Accelerator;
-            if (accelerator == null)
+            if (!(sender is Accelerator accelerator))
                 return;
             accelerator.Disposed -= DisposedCallback;
-            lock (cache)
+
+            readerWriterLock.EnterWriteLock();
+            try
             {
                 if (!cache.TryGetValue(accelerator, out LightningContext lc))
                     return;
                 cache.Remove(accelerator);
                 lc.Dispose();
+            }
+            finally
+            {
+                readerWriterLock.ExitWriteLock();
             }
         }
 
@@ -64,22 +73,34 @@ namespace ILGPU.Lightning
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The associated lightning context.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Object references will be stored in a local cache")]
+        [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Object references will be stored in a local cache")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static LightningContext Get(Accelerator accelerator)
         {
-            if (accelerator == null)
-                throw new ArgumentNullException(nameof(accelerator));
+            Debug.Assert(accelerator != null, "Invalid accelerator");
 
-            lock (cache)
+            readerWriterLock.EnterUpgradeableReadLock();
+            try
             {
                 if (!cache.TryGetValue(accelerator, out LightningContext result))
                 {
-                    result = new LightningContext(accelerator);
-                    accelerator.Disposed += DisposedCallback;
-                    cache.Add(accelerator, result);
+                    readerWriterLock.EnterWriteLock();
+                    try
+                    {
+                        result = new LightningContext(accelerator);
+                        accelerator.Disposed += DisposedCallback;
+                        cache.Add(accelerator, result);
+                    }
+                    finally
+                    {
+                        readerWriterLock.ExitWriteLock();
+                    }
                 }
                 return result;
+            }
+            finally
+            {
+                readerWriterLock.ExitUpgradeableReadLock();
             }
         }
 
@@ -88,62 +109,19 @@ namespace ILGPU.Lightning
         #region Instance
 
         /// <summary>
-        /// Internal scan implementation.
-        /// </summary>
-        private ScanProviderImplementation scanImplementation;
-
-        /// <summary>
-        /// Internal radix-sort implementation.
-        /// </summary>
-        private RadixSortProviderImplementation radixSortImplementation;
-
-        /// <summary>
-        /// Internal radix-sort-pairs implementation.
-        /// </summary>
-        private RadixSortPairsProviderImplementation radixSortPairsImplementation;
-
-        /// <summary>
         /// Constructs a new lightning context.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         private LightningContext(Accelerator accelerator)
             : base(accelerator)
-        {
-            scanImplementation = Accelerator.CreateScanProviderImplementation();
-            radixSortImplementation = Accelerator.CreateRadixSortProviderImplementation();
-            radixSortPairsImplementation = Accelerator.CreateRadixSortPairsProviderImplementation();
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the internal scan implementation.
-        /// </summary>
-        internal ScanProviderImplementation ScanImplementation => scanImplementation;
-
-        /// <summary>
-        /// Returns the internal radix-sort implementation.
-        /// </summary>
-        internal RadixSortProviderImplementation RadixSortImplementation => radixSortImplementation;
-
-        /// <summary>
-        /// Returns the internal radix-sort-pairs implementation.
-        /// </summary>
-        internal RadixSortPairsProviderImplementation RadixSortPairsImplementation => radixSortPairsImplementation;
+        { }
 
         #endregion
 
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
-        {
-            Dispose(ref scanImplementation);
-            Dispose(ref radixSortImplementation);
-            Dispose(ref radixSortPairsImplementation);
-        }
+        protected override void Dispose(bool disposing) { }
 
         #endregion
     }

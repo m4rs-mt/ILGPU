@@ -78,20 +78,8 @@ namespace ILGPU.Lightning
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AtomicAdd(this VariableView<Vector2> target, Vector2 operand)
         {
-            Atomic.Add(target.GetSubView<float>(Vector2XOffset), operand.X);
-            Atomic.Add(target.GetSubView<float>(Vector2YOffset), operand.Y);
-        }
-
-        /// <summary>
-        /// Atommically subtracts the given operand and the vector at the target location.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="operand">The operand to add.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AtomicSub(this VariableView<Vector2> target, Vector2 operand)
-        {
-            Atomic.Sub(target.GetSubView<float>(Vector2XOffset), operand.X);
-            Atomic.Sub(target.GetSubView<float>(Vector2YOffset), operand.Y);
+            Atomic.Add(ref target.GetSubView<float>(Vector2XOffset).Value, operand.X);
+            Atomic.Add(ref target.GetSubView<float>(Vector2YOffset).Value, operand.Y);
         }
 
         /// <summary>
@@ -102,22 +90,9 @@ namespace ILGPU.Lightning
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AtomicAdd(this VariableView<Vector3> target, Vector3 operand)
         {
-            Atomic.Add(target.GetSubView<float>(Vector3XOffset), operand.X);
-            Atomic.Add(target.GetSubView<float>(Vector3YOffset), operand.Y);
-            Atomic.Add(target.GetSubView<float>(Vector3ZOffset), operand.Z);
-        }
-
-        /// <summary>
-        /// Atommically subtracts the given operand and the vector at the target location.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="operand">The operand to add.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AtomicSub(this VariableView<Vector3> target, Vector3 operand)
-        {
-            Atomic.Sub(target.GetSubView<float>(Vector3XOffset), operand.X);
-            Atomic.Sub(target.GetSubView<float>(Vector3YOffset), operand.Y);
-            Atomic.Sub(target.GetSubView<float>(Vector3ZOffset), operand.Z);
+            Atomic.Add(ref target.GetSubView<float>(Vector3XOffset).Value, operand.X);
+            Atomic.Add(ref target.GetSubView<float>(Vector3YOffset).Value, operand.Y);
+            Atomic.Add(ref target.GetSubView<float>(Vector3ZOffset).Value, operand.Z);
         }
 
         /// <summary>
@@ -128,24 +103,10 @@ namespace ILGPU.Lightning
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AtomicAdd(this VariableView<Vector4> target, Vector4 operand)
         {
-            Atomic.Add(target.GetSubView<float>(Vector4XOffset), operand.X);
-            Atomic.Add(target.GetSubView<float>(Vector4YOffset), operand.Y);
-            Atomic.Add(target.GetSubView<float>(Vector4ZOffset), operand.Z);
-            Atomic.Add(target.GetSubView<float>(Vector4WOffset), operand.W);
-        }
-
-        /// <summary>
-        /// Atommically subtracts the given operand and the vector at the target location.
-        /// </summary>
-        /// <param name="target">The target location.</param>
-        /// <param name="operand">The operand to add.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AtomicSub(this VariableView<Vector4> target, Vector4 operand)
-        {
-            Atomic.Sub(target.GetSubView<float>(Vector4XOffset), operand.X);
-            Atomic.Sub(target.GetSubView<float>(Vector4YOffset), operand.Y);
-            Atomic.Sub(target.GetSubView<float>(Vector4ZOffset), operand.Z);
-            Atomic.Sub(target.GetSubView<float>(Vector4WOffset), operand.W);
+            Atomic.Add(ref target.GetSubView<float>(Vector4XOffset).Value, operand.X);
+            Atomic.Add(ref target.GetSubView<float>(Vector4YOffset).Value, operand.Y);
+            Atomic.Add(ref target.GetSubView<float>(Vector4ZOffset).Value, operand.Z);
+            Atomic.Add(ref target.GetSubView<float>(Vector4WOffset).Value, operand.W);
         }
 
         #endregion

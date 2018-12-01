@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>ILGPU.Lightning</id>
-    <version>0.3.0</version>
+    <version>0.5.0</version>
     <title>ILGPU Lightning Lib</title>
     <authors>Marcel Koester, Denis Mueller, Christian Hauck</authors>
     <licenseUrl>http://www.ilgpu.net/licenses/ILGPU.Lightning.License.txt</licenseUrl>
@@ -19,7 +19,8 @@
     <copyright>Copyright © 2017-2018 ILGPU Lightning Project. All rights reserved.</copyright>
     <tags>ilgpu gpu llvm nvidia amd amp opencl cuda scan prefix sum sort reduce parallel foreach</tags>
     <dependencies>
-      <dependency id="ILGPU" version="0.3.0" />
+      <dependency id="ILGPU" version="0.4.15" />
+      <dependency id="System.Numerics.Vectors" version="4.5.0" />
     </dependencies>
   </metadata>
   <files>
@@ -27,10 +28,17 @@
     <file src="..\LICENSE-3RD-PARTY.txt" target="" />
 
     <file src="ILGPU.Lightning.targets" target="build\ILGPU.Lightning.targets" />
-    <file src="..\Bin\Release\netstandard2.0\X64\Windows\ILGPU.Lightning.Native.dll" target="build\X64\Windows\ILGPU.Lightning.Native.dll" />
-    <file src="..\Bin\Debug\netstandard2.0\ILGPU.Lightning.dll" target="lib\netstandard2.0\Debug\ILGPU.Lightning.dll" />
-    <file src="..\Bin\Debug\netstandard2.0\ILGPU.Lightning.xml" target="lib\netstandard2.0\Debug\ILGPU.Lightning.xml" />
-    <file src="..\Bin\Release\netstandard2.0\ILGPU.Lightning.dll" target="lib\netstandard2.0\Release\ILGPU.Lightning.dll" />
-    <file src="..\Bin\Release\netstandard2.0\ILGPU.Lightning.xml" target="lib\netstandard2.0\Release\ILGPU.Lightning.xml" />
+
+    <file src="..\Bin\Debug\netcoreapp2.0\ILGPU.Lightning.dll" target="lib\netcoreapp2.0\Debug\ILGPU.Lightning.dll" />
+    <file src="..\Bin\Debug\netcoreapp2.0\ILGPU.Lightning.xml" target="lib\netcoreapp2.0\Debug\ILGPU.Lightning.xml" />
+
+    <file src="..\Bin\Release\netcoreapp2.0\ILGPU.Lightning.dll" target="lib\netcoreapp2.0\Release\ILGPU.Lightning.dll" />
+    <file src="..\Bin\Release\netcoreapp2.0\ILGPU.Lightning.xml" target="lib\netcoreapp2.0\Release\ILGPU.Lightning.xml" />
+
+    <file src="..\Bin\Debug\net47\ILGPU.Lightning.dll" target="lib\net47\Debug\ILGPU.Lightning.dll" />
+    <file src="..\Bin\Debug\net47\ILGPU.Lightning.xml" target="lib\net47\Debug\ILGPU.Lightning.xml" />
+
+    <file src="..\Bin\Release\net47\ILGPU.Lightning.dll" target="lib\net47\Release\ILGPU.Lightning.dll" />
+    <file src="..\Bin\Release\net47\ILGPU.Lightning.xml" target="lib\net47\Release\ILGPU.Lightning.xml" />
   </files>
 </package>

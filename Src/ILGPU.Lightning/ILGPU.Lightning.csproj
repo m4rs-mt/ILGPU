@@ -1,72 +1,41 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.3.0</Version>
+    <TargetFrameworks>net47;netcoreapp2.0</TargetFrameworks>
+    <Version>0.5.0</Version>
     <Platforms>AnyCPU</Platforms>
     <Copyright>Copyright © 2017-2018 ILGPU Lightning Project</Copyright>
     <Authors>Marcel Koester, Denis Mueller, Christian Hauck</Authors>
-    <AssemblyVersion>0.3.0.0</AssemblyVersion>
-    <FileVersion>0.3.0.0</FileVersion>
+    <AssemblyVersion>0.5.0</AssemblyVersion>
+    <FileVersion>0.5</FileVersion>
+    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>..\..\Bin\Release\netstandard2.0\ILGPU.Lightning.xml</DocumentationFile>
+    <DocumentationFile>..\..\Bin\Release\ILGPU.Lightning.xml</DocumentationFile>
     <OutputPath>..\..\Bin\Release\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>..\..\Bin\Debug\netstandard2.0\ILGPU.Lightning.xml</DocumentationFile>
+    <DocumentationFile>..\..\Bin\Debug\ILGPU.Lightning.xml</DocumentationFile>
     <OutputPath>..\..\Bin\Debug\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ILGPU" Version="0.3.0" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.4.0" />
+    <PackageReference Include="ILGPU" Version="0.4.0-beta" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="CPU\CPURadixSortProviders.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>CPURadixSortProviders.cs</LastGenOutput>
-    </None>
-    <None Update="CPU\CPUScanProviders.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>CPUScanProviders.cs</LastGenOutput>
-    </None>
-    <None Update="Cuda\CudaRadixSortNativeMethods.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>CudaRadixSortNativeMethods.cs</LastGenOutput>
-    </None>
-    <None Update="Cuda\CudaRadixSortProviders.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>CudaRadixSortProviders.cs</LastGenOutput>
-    </None>
-    <None Update="Cuda\CudaScanNativeMethods.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>CudaScanNativeMethods.cs</LastGenOutput>
-    </None>
-    <None Update="Cuda\CudaScanProviders.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>CudaScanProviders.cs</LastGenOutput>
-    </None>
-    <None Update="RadixSortPairsProviders.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>RadixSortPairsProviders.cs</LastGenOutput>
-    </None>
-    <None Update="RadixSortProviders.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>RadixSortProviders.cs</LastGenOutput>
-    </None>
     <None Update="ReductionOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ReductionOperations.cs</LastGenOutput>
     </None>
-    <None Update="ScanProviders.tt">
+    <None Update="ScanOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>ScanProviders.cs</LastGenOutput>
+      <LastGenOutput>ScanOperations.cs</LastGenOutput>
     </None>
     <None Update="Sequencers.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -79,59 +48,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="CPU\CPURadixSortProviders.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CPURadixSortProviders.tt</DependentUpon>
-    </Compile>
-    <Compile Update="CPU\CPUScanProviders.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CPUScanProviders.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Cuda\CudaRadixSortNativeMethods.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CudaRadixSortNativeMethods.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Cuda\CudaRadixSortProviders.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CudaRadixSortProviders.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Cuda\CudaScanNativeMethods.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CudaScanNativeMethods.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Cuda\CudaScanProviders.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CudaScanProviders.tt</DependentUpon>
-    </Compile>
-    <Compile Update="RadixSortPairsProviders.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>RadixSortPairsProviders.tt</DependentUpon>
-    </Compile>
-    <Compile Update="RadixSortProviders.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>RadixSortProviders.tt</DependentUpon>
-    </Compile>
     <Compile Update="ReductionOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ReductionOperations.tt</DependentUpon>
     </Compile>
-    <Compile Update="ScanProviders.cs">
+    <Compile Update="ScanOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>ScanProviders.tt</DependentUpon>
+      <DependentUpon>ScanOperations.tt</DependentUpon>
     </Compile>
     <Compile Update="Sequencers.cs">
       <DesignTime>True</DesignTime>
@@ -143,16 +68,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>TypeInformation.tt</DependentUpon>
     </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="X64\Windows\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\X64\ILGPU.Lightning.Native.dll" Link="X64\Windows\ILGPU.Lightning.Native.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

@@ -30,7 +30,7 @@ namespace ILGPU.Lightning
                 nameof(Kernel),
                 BindingFlags.NonPublic | BindingFlags.Static);
 
-        private static void Kernel(
+        internal static void Kernel(
             Index index,
             ArrayView<T> view,
             T value)
@@ -98,22 +98,6 @@ namespace ILGPU.Lightning
                     throw new ArgumentOutOfRangeException(nameof(view));
                 rawInitializer(stream, Math.Min(view.Length, minDataSize), view, value);
             };
-        }
-
-        /// <summary>
-        /// Performs an initialization on the given view.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="accelerator">The accelerator.</param>
-        /// <param name="view">The element view.</param>
-        /// <param name="value">The target value.</param>
-        public static void Initialize<T>(
-            this Accelerator accelerator,
-            ArrayView<T> view,
-            T value)
-            where T : struct
-        {
-            accelerator.Initialize(accelerator.DefaultStream, view, value);
         }
 
         /// <summary>

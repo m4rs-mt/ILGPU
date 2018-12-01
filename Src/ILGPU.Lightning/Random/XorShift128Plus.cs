@@ -14,12 +14,13 @@
 using System;
 using System.Diagnostics;
 
-namespace ILGPU.Lightning.Random
+namespace ILGPU.Random
 {
     /// <summary>
     /// Implements a simple and fast xor-shift rng.
     /// </summary>
     /// <remarks>https://en.wikipedia.org/wiki/Xorshift</remarks>
+    [CLSCompliant(false)]
     public struct XorShift128Plus : IEquatable<XorShift128Plus>
     {
         #region Static

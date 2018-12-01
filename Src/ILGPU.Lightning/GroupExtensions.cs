@@ -11,7 +11,7 @@
 
 using ILGPU.ReductionOperations;
 using ILGPU.ShuffleOperations;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Lightning
 {
@@ -23,52 +23,177 @@ namespace ILGPU.Lightning
         #region Reduce
 
         /// <summary>
-        /// Implements a basic block-wide reduction algorithm.
-        /// The algorithm is based on the one from https://devblogs.nvidia.com/parallelforall/faster-parallel-reductions-kepler/.
+        /// A generic result handler interface that performs the final group-wide reduction step
+        /// in the scope of a <see cref="Reduce{T, TShuffleDown, TReduction, TReductionResultHandler}(Index, T, TShuffleDown, TReduction)"/>
+        /// function.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
+        public interface IReductionResultHandler<T, TReduction>
+            where T : struct
+            where TReduction : IAtomicReduction<T>
+        {
+            /// <summary>
+            /// Performs a final reduction step within a group.
+            /// </summary>
+            /// <param name="warpIdx">The current warp index within a group.</param>
+            /// <param name="laneIdx">The current lane index within the current warp.</param>
+            /// <param name="sharedMemory">A view to shared memory temporaries.</param>
+            /// <param name="reduction">The current reduction logic.</param>
+            /// <returns>The reduced value.</returns>
+            T Reduce(
+                Index warpIdx,
+                Index laneIdx,
+                ArrayView<T> sharedMemory,
+                TReduction reduction);
+        }
+
+        /// <summary>
+        /// A result handler that propagates the reduced value to every thread in the whole group.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
+        public readonly struct AllReduceResultHandler<T, TReduction> : IReductionResultHandler<T, TReduction>
+            where T : struct
+            where TReduction : IAtomicReduction<T>
+        {
+            /// <summary cref="IReductionResultHandler{T, TReduction}.Reduce(Index, Index, ArrayView{T}, TReduction)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public T Reduce(
+                Index warpIdx,
+                Index laneIdx,
+                ArrayView<T> sharedMemory,
+                TReduction reduction)
+            {
+                var result = sharedMemory[0];
+                for (int i = 1, e = sharedMemory.Length; i < e; ++i)
+                    result = reduction.Reduce(result, sharedMemory[i]);
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// A result handler that propagates the reduced value to every thread in first warp.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
+        public readonly struct FirstWarpReduceResultHandler<T, TReduction> : IReductionResultHandler<T, TReduction>
+            where T : struct
+            where TReduction : IAtomicReduction<T>
+        {
+            /// <summary cref="IReductionResultHandler{T, TReduction}.Reduce(Index, Index, ArrayView{T}, TReduction)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public T Reduce(
+                Index warpIdx,
+                Index laneIdx,
+                ArrayView<T> sharedMemory,
+                TReduction reduction)
+            {
+                if (warpIdx != Index.Zero)
+                    return default;
+
+                AllReduceResultHandler<T, TReduction> resultHandler = default;
+                return resultHandler.Reduce(warpIdx, laneIdx, sharedMemory, reduction);
+            }
+        }
+
+        /// <summary>
+        /// Implements a block-wide reduction algorithm.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="groupThreadIdx">The current group-thread index.</param>
+        /// <param name="groupIdx">The current group-thread index.</param>
         /// <param name="value">The current value.</param>
         /// <param name="shuffleDown">The shuffle logic.</param>
         /// <param name="reduction">The reduction logic.</param>
-        /// <param name="sharedMemory">A view to a section of group-shared memory.</param>
-        /// <returns>The reduced value.</returns>
-        public static T Reduce<T, TShuffleDown, TReduction>(
-            Index groupThreadIdx,
+        /// <returns>All threads in the whole group contain the reduced value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T AllReduce<T, TShuffleDown, TReduction>(
+            Index groupIdx,
             T value,
             TShuffleDown shuffleDown,
-            TReduction reduction,
-            ArrayView<T> sharedMemory)
+            TReduction reduction)
             where T : struct
             where TShuffleDown : IShuffleDown<T>
-            where TReduction : IReduction<T>
-        {
-            Debug.Assert(Warp.WarpSize > 1, "This algorithm can only be used on architectures with a warp size > 1");
+            where TReduction : IAtomicReduction<T> =>
+            Reduce<T, TShuffleDown, TReduction, AllReduceResultHandler<T, TReduction>>(
+                groupIdx,
+                value,
+                shuffleDown,
+                reduction);
 
-            var warpIdx = Warp.ComputeWarpIdx(groupThreadIdx);
+        /// <summary>
+        /// Implements a block-wide reduction algorithm.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
+        /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
+        /// <param name="groupIdx">The current group-thread index.</param>
+        /// <param name="value">The current value.</param>
+        /// <param name="shuffleDown">The shuffle logic.</param>
+        /// <param name="reduction">The reduction logic.</param>
+        /// <returns>All lanes in the first warp contain the reduced value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T FirstWarpReduce<T, TShuffleDown, TReduction>(
+            Index groupIdx,
+            T value,
+            TShuffleDown shuffleDown,
+            TReduction reduction)
+            where T : struct
+            where TShuffleDown : IShuffleDown<T>
+            where TReduction : IAtomicReduction<T> =>
+            Reduce<T, TShuffleDown, TReduction, FirstWarpReduceResultHandler<T, TReduction>>(
+                groupIdx,
+                value,
+                shuffleDown,
+                reduction);
+
+        /// <summary>
+        /// Implements a block-wide reduction algorithm.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TShuffleDown">The type of the shuffle logic.</typeparam>
+        /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
+        /// <typeparam name="TReductionResultHandler">The type of internal result handler.</typeparam>
+        /// <param name="groupIdx">The current group-thread index.</param>
+        /// <param name="value">The current value.</param>
+        /// <param name="shuffleDown">The shuffle logic.</param>
+        /// <param name="reduction">The reduction logic.</param>
+        /// <returns>All lanes in the first warp contain the reduced value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T Reduce<T, TShuffleDown, TReduction, TReductionResultHandler>(
+            Index groupIdx,
+            T value,
+            TShuffleDown shuffleDown,
+            TReduction reduction)
+            where T : struct
+            where TShuffleDown : IShuffleDown<T>
+            where TReduction : IAtomicReduction<T>
+            where TReductionResultHandler : struct, IReductionResultHandler<T, TReduction>
+        {
+            const int NumMemoryBanks = 4;
+            var sharedMemory = SharedMemory.Allocate<T>(NumMemoryBanks);
+
+            var warpIdx = Warp.ComputeWarpIdx(groupIdx);
             var laneIdx = Warp.LaneIdx;
 
-            value = Warp.Reduce(value, shuffleDown, reduction);
+            if (warpIdx == 0)
+            {
+                for (int bankIdx = laneIdx; bankIdx < NumMemoryBanks; bankIdx += Warp.WarpSize)
+                    sharedMemory[bankIdx] = reduction.NeutralElement;
+            }
+            Group.Barrier();
+
+            value = WarpExtensions.Reduce(value, shuffleDown, reduction);
 
             if (laneIdx == 0)
-            {
-                Debug.Assert(warpIdx < sharedMemory.Length, "Shared memory out of range");
-                sharedMemory[warpIdx] = value;
-            }
+                reduction.AtomicReduce(ref sharedMemory[warpIdx % NumMemoryBanks], value);
 
             Group.Barrier();
 
-            if (groupThreadIdx < Group.Dimension.X / Warp.WarpSize)
-                value = sharedMemory[laneIdx];
-            else
-                value = reduction.NeutralElement;
-
-            if (warpIdx == 0)
-                value = Warp.Reduce(value, shuffleDown, reduction);
-
-            return value;
+            TReductionResultHandler resultHandler = default;
+            return resultHandler.Reduce(warpIdx, laneIdx, sharedMemory, reduction);
         }
 
         #endregion

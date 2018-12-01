@@ -10,27 +10,13 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using ILGPU.Sequencers;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace ILGPU.Lightning
 {
-    /// <summary>
-    /// Represents an abstract interface for a sequencer.
-    /// </summary>
-    /// <typeparam name="T">The sequence element type.</typeparam>
-    public interface ISequencer<T>
-        where T : struct
-    {
-        /// <summary>
-        /// Computes the sequence element for the corresponding <paramref name="sequenceIndex"/>.
-        /// </summary>
-        /// <param name="sequenceIndex">The sequence index for the computation of the corresponding value.</param>
-        /// <returns>The computed sequence value.</returns>
-        T ComputeSequenceElement(Index sequenceIndex);
-    }
-
     /// <summary>
     /// Implements a sequence algorithm.
     /// </summary>
@@ -48,7 +34,7 @@ namespace ILGPU.Lightning
                 nameof(Kernel),
                 BindingFlags.NonPublic | BindingFlags.Static);
 
-        private static void Kernel(
+        internal static void Kernel(
             Index index,
             ArrayView<T> view,
             Index sequenceLength,
@@ -306,25 +292,6 @@ namespace ILGPU.Lightning
         }
 
         /// <summary>
-        /// Computes a new sequence of values from 0 to view.Length - 1 and writes
-        /// the computed values to the given view.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="accelerator">The accelerator.</param>
-        /// <param name="view">The target view.</param>
-        /// <param name="sequencer">The used sequencer.</param>
-        public static void Sequence<T, TSequencer>(
-            this Accelerator accelerator,
-            ArrayView<T> view,
-            TSequencer sequencer)
-            where T : struct
-            where TSequencer : struct, ISequencer<T>
-        {
-            accelerator.Sequence(accelerator.DefaultStream, view, sequencer);
-        }
-
-        /// <summary>
         /// Computes a new repeated sequence of values from 0 to sequenceLength, from 0 to sequenceLength, ... and writes
         /// the computed values to the given view. Afterwards, the target view will contain the following values:
         /// - [0, sequenceLength - 1] = [0, sequenceLength]
@@ -355,34 +322,6 @@ namespace ILGPU.Lightning
         }
 
         /// <summary>
-        /// Computes a new repeated sequence of values from 0 to sequenceLength, from 0 to sequenceLength, ... and writes
-        /// the computed values to the given view. Afterwards, the target view will contain the following values:
-        /// - [0, sequenceLength - 1] = [0, sequenceLength]
-        /// - [sequenceLength, sequenceLength * 2 -1] = [0, sequenceLength]
-        /// - ...
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="accelerator">The accelerator.</param>
-        /// <param name="view">The target view.</param>
-        /// <param name="sequenceLength">The length of a single sequence.</param>
-        /// <param name="sequencer">The used sequencer.</param>
-        public static void RepeatedSequence<T, TSequencer>(
-            this Accelerator accelerator,
-            ArrayView<T> view,
-            Index sequenceLength,
-            TSequencer sequencer)
-            where T : struct
-            where TSequencer : struct, ISequencer<T>
-        {
-            accelerator.RepeatedSequence(
-                accelerator.DefaultStream,
-                view,
-                sequenceLength,
-                sequencer);
-        }
-
-        /// <summary>
         /// Computes a new sequence of batched values of length sequenceBatchLength, and writes
         /// the computed values to the given view. Afterwards, the target view will contain the following values:
         /// - [0, sequenceBatchLength - 1] = 0,,
@@ -407,34 +346,6 @@ namespace ILGPU.Lightning
         {
             accelerator.CreateBatchedSequencer<T, TSequencer>()(
                 stream,
-                view,
-                sequenceBatchLength,
-                sequencer);
-        }
-
-        /// <summary>
-        /// Computes a new sequence of batched values of length sequenceBatchLength, and writes
-        /// the computed values to the given view. Afterwards, the target view will contain the following values:
-        /// - [0, sequenceBatchLength - 1] = 0,,
-        /// - [sequenceBatchLength, sequenceBatchLength * 2 -1] = 1,
-        /// - ...
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="accelerator">The accelerator.</param>
-        /// <param name="view">The target view.</param>
-        /// <param name="sequenceBatchLength">The length of a single batch.</param>
-        /// <param name="sequencer">The used sequencer.</param>
-        public static void BatchedSequence<T, TSequencer>(
-            this Accelerator accelerator,
-            ArrayView<T> view,
-            Index sequenceBatchLength,
-            TSequencer sequencer)
-            where T : struct
-            where TSequencer : struct, ISequencer<T>
-        {
-            accelerator.BatchedSequence(
-                accelerator.DefaultStream,
                 view,
                 sequenceBatchLength,
                 sequencer);
@@ -477,85 +388,6 @@ namespace ILGPU.Lightning
                 sequenceLength,
                 sequenceBatchLength,
                 sequencer);
-        }
-
-        /// <summary>
-        /// Computes a new repeated sequence (of length sequenceLength) of batched values (of length sequenceBatchLength),
-        /// and writes the computed values to the given view. Afterwards, the target view will contain the following values:
-        /// - [0, sequenceLength - 1] = 
-        ///       - [0, sequenceBatchLength - 1] = sequencer(0),
-        ///       - [sequenceBatchLength, sequenceBatchLength * 2 - 1] = sequencer(1),
-        ///       - ...
-        /// - [sequenceLength, sequenceLength * 2 - 1]
-        ///       - [sequenceLength, sequenceLength + sequenceBatchLength - 1] = sequencer(0),
-        ///       - [sequenceLength + sequenceBatchLength, sequenceLength + sequenceBatchLength * 2 - 1] = sequencer(1),
-        ///       - ...
-        /// - ...
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
-        /// <param name="accelerator">The accelerator.</param>
-        /// <param name="view">The target view.</param>
-        /// <param name="sequenceLength">The length of a single sequence.</param>
-        /// <param name="sequenceBatchLength">The length of a single batch.</param>
-        /// <param name="sequencer">The used sequencer.</param>
-        public static void RepeatedBatchedSequence<T, TSequencer>(
-            this Accelerator accelerator,
-            ArrayView<T> view,
-            Index sequenceLength,
-            Index sequenceBatchLength,
-            TSequencer sequencer)
-            where T : struct
-            where TSequencer : struct, ISequencer<T>
-        {
-            accelerator.RepeatedBatchedSequence(
-                accelerator.DefaultStream,
-                view,
-                sequenceLength,
-                sequenceBatchLength,
-                sequencer);
-        }
-    }
-
-    namespace Sequencers
-    {
-        /// <summary>
-        /// Represents an identity implementation of an index sequencer.
-        /// </summary>
-        [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
-        public struct IndexSequencer : ISequencer<Index>
-        {
-            /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index)" />
-            public Index ComputeSequenceElement(Index sequenceIndex)
-            {
-                return sequenceIndex;
-            }
-        }
-
-        /// <summary>
-        /// Represents an identity implementation of a float sequencer.
-        /// </summary>
-        [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
-        public struct FloatSequencer : ISequencer<float>
-        {
-            /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index)" />
-            public float ComputeSequenceElement(Index sequenceIndex)
-            {
-                return sequenceIndex;
-            }
-        }
-
-        /// <summary>
-        /// Represents an identity implementation of a double sequencer.
-        /// </summary>
-        [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
-        public struct DoubleSequencer : ISequencer<double>
-        {
-            /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index)" />
-            public double ComputeSequenceElement(Index sequenceIndex)
-            {
-                return sequenceIndex;
-            }
         }
     }
 }

@@ -20,7 +20,10 @@
 #pragma warning disable IDE0001 // Simplify Names
 #pragma warning disable IDE0004 // Cast is redundant
 
-namespace ILGPU.Lightning.Sequencers
+using System;
+using System.Diagnostics.CodeAnalysis;
+
+namespace ILGPU.Sequencers
 {
 <# foreach (var type in ScanTypes) { #>
     // Helpers for <#= type.Name #>
@@ -28,14 +31,14 @@ namespace ILGPU.Lightning.Sequencers
     /// <summary>
     /// Represents an identity implementation of a sequencer.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
-    public struct <#= type.Name #>Sequencer : ISequencer<<#= type.Type #>>
+    [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
+<#      if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
+    [CLSCompliant(false)]
+<#      } #>
+    public readonly struct <#= type.Name #>Sequencer : ISequencer<<#= type.Type #>>
     {
         /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index)" />
-        public <#= type.Type #> ComputeSequenceElement(Index sequenceIndex)
-        {
-            return (<#= type.Type #>)sequenceIndex.X;
-        }
+        public <#= type.Type #> ComputeSequenceElement(Index sequenceIndex) => (<#= type.Type #>)sequenceIndex.X;
     }
 
 <# } #>

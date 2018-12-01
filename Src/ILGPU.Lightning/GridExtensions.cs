@@ -9,6 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details.
 // -----------------------------------------------------------------------------
 
+using System.Runtime.CompilerServices;
+
 namespace ILGPU.Lightning
 {
     /// <summary>
@@ -56,6 +58,7 @@ namespace ILGPU.Lightning
         /// <param name="index">The global start index.</param>
         /// <param name="length">The global length.</param>
         /// <param name="loopBody">The loop body.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GridStrideLoop<TLoopBody>(
             Index index,
             Index length,
@@ -74,6 +77,7 @@ namespace ILGPU.Lightning
         /// <param name="index">The global start index.</param>
         /// <param name="length">The global length.</param>
         /// <param name="loopBody">The loop body.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GridStrideLoop<TLoopBody>(
             GroupedIndex index,
             Index length,
@@ -96,6 +100,7 @@ namespace ILGPU.Lightning
         /// <param name="input">The initial input value.</param>
         /// <param name="loopBody">The loop body.</param>
         /// <returns>The last intermediate value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T GridStrideLoop<T, TLoopBody>(
             Index index,
             Index length,
@@ -120,6 +125,7 @@ namespace ILGPU.Lightning
         /// <param name="input">The initial input value.</param>
         /// <param name="loopBody">The loop body.</param>
         /// <returns>The last intermediate value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T GridStrideLoop<T, TLoopBody>(
             GroupedIndex index,
             Index length,

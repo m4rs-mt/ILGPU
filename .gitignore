@@ -243,22 +243,8 @@ ModelManifest.xml
 .fake/
 
 # Ignore specific template outputs
-Src/ILGPU.Lightning/TypeInformation.cs
-Src/ILGPU.Lightning/KernelLoaders.cs
-Src/ILGPU.Lightning/SharedMemoryKernelLoaders.cs
-Src/ILGPU.Lightning/Sequencers.cs
-Src/ILGPU.Lightning/ScanProviders.cs
-Src/ILGPU.Lightning/CPU/CPURadixSortProviders.cs
-Src/ILGPU.Lightning/CPU/CPUScanProviders.cs
-Src/ILGPU.Lightning/Cuda/CudaRadixSortNativeMethods.cs
-Src/ILGPU.Lightning/Cuda/CudaRadixSortProviders.cs
-Src/ILGPU.Lightning/Cuda/CudaScanNativeMethods.cs
-Src/ILGPU.Lightning/Cuda/CudaScanProviders.cs
+Src/ILGPU.Lightning/Basic.cs
 Src/ILGPU.Lightning/ReductionOperations.cs
-Src/ILGPU.Lightning/RadixSortPairsProviders.cs
-Src/ILGPU.Lightning/RadixSortProviders.cs
-Src/ILGPU.Lightning/Obsolete/ScanProviders.cs
-Src/ILGPU.Lightning/Obsolete/RadixSortProviders.cs
-Src/ILGPU.Lightning/Obsolete/RadixSortPairsProviders.cs
-Src/ILGPU.Lightning/Obsolete/SharedMemoryKernelLoaders.cs
-Src/ILGPU.Lightning/Obsolete/KernelLoaders.cs
+Src/ILGPU.Lightning/ScanOperations.cs
+Src/ILGPU.Lightning/Sequencers.cs
+Src/ILGPU.Lightning/TypeInformation.cs

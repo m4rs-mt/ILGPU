@@ -9,7 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details.
 // -----------------------------------------------------------------------------
 
-namespace ILGPU.Lightning.Random
+namespace ILGPU.Random
 {
     /// <summary>
     /// Represents useful helpers for random generators.

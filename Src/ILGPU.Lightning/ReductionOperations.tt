@@ -24,10 +24,18 @@ var reductionTypes = SignedIntTypes.Skip(2).Concat(
 var operations = new []
     {
         new { Name = "Add", NeutralElement = "0", Prefix = "", Operation = " + ", Suffix = "" },
-        new { Name = "Max", NeutralElement = "{0}.MinValue", Prefix = "GPUMath.Max(", Operation = ", ", Suffix = ")" },
-        new { Name = "Min", NeutralElement = "{0}.MaxValue", Prefix = "GPUMath.Min(", Operation = ", ", Suffix = ")" },
+        new { Name = "Mul", NeutralElement = "1", Prefix = "", Operation = " * ", Suffix = "" },
+        new { Name = "Max", NeutralElement = "{0}.MinValue", Prefix = "XMath.Max(", Operation = ", ", Suffix = ")" },
+        new { Name = "Min", NeutralElement = "{0}.MaxValue", Prefix = "XMath.Min(", Operation = ", ", Suffix = ")" },
+    };
+var atomicOperations = new []
+    {
+        new { Name = "Add", NeutralElement = "0", Prefix = "", Operation = " + ", Suffix = "" },
+        new { Name = "Max", NeutralElement = "{0}.MinValue", Prefix = "XMath.Max(", Operation = ", ", Suffix = ")" },
+        new { Name = "Min", NeutralElement = "{0}.MaxValue", Prefix = "XMath.Min(", Operation = ", ", Suffix = ")" },
     };
 #>
+using System;
 using ILGPU.Lightning;
 using System.Diagnostics.CodeAnalysis;
 
@@ -38,9 +46,42 @@ namespace ILGPU.ReductionOperations
 <#  foreach (var type in reductionTypes) { #>
 <#      foreach (var op in operations) { #>
     /// <summary>
+    /// Represents an <#= op.Name #> reduction of type <#= type.Type #>.
+    /// </summary>
+    [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
+<#      if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
+    [CLSCompliant(false)]
+<#      } #>
+    public readonly struct <#= op.Name #><#= type.Name #> : IReduction<<#= type.Type #>>
+    {
+        /// <summary>
+        /// Returns the neutral element of this reduction operation, such that
+        /// Reduce(Reduce(neutralElement, left), right) == Reduce(left, right).
+        /// </summary>
+        public <#= type.Type #> NeutralElement => <#= string.Format(op.NeutralElement, type.Type) #>;
+
+        /// <summary>
+        /// Performs a reduction of the form result = Reduce(left, right).
+        /// </summary>
+        /// <param name="left">The left value of the reduction.</param>
+        /// <param name="right">The right value of the reduction.</param>
+        /// <returns>The result of the reduction.</returns>
+        public <#= type.Type #> Reduce(<#= type.Type #> left, <#= type.Type #> right)
+        {
+            return (<#= type.Type #>)(<#= op.Prefix #>left<#= op.Operation #>right<#= op.Suffix #>);
+        }
+    }
+
+<#      } #>
+
+<#      foreach (var op in atomicOperations) { #>
+    /// <summary>
     /// Represents an atomic <#= op.Name #> reduction of type <#= type.Type #>.
     /// </summary>
     [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
+<#      if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
+    [CLSCompliant(false)]
+<#      } #>
     public struct Atomic<#= op.Name #><#= type.Name #> : IAtomicReduction<<#= type.Type #>>
     {
         /// <summary>
@@ -65,9 +106,9 @@ namespace ILGPU.ReductionOperations
         /// </summary>
         /// <param name="target">The target address to update.</param>
         /// <param name="value">The value.</param>
-        public void AtomicReduce(VariableView<<#= type.Type #>> target, <#= type.Type #> value)
+        public void AtomicReduce(ref <#= type.Type #> target, <#= type.Type #> value)
         {
-            Atomic.<#= op.Name #>(target, value);
+            Atomic.<#= op.Name #>(ref target, value);
         }
     }
 
