@@ -103,14 +103,10 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private void GenerateCode(Allocas allocas, ref int constantOffset)
         {
-            var parameters = GenerateHeader();
-
             if (Method.HasFlags(MethodFlags.External))
-            {
-                Builder.AppendLine(";");
                 return;
-            }
 
+            var parameters = GenerateHeader();
             Builder.AppendLine("{");
 
             var allocations = SetupLocalAllocations(allocas);
