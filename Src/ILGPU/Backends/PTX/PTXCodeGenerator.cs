@@ -566,11 +566,9 @@ namespace ILGPU.Backends.PTX
             var declBuilder = new StringBuilder();
             foreach (var stringConstant in stringConstants)
             {
-                declBuilder.Append(".global .align ");
-                declBuilder.Append(ABI.PointerSize.ToString());
-                declBuilder.Append(" .b8 ");
+                declBuilder.Append(".global .align 2 .b8 ");
                 declBuilder.Append(stringConstant.Value);
-                var stringBytes = Encoding.ASCII.GetBytes(stringConstant.Key);
+                var stringBytes = Encoding.Unicode.GetBytes(stringConstant.Key);
                 declBuilder.Append("[");
                 declBuilder.Append(stringBytes.Length + 1);
                 declBuilder.Append("]");
