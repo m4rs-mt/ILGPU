@@ -131,7 +131,9 @@ namespace ILGPU.IR.Transformations
             var result = new HashSet<Alloca>();
             foreach (Value value in scope.Values)
             {
-                if (value is Alloca alloca && !RequiresAddress(alloca))
+                if (value is Alloca alloca &&
+                    alloca.AddressSpace == MemoryAddressSpace.Local &&
+                    !RequiresAddress(alloca))
                     result.Add(alloca);
             }
 
