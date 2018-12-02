@@ -18,17 +18,6 @@ using System.Runtime.InteropServices;
 namespace ILGPU.Runtime
 {
     /// <summary>
-    /// Represents the base interface for all memory buffers.
-    /// </summary>
-    public interface IMemoryBuffer : IAcceleratorObject
-    {
-        /// <summary>
-        /// Returns the length of this buffer.
-        /// </summary>
-        int Length { get; }
-    }
-
-    /// <summary>
     /// Represents an abstract memory buffer that can be used in the scope
     /// of ILGPU runtime kernels.
     /// </summary>
@@ -64,18 +53,32 @@ namespace ILGPU.Runtime
         #region Methods
 
         /// <summary>
+        /// Sets the contents of the given buffer to zero using
+        /// the default accelerator stream.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void MemSetToZero() =>
+            MemSetToZero(Accelerator.DefaultStream);
+
+        /// <summary>
         /// Sets the contents of the current buffer to zero.
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         public abstract void MemSetToZero(AcceleratorStream stream);
 
         /// <summary>
-        /// Sets the contents of the current buffer to zero.
+        /// Copies the current contents into a new byte array.
         /// </summary>
-        public void MemSetToZero()
-        {
-            MemSetToZero(Accelerator.DefaultStream);
-        }
+        /// <returns>A new array holding the requested contents.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public byte[] GetAsRawArray() => GetAsRawArray(Accelerator.DefaultStream);
+
+        /// <summary>
+        /// Copies the current contents into a new byte array.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        public abstract byte[] GetAsRawArray(AcceleratorStream stream);
 
         #endregion
     }
@@ -87,7 +90,7 @@ namespace ILGPU.Runtime
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TIndex">The index type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract class MemoryBuffer<T, TIndex> : MemoryBuffer
+    public abstract class MemoryBuffer<T, TIndex> : MemoryBuffer, IMemoryBuffer<T, TIndex>
         where T : struct
         where TIndex : struct, IIndex, IGenericIndex<TIndex>
     {
@@ -125,7 +128,7 @@ namespace ILGPU.Runtime
         public Index LengthInBytes => new Index(Length) * ElementSize;
 
         /// <summary>
-        /// Returns an array view that can access this array.
+        /// Returns an array view that can access this buffer.
         /// </summary>
         public ArrayView<T, TIndex> View => new ArrayView<T, TIndex>(
             new ArrayView<T>(this, 0, Extent.Size), Extent);
@@ -156,15 +159,15 @@ namespace ILGPU.Runtime
 
         #endregion
 
-        #region Internal Methods
+        #region View Methods
 
         /// <summary>
         /// Copies elements from the current buffer to the target view.
         /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
         /// <param name="target">The target view.</param>
         /// <param name="sourceOffset">The source offset.</param>
-        /// <param name="stream">The used accelerator stream.</param>
-        protected internal abstract void CopyToViewInternal(
+        protected internal abstract void CopyToView(
             AcceleratorStream stream,
             ArrayView<T> target,
             Index sourceOffset);
@@ -172,74 +175,34 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Copies elements from the source view to the current buffer.
         /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
         /// <param name="source">The source view.</param>
         /// <param name="targetOffset">The target offset.</param>
-        /// <param name="stream">The used accelerator stream.</param>
-        protected internal abstract void CopyFromViewInternal(
+        protected internal abstract void CopyFromView(
             AcceleratorStream stream,
             ArrayView<T> source,
             Index targetOffset);
 
-        #endregion
-
-        #region CopyTo Methods
-
         /// <summary>
-        /// Copies elements from the current buffer to the target buffer.
-        /// </summary>
-        /// <param name="stream">The used accelerator stream.</param>
-        /// <param name="target">The target buffer.</param>
-        /// <param name="sourceOffset">The source offset.</param>
-        /// <param name="targetOffset">The target offset.</param>
-        /// <param name="extent">The extent (number of elements).</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyTo(
-            AcceleratorStream stream,
-            MemoryBuffer<T, TIndex> target,
-            TIndex sourceOffset,
-            TIndex targetOffset,
-            TIndex extent)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (target == null)
-                throw new ArgumentNullException(nameof(target));
-            if (!sourceOffset.InBounds(Extent))
-                throw new ArgumentOutOfRangeException(nameof(sourceOffset));
-            if (!targetOffset.InBounds(target.Extent))
-                throw new ArgumentOutOfRangeException(nameof(targetOffset));
-            if (!sourceOffset.Add(extent).InBoundsInclusive(Extent) ||
-                !targetOffset.Add(extent).InBoundsInclusive(target.Extent))
-                throw new ArgumentOutOfRangeException(nameof(extent));
-
-            CopyToViewInternal(
-                stream,
-                target.GetSubView(targetOffset, extent).AsLinearView(),
-                sourceOffset.ComputeLinearIndex(Extent));
-        }
-
-        /// <summary>
-        /// Copies elements from the current buffer to the target buffer.
-        /// </summary>
-        /// <param name="stream">The used accelerator stream.</param>
-        /// <param name="target">The target buffer.</param>
-        /// <param name="sourceOffset">The source offset.</param>
-        public void CopyTo(
-            AcceleratorStream stream,
-            MemoryBuffer<T, TIndex> target,
-            TIndex sourceOffset)
-        {
-            CopyTo(stream, target, sourceOffset, default(TIndex), Extent);
-        }
-
-        /// <summary>
-        /// Copies elements from the current buffer to the target buffer.
+        /// Copies elements from the current buffer to the target view using
+        /// the default accelerator stream.
         /// </summary>
         /// <param name="target">The target view.</param>
         /// <param name="sourceOffset">The source offset.</param>
-        /// <param name="stream">The used accelerator stream.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyToView(
+        public void CopyTo(ArrayView<T, TIndex> target, TIndex sourceOffset) =>
+            CopyTo(
+                Accelerator.DefaultStream,
+                target,
+                sourceOffset);
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target view.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        public void CopyTo(
             AcceleratorStream stream,
             ArrayView<T, TIndex> target,
             TIndex sourceOffset)
@@ -253,11 +216,148 @@ namespace ILGPU.Runtime
             if (!sourceOffset.Add(target.Extent).InBoundsInclusive(Extent))
                 throw new ArgumentOutOfRangeException(nameof(target));
 
-            CopyToViewInternal(
+            CopyToView(
                 stream,
                 target.AsLinearView(),
                 sourceOffset.ComputeLinearIndex(Extent));
         }
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source view.
+        /// </summary>
+        /// <param name="source">The source view.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(ArrayView<T, TIndex> source, TIndex targetOffset) =>
+            CopyFrom(
+                Accelerator.DefaultStream,
+                source,
+                targetOffset);
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source view.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="source">The source view.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        public void CopyFrom(
+            AcceleratorStream stream,
+            ArrayView<T, TIndex> source,
+            TIndex targetOffset)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (!source.IsValid)
+                throw new ArgumentNullException(nameof(source));
+            if (!targetOffset.InBounds(Extent))
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            if (!targetOffset.Add(source.Extent).InBoundsInclusive(Extent))
+                throw new ArgumentOutOfRangeException(nameof(source));
+
+            CopyFromView(
+                stream,
+                source.AsLinearView(),
+                targetOffset.ComputeLinearIndex(Extent));
+        }
+
+        #endregion
+
+        #region Copy Methods
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(MemoryBuffer<T, TIndex> target, TIndex sourceOffset) =>
+            CopyTo(
+                Accelerator.DefaultStream,
+                target,
+                sourceOffset);
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(
+            AcceleratorStream stream,
+            MemoryBuffer<T, TIndex> target,
+            TIndex sourceOffset) =>
+            CopyTo(
+                stream,
+                target,
+                sourceOffset,
+                default,
+                Extent);
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(
+            MemoryBuffer<T, TIndex> target,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            TIndex extent) =>
+            CopyTo(
+                Accelerator.DefaultStream,
+                target,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public void CopyTo(
+            AcceleratorStream stream,
+            MemoryBuffer<T, TIndex> target,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            TIndex extent)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
+            if (!sourceOffset.InBounds(Extent))
+                throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            if (!targetOffset.InBounds(Extent))
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            if (!sourceOffset.Add(extent).InBoundsInclusive(Extent) ||
+                !targetOffset.Add(extent).InBoundsInclusive(Extent))
+                throw new ArgumentOutOfRangeException(nameof(extent));
+
+            CopyToView(
+                stream,
+                target.GetSubView(targetOffset, Extent).AsLinearView(),
+                sourceOffset.ComputeLinearIndex(Extent));
+        }
+
+        /// <summary>
+        /// Copies a single element of this buffer to the given target variable
+        /// in CPU memory using the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target location.</param>
+        /// <param name="targetIndex">The target index.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(out T target, TIndex targetIndex) =>
+            CopyTo(Accelerator.DefaultStream, out target, targetIndex);
 
         /// <summary>
         /// Copies a single element of this buffer to the given target variable
@@ -266,22 +366,45 @@ namespace ILGPU.Runtime
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="target">The target location.</param>
         /// <param name="targetIndex">The target index.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyTo(
             AcceleratorStream stream,
             out T target,
             TIndex targetIndex)
         {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
             target = default;
             using (var wrapper = ViewPointerWrapper.Create(ref target))
             {
-                CopyToViewInternal(
+                CopyToView(
                     stream,
                     new ArrayView<T>(wrapper, 0, 1),
                     targetIndex.ComputeLinearIndex(Extent));
             }
             stream.Synchronize();
         }
+
+        /// <summary>
+        /// Copies the contents of this buffer into the given array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(
+            T[] target,
+            TIndex sourceOffset,
+            int targetOffset,
+            TIndex extent) =>
+            CopyTo(
+                Accelerator.DefaultStream,
+                target,
+                sourceOffset,
+                targetOffset,
+                extent);
 
         /// <summary>
         /// Copies the contents of this buffer into the given array.
@@ -300,6 +423,8 @@ namespace ILGPU.Runtime
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
             if (!sourceOffset.InBounds(Extent))
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
             var length = target.Length;
@@ -315,7 +440,7 @@ namespace ILGPU.Runtime
             {
                 using (var wrapper = ViewArrayWrapper.Create<T>(handle))
                 {
-                    CopyToViewInternal(
+                    CopyToView(
                         stream,
                         new ArrayView<T>(wrapper, 0, length).GetSubView(
                             targetOffset, extent.Size),
@@ -329,9 +454,35 @@ namespace ILGPU.Runtime
             }
         }
 
-        #endregion
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        public void CopyFrom(MemoryBuffer<T, TIndex> source, TIndex targetOffset) =>
+            CopyFrom(Accelerator.DefaultStream, source, targetOffset);
 
-        #region CopyFrom Methods
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(
+            MemoryBuffer<T, TIndex> source,
+            TIndex sourceOffset,
+            TIndex targetOffset,
+            TIndex extent) =>
+            CopyFrom(
+                Accelerator.DefaultStream,
+                source,
+                sourceOffset,
+                targetOffset,
+                extent);
 
         /// <summary>
         /// Copies elements to the current buffer from the source buffer.
@@ -341,6 +492,7 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyFrom(
             AcceleratorStream stream,
             MemoryBuffer<T, TIndex> source,
@@ -350,7 +502,12 @@ namespace ILGPU.Runtime
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
-            source.CopyTo(stream, this, targetOffset, sourceOffset, extent);
+            source.CopyTo(
+                stream,
+                this,
+                targetOffset,
+                sourceOffset,
+                extent);
         }
 
         /// <summary>
@@ -359,40 +516,27 @@ namespace ILGPU.Runtime
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="source">The source buffer.</param>
         /// <param name="targetOffset">The target offset.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyFrom(
             AcceleratorStream stream,
             MemoryBuffer<T, TIndex> source,
-            TIndex targetOffset)
-        {
-            CopyFrom(stream, source, default, targetOffset, source.Extent);
-        }
-
-        /// <summary>[]
-        /// Copies elements from the current buffer to the target buffer.
-        /// </summary>
-        /// <param name="stream">The used accelerator stream.</param>
-        /// <param name="source">The source view.</param>
-        /// <param name="targetOffset">The target offset.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyFromView(
-            AcceleratorStream stream,
-            ArrayView<T, TIndex> source,
-            TIndex targetOffset)
-        {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
-            if (!source.IsValid)
-                throw new ArgumentNullException(nameof(source));
-            if (!targetOffset.InBounds(Extent))
-                throw new ArgumentOutOfRangeException(nameof(targetOffset));
-            if (!targetOffset.Add(source.Extent).InBoundsInclusive(Extent))
-                throw new ArgumentOutOfRangeException(nameof(source));
-
-            CopyFromViewInternal(
+            TIndex targetOffset) =>
+            CopyFrom(
                 stream,
-                source.AsLinearView(),
-                targetOffset.ComputeLinearIndex(Extent));
-        }
+                source,
+                default,
+                targetOffset,
+                source.Extent);
+
+        /// <summary>
+        /// Copies a single element from CPU memory to this buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source value.</param>
+        /// <param name="sourceIndex">The source index.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(T source, TIndex sourceIndex) =>
+            CopyFrom(Accelerator.DefaultStream, source, sourceIndex);
 
         /// <summary>
         /// Copies a single element from CPU memory to this buffer.
@@ -400,7 +544,6 @@ namespace ILGPU.Runtime
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="source">The source value.</param>
         /// <param name="sourceIndex">The source index.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyFrom(
             AcceleratorStream stream,
             T source,
@@ -408,13 +551,34 @@ namespace ILGPU.Runtime
         {
             using (var wrapper = ViewPointerWrapper.Create(ref source))
             {
-                CopyFromViewInternal(
+                CopyFromView(
                     stream,
                     new ArrayView<T>(wrapper, 0, 1),
                     sourceIndex.ComputeLinearIndex(Extent));
                 stream.Synchronize();
             }
         }
+
+        /// <summary>
+        /// Copies the contents to this buffer from the given array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(
+            T[] source,
+            int sourceOffset,
+            TIndex targetOffset,
+            int extent) =>
+            CopyFrom(
+                Accelerator.DefaultStream,
+                source,
+                sourceOffset,
+                targetOffset,
+                extent);
 
         /// <summary>
         /// Copies the contents to this buffer from the given array.
@@ -448,7 +612,7 @@ namespace ILGPU.Runtime
             {
                 using (var wrapper = ViewArrayWrapper.Create<T>(handle))
                 {
-                    CopyFromViewInternal(
+                    CopyFromView(
                         stream,
                         new ArrayView<T>(wrapper, 0, source.Length).GetSubView(
                             sourceOffset, extent),
@@ -467,14 +631,29 @@ namespace ILGPU.Runtime
         #region Methods
 
         /// <summary>
+        /// Copies the current contents into a new array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <returns>A new array holding the requested contents.</returns>
+        public T[] GetAsArray() => GetAsArray(Accelerator.DefaultStream);
+
+        /// <summary>
         /// Copies the current contents into a new array.
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <returns>A new array holding the requested contents.</returns>
-        public T[] GetAsArray(AcceleratorStream stream)
-        {
-            return GetAsArray(stream, default, Extent);
-        }
+        public T[] GetAsArray(AcceleratorStream stream) =>
+            GetAsArray(stream, default, Extent);
+
+        /// <summary>
+        /// Copies the current contents into a new array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="offset">The offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        /// <returns>A new array holding the requested contents.</returns>
+        public T[] GetAsArray(TIndex offset, TIndex extent) =>
+            GetAsArray(Accelerator.DefaultStream, offset, extent);
 
         /// <summary>
         /// Copies the current contents into a new array.
@@ -509,7 +688,7 @@ namespace ILGPU.Runtime
             {
                 using (var wrapper = ViewPointerWrapper.Create(new IntPtr(ptr)))
                 {
-                    CopyToViewInternal(
+                    CopyToView(
                         stream,
                         new ArrayView<T>(
                             wrapper,
@@ -529,7 +708,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <returns>A new array holding the requested contents.</returns>
-        public byte[] GetAsRawArray(AcceleratorStream stream) =>
+        public override byte[] GetAsRawArray(AcceleratorStream stream) =>
             GetAsRawArray(stream, Index.Zero, LengthInBytes).Array;
 
         /// <summary>
@@ -537,6 +716,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="offset">The starting offset.</param>
         /// <returns>The new subview.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T, TIndex> GetSubView(TIndex offset) =>
             View.GetSubView(offset);
 
@@ -546,6 +726,7 @@ namespace ILGPU.Runtime
         /// <param name="offset">The starting offset.</param>
         /// <param name="subViewExtent">The extent of the new subview.</param>
         /// <returns>The new subview.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T, TIndex> GetSubView(TIndex offset, TIndex subViewExtent) =>
             View.GetSubView(offset, subViewExtent);
 
@@ -553,6 +734,7 @@ namespace ILGPU.Runtime
         /// Returns an array view that can access this array.
         /// </summary>
         /// <returns>An array view that can access this array.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T, TIndex> ToArrayView() => View;
 
         #endregion
@@ -563,6 +745,7 @@ namespace ILGPU.Runtime
         /// Implicitly converts this buffer into an array view.
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator ArrayView<T, TIndex>(MemoryBuffer<T, TIndex> buffer)
         {
             Debug.Assert(buffer != null, "Invalid buffer");

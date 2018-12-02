@@ -46,8 +46,8 @@ namespace ILGPU.Runtime.Cuda
 
         #region Methods
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToViewInternal(AcceleratorStream, ArrayView{T}, Index)"/>
-        protected unsafe internal override void CopyToViewInternal(
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(AcceleratorStream, ArrayView{T}, Index)"/>
+        protected internal unsafe override void CopyToView(
             AcceleratorStream stream,
             ArrayView<T> target,
             Index sourceOffset)
@@ -79,8 +79,8 @@ namespace ILGPU.Runtime.Cuda
             }
         }
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromViewInternal(AcceleratorStream, ArrayView{T}, Index)"/>
-        protected unsafe internal override void CopyFromViewInternal(
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(AcceleratorStream, ArrayView{T}, Index)"/>
+        protected internal unsafe override void CopyFromView(
             AcceleratorStream stream,
             ArrayView<T> source,
             Index targetOffset)
