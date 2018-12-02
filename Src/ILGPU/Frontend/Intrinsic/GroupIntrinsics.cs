@@ -55,16 +55,11 @@ namespace ILGPU.Frontend.Intrinsic
             GroupIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
-            var memory = context.PopMemory();
             if (attribute.IntrinsicKind == GroupIntrinsicKind.Barrier)
-                return context.PushMemory(
-                    builder.CreateBarrier(memory, BarrierKind.GroupLevel));
-            var result = builder.CreateBarrier(
-                memory,
-                context[TopLevelFunction.ParametersOffset],
+                return builder.CreateBarrier(BarrierKind.GroupLevel);
+            return builder.CreateBarrier(
+                context[0],
                 (PredicateBarrierKind)attribute.IntrinsicKind);
-            context.PushMemory(result);
-            return result;
         }
     }
 }

@@ -10,7 +10,8 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR;
-using ILGPU.IR.Values;
+using ILGPU.IR.Analyses;
+using System.Collections.Generic;
 
 namespace ILGPU.Backends.PTX
 {
@@ -20,6 +21,20 @@ namespace ILGPU.Backends.PTX
     sealed class PTXFunctionGenerator : PTXCodeGenerator
     {
         #region Static
+
+        /// <summary>
+        /// Uses this function generator to emit PTX header code.
+        /// </summary>
+        /// <param name="args">The generation arguments.</param>
+        /// <param name="scope">The current scope.</param>
+        public static void GenerateHeader(
+            in GeneratorArgs args,
+            Scope scope)
+        {
+            var generator = new PTXFunctionGenerator(args, scope);
+            generator.GenerateHeader();
+            args.StringBuilder.AppendLine(";");
+        }
 
         /// <summary>
         /// Uses this function generator to emit PTX code.
@@ -55,12 +70,9 @@ namespace ILGPU.Backends.PTX
 
         #region Methods
 
-        /// <summary>
-        /// Generates PTX code.
-        /// </summary>
-        private void GenerateCode(Allocas allocas, ref int constantOffset)
+        private List<MappedParameter> GenerateHeader()
         {
-            var isExternal = TopLevelFunction.HasFlags(TopLevelFunctionFlags.External);
+            var isExternal = Method.HasFlags(MethodFlags.External);
 
             Builder.AppendLine();
             if (isExternal)
@@ -68,21 +80,32 @@ namespace ILGPU.Backends.PTX
             else
                 Builder.Append(".visible ");
             Builder.Append(".func ");
-            var returnType = TopLevelFunction.ReturnType;
+            var returnType = Method.ReturnType;
             if (!returnType.IsVoidType)
             {
                 Builder.Append("(");
-                AppendReturnParamInfo(returnType, returnParamName);
+                AppendParamDeclaration(returnType, returnParamName);
                 Builder.Append(") ");
             }
-            Builder.Append(GetFunctionName(TopLevelFunction));
+            Builder.Append(GetMethodName(Method));
             Builder.AppendLine("(");
 
             var setupLogic = new EmptyParameterSetupLogic();
             var parameters = SetupParameters(ref setupLogic, 0);
             Builder.AppendLine();
             Builder.AppendLine(")");
-            if (isExternal)
+
+            return parameters;
+        }
+
+        /// <summary>
+        /// Generates PTX code.
+        /// </summary>
+        private void GenerateCode(Allocas allocas, ref int constantOffset)
+        {
+            var parameters = GenerateHeader();
+
+            if (Method.HasFlags(MethodFlags.External))
             {
                 Builder.AppendLine(";");
                 return;

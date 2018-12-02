@@ -27,9 +27,9 @@ namespace ILGPU.Backends.PTX
         private static readonly Dictionary<BasicValueType, PTXType> BasicTypes =
             new Dictionary<BasicValueType, PTXType>
             {
-                { BasicValueType.Int1, new PTXType("pred", PTXRegisterKind.Predicate) },
+                { BasicValueType.Int1, new PTXType("b32", PTXRegisterKind.Int32) },
 
-                { BasicValueType.Int8, new PTXType("b8", PTXRegisterKind.Int8) },
+                { BasicValueType.Int8, new PTXType("b16", PTXRegisterKind.Int16) },
                 { BasicValueType.Int16, new PTXType("b16", PTXRegisterKind.Int16) },
                 { BasicValueType.Int32, new PTXType("b32", PTXRegisterKind.Int32) },
                 { BasicValueType.Int64, new PTXType("b64", PTXRegisterKind.Int64) },
@@ -120,8 +120,6 @@ namespace ILGPU.Backends.PTX
             {
                 case PTXRegisterKind.Predicate:
                     return GetPTXType(BasicValueType.Int1);
-                case PTXRegisterKind.Int8:
-                    return GetPTXType(BasicValueType.Int8);
                 case PTXRegisterKind.Int16:
                     return GetPTXType(BasicValueType.Int16);
                 case PTXRegisterKind.Int64:

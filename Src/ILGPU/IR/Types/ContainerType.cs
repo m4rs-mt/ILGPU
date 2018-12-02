@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Text;
@@ -90,27 +91,6 @@ namespace ILGPU.IR.Types
             return string.Empty;
         }
 
-        /// <summary cref="TypeNode.Rebuild(IRBuilder, IRTypeRebuilder)"/>
-        protected internal sealed override TypeNode Rebuild(IRBuilder builder, IRTypeRebuilder rebuilder)
-        {
-            var children = ImmutableArray.CreateBuilder<TypeNode>(Children.Length);
-            foreach (var child in Children)
-                children.Add(rebuilder.Rebuild(child));
-            return Rebuild(builder, rebuilder, children.MoveToImmutable());
-        }
-
-        /// <summary>
-        /// Rebuilds the current node in the scope of the given rebuilder.
-        /// </summary>
-        /// <param name="builder">The builder to use.</param>
-        /// <param name="rebuilder">The rebuilder to use.</param>
-        /// <param name="children">The rebuilt children.</param>
-        /// <returns>The rebuilt node.</returns>
-        protected abstract TypeNode Rebuild(
-            IRBuilder builder,
-            IRTypeRebuilder rebuilder,
-            ImmutableArray<TypeNode> children);
-
         #endregion
 
         #region Object
@@ -137,6 +117,9 @@ namespace ILGPU.IR.Types
         /// <summary cref="TypeNode.ToString()"/>
         public override string ToString()
         {
+            if (Source != null)
+                return Source.GetStringRepresentation();
+
             var result = new StringBuilder();
             result.Append(ToPrefixString());
             result.Append('<');

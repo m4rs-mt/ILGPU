@@ -38,11 +38,11 @@ namespace ILGPU.IR.Construction
             if (type.ElementType == targetElementType)
                 return node;
 
-            var pointerType = CreatePointerType(targetElementType, type.AddressSpace);
-            return CreateUnifiedValue(new PointerCast(
-                Generation,
+            return Append(new PointerCast(
+                Context,
+                BasicBlock,
                 node,
-                pointerType));
+                targetElementType));
         }
 
         /// <summary>
@@ -64,11 +64,11 @@ namespace ILGPU.IR.Construction
             if (sourceAddressSpace == targetAddressSpace)
                 return node;
 
-            var addressSpaceType = SpecializeAddressSpaceType(type, targetAddressSpace);
-            return CreateUnifiedValue(new AddressSpaceCast(
-                Generation,
+            return Append(new AddressSpaceCast(
+                Context,
+                BasicBlock,
                 node,
-                addressSpaceType));
+                targetAddressSpace));
         }
 
         /// <summary>
@@ -89,13 +89,11 @@ namespace ILGPU.IR.Construction
             if (type.ElementType == targetElementType)
                 return node;
 
-            var viewType = CreateViewType(
-                targetElementType,
-                type.AddressSpace);
-            return CreateUnifiedValue(new ViewCast(
-                Generation,
+            return Append(new ViewCast(
+                Context,
+                BasicBlock,
                 node,
-                viewType));
+                targetElementType));
         }
 
         /// <summary>
@@ -110,7 +108,7 @@ namespace ILGPU.IR.Construction
             var primitiveType = node.Type as PrimitiveType;
             Debug.Assert(primitiveType != null, "Invalid primitive type");
 
-            if (node is PrimitiveValue primitive)
+            if (UseConstantPropagation && node is PrimitiveValue primitive)
             {
                 switch (primitiveType.BasicValueType)
                 {
@@ -138,9 +136,9 @@ namespace ILGPU.IR.Construction
                     throw new ArgumentOutOfRangeException(nameof(node));
             }
 
-            var type = CreatePrimitiveType(basicValueType);
-            return CreateUnifiedValue(new FloatAsIntCast(
-                Generation,
+            var type = GetPrimitiveType(basicValueType);
+            return Append(new FloatAsIntCast(
+                BasicBlock,
                 node,
                 type));
         }
@@ -157,7 +155,7 @@ namespace ILGPU.IR.Construction
             var primitiveType = node.Type as PrimitiveType;
             Debug.Assert(primitiveType != null, "Invalid primitive type");
 
-            if (node is PrimitiveValue primitive)
+            if (UseConstantPropagation && node is PrimitiveValue primitive)
             {
                 switch (primitiveType.BasicValueType)
                 {
@@ -185,9 +183,9 @@ namespace ILGPU.IR.Construction
                     throw new ArgumentOutOfRangeException(nameof(node));
             }
 
-            var type = CreatePrimitiveType(basicValueType);
-            return CreateUnifiedValue(new IntAsFloatCast(
-                Generation,
+            var type = GetPrimitiveType(basicValueType);
+            return Append(new IntAsFloatCast(
+                BasicBlock,
                 node,
                 type));
         }

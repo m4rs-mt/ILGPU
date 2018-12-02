@@ -11,7 +11,6 @@
 
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
-using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
@@ -55,14 +54,19 @@ namespace ILGPU.Frontend
             public CodeGenerationResult Result { get; }
 
             /// <summary>
+            /// Returns true if this is an external processing request.
+            /// </summary>
+            public bool IsExternalRequest => Result != null;
+
+            /// <summary>
             /// Signals the future with the given value.
             /// </summary>
-            /// <param name="functionValue">The function value.</param>
-            public void SetResult(TopLevelFunction functionValue)
+            /// <param name="irFunction">The function value.</param>
+            public void SetResult(Method irFunction)
             {
-                Debug.Assert(functionValue != null, "Invalid function value");
+                Debug.Assert(irFunction != null, "Invalid function value");
                 if (Result != null)
-                    Result.Result = functionValue;
+                    Result.Result = irFunction;
             }
         }
 
@@ -142,17 +146,18 @@ namespace ILGPU.Frontend
                 detectedMethods.Clear();
                 codeGenerationPhase.GenerateCodeInternal(
                     current.Method,
+                    current.IsExternalRequest,
                     detectedMethods,
-                    out TopLevelFunction topLevelFunction);
-                current.SetResult(topLevelFunction);
+                    out Method method);
+                current.SetResult(method);
 
                 // Check dependencies
                 lock (processingSyncObject)
                 {
                     --activeThreads;
 
-                    foreach (var method in detectedMethods)
-                        processing.Push(new ProcessingEntry(method, null));
+                    foreach (var detectedMethod in detectedMethods)
+                        processing.Push(new ProcessingEntry(detectedMethod, null));
 
                     if (detectedMethods.Count > 0)
                         Monitor.PulseAll(processingSyncObject);
@@ -213,7 +218,6 @@ namespace ILGPU.Frontend
             if (phase.HadWorkToDo)
                 driverNotifier.Wait();
 
-            phase.Builder.Dispose();
             if (Interlocked.CompareExchange(ref codeGenerationPhase, null, phase) != phase)
                 throw new InvalidOperationException();
         }
@@ -311,12 +315,12 @@ namespace ILGPU.Frontend
         /// <summary>
         /// The associated function result.
         /// </summary>
-        public TopLevelFunction Result { get; internal set; }
+        public Method Result { get; internal set; }
 
         /// <summary>
         /// Returns the associated function handle.
         /// </summary>
-        public FunctionHandle ResultHandle => Result.Handle;
+        public MethodHandle ResultHandle => Result.Handle;
 
         /// <summary>
         /// Returns true if this result has a function value.
@@ -339,8 +343,8 @@ namespace ILGPU.Frontend
         {
             Debug.Assert(frontend != null, "Invalid frontend");
             Debug.Assert(context != null, "Invalid context");
+            Context = context;
             Frontend = frontend;
-            Builder = context.CreateBuilder(IRBuilderFlags.PreserveTopLevelFunctions);
         }
 
         #endregion
@@ -358,11 +362,6 @@ namespace ILGPU.Frontend
         public ILFrontend Frontend { get; }
 
         /// <summary>
-        /// Returns the current builder.
-        /// </summary>
-        public IRBuilder Builder { get; }
-
-        /// <summary>
         /// Returns true if the generation phase has been finished.
         /// </summary>
         public bool IsFinished => isFinished;
@@ -377,34 +376,54 @@ namespace ILGPU.Frontend
         #region Methods
 
         /// <summary>
+        /// Declares a method.
+        /// </summary>
+        /// <param name="methodDeclaration">The method declaration.</param>
+        /// <returns>The declared method.</returns>
+        internal Method DeclareMethod(MethodDeclaration methodDeclaration) =>
+            Context.Declare(methodDeclaration, out bool _);
+
+        /// <summary>
+        /// Declares a method.
+        /// </summary>
+        /// <param name="methodDeclaration">The method declaration.</param>
+        /// <param name="created">True, iff the method has been created.</param>
+        /// <returns>The declared method.</returns>
+        internal Method DeclareMethod(
+            MethodDeclaration methodDeclaration,
+            out bool created) =>
+            Context.Declare(methodDeclaration, out created);
+
+        /// <summary>
         /// Performs the actual (async) code generation.
         /// </summary>
         /// <param name="method">The method.</param>
+        /// <param name="isExternalRequest">True, if processing of this method was requested by a user.</param>
         /// <param name="detectedMethods">The set of newly detected methods.</param>
-        /// <param name="topLevelFunction">The resolved top-level function.</param>
-        /// <returns>The created top-level function.</returns>
-        internal bool GenerateCodeInternal(
+        /// <param name="generatedMethod">The resolved IR method.</param>
+        internal void GenerateCodeInternal(
             MethodBase method,
+            bool isExternalRequest,
             HashSet<MethodBase> detectedMethods,
-            out TopLevelFunction topLevelFunction)
+            out Method generatedMethod)
         {
-            topLevelFunction = Builder.TryCreateFunctionBuilder(method, out FunctionBuilder functionBuilder);
-            if (functionBuilder == null ||
-                !functionBuilder.MarkForProcessing())
-                return false;
+            generatedMethod = Context.Declare(method, out bool created);
+            if (!created & isExternalRequest)
+                return;
 
             var disassembler = new Disassembler(
                 method, 
                 SequencePointEnumerator.Empty);
             var diassembledMethod = disassembler.Disassemble();
-            var codeGenerator = new CodeGenerator(
-                Frontend,
-                Builder,
-                functionBuilder,
-                diassembledMethod,
-                detectedMethods);
-            codeGenerator.GenerateCode();
-            return true;
+            using (var builder = generatedMethod.CreateBuilder())
+            {
+                var codeGenerator = new CodeGenerator(
+                    Frontend,
+                    builder,
+                    diassembledMethod,
+                    detectedMethods);
+                codeGenerator.GenerateCode();
+            }
         }
 
         /// <summary>

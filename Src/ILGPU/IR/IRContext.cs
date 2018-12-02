@@ -9,22 +9,21 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
-using ILGPU.IR.Values;
+using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
+using ILGPU.IR.Types;
+using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Reflection;
-using System.Threading;
-using ILGPU.Util;
-using ILGPU.IR.Types;
 using System.Runtime.CompilerServices;
-#if PARALLEL_PROCESSING
+using System.Threading;
 using System.Threading.Tasks;
-#endif
 
 namespace ILGPU.IR
 {
@@ -33,20 +32,38 @@ namespace ILGPU.IR
     /// </summary>
     public sealed partial class IRContext : DisposeBase
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents no transformer handler.
+        /// </summary>
+        private readonly struct NoHandler : ITransformerHandler
+        {
+            /// <summary cref="ITransformerHandler.BeforeTransformation(IRContext, Transformation)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void BeforeTransformation(
+                IRContext context,
+                Transformation transformation)
+            { }
+
+            /// <summary cref="ITransformerHandler.AfterTransformation(IRContext, Transformation)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void AfterTransformation(
+                IRContext context,
+                Transformation transformation)
+            { }
+        }
+
+        #endregion
+
         #region Instance
 
         private readonly ReaderWriterLockSlim irLock = new ReaderWriterLockSlim(
             LockRecursionPolicy.SupportsRecursion);
-        private long idCounter = 0;
-        private long functionHandleCounter = 0;
-        private long generationCounter = 0;
-        private long nodeMarker = 0L;
+        private readonly Action<Method> gcDelegate;
 
         private readonly Transformer[] transformers;
-        private volatile IRBuilder currentBuilder;
-
-        private readonly FunctionMapping<TopLevelFunction> topLevelFunctions =
-            new FunctionMapping<TopLevelFunction>();
+        private readonly MethodMapping<Method> methods = new MethodMapping<Method>();
 
         /// <summary>
         /// Constructs a new IR context.
@@ -54,35 +71,31 @@ namespace ILGPU.IR
         /// <param name="context">The associated main context.</param>
         /// <param name="flags">The context flags.</param>
         public IRContext(Context context, IRContextFlags flags)
-            : this(context.TypeInformationManger, flags)
-        { }
-
-        /// <summary>
-        /// Constructs a new IR context.
-        /// </summary>
-        /// <param name="typeInformationManager">The associated type context.</param>
-        /// <param name="flags">The context flags.</param>
-        public IRContext(
-            TypeInformationManager typeInformationManager,
-            IRContextFlags flags)
         {
-            basicValueTypes = new PrimitiveType[BasicValueTypes.Length + 1];
-            TypeInformationManager = typeInformationManager ?? throw new ArgumentNullException(nameof(typeInformationManager));
+            Context = context ?? throw new ArgumentNullException(nameof(context));
+            TypeContext = context.TypeContext;
             Flags = flags;
 
-            CreateGlobalTypes();
+            transformers = new Transformer[2];
+            if ((flags & IRContextFlags.AggressiveInlining) == IRContextFlags.AggressiveInlining)
+                CreateTransformers<Inliner.AggressiveInliningConfiguration>();
+            else
+                CreateTransformers<Inliner.DefaultInliningConfiguration>();
 
-            transformers = new Transformer[]
-            {
-                Optimizer.CreateTransformer(
+            gcDelegate = (Method method) => method.GC();
+        }
+
+        private void CreateTransformers<TInliningConfiguration>()
+            where TInliningConfiguration : IInliningConfiguration, new()
+        {
+            transformers[0] = Optimizer.CreateTransformer(
                     OptimizationLevel.Debug,
                     TransformerConfiguration.Transformed,
-                    new DefaultInliningConfiguration()),
-                Optimizer.CreateTransformer(
+                    new TInliningConfiguration());
+            transformers[1] = Optimizer.CreateTransformer(
                     OptimizationLevel.Release,
                     TransformerConfiguration.Transformed,
-                    new DefaultInliningConfiguration()),
-            };
+                    new TInliningConfiguration());
         }
 
         #endregion
@@ -90,19 +103,19 @@ namespace ILGPU.IR
         #region Properties
 
         /// <summary>
-        /// Returns the associated type information manager.
+        /// Returns the main ILGPU context.
         /// </summary>
-        public TypeInformationManager TypeInformationManager { get; }
+        public Context Context { get; }
+
+        /// <summary>
+        /// Returns the associated type context.
+        /// </summary>
+        public IRTypeContext TypeContext { get; }
 
         /// <summary>
         /// Returns the associated flags.
         /// </summary>
         public IRContextFlags Flags { get; }
-
-        /// <summary>
-        /// Returns the current node generation.
-        /// </summary>
-        public ValueGeneration CurrentGeneration => new ValueGeneration(generationCounter);
 
         /// <summary>
         /// Internal (unsafe) access to all top-level functions.
@@ -111,14 +124,14 @@ namespace ILGPU.IR
         /// The resulting collection is not thread safe in terms
         /// of parallel operations on this context.
         /// </remarks>
-        public UnsafeFunctionCollection<FunctionCollections.AllFunctions> UnsafeTopLevelFunctions =>
-            GetUnsafeFunctionCollection(new FunctionCollections.AllFunctions());
+        public UnsafeMethodCollection<MethodCollections.AllMethods> UnsafeMethods =>
+            GetUnsafeMethodCollection(new MethodCollections.AllMethods());
 
         /// <summary>
         /// Returns all top-level functions.
         /// </summary>
-        public FunctionCollection<FunctionCollections.AllFunctions> TopLevelFunctions =>
-            GetFunctionCollection(new FunctionCollections.AllFunctions());
+        public MethodCollection<MethodCollections.AllMethods> Methods =>
+            GetMethodCollection(new MethodCollections.AllMethods());
 
         #endregion
 
@@ -130,11 +143,10 @@ namespace ILGPU.IR
         /// <typeparam name="TPredicate">The type of the predicate to apply.</typeparam>
         /// <param name="predicate">The predicate to apply.</param>
         /// <returns>The resolved function view.</returns>
-        public UnsafeFunctionCollection<TPredicate> GetUnsafeFunctionCollection<TPredicate>(TPredicate predicate)
-            where TPredicate : IFunctionCollectionPredicate
-        {
-            return new UnsafeFunctionCollection<TPredicate>(this, topLevelFunctions.AsReadOnly(), predicate);
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UnsafeMethodCollection<TPredicate> GetUnsafeMethodCollection<TPredicate>(TPredicate predicate)
+            where TPredicate : IMethodCollectionPredicate =>
+            new UnsafeMethodCollection<TPredicate>(this, methods.AsReadOnly(), predicate);
 
         /// <summary>
         /// Returns a thread-safe function view.
@@ -142,20 +154,21 @@ namespace ILGPU.IR
         /// <typeparam name="TPredicate">The type of the predicate to apply.</typeparam>
         /// <param name="predicate">The predicate to apply.</param>
         /// <returns>The resolved function view.</returns>
-        public FunctionCollection<TPredicate> GetFunctionCollection<TPredicate>(TPredicate predicate)
-            where TPredicate : IFunctionCollectionPredicate
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public MethodCollection<TPredicate> GetMethodCollection<TPredicate>(TPredicate predicate)
+            where TPredicate : IMethodCollectionPredicate
         {
             irLock.EnterReadLock();
             try
             {
-                var builder = ImmutableArray.CreateBuilder<TopLevelFunction>(
-                    topLevelFunctions.Count);
-                foreach (var function in topLevelFunctions)
+                var builder = ImmutableArray.CreateBuilder<Method>(
+                    methods.Count);
+                foreach (var function in methods)
                 {
                     if (predicate.Match(function))
                         builder.Add(function);
                 }
-                return new FunctionCollection<TPredicate>(this, builder.ToImmutable(), predicate);
+                return new MethodCollection<TPredicate>(this, builder.ToImmutable(), predicate);
             }
             finally
             {
@@ -167,10 +180,7 @@ namespace ILGPU.IR
         /// Creates a new unique node marker.
         /// </summary>
         /// <returns>The new node marker.</returns>
-        public NodeMarker NewNodeMarker()
-        {
-            return new NodeMarker(Interlocked.Add(ref nodeMarker, 1L));
-        }
+        public NodeMarker NewNodeMarker() => Context.NewNodeMarker();
 
         /// <summary>
         /// Tries to resolve the given managed method to function reference.
@@ -178,7 +188,7 @@ namespace ILGPU.IR
         /// <param name="method">The method to resolve.</param>
         /// <param name="handle">The resolved function reference (if any).</param>
         /// <returns>True, iff the requested function could be resolved.</returns>
-        public bool TryGetFunctionHandle(MethodBase method, out FunctionHandle handle)
+        public bool TryGetMethodHandle(MethodBase method, out MethodHandle handle)
         {
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
@@ -186,7 +196,7 @@ namespace ILGPU.IR
             irLock.EnterReadLock();
             try
             {
-                return topLevelFunctions.TryGetHandle(method, out handle);
+                return methods.TryGetHandle(method, out handle);
             }
             finally
             {
@@ -200,7 +210,7 @@ namespace ILGPU.IR
         /// <param name="handle">The function handle to resolve.</param>
         /// <param name="function">The resolved function (if any).</param>
         /// <returns>True, iff the requested function could be resolved.</returns>
-        public bool TryGetFunction(FunctionHandle handle, out TopLevelFunction function)
+        public bool TryGetMethod(MethodHandle handle, out Method function)
         {
             if (handle.IsEmpty)
             {
@@ -211,7 +221,7 @@ namespace ILGPU.IR
             irLock.EnterReadLock();
             try
             {
-                return topLevelFunctions.TryGetData(handle, out function);
+                return methods.TryGetData(handle, out function);
             }
             finally
             {
@@ -225,7 +235,7 @@ namespace ILGPU.IR
         /// <param name="method">The method to resolve.</param>
         /// <param name="function">The resolved function (if any).</param>
         /// <returns>True, iff the requested function could be resolved.</returns>
-        public bool TryGetFunction(MethodBase method, out TopLevelFunction function)
+        public bool TryGetMethod(MethodBase method, out Method function)
         {
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
@@ -234,9 +244,9 @@ namespace ILGPU.IR
             irLock.EnterReadLock();
             try
             {
-                if (!topLevelFunctions.TryGetHandle(method, out FunctionHandle handle))
+                if (!methods.TryGetHandle(method, out MethodHandle handle))
                     return false;
-                return topLevelFunctions.TryGetData(handle, out function);
+                return methods.TryGetData(handle, out function);
             }
             finally
             {
@@ -249,231 +259,211 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="method">The method to resolve.</param>
         /// <returns>The resolved function.</returns>
-        public TopLevelFunction GetFunction(FunctionHandle method)
+        public Method GetMethod(MethodHandle method)
         {
-            if (!TryGetFunction(method, out TopLevelFunction function))
+            if (!TryGetMethod(method, out Method function))
                 throw new InvalidOperationException("Could not find the corresponding top-level function");
             return function;
         }
 
         /// <summary>
-        /// Refereshes the given top-level function.
+        /// Declares a method.
         /// </summary>
-        /// <param name="topLevelFunction">The function to refresh.</param>
-        public void RefreshFunction(ref TopLevelFunction topLevelFunction)
+        /// <param name="methodBase">The method to declare.</param>
+        /// <param name="created">True, iff the method has been created.</param>
+        /// <returns>The declared method.</returns>
+        internal Method Declare(
+            MethodBase methodBase,
+            out bool created)
         {
-            if (topLevelFunction == null)
-                throw new ArgumentNullException(nameof(topLevelFunction));
-            topLevelFunction = GetFunction(topLevelFunction.Handle);
-        }
-
-        /// <summary>
-        /// Creates a new IR builder.
-        /// </summary>
-        /// <returns>The created IR builder.</returns>
-        [SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope",
-            Justification = "The builder will be disposed later on")]
-        public IRBuilder CreateBuilder() => CreateBuilder(IRBuilderFlags.None);
-
-        /// <summary>
-        /// Creates a new IR builder.
-        /// </summary>
-        /// <param name="flags">The builder flags.</param>
-        /// <returns>The created IR builder.</returns>
-        [SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope",
-            Justification = "The builder will be disposed later on")]
-        public IRBuilder CreateBuilder(IRBuilderFlags flags)
-        {
-            var newBuilder = new IRBuilder(this, flags);
-            if (Interlocked.CompareExchange(ref currentBuilder, newBuilder, null) != null)
-                throw new InvalidOperationException();
-            return newBuilder;
-        }
-
-        /// <summary>
-        /// Finalizes the given builder.
-        /// </summary>
-        /// <param name="builder">The builder to finalize.</param>
-        /// <param name="updatedTopLevelFunctions">A collection of updated top-level functions.</param>
-        internal void FinalizeBuilder(
-            IRBuilder builder,
-            FunctionMapping<FunctionBuilder> updatedTopLevelFunctions)
-        {
-            irLock.EnterWriteLock();
+            Debug.Assert(methodBase != null, "Invalid method base");
+            // Check for existing method
+            irLock.EnterUpgradeableReadLock();
             try
             {
-                Debug.Assert(builder != null, "Invalid builder to finalize");
-                if (Interlocked.CompareExchange(ref currentBuilder, null, builder) != builder)
-                    throw new InvalidOperationException();
-
-                // Update top-level functions
-                foreach (var functionBuilder in updatedTopLevelFunctions)
+                if (methods.TryGetHandle(methodBase, out MethodHandle handle))
                 {
-                    var topLevelFunction = functionBuilder.FunctionValue as TopLevelFunction;
-                    Debug.Assert(topLevelFunction != null, "Invalid top-level function");
-
-#if VERIFICATION
-                    Debug.Assert(topLevelFunction.IsSealed, "Function not sealed");
-#endif
-
-
-                    // Register new function
-                    topLevelFunctions.Register(topLevelFunction.Handle, topLevelFunction);
+                    created = false;
+                    return methods[handle];
                 }
+
+                handle = MethodHandle.Create(methodBase.Name);
+                var declaration = new MethodDeclaration(
+                    handle,
+                    CreateType(methodBase.GetReturnType()),
+                    methodBase);
+                return Declare(declaration, out created);
             }
             finally
             {
-                irLock.ExitWriteLock();
+                irLock.ExitUpgradeableReadLock();
             }
+
         }
 
         /// <summary>
-        /// Unloads all unreachable methods.
+        /// Declares a method.
         /// </summary>
-        /// <param name="reachableFunctions">The axiomatically reachable functions.</param>
-        public void UnloadUnreachableMethods(ImmutableArray<TopLevelFunction> reachableFunctions)
+        /// <param name="declaration">The method declaration.</param>
+        /// <param name="created">True, iff the method has been created.</param>
+        /// <returns>The declared method.</returns>
+        internal Method Declare(
+            in MethodDeclaration declaration,
+            out bool created)
         {
-            if (reachableFunctions.IsDefaultOrEmpty)
-                throw new ArgumentOutOfRangeException(nameof(reachableFunctions));
+            Debug.Assert(declaration.ReturnType != null, "Invalid return type");
 
-            irLock.EnterWriteLock();
+            created = false;
+            irLock.EnterUpgradeableReadLock();
             try
             {
-                var toProcess = new Stack<TopLevelFunction>(reachableFunctions.Length << 1);
-                var reachable = new HashSet<TopLevelFunction>();
-                var current = reachableFunctions[0];
-                for (int i = 1, e = reachableFunctions.Length; i < e; ++i)
-                    toProcess.Push(reachableFunctions[i]);
-
-                while (true)
+                if (!methods.TryGetData(declaration.Handle, out Method function))
                 {
-                    if (reachable.Add(current))
+                    irLock.EnterWriteLock();
+                    try
                     {
-                        var scope = Scope.Create(this, current);
-                        var references = scope.ComputeFunctionReferences(
-                            new FunctionCollections.AllFunctions());
-                        foreach (var reference in references)
-                            toProcess.Push(reference);
-                    }
-                    if (toProcess.Count < 1)
-                        break;
-                    current = toProcess.Pop();
-                }
+                        created = true;
+                        var functionId = Context.CreateFunctionHandle();
+                        var functionName = declaration.HasSource ? declaration.Source.Name :
+                            declaration.Handle.Name ?? "Func";
+                        var handle = new MethodHandle(functionId, functionName);
+                        var specializedDeclaration = declaration.Specialize(handle);
+                        function = new Method(this, specializedDeclaration);
+                        methods.Register(handle, function);
 
-                foreach (var func in TopLevelFunctions)
-                {
-                    if (!reachable.Contains(func))
-                        topLevelFunctions.Remove(func.Handle);
+                        // Check for external function
+                        if ((declaration.Flags & MethodFlags.ExternalDeclaration) == MethodFlags.ExternalDeclaration)
+                        {
+                            using (var builder = function.CreateBuilder())
+                            {
+                                var bbBuilder = builder.CreateEntryBlock();
+                                var returnValue = bbBuilder.CreateNull(declaration.ReturnType);
+                                bbBuilder.CreateReturn(returnValue);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        irLock.ExitWriteLock();
+                    }
                 }
+                return function;
             }
             finally
             {
-                irLock.ExitWriteLock();
+                irLock.ExitUpgradeableReadLock();
             }
         }
 
         /// <summary>
-        /// Unloads all related nodes that are associated with the given method.
+        /// Imports the given method (and all dependencies) into this context.
         /// </summary>
-        /// <param name="handle">The function handle to unload.</param>
-        /// <remarks>All effects of the unloading process will be visible after a GC step.</remarks>
-        public void UnloadMethod(FunctionHandle handle)
+        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <param name="source">The method to import.</param>
+        /// <param name="scopeProvider">Resolves methods to scopes.</param>
+        /// <returns>The imported method.</returns>
+        public Method Import<TScopeProvider>(Method source, TScopeProvider scopeProvider)
+            where TScopeProvider : IScopeProvider
         {
-            irLock.EnterWriteLock();
+            irLock.EnterUpgradeableReadLock();
             try
             {
-                if (!topLevelFunctions.Remove(handle))
-                    throw new ArgumentOutOfRangeException(nameof(handle));
+                if (methods.TryGetData(source.Handle, out Method method))
+                    return method;
+
+                irLock.EnterWriteLock();
+                try
+                {
+                    return ImportInternal(source, scopeProvider);
+                }
+                finally
+                {
+                    irLock.ExitWriteLock();
+                }
             }
             finally
             {
-                irLock.ExitWriteLock();
+                irLock.ExitUpgradeableReadLock();
             }
         }
 
         /// <summary>
-        /// Imports the given function into this context.
+        /// Imports the given method (and all dependencies) into this context.
         /// </summary>
-        /// <param name="sourceContext">The source context.</param>
-        /// <param name="sourceFunction">The function to import.</param>
-        /// <param name="importSpecification">The import specification.</param>
-        /// <returns>The imported function.</returns>
-        public TopLevelFunction Import(
-            IRContext sourceContext,
-            TopLevelFunction sourceFunction,
-            in ContextImportSpecification importSpecification)
+        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <param name="source">The method to import.</param>
+        /// <param name="scopeProvider">Resolves methods to scopes.</param>
+        /// <returns>The imported method.</returns>
+        private Method ImportInternal<TScopeProvider>(Method source, TScopeProvider scopeProvider)
+            where TScopeProvider : IScopeProvider
         {
-            using (var builder = CreateBuilder())
+            Debug.Assert(source != null, "Invalid source");
+            Debug.Assert(source.Context != this, "Cannot import a function into the same context");
+
+            var allReferences = AllReferences.Create(
+                scopeProvider[source],
+                new MethodCollections.AllMethods(),
+                scopeProvider);
+
+            // Declare all functions and build mapping
+            var methodsToRebuild = new List<Method>();
+            var targetMapping = new Dictionary<Method, Method>();
+            foreach (var entry in allReferences)
             {
-                sourceFunction = builder.Import(
-                    sourceContext,
-                    sourceFunction,
-                    importSpecification.ToSpecializer());
+                var declared = Declare(entry.Key.Declaration, out bool created);
+                targetMapping.Add(entry.Key, declared);
+                if (created)
+                    methodsToRebuild.Add(entry.Key);
             }
 
-            RefreshFunction(ref sourceFunction);
-            return sourceFunction;
+            // Rebuild all functions while using the created mapping
+            var methodMapping = new Method.MethodMapping(targetMapping);
+            foreach (var sourceMethod in methodsToRebuild)
+            {
+                var targetMethod = methodMapping[sourceMethod];
+
+                using (var builder = targetMethod.CreateBuilder())
+                {
+                    // Build new parameters to match the old ones
+                    var parameterArguments = ImmutableArray.CreateBuilder<ValueReference>(
+                        sourceMethod.NumParameters);
+                    foreach (var param in sourceMethod.Parameters)
+                    {
+                        var newParam = builder.AddParameter(param.Type, param.Name);
+                        parameterArguments.Add(newParam);
+                    }
+                    var parameterMapping = sourceMethod.CreateParameterMapping(
+                        parameterArguments.MoveToImmutable());
+
+                    // Rebuild the source function into this context
+                    var references = allReferences[sourceMethod];
+                    var rebuilder = builder.CreateRebuilder(
+                        parameterMapping,
+                        references.Scope,
+                        methodMapping);
+
+                    // Create appropriate return instructions
+                    var exitBlocks = rebuilder.Rebuild();
+                    foreach (var (blockBuilder, returnValue) in exitBlocks)
+                        blockBuilder.CreateReturn(returnValue);
+
+                    // Wire entry block
+                    builder.EntryBlock = rebuilder.EntryBlock.BasicBlock;
+                }
+            }
+
+            return targetMapping[source];
         }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Creates a new unique node id.
-        /// </summary>
-        /// <returns>A new unique node id.</returns>
-        private NodeId CreateNodeId()
-        {
-            return new NodeId(Interlocked.Add(ref idCounter, 1));
-        }
-
-        /// <summary>
-        /// Prepares the given function declaration by creating a new handle
-        /// if no handle was specified.
-        /// </summary>
-        /// <param name="declaration">The declaration to prepare.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void PrepareFunctionDeclaration(ref FunctionDeclaration declaration)
-        {
-            if (declaration.HasHandle)
-                return;
-            var functionId = Interlocked.Add(ref functionHandleCounter, 1);
-            var functionName = declaration.HasSource ? declaration.Source.Name :
-                declaration.Handle.Name ?? "Func";
-            var handle = new FunctionHandle(functionId, functionName);
-            declaration = declaration.Specialize(handle);
-        }
-
-#if VERIFICATION
-        /// <summary>
-        /// Verifies the given generation and raises an exception if the given
-        /// generation is not compatible with the current one.
-        /// </summary>
-        /// <param name="value">The value to verify.</param>
-        internal void VerifyGeneration(Value value)
-        {
-            Debug.Assert(
-                value.Generation == CurrentGeneration,
-                "Invalid node operation on an invalid generation");
-        }
-#endif
 
         /// <summary>
         /// Creates an instantiated node by assigning a unique node id.
         /// </summary>
-        /// <typeparam name="T">The node type.</typeparam>
         /// <param name="value">The node to create.</param>
         /// <returns>The created node.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal T CreateInstantiated<T>(T value)
-            where T : Value
+        internal void Create(Value value)
         {
-#if VERIFICATION
-            VerifyGeneration(value);
-#endif
-            value.Id = CreateNodeId();
-            return value;
+            value.Id = Context.CreateNodeId();
         }
 
         /// <summary>
@@ -493,7 +483,114 @@ namespace ILGPU.IR
         {
             if (level < OptimizationLevel.Debug || level > OptimizationLevel.Release)
                 throw new ArgumentOutOfRangeException(nameof(level));
-            transformers[(int)level].Transform(this);
+            Transform(transformers[(int)level]);
+        }
+
+        /// <summary>
+        /// Applies the given transfomer to the current context.
+        /// </summary>
+        /// <param name="transformer">The target transformer.</param>
+        public void Transform(in Transformer transformer) =>
+            Transform(transformer, new NoHandler());
+
+        /// <summary>
+        /// Applies the given transfomer to the current context.
+        /// </summary>
+        /// <typeparam name="THandler">The handler type.</typeparam>
+        /// <param name="transformer">The target transformer.</param>
+        /// <param name="handler">The target handler.</param>
+        public void Transform<THandler>(in Transformer transformer, THandler handler)
+            where THandler : ITransformerHandler
+        {
+            irLock.EnterWriteLock();
+            try
+            {
+                transformer.Transform(this, handler);
+            }
+            finally
+            {
+                irLock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
+        /// Dumps the IR context to the given file.
+        /// </summary>
+        public void DumpToFile(string fileName)
+        {
+            using (var stream = new StreamWriter(fileName, false))
+                Dump(stream);
+        }
+
+        /// <summary>
+        /// Dumps the IR context to the console output.
+        /// </summary>
+        public void DumpToConsole()
+        {
+            Dump(Console.Out);
+        }
+
+        /// <summary>
+        /// Dumps the IR context to the given text writer.
+        /// </summary>
+        /// <param name="textWriter">The text writer.</param>
+        public void Dump(TextWriter textWriter)
+        {
+            foreach (var method in UnsafeMethods)
+            {
+                method.Dump(textWriter, false);
+                textWriter.WriteLine();
+                textWriter.WriteLine("------------------------------");
+            }
+        }
+
+        #endregion
+
+        #region GC
+
+        /// <summary>
+        /// Rebuilds all nodes and clears up the IR.
+        /// </summary>
+        /// <remarks>
+        /// This method must not be invoked in the context of other
+        /// parallel operations using this context.
+        /// </remarks>
+        [SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods",
+            Justification = "Users might want to force a global GC to free memory after an internal ILGPU GC run")]
+        public void GC()
+        {
+            irLock.EnterWriteLock();
+            try
+            {
+                Parallel.ForEach(UnsafeMethods, gcDelegate);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                irLock.ExitWriteLock();
+            }
+
+            if ((Flags & IRContextFlags.ForceSystemGC) == IRContextFlags.ForceSystemGC)
+                System.GC.Collect();
+        }
+
+        /// <summary>
+        /// Clears this context and removes all nodes
+        /// </summary>
+        public void Clear()
+        {
+            irLock.EnterWriteLock();
+            try
+            {
+                methods.Clear();
+            }
+            finally
+            {
+                irLock.ExitWriteLock();
+            }
         }
 
         #endregion
@@ -505,68 +602,6 @@ namespace ILGPU.IR
         {
             irLock.Dispose();
         }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Defines import settings for a function import.
-    /// </summary>
-    public readonly struct ContextImportSpecification
-    {
-        #region Nested Types
-
-        /// <summary>
-        /// Represents an import specialization wrapper.
-        /// </summary>
-        public readonly struct Specializer : IFunctionImportSpecializer
-        {
-            /// <summary>
-            /// Constructs a new specializer.
-            /// </summary>
-            /// <param name="specification">The associated specification.</param>
-            internal Specializer(in ContextImportSpecification specification)
-            {
-                Specification = specification;
-            }
-
-            /// <summary>
-            /// Returns the associated specification.
-            /// </summary>
-            public ContextImportSpecification Specification { get; }
-
-            /// <summary cref="IFunctionImportSpecializer.Map(IRContext, TopLevelFunction, IRBuilder, IRRebuilder)"/>
-            public void Map(
-                IRContext sourceContext,
-                TopLevelFunction sourceFunction,
-                IRBuilder builder,
-                IRRebuilder rebuilder)
-            {
-                Specification.Map(sourceFunction, rebuilder);
-            }
-        }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Maps this specifiction to the given rebuilder.
-        /// </summary>
-        /// <param name="sourceFunction">The source function to import.</param>
-        /// <param name="rebuilder">The target rebuilder.</param>
-        [SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic",
-            Justification = "This method will contain functionality in future versions")]
-        public void Map(TopLevelFunction sourceFunction, IRRebuilder rebuilder)
-        {
-            // Add future functionality here
-        }
-
-        /// <summary>
-        /// Turns this specification into an import specializer.
-        /// </summary>
-        /// <returns>The specialization wrapper.</returns>
-        public Specializer ToSpecializer() => new Specializer(this);
 
         #endregion
     }

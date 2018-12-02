@@ -14,6 +14,7 @@ using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -63,27 +64,41 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Converts a node into a target type.
     /// </summary>
-    public sealed class ConvertValue : UnifiedValue
+    public sealed class ConvertValue : Value
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a convert node type.
+        /// </summary>
+        /// <param name="targetType">The target type.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(TypeNode targetType) =>
+            targetType;
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new convert value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The value to convert.</param>
         /// <param name="targetType">The target type to convert the value to.</param>
         /// <param name="flags">The operation flags.</param>
         internal ConvertValue(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference value,
             TypeNode targetType,
             ConvertFlags flags)
-            : base(generation)
+            : base(basicBlock, ComputeType(targetType))
         {
+            ConvertType = targetType;
             Flags = flags;
 
-            Seal(ImmutableArray.Create(value), targetType);
+            Seal(ImmutableArray.Create(value));
         }
 
         #endregion
@@ -94,6 +109,11 @@ namespace ILGPU.IR.Values
         /// Returns the operand.
         /// </summary>
         public ValueReference Value => this[0];
+
+        /// <summary>
+        /// Returns the target type.
+        /// </summary>
+        public TypeNode ConvertType { get; }
 
         /// <summary>
         /// Returns the associated flags.
@@ -134,37 +154,23 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(ConvertType);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateConvert(
                 rebuilder.Rebuild(Value),
-                rebuilder.Rebuild(Type),
+                ConvertType,
                 Flags);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is ConvertValue value)
-                return value.Flags == Flags &&
-                    base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x4AC107B5;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "conv";

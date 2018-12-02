@@ -22,22 +22,37 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a constant value that will be instantiated.
     /// </summary>
-    public abstract class InstantiatedConstantNode : InstantiatedValue
+    public abstract class ConstantNode : Value
     {
         #region Instance
 
         /// <summary>
         /// Constructs a new constant value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="type">The constant type.</param>
-        internal InstantiatedConstantNode(
-            ValueGeneration generation,
-            TypeNode type)
-            : base(generation, true)
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="constantType">The type of the constant node.</param>
+        internal ConstantNode(BasicBlock basicBlock, TypeNode constantType)
+            : base(basicBlock, constantType)
         {
-            Seal(ImmutableArray<ValueReference>.Empty, type);
+            ConstantType = constantType;
+            Seal(ImmutableArray<ValueReference>.Empty);
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the associated constant type.
+        /// </summary>
+        protected TypeNode ConstantType { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected sealed override TypeNode UpdateType(IRContext context) => ConstantType;
 
         #endregion
     }
@@ -45,19 +60,17 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an immutable null value.
     /// </summary>
-    public sealed class NullValue : InstantiatedConstantNode
+    public sealed class NullValue : ConstantNode
     {
         #region Instance
 
         /// <summary>
         /// Constructs a new object value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="type">The object type.</param>
-        internal NullValue(
-            ValueGeneration generation,
-            TypeNode type)
-            : base(generation, type)
+        internal NullValue(BasicBlock basicBlock, TypeNode type)
+            : base(basicBlock, type)
         { }
 
         #endregion
@@ -66,14 +79,10 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateNull(
-                rebuilder.Rebuild(Type));
+            builder.CreateNull(Type);
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -91,7 +100,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a primitive value.
     /// </summary>
-    public sealed class PrimitiveValue : InstantiatedConstantNode
+    public sealed class PrimitiveValue : ConstantNode
     {
         #region Instance
 
@@ -101,15 +110,20 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new primitive constant.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="type">The primitive type.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="basicValueType">The basic value type.</param>
         /// <param name="value">The raw value.</param>
         internal PrimitiveValue(
-            ValueGeneration generation,
-            PrimitiveType type,
+            IRContext context,
+            BasicBlock basicBlock,
+            BasicValueType basicValueType,
             long value)
-            : base(generation, type)
+            : base(
+                  basicBlock,
+                  context.GetPrimitiveType(basicValueType))
         {
+            BasicValueType = basicValueType;
             rawValue = value;
         }
 
@@ -118,9 +132,14 @@ namespace ILGPU.IR.Values
         #region Properties
 
         /// <summary>
-        /// Returns the associated type.
+        /// Returns the associated basic type.
         /// </summary>
-        public new PrimitiveType Type => base.Type as PrimitiveType;
+        public new BasicValueType BasicValueType { get; }
+
+        /// <summary>
+        /// Returns the associated primitive type.
+        /// </summary>
+        public PrimitiveType PrimitiveType => Type as PrimitiveType;
 
         /// <summary>
         /// Returns the value as i1.
@@ -203,15 +222,10 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreatePrimitiveValue(
-                BasicValueType,
-                RawValue);
+            builder.CreatePrimitiveValue(BasicValueType, rawValue);
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -266,25 +280,23 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an immutable string value.
     /// </summary>
-    public sealed class StringValue : UnifiedValue
+    public sealed class StringValue : ConstantNode
     {
         #region Instance
 
         /// <summary>
         /// Constructs a new string constant.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="stringType">The string type.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The string value.</param>
         internal StringValue(
-            ValueGeneration generation,
-            StringType stringType,
+            IRContext context,
+            BasicBlock basicBlock,
             string value)
-            : base(generation, false)
+            : base(basicBlock, context.StringType)
         {
             String = value;
-
-            Seal(ImmutableArray<ValueReference>.Empty, stringType);
         }
 
         #endregion
@@ -294,7 +306,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the associated type.
         /// </summary>
-        public new StringType Type => base.Type as StringType;
+        public StringType StringType => Type as StringType;
 
         /// <summary>
         /// Returns the associated string constant.
@@ -310,29 +322,11 @@ namespace ILGPU.IR.Values
             builder.CreatePrimitiveValue(String);
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals" />
-        public override bool Equals(object obj)
-        {
-            if (obj is StringValue stringValue)
-                return stringValue.String == String &&
-                    base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.GetHashCode" />
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ String.GetHashCode();
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "const.str";
@@ -346,21 +340,23 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents the native size of a specific type.
     /// </summary>
-    public sealed class SizeOfValue : InstantiatedConstantNode
+    public sealed class SizeOfValue : ConstantNode
     {
         #region Instance
 
         /// <summary>
         /// Constructs a new sizeof value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="targetType">The target type of the size of computation.</param>
-        /// <param name="type">The resulting int type.</param>
         internal SizeOfValue(
-            ValueGeneration generation,
-            TypeNode targetType,
-            TypeNode type)
-            : base(generation, type)
+            IRContext context,
+            BasicBlock basicBlock,
+            TypeNode targetType)
+            : base(
+                  basicBlock,
+                  context.GetPrimitiveType(BasicValueType.Int32))
         {
             TargetType = targetType;
         }
@@ -380,14 +376,10 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateSizeOf(
-                rebuilder.Rebuild(TargetType));
+            builder.CreateSizeOf(TargetType);
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -398,52 +390,6 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() => TargetType.ToString();
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents an undefined value of any type.
-    /// </summary>
-    public sealed class UndefValue : InstantiatedConstantNode
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new undefined value.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="type">The type.</param>
-        internal UndefValue(
-            ValueGeneration generation,
-            TypeNode type)
-            : base(generation, type)
-        { }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateUndef(
-                rebuilder.Rebuild(Type));
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "undef";
-
-        /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => Type.ToString();
 
         #endregion
     }

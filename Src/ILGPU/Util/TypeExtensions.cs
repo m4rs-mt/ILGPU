@@ -244,6 +244,38 @@ namespace ILGPU.Util
         /// Resolves the basic-value type for the given type.
         /// </summary>
         /// <param name="type">The source type.</param>
+        /// <returns>The resolved basic-value type.</returns>
+        public static BasicValueType GetBasicValueType(this ArithmeticBasicValueType type)
+        {
+            switch (type)
+            {
+                case ArithmeticBasicValueType.UInt1:
+                    return BasicValueType.Int1;
+                case ArithmeticBasicValueType.Int8:
+                case ArithmeticBasicValueType.UInt8:
+                    return BasicValueType.Int8;
+                case ArithmeticBasicValueType.Int16:
+                case ArithmeticBasicValueType.UInt16:
+                    return BasicValueType.Int16;
+                case ArithmeticBasicValueType.Int32:
+                case ArithmeticBasicValueType.UInt32:
+                    return BasicValueType.Int32;
+                case ArithmeticBasicValueType.Int64:
+                case ArithmeticBasicValueType.UInt64:
+                    return BasicValueType.Int64;
+                case ArithmeticBasicValueType.Float32:
+                    return BasicValueType.Float32;
+                case ArithmeticBasicValueType.Float64:
+                    return BasicValueType.Float64;
+                default:
+                    return BasicValueType.None;
+            }
+        }
+
+        /// <summary>
+        /// Resolves the basic-value type for the given type.
+        /// </summary>
+        /// <param name="type">The source type.</param>
         /// <param name="isUnsigned">True, if the basic value type should be interpreted as unsigned.</param>
         /// <returns>The resolved basic-value type.</returns>
         public static ArithmeticBasicValueType GetArithmeticBasicValueType(

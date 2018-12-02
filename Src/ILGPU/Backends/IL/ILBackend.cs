@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using System;
@@ -105,8 +104,11 @@ namespace ILGPU.Backends.IL
         internal ILBackend(
             Context context,
             int warpSize,
-            KernelArgumentMapper argumentMapper)
-            : base(context, RuntimePlatform, argumentMapper)
+            ArgumentMapper argumentMapper)
+            : base(
+                  context,
+                  new ILABI(context.TypeContext, RuntimePlatform),
+                  argumentMapper)
         {
             WarpSize = warpSize;
         }
@@ -124,14 +126,9 @@ namespace ILGPU.Backends.IL
 
         #region Methods
 
-        /// <summary cref="Backend.CreateImportSpecification"/>
-        protected override ContextImportSpecification CreateImportSpecification() =>
-            new ContextImportSpecification();
-
-        /// <summary cref="Backend.Compile(EntryPoint, ABI, in BackendContext, in KernelSpecialization)"/>
+        /// <summary cref="Backend.Compile(EntryPoint, in BackendContext, in KernelSpecialization)"/>
         protected sealed override CompiledKernel Compile(
             EntryPoint entryPoint,
-            ABI abi,
             in BackendContext backendContext,
             in KernelSpecialization specialization)
         {

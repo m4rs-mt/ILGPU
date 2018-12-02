@@ -20,20 +20,6 @@ namespace ILGPU.IR.Construction
     partial class IRBuilder
     {
         /// <summary>
-        /// Creates a node that represents an undefined value.
-        /// </summary>
-        /// <param name="type">The type.</param>
-        /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateUndef(TypeNode type)
-        {
-            Debug.Assert(type != null, "Invalid type node");
-
-            return Context.CreateInstantiated(new UndefValue(
-                Generation,
-                type));
-        }
-
-        /// <summary>
         /// Creates a null value for the given type.
         /// </summary>
         /// <param name="type">The target type.</param>
@@ -44,8 +30,8 @@ namespace ILGPU.IR.Construction
 
             if (type is PrimitiveType primitiveType)
                 return CreatePrimitiveValue(primitiveType.BasicValueType, 0);
-            return Context.CreateInstantiated(new NullValue(
-                Generation,
+            return Append(new NullValue(
+                BasicBlock,
                 type));
         }
 
@@ -111,9 +97,9 @@ namespace ILGPU.IR.Construction
         {
             if (@string == null)
                 throw new ArgumentNullException(nameof(@string));
-            return CreateUnifiedValue(new StringValue(
-                Generation,
-                StringType,
+            return Append(new StringValue(
+                Context,
+                BasicBlock,
                 @string));
         }
 
@@ -124,9 +110,10 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(bool value)
         {
-            return Context.CreateInstantiated(new PrimitiveValue(
-                Generation,
-                CreatePrimitiveType(BasicValueType.Int1),
+            return Append(new PrimitiveValue(
+                Context,
+                BasicBlock,
+                BasicValueType.Int1,
                 value ? 1 : 0));
         }
 
@@ -138,9 +125,10 @@ namespace ILGPU.IR.Construction
         [CLSCompliant(false)]
         public PrimitiveValue CreatePrimitiveValue(sbyte value)
         {
-            return Context.CreateInstantiated(new PrimitiveValue(
-                Generation,
-                CreatePrimitiveType(BasicValueType.Int8),
+            return Append(new PrimitiveValue(
+                Context,
+                BasicBlock,
+                BasicValueType.Int8,
                 value));
         }
 
@@ -159,9 +147,10 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(short value)
         {
-            return Context.CreateInstantiated(new PrimitiveValue(
-                Generation,
-                CreatePrimitiveType(BasicValueType.Int16),
+            return Append(new PrimitiveValue(
+                Context,
+                BasicBlock,
+                BasicValueType.Int16,
                 value));
         }
 
@@ -181,9 +170,10 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(int value)
         {
-            return Context.CreateInstantiated(new PrimitiveValue(
-                Generation,
-                CreatePrimitiveType(BasicValueType.Int32),
+            return Append(new PrimitiveValue(
+                Context,
+                BasicBlock,
+                BasicValueType.Int32,
                 value));
         }
 
@@ -203,9 +193,10 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(long value)
         {
-            return Context.CreateInstantiated(new PrimitiveValue(
-                Generation,
-                CreatePrimitiveType(BasicValueType.Int64),
+            return Append(new PrimitiveValue(
+                Context,
+                BasicBlock,
+                BasicValueType.Int64,
                 value));
         }
 
@@ -225,9 +216,10 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(float value)
         {
-            return Context.CreateInstantiated(new PrimitiveValue(
-                Generation,
-                CreatePrimitiveType(BasicValueType.Float32),
+            return Append(new PrimitiveValue(
+                Context,
+                BasicBlock,
+                BasicValueType.Float32,
                 Unsafe.As<float, int>(ref value)));
         }
 
@@ -240,9 +232,10 @@ namespace ILGPU.IR.Construction
         {
             if ((Context.Flags & IRContextFlags.Force32BitFloats) == IRContextFlags.Force32BitFloats)
                 return CreatePrimitiveValue((float)value);
-            return Context.CreateInstantiated(new PrimitiveValue(
-                Generation,
-                CreatePrimitiveType(BasicValueType.Float64),
+            return Append(new PrimitiveValue(
+                Context,
+                BasicBlock,
+                BasicValueType.Float64,
                 Unsafe.As<double, long>(ref value)));
         }
 
@@ -254,9 +247,10 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(BasicValueType type, long rawValue)
         {
-            return Context.CreateInstantiated(new PrimitiveValue(
-                Generation,
-                CreatePrimitiveType(type),
+            return Append(new PrimitiveValue(
+                Context,
+                BasicBlock,
+                type,
                 rawValue));
         }
 

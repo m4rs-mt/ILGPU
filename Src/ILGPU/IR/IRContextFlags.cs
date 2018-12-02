@@ -72,5 +72,11 @@ namespace ILGPU.IR
         /// Forces a .Net GC run after every context GC.
         /// </summary>
         ForceSystemGC = 1 << 7,
+
+        /// <summary>
+        /// Disables the on-the-fly constant propagation functionality
+        /// (e.g. for debugging purposes).
+        /// </summary>
+        DisableConstantPropagation = 1 << 8,
     }
 }

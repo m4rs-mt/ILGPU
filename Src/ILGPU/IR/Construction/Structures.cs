@@ -37,7 +37,7 @@ namespace ILGPU.IR.Construction
                 return CreateEnumValue(instance);
             if (type.IsClass)
                 throw new ArgumentOutOfRangeException(nameof(instance));
-            var typeInfo = Context.TypeInformationManager.GetTypeInfo(type);
+            var typeInfo = Context.TypeContext.GetTypeInfo(type);
 
             var result = CreateNull(CreateType(type));
             for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
@@ -70,8 +70,8 @@ namespace ILGPU.IR.Construction
             else if (objectValue is SetField setField && setField.FieldIndex == fieldIndex)
                 return setField.Value;
 
-            return CreateUnifiedValue(new GetField(
-                Generation,
+            return Append(new GetField(
+                BasicBlock,
                 objectValue,
                 fieldIndex));
         }
@@ -114,8 +114,8 @@ namespace ILGPU.IR.Construction
             Debug.Assert(fieldIndex >= 0 && fieldIndex < structType.NumChildren, "Invalid field index");
             Debug.Assert(structType.Children[fieldIndex] == value.Type, "Incompatible value type");
 
-            return CreateUnifiedValue(new SetField(
-                Generation,
+            return Append(new SetField(
+                BasicBlock,
                 objectValue,
                 fieldIndex,
                 value));

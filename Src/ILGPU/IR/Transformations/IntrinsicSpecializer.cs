@@ -9,7 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
+using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
@@ -20,7 +20,7 @@ namespace ILGPU.IR.Transformations
     /// <summary>
     /// The basic configuration interface for all intrinsic specializers.
     /// </summary>
-    public interface IIntrinsicSpecializerConfiguration : IFunctionImportSpecializer
+    public interface IIntrinsicSpecializerConfiguration
     {
         /// <summary>
         /// Returns true if assertions are enabled.
@@ -44,99 +44,44 @@ namespace ILGPU.IR.Transformations
         /// Returns the associated math implementation resolver.
         /// </summary>
         IntrinsicImplementationResolver ImplementationResolver { get; }
-
-        /// <summary>
-        /// Callback that is invoked when a new intrinsic is imported.
-        /// </summary>
-        /// <param name="topLevelFunction">The new top level function.</param>
-        void OnImportIntrinsic(TopLevelFunction topLevelFunction);
     }
 
     /// <summary>
     /// Represents an intrinsic implementation specializer.
     /// </summary>
-    public sealed class IntrinsicSpecializer<TConfiguration> : UnorderedTransformation
+    public sealed class IntrinsicSpecializer<TConfiguration> : UnorderedTransformation<AsyncCachedScopeProvider>
         where TConfiguration : IIntrinsicSpecializerConfiguration
     {
-        #region Nested Types
-
-        /// <summary>
-        /// Represents a specialization context.
-        /// </summary>
-        private readonly struct SpecializationContext : IImplFunctionSpecializationContext
-        {
-            /// <summary>
-            /// Constructs a new specialization context.
-            /// </summary>
-            /// <param name="dominators">The current dominators.</param>
-            /// <param name="placement">The current placement information.</param>
-            public SpecializationContext(
-                Dominators dominators,
-                Placement placement)
-            {
-                Debug.Assert(dominators != null, "Invalid dominators");
-                Debug.Assert(placement != null, "Invalid placement");
-
-                Dominators = dominators;
-                Placement = placement;
-            }
-
-            /// <summary cref="IImplFunctionSpecializationContext.Dominators"/>
-            public Dominators Dominators { get; }
-
-            /// <summary cref="IImplFunctionSpecializationContext.Placement"/>
-            public Placement Placement { get; }
-        }
-
-        #endregion
-
-        /// <summary>
-        /// The desired transformations that should run after
-        /// applying this transformation.
-        /// </summary>
-        private const TransformationFlags FollowUpFlags =
-            TransformationFlags.All;
-
         private TConfiguration configuration;
 
         /// <summary>
         /// Constructs a new intrinsic specializer.
         /// </summary>
         public IntrinsicSpecializer(in TConfiguration specializerConfiguration)
-            : base(TransformationFlags.SpecializeIntrinsics, FollowUpFlags)
         {
             configuration = specializerConfiguration;
         }
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(IRBuilder, TopLevelFunction)"/>
-        protected override bool PerformTransformation(
-            IRBuilder builder,
-            TopLevelFunction topLevelFunction)
+        /// <summary cref="UnorderedTransformation{TIntermediate}.CreateIntermediate"/>
+        protected override AsyncCachedScopeProvider CreateIntermediate() => new AsyncCachedScopeProvider();
+
+        /// <summary cref="UnorderedTransformation{TIntermediate}.PerformTransformation(Method.Builder, TIntermediate)"/>
+        protected override bool PerformTransformation(Method.Builder builder, AsyncCachedScopeProvider scopeProvider)
         {
-            var scope = Scope.Create(builder, topLevelFunction);
+            var scope = builder.CreateScope();
 
-            // Mark all functions as dirty in order to rebuild nested functions
-            // with specialized intrinsics
-            topLevelFunction.AddTransformationFlags(
-                TopLevelFunctionTransformationFlags.Dirty);
-
-            var dependencies = ImportDependencies(builder, scope, out bool applied);
-            if (dependencies.Length < 1)
+            var dependencies = FindDependencies(builder, scope, out bool applied);
+            if (dependencies.Count < 1)
                 return applied;
 
-            // Refresh scope
-            scope = Scope.Create(builder, topLevelFunction);
-            var cfg = CFG.Create(scope);
-            var dominators = Dominators.Create(cfg);
-            var placement = Placement.CreateCSEPlacement(dominators);
+            // Import all dependencies
+            ImportDependencies(builder.Context, dependencies, scopeProvider);
 
-            var context = new SpecializationContext(dominators, placement);
-            foreach (var (node, implementationFunction) in dependencies)
+            // Replace every node with a function call to the given implementation function
+            foreach (var (node, method) in dependencies)
             {
-                builder.SpecializeNodeWithImplFunction(
-                    node,
-                    implementationFunction,
-                    context);
+                var blockBuilder = builder[node.BasicBlock];
+                blockBuilder.ReplaceWithCall(node, method);
             }
 
             return true;
@@ -149,37 +94,39 @@ namespace ILGPU.IR.Transformations
         /// <param name="scope">The current scope.</param>
         /// <param name="applied">True, if the transformation transformed something.</param>
         /// <returns>The imported dependency functions.</returns>
-        private (Value, TopLevelFunction)[] ImportDependencies(
-            IRBuilder builder,
+        private List<(Value, Method)> FindDependencies(
+            Method.Builder builder,
             Scope scope,
             out bool applied)
         {
-            var intrinsicFunctions = new List<(Value, TopLevelFunction)>(scope.Count >> 2);
+            var intrinsicFunctions = new List<(Value, Method)>(scope.Count >> 2);
             var implementationResolver = configuration.ImplementationResolver;
             Debug.Assert(implementationResolver != null, "Invalid implementation resolver");
             applied = false;
 
             // Analyze intrinsic nodes
-            foreach (var node in scope)
+            foreach (Value value in scope.Values)
             {
-                switch (node)
+                var blockBuilder = builder[value.BasicBlock];
+
+                switch (value)
                 {
                     case DebugTrace debugTrace:
                         // Ignore trace events in kernels for now
-                        MemoryRef.Unlink(debugTrace);
+                        blockBuilder.Remove(debugTrace);
                         applied = true;
                         break;
                     case DebugAssertFailed debugAssert:
                         // Check whether assertions are enabled
                         if (configuration.EnableAssertions &&
                             implementationResolver.TryGetDebugImplementation(
-                                out TopLevelFunction debugFunction))
+                                out Method debugFunction))
                         {
                             intrinsicFunctions.Add((debugAssert, debugFunction));
                         }
                         else
                         {
-                            MemoryRef.Unlink(debugAssert);
+                            blockBuilder.Remove(debugAssert);
                             applied = true;
                         }
                         break;
@@ -187,7 +134,7 @@ namespace ILGPU.IR.Transformations
                         {
                             var nativeWarpSize = configuration.WarpSize;
                             Debug.Assert(nativeWarpSize > 0, "Invalid native warp size");
-                            var primitiveSize = builder.CreatePrimitiveValue(nativeWarpSize);
+                            var primitiveSize = blockBuilder.CreatePrimitiveValue(nativeWarpSize);
                             warpSizeValue.Replace(primitiveSize);
                             applied = true;
                         }
@@ -195,8 +142,8 @@ namespace ILGPU.IR.Transformations
                     case SizeOfValue sizeOfValue:
                         if (configuration.TryGetSizeOf(sizeOfValue.TargetType, out int size))
                         {
-                            var primitiveSize = builder.CreatePrimitiveValue(size);
-                            node.Replace(primitiveSize);
+                            var primitiveSize = blockBuilder.CreatePrimitiveValue(size);
+                            sizeOfValue.Replace(primitiveSize);
                             applied = true;
                         }
                         break;
@@ -204,7 +151,7 @@ namespace ILGPU.IR.Transformations
                         if (implementationResolver.TryGetMathImplementation(
                             unary.Kind,
                             unary.ArithmeticBasicValueType,
-                            out TopLevelFunction unaryMethod))
+                            out Method unaryMethod))
                         {
                             intrinsicFunctions.Add((unary, unaryMethod));
                         }
@@ -213,7 +160,7 @@ namespace ILGPU.IR.Transformations
                         if (implementationResolver.TryGetMathImplementation(
                             binary.Kind,
                             binary.ArithmeticBasicValueType,
-                            out TopLevelFunction binaryMethod))
+                            out Method binaryMethod))
                         {
                             intrinsicFunctions.Add((binary, binaryMethod));
                         }
@@ -221,33 +168,33 @@ namespace ILGPU.IR.Transformations
                 }
             }
 
-            // Import dependencies
-            var result = new (Value, TopLevelFunction)[intrinsicFunctions.Count];
-            var importedFunctions = new Dictionary<TopLevelFunction, TopLevelFunction>();
-            var intrinsicContext = implementationResolver.IntrinsicContext;
-            int offset = 0;
-            foreach (var (node, intrinsic) in intrinsicFunctions)
+            return intrinsicFunctions;
+        }
+
+        /// <summary>
+        /// Imports all detected dependencies into the current context.
+        /// </summary>
+        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <param name="targetContext">The target context.</param>
+        /// <param name="dependencies">The dependencies to import.</param>
+        /// <param name="scopeProvider">Resolves methods to scopes.</param>
+        private static void ImportDependencies<TScopeProvider>(
+            IRContext targetContext,
+            List<(Value, Method)> dependencies,
+            TScopeProvider scopeProvider)
+            where TScopeProvider : IScopeProvider
+        {
+            var importedFunctions = new Dictionary<Method, Method>();
+            for (int i = 0, e = dependencies.Count; i < e; ++i)
             {
-                if (!importedFunctions.TryGetValue(intrinsic, out TopLevelFunction imported))
+                var (node, intrinsic) = dependencies[i];
+                if (!importedFunctions.TryGetValue(intrinsic, out Method imported))
                 {
-                    if (!builder.Context.TryGetFunction(
-                        intrinsic.Handle,
-                        out TopLevelFunction resolved))
-                    {
-                        imported = builder.Import(
-                            intrinsicContext,
-                            intrinsic,
-                            configuration);
-                        configuration.OnImportIntrinsic(imported);
-                    }
-
-                    importedFunctions.Add(intrinsic, resolved);
+                    imported = targetContext.Import(intrinsic, scopeProvider);
+                    importedFunctions.Add(intrinsic, imported);
                 }
-                result[offset++] = (node, imported);
+                dependencies[i] = (node, imported);
             }
-
-            applied |= result.Length > 0;
-            return result;
         }
     }
 }

@@ -9,8 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -19,123 +19,75 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.IR.Construction
 {
     /// <summary>
-    /// Represents flags for an <see cref="IRRebuilder"/> instance.
-    /// </summary>
-    [Flags]
-    public enum IRRebuilderFlags
-    {
-        /// <summary>
-        /// The default flags.
-        /// </summary>
-        None = 0,
-
-        /// <summary>
-        /// Allows the rebuilding of top-level functions.
-        /// Note that the rebuilt functions will not be top-level
-        /// functions any more. Instead, they will be mapped to
-        /// default functions. This is especially useful during
-        /// function specialization.
-        /// </summary>
-        RebuildTopLevel = 1 << 0,
-
-        /// <summary>
-        /// Allows to keep types instead of building new ones.
-        /// </summary>
-        KeepTypes = 1 << 1,
-    }
-
-    /// <summary>
     /// Represents an IR rebuilder to rebuild parts of the IR.
     /// </summary>
-    public sealed class IRRebuilder : IRTypeRebuilder
+    public sealed class IRRebuilder
     {
-        #region Nested Types
-
-        private readonly struct FunctionInfo
-        {
-            /// <summary>
-            /// 
-            /// </summary>
-            /// <param name="builder"></param>
-            /// <param name="replacedParameters"></param>
-            public FunctionInfo(
-                FunctionBuilder builder,
-                ImmutableArray<int> replacedParameters)
-            {
-                FunctionBuilder = builder;
-                ReplacedParameters = replacedParameters;
-            }
-
-            /// <summary>
-            /// Returns the associated function builder.
-            /// </summary>
-            public FunctionBuilder FunctionBuilder { get; }
-
-            /// <summary>
-            /// Returns the list of replaced parameters.
-            /// </summary>
-            public ImmutableArray<int> ReplacedParameters { get; }
-        }
-
-        #endregion
-
         #region Instance
+
+        /// <summary>
+        /// Maps source methods to target methods.
+        /// </summary>
+        private readonly Method.MethodMapping methodMapping;
+
+        /// <summary>
+        /// Maps old blocks to new block builders.
+        /// </summary>
+        private readonly Dictionary<BasicBlock, BasicBlock.Builder> blockMapping =
+            new Dictionary<BasicBlock, BasicBlock.Builder>();
+
+        /// <summary>
+        /// Maps old phi nodes to new phi builders.
+        /// </summary>
+        private readonly List<(PhiValue, PhiValue.Builder)> phiMapping =
+            new List<(PhiValue, PhiValue.Builder)>();
 
         /// <summary>
         /// Maps old nodes to new nodes.
         /// </summary>
-        private readonly Dictionary<Value, Value> toNewValueMapping =
+        private readonly Dictionary<Value, Value> valueMapping =
             new Dictionary<Value, Value>();
-
-        /// <summary>
-        /// Maps new nodes to old nodes.
-        /// </summary>
-        private readonly Dictionary<Value, Value> toOldValueMapping =
-            new Dictionary<Value, Value>();
-
-        /// <summary>
-        /// Maps old functions to new function builders.
-        /// </summary>
-        private readonly Dictionary<FunctionValue, FunctionInfo> functionMap =
-            new Dictionary<FunctionValue, FunctionInfo>();
 
         /// <summary>
         /// Constructs a new IR rebuilder.
         /// </summary>
         /// <param name="builder">The parent builder.</param>
+        /// <param name="parameterMapping">The used parameter remapping.</param>
         /// <param name="scope">The parent scope.</param>
-        /// <param name="flags">The rebuilder flags.</param>
-        internal IRRebuilder(IRBuilder builder, Scope scope, IRRebuilderFlags flags)
-            : base(builder, (flags & IRRebuilderFlags.KeepTypes) == IRRebuilderFlags.KeepTypes)
+        /// <param name="methodRemapping">The used method remapping.</param>
+        internal IRRebuilder(
+            Method.Builder builder,
+            Method.ParameterMapping parameterMapping,
+            Scope scope,
+            Method.MethodMapping methodRemapping)
         {
-            Scope = scope ?? throw new ArgumentNullException(nameof(scope));
+            Debug.Assert(builder != null, "Invalid method builder");
+            Debug.Assert(scope != null, "Invalid scope");
 
-            // Create function stubs and map parameters for all functions
-            var rebuildTopLevel = (flags & IRRebuilderFlags.RebuildTopLevel) ==
-                IRRebuilderFlags.RebuildTopLevel;
-            foreach (var function in scope.Functions)
+            methodMapping = methodRemapping;
+            Builder = builder;
+            Scope = scope;
+
+            // Insert parameters into local mapping
+            foreach (var param in scope.Method.Parameters)
+                valueMapping.Add(param, parameterMapping[param]);
+
+            // Create blocks and prepare phi nodes
+            foreach (var block in scope)
             {
-                if (function is TopLevelFunction topLevelFunction)
-                {
-                    FunctionBuilder functionBuilder;
-                    var returnType = Rebuild(topLevelFunction.ReturnType);
+                var newBlock = builder.CreateBasicBlock(block.Name);
+                blockMapping.Add(block, newBlock);
 
-                    if (rebuildTopLevel)
+                foreach (Value value in block)
+                {
+                    if (value is PhiValue phiValue)
                     {
-                        functionBuilder = Builder.CreateFunction(function.Name);
-                        functionBuilder.AddTopLevelParameters(returnType);
+                        Debug.Assert(!valueMapping.ContainsKey(value), "Phi already found");
+                        var phiBuilder = newBlock.CreatePhi(phiValue.Type);
+                        phiMapping.Add((phiValue, phiBuilder));
+                        Map(phiValue, phiBuilder.PhiValue);
                     }
-                    else
-                    {
-                        var declaration = topLevelFunction.Declaration.Specialize(
-                            returnType);
-                        functionBuilder = Builder.CreateFunction(declaration);
-                    }
-                    RebuildFunctionStub(topLevelFunction, functionBuilder);
                 }
-                else
-                    RebuildFunctionStub(function,
-                        Builder.CreateFunction(function.Name));
             }
         }
 
@@ -144,49 +96,76 @@ namespace ILGPU.IR.Construction
         #region Properties
 
         /// <summary>
+        /// Returns the associated method builder.
+        /// </summary>
+        public Method.Builder Builder { get; }
+
+        /// <summary>
         /// Returns the associated scope.
         /// </summary>
         public Scope Scope { get; }
 
         /// <summary>
-        /// Returns the associated entry point.
+        /// Returns the target entry block.
         /// </summary>
-        public FunctionValue Entry => Scope.Entry as FunctionValue;
+        public BasicBlock.Builder EntryBlock => blockMapping[Scope.EntryBlock];
 
         /// <summary>
-        /// Returns the new entry point.
+        /// Gets or sets the current block builder.
         /// </summary>
-        public FunctionValue NewEntry => functionMap[Entry].FunctionBuilder.FunctionValue;
+        private BasicBlock.Builder CurrentBlock { get; set; }
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Rebuilds all nodes in the current scope.
+        /// Rebuilds all values.
         /// </summary>
-        public FunctionValue Rebuild()
+        /// <returns>An array of exit blocks and their return values.</returns>
+        public ImmutableArray<(BasicBlock.Builder, Value)> Rebuild()
         {
-            // Rebuild nodes in post order (except functions)
-            using (var postOrder = Scope.PostOrder)
+            var exitBlocks = ImmutableArray.CreateBuilder<(BasicBlock.Builder, Value)>(Scope.Count);
+
+            // Rebuild all instructions
+            foreach (var block in Scope)
             {
-                while (postOrder.MoveNext())
+                var newBlock = blockMapping[block];
+                CurrentBlock = newBlock;
+
+                foreach (Value value in block)
+                    Rebuild(value);
+
+                var terminator = block.Terminator.Resolve();
+                if (terminator is ReturnTerminator returnValue)
                 {
-                    var node = postOrder.Current;
-                    Rebuild(node);
+                    var newReturnValue = Rebuild(returnValue.ReturnValue);
+                    exitBlocks.Add((newBlock, newReturnValue));
                 }
+                else
+                    Rebuild(terminator);
             }
 
-            // Rebuild all functions
-            foreach (var function in Scope.Functions)
+            // Seal all phi nodes
+            foreach (var (sourcePhi, targetPhiBuilder) in phiMapping)
             {
-                Debug.Assert(
-                    toNewValueMapping.ContainsKey(function),
-                    "Function was not visited in postorder run");
-                function.Rebuild(Builder, this);
+                // Append all phi arguments
+                foreach (var arg in sourcePhi.Nodes)
+                {
+                    if (valueMapping.TryGetValue(arg, out Value mappedValue))
+                    {
+                        // This value is reachable -> append it
+                        targetPhiBuilder.AddArgument(mappedValue);
+                    }
+                    else
+                    {
+                        // This value has become unreachable -> we have to skip it
+                    }
+                }
+                targetPhiBuilder.Seal();
             }
 
-            return toNewValueMapping[Entry] as FunctionValue;
+            return exitBlocks.ToImmutable();
         }
 
         /// <summary>
@@ -195,21 +174,8 @@ namespace ILGPU.IR.Construction
         /// <param name="oldNode">The old node.</param>
         /// <param name="newNode">The new node.</param>
         /// <returns>True, iff a corresponding new node could be found.</returns>
-        public bool TryLookupNewNode(Value oldNode, out Value newNode)
-        {
-            return toNewValueMapping.TryGetValue(oldNode, out newNode);
-        }
-
-        /// <summary>
-        /// Tries to lookup the old node representation of the given new node.
-        /// </summary>
-        /// <param name="newNode">The new node.</param>
-        /// <param name="oldNode">The old node.</param>
-        /// <returns>True, iff a corresponding old node could be found.</returns>
-        public bool TryLookupOldNode(Value newNode, out Value oldNode)
-        {
-            return toOldValueMapping.TryGetValue(newNode, out oldNode);
-        }
+        public bool TryGetNewNode(Value oldNode, out Value newNode) =>
+            valueMapping.TryGetValue(oldNode, out newNode);
 
         /// <summary>
         /// Maps the old node to the new node.
@@ -218,50 +184,10 @@ namespace ILGPU.IR.Construction
         /// <param name="newNode">The new node.</param>
         public void Map(Value oldNode, Value newNode)
         {
-            if (oldNode == null)
-                throw new ArgumentNullException(nameof(oldNode));
-            if (newNode == null)
-                throw new ArgumentNullException(nameof(newNode));
-            MapInternal(oldNode, newNode);
-        }
-
-        /// <summary>
-        /// Maps the old node to the new node.
-        /// </summary>
-        /// <param name="oldNode">The old node.</param>
-        /// <param name="newNode">The new node.</param>
-        internal void MapInternal(Value oldNode, Value newNode)
-        {
             Debug.Assert(oldNode != null, "Invalid old node");
             Debug.Assert(newNode != null, "Invalid new node");
-            toNewValueMapping[oldNode] = newNode;
-            toOldValueMapping[newNode] = oldNode;
-        }
 
-        /// <summary>
-        /// Registers a mapping from source to target.
-        /// </summary>
-        /// <param name="source">The source node.</param>
-        /// <param name="target">The target node.</param>
-        public void RegisterNodeMapping(Value source, Value target)
-        {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
-            if (target == null)
-                throw new ArgumentNullException(nameof(target));
-            MapInternal(source, target);
-        }
-
-        /// <summary>
-        /// Imports the given node mapping.
-        /// </summary>
-        /// <typeparam name="TDictionary">The dictionary type.</typeparam>
-        /// <param name="source">The source dictionary.</param>
-        public void RegisterNodeMapping<TDictionary>(TDictionary source)
-            where TDictionary : IReadOnlyDictionary<Value, Value>
-        {
-            foreach (var node in source)
-                MapInternal(node.Key, node.Value);
+            valueMapping[oldNode] = newNode;
         }
 
         /// <summary>
@@ -272,97 +198,25 @@ namespace ILGPU.IR.Construction
         public void ExportNodeMapping<TDictionary>(TDictionary target)
             where TDictionary : IDictionary<Value, Value>
         {
-            foreach (var node in toNewValueMapping)
+            foreach (var node in valueMapping)
                 target[node.Key] = node.Value;
         }
 
         /// <summary>
-        /// Rebuils a function stub.
+        /// Resolves a method for the given old method
         /// </summary>
-        /// <param name="function">The source function.</param>
-        /// <param name="newFunction">The target builder.</param>
-        private void RebuildFunctionStub(
-            FunctionValue function,
-            FunctionBuilder newFunction)
-        {
-            var attachedParameters = function.AttachedParameters;
-            var replacedParameters = ImmutableArray.CreateBuilder<int>(attachedParameters.Length);
-            for (int i = 0, e = attachedParameters.Length; i < e; ++i)
-            {
-                var paramRef = function.AttachedParameters[i];
-                var directTarget = paramRef.DirectTarget;
-
-                // Check for replaced parameters
-                if (directTarget.IsReplaced)
-                {
-                    replacedParameters.Add(i);
-                    continue;
-                }
-
-                // Check for dead parameters.
-                using (var usesEnumerator = directTarget.Uses.GetEnumerator())
-                {
-                    if (!usesEnumerator.MoveNext())
-                    {
-                        replacedParameters.Add(i);
-                        continue;
-                    }
-                }
-
-                var directParameter = directTarget as Parameter;
-                Parameter newParam;
-                if (function.IsTopLevel && i < 2)
-                    newParam = newFunction[i];
-                else
-                {
-                    var newParamType = Rebuild(directTarget.Type);
-                    newParam = newFunction.AddParameter(newParamType, directParameter?.Name);
-                }
-                MapInternal(directTarget, newParam);
-            }
-            newFunction.SealParameters();
-            var parameters = replacedParameters.Count == attachedParameters.Length ?
-                replacedParameters.MoveToImmutable() :
-                replacedParameters.ToImmutable();
-            functionMap.Add(function, new FunctionInfo(newFunction, parameters));
-        }
-
-#if VERIFICATION
-        /// <summary>
-        /// Verifies access to the given node.
-        /// </summary>
-        /// <param name="node">The node to check.</param>
-        private void VerifyAccess(Value node)
-        {
-            Debug.Assert(node is TopLevelFunction || Scope.Contains(node));
-        }
-#endif
+        /// <param name="oldTarget">The old method.</param>
+        /// <returns>The resolved method.</returns>
+        public Method LookupCallTarget(Method oldTarget) =>
+            methodMapping[oldTarget];
 
         /// <summary>
-        /// Resolves a list of replaced parameters for the given function.
+        /// Resolves a basic block builder for the given old block.
         /// </summary>
-        /// <param name="function">The function to resolve.</param>
-        /// <returns>The resolved replaced parameters.</returns>
-        public ImmutableArray<int> ResolveReplacedParameters(FunctionValue function)
-        {
-            Debug.Assert(
-                function != null && functionMap.ContainsKey(function),
-                "Invalid function to resolve");
-            return functionMap[function].ReplacedParameters;
-        }
-
-        /// <summary>
-        /// Resolves a function builder for the given function.
-        /// </summary>
-        /// <param name="function">The function to resolve.</param>
-        /// <returns>The resolved function builder.</returns>
-        public FunctionBuilder ResolveFunctionBuilder(FunctionValue function)
-        {
-            Debug.Assert(
-                function != null && functionMap.ContainsKey(function),
-                "Invalid function to resolve");
-            return functionMap[function].FunctionBuilder;
-        }
+        /// <param name="oldTarget">The old basic block.</param>
+        /// <returns>The resolved block builder.</returns>
+        public BasicBlock LookupTarget(BasicBlock oldTarget) =>
+            blockMapping[oldTarget].BasicBlock;
 
         /// <summary>
         /// Rebuilds to given source node using lookup tables.
@@ -372,23 +226,14 @@ namespace ILGPU.IR.Construction
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Value Rebuild(Value source)
         {
+            Debug.Assert(source != null, "Invalid source node");
             Debug.Assert(!source.IsReplaced, "Trying to rebuild a replaced node");
-#if VERIFICATION
-            VerifyAccess(source);
-#endif
-            if (TryLookupNewNode(source, out Value node))
+
+            if (TryGetNewNode(source, out Value node))
                 return node;
             Debug.Assert(!(source is Parameter), "Invalid recursive parameter rebuilding process");
-            if (source is FunctionValue sourceFunction)
-            {
-                if (sourceFunction is TopLevelFunction topLevelFunction &&
-                    !functionMap.ContainsKey(sourceFunction))
-                    return Builder.DeclareFunction(topLevelFunction.Declaration);
-                node = functionMap[sourceFunction].FunctionBuilder.FunctionValue;
-            }
-            else
-                node = source.Rebuild(Builder, this);
-            MapInternal(source, node);
+            node = source.Rebuild(CurrentBlock, this);
+            Map(source, node);
             return node;
         }
 

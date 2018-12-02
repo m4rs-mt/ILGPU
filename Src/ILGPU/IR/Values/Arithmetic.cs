@@ -263,40 +263,27 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an abstract arithmetic value.
     /// </summary>
-    public abstract class ArithmeticValue : UnifiedValue
+    public abstract class ArithmeticValue : Value
     {
         #region Instance
 
         /// <summary>
         /// Constructs a new arithmetic value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="operands">The operands.</param>
         /// <param name="flags">The operation flags.</param>
+        /// <param name="initialType">The initial node type.</param>
         internal ArithmeticValue(
-            ValueGeneration generation,
-            ImmutableArray<ValueReference> operands,
-            ArithmeticFlags flags)
-            : this(generation, operands, flags, operands[0].Type)
-        { }
-
-        /// <summary>
-        /// Constructs a new arithmetic value.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="operands">The operands.</param>
-        /// <param name="flags">The operation flags.</param>
-        /// <param name="type">The operation type.</param>
-        internal ArithmeticValue(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ImmutableArray<ValueReference> operands,
             ArithmeticFlags flags,
-            TypeNode type)
-            : base(generation)
+            TypeNode initialType)
+            : base(basicBlock, initialType)
         {
             Flags = flags;
 
-            Seal(operands, type);
+            Seal(operands);
         }
 
         #endregion
@@ -306,7 +293,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the associated type.
         /// </summary>
-        public new PrimitiveType Type => base.Type as PrimitiveType;
+        public PrimitiveType PrimitiveType => Type as PrimitiveType;
 
         /// <summary>
         /// Returns the operation flags.
@@ -342,24 +329,6 @@ namespace ILGPU.IR.Values
         public bool IsFloatOperation => BasicValueType.IsFloat();
 
         #endregion
-
-        #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is ArithmeticValue value)
-                return value.Flags == Flags && base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ (int)Flags;
-        }
-
-        #endregion
     }
 
     /// <summary>
@@ -367,23 +336,55 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class UnaryArithmeticValue : ArithmeticValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes an arithmetic node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="operand">The arithmetic operand.</param>
+        /// <param name="kind">The operation kind.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(
+            IRContext context,
+            ValueReference operand,
+            UnaryArithmeticKind kind)
+        {
+            var type = operand.Type;
+            switch (kind)
+            {
+                case UnaryArithmeticKind.IsInfF:
+                case UnaryArithmeticKind.IsNaNF:
+                    type = context.GetPrimitiveType(BasicValueType.Int1);
+                    break;
+            }
+            return type;
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new unary arithmetic operation.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
-        /// <param name="type">The operation type.</param>
         internal UnaryArithmeticValue(
-            ValueGeneration generation,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference value,
             UnaryArithmeticKind kind,
-            ArithmeticFlags flags,
-            TypeNode type)
-            : base(generation, ImmutableArray.Create(value), flags, type)
+            ArithmeticFlags flags)
+            : base(
+                  basicBlock,
+                  ImmutableArray.Create(value),
+                  flags,
+                  ComputeType(context, value, kind))
         {
             Kind = kind;
         }
@@ -406,6 +407,10 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context, Value, Kind);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateArithmetic(
@@ -413,29 +418,12 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is UnaryArithmeticValue value)
-                return value.Kind == Kind && base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x27609C7C;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "arith.un." + Kind.ToString();
@@ -451,23 +439,40 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class BinaryArithmeticValue : ArithmeticValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes an arithmetic node type.
+        /// </summary>
+        /// <param name="operand">The first arithmetic operand.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(ValueReference operand) =>
+            operand.Type;
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new binary arithmetic value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
         internal BinaryArithmeticValue(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference left,
             ValueReference right,
             BinaryArithmeticKind kind,
             ArithmeticFlags flags)
-            : base(generation, ImmutableArray.Create(left, right), flags)
+            : base(
+                  basicBlock,
+                  ImmutableArray.Create(left, right),
+                  flags,
+                  ComputeType(left))
         {
             Debug.Assert(
                 left.Type == right.Type ||
@@ -500,6 +505,10 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(Left);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateArithmetic(
@@ -508,29 +517,12 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is BinaryArithmeticValue value)
-                return value.Kind == Kind && base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x642F8AD9;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "arith.bin." + Kind.ToString();
@@ -547,6 +539,15 @@ namespace ILGPU.IR.Values
     public sealed class TernaryArithmeticValue : ArithmeticValue
     {
         #region Static
+
+        /// <summary>
+        /// Computes an arithmetic node type.
+        /// </summary>
+        /// <param name="operand">The first arithmetic operand.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(ValueReference operand) =>
+            operand.Type;
 
         /// <summary>
         /// Returns the left hand binary operation of a fused ternary operation.
@@ -589,20 +590,24 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new ternary arithmetic value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="first">The first operand.</param>
         /// <param name="second">The second operand.</param>
         /// <param name="third">The third operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
         internal TernaryArithmeticValue(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference first,
             ValueReference second,
             ValueReference third,
             TernaryArithmeticKind kind,
             ArithmeticFlags flags)
-            : base(generation, ImmutableArray.Create(first, second, third), flags)
+            : base(
+                  basicBlock,
+                  ImmutableArray.Create(first, second, third),
+                  flags,
+                  ComputeType(first))
         {
             Debug.Assert(
                 first.Type == second.Type &&
@@ -639,6 +644,10 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(First);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateArithmetic(
@@ -648,29 +657,12 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is TernaryArithmeticValue value)
-                return value.Kind == Kind && base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x2CF7A913;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "arith.ter." + Kind.ToString();

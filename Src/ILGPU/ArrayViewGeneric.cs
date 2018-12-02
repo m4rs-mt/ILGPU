@@ -138,6 +138,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="index">The variable index.</param>
         /// <returns>The resolved variable view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public VariableView<T> GetVariableView(TIndex index)
         {
             return new VariableView<T>(

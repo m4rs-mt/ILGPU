@@ -160,43 +160,31 @@ namespace ILGPU.Frontend.Intrinsic
         private static ValueReference HandleDebug(in InvocationContext context)
         {
             var builder = context.Builder;
-            var memory = context.PopMemory();
 
-            ValueReference result;
             switch (context.Method.Name)
             {
                 case nameof(Debug.Write):
                     switch (context.NumArguments)
                     {
-                        case 3:
-                            result = builder.CreateDebugTrace(
-                                memory,
-                                context[TopLevelFunction.ParametersOffset]);
-                            break;
+                        case 1:
+                            return builder.CreateDebugTrace(context[0]);
                         default:
                             throw context.GetNotSupportedException(
                                 ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
                     }
-                    break;
                 case nameof(Debug.Fail):
                     switch (context.NumArguments)
                     {
-                        case 3:
-                            result = builder.CreateDebugAssertFailed(
-                                memory,
-                                context[TopLevelFunction.ParametersOffset]);
-                            break;
+                        case 1:
+                            return builder.CreateDebugAssertFailed(context[0]);
                         default:
                             throw context.GetNotSupportedException(
                                 ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
                     }
-                    break;
                 default:
                     throw context.GetNotSupportedException(
                         ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
             }
-            context.PushMemory(result);
-            return result;
         }
 
         #endregion

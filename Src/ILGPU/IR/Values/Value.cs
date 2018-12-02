@@ -13,9 +13,11 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR
 {
@@ -24,17 +26,15 @@ namespace ILGPU.IR
     /// </summary>
     public interface IValue : INode
     {
-#if VERIFICATION
-        /// <summary>
-        /// Returns the current node generation.
-        /// </summary>
-        ValueGeneration Generation { get; }
-#endif
-
         /// <summary>
         /// Returns the associated type information.
         /// </summary>
         TypeNode Type { get; }
+
+        /// <summary>
+        /// Returns the parent basic block.
+        /// </summary>
+        BasicBlock BasicBlock { get; }
 
         /// <summary>
         /// Returns the associated basic value type.
@@ -106,7 +106,7 @@ namespace ILGPU.IR
         public static bool IsInstantiatedConstant<T>(this T value)
             where T : IValue
         {
-            return value.Resolve() is InstantiatedConstantNode;
+            return value.Resolve() is ConstantNode;
         }
 
         /// <summary>
@@ -120,20 +120,6 @@ namespace ILGPU.IR
         {
             return value.Resolve() is DeviceConstantValue;
         }
-
-        /// <summary>
-        /// Returns true if the given value can be seen as a constant.
-        /// </summary>
-        /// <param name="valueRef">The given value.</param>
-        /// <returns>True if the given value can be seen as a constant.</returns>
-        public static bool IsConstant<T>(this T valueRef)
-            where T : IValue
-        {
-            var value = valueRef.Resolve();
-            return value.IsInstantiatedConstant() ||
-                value is UnifiedValue unifiedValue && unifiedValue.IsConstant ||
-                value is MemoryRef memoryRef && memoryRef.Parent.IsInstantiatedConstant();
-        }
     }
 
     /// <summary>
@@ -142,10 +128,63 @@ namespace ILGPU.IR
     /// </summary>
     public abstract class Value : Node, IValue, IEquatable<Value>
     {
+        #region Nested Types
+
+        /// <summary>
+        /// An enumerator for values.
+        /// </summary>
+        public struct Enumerator : IEnumerator<ValueReference>
+        {
+            #region Instance
+
+            private ImmutableArray<ValueReference>.Enumerator enumerator;
+
+            /// <summary>
+            /// Constructs a new node enumerator.
+            /// </summary>
+            /// <param name="valueArray">The nodes to iterate over.</param>
+            internal Enumerator(ImmutableArray<ValueReference> valueArray)
+            {
+                enumerator = valueArray.GetEnumerator();
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the current node.
+            /// </summary>
+            public ValueReference Current => enumerator.Current.Refresh();
+
+            /// <summary cref="IEnumerator.Current"/>
+            object IEnumerator.Current => Current;
+
+            #endregion
+
+            #region Methods
+
+            /// <summary cref="IDisposable.Dispose"/>
+            public void Dispose() { }
+
+            /// <summary cref="IEnumerator.MoveNext"/>
+            public bool MoveNext() => enumerator.MoveNext();
+
+            /// <summary cref="IEnumerator.Reset"/>
+            void IEnumerator.Reset() => throw new InvalidOperationException();
+
+            #endregion
+        }
+
+        #endregion
+
         #region Instance
 
+        /// <summary>
+        /// The current node type.
+        /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Value replacement;
+        private TypeNode type;
 
         /// <summary>
         /// The collection of all uses.
@@ -153,57 +192,60 @@ namespace ILGPU.IR
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly HashSet<Use> allUses = new HashSet<Use>();
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly bool canReplace;
-
         /// <summary>
         /// Constructs a new value that is marked as replacable.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        protected Value(ValueGeneration generation)
-            : this(generation, true)
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initialType">The initial node type.</param>
+        protected Value(BasicBlock basicBlock, TypeNode initialType)
+            : this(basicBlock, initialType, true)
         { }
 
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initialType">The initial node type.</param>
         /// <param name="canBeReplaced">True, iff this value can be replaced.</param>
-        protected Value(ValueGeneration generation, bool canBeReplaced)
+        protected Value(BasicBlock basicBlock, TypeNode initialType, bool canBeReplaced)
         {
-            Nodes = ImmutableArray<ValueReference>.Empty;
-            canReplace = canBeReplaced;
+            Debug.Assert(initialType != null, "Invalid initialType");
 
-#if VERIFICATION
-            Generation = generation;
-#endif
+            BasicBlock = basicBlock;
+            Method = basicBlock?.Method;
+            type = initialType;
+            Nodes = ImmutableArray<ValueReference>.Empty;
+
+            CanBeReplaced = canBeReplaced;
+            Replacement = this;
         }
 
         #endregion
 
         #region Properties
 
-#if VERIFICATION
         /// <summary>
-        /// Returns the current node generation.
+        /// Returns the parent method.
         /// </summary>
-        public ValueGeneration Generation { get; internal set; }
-#endif
+        public Method Method { get; protected set; }
 
         /// <summary>
-        /// Accesses the internal node type.
+        /// Returns the parent basic block.
         /// </summary>
-        protected TypeNode NodeType { get; set; }
-
-        /// <summary>
-        /// Returns true iff the current value can be replaced.
-        /// </summary>
-        public bool CanBeReplaced => canReplace && !IsReplaced;
+        public BasicBlock BasicBlock { get; internal set; }
 
         /// <summary>
         /// Returns the associated type.
         /// </summary>
-        public virtual TypeNode Type { get; private set; }
+        public TypeNode Type
+        {
+            get
+            {
+                if (type == null)
+                    type = UpdateType(Method.Context);
+                return type;
+            }
+        }
 
         /// <summary>
         /// Returns the associated basic value type.
@@ -212,14 +254,19 @@ namespace ILGPU.IR
             Type != null ? Type.BasicValueType : BasicValueType.None;
 
         /// <summary>
+        /// Returns true iff the current value can be replaced.
+        /// </summary>
+        public bool CanBeReplaced { get; }
+
+        /// <summary>
         /// Returns the replacement of this value (if any).
         /// </summary>
-        public Value Replacement => replacement;
+        public Value Replacement { get; private set; }
 
         /// <summary>
         /// Returns true iff the current value has been replaced.
         /// </summary>
-        public bool IsReplaced => replacement != null;
+        public bool IsReplaced => CanBeReplaced & Replacement != this;
 
         /// <summary>
         /// Returns all child values.
@@ -258,6 +305,28 @@ namespace ILGPU.IR
         #region Methods
 
         /// <summary>
+        /// Performs a GC run on this value.
+        /// </summary>
+        internal void GC()
+        {
+            // Refresh all value references
+            var newNodes = ImmutableArray.CreateBuilder<ValueReference>(Nodes.Length);
+            foreach (var node in Nodes)
+                newNodes.Add(node.Refresh());
+            Nodes = newNodes.MoveToImmutable();
+
+            // Cleanup all uses
+            var usesToRemove = new List<Use>(allUses.Count);
+            foreach (var use in allUses)
+            {
+                if (use.Target.IsReplaced)
+                    usesToRemove.Add(use);
+            }
+            foreach (var useToRemove in usesToRemove)
+                allUses.Remove(useToRemove);
+        }
+
+        /// <summary>
         /// Resolves the first use.
         /// </summary>
         /// <returns>The first use.</returns>
@@ -286,9 +355,24 @@ namespace ILGPU.IR
         {
             Debug.Assert(target != null, "Invalid target");
             Debug.Assert(useIndex >= 0, "Invalid use index");
-            lock (allUses)
-                allUses.Add(new Use(target, useIndex));
+            allUses.Add(new Use(target, useIndex));
         }
+
+        /// <summary>
+        /// Invalidates the current type and enfores a recomputation
+        /// of the current type.
+        /// </summary>
+        protected void InvalidateType()
+        {
+            type = null;
+        }
+
+        /// <summary>
+        /// Computes the current type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <returns>The resolved type node.</returns>
+        protected abstract TypeNode UpdateType(IRContext context);
 
         /// <summary>
         /// Accepts a value visitor.
@@ -310,30 +394,15 @@ namespace ILGPU.IR
         /// Seals this value.
         /// </summary>
         /// <param name="nodes">The nested child nodes.</param>
-        /// <param name="type">The value type.</param>
-        protected void Seal(ImmutableArray<ValueReference> nodes, TypeNode type)
-        {
-            Debug.Assert(type != null, "Invalid type");
-
-            Type = type;
-            Seal(nodes);
-        }
-
-        /// <summary>
-        /// Seals this value.
-        /// </summary>
-        /// <param name="nodes">The nested child nodes.</param>
-        protected virtual void Seal(ImmutableArray<ValueReference> nodes)
+        protected void Seal(ImmutableArray<ValueReference> nodes)
         {
             Nodes = nodes;
 
-#if VERIFICATION
-            SealNode();
-
-            // Verify generations
-            foreach (var node in Nodes)
-                Debug.Assert(node.Generation == Generation, "Cannot mix nodes from different generations");
-#endif
+            for (int i = 0, e = nodes.Length; i < e; ++i)
+            {
+                var value = nodes[i].Resolve();
+                value.AddUse(this, i);
+            }
         }
 
         /// <summary>
@@ -345,23 +414,26 @@ namespace ILGPU.IR
             Debug.Assert(other != null, "Invalid other node");
             Debug.Assert(CanBeReplaced, "Cannot replace a non-replaceable value");
             Debug.Assert(!IsReplaced, "Cannot replace a replaced value");
-#if VERIFICATION
-            Debug.Assert(IsSealed, "Cannot replace a non-sealed value");
-            Debug.Assert(Generation == other.Generation, "Cannot replace a value with a value from a different generation");
-#endif
 
             var target = other.Resolve();
             Debug.Assert(target != this, "Invalid replacement cycle");
-            replacement = target;
+            Replacement = target;
 
             // Propagate uses
             foreach (var use in allUses)
-                replacement.AddUse(use.Target, use.Index);
+                Replacement.AddUse(use.Target, use.Index);
 
             // Notify nodes
             foreach (var use in allUses)
                 use.Target.OnReplacedNode(use.Index);
+
+            OnReplace();
         }
+
+        /// <summary>
+        /// Invoked when this node is replaced
+        /// </summary>
+        protected virtual void OnReplace() { }
 
         /// <summary>
         /// Invoked when an attached node is replaced.
@@ -369,16 +441,19 @@ namespace ILGPU.IR
         /// <param name="index">The replacement index.</param>
         protected virtual void OnReplacedNode(int index)
         {
-            // Do nothing
+            InvalidateType();
         }
 
         /// <summary>
         /// Resolves the actual value with respect to replacement information.
         /// </summary>
         /// <returns>The actual value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Value Resolve()
         {
-            return IsReplaced ? replacement = Replacement.Resolve() : this;
+            if (IsReplaced)
+                Replacement = Replacement.Resolve();
+            return Replacement;
         }
 
         /// <summary>
@@ -387,20 +462,6 @@ namespace ILGPU.IR
         /// <typeparam name="T">The target type.</typeparam>
         /// <returns>The actual value.</returns>
         public T ResolveAs<T>() where T : Value => Resolve() as T;
-
-        /// <summary>
-        /// Returns true if this node has attachted replaced nodes.
-        /// </summary>
-        /// <returns>True, if this node has attached replaced nodes.</returns>
-        protected bool HasReplacedNodes()
-        {
-            foreach (var node in this)
-            {
-                if (node.DirectTarget.IsReplaced)
-                    return true;
-            }
-            return false;
-        }
 
         #endregion
 
@@ -422,10 +483,7 @@ namespace ILGPU.IR
         /// Returns an enumerator to enumerate all child values.
         /// </summary>
         /// <returns>An enumerator to enumerate all child values.</returns>
-        public ValueEnumerator GetEnumerator()
-        {
-            return new ValueEnumerator(Nodes);
-        }
+        public Enumerator GetEnumerator() => new Enumerator(Nodes);
 
         #endregion
 
@@ -447,187 +505,6 @@ namespace ILGPU.IR
             if (string.IsNullOrEmpty(argString))
                 return ToReferenceString();
             return ToReferenceString() + ": " + argString;
-        }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// The base class for all values that cannot be unified.
-    /// </summary>
-    public abstract class InstantiatedValue : Value
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value that is marked as replacable.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        internal InstantiatedValue(ValueGeneration generation)
-            : base(generation)
-        { }
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="canBeReplaced">True, iff this value can be replaced.</param>
-        internal InstantiatedValue(ValueGeneration generation, bool canBeReplaced)
-            : base(generation, canBeReplaced)
-        { }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Seals this instantiated value.
-        /// </summary>
-        /// <param name="nodes">The nested child nodes.</param>
-        protected override sealed void Seal(ImmutableArray<ValueReference> nodes)
-        {
-            base.Seal(nodes);
-
-            for (int i = 0, e = nodes.Length; i < e; ++i)
-            {
-                var value = nodes[i].Resolve();
-                value.AddUse(this, i);
-            }
-        }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// The base class for all unified values.
-    /// </summary>
-    public abstract class UnifiedValue : Value
-    {
-        #region Instance
-
-        private int hashCode;
-
-        /// <summary>
-        /// Constructs a new value that is marked as replacable.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        internal UnifiedValue(ValueGeneration generation)
-            : base(generation)
-        { }
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="canBeReplaced">True, iff this value can be replaced.</param>
-        internal UnifiedValue(ValueGeneration generation, bool canBeReplaced)
-            : base(generation, canBeReplaced)
-        { }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns true if this a constant operation.
-        /// </summary>
-        public bool IsConstant
-        {
-            get;
-            private set;
-        }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Invoked when an attached node is replaced.
-        /// </summary>
-        /// <param name="index">The replacement index.</param>
-        protected override void OnReplacedNode(int index)
-        {
-            RefreshIsConstant();
-        }
-
-        /// <summary>
-        /// Refreshes the IsConstant state (if required).
-        /// </summary>
-        private void RefreshIsConstant()
-        {
-            if (IsConstant)
-                return;
-
-            IsConstant = true;
-            foreach (var node in this)
-                IsConstant &= node.Resolve().IsConstant();
-
-            if (IsConstant)
-            {
-                foreach (var use in AllUses)
-                {
-                    if (use.Resolve() is UnifiedValue target)
-                        target.RefreshIsConstant();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Seals this unified value.
-        /// </summary>
-        /// <param name="nodes">The nested child nodes.</param>
-        protected override sealed void Seal(ImmutableArray<ValueReference> nodes)
-        {
-            base.Seal(nodes);
-
-            hashCode = Type.GetHashCode();
-            IsConstant = true;
-            for (int i = 0, e = nodes.Length; i < e; ++i)
-            {
-                var value = nodes[i].Resolve();
-                value.AddUse(this, i);
-                hashCode ^= value.GetHashCode() + 0x66c68586 + (hashCode << 6) + (hashCode >> 2);
-                IsConstant &= value.IsConstant();
-            }
-        }
-
-        #endregion
-
-        #region Object
-
-        /// <summary>
-        /// Returns true iff the given object is equal to the
-        /// current unified value.
-        /// </summary>
-        /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current value.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is UnifiedValue value &&
-                value.Type == Type &&
-                value.hashCode == hashCode)
-            {
-                var currentNodes = Nodes;
-                var otherNodes = value.Nodes;
-                if (currentNodes.Length != otherNodes.Length)
-                    return false;
-                for (int i = 0, e = currentNodes.Length; i < e; ++i)
-                {
-                    if (currentNodes[i] != otherNodes[i])
-                        return false;
-                }
-                return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Returns the hash code of this unified value.
-        /// </summary>
-        /// <returns>The hash code of this unified value.</returns>
-        public override int GetHashCode()
-        {
-            return hashCode;
         }
 
         #endregion

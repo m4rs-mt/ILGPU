@@ -93,13 +93,13 @@ namespace ILGPU.IR.Transformations
                 foreach (var binaryFunction in binaryMathFunctions)
                 {
                     resolver.binaryMathFunctions.Add(binaryFunction.Key,
-                        context.GetFunction(binaryFunction.Value.ResultHandle));
+                        context.GetMethod(binaryFunction.Value.ResultHandle));
                 }
 
                 foreach (var unaryFunction in unaryMathFunctions)
                 {
                     resolver.unaryMathFunctions.Add(unaryFunction.Key,
-                        context.GetFunction(unaryFunction.Value.ResultHandle));
+                        context.GetMethod(unaryFunction.Value.ResultHandle));
                 }
             }
         }
@@ -111,14 +111,14 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Represents a mapping of all binary math functions.
         /// </summary>
-        private readonly Dictionary<(BinaryArithmeticKind, ArithmeticBasicValueType), TopLevelFunction> binaryMathFunctions =
-            new Dictionary<(BinaryArithmeticKind, ArithmeticBasicValueType), TopLevelFunction>();
+        private readonly Dictionary<(BinaryArithmeticKind, ArithmeticBasicValueType), Method> binaryMathFunctions =
+            new Dictionary<(BinaryArithmeticKind, ArithmeticBasicValueType), Method>();
 
         /// <summary>
         /// Represents a mapping of all unary math functions.
         /// </summary>
-        private readonly Dictionary<(UnaryArithmeticKind, ArithmeticBasicValueType), TopLevelFunction> unaryMathFunctions =
-            new Dictionary<(UnaryArithmeticKind, ArithmeticBasicValueType), TopLevelFunction>();
+        private readonly Dictionary<(UnaryArithmeticKind, ArithmeticBasicValueType), Method> unaryMathFunctions =
+            new Dictionary<(UnaryArithmeticKind, ArithmeticBasicValueType), Method>();
 
         /// <summary>
         /// Constructs a new implementation resolver.
@@ -128,6 +128,24 @@ namespace ILGPU.IR.Transformations
         {
             IntrinsicContext = context ?? throw new ArgumentNullException(nameof(context));
         }
+
+        ///// <summary>
+        ///// Constructs a new implementation resolver.
+        ///// </summary>
+        ///// <param name="context">The source context.</param>
+        ///// <param name="intrinsicMetadata">Math mapping information.</param>
+        //protected IntrinsicImplementationResolver(IRContext context, IntrinsicMetadata intrinsicMetadata)
+        //    : this(context)
+        //{
+        //    if (intrinsicMetadata == null)
+        //        throw new ArgumentNullException(nameof(intrinsicMetadata));
+
+        //    foreach (var binaryFunction in intrinsicMetadata.BinaryMathFunctions)
+        //        binaryMathFunctions.Add(binaryFunction.Key, context.GetMethod(binaryFunction.Value));
+
+        //    foreach (var unaryFunction in intrinsicMetadata.UnaryMathFunctions)
+        //        unaryMathFunctions.Add(unaryFunction.Key, context.GetMethod(unaryFunction.Value));
+        //}
 
         #endregion
 
@@ -143,40 +161,40 @@ namespace ILGPU.IR.Transformations
         #region Methods
 
         /// <summary>
-        /// Tries to resolve the binary math functions that corrensponds to
+        /// Tries to resolve the binary math implementation method that corrensponds to
         /// the passed arguments.
         /// </summary>
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="valueType">The value type.</param>
-        /// <param name="function">The resolved function.</param>
-        /// <returns>True, if the function could be resolved.</returns>
+        /// <param name="method">The resolved implementation method.</param>
+        /// <returns>True, if the implementation method could be resolved.</returns>
         public bool TryGetMathImplementation(
             BinaryArithmeticKind kind,
             ArithmeticBasicValueType valueType,
-            out TopLevelFunction function) => binaryMathFunctions.TryGetValue((kind, valueType), out function);
+            out Method method) => binaryMathFunctions.TryGetValue((kind, valueType), out method);
 
         /// <summary>
-        /// Tries to resolve the unary math functions that corrensponds to
+        /// Tries to resolve the unary math implementation method that corrensponds to
         /// the passed arguments.
         /// </summary>
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="valueType">The value type.</param>
-        /// <param name="function">The resolved function.</param>
-        /// <returns>True, if the function could be resolved.</returns>
+        /// <param name="method">The resolved implementation method.</param>
+        /// <returns>True, if the implementation method could be resolved.</returns>
         public bool TryGetMathImplementation(
             UnaryArithmeticKind kind,
             ArithmeticBasicValueType valueType,
-            out TopLevelFunction function) => unaryMathFunctions.TryGetValue((kind, valueType), out function);
+            out Method method) => unaryMathFunctions.TryGetValue((kind, valueType), out method);
 
         /// <summary>
-        /// Tries to resolve a debug assert function.
+        /// Tries to resolve a debug assert implementation method.
         /// </summary>
-        /// <param name="topLevelFunction">The resolved assert function.</param>
-        /// <returns>True, if the function could be resolved.</returns>
+        /// <param name="metho">The resolved assert implementation method.</param>
+        /// <returns>True, if the implementation method could be resolved.</returns>
         public virtual bool TryGetDebugImplementation(
-            out TopLevelFunction topLevelFunction)
+            out Method metho)
         {
-            topLevelFunction = null;
+            metho = null;
             return false;
         }
 

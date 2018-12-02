@@ -9,10 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-#if VERIFICATION
 using System;
-#endif
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace ILGPU.IR
@@ -55,6 +54,16 @@ namespace ILGPU.IR
     /// </summary>
     public abstract class Node : INode
     {
+        #region Static
+
+        /// <summary>
+        /// Compares two nodes according to their id.
+        /// </summary>
+        internal static readonly Comparison<Node> Comparison =
+            (first, second) => first.Id.CompareTo(second.Id);
+
+        #endregion
+
         #region Instance
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -77,15 +86,6 @@ namespace ILGPU.IR
         /// </summary>
         public NodeId Id { get; internal set; }
 
-#if VERIFICATION
-
-        /// <summary>
-        /// Returns true iff the current node is sealed.
-        /// </summary>
-        public bool IsSealed { get; private set; }
-
-#endif
-
         #endregion
 
         #region Methods
@@ -98,10 +98,8 @@ namespace ILGPU.IR
         /// True, iff the old marker was not equal to the new marker
         /// (the node was not marked with the new marker value).
         /// </returns>
-        public bool Mark(NodeMarker newMarker)
-        {
-            return Interlocked.Exchange(ref markerValue, newMarker.Marker) != newMarker.Marker;
-        }
+        public bool Mark(NodeMarker newMarker) =>
+            Interlocked.Exchange(ref markerValue, newMarker.Marker) != newMarker.Marker;
 
         /// <summary>
         /// Returns true iff the reference marker is equal to the
@@ -112,22 +110,8 @@ namespace ILGPU.IR
         /// True, iff the current marker is equal to the current
         /// marker value.
         /// </returns>
-        public bool IsMarked(NodeMarker referenceMarker)
-        {
-            return Interlocked.Read(ref markerValue) == referenceMarker.Marker;
-        }
-
-#if VERIFICATION
-        /// <summary>
-        /// Seals this node.
-        /// </summary>
-        protected void SealNode()
-        {
-            if (IsSealed)
-                throw new InvalidOperationException("Cannot modify a sealed node");
-            IsSealed = true;
-        }
-#endif
+        public bool IsMarked(NodeMarker referenceMarker) =>
+            Interlocked.Read(ref markerValue) == referenceMarker.Marker;
 
         #endregion
 

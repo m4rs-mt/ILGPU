@@ -15,6 +15,7 @@ using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -40,42 +41,57 @@ namespace ILGPU.IR.Values
     /// </summary>
     public abstract class AtomicValue : MemoryValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes an atomic node type.
+        /// </summary>
+        /// <param name="value">The atomic value operand.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(ValueReference value) =>
+            value.Type;
+
+        #endregion
+
+        #region Instance
+
         /// <summary>
         /// Constructs a new abstract atomic value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="parent">The parent memory operation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="target">The target.</param>
         /// <param name="value">The value to store.</param>
         /// <param name="arguments">Additional arguments.</param>
-        /// <param name="type">The operation type.</param>
         /// <param name="flags">The operation flags.</param>
         internal AtomicValue(
-            ValueGeneration generation,
-            ValueReference parent,
+            BasicBlock basicBlock,
             ValueReference target,
             ValueReference value,
             ImmutableArray<ValueReference> arguments,
-            TypeNode type,
             AtomicFlags flags)
             : base(
-                  generation,
-                  parent,
+                  basicBlock,
                   ImmutableArray.Create(target, value).AddRange(arguments),
-                  type)
+                  ComputeType(value))
+
         {
             Flags = flags;
         }
 
+        #endregion
+
+        #region Properties
+
         /// <summary>
         /// Returns the target view.
         /// </summary>
-        public ValueReference Target => this[1];
+        public ValueReference Target => this[0];
 
         /// <summary>
         /// Returns the target value.
         /// </summary>
-        public ValueReference Value => this[2];
+        public ValueReference Value => this[1];
 
         /// <summary>
         /// Returns the operation flags.
@@ -93,6 +109,16 @@ namespace ILGPU.IR.Values
         /// </summary>
         public bool IsUnsigned => (Flags & AtomicFlags.Unsigned) ==
             AtomicFlags.Unsigned;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected sealed override TypeNode UpdateType(IRContext context) =>
+            ComputeType(Value);
+
+        #endregion
     }
 
     /// <summary>
@@ -146,26 +172,22 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new generic atomic operation.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="parent">The parent memory operation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="target">The target.</param>
         /// <param name="value">The value to store.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
         internal GenericAtomic(
-            ValueGeneration generation,
-            ValueReference parent,
+            BasicBlock basicBlock,
             ValueReference target,
             ValueReference value,
             AtomicKind kind,
             AtomicFlags flags)
             : base(
-                  generation,
-                  parent,
+                  basicBlock,
                   target,
                   value,
                   ImmutableArray<ValueReference>.Empty,
-                  value.Type,
                   flags)
         {
             Debug.Assert(value.Type == (target.Type as PointerType).ElementType);
@@ -189,17 +211,13 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateAtomic(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value),
                 Kind,
                 Flags);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -224,26 +242,22 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new atomic compare-and-swap operation.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="parent">The parent memory operation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="target">The target.</param>
         /// <param name="value">The value to store.</param>
         /// <param name="compareValue">The comparison value.</param>
         /// <param name="flags">The operation flags.</param>
         internal AtomicCAS(
-            ValueGeneration generation,
-            ValueReference parent,
+            BasicBlock basicBlock,
             ValueReference target,
             ValueReference value,
             ValueReference compareValue,
             AtomicFlags flags)
             : base(
-                  generation,
-                  parent,
+                  basicBlock,
                   target,
                   value,
                   ImmutableArray.Create(compareValue),
-                  value.Type,
                   flags)
         {
             Debug.Assert(value.Type == (target.Type as PointerType).ElementType);
@@ -257,7 +271,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the comparison value.
         /// </summary>
-        public ValueReference CompareValue => this[3];
+        public ValueReference CompareValue => this[2];
 
         #endregion
 
@@ -266,17 +280,13 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateAtomicCAS(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value),
                 rebuilder.Rebuild(CompareValue),
                 Flags);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 

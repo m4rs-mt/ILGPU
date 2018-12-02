@@ -270,166 +270,6 @@ namespace ILGPU.IR.Values
         }
 
         /// <summary>
-        /// Returns an enumerator to enumerate all uses in the context
-        /// of the parent scope.
-        /// </summary>
-        /// <returns>The enumerator.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(Node, AllUses);
-
-        /// <summary>
-        /// Returns an enumerator to enumerate all uses in the context
-        /// of the parent scope.
-        /// </summary>
-        /// <returns>The enumerator.</returns>
-        IEnumerator<Use> IEnumerable<Use>.GetEnumerator() => GetEnumerator();
-
-        /// <summary>
-        /// Returns an enumerator to enumerate all uses in the context
-        /// of the parent scope.
-        /// </summary>
-        /// <returns>The enumerator.</returns>
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    }
-
-    /// <summary>
-    /// Represents an enumerable of uses that are valid in
-    /// a parent <see cref="Scope"/>.
-    /// </summary>
-    public readonly struct ScopeUseCollection : IEnumerable<Use>
-    {
-        #region Nested Types
-
-        /// <summary>
-        /// Returns an enumerator to enumerate all uses in the context
-        /// of the parent scope.
-        /// </summary>
-        public struct Enumerator : IEnumerator<Use>
-        {
-            private UseCollection.Enumerator enumerator;
-
-            /// <summary>
-            /// Constructs a new parameter enumerator.
-            /// </summary>
-            /// <param name="scope">The parent scope.</param>
-            /// <param name="useSet">The source set of uses.</param>
-            internal Enumerator(Scope scope, UseCollection useSet)
-            {
-                Debug.Assert(scope != null, "Invalid scope");
-                Scope = scope;
-                enumerator = useSet.GetEnumerator();
-                Current = default;
-            }
-
-            /// <summary>
-            /// Returns the parent scope.
-            /// </summary>
-            public Scope Scope { get; }
-
-            /// <summary>
-            /// Returns the current use.
-            /// </summary>
-            public Use Current { get; private set; }
-
-            /// <summary cref="IEnumerator.Current"/>
-            object IEnumerator.Current => Current;
-
-            /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose()
-            {
-                enumerator.Dispose();
-            }
-
-            /// <summary cref="IEnumerator.MoveNext"/>
-            public bool MoveNext()
-            {
-                while(enumerator.MoveNext())
-                {
-                    Current = enumerator.Current.Refresh();
-                    if (!Scope.Contains(Current.Target))
-                        continue;
-                    return true;
-                }
-                return false;
-            }
-
-            /// <summary cref="IEnumerator.Reset"/>
-            void IEnumerator.Reset() => throw new InvalidOperationException();
-        }
-
-        #endregion
-
-        /// <summary>
-        /// Constructs a new uses collection in a scope.
-        /// </summary>
-        /// <param name="scope">The parent scope.</param>
-        /// <param name="node">The associated node.</param>
-        internal ScopeUseCollection(Scope scope, Value node)
-        {
-            Debug.Assert(scope != null, "Invalid scope");
-            Scope = scope;
-            Node = node;
-        }
-
-        /// <summary>
-        /// Returns the parent scope.
-        /// </summary>
-        public Scope Scope { get; }
-
-        /// <summary>
-        /// Returns the associated node.
-        /// </summary>
-        public Value Node { get; }
-
-        /// <summary>
-        /// Returns true if the collection contains at least one use.
-        /// </summary>
-        public bool HasAny
-        {
-            get
-            {
-                using (var enumerator = GetEnumerator())
-                {
-                    return enumerator.MoveNext();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Returns true if the collection contains exactly one use.
-        /// </summary>
-        public bool HasExactlyOne
-        {
-            get
-            {
-                using (var enumerator = GetEnumerator())
-                {
-                    if (!enumerator.MoveNext())
-                        return false;
-                    return !enumerator.MoveNext();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Returns true if the collection contains exactle one memory reference use.
-        /// </summary>
-        public bool HasExactlyOneMemoryRef
-        {
-            get
-            {
-                using (var enumerator = GetEnumerator())
-                {
-                    if (!enumerator.MoveNext())
-                        return false;
-                    // Check use
-                    if (!(enumerator.Current.Resolve() is MemoryRef))
-                        return false;
-                    return !enumerator.MoveNext();
-                }
-            }
-        }
-
-        /// <summary>
         /// Tries to resolve a single use.
         /// </summary>
         /// <param name="use">The resolved use reference.</param>
@@ -447,11 +287,21 @@ namespace ILGPU.IR.Values
         }
 
         /// <summary>
+        /// Clones this use collection into a new one.
+        /// </summary>
+        /// <returns>The cloned use collection.</returns>
+        public UseCollection Clone()
+        {
+            var otherUses = new HashSet<Use>(AllUses);
+            return new UseCollection(Node, otherUses);
+        }
+
+        /// <summary>
         /// Returns an enumerator to enumerate all uses in the context
         /// of the parent scope.
         /// </summary>
         /// <returns>The enumerator.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(Scope, Node.Uses);
+        public Enumerator GetEnumerator() => new Enumerator(Node, AllUses);
 
         /// <summary>
         /// Returns an enumerator to enumerate all uses in the context

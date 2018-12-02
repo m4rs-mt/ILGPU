@@ -10,8 +10,8 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR;
+using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
-using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPU.Util;
@@ -52,29 +52,17 @@ namespace ILGPU.Backends
         /// </summary>
         private readonly struct NoHandler : IBackendHandler
         {
-            /// <summary cref="IBackendHandler.FinishedCodeGeneration(IRContext, TopLevelFunction)"/>
+            /// <summary cref="IBackendHandler.FinishedCodeGeneration(IRContext, Method)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool FinishedCodeGeneration(
-                IRContext context,
-                TopLevelFunction entryPoint) => false;
+            public void FinishedCodeGeneration(IRContext context, Method entryPoint) { }
 
-            /// <summary cref="IBackendHandler.InitializedKernelContext(IRContext, TopLevelFunction)"/>
+            /// <summary cref="IBackendHandler.InitializedKernelContext(IRContext, Method)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool InitializedKernelContext(
-                IRContext kernelContext,
-                TopLevelFunction kernelFunction) => false;
+            public void InitializedKernelContext(IRContext kernelContext, Method kernelMethod) { }
 
-            /// <summary cref="IBackendHandler.PreparedKernelContext(IRContext, TopLevelFunction)"/>
+            /// <summary cref="IBackendHandler.OptimizedKernelContext(IRContext, Method)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool PreparedKernelContext(
-                IRContext kernelContext,
-                TopLevelFunction kernelFunction) => false;
-
-            /// <summary cref="IBackendHandler.OptimizedKernelContext(IRContext, TopLevelFunction)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool OptimizedKernelContext(
-                IRContext kernelContext,
-                TopLevelFunction kernelFunction) => false;
+            public void OptimizedKernelContext(IRContext kernelContext, Method kernelMethod) { }
         }
 
         /// <summary>
@@ -82,118 +70,111 @@ namespace ILGPU.Backends
         /// </summary>
         protected readonly ref struct BackendContext
         {
+            #region Nested Types
+
             /// <summary>
-            /// Represents custom backend function information.
+            /// An enumerator backend methods.
             /// </summary>
-            public readonly struct FunctionInfo
+            public struct Enumerator : IEnumerator<(Method, Scope, Allocas)>
             {
-                internal FunctionInfo(Allocas allocas)
-                {
-                    Allocas = allocas;
-                }
+                #region Instance
+
+                private UnsafeMethodCollection<MethodCollections.AllMethods>.Enumerator enumerator;
+                private readonly CachedScopeProvider scopeProvider;
+                private readonly Dictionary<Method, Allocas> allocaMapping;
 
                 /// <summary>
-                /// Returns the allocation information.
+                /// Constructs a new enumerator.
                 /// </summary>
-                public Allocas Allocas { get; }
-            }
-
-            /// <summary>
-            /// Enumerates secondary kernel functions in the scope of a backend context.
-            /// </summary>
-            public struct Enumerator : IEnumerator<FunctionLandscape<FunctionInfo>.Entry>
-            {
-                private FunctionLandscape<FunctionInfo>.Enumerator enumerator;
-
+                /// <param name="context">The current backend context.</param>
                 internal Enumerator(in BackendContext context)
                 {
-                    enumerator = context.FunctionLandscape.GetEnumerator();
-                    KernelFunction = context.KernelFunction.Function;
+                    KernelMethod = context.KernelMethod;
+                    enumerator = context.Context.UnsafeMethods.GetEnumerator();
+                    scopeProvider = context.ScopeProvider;
+                    allocaMapping = context.allocaMapping;
                 }
 
-                /// <summary>
-                /// Returns the associated main kernel function.
-                /// </summary>
-                public TopLevelFunction KernelFunction { get; }
+                #endregion
+
+                #region Properties
 
                 /// <summary>
-                /// Returns the current function information.
+                /// Returns the associated kernel method.
                 /// </summary>
-                public FunctionLandscape<FunctionInfo>.Entry Current => enumerator.Current;
+                public Method KernelMethod { get; }
 
-                /// <summary cref="IEnumerator.Current" />
+                /// <summary>
+                /// Returns the current node.
+                /// </summary>
+                public (Method, Scope, Allocas) Current
+                {
+                    get
+                    {
+                        var method = enumerator.Current;
+                        return (method, scopeProvider[method], allocaMapping[method]);
+                    }
+                }
+
+                /// <summary cref="IEnumerator.Current"/>
                 object IEnumerator.Current => Current;
 
-                /// <summary cref="IEnumerator.MoveNext" />
+                #endregion
+
+                #region Methods
+
+                /// <summary cref="IDisposable.Dispose"/>
+                public void Dispose() { }
+
+                /// <summary cref="IEnumerator.MoveNext"/>
                 public bool MoveNext()
                 {
                     while (enumerator.MoveNext())
                     {
-                        if (enumerator.Current.Function == KernelFunction)
+                        if (enumerator.Current == KernelMethod)
                             continue;
                         return true;
                     }
                     return false;
                 }
 
-                /// <summary cref="IEnumerator.Reset" />
+                /// <summary cref="IEnumerator.Reset"/>
                 void IEnumerator.Reset() => throw new InvalidOperationException();
 
-                /// <summary cref="IDisposable.Dispose" />
-                public void Dispose()
-                {
-                    enumerator.Dispose();
-                }
+                #endregion
             }
 
-            private readonly struct DataProvider : FunctionLandscape<FunctionInfo>.IDataProvider
-            {
-                /// <summary>
-                /// Creates a new data provider.
-                /// </summary>
-                /// <param name="abi">The current ABI.</param>
-                public DataProvider(ABI abi)
-                {
-                    ABI = abi;
-                }
+            #endregion
 
-                /// <summary>
-                /// Returns the associated ABI.
-                /// </summary>
-                public ABI ABI { get; }
+            #region Instance
 
-                /// <summary cref="FunctionLandscape{T}.IDataProvider"/>
-                public FunctionInfo GetData(Scope scope, FunctionReferences functionReferences)
-                {
-                    var allocas = Allocas.Create(scope, ABI);
-                    return new FunctionInfo(allocas);
-                }
-            }
+            private readonly Dictionary<Method, Allocas> allocaMapping;
 
             /// <summary>
             /// Constructs a new backend context.
             /// </summary>
             /// <param name="kernelContext">The current kernel context.</param>
-            /// <param name="kernelFunction">The kernel function.</param>
+            /// <param name="kernelMethod">The kernel function.</param>
             /// <param name="abi">The current ABI.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal BackendContext(
                 IRContext kernelContext,
-                TopLevelFunction kernelFunction,
+                Method kernelMethod,
                 ABI abi)
             {
-                FunctionLandscape = FunctionLandscape<FunctionInfo>.Create(
-                    kernelContext.UnsafeTopLevelFunctions,
-                    new DataProvider(abi));
                 Context = kernelContext;
-
-                KernelFunction = FunctionLandscape[kernelFunction];
+                KernelMethod = kernelMethod;
+                ScopeProvider = new CachedScopeProvider();
+                allocaMapping = new Dictionary<Method, Allocas>();
 
                 var sharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
                 var sharedMemorySize = 0;
-                foreach (var entry in FunctionLandscape)
+                foreach (var method in kernelContext.UnsafeMethods)
                 {
-                    var allocas = entry.Data.Allocas;
+                    var scope = ScopeProvider[method];
+                    var allocas = Allocas.Create(scope, abi);
+                    allocaMapping.Add(method, allocas);
+
                     sharedAllocations.AddRange(allocas.SharedAllocations.Allocas);
                     sharedMemorySize += allocas.SharedMemorySize;
                 }
@@ -202,28 +183,32 @@ namespace ILGPU.Backends
                     sharedMemorySize);
             }
 
+            #endregion
+
             /// <summary>
             /// The associated kernel context.
             /// </summary>
             public IRContext Context { get; }
 
             /// <summary>
-            /// Returns the associated function landscape.
+            /// Returns the main kernel method.
             /// </summary>
-            public FunctionLandscape<FunctionInfo> FunctionLandscape { get; }
+            public Method KernelMethod { get; }
 
             /// <summary>
-            /// The entry point kernel function.
+            /// Returns the associated kernel scope.
             /// </summary>
-            public FunctionLandscape<FunctionInfo>.Entry KernelFunction { get; }
+            public Scope KernelScope => ScopeProvider[KernelMethod];
 
             /// <summary>
-            /// Returns required backend information about the given top level function.
+            /// Returns the associated allocations.
             /// </summary>
-            /// <param name="topLevelFunction">The source function.</param>
-            /// <returns>Resolved scope and alloca information.</returns>
-            public FunctionLandscape<FunctionInfo>.Entry this[TopLevelFunction topLevelFunction] =>
-                FunctionLandscape[topLevelFunction];
+            public Allocas KernelAllocas => allocaMapping[KernelMethod];
+
+            /// <summary>
+            /// Returns the associated scope provider.
+            /// </summary>
+            public CachedScopeProvider ScopeProvider { get; }
 
             /// <summary>
             /// Returns all required shared allocations.
@@ -306,41 +291,38 @@ namespace ILGPU.Backends
         /// Constructs a new generic backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
-        /// <param name="platform">The target platform.</param>
+        /// <param name="abi">The current ABI.</param>
         /// <param name="argumentMapper">The argument mapper.</param>
         protected Backend(
             Context context,
-            TargetPlatform platform,
-            KernelArgumentMapper argumentMapper)
-            : this(context, platform, argumentMapper, null)
+            ABI abi,
+            ArgumentMapper argumentMapper)
+            : this(
+                  context,
+                  abi,
+                  argumentMapper,
+                  (_c, _abi) => Transformer.Empty)
         { }
 
         /// <summary>
         /// Constructs a new generic backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
-        /// <param name="platform">The target platform.</param>
+        /// <param name="abi">The current ABI.</param>
         /// <param name="argumentMapper">The argument mapper.</param>
-        /// <param name="initTransformer">The final transformation initializer (if any).</param>
+        /// <param name="createKernelTransformer">Creates the target kernel transformer (if any).</param>
         protected Backend(
             Context context,
-            TargetPlatform platform,
-            KernelArgumentMapper argumentMapper,
-            Action<Transformer.Builder, int> initTransformer)
+            ABI abi,
+            ArgumentMapper argumentMapper,
+            Func<Context, ABI, Transformer> createKernelTransformer)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
-            Platform = platform;
+            ABI = abi ?? throw new ArgumentNullException(nameof(abi));
+            ArgumentMapper = argumentMapper;
 
-            ABIProvider = ABIProvider.CreateProvider(platform);
-            KernelArgumentMapper = argumentMapper;
-
-            var builder = Transformer.CreateBuilder(TransformerConfiguration.Empty);
-
-            var maxNumIterations = (context.Flags & IRContextFlags.AggressiveInlining) == IRContextFlags.AggressiveInlining ?
-                builder.AddOptimizations(new AggressiveInliningConfiguration(), context.OptimizationLevel) :
-                builder.AddOptimizations(new DefaultInliningConfiguration(), context.OptimizationLevel);
-            initTransformer?.Invoke(builder, maxNumIterations);
-            FinalTransformer = builder.ToTransformer();
+            if (createKernelTransformer != null)
+                KernelTransformer = createKernelTransformer(context, abi);
         }
 
         #endregion
@@ -355,22 +337,22 @@ namespace ILGPU.Backends
         /// <summary>
         /// Returns the target platform.
         /// </summary>
-        public TargetPlatform Platform { get; }
+        public TargetPlatform Platform => ABI.TargetPlatform;
 
         /// <summary>
-        /// Returns the current ABI provider of this backend.
+        /// Returns the current ABI.
         /// </summary>
-        public ABIProvider ABIProvider { get; }
+        public ABI ABI { get; }
 
         /// <summary>
-        /// Returns the associated <see cref="KernelArgumentMapper"/>.
+        /// Returns the associated <see cref="ArgumentMapper"/>.
         /// </summary>
-        public KernelArgumentMapper KernelArgumentMapper { get; }
+        public ArgumentMapper ArgumentMapper { get; }
 
         /// <summary>
         /// Returns the transformer that is applied before the final compilation step.
         /// </summary>
-        protected Transformer FinalTransformer { get; }
+        protected Transformer KernelTransformer { get; }
 
         #endregion
 
@@ -405,94 +387,51 @@ namespace ILGPU.Backends
         {
             using (var kernelContext = new IRContext(Context, Context.Flags))
             {
-                var importSpecification = CreateImportSpecification();
+                IRContext mainContext;
+                Method generatedKernelMethod;
                 using (var codeGenerationPhase = Context.BeginCodeGeneration())
                 {
-                    var irContext = codeGenerationPhase.IRContext;
+                    mainContext = codeGenerationPhase.IRContext;
 
                     Frontend.CodeGenerationResult generationResult;
                     using (var frontendCodeGenerationPhase = codeGenerationPhase.BeginFrontendCodeGeneration())
                         generationResult = frontendCodeGenerationPhase.GenerateCode(entry);
 
-                    TopLevelFunction function = generationResult.Result;
-
+                    generatedKernelMethod = generationResult.Result;
                     codeGenerationPhase.Optimize();
-                    irContext.RefreshFunction(ref function);
-                    if (backendHandler.FinishedCodeGeneration(irContext, function))
-                        irContext.RefreshFunction(ref function);
 
-                    // Import the all kernel functions into our context
-                    kernelContext.Import(irContext, function, importSpecification);
+                    backendHandler.FinishedCodeGeneration(mainContext, generatedKernelMethod);
                 }
 
-                // Work on the kernel context
-                if (!kernelContext.TryGetFunction(entry, out TopLevelFunction kernelFunction))
-                    throw new InvalidCodeGenerationException();
-                if (backendHandler.InitializedKernelContext(kernelContext, kernelFunction))
-                    kernelContext.RefreshFunction(ref kernelFunction);
+                // Import the all kernel functions into our context
+                var scopeProvider = new CachedScopeProvider();
+                var kernelMethod = kernelContext.Import(generatedKernelMethod, scopeProvider);
+                backendHandler.InitializedKernelContext(kernelContext, kernelMethod);
 
-                using (var abi = ABIProvider.CreateABI(kernelContext))
-                {
-                    // Prepare the kernel for compilation
-                    PrepareKernel(kernelContext, kernelFunction, abi, importSpecification);
-                    kernelContext.RefreshFunction(ref kernelFunction);
-                    if (backendHandler.PreparedKernelContext(kernelContext, kernelFunction))
-                        kernelContext.RefreshFunction(ref kernelFunction);
+                // Apply backend optimizations
+                kernelContext.Transform(KernelTransformer);
+                backendHandler.OptimizedKernelContext(kernelContext, kernelMethod);
 
-                    // Apply backend optimizations
-                    FinalTransformer.Transform(kernelContext);
-                    kernelContext.RefreshFunction(ref kernelFunction);
-                    if (backendHandler.OptimizedKernelContext(kernelContext, kernelFunction))
-                        kernelContext.RefreshFunction(ref kernelFunction);
-
-                    // Compile kernel
-                    kernelContext.UnloadUnreachableMethods(ImmutableArray.Create(
-                        kernelFunction));
-                    var backendContext = new BackendContext(
-                        kernelContext,
-                        kernelFunction,
-                        abi);
-                    var entryPoint = new EntryPoint(
-                        kernelFunction.Source as MethodInfo,
-                        backendContext.SharedAllocations.TotalSize,
-                        specialization);
-                    return Compile(entryPoint, abi, backendContext, specialization);
-                }
+                // Compile kernel
+                var backendContext = new BackendContext(kernelContext, kernelMethod, ABI);
+                var entryPoint = new EntryPoint(
+                    kernelMethod.Source as MethodInfo,
+                    backendContext.SharedAllocations.TotalSize,
+                    specialization);
+                return Compile(entryPoint, backendContext, specialization);
             }
         }
-
-        /// <summary>
-        /// Creates a new import specification that is used during the import process
-        /// of the actual kernel function.
-        /// </summary>
-        /// <returns>The created import specification.</returns>
-        protected abstract ContextImportSpecification CreateImportSpecification();
-
-        /// <summary>
-        /// Applies transformations to the given context.
-        /// </summary>
-        /// <param name="kernelContext">The kernel context.</param>
-        /// <param name="kernelFunction">The current kernel function.</param>
-        /// <param name="abi">The current ABI.</param>
-        /// <param name="importSpecification">The current import specification.</param>
-        protected abstract void PrepareKernel(
-            IRContext kernelContext,
-            TopLevelFunction kernelFunction,
-            ABI abi,
-            in ContextImportSpecification importSpecification);
 
         /// <summary>
         /// Compiles a given compile unit with the specified entry point using
         /// the given kernel specialization and the placement information.
         /// </summary>
         /// <param name="entryPoint">The desired entry point.</param>
-        /// <param name="abi">The current ABI.</param>
         /// <param name="backendContext">The current kernel context containing all required functions.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The compiled kernel that represents the compilation result.</returns>
         protected abstract CompiledKernel Compile(
             EntryPoint entryPoint,
-            ABI abi,
             in BackendContext backendContext,
             in KernelSpecialization specialization);
 

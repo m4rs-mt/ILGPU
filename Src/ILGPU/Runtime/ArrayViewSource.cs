@@ -90,23 +90,31 @@ namespace ILGPU.Runtime
     }
 
     /// <summary>
-    /// Creates a new view pointer wrapper.
+    /// Creates a new view pointer wrapper that wraps a pointer reference
+    /// inside an array view.
     /// </summary>
-    sealed class ViewPointerWrapper : ArrayViewSource
+    public sealed class ViewPointerWrapper : ArrayViewSource
     {
+        /// <summary>
+        /// Creates a new pointer wrapper.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="value">The value reference to the variable.</param>
+        /// <returns>An unsafe array view source.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe ViewPointerWrapper Create<T>(ref T value)
-            where T : struct
-        {
-            return new ViewPointerWrapper(
+            where T : struct =>
+            new ViewPointerWrapper(
                 new IntPtr(Unsafe.AsPointer(ref value)));
-        }
 
+        /// <summary>
+        /// Creates a new pointer wrapper.
+        /// </summary>
+        /// <param name="value">The native value pointer.</param>
+        /// <returns>An unsafe array view source.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe ViewPointerWrapper Create(IntPtr value)
-        {
-            return new ViewPointerWrapper(value);
-        }
+        public static unsafe ViewPointerWrapper Create(IntPtr value) =>
+            new ViewPointerWrapper(value);
 
         private ViewPointerWrapper(IntPtr ptr)
         {
@@ -130,15 +138,20 @@ namespace ILGPU.Runtime
     /// <summary>
     /// Creates a new view array wrapper.
     /// </summary>
-    sealed class ViewArrayWrapper : ArrayViewSource
+    public sealed class ViewArrayWrapper : ArrayViewSource
     {
+        /// <summary>
+        /// Creates a new array wrapper.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="handle">The gc handle of the fixed array.</param>
+        /// <returns>An unsafe array view source.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ViewArrayWrapper Create<T>(GCHandle handle)
-            where T : struct
-        {
-            return new ViewArrayWrapper(handle, Unsafe.SizeOf<T>());
-        }
+            where T : struct =>
+            new ViewArrayWrapper(handle, Unsafe.SizeOf<T>());
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private ViewArrayWrapper(GCHandle handle, int elementSize)
         {
             NativePtr = handle.AddrOfPinnedObject();

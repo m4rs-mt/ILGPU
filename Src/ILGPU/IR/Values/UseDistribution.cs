@@ -35,26 +35,26 @@ namespace ILGPU.IR.Values
             var groupedUses = new Dictionary<int, int>();
             var usesPerType = new Dictionary<Type, (int, int)>();
 
-            Parallel.ForEach(context.UnsafeTopLevelFunctions, function =>
+            Parallel.ForEach(context.UnsafeMethods, method =>
             {
-                var scope = Scope.Create(context, function);
+                var scope = method.CreateScope();
 
-                foreach (var node in scope)
+                foreach (Value value in scope.Values)
                 {
                     lock (groupedUses)
                     {
-                        if (!groupedUses.TryGetValue(node.AllNumUses, out int count))
+                        if (!groupedUses.TryGetValue(value.AllNumUses, out int count))
                             count = 0;
-                        groupedUses[node.AllNumUses] = count + 1;
+                        groupedUses[value.AllNumUses] = count + 1;
                     }
 
-                    var type = node.GetType();
+                    var type = value.GetType();
                     lock (usesPerType)
                     {
                         if (!usesPerType.TryGetValue(type, out ValueTuple<int, int> entry))
                             entry = (0, 0);
                         usesPerType[type] =
-                            (XMath.Max(node.AllNumUses, entry.Item1),
+                            (XMath.Max(value.AllNumUses, entry.Item1),
                             entry.Item2 + 1);
                     }
                 }

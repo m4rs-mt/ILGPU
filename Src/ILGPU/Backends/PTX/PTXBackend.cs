@@ -10,12 +10,9 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR;
-using ILGPU.IR.Construction;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
-using ILGPU.IR.Values;
 using ILGPU.Runtime;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -39,7 +36,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// The kernel specializer configuration.
         /// </summary>
-        private readonly struct SpecializerConfiguration : IKernelSpecializerConfiguration
+        private readonly struct SpecializerConfiguration : IIntrinsicSpecializerConfiguration
         {
             /// <summary>
             /// Constructs a new specializer configuration.
@@ -47,17 +44,14 @@ namespace ILGPU.Backends.PTX
             /// <param name="flags">The associated context flags.</param>
             /// <param name="abi">The ABI specification.</param>
             /// <param name="contextData">The global PTX context data.</param>
-            /// <param name="specializer">The import specializer.</param>
             public SpecializerConfiguration(
                 IRContextFlags flags,
                 ABI abi,
-                PTXContextData contextData,
-                in ContextImportSpecification.Specializer specializer)
+                PTXContextData contextData)
             {
                 ContextFlags = flags;
                 ABI = abi;
                 ImplementationResolver = contextData.ImplementationResolver;
-                Specializer = specializer;
             }
 
             /// <summary>
@@ -65,16 +59,11 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             public IRContextFlags ContextFlags { get; }
 
-            /// <summary cref="IKernelSpecializerConfiguration.EnableAssertions"/>
+            /// <summary cref="IIntrinsicSpecializerConfiguration.EnableAssertions"/>
             public bool EnableAssertions => (ContextFlags & IRContextFlags.EnableAssertions) == IRContextFlags.EnableAssertions;
 
-            /// <summary cref="IKernelSpecializerConfiguration.WarpSize"/>
+            /// <summary cref="IIntrinsicSpecializerConfiguration.WarpSize"/>
             public int WarpSize => PTXBackend.WarpSize;
-
-            /// <summary>
-            /// Returns the associated specializer.
-            /// </summary>
-            public ContextImportSpecification.Specializer Specializer { get; }
 
             /// <summary>
             /// Returns the current ABI.
@@ -84,43 +73,41 @@ namespace ILGPU.Backends.PTX
             /// <summary cref="IIntrinsicSpecializerConfiguration.ImplementationResolver"/>
             public IntrinsicImplementationResolver ImplementationResolver { get; }
 
-            /// <summary cref="IKernelSpecializerConfiguration.SpecializeKernelParameter(IRBuilder, FunctionBuilder, Parameter)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Value SpecializeKernelParameter(
-                IRBuilder builder,
-                FunctionBuilder functionBuilder,
-                Parameter parameter)
-            {
-                var paramType = parameter.Type;
-                if (!builder.TrySpecializeAddressSpaceType(
-                    paramType,
-                    MemoryAddressSpace.Global,
-                    out TypeNode specializedType))
-                    return null;
-                var targetParam = functionBuilder.AddParameter(specializedType, parameter.Name);
-                var addressSpaceCast = builder.CreateAddressSpaceCast(
-                    targetParam,
-                    MemoryAddressSpace.Generic);
-                return addressSpaceCast;
-            }
-
-            /// <summary cref="ISizeOfABI.GetSizeOf(TypeNode)" />
-            public int GetSizeOf(TypeNode type) => ABI.GetSizeOf(type);
-
             /// <summary cref="IIntrinsicSpecializerConfiguration.TryGetSizeOf(TypeNode, out int)"/>
             public bool TryGetSizeOf(TypeNode type, out int size)
             {
-                size = GetSizeOf(type);
+                size = ABI.GetSizeOf(type);
                 return true;
             }
+        }
 
-            /// <summary cref="IFunctionImportSpecializer.Map(IRContext, TopLevelFunction, IRBuilder, IRRebuilder)"/>
-            public void Map(
-                IRContext sourceContext,
-                TopLevelFunction sourceFunction,
-                IRBuilder builder,
-                IRRebuilder rebuilder) =>
-                Specializer.Map(sourceContext, sourceFunction, builder, rebuilder);
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Creates the final kernel transformer for PTX kernels.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <param name="abi">The current ABI.</param>
+        /// <returns>The created kernel transformer.</returns>
+        private static Transformer CreateKernelTransformer(Context context, ABI abi)
+        {
+            var builder = Transformer.CreateBuilder(TransformerConfiguration.Empty);
+
+            var specializerConfiguration = new SpecializerConfiguration(
+                context.Flags,
+                abi,
+                context.PTXContextData);
+
+            builder.Add(new IntrinsicSpecializer<SpecializerConfiguration>(
+                specializerConfiguration));
+            builder.AddInliner(context.Flags);
+
+            if (context.OptimizationLevel == OptimizationLevel.Release)
+                builder.Add(new SimplifyControlFlow());
+
+            return builder.ToTransformer();
         }
 
         #endregion
@@ -137,12 +124,11 @@ namespace ILGPU.Backends.PTX
             Context context,
             PTXArchitecture architecture,
             TargetPlatform platform)
-            : base(context, platform, new PTXArgumentMapper(context),
-                  (builder, maxNumIterations) =>
-                  {
-                      builder.Add(new DestroyStructures(), maxNumIterations);
-                      builder.Add(new NormalizeCalls(), 1);
-                  })
+            : base(
+                  context,
+                  new PTXABI(context.TypeContext, platform),
+                  new PTXArgumentMapper(context),
+                  CreateKernelTransformer)
         {
             Architecture = architecture;
         }
@@ -157,52 +143,21 @@ namespace ILGPU.Backends.PTX
         public PTXArchitecture Architecture { get; }
 
         /// <summary>
-        /// Returns the associated <see cref="KernelArgumentMapper"/>.
+        /// Returns the associated <see cref="ArgumentMapper"/>.
         /// </summary>
-        public new PTXArgumentMapper KernelArgumentMapper =>
-            base.KernelArgumentMapper as PTXArgumentMapper;
+        public new PTXArgumentMapper ArgumentMapper =>
+            base.ArgumentMapper as PTXArgumentMapper;
 
         #endregion
 
         #region Methods
 
-        /// <summary cref="Backend.CreateImportSpecification"/>
-        protected override ContextImportSpecification CreateImportSpecification() =>
-            new ContextImportSpecification();
-
-        /// <summary cref="Backend.PrepareKernel(IRContext, TopLevelFunction, ABI, in ContextImportSpecification)"/>
-        protected override void PrepareKernel(
-            IRContext kernelContext,
-            TopLevelFunction kernelFunction,
-            ABI abi,
-            in ContextImportSpecification importSpecification)
-        {
-            var configuration = new SpecializerConfiguration(
-                kernelContext.Flags,
-                abi,
-                Context.PTXContextData,
-                importSpecification.ToSpecializer());
-            var kernelSpecializer = new KernelSpecializer<SpecializerConfiguration>(
-                configuration);
-            kernelSpecializer.PrepareKernel(
-                ref kernelFunction,
-                kernelContext);
-
-            var transformer = SpecializeViews.CreateTransformer(
-                TransformerConfiguration.Empty,
-                PointerViewImplSpecializer.Create(abi));
-            transformer.Transform(kernelContext);
-        }
-
         /// <summary>
         /// Initializes a PTX kernel and returns the created <see cref="StringBuilder"/>.
         /// </summary>
-        /// <param name="abi">The current ABI.</param>
         /// <param name="constantOffset">The offset for constants.</param>
         /// <returns>The created string builder.</returns>
-        private StringBuilder CreatePTXBuilder(
-            ABI abi,
-            out int constantOffset)
+        private StringBuilder CreatePTXBuilder(out int constantOffset)
         {
             var builder = new StringBuilder();
 
@@ -217,7 +172,7 @@ namespace ILGPU.Backends.PTX
             builder.Append(".target ");
             builder.AppendLine(Architecture.ToString().ToLower());
             builder.Append(".address_size ");
-            builder.AppendLine((abi.PointerSize * 8).ToString());
+            builder.AppendLine((ABI.PointerSize * 8).ToString());
             builder.AppendLine();
 
             constantOffset = builder.Length;
@@ -225,14 +180,13 @@ namespace ILGPU.Backends.PTX
             return builder;
         }
 
-        /// <summary cref="Backend.Compile(EntryPoint, ABI, in BackendContext, in KernelSpecialization)"/>
+        /// <summary cref="Backend.Compile(EntryPoint, in BackendContext, in KernelSpecialization)"/>
         protected override CompiledKernel Compile(
             EntryPoint entryPoint,
-            ABI abi,
             in BackendContext backendContext,
             in KernelSpecialization specialization)
         {
-            var builder = CreatePTXBuilder(abi, out int constantOffset);
+            var builder = CreatePTXBuilder(out int constantOffset);
             var useFastMath = (Context.Flags & IRContextFlags.FastMath) == IRContextFlags.FastMath;
             var enableAssertions = (Context.Flags & IRContextFlags.EnableAssertions) == IRContextFlags.EnableAssertions;
 
@@ -240,27 +194,30 @@ namespace ILGPU.Backends.PTX
                 entryPoint,
                 builder,
                 Architecture,
-                abi,
+                ABI,
                 useFastMath,
                 enableAssertions);
 
-            foreach (var entry in backendContext)
+            // Declare all methods
+            foreach (var (_, scope, _) in backendContext)
+                PTXFunctionGenerator.GenerateHeader(args, scope);
+
+            // Emit methods
+            foreach (var (_, scope, allocas) in backendContext)
             {
                 PTXFunctionGenerator.Generate(
                     args,
-                    entry.Scope,
-                    entry.Data.Allocas,
+                    scope,
+                    allocas,
                     ref constantOffset);
             }
 
-            var kernelFunction = backendContext.KernelFunction;
             PTXKernelFunctionGenerator.Generate(
                 args,
-                kernelFunction.Scope,
-                kernelFunction.Data.Allocas,
+                backendContext.KernelScope,
+                backendContext.KernelAllocas,
                 backendContext.SharedAllocations,
                 ref constantOffset);
-
 
             var ptxAssembly = builder.ToString();
             return new PTXCompiledKernel(Context, entryPoint, ptxAssembly);

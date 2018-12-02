@@ -399,13 +399,6 @@ namespace ILGPU.IR.Types
         /// <summary cref="TypeNode.Accept{T}(T)"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
-        /// <summary cref="ContainerType.Rebuild(IRBuilder, IRTypeRebuilder, ImmutableArray{TypeNode})"/>
-        protected override TypeNode Rebuild(
-            IRBuilder builder,
-            IRTypeRebuilder rebuilder,
-            ImmutableArray<TypeNode> children) =>
-            builder.CreateStructureType(children, Names, Source);
-
         /// <summary>
         /// Performs the given <see cref="IFieldAction{T}"/>
         /// by recursively applying the action to all (nested) structure fields.

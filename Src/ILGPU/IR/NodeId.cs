@@ -16,7 +16,7 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents a node id.
     /// </summary>
-    public readonly struct NodeId : IEquatable<NodeId>
+    public readonly struct NodeId : IEquatable<NodeId>, IComparable<NodeId>
     {
         #region Constants
 
@@ -57,6 +57,17 @@ namespace ILGPU.IR
         /// <param name="other">The other id.</param>
         /// <returns>True, iff the given id is equal to this id.</returns>
         public bool Equals(NodeId other) => this == other;
+
+        #endregion
+
+        #region IComparable
+
+        /// <summary>
+        /// Compares this id to the given one.
+        /// </summary>
+        /// <param name="other">The object to compare to.</param>
+        /// <returns>The comparison result.</returns>
+        public int CompareTo(NodeId other) => Value.CompareTo(other.Value);
 
         #endregion
 
@@ -102,10 +113,8 @@ namespace ILGPU.IR
         /// <param name="first">The first id.</param>
         /// <param name="second">The second id.</param>
         /// <returns>True, iff the first and the second id are the same.</returns>
-        public static bool operator ==(NodeId first, NodeId second)
-        {
-            return first.Value == second.Value;
-        }
+        public static bool operator ==(NodeId first, NodeId second) =>
+            first.Value == second.Value;
 
         /// <summary>
         /// Returns true iff the first and the second id are not the same.
@@ -113,10 +122,26 @@ namespace ILGPU.IR
         /// <param name="first">The first id.</param>
         /// <param name="second">The second id.</param>
         /// <returns>True, iff the first and the second id are not the same.</returns>
-        public static bool operator !=(NodeId first, NodeId second)
-        {
-            return first.Value != second.Value;
-        }
+        public static bool operator !=(NodeId first, NodeId second) =>
+            first.Value != second.Value;
+
+        /// <summary>
+        /// Returns true iff the first id is smaller than the second one.
+        /// </summary>
+        /// <param name="first">The first id.</param>
+        /// <param name="second">The second id.</param>
+        /// <returns>True, iff the first id is smaller than the second one.</returns>
+        public static bool operator <(NodeId first, NodeId second) =>
+            first.Value < second.Value;
+
+        /// <summary>
+        /// Returns true iff the first id is greater than the second one.
+        /// </summary>
+        /// <param name="first">The first id.</param>
+        /// <param name="second">The second id.</param>
+        /// <returns>True, iff the first id is greater than the second one.</returns>
+        public static bool operator >(NodeId first, NodeId second) =>
+            first.Value > second.Value;
 
         #endregion
     }

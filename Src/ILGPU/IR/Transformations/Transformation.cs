@@ -9,124 +9,16 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
-using ILGPU.IR.Values;
+using ILGPU.IR.Analyses;
+using ILGPU.Util;
 using System;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-#if PARALLEL_PROCESSING
-using System.Threading;
+#if !VERIFICATION
 using System.Threading.Tasks;
 #endif
 
 namespace ILGPU.IR.Transformations
 {
-    /// <summary>
-    /// Flags that are attachted to transformations and functions.
-    /// Transformations use these flags to indicate whether a processing
-    /// step is required or not.
-    /// </summary>
-    [Flags]
-    [SuppressMessage("Microsoft.Usage", "CA2217: DoNotMarkEnumsWithFlags",
-        Justification = "The All field simplifies activation/deactivation of all flags")]
-    public enum TransformationFlags : int
-    {
-        /// <summary>
-        /// The empty transformation flags.
-        /// </summary>
-        None = 0,
-
-        /// <summary>
-        /// Inlines functions.
-        /// </summary>
-        Inlining = 1 << 0,
-
-        /// <summary>
-        /// Optimizes parameters.
-        /// </summary>
-        OptimizeParameters = 1 << 1,
-
-        /// <summary>
-        /// Normalizes all call instructions.
-        /// </summary>
-        NormalizeCalls = 1 << 2,
-
-        /// <summary>
-        /// Simplifies control flow.
-        /// </summary>
-        MergeCallChains = 1 << 3,
-
-        /// <summary>
-        /// Merges nop calls that pass arguments to unecessary targets.
-        /// </summary>
-        MergeNopCalls = 1 << 4,
-
-        /// <summary>
-        /// Infers address spaces.
-        /// </summary>
-        InferAddressSpaces = 1 << 5,
-        
-        /// <summary>
-        /// Transforms load-store operations into CPS parameters.
-        /// </summary>
-        TransformToCPS = 1 << 6,
-
-        /// <summary>
-        /// Destroys structures by turning them into scalar values.
-        /// </summary>
-        DestroyStructures = 1 << 7,
-
-        /// <summary>
-        /// Specializes built in views.
-        /// </summary>
-        SpecializeViews = 1 << 8,
-
-        /// <summary>
-        /// Specializes device-specific intrinsics.
-        /// </summary>
-        SpecializeIntrinsics = 1 << 9,
-
-        /// <summary>
-        /// Represents all transformation flags.
-        /// </summary>
-        All = 0x0fffffff,
-    }
-
-    /// <summary>
-    /// Represents an abstract transformation manager.
-    /// </summary>
-    public interface ITransformationManager
-    {
-        /// <summary>
-        /// Will be invoked if the given function was successfully transformed.
-        /// </summary>
-        /// <param name="topLevelFunction">The transformed function.</param>
-        void SuccessfullyTransformed(TopLevelFunction topLevelFunction);
-
-        /// <summary>
-        /// Returns true iff the function has the given transformation flags.
-        /// </summary>
-        /// <param name="topLevelFunction">The function.</param>
-        /// <param name="flags">The flags to check.</param>
-        /// <returns>True, iff the function has the given transformation flags.</returns>
-        bool HasTransformationFlags(TopLevelFunction topLevelFunction, TransformationFlags flags);
-
-        /// <summary>
-        /// Adds the given flags to the function.
-        /// </summary>
-        /// <param name="topLevelFunction">The function.</param>
-        /// <param name="flags">The flags to add.</param>
-        void AddTransformationFlags(TopLevelFunction topLevelFunction, TransformationFlags flags);
-
-        /// <summary>
-        /// Removes the given flags from the function.
-        /// </summary>
-        /// <param name="topLevelFunction">The function.</param>
-        /// <param name="flags">The flags to remove.</param>
-        void RemoveTransformationFlags(TopLevelFunction topLevelFunction, TransformationFlags flags);
-    }
-
     /// <summary>
     /// Represents a generic transformation.
     /// </summary>
@@ -142,10 +34,9 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Executes the current transformation.
             /// </summary>
-            /// <param name="builder">The current IR builder.</param>
-            /// <param name="topLevelFunction">The target top-level function.</param>
+            /// <param name="builder">The current method builder.</param>
             /// <returns>True, if the transformation could be applied.</returns>
-            bool Execute(IRBuilder builder, TopLevelFunction topLevelFunction);
+            bool Execute(Method.Builder builder);
         }
 
         #endregion
@@ -155,127 +46,35 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new transformation.
         /// </summary>
-        /// <param name="flags">The associated transformation flags.</param>
-        /// <param name="followUpFlags">The desired flags that indicate passes that should run on the marked function.</param>
-        protected Transformation(
-            TransformationFlags flags,
-            TransformationFlags followUpFlags)
-            : this(flags, followUpFlags, false, false)
-        { }
-
-        /// <summary>
-        /// Constructs a new transformation.
-        /// </summary>
-        /// <param name="flags">The associated transformation flags.</param>
-        /// <param name="followUpFlags">The desired flags that indicate passes that should run on the marked function.</param>
-        /// <param name="requiresCleanIR">True, iff a previous GC run is required.</param>
-        /// <param name="requiresCleanupAfterApplicaion">True, iff a GC run is required after a successfull application.</param>
-        protected Transformation(
-            TransformationFlags flags,
-            TransformationFlags followUpFlags,
-            bool requiresCleanIR,
-            bool requiresCleanupAfterApplicaion)
-        {
-            Flags = flags;
-            DesiredTransformationFlags = followUpFlags;
-            RequiresCleanIR = requiresCleanIR;
-            RequiresCleanupAferApplication = requiresCleanupAfterApplicaion;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated transformation flags.
-        /// </summary>
-        public TransformationFlags Flags { get; }
-
-        /// <summary>
-        /// Returns the desired flags that indicate passes that should run
-        /// on the marked function.
-        /// </summary>
-        public TransformationFlags DesiredTransformationFlags { get; }
-
-        /// <summary>
-        /// Returns the required transformation flags.
-        /// </summary>
-        public TransformationFlags RequiredTransformationFlags { get; protected set; }
-
-        /// <summary>
-        /// Returns true iff iff this transformation requires a previous GC run.
-        /// </summary>
-        public bool RequiresCleanIR { get; }
-
-        /// <summary>
-        /// Returns true iff this transformation requires a cleanup phase
-        /// after an application.
-        /// </summary>
-        public bool RequiresCleanupAferApplication { get; }
+        protected Transformation() { }
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Transforms all functions in the given context.
+        /// Transforms all method in the given context.
         /// </summary>
-        /// <param name="functions">The functions to transform.</param>
-        /// <param name="transformationManager">The current transformation-flags container</param>
-        public abstract bool Transform<TPredicate, TManager>(
-            UnsafeFunctionCollection<TPredicate> functions,
-            TManager transformationManager)
-            where TPredicate : IFunctionCollectionPredicate
-            where TManager : ITransformationManager;
+        /// <param name="methods">The methods to transform.</param>
+        public abstract void Transform<TPredicate>(
+            MethodCollection<TPredicate> methods)
+            where TPredicate : IMethodCollectionPredicate;
 
         /// <summary>
-        /// Transforms the given top-level function using the provided builder while
-        /// checking and updating the associated <see cref="Flags"/>.
+        /// Transforms the given method using the provided builder.
         /// </summary>
-        /// <param name="topLevelFunction">The current top-level function.</param>
-        /// <param name="builder">The current IR builder.</param>
-        /// <param name="transformationManager">The current transformation-flags container</param>
+        /// <param name="builder">The current method builder.</param>
         /// <param name="executor">The desired transform executor.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected internal bool ExecuteTransform<TManager, TExecutor>(
-            IRBuilder builder,
-            TopLevelFunction topLevelFunction,
-            TManager transformationManager,
+        protected internal static bool ExecuteTransform<TExecutor>(
+            Method.Builder builder,
             in TExecutor executor)
-            where TManager : ITransformationManager
             where TExecutor : struct, ITransformExecutor
         {
-            // Check whether this function has been processed or not
-            if (transformationManager.HasTransformationFlags(topLevelFunction, Flags) ||
-                RequiredTransformationFlags != TransformationFlags.None &&
-                !transformationManager.HasTransformationFlags(topLevelFunction, RequiredTransformationFlags))
-                return false;
-
-            // Mark this function as processed
-            transformationManager.AddTransformationFlags(topLevelFunction, Flags);
-
-#if DEBUG
-            try
-            {
-#endif
-                if (executor.Execute(builder, topLevelFunction))
-                {
-                    // Mark function as transformed and ditry
-                    transformationManager.SuccessfullyTransformed(topLevelFunction);
-
-                    // Remove desired transformation flags since the associated functions
-                    // should run on this function later on
-                    transformationManager.RemoveTransformationFlags(topLevelFunction, DesiredTransformationFlags);
-                    return true;
-                }
-#if DEBUG
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-#endif
-            return false;
+            var result = executor.Execute(builder);
+            if (result)
+                builder.Method.AddTransformationFlags(MethodTransformationFlags.Dirty);
+            return result;
         }
 
         #endregion
@@ -307,32 +106,95 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             public UnorderedTransformation Parent { get; }
 
-            /// <summary cref="Transformation.ITransformExecutor.Execute(IRBuilder, TopLevelFunction)"/>
-            public bool Execute(IRBuilder builder, TopLevelFunction topLevelFunction) =>
-                Parent.PerformTransformation(builder, topLevelFunction);
+            /// <summary cref="Transformation.ITransformExecutor.Execute(Method.Builder)"/>
+            public bool Execute(Method.Builder builder) =>
+                Parent.PerformTransformation(builder);
+        }
+
+        #endregion
+
+        #region Instance
+
+        private readonly Action<Method> transformerDelegate;
+
+        /// <summary>
+        /// Constructs a new transformation.
+        /// </summary>
+        protected UnorderedTransformation()
+        {
+            transformerDelegate = (Method method) =>
+            {
+                var executor = new Executor(this);
+                using (var builder = method.CreateBuilder())
+                    ExecuteTransform(builder, executor);
+            };
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Transformation.Transform{TPredicate}(MethodCollection{TPredicate})"/>
+        public override void Transform<TPredicate>(
+            MethodCollection<TPredicate> methods)
+        {
+#if VERIFICATION
+            foreach (var method in methods)
+                transformerDelegate(method);
+#else
+            Parallel.ForEach(methods, transformerDelegate);
+#endif
         }
 
         /// <summary>
-        /// Represents an empty implementation of a transformation flags container.
+        /// Transforms the given method using the provided builder.
         /// </summary>
-        private readonly struct NoTransformationFlagsContainer : ITransformationManager
+        /// <param name="builder">The current method builder.</param>
+        protected abstract bool PerformTransformation(Method.Builder builder);
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a generic transformation that can be applied in an unordered manner.
+    /// </summary>
+    /// <typeparam name="TIntermediate">The type of the intermediate values.</typeparam>
+    public abstract class UnorderedTransformation<TIntermediate> : Transformation
+        where TIntermediate : DisposeBase
+    {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents an unordered executor.
+        /// </summary>
+        private readonly struct Executor : ITransformExecutor
         {
-            /// <summary cref="ITransformationManager.SuccessfullyTransformed(TopLevelFunction)"/>
-            public void SuccessfullyTransformed(TopLevelFunction topLevelFunction)
+            /// <summary>
+            /// Constructs a new executor.
+            /// </summary>
+            /// <param name="parent">The parent transformation.</param>
+            /// <param name="intermediate">The intermediate value.</param>
+            public Executor(
+                UnorderedTransformation<TIntermediate> parent,
+                TIntermediate intermediate)
             {
-                topLevelFunction.AddTransformationFlags(
-                    TopLevelFunctionTransformationFlags.Dirty |
-                    TopLevelFunctionTransformationFlags.Transformed);
+                Parent = parent;
+                Intermediate = intermediate;
             }
 
-            /// <summary cref="ITransformationManager.HasTransformationFlags(TopLevelFunction, TransformationFlags)"/>
-            public bool HasTransformationFlags(TopLevelFunction topLevelFunction, TransformationFlags flags) => false;
+            /// <summary>
+            /// The associated parent transformation.
+            /// </summary>
+            public UnorderedTransformation<TIntermediate> Parent { get; }
 
-            /// <summary cref="ITransformationManager.AddTransformationFlags(TopLevelFunction, TransformationFlags)"/>
-            public void AddTransformationFlags(TopLevelFunction topLevelFunction, TransformationFlags flags) { }
+            /// <summary>
+            /// Returns the associated intermediate value.
+            /// </summary>
+            public TIntermediate Intermediate { get; }
 
-            /// <summary cref="ITransformationManager.RemoveTransformationFlags(TopLevelFunction, TransformationFlags)"/>
-            public void RemoveTransformationFlags(TopLevelFunction topLevelFunction, TransformationFlags flags) { }
+            /// <summary cref="Transformation.ITransformExecutor.Execute(Method.Builder)"/>
+            public bool Execute(Method.Builder builder) =>
+                Parent.PerformTransformation(builder, Intermediate);
         }
 
         #endregion
@@ -342,81 +204,51 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new transformation.
         /// </summary>
-        /// <param name="flags">The associated transformation flags.</param>
-        /// <param name="followUpFlags">The desired flags that indicate passes that should run on the marked function.</param>
-        protected UnorderedTransformation(
-            TransformationFlags flags,
-            TransformationFlags followUpFlags)
-            : base(flags, followUpFlags)
-        { }
-
-        /// <summary>
-        /// Constructs a new transformation.
-        /// </summary>
-        /// <param name="flags">The associated transformation flags.</param>
-        /// <param name="followUpFlags">The desired flags that indicate passes that should run on the marked function.</param>
-        /// <param name="requiresCleanIR">True, iff a previous GC run is required.</param>
-        /// <param name="requiresCleanupAfterApplication">True, iff a GC run is required after a successfull application.</param>
-        protected UnorderedTransformation(
-            TransformationFlags flags,
-            TransformationFlags followUpFlags,
-            bool requiresCleanIR,
-            bool requiresCleanupAfterApplication)
-            : base(flags, followUpFlags, requiresCleanIR, requiresCleanupAfterApplication)
-        { }
+        protected UnorderedTransformation() { }
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Transforms the given top-level function using the provided builder.
+        /// Creates a new intermediate value.
         /// </summary>
-        /// <param name="builder">The current IR builder.</param>
-        /// <param name="topLevelFunction">The current top-level function.</param>
-        public bool Transform(IRBuilder builder, TopLevelFunction topLevelFunction) =>
-            ExecuteTransform(
-                builder ?? throw new ArgumentNullException(nameof(builder)),
-                topLevelFunction ?? throw new ArgumentNullException(nameof(topLevelFunction)),
-                new NoTransformationFlagsContainer(),
-                new Executor(this));
+        /// <returns>The resulting intermediate value.</returns>
+        protected abstract TIntermediate CreateIntermediate();
 
-        /// <summary cref="Transformation.Transform{TPredicate, TManager}(UnsafeFunctionCollection{TPredicate}, TManager)"/>
-        public sealed override bool Transform<TPredicate, TManager>(
-            UnsafeFunctionCollection<TPredicate> functions,
-            TManager transformationManager)
+        /// <summary cref="Transformation.Transform{TPredicate}(MethodCollection{TPredicate})"/>
+        public override void Transform<TPredicate>(
+            MethodCollection<TPredicate> methods)
         {
-            int result = 0;
-            using (var irBuilder = functions.CreateBuilder(IRBuilderFlags.PreserveTopLevelFunctions))
+            using (var intermediate = CreateIntermediate())
             {
-                var executor = new Executor(this);
-#if !PARALLEL_PROCESSING
-                foreach (var function in functions)
+#if VERIFICATION
+                foreach (var method in methods)
                 {
-                    if (ExecuteTransform(irBuilder, function, transformationManager, executor))
-                        ++result;
+                    var executor = new Executor(this, intermediate);
+                    using (var builder = method.CreateBuilder())
+                        ExecuteTransform(builder, executor);
                 }
 #else
-                Parallel.ForEach(
-                    functions,
-                    function =>
+                Parallel.ForEach(methods,
+                    (Method method) =>
                     {
-                        if (ExecuteTransform(irBuilder, function, transformationManager, executor))
-                            Interlocked.Add(ref result, 1);
+                        var executor = new Executor(this, intermediate);
+                        using (var builder = method.CreateBuilder())
+                            ExecuteTransform(builder, executor);
                     });
 #endif
             }
-            return result != 0;
         }
 
         /// <summary>
-        /// Transforms the given top-level function using the provided builder.
+        /// Transforms the given method using the provided builder.
         /// </summary>
-        /// <param name="builder">The current IR builder.</param>
-        /// <param name="topLevelFunction">The current top-level function.</param>
+        /// <param name="builder">The current method builder.</param>
+        /// <param name="intermediate">The intermediate value.</param>
         protected abstract bool PerformTransformation(
-            IRBuilder builder,
-            TopLevelFunction topLevelFunction);
+            Method.Builder builder,
+            TIntermediate intermediate);
 
         #endregion
     }
@@ -438,16 +270,19 @@ namespace ILGPU.IR.Transformations
             /// Constructs a new executor.
             /// </summary>
             /// <param name="parent">The parent transformation.</param>
-            /// <param name="functionLandscape">The current function landscape.</param>
+            /// <param name="landscape">The current landscape.</param>
             /// <param name="entry">The current landscape entry.</param>
+            /// <param name="cachedScopeProvider">The cached scope provider.</param>
             public Executor(
                 OrderedTransformation parent,
-                FunctionLandscape functionLandscape,
-                FunctionLandscape.Entry entry)
+                Landscape landscape,
+                Landscape.Entry entry,
+                CachedScopeProvider cachedScopeProvider)
             {
                 Parent = parent;
-                FunctionLandscape = functionLandscape;
+                Landscape = landscape;
                 Entry = entry;
+                CachedScopeProvider = cachedScopeProvider;
             }
 
             /// <summary>
@@ -458,16 +293,25 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Returns the current landscape.
             /// </summary>
-            public FunctionLandscape FunctionLandscape { get; }
+            public Landscape Landscape { get; }
 
             /// <summary>
             /// Returns the current entry.
             /// </summary>
-            public FunctionLandscape.Entry Entry { get; }
+            public Landscape.Entry Entry { get; }
 
-            /// <summary cref="Transformation.ITransformExecutor.Execute(IRBuilder, TopLevelFunction)"/>
-            public bool Execute(IRBuilder builder, TopLevelFunction topLevelFunction) =>
-                Parent.PerformTransformation(builder, FunctionLandscape, Entry);
+            /// <summary>
+            /// Returns the scope provider.
+            /// </summary>
+            public CachedScopeProvider CachedScopeProvider { get; }
+
+            /// <summary cref="Transformation.ITransformExecutor.Execute(Method.Builder)"/>
+            public bool Execute(Method.Builder builder) =>
+                Parent.PerformTransformation(
+                    builder,
+                    Landscape,
+                    Entry,
+                    CachedScopeProvider);
         }
 
         #endregion
@@ -477,65 +321,43 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new transformation.
         /// </summary>
-        /// <param name="flags">The associated transformation flags.</param>
-        /// <param name="followUpFlags">The desired flags that indicate passes that should run on the marked function.</param>
-        protected OrderedTransformation(
-            TransformationFlags flags,
-            TransformationFlags followUpFlags)
-            : base(flags, followUpFlags)
-        { }
-
-        /// <summary>
-        /// Constructs a new transformation.
-        /// </summary>
-        /// <param name="flags">The associated transformation flags.</param>
-        /// <param name="followUpFlags">The desired flags that indicate passes that should run on the marked function.</param>
-        /// <param name="requiresCleanIR">True, iff a previous GC run is required.</param>
-        /// <param name="requiresCleanupAfterApplication">True, iff a GC run is required after a successfull application.</param>
-        protected OrderedTransformation(
-            TransformationFlags flags,
-            TransformationFlags followUpFlags,
-            bool requiresCleanIR,
-            bool requiresCleanupAfterApplication)
-            : base(flags, followUpFlags, requiresCleanIR, requiresCleanupAfterApplication)
-        { }
+        protected OrderedTransformation() { }
 
         #endregion
 
         #region Methods
 
-        /// <summary cref="Transformation.Transform{TPredicate, TManager}(UnsafeFunctionCollection{TPredicate}, TManager)"/>
-        public sealed override bool Transform<TPredicate, TManager>(
-            UnsafeFunctionCollection<TPredicate> functions,
-            TManager transformationManager)
+        /// <summary cref="Transformation.Transform{TPredicate}(MethodCollection{TPredicate})"/>
+        public sealed override void Transform<TPredicate>(
+            MethodCollection<TPredicate> methods)
         {
-            var landscape = FunctionLandscape.Create<UnsafeFunctionCollection<TPredicate>, TPredicate>(functions);
+            var landscape = Landscape.Create<MethodCollection<TPredicate>, TPredicate>(methods);
             if (landscape.Count < 1)
-                return false;
+                return;
 
-            int result = 0;
-            using (var irBuilder = functions.CreateBuilder(IRBuilderFlags.PreserveTopLevelFunctions))
+            var scopeProvider = new CachedScopeProvider();
+            foreach (var entry in landscape)
             {
-                foreach (var entry in landscape)
-                {
-                    var executor = new Executor(this, landscape, entry);
-                    if (ExecuteTransform(irBuilder, entry.Function, transformationManager, executor))
-                        ++result;
-                }
+                var executor = new Executor(this, landscape, entry, scopeProvider);
+                using (var irBuilder = entry.Method.CreateBuilder())
+                    ExecuteTransform(irBuilder, executor);
             }
-            return result != 0;
         }
 
         /// <summary>
-        /// Transforms the given top-level function using the provided builder.
+        /// Transforms the given method using the provided builder.
         /// </summary>
-        /// <param name="builder">The current IR builder.</param>
-        /// <param name="landscape">The current function landscape.</param>
-        /// <param name="currentEntry">The current top-level function entry.</param>
-        protected abstract bool PerformTransformation(
-            IRBuilder builder,
-            FunctionLandscape landscape,
-            FunctionLandscape.Entry currentEntry);
+        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <param name="builder">The current method builder.</param>
+        /// <param name="landscape">The global processing landscape.</param>
+        /// <param name="current">The current landscape entry.</param>
+        /// <param name="scopeProvider">Resolves methods to scopes.</param>
+        protected abstract bool PerformTransformation<TScopeProvider>(
+            Method.Builder builder,
+            Landscape landscape,
+            Landscape.Entry current,
+            TScopeProvider scopeProvider)
+            where TScopeProvider : IScopeProvider;
 
         #endregion
     }

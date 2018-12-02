@@ -67,8 +67,7 @@ namespace ILGPU.Backends.IL
                 SharedMemoryPerKernel,
                 specialization);
 
-            // Note that we do not need an ABI and a valid backend context in this case
-            return Compile(entryPoint, null, default, specialization);
+            return Compile(entryPoint, default, specialization);
         }
 
         #endregion

@@ -63,10 +63,8 @@ namespace ILGPU.Frontend.Intrinsic
         {
             var builder = context.Builder;
             // These methods are instance calls -> load instance value
-            var instanceValue = builder.CreateLoad(
-                context.PopMemory(),
-                context[TopLevelFunction.ParametersOffset]);
-            context.PushMemory(instanceValue);
+            var paramOffset = 0;
+            var instanceValue = builder.CreateLoad(context[paramOffset++]);
             switch (attribute.IntrinsicKind)
             {
                 case ViewIntrinsicKind.GetViewLength:
@@ -80,20 +78,20 @@ namespace ILGPU.Frontend.Intrinsic
                 case ViewIntrinsicKind.GetSubView:
                     return builder.CreateSubViewValue(
                         instanceValue,
-                        context[TopLevelFunction.ParametersOffset + 1],
-                        context[TopLevelFunction.ParametersOffset + 2]);
+                        context[paramOffset++],
+                        context[paramOffset++]);
                 case ViewIntrinsicKind.GetSubViewImplicitLength:
                     return builder.CreateSubViewValue(
                         instanceValue,
-                        context[TopLevelFunction.ParametersOffset + 1],
+                        context[paramOffset],
                         builder.CreateArithmetic(
                             builder.CreateGetViewLength(instanceValue),
-                            context[TopLevelFunction.ParametersOffset + 1],
+                            context[paramOffset],
                             BinaryArithmeticKind.Sub));
                 case ViewIntrinsicKind.GetViewElementAddress:
                     return builder.CreateLoadElementAddress(
                         instanceValue,
-                        context[TopLevelFunction.ParametersOffset + 1]);
+                        context[paramOffset++]);
                 case ViewIntrinsicKind.CastView:
                     return builder.CreateViewCast(
                         instanceValue,
@@ -113,7 +111,7 @@ namespace ILGPU.Frontend.Intrinsic
                     return builder.CreateLoadElementAddress(
                         instanceValue,
                         builder.CreateGetField(
-                            context[TopLevelFunction.ParametersOffset + 1],
+                            context[paramOffset++],
                             0));
                 case ViewIntrinsicKind.AsLinearView:
                     return instanceValue;

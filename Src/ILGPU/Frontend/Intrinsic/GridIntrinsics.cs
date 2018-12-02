@@ -56,9 +56,10 @@ namespace ILGPU.Frontend.Intrinsic
             in InvocationContext context,
             GridIntrinsicAttribute attribute)
         {
+            var builder = context.Builder;
             if (attribute.IntrinsicKind == GridIntrinsicKind.GetGridDimension)
-                return context.Builder.CreateGridDimensionValue(attribute.Dimension);
-            return context.Builder.CreateGroupDimensionValue(attribute.Dimension);
+                return builder.CreateGridDimensionValue(attribute.Dimension);
+            return builder.CreateGroupDimensionValue(attribute.Dimension);
         }
 
     }

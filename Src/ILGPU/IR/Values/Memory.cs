@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -19,185 +18,26 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.IR.Values
 {
     /// <summary>
-    /// Represents an abstract node in the scope of a memory chain.
-    /// </summary>
-    public interface IMemoryChainNode
-    {
-        /// <summary>
-        /// Returns the parent memory chain element.
-        /// </summary>
-        ValueReference Parent { get; }
-    }
-
-    /// <summary>
-    /// Represents a reference to a memory value.
-    /// </summary>
-    public sealed class MemoryRef : InstantiatedValue, IMemoryChainNode
-    {
-        #region Static
-
-        /// <summary>
-        /// Unlinks the given node from the memory chain.
-        /// </summary>
-        /// <param name="memoryValue">The memory value to unlink.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void Unlink(MemoryValue memoryValue)
-        {
-            Debug.Assert(memoryValue != null, "Invalid memory value");
-            var parent = memoryValue.Parent.Resolve();
-            foreach (var use in memoryValue.Uses)
-            {
-                if (use.Resolve() is MemoryRef parentRef)
-                    parentRef.Replace(parent);
-            }
-        }
-
-        /// <summary>
-        /// Replaces the given memory value with a new chain.
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        /// <param name="memoryValue">The memory value to replace.</param>
-        /// <param name="chainStart">The chain start.</param>
-        /// <param name="chainEnd">The chain end.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void Replace(
-            IRBuilder builder,
-            MemoryValue memoryValue,
-            MemoryRef chainStart,
-            MemoryRef chainEnd)
-        {
-            Debug.Assert(builder != null, "Invalid builder");
-            Debug.Assert(memoryValue != null, "Invalid memory value");
-            Debug.Assert(chainStart != null, "Invalid chain start");
-            Debug.Assert(chainEnd != null, "Invalid chain end");
-
-            var parent = memoryValue.Parent.ResolveAs<MemoryRef>();
-            var newParent = builder.CreateMemoryReference(parent.Parent);
-
-            parent.Replace(newParent);
-            chainStart.Replace(newParent);
-
-            // Wire chain end
-            foreach (var use in memoryValue.Uses)
-            {
-                if (use.Resolve() is MemoryRef parentRef)
-                    parentRef.Replace(chainEnd);
-            }
-        }
-
-        /// <summary>
-        /// Returns true iff the given node is member of a memory chain.
-        /// </summary>
-        /// <param name="node">The node to check.</param>
-        /// <returns>True, iff the given node is a member of a memory chain.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsMemoryChainMember(Value node)
-        {
-            if (node == null)
-                throw new ArgumentNullException(nameof(node));
-            return node is IMemoryChainNode ||
-                node.Type.IsMemoryType && (node is UndefValue || node is Parameter);
-        }
-
-        #endregion
-
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new memory reference.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="parentNode">The parent node.</param>
-        /// <param name="memoryType">The memory type.</param>
-        internal MemoryRef(
-            ValueGeneration generation,
-            ValueReference parentNode,
-            MemoryType memoryType)
-            : base(generation)
-        {
-            Debug.Assert(
-                parentNode.Type.IsMemoryType ||
-                parentNode.Resolve().GetType().IsSubclassOf(typeof(MemoryValue)), "Invalid parent memory value");
-            Seal(ImmutableArray.Create(parentNode), memoryType);
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the parent memory operation.
-        /// </summary>
-        public ValueReference Parent => this[0];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateMemoryReference(rebuilder.Rebuild(Parent));
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "mparent";
-
-        /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => $"(=> {Parent} =>) ";
-
-        #endregion
-    }
-
-    /// <summary>
     /// Represents an abstract value with side effects.
     /// </summary>
-    public abstract class MemoryValue : InstantiatedValue, IMemoryChainNode
+    public abstract class MemoryValue : Value
     {
         #region Instance
 
         /// <summary>
         /// Constructs a new memory value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="memoryRef">The parent memory value.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initialType">The initial node type.</param>
         /// <param name="values">All child values.</param>
-        /// <param name="type">The type of the value.</param>
         internal MemoryValue(
-            ValueGeneration generation,
-            ValueReference memoryRef,
+            BasicBlock basicBlock,
             ImmutableArray<ValueReference> values,
-            TypeNode type)
-            : base(generation)
+            TypeNode initialType)
+            : base(basicBlock, initialType)
         {
-            Debug.Assert(memoryRef.IsValid, "Invalid parent memory node");
-            Debug.Assert(memoryRef.Type.IsMemoryType, "Invalid parent memory type");
-            Seal(ImmutableArray.Create(memoryRef).AddRange(values), type);
+            Seal(values);
         }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the parent memory operation.
-        /// </summary>
-        public ValueReference Parent => this[0];
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => $"(=> {Parent} =>) ";
 
         #endregion
     }
@@ -207,31 +47,49 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class Alloca : MemoryValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes an alloca node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="allocaType">The allocation type.</param>
+        /// <param name="addressSpace">The target address space.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(
+            IRContext context,
+            TypeNode allocaType,
+            MemoryAddressSpace addressSpace)
+        {
+            return context.CreatePointerType(
+                allocaType,
+                addressSpace);
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new alloca node.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="memoryRef">The parent memory value.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="arrayLength">The array length to allocate.</param>
-        /// <param name="type">The allocation type.</param>
+        /// <param name="allocaType">The allocation type.</param>
         /// <param name="addressSpace">The target address space.</param>
         internal Alloca(
-            ValueGeneration generation,
-            ValueReference memoryRef,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference arrayLength,
-            TypeNode type,
+            TypeNode allocaType,
             MemoryAddressSpace addressSpace)
             : base(
-                  generation,
-                  memoryRef,
+                  basicBlock,
                   ImmutableArray.Create(arrayLength),
-                  type)
+                  ComputeType(context, allocaType, addressSpace))
         {
-            Debug.Assert(
-                type.IsPointerType,
-                "Invalid pointer type");
             Debug.Assert(
                 arrayLength.Resolve().IsInstantiatedConstant(),
                 "Invalid array length to allocate");
@@ -239,6 +97,11 @@ namespace ILGPU.IR.Values
                 addressSpace == MemoryAddressSpace.Local ||
                 addressSpace == MemoryAddressSpace.Shared,
                 "Invalid alloca address space");
+
+            AllocaType = allocaType;
+            AddressSpace = addressSpace;
+
+            InvalidateType();
         }
 
         #endregion
@@ -248,35 +111,35 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the allocation type.
         /// </summary>
-        public TypeNode AllocaType => (Type as PointerType).ElementType;
-
-        /// <summary>
-        /// Returns the array length.
-        /// </summary>
-        public ValueReference ArrayLength => this[1];
+        public TypeNode AllocaType { get; }
 
         /// <summary>
         /// Returns the address space of this allocation.
         /// </summary>
-        public MemoryAddressSpace AddressSpace => (Type as PointerType).AddressSpace;
+        public MemoryAddressSpace AddressSpace { get; }
+
+        /// <summary>
+        /// Returns the array length.
+        /// </summary>
+        public ValueReference ArrayLength => this[0];
 
         #endregion
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context, AllocaType, AddressSpace);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateAlloca(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
                 rebuilder.Rebuild(ArrayLength),
-                rebuilder.Rebuild(AllocaType),
+                AllocaType,
                 AddressSpace);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -319,25 +182,35 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class MemoryBarrier : MemoryValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a barrier node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(IRContext context) =>
+            context.VoidType;
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new memory barrier.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="memoryRef">The parent memory value.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="kind">The barrier kind.</param>
-        /// <param name="voidType">The void type.</param>
         internal MemoryBarrier(
-            ValueGeneration generation,
-            ValueReference memoryRef,
-            MemoryBarrierKind kind,
-            VoidType voidType)
+            IRContext context,
+            BasicBlock basicBlock,
+            MemoryBarrierKind kind)
             : base(
-                  generation,
-                  memoryRef,
+                  basicBlock,
                   ImmutableArray<ValueReference>.Empty,
-                  voidType)
+                  ComputeType(context))
         {
             Kind = kind;
         }
@@ -355,17 +228,16 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateMemoryBarrier(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
-                Kind);
+            builder.CreateMemoryBarrier(Kind);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -385,24 +257,42 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class Load : MemoryValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a load node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="sourceType">The source type.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(
+            IRContext context,
+            TypeNode sourceType) =>
+            (sourceType as PointerType).ElementType;
+
+        #endregion
+
+
         #region Instance
 
         /// <summary>
         /// Constructs a new load operation.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="memoryRef">The parent memory value.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="source">The source view.</param>
         internal Load(
-            ValueGeneration generation,
-            ValueReference memoryRef,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference source)
             : base(
-                  generation,
-                  memoryRef,
+                  basicBlock,
                   ImmutableArray.Create(source),
-                  (source.Type as PointerType).ElementType)
-        { }
+                  ComputeType(context, source.Type))
+        {
+            InvalidateType();
+        }
 
         #endregion
 
@@ -411,26 +301,23 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the source view.
         /// </summary>
-        public ValueReference Source => this[1];
-
-        /// <summary cref="Value.Type"/>
-        public override TypeNode Type => (Source.Type as PointerType).ElementType;
+        public ValueReference Source => this[0];
 
         #endregion
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context, Source.Type);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateLoad(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
                 rebuilder.Rebuild(Source));
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -450,25 +337,37 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class Store : MemoryValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a store node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(IRContext context) =>
+            context.VoidType;
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new store operation.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="memoryRef">The parent memory value.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="target">The target view.</param>
         /// <param name="value">The value to store.</param>
         internal Store(
-            ValueGeneration generation,
-            ValueReference memoryRef,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference target,
             ValueReference value)
             : base(
-                generation,
-                memoryRef,
-                ImmutableArray.Create(target, value),
-                target.Type)
+                  basicBlock,
+                  ImmutableArray.Create(target, value),
+                  ComputeType(context))
         { }
 
         #endregion
@@ -478,32 +377,29 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the target view.
         /// </summary>
-        public ValueReference Target => this[1];
+        public ValueReference Target => this[0];
 
         /// <summary>
         /// Returns the value to store.
         /// </summary>
-        public ValueReference Value => this[2];
-
-        /// <summary cref="Value.Type"/>
-        public override TypeNode Type => Target.Type;
+        public ValueReference Value => this[1];
 
         #endregion
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateStore(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value));
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 

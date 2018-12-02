@@ -48,12 +48,42 @@ namespace ILGPU.IR.Construction
             if (node.Type == targetType)
                 return node;
 
-            // Match primitive types
-            var isSourceUnsigned = (flags & ConvertFlags.SourceUnsigned) == ConvertFlags.SourceUnsigned;
-            var isTargetUnsigned = (flags & ConvertFlags.TargetUnsigned) == ConvertFlags.TargetUnsigned;
-            if (node is PrimitiveValue value)
+            if (!(targetType is PrimitiveType targetPrimitiveType))
+                throw new NotSupportedException("Not supported target type");
+
+            bool isSourceUnsigned = (flags & ConvertFlags.SourceUnsigned) == ConvertFlags.SourceUnsigned;
+
+            // Match nested conversions
+            if (node is ConvertValue convert)
             {
+                var basicValueType = targetPrimitiveType.BasicValueType;
+                if (basicValueType.IsInt() &&
+                    convert.SourceType == basicValueType.GetArithmeticBasicValueType(isSourceUnsigned))
+                    return convert.Value;
+            }
+            // Match X to bool
+            else if (targetPrimitiveType.IsBool)
+            {
+                return CreateCompare(
+                    node,
+                    CreatePrimitiveValue(node.BasicValueType, 0),
+                    CompareKind.NotEqual);
+            }
+            // Match bool to X
+            else if (node.BasicValueType == BasicValueType.Int1)
+            {
+                return CreatePredicate(
+                    node,
+                    CreatePrimitiveValue(targetPrimitiveType.BasicValueType, 1),
+                    CreatePrimitiveValue(targetPrimitiveType.BasicValueType, 0));
+            }
+
+            // Match primitive types
+            if (UseConstantPropagation && node is PrimitiveValue value)
+            {
+                bool isTargetUnsigned = (flags & ConvertFlags.TargetUnsigned) == ConvertFlags.TargetUnsigned;
                 var targetBasicValueType = targetType.BasicValueType;
+
                 switch (value.BasicValueType)
                 {
                     case BasicValueType.Int1:
@@ -135,36 +165,8 @@ namespace ILGPU.IR.Construction
                 }
             }
 
-            if (!(targetType is PrimitiveType targetPrimitiveType))
-                throw new NotSupportedException("Not supported target type");
-
-            // Match nested conversions
-            if (node is ConvertValue convert)
-            {
-                var basicValueType = targetPrimitiveType.BasicValueType;
-                if (basicValueType.IsInt() &&
-                    convert.SourceType == basicValueType.GetArithmeticBasicValueType(isSourceUnsigned))
-                    return convert.Value;
-            }
-            // Match X to bool
-            else if (targetPrimitiveType.IsBool)
-            {
-                return CreateCompare(
-                    node,
-                    CreatePrimitiveValue(node.BasicValueType, 0),
-                    CompareKind.NotEqual);
-            }
-            // Match bool to X
-            else if (node.BasicValueType == BasicValueType.Int1)
-            {
-                return CreatePredicate(
-                    node,
-                    CreatePrimitiveValue(targetPrimitiveType.BasicValueType, 1),
-                    CreatePrimitiveValue(targetPrimitiveType.BasicValueType, 0));
-            }
-
-            return CreateUnifiedValue(new ConvertValue(
-                Generation,
+            return Append(new ConvertValue(
+                BasicBlock,
                 node,
                 targetType,
                 flags));

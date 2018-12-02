@@ -10,227 +10,73 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends.IL;
-using ILGPU.Util;
+using ILGPU.Backends.PointerViews;
+using ILGPU.Runtime;
 using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.PTX
 {
     /// <summary>
     /// Constructs mappings for PTX kernels.
     /// </summary>
-    public sealed class PTXArgumentMapper : PtrArrayViewImplementationArgumentMapper
+    /// <remarks>Members of this class are not thread safe.</remarks>
+    public sealed class PTXArgumentMapper : ViewArgumentMapper
     {
-        #region Constants
-
-        /// <summary>
-        /// The name of length field in scope of a kernel argument.
-        /// </summary>
-        private const string KernelLengthFieldName = "IndexField";
-
-        /// <summary>
-        /// The general kernel field name prefix that is used
-        /// for all declared types.
-        /// </summary>
-        private const string KernelFieldNamePrefix = "Data_";
-
-        #endregion
-
         #region Nested Types
 
         /// <summary>
-        /// Represents the general kernel target.
+        /// Implements the actual argument mapping.
         /// </summary>
-        private struct Target : IKernelTarget
+        private readonly struct MappingHandler : IMappingHandler
         {
             /// <summary>
-            /// Constructs a new kernel target.
+            /// Constructs a new mapping handler.
             /// </summary>
-            /// <param name="typeBuilder">The current tpye builder.</param>
-            public Target(TypeBuilder typeBuilder)
+            /// <param name="argumentLocal">The unsafe target argument array.</param>
+            /// <param name="argumentOffset">The target argument offset.</param>
+            public MappingHandler(
+                ILLocal argumentLocal,
+                int argumentOffset)
             {
-                Counter = 0;
-                TypeBuilder = typeBuilder;
+                ArgumentLocal = argumentLocal;
+                ArgumentOffset = argumentOffset;
             }
 
             /// <summary>
-            /// The current counter value.
+            /// Returns the associated unsafe kernel argument local.
             /// </summary>
-            public int Counter { get; private set; }
+            public ILLocal ArgumentLocal { get; }
 
             /// <summary>
-            /// The current type builder.
+            /// Returns the argument offset.
             /// </summary>
-            public TypeBuilder TypeBuilder { get; }
+            public int ArgumentOffset { get; }
 
-            /// <summary cref="KernelArgumentMapper.IKernelTarget.DeclareType"/>
-            public int DeclareType(Type type)
-            {
-                var id = Counter++;
-                TypeBuilder.DefineField(
-                    KernelFieldNamePrefix + id,
-                    type,
-                    FieldAttributes.Public);
-                return id;
-            }
-        }
-
-        /// <summary>
-        /// The internal entry point mapping of a Cuda kernel.
-        /// </summary>
-        internal sealed class EntryPointMapping : KernelArgumentMapping
-        {
-            #region Nested Types
-
-            /// <summary>
-            /// Represents a source value.
-            /// </summary>
-            private readonly struct Source : ISource
-            {
-                public Source(int index, bool isByRef)
-                {
-                    Index = index;
-                    IsByRef = isByRef;
-                }
-
-                /// <summary>
-                /// Returns the associated source index.
-                /// </summary>
-                public int Index { get; }
-
-                /// <summary>
-                /// Returns true if this argument is passed by reference.
-                /// </summary>
-                public bool IsByRef { get; }
-
-                /// <summary cref="KernelArgumentMapper.ISource.EmitLoadSource{TILEmitter}(in TILEmitter)"/>
-                public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
-                    where TILEmitter : IILEmitter
-                {
-                    if (IsByRef)
-                        emitter.Emit(ArgumentOperation.Load, Index);
-                    else
-                        emitter.Emit(ArgumentOperation.LoadAddress, Index);
-                }
-            }
-
-            /// <summary>
-            /// Represents a single variable target.
-            /// </summary>
-            private readonly struct Target : ITarget
-            {
-                public Target(ILLocal local, EntryPointMapping parent)
-                {
-                    Local = local;
-                    Parent = parent;
-                }
-
-                /// <summary>
-                /// Returns the associated temporary local variable.
-                /// </summary>
-                public ILLocal Local { get; }
-
-                /// <summary>
-                /// Returns the parent entry-point mapping.
-                /// </summary>
-                public EntryPointMapping Parent { get; }
-
-                /// <summary cref="KernelArgumentMapper.ITarget.EmitLoadTarget{TILEmitter}(in TILEmitter, int)"/>
-                public void EmitLoadTarget<TILEmitter>(
-                    in TILEmitter emitter,
-                    int id)
-                    where TILEmitter : IILEmitter
-                {
-                    emitter.Emit(LocalOperation.LoadAddress, Local);
-                    emitter.Emit(OpCodes.Ldflda, Parent.Fields[id]);
-                }
-            }
-
-            #endregion
-
-            #region Instance
-
-            /// <summary>
-            /// Constructs a new entry-point mapping.
-            /// </summary>
-            /// <param name="parameterSpecification">Information about all kernel parameters.</param>
-            /// <param name="mappings">All nested mapping.</param>
-            /// <param name="targetType">The target type.</param>
-            /// <param name="numFields">The current number of fields.</param>
-            internal EntryPointMapping(
-                in EntryPoint.ParameterSpecification parameterSpecification,
-                ImmutableArray<Mapping> mappings,
-                Type targetType,
-                int numFields)
-                : base(parameterSpecification, mappings)
-            {
-                TargetType = targetType;
-                KernelLengthField = targetType.GetField(KernelLengthFieldName);
-
-                var fields = ImmutableArray.CreateBuilder<FieldInfo>(numFields);
-                for (int i = 0; i < numFields; ++i)
-                    fields.Add(targetType.GetField(KernelFieldNamePrefix + i));
-                Fields = fields.MoveToImmutable();
-            }
-
-            #endregion
-
-            #region Properties
-
-            /// <summary>
-            /// Returns the main target type.
-            /// </summary>
-            public Type TargetType { get; }
-
-            /// <summary>
-            /// Returns the argument size in bytes.
-            /// </summary>
-            public int ArgumentSize => TargetType.SizeOf();
-
-            /// <summary>
-            /// Returns the target kernel-length field.
-            /// </summary>
-            public FieldInfo KernelLengthField { get; }
-
-            /// <summary>
-            /// Returns all fields.
-            /// </summary>
-            public ImmutableArray<FieldInfo> Fields { get; }
-
-            #endregion
-
-            #region Methods
-
-            /// <summary>
-            /// Emits this entry-point mapping to the given emitter.
-            /// </summary>
-            /// <typeparam name="TILEmitter">The target emitter type.</typeparam>
-            /// <param name="emitter">The target emitter.</param>
-            /// <param name="firstArgumentIndex">The index of the first kernel argument.</param>
-            /// <returns>The emitted local variable.</returns>
-            public ILLocal EmitEntryPointMapping<TILEmitter>(
+            /// <summary cref="ArgumentMapper.IMappingHandler.MapArgument{TILEmitter, TSource}(in TILEmitter, TSource, int)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void MapArgument<TILEmitter, TSource>(
                 in TILEmitter emitter,
-                int firstArgumentIndex)
+                TSource source,
+                int argumentIndex)
                 where TILEmitter : IILEmitter
+                where TSource : ISource
             {
-                Debug.Assert(firstArgumentIndex >= 0, "Invalid first argument index");
-                // Entry point address is on the stack
-                var targetLocal = emitter.DeclareLocal(TargetType);
-                var target = new Target(targetLocal, this);
+                // Load and compute target address
+                emitter.Emit(LocalOperation.Load, ArgumentLocal);
+                emitter.EmitConstant(IntPtr.Size * (argumentIndex + ArgumentOffset));
+                emitter.Emit(OpCodes.Conv_I);
+                emitter.Emit(OpCodes.Add);
 
-                for (int i = 0, e = Mappings.Length; i < e; ++i)
-                {
-                    var source = new Source(firstArgumentIndex + i, Parameters.IsByRef(i));
-                    Mappings[i].EmitConversion(emitter, source, target);
-                }
+                // Load source address
+                source.EmitLoadSource(emitter);
+                emitter.Emit(OpCodes.Conv_I);
 
-                return targetLocal;
+                // Store target
+                emitter.Emit(OpCodes.Stind_I);
             }
-
-            #endregion
         }
 
         #endregion
@@ -249,31 +95,69 @@ namespace ILGPU.Backends.PTX
 
         #region Methods
 
-        /// <summary cref="KernelArgumentMapper.CreateMapping(in EntryPoint.ParameterSpecification, Type)"/>
-        public override KernelArgumentMapping CreateMapping(
-            in EntryPoint.ParameterSpecification specification,
-            Type nonGroupedIndexType)
+        /// <summary>
+        /// Stores the kernel length argument of an implicitly grouped kernel.
+        /// </summary>
+        /// <typeparam name="TILEmitter">The emitter type.</typeparam>
+        /// <param name="emitter">The target emitter to write to.</param>
+        /// <param name="argumentBuffer">The current local holding the native argument pointers.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void StoreKernelLength<TILEmitter>(
+            in TILEmitter emitter,
+            ILLocal argumentBuffer)
+            where TILEmitter : IILEmitter
         {
-            var resultingType = Context.DefineRuntimeStruct();
-            if (nonGroupedIndexType != null)
-            {
-                resultingType.DefineField(
-                    KernelLengthFieldName,
-                    nonGroupedIndexType,
-                    FieldAttributes.Public);
-            }
+            // Load target data pointer
+            emitter.Emit(LocalOperation.Load, argumentBuffer);
 
-            var target = new Target(resultingType);
-            var mappings = CreateMapping(ref target, specification);
+            // Load source pointer
+            emitter.Emit(ArgumentOperation.LoadAddress, Kernel.KernelParamDimensionIdx);
+            emitter.Emit(OpCodes.Conv_I);
 
-            var structType = resultingType.CreateTypeInfo().AsType();
-            return new EntryPointMapping(
-                specification,
-                mappings,
-                structType,
-                target.Counter);
+            // Store target
+            emitter.Emit(OpCodes.Stind_I);
         }
 
+        /// <summary>
+        /// Creates code that maps the given parameter specification to
+        /// a compatible representation.
+        /// </summary>
+        /// <typeparam name="TILEmitter">The emitter type.</typeparam>
+        /// <param name="emitter">The target emitter to write to.</param>
+        /// <param name="entryPoint">The entry point.</param>
+        /// <returns>A local that stores the native kernel argument pointers.</returns>
+        public ILLocal Map<TILEmitter>(in TILEmitter emitter, EntryPoint entryPoint)
+            where TILEmitter : IILEmitter
+        {
+            Debug.Assert(entryPoint != null, "Invalid entry point");
+
+            var local = emitter.DeclareLocal(typeof(byte*));
+            var parameters = entryPoint.Parameters;
+
+            // Compute the actual number of kernel arguments
+            int numParameters = parameters.NumParameters;
+            int parameterOffset = 0;
+            if (!entryPoint.IsGroupedIndexEntry)
+            {
+                ++numParameters;
+                ++parameterOffset;
+            }
+
+            // Emit a local argument pointer array that stores the native addresses
+            // of all arguments
+            emitter.EmitConstant(IntPtr.Size * numParameters);
+            emitter.Emit(OpCodes.Conv_U);
+            emitter.Emit(OpCodes.Localloc);
+
+            // Store pointer in local variable
+            emitter.Emit(LocalOperation.Store, local);
+
+            // Store pointers to all mapped arguments
+            var mappingHandler = new MappingHandler(local, parameterOffset);
+            Map(emitter, mappingHandler, parameters);
+
+            return local;
+        }
 
         #endregion
     }

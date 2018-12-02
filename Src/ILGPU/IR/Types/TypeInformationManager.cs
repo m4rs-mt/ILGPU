@@ -37,7 +37,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a context that manages type information.
     /// </summary>
-    public sealed class TypeInformationManager : DisposeBase
+    public class TypeInformationManager : DisposeBase
     {
         #region Instance
 

@@ -21,14 +21,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Visits the node.
         /// </summary>
-        /// <param name="functionValue">The node.</param>
-        void Visit(FunctionValue functionValue);
+        /// <param name="functionCall">The node.</param>
+        void Visit(MethodCall functionCall);
 
         /// <summary>
         /// Visits the node.
         /// </summary>
-        /// <param name="functionCall">The node.</param>
-        void Visit(FunctionCall functionCall);
+        /// <param name="phiValue">The node.</param>
+        void Visit(PhiValue phiValue);
 
         /// <summary>
         /// Visits the node.
@@ -105,12 +105,6 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Visits the node.
         /// </summary>
-        /// <param name="selectPredicate">The node.</param>
-        void Visit(SelectPredicate selectPredicate);
-
-        /// <summary>
-        /// Visits the node.
-        /// </summary>
         /// <param name="atomic">The node.</param>
         void Visit(GenericAtomic atomic);
 
@@ -119,12 +113,6 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="atomicCAS">The node.</param>
         void Visit(AtomicCAS atomicCAS);
-
-        /// <summary>
-        /// Visits the node.
-        /// </summary>
-        /// <param name="memoryRef">The node.</param>
-        void Visit(MemoryRef memoryRef);
 
         /// <summary>
         /// Visits the node.
@@ -208,12 +196,6 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="value">The node.</param>
-        void Visit(UndefValue value);
-
-        /// <summary>
-        /// Visits the node.
-        /// </summary>
-        /// <param name="value">The node.</param>
         void Visit(GetField value);
 
         /// <summary>
@@ -264,6 +246,8 @@ namespace ILGPU.IR.Values
         /// <param name="shuffle">The node.</param>
         void Visit(Shuffle shuffle);
 
+        // Debug assert
+
         /// <summary>
         /// Visits the node.
         /// </summary>
@@ -275,6 +259,32 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="trace">The node.</param>
         void Visit(DebugTrace trace);
+
+        // Terminators
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        void Visit(ReturnTerminator node);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        void Visit(UnconditionalBranch node);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        void Visit(ConditionalBranch node);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        void Visit(SwitchBranch node);
     }
 
     /// <summary>

@@ -10,10 +10,11 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR;
+using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -22,7 +23,7 @@ namespace ILGPU.Backends.PTX
     /// Generates PTX code out of IR values.
     /// </summary>
     /// <remarks>The code needs to be prepared for this code generator.</remarks>
-    partial class PTXCodeGenerator : IValueVisitor
+    partial class PTXCodeGenerator : PTXRegisterAllocator, IValueVisitor
     {
         #region Constants
 
@@ -75,17 +76,14 @@ namespace ILGPU.Backends.PTX
             /// Constructs a new mapped parameter.
             /// </summary>
             /// <param name="register">The PTX register.</param>
-            /// <param name="ptxType">The PTX type.</param>
             /// <param name="ptxName">The name of the parameter in PTX code.</param>
             /// <param name="parameter">The source parameter.</param>
             public MappedParameter(
-                PTXRegister register,
-                PTXType ptxType,
+                Register register,
                 string ptxName,
                 Parameter parameter)
             {
-                PTXRegister = register;
-                PTXType = ptxType;
+                Register = register;
                 PTXName = ptxName;
                 Parameter = parameter;
             }
@@ -97,12 +95,7 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Returns the associated PTX register.
             /// </summary>
-            public PTXRegister PTXRegister { get; }
-
-            /// <summary>
-            /// Returns the mapped PTX parameter type.
-            /// </summary>
-            public PTXType PTXType { get; }
+            public Register Register { get; }
 
             /// <summary>
             /// Returns the name of the parameter in PTX code.
@@ -128,12 +121,8 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             /// <param name="parameterOffset">The current intrinsic parameter index.</param>
             /// <param name="parameter">The intrinsic parameter.</param>
-            /// <param name="paramType">The parameter type.</param>
             /// <returns>The allocated register (if any).</returns>
-            PTXRegister? HandleIntrinsicParameters(
-                int parameterOffset,
-                Parameter parameter,
-                PTXType paramType);
+            Register HandleIntrinsicParameter(int parameterOffset, Parameter parameter);
         }
 
         /// <summary>
@@ -141,11 +130,9 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         protected readonly struct EmptyParameterSetupLogic : IParameterSetupLogic
         {
-            /// <summary cref="IParameterSetupLogic.HandleIntrinsicParameters(int, Parameter, PTXType)"/>
-            public PTXRegister? HandleIntrinsicParameters(
-                int parameterOffset,
-                Parameter parameter,
-                PTXType paramType) => null;
+            /// <summary cref="IParameterSetupLogic.HandleIntrinsicParameter(int, Parameter)"/>
+            public Register HandleIntrinsicParameter(int parameterOffset, Parameter parameter) =>
+                null;
         }
 
         #endregion
@@ -153,37 +140,53 @@ namespace ILGPU.Backends.PTX
         #region Static
 
         /// <summary>
-        /// Returns the PTX function name for the given function.
+        /// Returns a PTX compatible name for the given entity.
         /// </summary>
-        /// <param name="function">The function.</param>
-        /// <returns>The resolved PTX function name.</returns>
-        protected static string GetFunctionName(TopLevelFunction function)
+        /// <param name="name">The source name.</param>
+        /// <param name="nodeId">The source node id.</param>
+        /// <returns>The resolved PTX name.</returns>
+        private static string GetCompatibleName(string name, NodeId nodeId)
         {
-            var handleName = function.Handle.Name;
-            if (function.HasFlags(TopLevelFunctionFlags.External))
-                return handleName;
-            var chars = handleName.ToCharArray();
+            var chars = name.ToCharArray();
             for (int i = 0, e = chars.Length; i < e; ++i)
             {
                 ref var charValue = ref chars[i];
                 if (!char.IsLetterOrDigit(charValue))
                     charValue = '_';
             }
-            return new string(chars) + function.Id.ToString();
+            return new string(chars) + nodeId.ToString();
         }
+
+        /// <summary>
+        /// Returns the PTX function name for the given function.
+        /// </summary>
+        /// <param name="method">The method.</param>
+        /// <returns>The resolved PTX function name.</returns>
+        protected static string GetMethodName(Method method)
+        {
+            var handleName = method.Handle.Name;
+            if (method.HasFlags(MethodFlags.External))
+                return handleName;
+            return GetCompatibleName(handleName + "_", method.Id);
+        }
+
+        /// <summary>
+        /// Returns the PTX parameter name for the given parameter.
+        /// </summary>
+        /// <param name="parameter">The parameter.</param>
+        /// <returns>The resolved PTX parameter name.</returns>
+        protected static string GetParameterName(Parameter parameter) =>
+            GetCompatibleName("_" + parameter.Name + "_", parameter.Id);
 
         #endregion
 
         #region Instance
 
         private int labelCounter = 0;
-        private readonly NodeMarker functionMarker;
-        private readonly PTXRegisterAllocator registerAllocator;
-        private readonly HashSet<DeviceConstantValue> emittedConstants = new HashSet<DeviceConstantValue>();
-        private readonly Dictionary<FunctionValue, string> blockLookup =
-            new Dictionary<FunctionValue, string>();
-        private readonly Dictionary<Value, (string, PTXRegister)> constants =
-            new Dictionary<Value, (string, PTXRegister)>();
+        private readonly Dictionary<BasicBlock, string> blockLookup =
+            new Dictionary<BasicBlock, string>();
+        private readonly Dictionary<string, string> stringConstants =
+            new Dictionary<string, string>();
         private readonly string labelPrefix;
         protected readonly string returnParamName;
 
@@ -193,22 +196,17 @@ namespace ILGPU.Backends.PTX
         /// <param name="args">The generator arguments.</param>
         /// <param name="scope">The current scope.</param>
         protected PTXCodeGenerator(in GeneratorArgs args, Scope scope)
+            : base(args.ABI)
         {
             Builder = args.StringBuilder;
             Scope = scope;
-            CFG = CFG.Create(Scope);
-            TopLevelFunction = Scope.Entry as TopLevelFunction;
-
-            ABI = args.ABI;
-            functionMarker = Scope.Context.NewNodeMarker();
 
             Architecture = args.Architecture;
             FastMath = args.FastMath;
             EnableAssertions = args.EnableAssertions;
 
-            registerAllocator = new PTXRegisterAllocator(ABI);
-            labelPrefix = "L_" + TopLevelFunction.Id.ToString();
-            returnParamName = "retval_" + TopLevelFunction.Id;
+            labelPrefix = "L_" + Method.Id.ToString();
+            returnParamName = "retval_" + Method.Id;
         }
 
         #endregion
@@ -218,22 +216,12 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns the associated top-level function.
         /// </summary>
-        public TopLevelFunction TopLevelFunction { get; }
+        public Method Method => Scope.Method;
 
         /// <summary>
         /// Returns the current function scope.
         /// </summary>
         public Scope Scope { get; }
-
-        /// <summary>
-        /// Returns the current CFG.
-        /// </summary>
-        public CFG CFG { get; }
-
-        /// <summary>
-        /// Returns the current ABI.
-        /// </summary>
-        public ABI ABI { get; }
 
         /// <summary>
         /// Returns the currently used PTX architecture.
@@ -257,46 +245,6 @@ namespace ILGPU.Backends.PTX
 
         #endregion
 
-        #region Register Allocation
-
-        /// <summary cref="PTXRegisterAllocator.Allocate(Value, PTXRegisterKind)"/>
-        protected PTXRegister Allocate(Value node, PTXRegisterKind kind) =>
-            registerAllocator.Allocate(node, kind);
-
-        /// <summary cref="PTXRegisterAllocator.Alias(Value, Value)"/>
-        protected void Alias(Value node, Value alias) =>
-            registerAllocator.Alias(node, alias);
-
-        /// <summary cref="PTXRegisterAllocator.AllocatePlatformRegister(out PTXType)"/>
-        protected PTXRegister AllocatePlatformRegister(out PTXType postFix) =>
-            registerAllocator.AllocatePlatformRegister(out postFix);
-
-        /// <summary cref="PTXRegisterAllocator.AllocatePlatformRegister(Value, out PTXType)"/>
-        protected PTXRegister AllocatePlatformRegister(Value node, out PTXType postFix) =>
-            registerAllocator.AllocatePlatformRegister(node, out postFix);
-
-        /// <summary cref="PTXRegisterAllocator.AllocateRegister(PTXRegisterKind)"/>
-        protected PTXRegister AllocateRegister(PTXRegisterKind kind) =>
-            registerAllocator.AllocateRegister(kind);
-
-        /// <summary cref="PTXRegisterAllocator.Free(Value)"/>
-        protected void Free(Value value) =>
-            registerAllocator.Free(value);
-
-        /// <summary cref="PTXRegisterAllocator.FreeRegister(PTXRegister)"/>
-        protected void FreeRegister(PTXRegister register) =>
-            registerAllocator.FreeRegister(register);
-
-        /// <summary cref="PTXRegisterAllocator.Load(Value)"/>
-        protected PTXRegister Load(Value node)
-        {
-            if (node is DeviceConstantValue)
-                node.Accept(this);
-            return registerAllocator.Load(node);
-        }
-
-        #endregion
-
         #region General Code Generation
 
         /// <summary>
@@ -317,81 +265,91 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
+        /// Emits complex phi-value moves.
+        /// </summary>
+        private readonly struct PhiMoveEmitter : IComplexCommandEmitter
+        {
+            /// <summary cref="IComplexCommandEmitter.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister[])"/>
+            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
+            {
+                var type = PTXType.GetPTXType(registers[0].Kind);
+
+                commandEmitter.AppendPostFix(type);
+                commandEmitter.AppendArgument(registers[0]);
+                commandEmitter.AppendArgument(registers[1]);
+            }
+        }
+
+        /// <summary>
         /// Generates code for all CFG nodes.
         /// </summary>
         protected void GenerateCode(
             int registerOffset,
             ref int constantOffset)
         {
-            var placement = Placement.CreateCSEPlacement(CFG);
+            // Build branch targets
+            foreach (var block in Scope)
+                blockLookup.Add(block, DeclareLabel());
 
-            // Build branch targets and allocate phi registers
-            foreach (var cfgNode in placement.CFG)
+            // Find all phi nodes, allocate target registers and prepare
+            // register mapping for all arguments
+            var phiMapping = new Dictionary<BasicBlock, List<(Value, PhiValue)>>();
+            foreach (var block in Scope.PostOrder)
             {
-                var functionValue = cfgNode.FunctionValue;
-                if (functionValue != TopLevelFunction)
-                    blockLookup.Add(functionValue, DeclareLabel());
-
-                var call = functionValue.Target.ResolveAs<FunctionCall>();
-                if (call.IsTopLevelCall)
+                // Gather phis in this block and allocate registers
+                var phis = Phis.Create(block);
+                foreach (var phi in phis)
                 {
-                    foreach (var successor in cfgNode.Successors)
-                    {
-                        foreach (var param in successor.FunctionValue.AttachedParameters)
-                        {
-                            if (param.Type.IsMemoryType)
-                                continue;
+                    Allocate(phi);
 
-                            var ptxType = PTXType.GetPTXType(param.Type, ABI);
-                            Allocate(param, ptxType.RegisterKind);
-                        }
-                    }
-                }
-                else
-                {
-                    var phiParameters = new Value[call.NumArguments];
-                    foreach (var successor in cfgNode.Successors)
+                    // Map all phi arguments
+                    foreach (Value arg in phi.Nodes)
                     {
-                        for (int i = 0, e = phiParameters.Length; i < e; ++i)
+                        var argumentBlock = arg.BasicBlock ?? Scope.EntryBlock;
+                        if (!phiMapping.TryGetValue(argumentBlock, out List<(Value, PhiValue)> arguments))
                         {
-                            var param = successor.FunctionValue.AttachedParameters[i];
-                            if (param.Type.IsMemoryType)
-                                continue;
-
-                            ref var phiParam = ref phiParameters[i];
-                            if (phiParam == null)
-                            {
-                                var ptxType = PTXType.GetPTXType(param.Type, ABI);
-                                Allocate(param, ptxType.RegisterKind);
-                                phiParam = param;
-                            }
-                            else
-                                Alias(param, phiParam);
+                            arguments = new List<(Value, PhiValue)>();
+                            phiMapping.Add(argumentBlock, arguments);
                         }
+                        arguments.Add((arg, phi));
                     }
                 }
             }
             Builder.AppendLine();
 
             // Generate code
-            foreach (var cfgNode in placement.CFG)
+            foreach (var block in Scope)
             {
-                var functionValue = cfgNode.FunctionValue;
-                if (functionValue != TopLevelFunction)
-                    functionValue.Accept(this);
-                using (var placementEnumerator = placement[cfgNode])
+                MarkLabel(blockLookup[block]);
+                foreach (var value in block)
+                    value.Accept(this);
+
+                // Wire phi nodes
+                if (phiMapping.TryGetValue(block, out List<(Value, PhiValue)> phiArguments))
                 {
-                    while (placementEnumerator.MoveNext())
-                        placementEnumerator.Current.Accept(this);
+                    foreach (var (value, phiValue) in phiArguments)
+                    {
+                        var phiTargetRegister = Load(phiValue);
+                        var sourceRegister = Load(value);
+
+                        // Prepare move
+                        EmitComplexCommand(
+                            Instructions.MoveOperation,
+                            new PhiMoveEmitter(),
+                            phiTargetRegister,
+                            sourceRegister);
+                    }
                 }
-                functionValue.Target.Accept(this);
+
+                // Build terminator
+                block.Terminator.Accept(this);
                 Builder.AppendLine();
             }
 
             // Finish kernel and append register information
             Builder.AppendLine("}");
 
-            var registerInfo = registerAllocator.GenerateRegisterInformation("\t");
+            var registerInfo = GenerateRegisterInformation("\t");
             Builder.Insert(registerOffset, registerInfo);
             var constantDeclarations = GenerateConstantDeclarations();
             Builder.Insert(constantOffset, constantDeclarations);
@@ -413,10 +371,13 @@ namespace ILGPU.Backends.PTX
                 Builder.Append('\t');
                 Builder.Append(".local ");
                 var elementType = allocaInfo.ElementType;
-                var elementSize = ABI.GetSizeOf(elementType);
+                ABI.GetAlignmentAndSizeOf(
+                    elementType,
+                    out int elementSize,
+                    out int elementAlignment);
 
                 Builder.Append(".align ");
-                Builder.Append(ABI.PointerSize.ToString());
+                Builder.Append(elementAlignment);
                 Builder.Append(" .b8 ");
 
                 var name = "__local_depot" + offset++;
@@ -432,38 +393,32 @@ namespace ILGPU.Backends.PTX
             return result;
         }
 
-        protected List<MappedParameter> SetupParameters<TSetupLogic>(
-            ref TSetupLogic logic,
-            int paramOffset)
-                where TSetupLogic : IParameterSetupLogic
+        /// <summary>
+        /// Setups all method parameters.
+        /// </summary>
+        /// <typeparam name="TSetupLogic">The specific setup logic.</typeparam>
+        /// <param name="logic">The current logic.</param>
+        /// <param name="paramOffset">The intrinsic parameter offset.</param>
+        /// <returns>A list of mapped parameters.</returns>
+        protected List<MappedParameter> SetupParameters<TSetupLogic>(ref TSetupLogic logic, int paramOffset)
+            where TSetupLogic : IParameterSetupLogic
         {
-            var attachComma = false;
-            var implicitParameters = TopLevelFunction.ParametersOffset;
-            var parameters = new List<MappedParameter>(
-                TopLevelFunction.AttachedParameters.Length -
-                implicitParameters -
-                paramOffset);
+            var parameters = new List<MappedParameter>(Method.NumParameters - paramOffset);
+            bool attachComma = false;
+            int offset = 0;
 
-            var offset = 0;
-            foreach (var param in TopLevelFunction.Parameters)
+            foreach (var param in Method.Parameters)
             {
-                if (implicitParameters > 0)
-                {
-                    --implicitParameters;
-                    continue;
-                }
-                var paramType = PTXType.GetPTXType(param.Type, ABI);
-
-                PTXRegister? register = null;
+                Register register = null;
                 if (offset < paramOffset)
                 {
-                    register = logic.HandleIntrinsicParameters(offset, param, paramType);
+                    register = logic.HandleIntrinsicParameter(offset, param);
                     offset++;
                 }
                 else
-                    register = Allocate(param, paramType.RegisterKind);
+                    register = Allocate(param);
 
-                if (!register.HasValue)
+                if (register == null)
                     continue;
 
                 if (attachComma)
@@ -472,23 +427,105 @@ namespace ILGPU.Backends.PTX
                     Builder.AppendLine();
                 }
 
-                Builder.Append("\t.param .");
-                Builder.Append(paramType);
-                Builder.Append(' ');
+                Builder.Append('\t');
+                var paramName = GetParameterName(param);
+                AppendParamDeclaration(param.Type, paramName);
 
-                var paramName = "_param" + param.Id;
-                Builder.Append(paramName);
-                parameters.Add(
-                    new MappedParameter(
-                        register.Value,
-                        paramType,
-                        paramName,
-                        param));
+                parameters.Add(new MappedParameter(
+                    register,
+                    paramName,
+                    param));
 
                 attachComma = true;
             }
 
             return parameters;
+        }
+
+        /// <summary>
+        /// Emits complex load params instructions.
+        /// </summary>
+        private readonly struct LoadParamEmitter : IComplexCommandEmitterWithOffsets
+        {
+            public LoadParamEmitter(string paramName)
+            {
+                ParamName = paramName;
+            }
+
+            /// <summary>
+            /// The param name
+            /// </summary>
+            public string ParamName { get; }
+
+            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister register, int offset)
+            {
+                var type = PTXType.GetPTXType(register.Kind);
+
+                commandEmitter.AppendPostFix(type);
+                commandEmitter.AppendArgument(register);
+                commandEmitter.AppendRawValue(ParamName, offset);
+            }
+        }
+
+        /// <summary>
+        /// Emits a new set of load param instructions with the
+        /// appropriate configuration.
+        /// </summary>
+        /// <param name="paramName">The parameter name.</param>
+        /// <param name="register">The source register.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void EmitLoadParam(string paramName, Register register)
+        {
+            EmitComplexCommandWithOffsets(
+                Instructions.LoadParamOperation,
+                new LoadParamEmitter(paramName),
+                register,
+                0);
+        }
+
+        /// <summary>
+        /// Emits complex store params instructions.
+        /// </summary>
+        private readonly struct StoreParamEmitter : IComplexCommandEmitterWithOffsets
+        {
+            public StoreParamEmitter(string paramName)
+            {
+                ParamName = paramName;
+            }
+
+            /// <summary>
+            /// The param name
+            /// </summary>
+            public string ParamName { get; }
+
+            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister register, int offset)
+            {
+                var type = PTXType.GetPTXType(register.Kind);
+
+                commandEmitter.AppendPostFix(type);
+                commandEmitter.AppendRawValue(ParamName, offset);
+                commandEmitter.AppendArgument(register);
+            }
+        }
+
+        /// <summary>
+        /// Emits a new set of store param instructions with the
+        /// appropriate configuration.
+        /// </summary>
+        /// <param name="paramName">The parameter name.</param>
+        /// <param name="register">The target register.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void EmitStoreParam(string paramName, Register register)
+        {
+            EmitComplexCommandWithOffsets(
+                Instructions.StoreParamOperation,
+                new StoreParamEmitter(paramName),
+                register,
+                0);
         }
 
         /// <summary>
@@ -498,29 +535,7 @@ namespace ILGPU.Backends.PTX
         protected void BindParameters(List<MappedParameter> parameters)
         {
             foreach (var mappedParameter in parameters)
-            {
-                using (var command = BeginCommand(
-                    Instructions.LoadParamOperation, mappedParameter.PTXType))
-                {
-                    command.AppendArgument(mappedParameter.PTXRegister);
-                    command.AppendRawValue(mappedParameter.PTXName);
-                }
-
-                // Check for special predicate type
-                if (mappedParameter.Parameter.BasicValueType == BasicValueType.Int1)
-                {
-                    Free(mappedParameter.Parameter);
-                    var newParamRegister = Allocate(mappedParameter.Parameter, PTXRegisterKind.Predicate);
-                    using (var command = BeginCommand(Instructions.GetCompareOperation(
-                        CompareKind.NotEqual,
-                        ArithmeticBasicValueType.UInt32)))
-                    {
-                        command.AppendArgument(newParamRegister);
-                        command.AppendArgument(mappedParameter.PTXRegister);
-                        command.AppendConstant(0);
-                    }
-                }
-            }
+                EmitLoadParam(mappedParameter.PTXName, mappedParameter.Register);
         }
 
         /// <summary>
@@ -549,376 +564,58 @@ namespace ILGPU.Backends.PTX
         private string GenerateConstantDeclarations()
         {
             var declBuilder = new StringBuilder();
-            foreach (var constantEntry in constants)
+            foreach (var stringConstant in stringConstants)
             {
-                switch (constantEntry.Key)
+                declBuilder.Append(".global .align ");
+                declBuilder.Append(ABI.PointerSize.ToString());
+                declBuilder.Append(" .b8 ");
+                declBuilder.Append(stringConstant.Value);
+                var stringBytes = Encoding.ASCII.GetBytes(stringConstant.Key);
+                declBuilder.Append("[");
+                declBuilder.Append(stringBytes.Length + 1);
+                declBuilder.Append("]");
+                declBuilder.Append(" = {");
+                foreach (var value in stringBytes)
                 {
-                    case StringValue stringValue:
-                        declBuilder.Append(".global .align ");
-                        declBuilder.Append(ABI.PointerSize.ToString());
-                        declBuilder.Append(" .b8 ");
-                        declBuilder.Append(constantEntry.Value.Item1);
-                        var stringBytes = Encoding.ASCII.GetBytes(stringValue.String);
-                        declBuilder.Append("[");
-                        declBuilder.Append(stringBytes.Length + 1);
-                        declBuilder.Append("]");
-                        declBuilder.Append(" = {");
-                        foreach (var value in stringBytes)
-                        {
-                            declBuilder.Append(value);
-                            declBuilder.Append(", ");
-                        }
-                        declBuilder.AppendLine("0};");
-                        break;
-                    default:
-                        throw new InvalidCodeGenerationException();
+                    declBuilder.Append(value);
+                    declBuilder.Append(", ");
                 }
+                declBuilder.AppendLine("0};");
             }
             return declBuilder.ToString();
         }
 
         /// <summary>
-        /// Determines the PTX on-chip ABI specific size of the given node.
+        /// Appends parameter information.
         /// </summary>
-        /// <param name="typeNode">The type node.</param>
-        /// <returns>The computed PTX on-chip size.</returns>
-        protected int GetDeviceCallSizeOf(TypeNode typeNode)
-        {
-            if (typeNode is PrimitiveType primitiveType)
-            {
-                switch (primitiveType.BasicValueType)
-                {
-                    case BasicValueType.Int1:
-                    case BasicValueType.Int8:
-                    case BasicValueType.Int16:
-                    case BasicValueType.Int32:
-                    case BasicValueType.Float32:
-                        return 4;
-                    case BasicValueType.Int64:
-                    case BasicValueType.Float64:
-                        return 8;
-                    default:
-                        throw new InvalidCodeGenerationException();
-                }
-            }
-            else if (typeNode is PointerType)
-                return ABI.PointerSize;
-            else
-            {
-                var containerType = typeNode as ContainerType;
-                Debug.Assert(containerType != null, "Invalid container type");
-                int size = 0;
-                foreach (var child in containerType.Children)
-                    ABI.Align(ref size, GetDeviceCallSizeOf(child));
-                return size;
-            }
-        }
-
-        /// <summary>
-        /// Appends return parameter information.
-        /// </summary>
-        /// <param name="returnType">The return type.</param>
-        /// <param name="returnName">The name of the return argument.</param>
-        protected void AppendReturnParamInfo(TypeNode returnType, string returnName)
+        /// <param name="paramType">The param type.</param>
+        /// <param name="paramName">The name of the param argument.</param>
+        protected void AppendParamDeclaration(TypeNode paramType, string paramName)
         {
             Builder.Append(".param .");
-            if (returnType is PrimitiveType primitiveType)
+            switch (paramType)
             {
-                var basicRegisterType = PTXType.GetPTXParameterType(primitiveType, ABI);
-                Builder.Append(basicRegisterType.Name);
-                Builder.Append(" ");
-                Builder.Append(returnName);
-            }
-            else
-            {
-                Builder.Append("align ");
-                Builder.Append(ABI.PointerSize);
-                Builder.Append(" .b8 ");
-                Builder.Append(returnName);
-                Builder.Append("[");
-                Builder.Append(GetDeviceCallSizeOf(returnType));
-                Builder.Append("]");
-            }
-        }
-
-        /// <summary>
-        /// Creates a return-compatible argument.
-        /// </summary>
-        /// <param name="argument">The argument to return.</param>
-        /// <returns>The compatible ptx register that holds the argument.</returns>
-        private PTXRegister ToReturnValue(Value argument)
-        {
-            var argumentValue = Load(argument);
-
-            // Do we have to convert the parameter?
-            if (argument.BasicValueType == BasicValueType.Int1)
-            {
-                var tempRegister = AllocateRegister(PTXRegisterKind.Int32);
-                using (var command = BeginCommand(Instructions.GetSelectValueOperation(
-                    BasicValueType.Int32)))
-                {
-                    command.AppendArgument(tempRegister);
-                    command.AppendConstant(1);
-                    command.AppendConstant(0);
-                    command.AppendArgument(argumentValue);
-                }
-                argumentValue = tempRegister;
-            }
-
-            return argumentValue;
-        }
-
-        /// <summary>
-        /// Creates a return instruction.
-        /// </summary>
-        /// <param name="functionCall">The return call.</param>
-        private void MakeReturn(FunctionCall functionCall)
-        {
-            var firstParamIndex = TopLevelFunction.MemoryParameterIndex + 1;
-            int offset = 0;
-            for (int i = firstParamIndex, e = functionCall.NumArguments; i < e; ++i)
-            {
-                var argument = functionCall.GetArgument(i);
-                var argumentType = PTXType.GetPTXParameterType(argument.Type, ABI);
-                var argumentValue = ToReturnValue(argument);
-                using (var command = BeginCommand(Instructions.StoreParamOperation, argumentType))
-                {
-                    var fieldOffset = ABI.Align(ref offset, argument.Type);
-                    command.AppendRawValue(returnParamName, fieldOffset);
-                    command.AppendArgument(argumentValue);
-                }
-            }
-            Command(Instructions.ReturnOperation, null);
-        }
-
-        /// <summary>
-        /// Constructs a call to a top-level function.
-        /// </summary>
-        /// <param name="functionCall">The function call.</param>
-        private void MakeGlobalCall(FunctionCall functionCall)
-        {
-            const string ReturnValueName = "callRetVal";
-            const string CallParamName = "callParam";
-
-            var target = functionCall.Target.ResolveAs<TopLevelFunction>();
-            Debug.Assert(functionCall.IsTopLevelCall);
-
-            // Create call sequence
-            Builder.AppendLine("\t{");
-
-            var numParams = target.AttachedParameters.Length - TopLevelFunction.ParametersOffset;
-            for (int i = 0; i < numParams; ++i)
-            {
-                var argument = functionCall.GetArgument(i + TopLevelFunction.ParametersOffset);
-                var paramName = CallParamName + i;
-                Builder.Append("\t.param .");
-                var basicRegisterType = PTXType.GetPTXParameterType(argument.Type, ABI);
-                Builder.Append(basicRegisterType.Name);
-                Builder.Append(" ");
-                Builder.Append(paramName);
-                Builder.AppendLine(";");
-
-                var argumentValue = ToReturnValue(argument);
-
-                // Emit store param command
-                using (var command = BeginCommand(Instructions.StoreParamOperation))
-                {
-                    command.AppendPostFix(basicRegisterType);
-                    command.AppendRawValue(paramName);
-                    command.AppendArgument(argumentValue);
-                }
-            }
-
-            // Reserve a sufficient amount of memory
-            var returnType = target.ReturnType;
-            if (!returnType.IsVoidType)
-            {
-                Builder.Append("\t");
-                AppendReturnParamInfo(returnType, ReturnValueName);
-                Builder.AppendLine(";");
-                Builder.Append("\tcall ");
-                Builder.Append("(");
-                Builder.Append(ReturnValueName);
-                Builder.Append("), ");
-            }
-            else
-            {
-                Builder.Append("\tcall ");
-            }
-            Builder.Append(GetFunctionName(target));
-            Builder.AppendLine(", (");
-            for (int i = 0; i < numParams; ++i)
-            {
-                Builder.Append("\t\t");
-                Builder.Append(CallParamName);
-                Builder.Append(i);
-                if (i + 1 < numParams)
-                    Builder.AppendLine(",");
-                else
-                    Builder.AppendLine();
-            }
-            Builder.AppendLine("\t);");
-
-            if (!returnType.IsVoidType)
-            {
-                // Take the return parameters from the continuation
-                var returnContinuation = functionCall.Arguments[
-                    TopLevelFunction.ReturnParameterIndex].ResolveAs<FunctionValue>();
-                int offset = 0;
-                for (int i = TopLevelFunction.MemoryParameterIndex + 1,
-                    e = returnContinuation.AttachedParameters.Length; i < e; ++i)
-                {
-                    var attachedParameter = returnContinuation.AttachedParameters[i];
-                    var attachedRegister = Load(attachedParameter);
-
-                    PTXRegister returnRegister;
-                    if (attachedParameter.BasicValueType == BasicValueType.Int1)
-                        returnRegister = AllocateRegister(PTXRegisterKind.Int32);
-                    else
-                        returnRegister = attachedRegister;
-
-                    var registerType = PTXType.GetPTXParameterType(attachedParameter.Type, ABI);
-                    using (var command = BeginCommand(Instructions.LoadParamOperation, registerType))
-                    {
-                        var fieldOffset = ABI.Align(ref offset, attachedParameter.Type);
-                        command.AppendArgument(returnRegister);
-                        command.AppendRawValue(ReturnValueName, fieldOffset);
-                    }
-
-                    if (returnRegister.Kind != attachedRegister.Kind)
-                    {
-                        using (var command = BeginCommand(Instructions.GetCompareOperation(
-                            CompareKind.NotEqual,
-                            ArithmeticBasicValueType.UInt32)))
-                        {
-                            command.AppendArgument(attachedRegister);
-                            command.AppendArgument(returnRegister);
-                            command.AppendConstant(0);
-                        }
-                    }
-                }
-            }
-
-            Builder.AppendLine("\t}");
-        }
-
-        /// <summary>
-        /// Constructs local call to a basic-block-like local function.
-        /// </summary>
-        /// <param name="functionCall">The function call.</param>
-        private void MakeLocalCall(FunctionCall functionCall)
-        {
-            var target = functionCall.Target.Resolve();
-            Debug.Assert(!functionCall.IsTopLevelCall);
-
-            switch (target)
-            {
-                case Predicate predicate:
-                    var trueTarget = predicate.TrueValue.ResolveAs<FunctionValue>();
-                    WirePhiArguments(functionCall, trueTarget);
-                    var condition = Load(predicate.Condition);
-                    Debug.Assert(
-                        !trueTarget.IsTopLevel,
-                        "Not supported top-level predicate");
-                    Debug.Assert(
-                        !predicate.FalseValue.ResolveAs<FunctionValue>().IsTopLevel,
-                        "Not supported top-level predicate");
-                    using (var command = BeginCommand(
-                        Instructions.BranchOperation,
-                        null,
-                        new PredicateConfiguration(condition, true)))
-                        command.AppendLabel(blockLookup[trueTarget]);
-                    break;
-                case SelectPredicate selectPredicate:
-                    WirePhiArguments(functionCall, selectPredicate.DefaultArgument.ResolveAs<FunctionValue>());
-
-                    var idx = Load(selectPredicate.Condition);
-                    var predicateRegister = AllocateRegister(PTXRegisterKind.Predicate);
-                    var targetPredicateRegister = AllocateRegister(PTXRegisterKind.Predicate);
-
-                    // Emit less than
-                    var lessThanCommand = Instructions.GetCompareOperation(
-                        CompareKind.LessThan,
-                        ArithmeticBasicValueType.Int32);
-                    using (var command = BeginCommand(
-                        lessThanCommand))
-                    {
-                        command.AppendArgument(predicateRegister);
-                        command.AppendArgument(idx);
-                        command.AppendConstant(0);
-                    }
-                    using (var command = BeginCommand(
-                        Instructions.BranchIndexRangeComparison))
-                    {
-                        command.AppendArgument(targetPredicateRegister);
-                        command.AppendArgument(idx);
-                        command.AppendConstant(selectPredicate.NumCasesWithoutDefault);
-                        command.AppendArgument(predicateRegister);
-                    }
-                    using (var command = BeginCommand(
-                        Instructions.BranchOperation,
-                        null,
-                        new PredicateConfiguration(targetPredicateRegister, true)))
-                    {
-                        command.AppendLabel(blockLookup[
-                            selectPredicate.DefaultArgument.ResolveAs<FunctionValue>()]);
-                    }
-
-                    var targetLabel = DeclareLabel();
-                    MarkLabel(targetLabel);
-                    Builder.Append('\t');
-                    Builder.Append(Instructions.BranchTargetsDeclaration);
+                case PrimitiveType _:
+                case StringType _:
+                case PointerType _:
+                    var basicRegisterType = PTXType.GetPTXParameterType(paramType, ABI);
+                    Builder.Append(basicRegisterType.Name);
                     Builder.Append(' ');
-                    for (int i = 0, e = selectPredicate.NumCasesWithoutDefault; i < e; ++i)
-                    {
-                        Builder.Append(blockLookup[
-                            selectPredicate.GetCaseArgument(i).ResolveAs<FunctionValue>()]);
-                        if (i + 1 < e)
-                            Builder.Append(", ");
-                    }
-                    Builder.AppendLine(";");
-
-                    using (var command = BeginCommand(
-                        Instructions.BranchIndexOperation))
-                    {
-                        command.AppendArgument(idx);
-                        command.AppendLabel(targetLabel);
-                    }
-
-                    FreeRegister(predicateRegister);
-                    FreeRegister(targetPredicateRegister);
-
-                    break;
-                case Parameter _:
-                    // This is the return parameter
-                    MakeReturn(functionCall);
-                    break;
-                case FunctionValue function:
-                    // Emit local branch
-                    WirePhiArguments(functionCall, function);
-                    using (var command = BeginCommand(Instructions.BranchOperation, null))
-                        command.AppendLabel(blockLookup[function]);
+                    Builder.Append(paramName);
                     break;
                 default:
-                    throw new InvalidCodeGenerationException();
-            }
-        }
-
-        /// <summary>
-        /// Connects arguments to phi parameters of the given call.
-        /// </summary>
-        /// <param name="functionCall">The function call.</param>
-        /// <param name="functionTarget">A representative function target.</param>
-        private void WirePhiArguments(FunctionCall functionCall, FunctionValue functionTarget)
-        {
-            for (int i = 0, e = functionCall.NumArguments; i < e; ++i)
-            {
-                var arg = functionCall.GetArgument(i);
-                if (arg.Type.IsMemoryType)
-                    continue;
-                var argumentRegister = Load(arg);
-                var parameterRegister = Load(functionTarget.AttachedParameters[i]);
-                Move(argumentRegister, parameterRegister);
+                    ABI.GetAlignmentAndSizeOf(
+                        paramType,
+                        out int paramSize,
+                        out int paramAlignment);
+                    Builder.Append("align ");
+                    Builder.Append(paramAlignment);
+                    Builder.Append(" .b8 ");
+                    Builder.Append(paramName);
+                    Builder.Append('[');
+                    Builder.Append(paramSize);
+                    Builder.Append(']');
+                    break;
             }
         }
 

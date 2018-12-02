@@ -12,25 +12,28 @@
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
     /// <summary>
     /// Represents an operation on object values.
     /// </summary>
-    public abstract class ObjectOperationValue : UnifiedValue
+    public abstract class ObjectOperationValue : Value
     {
         #region Instance
 
         /// <summary>
         /// Constructs a new abstract structure operation.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initialType">The initial node type.</param>
         /// <param name="fieldIndex">The structure field index.</param>
         internal ObjectOperationValue(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
+            TypeNode initialType,
             int fieldIndex)
-            : base(generation)
+            : base(basicBlock, initialType)
         {
             FieldIndex = fieldIndex;
         }
@@ -53,8 +56,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the associated field type.
         /// </summary>
-        public TypeNode FieldType =>
-            (StructValue.Type as StructureType).Children[FieldIndex];
+        public TypeNode FieldType => GetField.ComputeType(StructValue, FieldIndex);
 
         /// <summary>
         /// Returns the field index.
@@ -64,21 +66,6 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is ObjectOperationValue structOperation)
-                return structOperation.FieldIndex == FieldIndex &&
-                    base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ FieldIndex;
-        }
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() => $"{StructValue}[{FieldIndex}]";
@@ -91,34 +78,49 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class GetField : ObjectOperationValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a get field node type.
+        /// </summary>
+        /// <param name="structValue">The current structure value.</param>
+        /// <param name="fieldIndex">The associated field index.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static TypeNode ComputeType(
+            ValueReference structValue,
+            int fieldIndex) =>
+            (structValue.Type as StructureType).Children[fieldIndex];
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new field load.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="structValue">The structure value.</param>
         /// <param name="fieldIndex">The structure field index.</param>
         internal GetField(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference structValue,
             int fieldIndex)
-            : base(generation, fieldIndex)
+            : base(
+                  basicBlock,
+                  ComputeType(structValue, fieldIndex),
+                  fieldIndex)
         {
-            var fieldType = (structValue.Type as StructureType).Children[fieldIndex];
-            Seal(ImmutableArray.Create(structValue), fieldType);
+            Seal(ImmutableArray.Create(structValue));
         }
 
         #endregion
 
-        #region Properties
-
-        /// <summary cref="Value.Type"/>
-        public override TypeNode Type => StructureType.Children[FieldIndex];
-
-        #endregion
-
         #region Methods
+
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(StructValue, FieldIndex);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
@@ -127,28 +129,11 @@ namespace ILGPU.IR.Values
                 FieldIndex);
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is GetField)
-                return base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x7A43B81;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "gfld";
@@ -161,25 +146,40 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class SetField : ObjectOperationValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a set field node type.
+        /// </summary>
+        /// <param name="structValue">The current structure value.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(ValueReference structValue) =>
+            structValue.Type;
+
+        #endregion
+
+
         #region Instance
 
         /// <summary>
         /// Constructs a new field store.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="structValue">The structure value.</param>
         /// <param name="fieldIndex">The structure field index.</param>
         /// <param name="value">The value to store.</param>
         internal SetField(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference structValue,
             int fieldIndex,
             ValueReference value)
-            : base(generation, fieldIndex)
+            : base(
+                  basicBlock,
+                  ComputeType(structValue),
+                  fieldIndex)
         {
-            Seal(
-                ImmutableArray.Create(structValue, value),
-                structValue.Type);
+            Seal(ImmutableArray.Create(structValue, value));
         }
 
         #endregion
@@ -191,12 +191,13 @@ namespace ILGPU.IR.Values
         /// </summary>
         public ValueReference Value => this[1];
 
-        /// <summary cref="Value.Type"/>
-        public override TypeNode Type => StructureType;
-
         #endregion
 
         #region Methods
+
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(StructValue);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
@@ -206,28 +207,11 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Value));
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is SetField)
-                return base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x20205F8B;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "sfld";

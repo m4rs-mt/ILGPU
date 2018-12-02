@@ -10,118 +10,132 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
-using System.Collections.Generic;
+using System;
 using System.Collections.Immutable;
 
 namespace ILGPU.IR
 {
-    partial class IRContext
+    partial class IRContext : IIRTypeContext
     {
-        #region Instance
-
-        private readonly Dictionary<TypeNode, TypeNode> unifiedTypes =
-            new Dictionary<TypeNode, TypeNode>();
-        private readonly PrimitiveType[] basicValueTypes;
-
-        /// <summary>
-        /// Constructs global types.
-        /// </summary>
-        private void CreateGlobalTypes()
-        {
-            VoidType = CreateType(new VoidType());
-            MemoryType = CreateType(new MemoryType());
-            StringType = CreateType(new StringType());
-
-            foreach (var type in BasicValueTypes)
-            {
-                basicValueTypes[(int)type] = CreateType(
-                    new PrimitiveType(type));
-            }
-
-            if ((Flags & IRContextFlags.Force32BitFloats) == IRContextFlags.Force32BitFloats)
-            {
-                basicValueTypes[
-                    (int)BasicValueType.Float64] = basicValueTypes[
-                        (int)BasicValueType.Float32];
-            }
-
-            IndexType = CreateType(new StructureType(
-                ImmutableArray.Create<TypeNode>(
-                    GetPrimitiveType(BasicValueType.Int32)),
-                ImmutableArray<string>.Empty,
-                null));
-        }
-
-        #endregion
-
-        #region Properties
-
         /// <summary>
         /// Returns the void type.
         /// </summary>
-        public VoidType VoidType { get; private set; }
+        public VoidType VoidType => TypeContext.VoidType;
 
         /// <summary>
         /// Returns the memory type.
         /// </summary>
-        public MemoryType MemoryType { get; private set; }
-
-        /// <summary>
-        /// Returns the memory type.
-        /// </summary>
-        public StringType StringType { get; private set; }
+        public StringType StringType => TypeContext.StringType;
 
         /// <summary>
         /// Returns the main index type.
         /// </summary>
-        public StructureType IndexType { get; private set; }
-
-        #endregion
-
-        #region Methods
+        public StructureType IndexType => TypeContext.IndexType;
 
         /// <summary>
         /// Resolves the primitive type that corresponds to the given <see cref="BasicValueType"/>.
         /// </summary>
-        /// <param name="basicValueType">The type to resolve.</param>
-        /// <returns>The resolved IR type node.</returns>
+        /// <param name="basicValueType">The basic value type.</param>
+        /// <returns>The created primitive type.</returns>
         public PrimitiveType GetPrimitiveType(BasicValueType basicValueType) =>
-            basicValueTypes[(int)basicValueType];
+            TypeContext.GetPrimitiveType(basicValueType);
 
         /// <summary>
-        /// Creates a type.
+        /// Creates a pointer type.
         /// </summary>
-        /// <typeparam name="T">The type of the  type.</typeparam>
-        /// <param name="type">The type to create.</param>
-        /// <returns>The created type.</returns>
-        internal T CreateType<T>(T type)
-            where T : TypeNode
-        {
-            irLock.EnterUpgradeableReadLock();
-            try
-            {
-                if (!unifiedTypes.TryGetValue(type, out TypeNode result))
-                {
-                    irLock.EnterWriteLock();
-                    result = type;
-                    try
-                    {
-                        type.Id = CreateNodeId();
-                        unifiedTypes.Add(type, type);
-                    }
-                    finally
-                    {
-                        irLock.ExitWriteLock();
-                    }
-                }
-                return result as T;
-            }
-            finally
-            {
-                irLock.ExitUpgradeableReadLock();
-            }
-        }
+        /// <param name="elementType">The pointer element type.</param>
+        /// <param name="addressSpace">The address space.</param>
+        /// <returns>The created pointer type.</returns>
+        public PointerType CreatePointerType(
+            TypeNode elementType,
+            MemoryAddressSpace addressSpace) =>
+            TypeContext.CreatePointerType(elementType, addressSpace);
 
-        #endregion
+        /// <summary>
+        /// Creates a view type.
+        /// </summary>
+        /// <param name="elementType">The view element type.</param>
+        /// <param name="addressSpace">The address space.</param>
+        /// <returns>The created view type.</returns>
+        public ViewType CreateViewType(
+            TypeNode elementType,
+            MemoryAddressSpace addressSpace) =>
+            TypeContext.CreateViewType(elementType, addressSpace);
+
+        /// <summary>
+        /// Creates a new structure type.
+        /// </summary>
+        /// <param name="fieldTypes">The structure field types.</param>
+        /// <returns>The created structure type.</returns>
+        public StructureType CreateStructureType(ImmutableArray<TypeNode> fieldTypes) =>
+            TypeContext.CreateStructureType(fieldTypes);
+
+        /// <summary>
+        /// Creates a new structure type.
+        /// </summary>
+        /// <param name="fieldTypes">The structure field types.</param>
+        /// <param name="fieldNames">The structure field names.</param>
+        /// <param name="sourceType">The source structure type.</param>
+        /// <returns>The created structure type.</returns>
+        public StructureType CreateStructureType(
+            ImmutableArray<TypeNode> fieldTypes,
+            ImmutableArray<string> fieldNames,
+            Type sourceType) =>
+            TypeContext.CreateStructureType(fieldTypes, fieldNames, sourceType);
+
+        /// <summary>
+        /// Creates a new structure type.
+        /// </summary>
+        /// <param name="fieldTypes">The structure field types.</param>
+        /// <param name="sourceType">The source structure type.</param>
+        /// <returns>The created structure type.</returns>
+        public StructureType CreateStructureType(
+            ImmutableArray<TypeNode> fieldTypes,
+            StructureType sourceType) =>
+            TypeContext.CreateStructureType(fieldTypes, sourceType);
+
+        /// <summary>
+        /// Creates a new type based on a type from the .Net world.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>The IR type.</returns>
+        public TypeNode CreateType(Type type) =>
+            TypeContext.CreateType(type);
+
+        /// <summary>
+        /// Creates a new type based on a type from the .Net world.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <param name="addressSpace">The address space for pointer types.</param>
+        /// <returns>The IR type.</returns>
+        public TypeNode CreateType(Type type, MemoryAddressSpace addressSpace) =>
+            TypeContext.CreateType(type, addressSpace);
+
+        /// <summary>
+        /// Specializes the address space of the given <see cref="AddressSpaceType"/>.
+        /// </summary>
+        /// <param name="addressSpaceType">The source type.</param>
+        /// <param name="addressSpace">The new address space.</param>
+        /// <returns>The created specialzized <see cref="AddressSpaceType"/>.</returns>
+        public AddressSpaceType SpecializeAddressSpaceType(
+            AddressSpaceType addressSpaceType,
+            MemoryAddressSpace addressSpace) =>
+            TypeContext.SpecializeAddressSpaceType(addressSpaceType, addressSpace);
+
+        /// <summary>
+        /// Tries to specialize a view or a pointer address space.
+        /// </summary>
+        /// <param name="type">The pointer or view type.</param>
+        /// <param name="addressSpace">The target address space.</param>
+        /// <param name="specializedType">The specialized type.</param>
+        /// <returns>True, iff the type could be specialized.</returns>
+        public bool TrySpecializeAddressSpaceType(
+            TypeNode type,
+            MemoryAddressSpace addressSpace,
+            out TypeNode specializedType) =>
+            TypeContext.TrySpecializeAddressSpaceType(
+                type,
+                addressSpace,
+                out specializedType);
     }
 }

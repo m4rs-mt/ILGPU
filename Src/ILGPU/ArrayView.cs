@@ -93,11 +93,11 @@ namespace ILGPU
         /// <summary>
         /// Constructs a new array view.
         /// </summary>
-        /// <param name="source">The source buffer.</param>
+        /// <param name="source">The source.</param>
         /// <param name="index">The base index.</param>
         /// <param name="length">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ArrayView(ArrayViewSource source, Index index, Index length)
+        public ArrayView(ArrayViewSource source, Index index, Index length)
         {
             Debug.Assert(source != null, "Invalid source buffer");
             Debug.Assert(index >= 0, "Index of of range");

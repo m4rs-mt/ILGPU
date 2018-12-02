@@ -55,16 +55,19 @@ namespace ILGPU.IR.Values
         public bool IsValid => DirectTarget != null;
 
         /// <summary>
+        /// Returns true if the direct target has been replaced.
+        /// </summary>
+        public bool IsReplaced => IsValid && DirectTarget.IsReplaced;
+
+        /// <summary>
+        /// Returns the parent basic block.
+        /// </summary>
+        public BasicBlock BasicBlock => Resolve().BasicBlock;
+
+        /// <summary>
         /// Returns the unique node id of the latest node.
         /// </summary>
         public NodeId Id => Resolve().Id;
-
-#if VERIFICATION
-        /// <summary>
-        /// Returns the current generation of the latest node.
-        /// </summary>
-        public ValueGeneration Generation => Resolve().Generation;
-#endif
 
         /// <summary>
         /// Returns all child nodes of the latest node.
@@ -121,7 +124,7 @@ namespace ILGPU.IR.Values
         /// Returns an enumerator to enumerate all child nodes.
         /// </summary>
         /// <returns>An enumerator to enumerate all child nodes.</returns>
-        public ValueEnumerator GetEnumerator() => Resolve().GetEnumerator();
+        public Value.Enumerator GetEnumerator() => Resolve().GetEnumerator();
 
         /// <summary>
         /// Accepts a node visitor.
@@ -172,10 +175,7 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="other">The other reference.</param>
         /// <returns>True, iff the given reference points to the same node.</returns>
-        public bool Equals(ValueReference other)
-        {
-            return this == other;
-        }
+        public bool Equals(ValueReference other) => this == other;
 
         #endregion
 

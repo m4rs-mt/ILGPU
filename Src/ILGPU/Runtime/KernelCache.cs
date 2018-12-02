@@ -82,7 +82,7 @@ namespace ILGPU.Runtime
             public bool Equals(CachedCompiledKernelKey key)
             {
                 return key.Method == Method &&
-                    key.Specialization.Equals(key);
+                    key.Specialization.Equals(Specialization);
             }
 
             #endregion
@@ -152,7 +152,7 @@ namespace ILGPU.Runtime
             /// <returns>True, iff the given cached key is equal to the current one.</returns>
             public bool Equals(CachedKernelKey key)
             {
-                return key.Equals(CompiledKernelKey) &&
+                return key.CompiledKernelKey.Equals(CompiledKernelKey) &&
                     key.ImplicitGroupSize == ImplicitGroupSize;
             }
 

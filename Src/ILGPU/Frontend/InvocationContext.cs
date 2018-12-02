@@ -31,19 +31,19 @@ namespace ILGPU.Frontend
         /// Constructs a new invocation context.
         /// </summary>
         /// <param name="codeGenerator">The associated code generator.</param>
-        /// <param name="basicBlock">The current basic block.</param>
+        /// <param name="block">The current block.</param>
         /// <param name="callerMethod">The caller.</param>
         /// <param name="method">The called method.</param>
         /// <param name="arguments">The method arguments.</param>
         internal InvocationContext(
             CodeGenerator codeGenerator,
-            BasicBlock basicBlock,
+            Block block,
             MethodBase callerMethod,
             MethodBase method,
             ImmutableArray<ValueReference> arguments)
         {
             CodeGenerator = codeGenerator;
-            BasicBlock = basicBlock;
+            Block = block;
             CallerMethod = callerMethod;
             Method = method;
             Arguments = arguments;
@@ -61,7 +61,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Return the current basic block.
         /// </summary>
-        internal BasicBlock BasicBlock { get; }
+        internal Block Block { get; }
 
         /// <summary>
         /// Returns the current IR context.
@@ -71,7 +71,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the current IR builder.
         /// </summary>
-        public IRBuilder Builder => CodeGenerator.Builder;
+        public IRBuilder Builder => Block.Builder;
 
         /// <summary>
         /// Represents the caller method.
@@ -122,20 +122,6 @@ namespace ILGPU.Frontend
         public Type[] GetTypeGenericArguments() => 
             Method.DeclaringType.GetGenericArguments();
 
-        /// <summary>
-        /// Pops the current memory reference.
-        /// </summary>
-        /// <returns>The popped memory reference.</returns>
-        public MemoryRef PopMemory() => BasicBlock.PopMemory();
-
-        /// <summary>
-        /// Pushes the given memory value.
-        /// </summary>
-        /// <param name="memoryValue">The memory value to push.</param>
-        /// <returns>The pushed memory value.</returns>
-        public ValueReference PushMemory(ValueReference memoryValue) =>
-            BasicBlock.PushMemory(memoryValue);
-
         /// <summary cref="ICodeGenerationContext.GetException{TException}(string, object[])"/>
         public TException GetException<TException>(
             string message,
@@ -148,11 +134,11 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="methodBase">The method to declare.</param>
         /// <returns>The declared top-level function.</returns>
-        public TopLevelFunction DeclareFunction(MethodBase methodBase)
+        public Method DeclareFunction(MethodBase methodBase)
         {
             if (methodBase == null)
                 throw new ArgumentNullException(nameof(methodBase));
-            return CodeGenerator.DeclareFunction(methodBase);
+            return CodeGenerator.DeclareMethod(methodBase);
         }
 
         /// <summary>
@@ -169,7 +155,7 @@ namespace ILGPU.Frontend
                 throw new ArgumentNullException(nameof(targetMethod));
             return new InvocationContext(
                 CodeGenerator,
-                BasicBlock,
+                Block,
                 CallerMethod,
                 targetMethod,
                 arguments);
@@ -184,10 +170,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="other">The other invocation context.</param>
         /// <returns>True, iff the given invocation context is equal to the current invocation context.</returns>
-        public bool Equals(InvocationContext other)
-        {
-            return this == other;
-        }
+        public bool Equals(InvocationContext other) => this == other;
 
         #endregion
 
@@ -198,21 +181,15 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, iff the given object is equal to the current invocation context.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is InvocationContext)
-                return Equals((InvocationContext)obj);
-            return false;
-        }
+        public override bool Equals(object obj) =>
+            obj is InvocationContext context && Equals(context);
 
         /// <summary>
         /// Returns the hash code of this invocation context.
         /// </summary>
         /// <returns>The hash code of this invocation context.</returns>
-        public override int GetHashCode()
-        {
-            return Builder.GetHashCode() ^ Method.GetHashCode();
-        }
+        public override int GetHashCode() =>
+            Builder.GetHashCode() ^ Method.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this invocation context.

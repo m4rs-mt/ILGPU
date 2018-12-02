@@ -34,12 +34,11 @@ namespace ILGPU.IR.Construction
             Debug.Assert(pointerType != null, "Invalid pointer type");
             Debug.Assert(length.BasicValueType == BasicValueType.Int32, "Invalid length type");
 
-            var viewType = CreateViewType(pointerType.ElementType, pointerType.AddressSpace);
-            return CreateUnifiedValue(new NewView(
-                Generation,
+            return Append(new NewView(
+                Context,
+                BasicBlock,
                 pointer,
-                length,
-                viewType));
+                length));
         }
 
         /// <summary>
@@ -52,10 +51,10 @@ namespace ILGPU.IR.Construction
             Debug.Assert(view != null, "Invalid view node");
             Debug.Assert(view.Type.IsViewType, "Invalid view type");
 
-            return CreateUnifiedValue(new GetViewLength(
-                Generation,
-                view,
-                CreatePrimitiveType(BasicValueType.Int32)));
+            return Append(new GetViewLength(
+                Context,
+                BasicBlock,
+                view));
         }
     }
 }

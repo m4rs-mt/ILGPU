@@ -740,7 +740,7 @@ namespace ILGPU.Frontend
         /// Returns true iff this instruction is a basic block terminator.
         /// </summary>
         public bool IsTerminator =>
-            IsCall ||
+            InstructionType == ILInstructionType.Jmp ||
             InstructionType == ILInstructionType.Ret ||
             Argument is ILInstructionBranchTargets;
 

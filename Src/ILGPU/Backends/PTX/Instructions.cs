@@ -30,39 +30,36 @@ namespace ILGPU.Backends.PTX
         public static string GetConvertOperation(ArithmeticBasicValueType source, ArithmeticBasicValueType target) =>
             ConvertOperations[(source, target)];
 
-        public static bool TryGetArithmeticOperation(
+        public static string GetArithmeticOperation(
             UnaryArithmeticKind kind,
             ArithmeticBasicValueType type,
-            bool fastMath,
-            out string operation)
+            bool fastMath)
         {
             var key = (kind, type);
             if (fastMath &&
-                UnaryArithmeticOperationsFastMath.TryGetValue(key, out operation))
-                return true;
-            return UnaryArithmeticOperations.TryGetValue(key, out operation);
+                UnaryArithmeticOperationsFastMath.TryGetValue(key, out string operation))
+                return operation;
+            return UnaryArithmeticOperations[key];
         }
 
-        public static bool TryGetArithmeticOperation(
+        public static string GetArithmeticOperation(
             BinaryArithmeticKind kind,
             ArithmeticBasicValueType type,
-            bool fastMath,
-            out string operation)
+            bool fastMath)
         {
             var key = (kind, type);
             if (fastMath &&
-                BinaryArithmeticOperationsFastMath.TryGetValue(key, out operation))
-                return true;
-            return BinaryArithmeticOperations.TryGetValue(key, out operation);
+                BinaryArithmeticOperationsFastMath.TryGetValue(key, out string operation))
+                return operation;
+            return BinaryArithmeticOperations[key];
         }
 
-        public static bool TryGetArithmeticOperation(
+        public static string GetArithmeticOperation(
             TernaryArithmeticKind kind,
-            ArithmeticBasicValueType type,
-            out string operation)
+            ArithmeticBasicValueType type)
         {
             var key = (kind, type);
-            return TernaryArithmeticOperations.TryGetValue(key, out operation);
+            return TernaryArithmeticOperations[key];
         }
 
         public static string GetAtomicOperation(AtomicKind kind, bool requireResult) =>

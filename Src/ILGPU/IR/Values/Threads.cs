@@ -13,326 +13,10 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
-    /// <summary>
-    /// Represents a device constant inside a kernel.
-    /// </summary>
-    public abstract class DeviceConstantValue : InstantiatedConstantNode
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="type">The constant type.</param>
-        internal DeviceConstantValue(ValueGeneration generation, TypeNode type)
-            : base(generation, type)
-        { }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents a dimension of a 3D device constant.
-    /// </summary>
-    public enum DeviceConstantDimension3D
-    {
-        /// <summary>
-        /// The X dimension.
-        /// </summary>
-        X,
-
-        /// <summary>
-        /// The Y dimension.
-        /// </summary>
-        Y,
-
-        /// <summary>
-        /// The Z dimension.
-        /// </summary>
-        Z,
-    }
-
-    /// <summary>
-    /// Represents a device constant inside a kernel.
-    /// </summary>
-    public abstract class DeviceConstantDimensionValue : DeviceConstantValue
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="type">The constant type.</param>
-        /// <param name="dimension">The device constant dimension.</param>
-        internal DeviceConstantDimensionValue(
-            ValueGeneration generation,
-            TypeNode type,
-            DeviceConstantDimension3D dimension)
-            : base(generation, type)
-        {
-            Dimension = dimension;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the constant dimension.
-        /// </summary>
-        public DeviceConstantDimension3D Dimension { get; }
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is DeviceConstantDimensionValue dimValue)
-                return dimValue.Dimension == Dimension;
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.GetHashCode"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ (int)Dimension;
-        }
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToArgString() => Dimension.ToString();
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents the <see cref="Grid.Dimension"/> property.
-    /// </summary>
-    public sealed class GridDimensionValue : DeviceConstantDimensionValue
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="dimension">The constant dimension.</param>
-        /// <param name="intType">The default integer type.</param>
-        internal GridDimensionValue(
-            ValueGeneration generation,
-            DeviceConstantDimension3D dimension,
-            PrimitiveType intType)
-            : base(generation, intType, dimension)
-        { }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateGridDimensionValue(Dimension);
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            return obj is GridDimensionValue &&
-                base.Equals(obj);
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x2008513C;
-        }
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "gridDim";
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents the <see cref="Group.Dimension"/> property.
-    /// </summary>
-    public sealed class GroupDimensionValue : DeviceConstantDimensionValue
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="dimension">The constant dimension.</param>
-        /// <param name="intType">The default integer type.</param>
-        internal GroupDimensionValue(
-            ValueGeneration generation,
-            DeviceConstantDimension3D dimension,
-            PrimitiveType intType)
-            : base(generation, intType, dimension)
-        { }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateGroupDimensionValue(Dimension);
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            return obj is GroupDimensionValue &&
-                base.Equals(obj);
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x4DB4E85A;
-        }
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "groupDim";
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents the <see cref="Warp.WarpSize"/> property.
-    /// </summary>
-    public sealed class WarpSizeValue : DeviceConstantValue
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="intType">The default integer type.</param>
-        internal WarpSizeValue(
-            ValueGeneration generation,
-            PrimitiveType intType)
-            : base(generation, intType)
-        { }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateWarpSizeValue();
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            return obj is WarpSizeValue;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x3C2EBBC8;
-        }
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "warpSize";
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents the <see cref="Warp.LaneIdx"/> property.
-    /// </summary>
-    public sealed class LaneIdxValue : DeviceConstantValue
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new value.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="intType">The default integer type.</param>
-        internal LaneIdxValue(
-            ValueGeneration generation,
-            PrimitiveType intType)
-            : base(generation, intType)
-        { }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateLaneIdxValue();
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            return obj is LaneIdxValue;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x148F123B;
-        }
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "laneIdx";
-
-        #endregion
-    }
-
     /// <summary>
     /// Represents a generic barrier operation.
     /// </summary>
@@ -343,16 +27,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new generic barrier operation.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="parent">The parent memory value.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="values">Additional values.</param>
-        /// <param name="type">The operation type.</param>
+        /// <param name="initialType">The initial node type.</param>
         internal BarrierOperation(
-            ValueGeneration generation,
-            ValueReference parent,
+            BasicBlock basicBlock,
             ImmutableArray<ValueReference> values,
-            TypeNode type)
-            : base(generation, parent, values, type)
+            TypeNode initialType)
+            : base(basicBlock, values, initialType)
         { }
 
         #endregion
@@ -394,27 +76,37 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class PredicateBarrier : BarrierOperation
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a predicate barrier node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(IRContext context) =>
+            context.GetPrimitiveType(BasicValueType.Int32);
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new predicate barrier.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="parent">The parent memory value.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="predicate">The predicate value.</param>
         /// <param name="kind">The operation kind.</param>
-        /// <param name="intType">The default integer type.</param>
         internal PredicateBarrier(
-            ValueGeneration generation,
-            ValueReference parent,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference predicate,
-            PredicateBarrierKind kind,
-            PrimitiveType intType)
+            PredicateBarrierKind kind)
             : base(
-                  generation,
-                  parent,
+                  basicBlock,
                   ImmutableArray.Create(predicate),
-                  intType)
+                  ComputeType(context))
         {
             Debug.Assert(
                 predicate.BasicValueType == BasicValueType.Int1,
@@ -429,7 +121,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the barrier predicate.
         /// </summary>
-        public ValueReference Predicate => this[1];
+        public ValueReference Predicate => this[0];
 
         /// <summary>
         /// Returns the kind of the barrier operation.
@@ -440,18 +132,18 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateBarrier(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
                 rebuilder.Rebuild(Predicate),
                 Kind);
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -487,25 +179,35 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class Barrier : BarrierOperation
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a barrier node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(IRContext context) =>
+            context.VoidType;
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new barrier.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="parent">The parent memory value.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="barrierKind">The barrier kind.</param>
-        /// <param name="voidType">The void type.</param>
         internal Barrier(
-            ValueGeneration generation,
-            ValueReference parent,
-            BarrierKind barrierKind,
-            VoidType voidType)
+            IRContext context,
+            BasicBlock basicBlock,
+            BarrierKind barrierKind)
             : base(
-                  generation,
-                  parent,
+                  basicBlock,
                   ImmutableArray<ValueReference>.Empty,
-                  voidType)
+                  ComputeType(context))
         {
             Kind = barrierKind;
         }
@@ -523,17 +225,16 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateBarrier(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
-                Kind);
+            builder.CreateBarrier(Kind);
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
     }
@@ -569,27 +270,37 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class Shuffle : MemoryValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a shuffle node type.
+        /// </summary>
+        /// <param name="variableType">The shuffle variable type.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(
+            TypeNode variableType) => variableType;
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new shuffle operation.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="parent">The parent memory value.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="variable">The source variable value.</param>
         /// <param name="origin">The shuffle origin.</param>
         /// <param name="kind">The operation kind.</param>
         internal Shuffle(
-            ValueGeneration generation,
-            ValueReference parent,
+            BasicBlock basicBlock,
             ValueReference variable,
             ValueReference origin,
             ShuffleKind kind)
             : base(
-                  generation,
-                  parent,
+                  basicBlock,
                   ImmutableArray.Create(variable, origin),
-                  variable.Type)
+                  ComputeType(variable.Type))
         {
             Kind = kind;
         }
@@ -601,57 +312,39 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the variable reference.
         /// </summary>
-        public ValueReference Variable => this[1];
+        public ValueReference Variable => this[0];
 
         /// <summary>
         /// Returns the shuffle origin (depends on the operation).
         /// </summary>
-        public ValueReference Origin => this[2];
+        public ValueReference Origin => this[1];
 
         /// <summary>
         /// Returns the kind of the shuffle operation.
         /// </summary>
         public ShuffleKind Kind { get; }
 
-        /// <summary cref="Value.Type"/>
-        public override TypeNode Type => Variable.Type;
-
         #endregion
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(Variable.Type);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateShuffle(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
                 rebuilder.Rebuild(Variable),
                 rebuilder.Rebuild(Origin),
                 Kind);
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is Shuffle shuffle)
-                return shuffle.Kind == Kind &&
-                        base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.GetHashCode"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ (int)Kind;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "shuffle" + Kind.ToString();

@@ -11,10 +11,8 @@
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR;
-using ILGPU.IR.Construction;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
-using ILGPU.IR.Values;
 using ILGPU.Util;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -44,22 +42,14 @@ namespace ILGPU.Backends.PTX
                 ImplementationResolver = resolver;
             }
 
-            /// <summary cref="IKernelSpecializerConfiguration.EnableAssertions"/>
+            /// <summary cref="IIntrinsicSpecializerConfiguration.EnableAssertions"/>
             public bool EnableAssertions => false;
 
-            /// <summary cref="IKernelSpecializerConfiguration.WarpSize"/>
+            /// <summary cref="IIntrinsicSpecializerConfiguration.WarpSize"/>
             public int WarpSize => PTXBackend.WarpSize;
 
             /// <summary cref="IIntrinsicSpecializerConfiguration.ImplementationResolver"/>
             public IntrinsicImplementationResolver ImplementationResolver { get; }
-
-            /// <summary cref="IFunctionImportSpecializer.Map(IRContext, TopLevelFunction, IRBuilder, IRRebuilder)"/>
-            public void Map(
-                IRContext sourceContext,
-                TopLevelFunction sourceFunction,
-                IRBuilder builder,
-                IRRebuilder rebuilder)
-            { }
 
             /// <summary cref="IIntrinsicSpecializerConfiguration.TryGetSizeOf(TypeNode, out int)"/>
             public bool TryGetSizeOf(TypeNode type, out int size)
@@ -67,9 +57,6 @@ namespace ILGPU.Backends.PTX
                 size = 0;
                 return false;
             }
-
-            /// <summary cref="IIntrinsicSpecializerConfiguration"/>
-            public void OnImportIntrinsic(TopLevelFunction topLevelFunction) { }
         }
 
         /// <summary>
@@ -80,7 +67,7 @@ namespace ILGPU.Backends.PTX
             private const string DebugAssertFailedName = "__assertfail";
             private const string WrapperDebugAssertFailedName = "__wassert";
 
-            private readonly TopLevelFunction debugAssertFunction;
+            private readonly Method debugAssertFunction;
 
             public Resolver(Context context, IRContext irContext)
                 : base(irContext)
@@ -96,56 +83,59 @@ namespace ILGPU.Backends.PTX
                             typeof(XMath), typeof(Resolver));
 
                         // Declare debugging functions
-                        var builder = frontendPhase.Builder;
-                        var assertFailedFunctionBuilder = builder.CreateFunction(new FunctionDeclaration(
-                            DebugAssertFailedName,
-                            irContext.VoidType,
-                            TopLevelFunctionFlags.External));
-                        assertFailedFunctionBuilder.AddParameter(builder.StringType, "message");
-                        assertFailedFunctionBuilder.AddParameter(builder.StringType, "file");
-                        assertFailedFunctionBuilder.AddParameter(
-                            builder.CreatePrimitiveType(BasicValueType.Int32),
-                            "line");
-                        assertFailedFunctionBuilder.AddParameter(builder.StringType, "function");
-                        assertFailedFunctionBuilder.AddParameter(
-                            builder.CreatePrimitiveType(BasicValueType.Int32),
-                            "charSize");
+                        var deviceAssertFunction = frontendPhase.DeclareMethod(
+                            new MethodDeclaration(
+                                DebugAssertFailedName,
+                                irContext.VoidType,
+                                MethodFlags.External));
 
-                        var deviceAssertFunction = assertFailedFunctionBuilder.SealExternal(builder);
-                        var assertFailedWrapper = builder.CreateFunction(new FunctionDeclaration(
-                            WrapperDebugAssertFailedName,
-                            irContext.VoidType,
-                            TopLevelFunctionFlags.AggressiveInlining));
-                        var messageParam = assertFailedWrapper.AddParameter(builder.StringType, "message");
-                        debugAssertFunction = assertFailedWrapper.Seal(builder.CreateFunctionCall(
-                            deviceAssertFunction,
-                            ImmutableArray.Create(
-                                assertFailedWrapper.MemoryParam,
-                                assertFailedWrapper.ReturnParam,
-                                messageParam,
-                                builder.CreatePrimitiveValue("Kernel.cs"),
-                                builder.CreatePrimitiveValue(0),
-                                builder.CreatePrimitiveValue("Kernel"),
-                                builder.CreatePrimitiveValue(1)))) as TopLevelFunction;
+                        using (var failedBuilder = deviceAssertFunction.CreateBuilder())
+                        {
+                            failedBuilder.AddParameter(irContext.StringType, "message");
+                            failedBuilder.AddParameter(irContext.StringType, "file");
+                            failedBuilder.AddParameter(
+                                irContext.GetPrimitiveType(BasicValueType.Int32),
+                                "line");
+                            failedBuilder.AddParameter(irContext.StringType, "function");
+                            failedBuilder.AddParameter(
+                                irContext.GetPrimitiveType(BasicValueType.Int32),
+                                "charSize");
+                        }
+
+                        debugAssertFunction = frontendPhase.DeclareMethod(
+                            new MethodDeclaration(
+                                WrapperDebugAssertFailedName,
+                                irContext.VoidType,
+                                MethodFlags.AggressiveInlining));
+                        using (var assertBuilder = debugAssertFunction.CreateBuilder())
+                        {
+                            var messageParam = assertBuilder.AddParameter(irContext.StringType, "message");
+                            var entryBlock = assertBuilder.CreateEntryBlock();
+
+                            entryBlock.CreateCall(
+                                deviceAssertFunction,
+                                ImmutableArray.Create(
+                                    messageParam,
+                                    entryBlock.CreatePrimitiveValue("Kernel.cs"),
+                                    entryBlock.CreatePrimitiveValue(0),
+                                    entryBlock.CreatePrimitiveValue("Kernel"),
+                                    entryBlock.CreatePrimitiveValue(1)));
+                            entryBlock.CreateReturn();
+                        }
                     }
                 }
 
                 var transformer = Transformer.Create(
-                    new TransformerConfiguration(TopLevelFunctionTransformationFlags.Dirty, false),
-                    new Transformer.TransformSpecification(
-                        new IntrinsicSpecializer<PTXIntrinsicConfiguration>(
-                            new PTXIntrinsicConfiguration(this)),
-                        int.MaxValue));
-
-                transformer.Transform(irContext);
-                irContext.Optimize(OptimizationLevel.Release);
-
+                    new TransformerConfiguration(MethodTransformationFlags.None, false),
+                    new IntrinsicSpecializer<PTXIntrinsicConfiguration>(new PTXIntrinsicConfiguration(
+                        this)));
+                irContext.Transform(transformer);
+                irContext.Optimize(OptimizationLevel.Debug);
                 resolver.ApplyTo(this);
-                irContext.RefreshFunction(ref debugAssertFunction);
             }
 
             public override bool TryGetDebugImplementation(
-                out TopLevelFunction topLevelFunction)
+                out Method topLevelFunction)
             {
                 topLevelFunction = debugAssertFunction;
                 return true;

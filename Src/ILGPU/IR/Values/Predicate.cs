@@ -11,41 +11,54 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using ILGPU.Util;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
     /// <summary>
     /// Represents a conditional predicate.
     /// </summary>
-    public abstract class Conditional : UnifiedValue
+    public abstract class Conditional : Value
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a conditional node type.
+        /// </summary>
+        /// <param name="arguments">The conditional arguments.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(
+            ImmutableArray<ValueReference> arguments) =>
+            arguments[0].Type;
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new conditional node.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="condition">The condition.</param>
         /// <param name="arguments">The condition arguments.</param>
         internal Conditional(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference condition,
             ImmutableArray<ValueReference> arguments)
-            : base(generation)
+            : base(basicBlock, ComputeType(arguments))
         {
             Debug.Assert(
                 arguments.Length > 0,
                 "Invalid condition arguments");
             Arguments = arguments;
+
             var builder = ImmutableArray.CreateBuilder<ValueReference>(arguments.Length + 1);
             builder.Add(condition);
             builder.AddRange(arguments);
-            Seal(builder.MoveToImmutable(), arguments[0].Type);
+            Seal(builder.MoveToImmutable());
         }
 
         #endregion
@@ -58,18 +71,17 @@ namespace ILGPU.IR.Values
         public ValueReference Condition => this[0];
 
         /// <summary>
-        /// Returns true if the current value is higher order.
-        /// </summary>
-        public bool IsHigherOrder =>
-            Type != null ? Type.IsFunctionType : false;
-
-        /// <summary>
-        /// Returns the branches.
+        /// Returns the arguments.
         /// </summary>
         public ImmutableArray<ValueReference> Arguments { get; }
 
-        /// <summary cref="Value.Type"/>
-        public override TypeNode Type => Arguments[0].Type;
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(Arguments);
 
         #endregion
     }
@@ -84,16 +96,19 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new predicate.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="condition">The condition.</param>
         /// <param name="trueValue">The true value.</param>
         /// <param name="falseValue">The false value.</param>
         internal Predicate(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference condition,
             ValueReference trueValue,
             ValueReference falseValue)
-            : base(generation, condition, ImmutableArray.Create(trueValue, falseValue))
+            : base(
+                  basicBlock,
+                  condition,
+                  ImmutableArray.Create(trueValue, falseValue))
         {
             Debug.Assert(
                 condition.Type.IsPrimitiveType &&
@@ -141,109 +156,6 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() => $"{Condition} ? {TrueValue} : {FalseValue}";
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents a value selection node. It selects an appropriate value
-    /// from an array of values. If the value is out range the default value
-    /// is returned.
-    /// </summary>
-    public sealed class SelectPredicate : Conditional
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new predicate.
-        /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="value">The selection value.</param>
-        /// <param name="arguments">The selection arguments. The last argument is the default argument.</param>
-        internal SelectPredicate(
-            ValueGeneration generation,
-            ValueReference value,
-            ImmutableArray<ValueReference> arguments)
-            : base(generation, value, arguments)
-        {
-            Debug.Assert(
-                value.Type.IsPrimitiveType &&
-                value.Type.BasicValueType.IsInt(),
-                "Invalid integer selection value");
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the default argument.
-        /// </summary>
-        public ValueReference DefaultArgument => Arguments[0];
-
-        /// <summary>
-        /// Returns the number of actual switch cases without the default case.
-        /// </summary>
-        public int NumCasesWithoutDefault => Arguments.Length - 1;
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns the case value for the i-th case.
-        /// </summary>
-        /// <param name="i">The index of the i-th case.</param>
-        /// <returns>The resulting argument.</returns>
-        [SuppressMessage("Microsoft.Usage", "CA2233: OperationsShouldNotOverflow",
-            Justification = "Exception checks avoided for performance reasons")]
-        public ValueReference GetCaseArgument(int i)
-        {
-            Debug.Assert(i < Arguments.Length - 1, "Invalid case argument");
-            return Arguments[i + 1];
-        }
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder)
-        {
-            var args = ImmutableArray.CreateBuilder<ValueReference>(Arguments.Length);
-            foreach (var arg in Arguments)
-                args.Add(rebuilder.Rebuild(arg));
-
-            return builder.CreateSelectPredicate(
-                rebuilder.Rebuild(Condition),
-                args.MoveToImmutable());
-        }
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "select";
-
-        /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString()
-        {
-            var result = new StringBuilder();
-            result.Append(Condition.ToString());
-            result.Append(" ");
-            for (int i = 1, e = Arguments.Length; i < e; ++i)
-            {
-                result.Append(Arguments[i].ToString());
-                if (i + 1 < e)
-                    result.Append(", ");
-            }
-            result.Append(" - default: ");
-            result.Append(Arguments[0].ToString());
-            return result.ToString();
-        }
 
         #endregion
     }

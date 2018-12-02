@@ -61,11 +61,9 @@ namespace ILGPU.Frontend.Intrinsic
                     return builder.CreateSizeOf(
                         builder.CreateType(context.GetMethodGenericArguments()[0]));
                 case InteropIntrinsicKind.FloatAsInt:
-                    return builder.CreateFloatAsIntCast(
-                        context[TopLevelFunction.ParametersOffset]);
+                    return builder.CreateFloatAsIntCast(context[0]);
                 case InteropIntrinsicKind.IntAsFloat:
-                    return builder.CreateIntAsFloatCast(
-                        context[TopLevelFunction.ParametersOffset]);
+                    return builder.CreateIntAsFloatCast(context[0]);
                 default:
                     throw new NotSupportedException("Invalid interop operation");
             }

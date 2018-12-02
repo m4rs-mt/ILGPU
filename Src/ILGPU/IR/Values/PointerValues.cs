@@ -12,22 +12,25 @@
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
     /// <summary>
     /// Represents an abstract pointer value.
     /// </summary>
-    public abstract class PointerValue : UnifiedValue
+    public abstract class PointerValue : Value
     {
         #region Instance
 
         /// <summary>
         /// Constructs a new pointer value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        internal PointerValue(ValueGeneration generation)
-            : base(generation)
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initialType">The initial node type.</param>
+        internal PointerValue(BasicBlock basicBlock, TypeNode initialType)
+            : base(basicBlock, initialType)
         { }
 
         #endregion
@@ -47,23 +50,38 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class SubViewValue : PointerValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a sub-view value node type.
+        /// </summary>
+        /// <param name="source">The source value.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(
+            ValueReference source) => source.Type;
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new sub-view computation.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="source">The source view.</param>
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         internal SubViewValue(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference source,
             ValueReference offset,
             ValueReference length)
-            : base(generation)
+            : base(
+                  basicBlock,
+                  ComputeType(source))
         {
-            Seal(ImmutableArray.Create(source, offset, length), source.Type);
+            Seal(ImmutableArray.Create(source, offset, length));
         }
 
         #endregion
@@ -84,6 +102,10 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(Source);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateSubViewValue(
@@ -92,10 +114,7 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Length));
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -115,25 +134,48 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class LoadElementAddress : PointerValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a lea value node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="source">The source value.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(
+            IRContext context,
+            ValueReference source)
+        {
+            var sourceType = source.Type as AddressSpaceType;
+            if (sourceType is PointerType)
+                return sourceType;
+            return context.CreatePointerType(
+                sourceType.ElementType,
+                sourceType.AddressSpace);
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new address value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="sourceView">The source address.</param>
         /// <param name="elementIndex">The address of the referenced element.</param>
-        /// <param name="loadPointerType">The pointer type of this operation.</param>
         internal LoadElementAddress(
-            ValueGeneration generation,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference sourceView,
-            ValueReference elementIndex,
-            PointerType loadPointerType)
-            : base(generation)
+            ValueReference elementIndex)
+            : base(
+                  basicBlock,
+                  ComputeType(context, sourceView))
         {
-            Seal(
-                ImmutableArray.Create(sourceView, elementIndex),
-                loadPointerType);
+            Seal(ImmutableArray.Create(sourceView, elementIndex));
         }
 
         #endregion
@@ -159,6 +201,10 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context, Source);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateLoadElementAddress(
@@ -166,10 +212,7 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(ElementIndex));
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -192,26 +235,57 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Loads a field address of an object pointer.
     /// </summary>
-    public sealed class LoadFieldAddress : InstantiatedValue
+    public sealed class LoadFieldAddress : Value
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a lfa value node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="source">The source value.</param>
+        /// <param name="fieldIndex">The structure field index.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(
+            IRContext context,
+            ValueReference source,
+            int fieldIndex)
+        {
+            var pointerType = source.Type as PointerType;
+            Debug.Assert(pointerType != null, "Invalid pointer type");
+            var structureType = pointerType.ElementType as StructureType;
+
+            Debug.Assert(structureType != null, "Invalid structure type");
+            var fieldType = structureType.Children[fieldIndex];
+
+            return context.CreatePointerType(
+                fieldType,
+                pointerType.AddressSpace);
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new address value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="source">The source address.</param>
-        /// <param name="fieldPointerType">The pointer type of the field.</param>
         /// <param name="fieldIndex">The structure field index.</param>
         internal LoadFieldAddress(
-            ValueGeneration generation,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference source,
-            PointerType fieldPointerType,
             int fieldIndex)
-            : base(generation)
+            : base(
+                  basicBlock,
+                  ComputeType(context, source, fieldIndex))
         {
             FieldIndex = fieldIndex;
-            Seal(ImmutableArray.Create(source), fieldPointerType);
+            Seal(ImmutableArray.Create(source));
         }
 
         #endregion
@@ -243,6 +317,10 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context, Source, FieldIndex);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateLoadFieldAddress(
@@ -250,10 +328,7 @@ namespace ILGPU.IR.Values
                 FieldIndex);
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 

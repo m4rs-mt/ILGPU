@@ -155,12 +155,16 @@ namespace ILGPU
 
         #region Instance
 
+        private long idCounter = 0;
+        private long functionHandleCounter = 0;
+        private long nodeMarker = 0L;
+
         private SemaphoreSlim codeGenerationSemaphore;
         private ILFrontend ilFrontend;
 
         private DebugInformationManager debugInformationManager = new DebugInformationManager();
-        private TypeInformationManager typeInformationManager = new TypeInformationManager();
 
+        private IRTypeContext typeContext;
         private IRContext mainContext;
         private ILBackend defaultILBackend;
 
@@ -218,7 +222,8 @@ namespace ILGPU
             OptimizationLevel optimizationLevel,
             ContextFlags contextFlags)
         {
-            mainContext = new IRContext(typeInformationManager, flags);
+            typeContext = new IRTypeContext(this, flags);
+            mainContext = new IRContext(this, flags);
 #if !PARALLEL_PROCESSING
             ilFrontend = new ILFrontend(1);
 #else
@@ -276,9 +281,9 @@ namespace ILGPU
         public DebugInformationManager DebugInformationManager => debugInformationManager;
 
         /// <summary>
-        /// Returns the main type information manager.
+        /// Returns the main type context.
         /// </summary>
-        public TypeInformationManager TypeInformationManger => typeInformationManager;
+        public IRTypeContext TypeContext => typeContext;
 
         /// <summary>
         /// Returns internal PTX context data for PTX backends.
@@ -288,6 +293,30 @@ namespace ILGPU
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Creates a new unique node marker.
+        /// </summary>
+        /// <returns>The new node marker.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public NodeMarker NewNodeMarker() =>
+            new NodeMarker(Interlocked.Add(ref nodeMarker, 1L));
+
+        /// <summary>
+        /// Creates a new unique node id.
+        /// </summary>
+        /// <returns>A new unique node id.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal NodeId CreateNodeId() =>
+            new NodeId(Interlocked.Add(ref idCounter, 1));
+
+        /// <summary>
+        /// Creates a new unique function handle.
+        /// </summary>
+        /// <returns>A new unique function handle.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal long CreateFunctionHandle() =>
+            Interlocked.Add(ref functionHandleCounter, 1);
 
         /// <summary>
         /// Registers a new intrinsic handler.
@@ -428,7 +457,7 @@ namespace ILGPU
         [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "ilFrontend", Justification = "Dispose method will be invoked by a helper method")]
         [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "defaultILBackend", Justification = "Dispose method will be invoked by a helper method")]
         [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "debugInformationManager", Justification = "Dispose method will be invoked by a helper method")]
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "typeInformationManager", Justification = "Dispose method will be invoked by a helper method")]
+        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "typeContext", Justification = "Dispose method will be invoked by a helper method")]
         [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "ptxContextData", Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
@@ -440,7 +469,7 @@ namespace ILGPU
             Dispose(ref defaultILBackend);
 
             Dispose(ref debugInformationManager);
-            Dispose(ref typeInformationManager);
+            Dispose(ref typeContext);
 
             Dispose(ref ptxContextData);
         }

@@ -384,9 +384,6 @@
   <data name="AssemblyVersionNotCompatible" xml:space="preserve">
     <value>The assembly version '{0}' is not compatible with the current version '{1}'</value>
   </data>
-  <data name="AllocaAnalysisRequiresTopLevelFunction" xml:space="preserve">
-    <value>The allocation analysis requires a top-level function</value>
-  </data>
   <data name="CannotDeserializeDuplicateNodeId" xml:space="preserve">
     <value>Duplicate node id '{0}' detected</value>
   </data>

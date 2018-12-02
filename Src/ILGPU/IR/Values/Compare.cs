@@ -14,7 +14,7 @@ using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -75,9 +75,18 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a comparison.
     /// </summary>
-    public sealed class CompareValue : UnifiedValue
+    public sealed class CompareValue : Value
     {
         #region Static
+
+        /// <summary>
+        /// Computes a compare node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(IRContext context) =>
+            context.GetPrimitiveType(BasicValueType.Int1);
 
         /// <summary>
         /// Inverts the given compare kind.
@@ -132,26 +141,25 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new compare value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
-        /// <param name="boolType">The bool type.</param>
         internal CompareValue(
-            ValueGeneration generation,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference left,
             ValueReference right,
             CompareKind kind,
-            CompareFlags flags,
-            PrimitiveType boolType)
-            : base(generation)
+            CompareFlags flags)
+            : base(basicBlock, ComputeType(context))
         {
             Kind = kind;
             Flags = flags;
-            Debug.Assert(boolType.BasicValueType == BasicValueType.Int1);
 
-            Seal(ImmutableArray.Create(left, right), boolType);
+            Seal(ImmutableArray.Create(left, right));
         }
 
         #endregion
@@ -194,6 +202,10 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateCompare(
@@ -202,31 +214,12 @@ namespace ILGPU.IR.Values
                 Kind,
                 Flags);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is CompareValue value)
-                return value.Kind == Kind &&
-                    value.Flags == Flags &&
-                    base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x4AC107B5;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "cmp";

@@ -95,12 +95,6 @@ namespace ILGPU.IR.Types
         /// <summary cref="TypeNode.Accept{T}(T)"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
-        /// <summary cref="TypeNode.Rebuild(IRBuilder, IRTypeRebuilder)"/>
-        protected internal override TypeNode Rebuild(IRBuilder builder, IRTypeRebuilder rebuilder) =>
-            builder.CreatePointerType(
-                rebuilder.Rebuild(ElementType),
-                AddressSpace);
-
         #endregion
 
         #region Object
@@ -143,12 +137,6 @@ namespace ILGPU.IR.Types
 
         /// <summary cref="TypeNode.Accept{T}(T)"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        /// <summary cref="TypeNode.Rebuild(IRBuilder, IRTypeRebuilder)"/>
-        protected internal override TypeNode Rebuild(IRBuilder builder, IRTypeRebuilder rebuilder) =>
-            builder.CreateViewType(
-                rebuilder.Rebuild(ElementType),
-                AddressSpace);
 
         #endregion
 

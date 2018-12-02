@@ -9,8 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
-
 namespace ILGPU.IR.Types
 {
     /// <summary>
@@ -33,11 +31,6 @@ namespace ILGPU.IR.Types
         /// Returns true if the current type is a <see cref="VoidType"/>.
         /// </summary>
         public bool IsVoidType => this is VoidType;
-
-        /// <summary>
-        /// Returns true if the current type is a <see cref="MemoryType"/>.
-        /// </summary>
-        public bool IsMemoryType => this is MemoryType;
 
         /// <summary>
         /// Returns true if the current type is a <see cref="StringType"/>.
@@ -69,11 +62,6 @@ namespace ILGPU.IR.Types
         /// Returns true if the current type is a <see cref="StructureType"/>.
         /// </summary>
         public bool IsStructureType => this is StructureType;
-
-        /// <summary>
-        /// Returns true if the current type is a <see cref="FunctionType"/>.
-        /// </summary>
-        public bool IsFunctionType => this is FunctionType;
 
         /// <summary>
         /// Returns true if this node is a value type.
@@ -109,14 +97,6 @@ namespace ILGPU.IR.Types
         /// <param name="visitor">The visitor.</param>
         public abstract void Accept<T>(T visitor)
             where T : ITypeNodeVisitor;
-
-        /// <summary>
-        /// Rebuilds the current type node in the scope of the given rebuilder.
-        /// </summary>
-        /// <param name="builder">The builder to use.</param>
-        /// <param name="rebuilder">The rebuilder to use.</param>
-        /// <returns>The rebuilt type node.</returns>
-        protected internal abstract TypeNode Rebuild(IRBuilder builder, IRTypeRebuilder rebuilder);
 
         #endregion
 

@@ -64,19 +64,16 @@ namespace ILGPU.Frontend.Intrinsic
                     length = builder.CreatePrimitiveValue(1);
                     break;
                 case SharedMemoryIntrinsicKind.Allocate:
-                    length = context.Arguments[TopLevelFunction.ParametersOffset];
+                    length = context[0];
                     break;
                 default:
                     throw new NotSupportedException("Invalid shared memory operation");
             }
 
             var alloca = context.Builder.CreateAlloca(
-                context.PopMemory(),
                 length,
                 context.Builder.CreateType(allocationType),
                 MemoryAddressSpace.Shared);
-            context.PushMemory(alloca);
-
             if (attribute.IntrinsicKind == SharedMemoryIntrinsicKind.AllocateElement)
                 return alloca;
             return builder.CreateNewView(alloca, length);

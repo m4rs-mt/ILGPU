@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
@@ -34,9 +33,10 @@ namespace ILGPU.Backends
     }
 
     /// <summary>
-    /// Represents an ABI specification.
+    /// Represents a generic ABI specification.
     /// </summary>
-    public sealed class ABI : DisposeBase, ISizeOfABI
+    /// <remarks>Members of this class are not thread safe.</remarks>
+    public abstract class ABI : ISizeOfABI
     {
         #region Static
 
@@ -59,16 +59,14 @@ namespace ILGPU.Backends
         /// <summary>
         /// Computes a properly alligned offset in bytes for the given field size.
         /// </summary>
-        /// <param name="offset">The current (and next offset).</param>
-        /// <param name="fieldSize">The field size in bytes.</param>
+        /// <param name="offset">The current.</param>
+        /// <param name="fieldAlignment">The field size in bytes.</param>
         /// <returns>The aligned field offset.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Align(ref int offset, int fieldSize)
+        public static int Align(int offset, int fieldAlignment)
         {
-            var elementAlignment = offset % fieldSize;
-            var result = offset += (fieldSize - elementAlignment) % fieldSize;
-            offset += fieldSize;
-            return result;
+            var padding = (fieldAlignment - (offset % fieldAlignment)) % fieldAlignment;
+            return offset + padding;
         }
 
         #endregion
@@ -78,20 +76,23 @@ namespace ILGPU.Backends
         /// <summary>
         /// Stores ABI information.
         /// </summary>
-        private readonly struct ABITypeInfo
+        protected readonly struct ABITypeInfo
         {
             /// <summary>
             /// Constructs a new ABI information structure.
             /// </summary>
             /// <param name="offsets">The offsets in bytes.</param>
+            /// <param name="alignment">The alignment in bytes.</param>
             /// <param name="size">The size in bytes.</param>
             public ABITypeInfo(
                 ImmutableArray<int> offsets,
+                int alignment,
                 int size)
             {
                 Debug.Assert(size > 0);
 
                 Offsets = offsets;
+                Alignment = alignment;
                 Size = size;
             }
 
@@ -99,6 +100,11 @@ namespace ILGPU.Backends
             /// Returns the field offsets in bytes.
             /// </summary>
             public ImmutableArray<int> Offsets { get; }
+
+            /// <summary>
+            /// Returns the native alignment in bytes.
+            /// </summary>
+            public int Alignment { get; }
 
             /// <summary>
             /// Returns the native size in bytes.
@@ -110,30 +116,47 @@ namespace ILGPU.Backends
 
         #region Instance
 
-        private readonly object syncObject = new object();
         private readonly Dictionary<TypeNode, ABITypeInfo> typeInformation =
             new Dictionary<TypeNode, ABITypeInfo>();
 
         /// <summary>
         /// Constructs a new ABI specification.
         /// </summary>
-        /// <param name="pointerType">The native pointer type.</param>
-        /// <param name="pointerArithmeticType">The arithmetic type of a pointer.</param>
-        /// <param name="viewSize">The size of a view type in bytes.</param>
-        public ABI(
-            PrimitiveType pointerType,
-            ArithmeticBasicValueType pointerArithmeticType,
-            int viewSize)
+        /// <param name="typeContext">The parent type context.</param>
+        /// <param name="targetPlatform">The target platform</param>
+        /// <param name="viewTypeInfoProvider">The ABI info object provider for a view.</param>
+        protected ABI(
+            IRTypeContext typeContext,
+            TargetPlatform targetPlatform,
+            Func<int, ABITypeInfo> viewTypeInfoProvider)
         {
-            PointerType = pointerType;
-            PointerArithmeticType = pointerArithmeticType;
-            PointerSize = GetSizeOf(pointerType);
-            ViewSize = viewSize;
+            Debug.Assert(typeContext != null, "Invalid type context");
+            TypeContext = typeContext;
+            TargetPlatform = targetPlatform;
+
+            PointerArithmeticType = targetPlatform == TargetPlatform.X64 ?
+                ArithmeticBasicValueType.UInt64 :
+                ArithmeticBasicValueType.UInt32;
+            PointerType = typeContext.GetPrimitiveType(
+                PointerArithmeticType.GetBasicValueType());
+            PointerSize = GetSizeOf(PointerType);
+
+            ViewTypeInfo = viewTypeInfoProvider(PointerSize);
         }
 
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the associated type context.
+        /// </summary>
+        public IRTypeContext TypeContext { get; }
+
+        /// <summary>
+        /// Returns the associated target platform.
+        /// </summary>
+        public TargetPlatform TargetPlatform { get; }
 
         /// <summary>
         /// Returns type of a native pointer.
@@ -151,9 +174,9 @@ namespace ILGPU.Backends
         public int PointerSize { get; }
 
         /// <summary>
-        /// The size of a view type in bytes.
+        /// Returns the associated view-type information.
         /// </summary>
-        public int ViewSize { get; }
+        private ABITypeInfo ViewTypeInfo { get; }
 
         #endregion
 
@@ -164,10 +187,10 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns>The resolved field offsets.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ImmutableArray<int> GetOffsetsOf(TypeNode type)
         {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
+            Debug.Assert(type != null, "Invalid type");
             var info = ResolveABIInfo(type);
             return info.Offsets;
         }
@@ -178,22 +201,52 @@ namespace ILGPU.Backends
         /// <param name="type">The enclosing type.</param>
         /// <param name="fieldIndex">The field index.</param>
         /// <returns>The field offset in bytes.</returns>
-        public int GetOffsetOf(TypeNode type, int fieldIndex)
-        {
-            return GetOffsetsOf(type)[fieldIndex];
-        }
+        public int GetOffsetOf(TypeNode type, int fieldIndex) =>
+            GetOffsetsOf(type)[fieldIndex];
 
         /// <summary>
         /// Ressolves the native size in bytes of the given type.
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns>The native size.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetSizeOf(TypeNode type)
         {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
+            Debug.Assert(type != null, "Invalid type");
             var info = ResolveABIInfo(type);
             return info.Size;
+        }
+
+        /// <summary>
+        /// Ressolves the native alignment in bytes of the given type.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns>The native alignment.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetAlignmentOf(TypeNode type)
+        {
+            Debug.Assert(type != null, "Invalid type");
+            var info = ResolveABIInfo(type);
+            return info.Alignment;
+        }
+
+        /// <summary>
+        /// Ressolves the native alignment and size in bytes of the given type.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <param name="size">The native size in bytes.</param>
+        /// <param name="alignment">The type alignment in bytes.</param>
+        /// <returns>The native alignment.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void GetAlignmentAndSizeOf(
+            TypeNode type,
+            out int size,
+            out int alignment)
+        {
+            Debug.Assert(type != null, "Invalid type");
+            var info = ResolveABIInfo(type);
+            size = info.Size;
+            alignment = info.Alignment;
         }
 
         /// <summary>
@@ -202,8 +255,8 @@ namespace ILGPU.Backends
         /// <param name="offset">The current (and next offset).</param>
         /// <param name="type">The field type in bytes.</param>
         /// <returns>The aligned field offset.</returns>
-        public int Align(ref int offset, TypeNode type) =>
-            Align(ref offset, GetSizeOf(type));
+        public int Align(int offset, TypeNode type) =>
+            Align(offset, GetAlignmentOf(type));
 
         /// <summary>
         /// Resolves ABI info for the given type.
@@ -214,30 +267,27 @@ namespace ILGPU.Backends
         {
             Debug.Assert(type != null, "Invalid type info");
             if (type.IsPointerType)
-                return new ABITypeInfo(ImmutableArray<int>.Empty, PointerSize);
+                return new ABITypeInfo(ImmutableArray<int>.Empty, PointerSize, PointerSize);
             if (type.IsViewType)
-                return new ABITypeInfo(ImmutableArray<int>.Empty, ViewSize);
+                return ViewTypeInfo;
             if (ManagedSizes.TryGetValue(type.BasicValueType, out int size))
-                return new ABITypeInfo(ImmutableArray<int>.Empty, size);
+                return new ABITypeInfo(ImmutableArray<int>.Empty, size, size);
 
-            lock (syncObject)
-            {
-                if (typeInformation.TryGetValue(type, out ABITypeInfo info))
-                    return info;
-
-                var containerType = type as ContainerType;
-                Debug.Assert(containerType != null, "Not supported type");
-                if (containerType.NumChildren < 1)
-                {
-                    // This is an empty struct -> requires special handling
-                    info = new ABITypeInfo(ImmutableArray<int>.Empty, 1);
-                }
-                else
-                    info = ResolveABIInfo(containerType);
-                typeInformation.Add(type, info);
-
+            if (typeInformation.TryGetValue(type, out ABITypeInfo info))
                 return info;
+
+            var containerType = type as ContainerType;
+            Debug.Assert(containerType != null, "Not supported type");
+            if (containerType.NumChildren < 1)
+            {
+                // This is an empty struct -> requires special handling
+                info = new ABITypeInfo(ImmutableArray<int>.Empty, 1, 1);
             }
+            else
+                info = ResolveABIInfo(containerType);
+            typeInformation.Add(type, info);
+
+            return info;
         }
 
         /// <summary>
@@ -248,108 +298,31 @@ namespace ILGPU.Backends
         private ABITypeInfo ResolveABIInfo(ContainerType containerType)
         {
             var offsets = ImmutableArray.CreateBuilder<int>(containerType.NumChildren);
-            int largestElement = 0;
+            int alignment = 0;
             int offset = 0;
             for (int i = 0, e = containerType.NumChildren; i < e; ++i)
             {
                 var fieldType = containerType.Children[i];
                 var fieldSize = GetSizeOf(fieldType);
+                var fieldAlignment = GetAlignmentOf(fieldType);
 
                 // Ensure proper alignment
-                var elementOffset = Align(ref offset, fieldSize);
+                var elementOffset = Align(offset, fieldAlignment);
                 offsets.Add(elementOffset);
 
-                largestElement = Math.Max(largestElement, fieldSize);
+                offset = elementOffset + fieldSize;
+                alignment = Math.Max(alignment, fieldAlignment);
             }
 
             // Ensure proper padding
-            var elementPadding = offset % largestElement;
-            var size = offset + ((largestElement - elementPadding) % largestElement);
+            int size = Align(offset, alignment);
 
-            return new ABITypeInfo(offsets.MoveToImmutable(), size);
+            return new ABITypeInfo(
+                offsets.MoveToImmutable(),
+                alignment,
+                size);
         }
 
         #endregion
-
-        #region IDisposable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
-        { }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Constructs ABI instances.
-    /// </summary>
-    public abstract class ABIProvider
-    {
-        #region Nested Types
-
-        /// <summary>
-        /// Implements an X86 ABI provider.
-        /// </summary>
-        private sealed class X86 : ABIProvider
-        {
-            /// <summary cref="ABIProvider.CreateABI(IRContext)"/>
-            public override ABI CreateABI(IRContext context) =>
-                new ABI(
-                    context.GetPrimitiveType(BasicValueType.Int32),
-                    ArithmeticBasicValueType.UInt32,
-                    8);
-        }
-
-        /// <summary>
-        /// Implements an X64 ABI provider.
-        /// </summary>
-        private sealed class X64 : ABIProvider
-        {
-            /// <summary cref="ABIProvider.CreateABI(IRContext)"/>
-            public override ABI CreateABI(IRContext context) =>
-                new ABI(
-                    context.GetPrimitiveType(BasicValueType.Int64),
-                    ArithmeticBasicValueType.UInt64,
-                    16);
-        }
-
-        #endregion
-
-        /// <summary>
-        /// Creates an ABI provider for an X86 platform.
-        /// </summary>
-        /// <returns>The X86 ABI provider.</returns>
-        public static ABIProvider CreateX86Provider() => new X86();
-
-        /// <summary>
-        /// Creates an ABI provider for an X64 platform.
-        /// </summary>
-        /// <returns>The X64 ABI provider.</returns>
-        public static ABIProvider CreateX64Provider() => new X64();
-
-        /// <summary>
-        /// Creates an ABI provider for the given target platform.
-        /// </summary>
-        /// <param name="platform">The target platform.</param>
-        /// <returns>The corresponding ABI provider.</returns>
-        public static ABIProvider CreateProvider(TargetPlatform platform)
-        {
-            switch (platform)
-            {
-                case TargetPlatform.X86:
-                    return CreateX86Provider();
-                case TargetPlatform.X64:
-                    return CreateX64Provider();
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(platform));
-            }
-        }
-
-        /// <summary>
-        /// Creates a new ABI instance.
-        /// </summary>
-        /// <param name="context">The current IR context.</param>
-        /// <returns>The ABI instance.</returns>
-        public abstract ABI CreateABI(IRContext context);
     }
 }

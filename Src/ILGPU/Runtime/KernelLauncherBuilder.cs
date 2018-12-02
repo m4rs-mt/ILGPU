@@ -11,6 +11,7 @@
 
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
+using ILGPU.Backends.PointerViews;
 using ILGPU.Resources;
 using System;
 using System.Diagnostics;
@@ -35,32 +36,6 @@ namespace ILGPU.Runtime
             where TEmitter : IILEmitter
         {
             emitter.EmitNewObject(Index.MainConstructor);
-        }
-
-        /// <summary>
-        /// Emits code for converting array views into ptr implementations.
-        /// </summary>
-        /// <typeparam name="TEmitter">The emitter type.</typeparam>
-        /// <param name="parameter">The source parameter that contains the array view.</param>
-        /// <param name="arrayViewElementType">The element type of the array view.</param>
-        /// <param name="emitter">The target IL emitter.</param>
-        public static ILLocal EmitLoadNativePtrImplementation<TEmitter>(
-            ParameterInfo parameter,
-            Type arrayViewElementType,
-            in TEmitter emitter)
-            where TEmitter : IILEmitter
-        {
-            var ptrViewType = typeof(PtrArrayViewImplementation<>).MakeGenericType(arrayViewElementType);
-
-            // Allocate a local for the target view
-            var tempLocal = emitter.DeclareLocal(ptrViewType);
-
-            // Convert view to ptr view
-            emitter.Emit(ArgumentOperation.Load, parameter.Position);
-            emitter.EmitNewObject(ptrViewType.GetConstructor(new Type[] { parameter.ParameterType }));
-            emitter.Emit(LocalOperation.Store, tempLocal);
-
-            return tempLocal;
         }
 
         /// <summary>

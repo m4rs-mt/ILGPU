@@ -43,51 +43,45 @@ namespace ILGPU.IR.Construction
         {
             Debug.Assert(node != null, "Invalid node");
 
-            // Check for constants
-            if (node is PrimitiveValue value)
-                return UnaryArithmeticFoldConstants(value, kind);
-
-            var isUnsigned = (flags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
-            switch (kind)
+            if (UseConstantPropagation)
             {
-                case UnaryArithmeticKind.Not:
-                    if (node is UnaryArithmeticValue otherValue &&
-                        otherValue.Kind == UnaryArithmeticKind.Not)
-                        return otherValue.Value;
-                    if (node is CompareValue compareValue)
-                    {
-                        return CreateCompare(
-                            compareValue.Left,
-                            compareValue.Right,
-                            CompareValue.Invert(compareValue.Kind),
-                            compareValue.Flags);
-                    }
-                    break;
-                case UnaryArithmeticKind.Neg:
-                    if (node.BasicValueType == BasicValueType.Int1)
-                        return CreateArithmetic(node, UnaryArithmeticKind.Not);
-                    break;
-                case UnaryArithmeticKind.Abs:
-                    if (isUnsigned)
-                        return node;
-                    break;
+                // Check for constants
+                if (node is PrimitiveValue value)
+                    return UnaryArithmeticFoldConstants(value, kind);
+
+                var isUnsigned = (flags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
+                switch (kind)
+                {
+                    case UnaryArithmeticKind.Not:
+                        if (node is UnaryArithmeticValue otherValue &&
+                            otherValue.Kind == UnaryArithmeticKind.Not)
+                            return otherValue.Value;
+                        if (node is CompareValue compareValue)
+                        {
+                            return CreateCompare(
+                                compareValue.Left,
+                                compareValue.Right,
+                                CompareValue.Invert(compareValue.Kind),
+                                compareValue.Flags);
+                        }
+                        break;
+                    case UnaryArithmeticKind.Neg:
+                        if (node.BasicValueType == BasicValueType.Int1)
+                            return CreateArithmetic(node, UnaryArithmeticKind.Not);
+                        break;
+                    case UnaryArithmeticKind.Abs:
+                        if (isUnsigned)
+                            return node;
+                        break;
+                }
             }
 
-            var targetType = node.Type;
-            switch (kind)
-            {
-                case UnaryArithmeticKind.IsInfF:
-                case UnaryArithmeticKind.IsNaNF:
-                    targetType = CreatePrimitiveType(BasicValueType.Int1);
-                    break;
-            }
-
-            return CreateUnifiedValue(new UnaryArithmeticValue(
-                Generation,
+            return Append(new UnaryArithmeticValue(
+                Context,
+                BasicBlock,
                 node,
                 kind,
-                flags,
-                targetType));
+                flags));
         }
 
         /// <summary>
@@ -120,36 +114,35 @@ namespace ILGPU.IR.Construction
             Debug.Assert(left != null, "Invalid left node");
             Debug.Assert(right != null, "Invalid right node");
 
-            var leftValue = left as PrimitiveValue;
-
-            // Check for constants
-            if (leftValue != null &&
-                right is PrimitiveValue rightValue)
+            if (UseConstantPropagation && left is PrimitiveValue leftValue)
             {
-                return BinaryArithmeticFoldConstants(
-                    leftValue, rightValue, kind, flags);
+                // Check for constants
+                if (right is PrimitiveValue rightValue)
+                {
+                    return BinaryArithmeticFoldConstants(
+                        leftValue, rightValue, kind, flags);
+                }
+
+                if (kind == BinaryArithmeticKind.Div)
+                {
+                    switch (left.BasicValueType)
+                    {
+                        case BasicValueType.Float32:
+                            if (leftValue.Float32Value == 1.0f)
+                                return CreateArithmetic(right, UnaryArithmeticKind.RcpF);
+                            break;
+                        case BasicValueType.Float64:
+                            if (leftValue.Float64Value == 1.0)
+                                return CreateArithmetic(right, UnaryArithmeticKind.RcpF);
+                            break;
+                        default:
+                            break;
+                    }
+                }
             }
 
             switch (kind)
             {
-                case BinaryArithmeticKind.Div:
-                    if (leftValue != null)
-                    {
-                        switch (left.BasicValueType)
-                        {
-                            case BasicValueType.Float32:
-                                if (leftValue.Float32Value == 1.0f)
-                                    return CreateArithmetic(right, UnaryArithmeticKind.RcpF);
-                                break;
-                            case BasicValueType.Float64:
-                                if (leftValue.Float64Value == 1.0)
-                                    return CreateArithmetic(right, UnaryArithmeticKind.RcpF);
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                    break;
                 case BinaryArithmeticKind.And:
                 case BinaryArithmeticKind.Or:
                 case BinaryArithmeticKind.Xor:
@@ -164,8 +157,8 @@ namespace ILGPU.IR.Construction
                     break;
             }
 
-            return CreateUnifiedValue(new BinaryArithmeticValue(
-                Generation,
+            return Append(new BinaryArithmeticValue(
+                BasicBlock,
                 left,
                 right,
                 kind,
@@ -207,23 +200,26 @@ namespace ILGPU.IR.Construction
             Debug.Assert(second != null, "Invalid second node");
             Debug.Assert(third != null, "Invalid third node");
 
-            // Check for constants
-            if (first is PrimitiveValue firstValue &&
-                second is PrimitiveValue secondValue)
+            if (UseConstantPropagation)
             {
-                var value = BinaryArithmeticFoldConstants(
-                    firstValue,
-                    secondValue,
-                    TernaryArithmeticValue.GetLeftBinaryKind(kind),
-                    flags);
+                // Check for constants
+                if (first is PrimitiveValue firstValue &&
+                    second is PrimitiveValue secondValue)
+                {
+                    var value = BinaryArithmeticFoldConstants(
+                        firstValue,
+                        secondValue,
+                        TernaryArithmeticValue.GetLeftBinaryKind(kind),
+                        flags);
 
-                // Try to fold right hand side as well
-                var rightOperation = TernaryArithmeticValue.GetRightBinaryKind(kind);
-                return CreateArithmetic(value, third, rightOperation);
+                    // Try to fold right hand side as well
+                    var rightOperation = TernaryArithmeticValue.GetRightBinaryKind(kind);
+                    return CreateArithmetic(value, third, rightOperation);
+                }
             }
 
-            return CreateUnifiedValue(new TernaryArithmeticValue(
-                Generation,
+            return Append(new TernaryArithmeticValue(
+                BasicBlock,
                 first,
                 second,
                 third,

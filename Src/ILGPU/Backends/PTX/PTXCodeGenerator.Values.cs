@@ -12,32 +12,78 @@
 using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.PTX
 {
     partial class PTXCodeGenerator
     {
-        #region Value Visitor
-
-        /// <summary cref="IValueVisitor.Visit(FunctionValue)"/>
-        public void Visit(FunctionValue functionValue)
+        /// <summary cref="IValueVisitor.Visit(MethodCall)"/>
+        public void Visit(MethodCall call)
         {
-            if (!functionValue.Mark(functionMarker))
-                return;
+            const string ReturnValueName = "callRetVal";
+            const string CallParamName = "callParam";
 
-            // Mark entry label
-            MarkLabel(blockLookup[functionValue]);
-        }
+            var target = call.Target;
 
-        /// <summary cref="IValueVisitor.Visit(FunctionCall)"/>
-        public void Visit(FunctionCall functionCall)
-        {
-            if (functionCall.IsTopLevelCall)
-                MakeGlobalCall(functionCall);
+            // Create call sequence
+            Builder.AppendLine();
+            Builder.AppendLine("\t{");
+
+            Builder.AppendLine("\t.reg .b32 temp_param_reg;");
+
+            for (int i = 0, e = call.NumArguments; i < e; ++i)
+            {
+                var argument = call.Nodes[i];
+                var paramName = CallParamName + i;
+                Builder.Append("\t");
+                AppendParamDeclaration(argument.Type, paramName);
+                Builder.AppendLine(";");
+
+                // Emit store param command
+                var argumentRegister = Load(argument);
+                EmitStoreParam(paramName, argumentRegister);
+            }
+
+            // Reserve a sufficient amount of memory
+            var returnType = target.ReturnType;
+            if (!returnType.IsVoidType)
+            {
+                Builder.Append("\t");
+                AppendParamDeclaration(returnType, ReturnValueName);
+                Builder.AppendLine(";");
+                Builder.Append("\tcall ");
+                Builder.Append("(");
+                Builder.Append(ReturnValueName);
+                Builder.Append("), ");
+            }
             else
-                MakeLocalCall(functionCall);
+            {
+                Builder.Append("\tcall ");
+            }
+            Builder.Append(GetMethodName(target));
+            Builder.AppendLine(", (");
+            for (int i = 0, e = call.NumArguments; i < e; ++i)
+            {
+                Builder.Append("\t\t");
+                Builder.Append(CallParamName);
+                Builder.Append(i);
+                if (i + 1 < e)
+                    Builder.AppendLine(",");
+                else
+                    Builder.AppendLine();
+            }
+            Builder.AppendLine("\t);");
+
+            if (!returnType.IsVoidType)
+            {
+                // Allocate target register for the return type and load the data
+                var returnRegister = Allocate(call);
+                EmitLoadParam(ReturnValueName, returnRegister);
+            }
+            Builder.AppendLine("\t}");
+            Builder.AppendLine();
         }
 
         /// <summary cref="IValueVisitor.Visit(Parameter)"/>
@@ -49,21 +95,27 @@ namespace ILGPU.Backends.PTX
 #endif
         }
 
+        /// <summary cref="IValueVisitor.Visit(PhiValue)"/>
+        public void Visit(PhiValue phiValue)
+        {
+            // Phi values are already assigned to registers
+#if DEBUG
+            Load(phiValue);
+#endif
+        }
+
         /// <summary cref="IValueVisitor.Visit(UnaryArithmeticValue)"/>
         public void Visit(UnaryArithmeticValue value)
         {
-            var argument = Load(value.Value);
-
-            var resolved = Instructions.TryGetArithmeticOperation(
-                value.Kind,
-                value.ArithmeticBasicValueType,
-                FastMath,
-                out string operation);
-            Debug.Assert(resolved, "Invalid arithmetic operation");
+            var argument = LoadPrimitive(value.Value);
 
             var ptxType = PTXType.GetPTXType(value.BasicValueType);
             var targetRegister = Allocate(value, ptxType.RegisterKind);
-            using (var command = BeginCommand(operation))
+            using (var command = BeginCommand(
+                Instructions.GetArithmeticOperation(
+                    value.Kind,
+                    value.ArithmeticBasicValueType,
+                    FastMath)))
             {
                 command.AppendArgument(targetRegister);
                 command.AppendArgument(argument);
@@ -73,18 +125,15 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(BinaryArithmeticValue)"/>
         public void Visit(BinaryArithmeticValue value)
         {
-            var left = Load(value.Left);
-            var right = Load(value.Right);
-
-            var resolved = Instructions.TryGetArithmeticOperation(
-                value.Kind,
-                value.ArithmeticBasicValueType,
-                FastMath,
-                out string operation);
-            Debug.Assert(resolved, "Invalid arithmetic operation");
+            var left = LoadPrimitive(value.Left);
+            var right = LoadPrimitive(value.Right);
 
             var targetRegister = Allocate(value, left.Kind);
-            using (var command = BeginCommand(operation))
+            using (var command = BeginCommand(
+                Instructions.GetArithmeticOperation(
+                    value.Kind,
+                    value.ArithmeticBasicValueType,
+                    FastMath)))
             {
                 command.AppendArgument(targetRegister);
                 command.AppendArgument(left);
@@ -95,18 +144,16 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(TernaryArithmeticValue)"/>
         public void Visit(TernaryArithmeticValue value)
         {
-            var first = Load(value.First);
-            var second = Load(value.Second);
-            var third = Load(value.Third);
+            var first = LoadPrimitive(value.First);
+            var second = LoadPrimitive(value.Second);
+            var third = LoadPrimitive(value.Third);
 
-            var resolved = Instructions.TryGetArithmeticOperation(
-                value.Kind,
-                value.ArithmeticBasicValueType,
-                out string operation);
-            Debug.Assert(resolved, "Invalid arithmetic operation");
 
             var targetRegister = Allocate(value, first.Kind);
-            using (var command = BeginCommand(operation))
+            using (var command = BeginCommand(
+                Instructions.GetArithmeticOperation(
+                    value.Kind,
+                    value.ArithmeticBasicValueType)))
             {
                 command.AppendArgument(targetRegister);
                 command.AppendArgument(first);
@@ -118,26 +165,37 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(CompareValue)"/>
         public void Visit(CompareValue value)
         {
-            var left = Load(value.Left);
-            var right = Load(value.Right);
+            var left = LoadPrimitive(value.Left);
+            var right = LoadPrimitive(value.Right);
 
-            var predicateRegister = Allocate(value, PTXRegisterKind.Predicate);
-            var compareOperation = Instructions.GetCompareOperation(
-                value.Kind,
-                value.CompareType);
-
-            using (var command = BeginCommand(compareOperation))
+            var targetRegister = Allocate(value) as PrimitiveRegister;
+            using (var predicateScope = new PredicateScope(this))
             {
-                command.AppendArgument(predicateRegister);
-                command.AppendArgument(left);
-                command.AppendArgument(right);
+                using (var command = BeginCommand(
+                    Instructions.GetCompareOperation(
+                        value.Kind,
+                        value.CompareType)))
+                {
+                    command.AppendArgument(predicateScope.PredicateRegister);
+                    command.AppendArgument(left);
+                    command.AppendArgument(right);
+                }
+
+                using (var command = BeginCommand(
+                    Instructions.GetSelectValueOperation(BasicValueType.Int32)))
+                {
+                    command.AppendArgument(targetRegister);
+                    command.AppendConstant(1);
+                    command.AppendConstant(0);
+                    command.AppendArgument(predicateScope.PredicateRegister);
+                }
             }
         }
 
         /// <summary cref="IValueVisitor.Visit(ConvertValue)"/>
         public void Visit(ConvertValue value)
         {
-            var sourceValue = Load(value.Value);
+            var sourceValue = LoadPrimitive(value.Value);
 
             var convertOperation = Instructions.GetConvertOperation(
                 value.SourceType,
@@ -158,34 +216,10 @@ namespace ILGPU.Backends.PTX
             Alias(value, value.Value);
         }
 
-        /// <summary cref="IValueVisitor.Visit(AddressSpaceCast)"/>
-        public void Visit(AddressSpaceCast addressCast)
-        {
-            var source = Load(addressCast.Value);
-
-            var targetRegister = AllocatePlatformRegister(addressCast, out PTXType postFix);
-            var toGeneric = addressCast.TargetAddressSpace == MemoryAddressSpace.Generic;
-            var addressSpaceOperation = Instructions.GetAddressSpaceCast(toGeneric);
-            using (var command = BeginCommand(addressSpaceOperation))
-            {
-                command.AppendAddressSpace(
-                    toGeneric ?
-                    (addressCast.Value.Type as AddressSpaceType).AddressSpace :
-                    addressCast.TargetAddressSpace);
-
-                command.AppendPostFix(postFix);
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(source);
-            }
-        }
-
-        /// <summary cref="IValueVisitor.Visit(ViewCast)"/>
-        public void Visit(ViewCast value) => throw new InvalidCodeGenerationException();
-
         /// <summary cref="IValueVisitor.Visit(FloatAsIntCast)"/>
         public void Visit(FloatAsIntCast value)
         {
-            var source = Load(value.Value);
+            var source = LoadPrimitive(value.Value);
             Debug.Assert(
                 source.Kind == PTXRegisterKind.Float32 ||
                 source.Kind == PTXRegisterKind.Float64);
@@ -202,7 +236,7 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(IntAsFloatCast)"/>
         public void Visit(IntAsFloatCast value)
         {
-            var source = Load(value.Value);
+            var source = LoadPrimitive(value.Value);
             Debug.Assert(
                 source.Kind == PTXRegisterKind.Int32 ||
                 source.Kind == PTXRegisterKind.Int64);
@@ -216,50 +250,57 @@ namespace ILGPU.Backends.PTX
             Move(source, targetRegister);
         }
 
-        /// <summary cref="IValueVisitor.Visit(Predicate)"/>
-        public void Visit(Predicate predicate)
+        /// <summary>
+        /// Emits complex predicate instructions.
+        /// </summary>
+        private readonly struct PredicateEmitter : IComplexCommandEmitter
         {
-            if (predicate.IsHigherOrder)
-                return;
-            var condition = Load(predicate.Condition);
-            var trueValue = Load(predicate.TrueValue);
-            var falseValue = Load(predicate.FalseValue);
-
-            var targetRegister = Allocate(predicate, trueValue.Kind);
-            if (predicate.BasicValueType != BasicValueType.None)
+            public PredicateEmitter(PrimitiveRegister predicateRegister)
             {
-                using (var command = BeginCommand(
-                    Instructions.GetSelectValueOperation(predicate.BasicValueType)))
-                {
-                    command.AppendArgument(targetRegister);
-                    command.AppendArgument(trueValue);
-                    command.AppendArgument(falseValue);
-                    command.AppendArgument(condition);
-                }
+                PredicateRegister = predicateRegister;
             }
-            else
+
+            /// <summary>
+            /// The current source type.
+            /// </summary>
+            public PrimitiveRegister PredicateRegister { get; }
+
+            /// <summary cref="IComplexCommandEmitter.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister[])"/>
+            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
             {
-                Move(trueValue, targetRegister, new PredicateConfiguration(condition, true));
-                Move(falseValue, targetRegister, new PredicateConfiguration(condition, false));
+                commandEmitter.AppendArgument(registers[0]);
+                commandEmitter.AppendArgument(registers[1]);
+                commandEmitter.AppendArgument(registers[2]);
+                commandEmitter.AppendArgument(PredicateRegister);
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(SelectPredicate)"/>
-        public void Visit(SelectPredicate selectPredicate)
+        /// <summary cref="IValueVisitor.Visit(Predicate)"/>
+        public void Visit(Predicate predicate)
         {
-            if (selectPredicate.IsHigherOrder)
-                return;
-            throw new NotSupportedException("Select predicates with value chains are currently not supported");
+            var condition = LoadPrimitive(predicate.Condition);
+            var trueValue = Load(predicate.TrueValue);
+            var falseValue = Load(predicate.FalseValue);
+
+            using (var predicateScope = ConvertToPredicateScope(condition))
+            {
+                var targetRegister = Allocate(predicate);
+                EmitComplexCommand(
+                    Instructions.GetSelectValueOperation(predicate.BasicValueType),
+                    new PredicateEmitter(predicateScope.PredicateRegister),
+                    targetRegister,
+                    trueValue,
+                    falseValue);
+            }
         }
 
         /// <summary cref="IValueVisitor.Visit(GenericAtomic)"/>
         public void Visit(GenericAtomic atomic)
         {
-            var target = Load(atomic.Target);
-            var value = Load(atomic.Value);
+            var target = LoadPrimitive(atomic.Target);
+            var value = LoadPrimitive(atomic.Value);
 
-            var uses = Scope.GetUses(atomic);
-            var requiresResult = !uses.HasExactlyOneMemoryRef || atomic.Kind == AtomicKind.Exchange;
+            var requiresResult = atomic.Uses.HasAny || atomic.Kind == AtomicKind.Exchange;
             var atomicOperation = Instructions.GetAtomicOperation(
                 atomic.Kind,
                 requiresResult);
@@ -284,9 +325,9 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(AtomicCAS)"/>
         public void Visit(AtomicCAS atomicCAS)
         {
-            var target = Load(atomicCAS.Target);
-            var value = Load(atomicCAS.Value);
-            var compare = Load(atomicCAS.CompareValue);
+            var target = LoadPrimitive(atomicCAS.Target);
+            var value = LoadPrimitive(atomicCAS.Value);
+            var compare = LoadPrimitive(atomicCAS.CompareValue);
 
             var type = PTXType.GetPTXType(atomicCAS.BasicValueType);
             var targetRegister = Allocate(atomicCAS, type.RegisterKind);
@@ -303,12 +344,6 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(MemoryRef)"/>
-        public void Visit(MemoryRef memoryRef)
-        {
-            Alias(memoryRef, memoryRef.Parent);
-        }
-
         /// <summary cref="IValueVisitor.Visit(Alloca)"/>
         public void Visit(Alloca alloca)
         {
@@ -322,96 +357,118 @@ namespace ILGPU.Backends.PTX
             Command(command, null);
         }
 
+        /// <summary>
+        /// Emits complex load instructions.
+        /// </summary>
+        private readonly struct LoadEmitter : IComplexCommandEmitterWithOffsets
+        {
+            public LoadEmitter(
+                PointerType sourceType,
+                PrimitiveRegister addressRegister)
+            {
+                SourceType = sourceType;
+                AddressRegister = addressRegister;
+            }
+
+            /// <summary>
+            /// The current source type.
+            /// </summary>
+            public PointerType SourceType { get; }
+
+            /// <summary>
+            /// Returns the associated address register.
+            /// </summary>
+            public PrimitiveRegister AddressRegister { get; }
+
+            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister register, int offset)
+            {
+                var type = PTXType.GetPTXType(register.Kind);
+
+                commandEmitter.AppendAddressSpace(SourceType.AddressSpace);
+                commandEmitter.AppendPostFix(type);
+                commandEmitter.AppendArgument(register);
+                commandEmitter.AppendArgumentValue(AddressRegister, offset);
+            }
+        }
+
         /// <summary cref="IValueVisitor.Visit(Load)"/>
         public void Visit(Load load)
         {
-            var source = Load(load.Source);
+            var address = LoadPrimitive(load.Source);
             var sourceType = load.Source.Type as PointerType;
+            var targetRegister = Allocate(load);
 
-            var type = PTXType.GetPTXType(sourceType.ElementType, ABI);
-            var targetRegister = Allocate(load, type.RegisterKind);
+            EmitComplexCommandWithOffsets(
+                Instructions.LoadOperation,
+                new LoadEmitter(sourceType, address),
+                targetRegister);
+        }
 
-            using (var command = BeginCommand(Instructions.LoadOperation))
+        /// <summary>
+        /// Emits complex store instructions.
+        /// </summary>
+        private readonly struct StoreEmitter : IComplexCommandEmitterWithOffsets
+        {
+            public StoreEmitter(
+                PointerType targetType,
+                PrimitiveRegister addressRegister)
             {
-                command.AppendAddressSpace(sourceType.AddressSpace);
-                command.AppendPostFix(type);
-                command.AppendArgument(targetRegister);
-                command.AppendArgumentValue(source);
+                TargetType = targetType;
+                AddressRegister = addressRegister;
+            }
+
+            /// <summary>
+            /// The current source type.
+            /// </summary>
+            public PointerType TargetType { get; }
+
+            /// <summary>
+            /// Returns the associated address register.
+            /// </summary>
+            public PrimitiveRegister AddressRegister { get; }
+
+            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister register, int offset)
+            {
+                var type = PTXType.GetPTXType(register.Kind);
+
+                commandEmitter.AppendAddressSpace(TargetType.AddressSpace);
+                commandEmitter.AppendPostFix(type);
+                commandEmitter.AppendArgumentValue(AddressRegister, offset);
+                commandEmitter.AppendArgument(register);
             }
         }
 
         /// <summary cref="IValueVisitor.Visit(Store)"/>
         public void Visit(Store store)
         {
-            var target = Load(store.Target);
+            var address = LoadPrimitive(store.Target);
             var targetType = store.Target.Type as PointerType;
             var value = Load(store.Value);
 
-            var type = PTXType.GetPTXType(targetType.ElementType, ABI);
-
-            using (var command = BeginCommand(Instructions.StoreOperation))
-            {
-                command.AppendAddressSpace(targetType.AddressSpace);
-                command.AppendPostFix(type);
-                command.AppendArgumentValue(target);
-                command.AppendArgument(value);
-            }
-        }
-
-        /// <summary cref="IValueVisitor.Visit(SubViewValue)"/>
-        public void Visit(SubViewValue value) => throw new InvalidCodeGenerationException();
-
-        /// <summary cref="IValueVisitor.Visit(LoadElementAddress)"/>
-        public void Visit(LoadElementAddress value)
-        {
-            if (!value.IsPointerAccess)
-                throw new InvalidCodeGenerationException();
-
-            var address = Load(value.Source);
-            var sourceType = value.Source.Type as PointerType;
-            var elementSize = ABI.GetSizeOf(sourceType.ElementType);
-            var elementIndex = Load(value.ElementIndex);
-
-            var offsetRegister = AllocatePlatformRegister(out PTXType _);
-            using (var command = BeginCommand(
-                Instructions.GetLEAMulOperation(ABI.PointerArithmeticType)))
-            {
-                command.AppendArgument(offsetRegister);
-                command.AppendArgument(elementIndex);
-                command.AppendConstant(elementSize);
-            }
-
-            Instructions.TryGetArithmeticOperation(
-                BinaryArithmeticKind.Add,
-                ABI.PointerArithmeticType,
-                false,
-                out string addCommand);
-            var targetRegister = AllocatePlatformRegister(value, out PTXType _);
-            using (var command = BeginCommand(addCommand))
-            {
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(address);
-                command.AppendArgument(offsetRegister);
-            }
-
-            FreeRegister(offsetRegister);
+            EmitComplexCommandWithOffsets(
+                Instructions.StoreOperation,
+                new StoreEmitter(targetType, address),
+                value);
         }
 
         /// <summary cref="IValueVisitor.Visit(LoadFieldAddress)"/>
         public void Visit(LoadFieldAddress value)
         {
-            var source = Load(value.Source);
+            var source = LoadPrimitive(value.Source);
             var fieldOffset = ABI.GetOffsetOf(value.StructureType, value.FieldIndex);
 
             if (fieldOffset != 0)
             {
-                Instructions.TryGetArithmeticOperation(
-                    BinaryArithmeticKind.Add,
-                    ABI.PointerArithmeticType,
-                    false,
-                    out string addCommand);
                 var targetRegister = AllocatePlatformRegister(value, out PTXType _);
-                using (var command = BeginCommand(addCommand))
+                using (var command = BeginCommand(
+                    Instructions.GetArithmeticOperation(
+                        BinaryArithmeticKind.Add,
+                        ABI.PointerArithmeticType,
+                        false)))
                 {
                     command.AppendArgument(targetRegister);
                     command.AppendArgument(source);
@@ -422,17 +479,10 @@ namespace ILGPU.Backends.PTX
                 Alias(value, value.Source);
         }
 
-        /// <summary cref="IValueVisitor.Visit(NewView)"/>
-        public void Visit(NewView value) => throw new InvalidCodeGenerationException();
-
-        /// <summary cref="IValueVisitor.Visit(GetViewLength)"/>
-        public void Visit(GetViewLength value) => throw new InvalidCodeGenerationException();
-
         /// <summary cref="IValueVisitor.Visit(PrimitiveValue)"/>
         public void Visit(PrimitiveValue value)
         {
-            var uses = Scope.GetUses(value);
-            if (uses.TryGetSingleUse(out Use use) && use.Resolve() is Alloca)
+            if (value.Uses.TryGetSingleUse(out Use use) && use.Resolve() is Alloca)
                 return;
 
             var basicValueType = value.BasicValueType;
@@ -476,77 +526,97 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(StringValue)"/>
         public void Visit(StringValue value)
         {
-            if (!constants.TryGetValue(value, out (string, PTXRegister) entry) &&
-                Scope.GetUses(value).HasAny)
+            // Check for already existing global constant
+            if (!stringConstants.TryGetValue(value.String, out string stringBinding))
             {
-                var name = "__strconst" + constants.Count;
-                var register = AllocatePlatformRegister(value, out PTXType postFix);
-                constants.Add(value, (name, register));
-                using (var command = BeginCommand(
-                    Instructions.MoveOperation,
-                    PTXType.GetPTXType(ABI.PointerArithmeticType)))
-                {
-                    command.AppendArgument(register);
-                    command.AppendRawValueReference(name);
-                }
+                stringBinding = "__strconst" + value.Id;
+                stringConstants.Add(value.String, stringBinding);
+            }
+
+            var register = AllocatePlatformRegister(value, out PTXType postFix);
+            using (var command = BeginCommand(
+                Instructions.MoveOperation,
+                PTXType.GetPTXType(ABI.PointerArithmeticType)))
+            {
+                command.AppendArgument(register);
+                command.AppendRawValueReference(stringBinding);
+            }
+        }
+
+        /// <summary>
+        /// Emits complex null values.
+        /// </summary>
+        private readonly struct NullEmitter : IComplexCommandEmitter
+        {
+            /// <summary cref="IComplexCommandEmitter.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister[])"/>
+            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
+            {
+                var type = PTXType.GetPTXType(registers[0].Kind);
+
+                commandEmitter.AppendPostFix(type);
+                commandEmitter.AppendArgument(registers[0]);
+                commandEmitter.AppendConstant(0);
             }
         }
 
         /// <summary cref="IValueVisitor.Visit(NullValue)"/>
         public void Visit(NullValue value)
         {
-            if (!value.Type.IsPointerType)
-                throw new InvalidCodeGenerationException();
-            var register = AllocatePlatformRegister(value, out PTXType ptxType);
-            // Move a constant zero pointer into the target register
-            using (var command = BeginCommand(
-                Instructions.MoveOperation,
-                ptxType))
+            switch (value.Type)
             {
-                command.AppendArgument(register);
-                command.AppendConstant(0);
+                case VoidType _:
+                    // Ignore void type nulls
+                    break;
+                case ViewType viewType:
+                    MakeNullView(value, viewType);
+                    break;
+                default:
+                    var targetRegister = Allocate(value);
+                    EmitComplexCommand(
+                        Instructions.MoveOperation,
+                        new NullEmitter(),
+                        targetRegister);
+                    break;
             }
         }
 
         /// <summary cref="IValueVisitor.Visit(SizeOfValue)"/>
         public void Visit(SizeOfValue value) => throw new InvalidCodeGenerationException();
 
-        /// <summary cref="IValueVisitor.Visit(UndefValue)"/>
-        public void Visit(UndefValue value)
+        /// <summary cref="IValueVisitor.Visit(GetField)"/>
+        public void Visit(GetField value)
         {
-            if (!value.Type.IsMemoryType)
-                throw new InvalidCodeGenerationException();
+            var source = LoadAs<StructureRegister>(value.StructValue);
+            Bind(value, source.Children[value.FieldIndex]);
         }
 
-        /// <summary cref="IValueVisitor.Visit(GetField)"/>
-        public void Visit(GetField value) => throw new InvalidCodeGenerationException();
-
         /// <summary cref="IValueVisitor.Visit(SetField)"/>
-        public void Visit(SetField value) => throw new InvalidCodeGenerationException();
+        public void Visit(SetField value)
+        {
+            var source = LoadAs<StructureRegister>(value.StructValue);
+            var storeValue = Load(value.Value);
+
+            var targetChildren = source.Children.SetItem(value.FieldIndex, storeValue);
+            var targetRegister = new StructureRegister(
+                value.StructureType,
+                targetChildren);
+            Bind(value, targetRegister);
+        }
 
         /// <summary cref="IValueVisitor.Visit(GridDimensionValue)"/>
         public void Visit(GridDimensionValue value)
         {
-            if (!emittedConstants.Add(value))
-                return;
             var target = Allocate(value, PTXRegisterKind.Int32);
-            Move(
-                new PTXRegister(
-                    PTXRegisterKind.NctaId,
-                    (int)value.Dimension),
+            Move(new PrimitiveRegister(PTXRegisterKind.NctaId, (int)value.Dimension),
                 target);
         }
 
         /// <summary cref="IValueVisitor.Visit(GroupDimensionValue)"/>
         public void Visit(GroupDimensionValue value)
         {
-            if (!emittedConstants.Add(value))
-                return;
             var target = Allocate(value, PTXRegisterKind.Int32);
             Move(
-                new PTXRegister(
-                    PTXRegisterKind.NtId,
-                    (int)value.Dimension),
+                new PrimitiveRegister(PTXRegisterKind.NtId, (int)value.Dimension),
                 target);
         }
 
@@ -556,11 +626,9 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(LaneIdxValue)"/>
         public void Visit(LaneIdxValue value)
         {
-            if (!emittedConstants.Add(value))
-                return;
             var target = Allocate(value, PTXRegisterKind.Int32);
             Move(
-                new PTXRegister(PTXRegisterKind.LaneId, 0),
+                new PrimitiveRegister(PTXRegisterKind.LaneId, 0),
                 target);
         }
 
@@ -568,29 +636,30 @@ namespace ILGPU.Backends.PTX
         public void Visit(PredicateBarrier barrier)
         {
             var targetRegister = Allocate(barrier, PTXRegisterKind.Int32);
-            var predicate = Load(barrier.Predicate);
+            var predicate = LoadPrimitive(barrier.Predicate);
 
             switch (barrier.Kind)
             {
                 case PredicateBarrierKind.And:
                 case PredicateBarrierKind.Or:
-                    var targetPredicateRegister = AllocateRegister(PTXRegisterKind.Predicate);
-                    using (var command = BeginCommand(
-                        Instructions.GetPredicateBarrier(barrier.Kind)))
+                    using (var predicateScope = new PredicateScope(this))
                     {
-                        command.AppendArgument(targetPredicateRegister);
-                        command.AppendConstant(0);
-                        command.AppendArgument(predicate);
+                        using (var command = BeginCommand(
+                            Instructions.GetPredicateBarrier(barrier.Kind)))
+                        {
+                            command.AppendArgument(predicateScope.PredicateRegister);
+                            command.AppendConstant(0);
+                            command.AppendArgument(predicate);
+                        }
+                        using (var command = BeginCommand(
+                            Instructions.GetSelectValueOperation(BasicValueType.Int32)))
+                        {
+                            command.AppendArgument(targetRegister);
+                            command.AppendConstant(1);
+                            command.AppendConstant(0);
+                            command.AppendArgument(predicateScope.PredicateRegister);
+                        }
                     }
-                    using (var command = BeginCommand(
-                        Instructions.GetSelectValueOperation(BasicValueType.Int32)))
-                    {
-                        command.AppendArgument(targetRegister);
-                        command.AppendConstant(1);
-                        command.AppendConstant(0);
-                        command.AppendArgument(targetPredicateRegister);
-                    }
-                    FreeRegister(targetPredicateRegister);
                     break;
                 case PredicateBarrierKind.PopCount:
                     using (var command = BeginCommand(
@@ -632,8 +701,8 @@ namespace ILGPU.Backends.PTX
             var ptxType = PTXType.GetPTXType(shuffle.Variable.BasicValueType);
             var targetRegister = Allocate(shuffle, ptxType.RegisterKind);
 
-            var variable = Load(shuffle.Variable);
-            var delta = Load(shuffle.Origin);
+            var variable = LoadPrimitive(shuffle.Variable);
+            var delta = LoadPrimitive(shuffle.Origin);
 
             var shuffleOperation = Instructions.GetShuffleOperation(shuffle.Kind);
             using (var command = BeginCommand(shuffleOperation))
@@ -662,7 +731,5 @@ namespace ILGPU.Backends.PTX
         {
             Debug.Assert(false, "Invalid trace node -> should have been removed");
         }
-
-        #endregion
     }
 }

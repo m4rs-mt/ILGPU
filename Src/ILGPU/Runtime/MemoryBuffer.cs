@@ -502,7 +502,7 @@ namespace ILGPU.Runtime
         {
             var rawOffset = byteOffset - byteOffset % ElementSize;
             int offset = byteExtent + rawOffset;
-            var rawExtent = ABI.Align(ref offset, ElementSize);
+            var rawExtent = ABI.Align(offset, ElementSize);
 
             var result = new byte[rawExtent];
             fixed (byte *ptr = &result[0])

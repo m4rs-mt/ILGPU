@@ -104,15 +104,15 @@ namespace ILGPU.Frontend.Intrinsic
         {
             switch (context.NumArguments)
             {
-                case 3:
+                case 1:
                     return context.Builder.CreateArithmetic(
-                        context[TopLevelFunction.ParametersOffset],
+                        context[0],
                         (UnaryArithmeticKind)attribute.IntrinsicKind,
                         attribute.IntrinsicFlags);
-                case 4:
+                case 2:
                     return context.Builder.CreateArithmetic(
-                        context[TopLevelFunction.ParametersOffset + 0],
-                        context[TopLevelFunction.ParametersOffset + 1],
+                        context[0],
+                        context[1],
                         (BinaryArithmeticKind)(attribute.IntrinsicKind - MathIntrinsicKind._BinaryFunctions - 1),
                         attribute.IntrinsicFlags);
                 default:

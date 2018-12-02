@@ -13,29 +13,30 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
     /// <summary>
     /// Represents an abstract cast operation.
     /// </summary>
-    public abstract class CastValue : UnifiedValue
+    public abstract class CastValue : Value
     {
         #region Instance
 
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The value to convert.</param>
         /// <param name="targetType">The target type to convert the value to.</param>
         internal CastValue(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference value,
             TypeNode targetType)
-            : base(generation)
+            : base(basicBlock, targetType)
         {
-            Seal(ImmutableArray.Create(value), targetType);
+            Seal(ImmutableArray.Create(value));
         }
 
         #endregion
@@ -59,22 +60,6 @@ namespace ILGPU.IR.Values
         public TypeNode TargetType => Type;
 
         #endregion
-
-        #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            return obj is CastValue && base.Equals(obj);
-        }
-
-        /// <summary cref="UnifiedValue.GetHashCode"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x22A7C1D;
-        }
-
-        #endregion
     }
 
     /// <summary>
@@ -87,14 +72,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The value to convert.</param>
         /// <param name="targetType">The target type to convert the value to.</param>
         internal BaseAddressSpaceCast(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference value,
             AddressSpaceType targetType)
-            : base(generation, value, targetType)
+            : base(basicBlock, value, targetType)
         { }
 
         #endregion
@@ -114,20 +99,51 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class PointerCast : BaseAddressSpaceCast
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a pointer cast node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="sourceType">The source pointer type.</param>
+        /// <param name="targetElementType">The target pointer element type.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static AddressSpaceType ComputeType(
+            IRContext context,
+            TypeNode sourceType,
+            TypeNode targetElementType)
+        {
+            var pointerType = sourceType as PointerType;
+            Debug.Assert(pointerType != null, "Invalid pointer type");
+            return context.CreatePointerType(
+                targetElementType,
+                pointerType.AddressSpace);
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new convert value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The value to convert.</param>
-        /// <param name="pointerType">The target pointer type.</param>
+        /// <param name="targetElementType">The target element type.</param>
         internal PointerCast(
-            ValueGeneration generation,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference value,
-            PointerType pointerType)
-            : base(generation, value, pointerType)
-        { }
+            TypeNode targetElementType)
+            : base(
+                  basicBlock,
+                  value,
+                  ComputeType(context, value.Type, targetElementType))
+        {
+            TargetElementType = targetElementType;
+        }
 
         #endregion
 
@@ -141,39 +157,28 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the target element type.
         /// </summary>
-        public TypeNode TargetElementType => Type.ElementType;
+        public TypeNode TargetElementType { get; }
 
         #endregion
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context, SourceType, TargetElementType);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreatePointerCast(
                 rebuilder.Rebuild(Value),
-                rebuilder.Rebuild(TargetElementType));
+                TargetElementType);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            return obj is PointerCast && base.Equals(obj);
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x7B883A1;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "ptrcast";
@@ -190,23 +195,60 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class AddressSpaceCast : BaseAddressSpaceCast
     {
+        #region Static
+
+        /// <summary>
+        /// Computes an address-space cast node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="sourceType">The source pointer type.</param>
+        /// <param name="targetAddressSpace">The target address space.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static AddressSpaceType ComputeType(
+            IRContext context,
+            TypeNode sourceType,
+            MemoryAddressSpace targetAddressSpace)
+        {
+            if (sourceType is ViewType viewType)
+            {
+                return context.CreateViewType(
+                    viewType.ElementType,
+                    targetAddressSpace);
+            }
+            else
+            {
+                var pointerType = sourceType as PointerType;
+                return context.CreatePointerType(
+                    pointerType.ElementType,
+                    targetAddressSpace);
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new convert value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The value to convert.</param>
-        /// <param name="addressSpaceType">The target address-space type.</param>
+        /// <param name="targetAddressSpace">The target address space.</param>
         internal AddressSpaceCast(
-            ValueGeneration generation,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference value,
-            AddressSpaceType addressSpaceType)
-            : base(generation, value, addressSpaceType)
+            MemoryAddressSpace targetAddressSpace)
+            : base(
+                  basicBlock,
+                  value,
+                  ComputeType(context, value.Type, targetAddressSpace))
         {
             Debug.Assert(
                 value.Type.IsViewOrPointerType &&
-                (value.Type as AddressSpaceType).AddressSpace != addressSpaceType.AddressSpace,
+                (value.Type as AddressSpaceType).AddressSpace != targetAddressSpace,
                 "Invalid target address space");
         }
 
@@ -217,7 +259,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the target address space.
         /// </summary>
-        public MemoryAddressSpace TargetAddressSpace => Type.AddressSpace;
+        public MemoryAddressSpace TargetAddressSpace { get; }
 
         /// <summary>
         /// Returns true iff the current access works on a view.
@@ -233,36 +275,22 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context, SourceType, TargetAddressSpace);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateAddressSpaceCast(
                 rebuilder.Rebuild(Value),
                 TargetAddressSpace);
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is AddressSpaceCast value)
-                return value.TargetAddressSpace == TargetAddressSpace &&
-                    base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x582A44C1;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "addrcast";
@@ -278,22 +306,50 @@ namespace ILGPU.IR.Values
     /// </summary>
     public sealed class ViewCast : BaseAddressSpaceCast
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a view cast node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="sourceType">The source pointer type.</param>
+        /// <param name="targetElementType">The target pointer element type.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static AddressSpaceType ComputeType(
+            IRContext context,
+            TypeNode sourceType,
+            TypeNode targetElementType)
+        {
+            var viewType = sourceType as ViewType;
+            Debug.Assert(viewType != null, "Invalid view type");
+            return context.CreateViewType(
+                targetElementType,
+                viewType.AddressSpace);
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="sourceView">The view to cast.</param>
-        /// <param name="viewType">The target view type.</param>
+        /// <param name="targetElementType">The target element type.</param>
         internal ViewCast(
-            ValueGeneration generation,
+            IRContext context,
+            BasicBlock basicBlock,
             ValueReference sourceView,
-            ViewType viewType)
-            : base(generation, sourceView, viewType)
+            TypeNode targetElementType)
+            : base(
+                  basicBlock,
+                  sourceView,
+                  ComputeType(context, sourceView.Type, targetElementType))
         {
-            Debug.Assert(sourceView.Type.IsViewType, "Invalid view type");
-            SourceElementType = (sourceView.Type as ViewType).ElementType;
+            TargetElementType = targetElementType;
         }
 
         #endregion
@@ -303,47 +359,33 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the source element type.
         /// </summary>
-        public TypeNode SourceElementType { get; }
+        public TypeNode SourceElementType => (SourceType as ViewType).ElementType;
 
         /// <summary>
         /// Returns the target element type.
         /// </summary>
-        public TypeNode TargetElementType => Type.ElementType;
+        public TypeNode TargetElementType { get; }
 
         #endregion
 
         #region Methods
 
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context, SourceType, TargetElementType);
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateViewCast(
                 rebuilder.Rebuild(Value),
-                rebuilder.Rebuild(TargetElementType));
+                TargetElementType);
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is ViewCast value)
-                return value.TargetElementType == TargetElementType &&
-                    base.Equals(obj);
-            return false;
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x2AB330F7;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "vcast";
@@ -365,16 +407,17 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="source">The view to cast.</param>
         /// <param name="targetType">The primitive target type.</param>
         internal BitCast(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference source,
             PrimitiveType targetType)
-            : base(generation, source, targetType)
+            : base(basicBlock, source, targetType)
         {
             Debug.Assert(source.Type.IsPrimitiveType, "Invalid primitive type");
+            TargetPrimitiveType = targetType;
         }
 
         #endregion
@@ -384,18 +427,24 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the target type to convert the value to.
         /// </summary>
-        /// <remarks>This is equivalent to asking for the type.</remarks>
-        public new PrimitiveType TargetType => Type as PrimitiveType;
+        public PrimitiveType TargetPrimitiveType { get; }
 
         /// <summary>
         /// Returns true if this type represents a 32 bit type.
         /// </summary>
-        public bool Is32Bit => TargetType.Is32Bit;
+        public bool Is32Bit => TargetPrimitiveType.Is32Bit;
 
         /// <summary>
         /// Returns true if this type represents a 64 bit type.
         /// </summary>
-        public bool Is64Bit => TargetType.Is64Bit;
+        public bool Is64Bit => TargetPrimitiveType.Is64Bit;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected sealed override TypeNode UpdateType(IRContext context) => TargetPrimitiveType;
 
         #endregion
 
@@ -417,14 +466,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="source">The view to cast.</param>
         /// <param name="targetType">The primitive target type.</param>
         internal FloatAsIntCast(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference source,
             PrimitiveType targetType)
-            : base(generation, source, targetType)
+            : base(basicBlock, source, targetType)
         {
             var basicValueType = source.Type.BasicValueType;
             Debug.Assert(
@@ -444,27 +493,12 @@ namespace ILGPU.IR.Values
             builder.CreateFloatAsIntCast(
                 rebuilder.Rebuild(Value));
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            return obj is FloatAsIntCast && base.Equals(obj);
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x330F1AC3;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "fltasint";
@@ -482,14 +516,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="source">The view to cast.</param>
         /// <param name="targetType">The primitive target type.</param>
         internal IntAsFloatCast(
-            ValueGeneration generation,
+            BasicBlock basicBlock,
             ValueReference source,
             PrimitiveType targetType)
-            : base(generation, source, targetType)
+            : base(basicBlock, source, targetType)
         {
             var basicValueType = source.Type.BasicValueType;
             Debug.Assert(
@@ -509,27 +543,12 @@ namespace ILGPU.IR.Values
             builder.CreateIntAsFloatCast(
                 rebuilder.Rebuild(Value));
 
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
         #region Object
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            return obj is IntAsFloatCast && base.Equals(obj);
-        }
-
-        /// <summary cref="UnifiedValue.Equals(object)"/>
-        public override int GetHashCode()
-        {
-            return base.GetHashCode() ^ 0x1CC6D00F;
-        }
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "intasflt";

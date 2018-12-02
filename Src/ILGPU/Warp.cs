@@ -11,6 +11,7 @@
 
 using ILGPU.Frontend.Intrinsic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace ILGPU
@@ -52,6 +53,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="groupThreadIdx">The current thread index within the current group.</param>
         /// <returns>The current warp index in the range [0, NumUsedWarps - 1].</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ComputeWarpIdx(Index groupThreadIdx) => groupThreadIdx / WarpSize;
 
         /// <summary>
@@ -59,6 +61,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="groupThreadIdx">The current thread index within the current group.</param>
         /// <returns>The current warp thread index in the range [0, WarpSize - 1].</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ComputeWarpThreadIdx(Index groupThreadIdx) => groupThreadIdx % WarpSize;
 
         #endregion

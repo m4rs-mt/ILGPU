@@ -9,25 +9,10 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using System.Collections.Immutable;
-
 namespace ILGPU.IR
 {
     partial class IRContext
     {
-        /// <summary>
-        /// Contains all basic value types.
-        /// </summary>
-        internal static readonly ImmutableArray<BasicValueType> BasicValueTypes =
-            ImmutableArray.Create(
-                BasicValueType.Int1,
-                BasicValueType.Int8,
-                BasicValueType.Int16,
-                BasicValueType.Int32,
-                BasicValueType.Int64,
-                BasicValueType.Float32,
-                BasicValueType.Float64);
-
         /// <summary>
         /// Represents the index type of a view.
         /// </summary>

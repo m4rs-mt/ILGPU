@@ -33,6 +33,12 @@ namespace ILGPU.Runtime.Cuda
         #region Static
 
         /// <summary>
+        /// Represents a zero integer pointer field.
+        /// </summary>
+        private static readonly FieldInfo ZeroIntPtrField = typeof(IntPtr).GetField(
+            nameof(IntPtr.Zero), BindingFlags.Static | BindingFlags.Public);
+
+        /// <summary>
         /// Represents the <see cref="CudaAPI.Current"/> property.
         /// </summary>
         private static readonly MethodInfo GetCudaAPIMethod = typeof(CudaAPI).GetProperty(
@@ -54,11 +60,11 @@ namespace ILGPU.Runtime.Cuda
             BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false);
 
         /// <summary>
-        /// Represents the <see cref="CudaAPI.LaunchKernelWithStruct{T}(IntPtr, int, int, int, int, int, int, int, IntPtr, ref T, int)"/>
+        /// Represents the <see cref="CudaAPI.LaunchKernel(IntPtr, int, int, int, int, int, int, int, IntPtr, IntPtr, IntPtr)"/>
         /// method.
         /// </summary>
         private static readonly MethodInfo LaunchKernelMethod = typeof(CudaAPI).GetMethod(
-            nameof(CudaAPI.LaunchKernelWithStruct),
+            nameof(CudaAPI.LaunchKernel),
             BindingFlags.Public | BindingFlags.Instance);
 
         /// <summary>
@@ -518,31 +524,16 @@ namespace ILGPU.Runtime.Cuda
             if (entryPoint.HasByRefParameters)
                 throw new NotSupportedException("Not supported by reference parameters");
 
-            // Create kernel mapping for all input parametes
-            var parameters = entryPoint.Parameters;
-            var argumentMapping = Backend.KernelArgumentMapper.CreateMapping(
-                parameters,
-                !entryPoint.IsGroupedIndexEntry ? entryPoint.UngroupedIndexType : null)
-                as PTXArgumentMapper.EntryPointMapping;
-
             var launcher = entryPoint.CreateLauncherMethod(Context);
             var emitter = new ILEmitter(launcher.ILGenerator);
 
             // Allocate array of pointers as kernel argument(s)
-            var argumentBuffer = argumentMapping.EmitEntryPointMapping(
-                emitter,
-                Kernel.KernelParameterOffset);
+            var argumentMapper = Backend.ArgumentMapper;
+            var argumentBuffer = argumentMapper.Map(emitter, entryPoint);
 
             // Add the actual dispatch-size information to the kernel parameters
             if (!entryPoint.IsGroupedIndexEntry)
-            {
-                // Load data pointer
-                emitter.Emit(LocalOperation.LoadAddress, argumentBuffer);
-
-                // Store custom dispatch-size information
-                emitter.Emit(ArgumentOperation.Load, Kernel.KernelParamDimensionIdx);
-                emitter.Emit(OpCodes.Stfld, argumentMapping.KernelLengthField);
-            }
+                PTXArgumentMapper.StoreKernelLength(emitter, argumentBuffer);
 
             // Compute sizes of dynamic-shared variables
             var sharedMemSize = KernelLauncherBuilder.EmitSharedMemorySizeComputation(
@@ -555,7 +546,9 @@ namespace ILGPU.Runtime.Cuda
             emitter.EmitCall(GetCudaAPIMethod);
 
             // Load function ptr
-            KernelLauncherBuilder.EmitLoadKernelArgument<CudaKernel, ILEmitter>(Kernel.KernelInstanceParamIdx, emitter);
+            KernelLauncherBuilder.EmitLoadKernelArgument<CudaKernel, ILEmitter>(
+                Kernel.KernelInstanceParamIdx,
+                emitter);
             emitter.EmitCall(GetFunctionPtrMethod);
 
             // Load dimensions
@@ -576,15 +569,13 @@ namespace ILGPU.Runtime.Cuda
             emitter.EmitCall(GetStreamPtrMethod);
 
             // Load kernel args
-            emitter.Emit(LocalOperation.LoadAddress, argumentBuffer);
+            emitter.Emit(LocalOperation.Load, argumentBuffer);
 
-            // Load buffer length
-            emitter.EmitConstant(argumentMapping.ArgumentSize);
+            // Load empty kernel args
+            emitter.Emit(OpCodes.Ldsfld, ZeroIntPtrField);
 
             // Dispatch kernel
-            emitter.EmitCall(
-                LaunchKernelMethod.MakeGenericMethod(
-                    argumentMapping.TargetType));
+            emitter.EmitCall(LaunchKernelMethod);
 
             // Emit ThrowIfFailed
             emitter.EmitCall(ThrowIfFailedMethod);

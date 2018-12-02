@@ -13,6 +13,7 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR
 {
@@ -21,22 +22,44 @@ namespace ILGPU.IR
     /// </summary>
     public abstract class DebugOperation : MemoryValue
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a debug node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(IRContext context) =>
+            context.VoidType;
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new debug operation.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="memoryRef">The parent memory value.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="values">All child values.</param>
-        /// <param name="type">The type of the value.</param>
         protected DebugOperation(
-            ValueGeneration generation,
-            ValueReference memoryRef,
-            ImmutableArray<ValueReference> values,
-            TypeNode type)
-            : base(generation, memoryRef, values, type)
+            IRContext context,
+            BasicBlock basicBlock,
+            ImmutableArray<ValueReference> values)
+            : base(
+                  basicBlock,
+                  values,
+                  ComputeType(context))
         { }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected sealed override TypeNode UpdateType(IRContext context) =>
+            ComputeType(context);
 
         #endregion
     }
@@ -51,16 +74,17 @@ namespace ILGPU.IR
         /// <summary>
         /// Constructs a failed debug assertion.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="memoryRef">The parent memory value.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="message">The assertion message.</param>
-        /// <param name="voidType">The void type.</param>
         internal DebugAssertFailed(
-            ValueGeneration generation,
-            ValueReference memoryRef,
-            ValueReference message,
-            TypeNode voidType)
-            : base(generation, memoryRef, ImmutableArray.Create(message), voidType)
+            IRContext context,
+            BasicBlock basicBlock,
+            ValueReference message)
+            : base(
+                  context,
+                  basicBlock,
+                  ImmutableArray.Create(message))
         { }
 
         #endregion
@@ -70,7 +94,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the message.
         /// </summary>
-        public ValueReference Message => this[1];
+        public ValueReference Message => this[0];
 
         #endregion
 
@@ -79,14 +103,10 @@ namespace ILGPU.IR
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateDebugAssertFailed(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
                 rebuilder.Rebuild(Message));
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -111,16 +131,17 @@ namespace ILGPU.IR
         /// <summary>
         /// Constructs a new debug trace.
         /// </summary>
-        /// <param name="generation">The current generation.</param>
-        /// <param name="memoryRef">The parent memory value.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="message">The assertion message.</param>
-        /// <param name="voidType">The void type.</param>
         internal DebugTrace(
-            ValueGeneration generation,
-            ValueReference memoryRef,
-            ValueReference message,
-            TypeNode voidType)
-            : base(generation, memoryRef, ImmutableArray.Create(message), voidType)
+            IRContext context,
+            BasicBlock basicBlock,
+            ValueReference message)
+            : base(
+                  context,
+                  basicBlock,
+                  ImmutableArray.Create(message))
         { }
 
         #endregion
@@ -130,7 +151,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the message.
         /// </summary>
-        public ValueReference Message => this[1];
+        public ValueReference Message => this[0];
 
         #endregion
 
@@ -139,14 +160,10 @@ namespace ILGPU.IR
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateDebugTrace(
-                rebuilder.RebuildAs<MemoryRef>(Parent),
                 rebuilder.Rebuild(Message));
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 

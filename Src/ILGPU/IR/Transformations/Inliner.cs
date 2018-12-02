@@ -9,8 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
+using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -24,203 +25,234 @@ namespace ILGPU.IR.Transformations
         /// Returns true if the given callee function can be inlined.
         /// </summary>
         /// <param name="caller">The caller.</param>
-        /// <param name="functionCall">The actual function call.</param>
+        /// <param name="methodCall">The actual function call.</param>
         /// <param name="callee">The callee function.</param>
-        /// <param name="calleeEntry">The landscape node of the callee function (if any).</param>
         /// <returns>True, if the given calle function can be inlined.</returns>
         bool CanInline(
-            FunctionLandscape.Entry caller,
-            FunctionCall functionCall,
-            TopLevelFunction callee,
-            FunctionLandscape.Entry calleeEntry);
+            Landscape.Entry caller,
+            MethodCall methodCall,
+            Scope callee);
     }
 
     /// <summary>
-    /// Represents an inling configuration to inline all functions
-    /// (except those marked with NoInlining).
+    /// Contains generic inliner helpers and default configurations.
     /// </summary>
-    public readonly struct AggressiveInliningConfiguration : IInliningConfiguration
+    public static class Inliner
     {
-        /// <summary cref="IInliningConfiguration.CanInline(FunctionLandscape.Entry, FunctionCall, TopLevelFunction, FunctionLandscape.Entry)"/>
-        public bool CanInline(
-            FunctionLandscape.Entry caller,
-            FunctionCall functionCall,
-            TopLevelFunction callee,
-            FunctionLandscape.Entry calleeEntry)
+        #region Nested Types
+
+        /// <summary>
+        /// Represents an inling configuration to inline all functions
+        /// (except those marked with NoInlining).
+        /// </summary>
+        public readonly struct AggressiveInliningConfiguration : IInliningConfiguration
         {
-            // Try to find an aggressive inlining attribute
-            if (callee.HasFlags(TopLevelFunctionFlags.NoInlining))
-                return false;
+            /// <summary cref="IInliningConfiguration.CanInline(Landscape.Entry, MethodCall, Scope)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool CanInline(
+                Landscape.Entry caller,
+                MethodCall methodCall,
+                Scope callee)
+            {
+                // Try to find an aggressive inlining attribute
+                if (callee.Method.HasFlags(MethodFlags.NoInlining))
+                    return false;
 
-            return true;
+                return true;
+            }
         }
-    }
 
-    /// <summary>
-    /// Represents a default (but slightly aggressive) inlining configuration.
-    /// </summary>
-    public readonly struct DefaultInliningConfiguration : IInliningConfiguration
-    {
-        private const int MaxNumFunctions = 14;
-
-        /// <summary cref="IInliningConfiguration.CanInline(FunctionLandscape.Entry, FunctionCall, TopLevelFunction, FunctionLandscape.Entry)"/>
-        public bool CanInline(
-            FunctionLandscape.Entry caller,
-            FunctionCall functionCall,
-            TopLevelFunction callee,
-            FunctionLandscape.Entry calleeEntry)
+        /// <summary>
+        /// Represents a default (but slightly aggressive) inlining configuration.
+        /// </summary>
+        public readonly struct DefaultInliningConfiguration : IInliningConfiguration
         {
-            // Try to find an aggressive inlining attribute
-            if (callee.HasFlags(TopLevelFunctionFlags.NoInlining))
-                return false;
-            if (callee.HasFlags(TopLevelFunctionFlags.AggressiveInlining))
-                return true;
+            private const int MaxNumBlocks = 16;
 
-            if (callee.AllNumUses < 2)
-                return true;
+            /// <summary cref="IInliningConfiguration.CanInline(Landscape.Entry, MethodCall, Scope)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool CanInline(
+                Landscape.Entry caller,
+                MethodCall methodCall,
+                Scope callee)
+            {
+                var calleeMethod = callee.Method;
 
-            if (calleeEntry != null)
-                return calleeEntry.NumFunctions < MaxNumFunctions;
-            return false;
+                // Try to find an aggressive inlining attribute
+                if (calleeMethod.HasFlags(MethodFlags.NoInlining))
+                    return false;
+                if (calleeMethod.HasFlags(MethodFlags.AggressiveInlining))
+                    return true;
+
+                return callee.Count < MaxNumBlocks;
+            }
         }
-    }
 
-    /// <summary>
-    /// Represents a no inlining configuration.
-    /// </summary>
-    public readonly struct NoInliningConfiguration : IInliningConfiguration
-    {
-        /// <summary cref="IInliningConfiguration.CanInline(FunctionLandscape.Entry, FunctionCall, TopLevelFunction, FunctionLandscape.Entry)"/>
-        public bool CanInline(
-            FunctionLandscape.Entry caller,
-            FunctionCall functionCall,
-            TopLevelFunction callee,
-            FunctionLandscape.Entry calleeEntry) => false;
+        /// <summary>
+        /// Represents a no inlining configuration.
+        /// </summary>
+        public readonly struct NoInliningConfiguration : IInliningConfiguration
+        {
+            /// <summary cref="IInliningConfiguration.CanInline(Landscape.Entry, MethodCall, Scope)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool CanInline(
+                Landscape.Entry caller,
+                MethodCall methodCall,
+                Scope callee) => false;
+        }
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Represents an inling configuration to inline all functions
+        /// (except those marked with NoInlining).
+        /// </summary>
+        public static readonly AggressiveInliningConfiguration AggressiveInlining = default;
+
+        /// <summary>
+        /// Represents a default (but slightly aggressive) inlining configuration.
+        /// </summary>
+        public static readonly DefaultInliningConfiguration Default = default;
+
+        /// <summary>
+        /// Represents a no inlining configuration.
+        /// </summary>
+        public static readonly NoInliningConfiguration NoInlining = default;
+
+        /// <summary>
+        /// Adds a new inliner pass to the given builder.
+        /// </summary>
+        /// <typeparam name="TInliningConfiguration">The configuration type.</typeparam>
+        /// <param name="builder">The current transformer builder.</param>
+        /// <param name="inliningConfiguration">The inlining configuration.</param>
+        public static void AddInliner<TInliningConfiguration>(
+            this Transformer.Builder builder,
+            TInliningConfiguration inliningConfiguration)
+            where TInliningConfiguration : IInliningConfiguration
+        {
+            builder.Add(new Inliner<TInliningConfiguration>(
+                inliningConfiguration));
+        }
+
+        /// <summary>
+        /// Adds a new inliner pass to the given builder.
+        /// </summary>
+        /// <param name="builder">The current transformer builder.</param>
+        /// <param name="flags">The current context flags.</param>
+        public static void AddInliner(
+            this Transformer.Builder builder,
+            IRContextFlags flags)
+        {
+            if ((flags & IRContextFlags.AggressiveInlining) == IRContextFlags.AggressiveInlining)
+                builder.AddInliner(AggressiveInlining);
+            else
+                builder.AddInliner(Default);
+        }
+
+        #endregion
     }
 
     /// <summary>
     /// Represents a function inliner.
     /// </summary>
+    /// <typeparam name="TConfiguration">The configuration type.</typeparam>
     public sealed class Inliner<TConfiguration> : OrderedTransformation
         where TConfiguration : IInliningConfiguration
     {
-        /// <summary>
-        /// The desired transformations that should run after
-        /// applying this transformation.
-        /// </summary>
-        private const TransformationFlags FollowUpFlags =
-            TransformationFlags.MergeCallChains |
-            TransformationFlags.InferAddressSpaces |
-            TransformationFlags.TransformToCPS;
-
         private readonly TConfiguration configuration;
 
         /// <summary>
         /// Constructs a new specializer.
         /// </summary>
         public Inliner(in TConfiguration inliningConfiguration)
-            : base(TransformationFlags.Inlining, FollowUpFlags)
         {
             configuration = inliningConfiguration;
         }
 
-        /// <summary>
-        /// Represents a visitor to inline function call targets.
-        /// </summary>
-        private struct FunctionCallVisitor : Scope.IFunctionCallVisitor
+        /// <summary cref="OrderedTransformation.PerformTransformation{TScopeProvider}(Method.Builder, Landscape, Landscape{object}.Entry, TScopeProvider)"/>
+        protected override bool PerformTransformation<TScopeProvider>(
+            Method.Builder builder,
+            Landscape landscape,
+            Landscape.Entry current,
+            TScopeProvider scopeProvider)
         {
-            private readonly TConfiguration configuration;
-
-            public FunctionCallVisitor(
-                IRBuilder builder,
-                FunctionLandscape landscape,
-                FunctionLandscape.Entry caller,
-                in TConfiguration inliningConfiguration)
-            {
-                Builder = builder;
-                Landscape = landscape;
-                Caller = caller;
-                configuration = inliningConfiguration;
-                Applied = false;
-            }
-
-            /// <summary>
-            /// The associated builder.
-            /// </summary>
-            public IRBuilder Builder { get; }
-
-            /// <summary>
-            /// The associated function landscape.
-            /// </summary>
-            public FunctionLandscape Landscape { get; }
-
-            /// <summary>
-            /// The asssociated caller.
-            /// </summary>
-            public FunctionLandscape.Entry Caller { get; }
-
-            /// <summary>
-            /// True, if at least one call could be inlined.
-            /// </summary>
-            public bool Applied { get; private set; }
-
-            /// <summary cref="Scope.IFunctionCallVisitor.Visit(FunctionCall)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool Visit(FunctionCall call)
-            {
-                var callTarget = call.Target.Resolve();
-                if (callTarget is TopLevelFunction functionValue &&
-                    CanInline(call, functionValue))
-                {
-                    var updatedFunction = Builder.DeclareFunction(functionValue.Declaration);
-                    Builder.SpecializeCall(
-                        Caller.Function,
-                        call,
-                        updatedFunction);
-                    Applied = true;
-                }
-                return true;
-            }
-
-            /// <summary>
-            /// Returns true if the given function requires an inlining operation.
-            /// </summary>
-            /// <param name="call">The current call.</param>
-            /// <param name="callee">The callee.</param>
-            /// <returns>True, if the given function requires an inling operation.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private bool CanInline(FunctionCall call, TopLevelFunction callee)
-            {
-                // Check for lambda closures
-                if (callee.IsHigherOrder)
-                    return true;
-
-                // Check inlining configuration
-                Landscape.TryGetEntry(callee, out FunctionLandscape.Entry entry);
-                return configuration.CanInline(
-                    Caller,
-                    call,
-                    callee,
-                    entry);
-            }
-        }
-
-        /// <summary cref="OrderedTransformation.PerformTransformation(IRBuilder, FunctionLandscape, FunctionLandscape.Entry)"/>
-        protected override bool PerformTransformation(
-            IRBuilder builder,
-            FunctionLandscape landscape,
-            FunctionLandscape.Entry currentEntry)
-        {
-            if (!currentEntry.HasReferences)
+            if (!current.HasReferences)
                 return false;
 
-            var visitor = new FunctionCallVisitor(
-                builder,
-                landscape,
-                currentEntry,
-                configuration);
-            currentEntry.Scope.VisitFunctionCalls(ref visitor);
-            return visitor.Applied;
+            var processed = new HashSet<BasicBlock>();
+            var toProcess = new Stack<BasicBlock>();
+
+            bool result = false;
+            var currentBlock = current.Scope.EntryBlock;
+
+            while (true)
+            {
+                if (processed.Add(currentBlock))
+                {
+                    if (result = InlineCalls(
+                        builder,
+                        current,
+                        scopeProvider,
+                        ref currentBlock))
+                    {
+                        result = true;
+                        continue;
+                    }
+
+                    var successors = currentBlock.Successors;
+                    if (successors.Length > 0)
+                    {
+                        currentBlock = successors[0];
+                        for (int i = 1, e = successors.Length; i < e; ++i)
+                            toProcess.Push(successors[1]);
+                        continue;
+                    }
+                }
+
+                if (toProcess.Count < 1)
+                    break;
+                currentBlock = toProcess.Pop();
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Tries to inline method calls.
+        /// </summary>
+        /// <param name="builder">The current method builder.</param>
+        /// <param name="caller">The parent caller entry.</param>
+        /// <param name="scopeProvider">The scope provider.</param>
+        /// <param name="currentBlock">The current block (may be modified).</param>
+        /// <returns>True, in case of an inlined call.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool InlineCalls<TScopeProvider>(
+            Method.Builder builder,
+            Landscape.Entry caller,
+            TScopeProvider scopeProvider,
+            ref BasicBlock currentBlock)
+            where TScopeProvider : IScopeProvider
+        {
+            foreach (var valueEntry in currentBlock)
+            {
+                if (!(valueEntry.Value is MethodCall call))
+                    continue;
+
+                var targetScope = scopeProvider[call.Target];
+                if (configuration.CanInline(caller, call, targetScope))
+                {
+                    var blockBuilder = builder[currentBlock];
+                    var tempBlock = blockBuilder.SpecializeCall(call, targetScope);
+
+                    // We can continue our search in the temp block
+                    currentBlock = tempBlock.BasicBlock;
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

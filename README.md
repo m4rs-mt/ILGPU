@@ -1,8 +1,14 @@
+# ILGPU
+
+ILGPU is a JIT (just-in-time) compiler for high-performance GPU programs written in .Net-based languages.
+ILGPU is entirely written in C# without any native dependencies.
+It offers the flexibility and the convenience of C++ AMP on the one hand and the high performance of Cuda programs on the other hand.
+Functions in the scope of kernels do not have to be annotated (default C# functions) and are allowed to work on value types.
+All kernels (including all hardware features like shared memory and atomics) can be executed and debugged on the CPU using the integrated multi-threaded CPU accelerator.
+
 # Build instructions
 
 ILGPU requires Visual Studio 2017 (Community edition or higher).
-
-# Build ILGPU
 
 Use the provided Visual Studio solution to build the ILGPU libs
 in the desired configurations (Debug/Release).
@@ -10,15 +16,25 @@ in the desired configurations (Debug/Release).
 Note: ILGPU uses the build configuration "Any CPU" (which simplifies an
 integration into other projects).
 
+# General Contribution Guidelines
+
+* Make sure that you agree with the general coding style (in terms of braces, whitespaces etc.).
+* Make sure that ILGPU compiles without warnings in all build modes (Debug, DebugVerification and Release).
+
 # References
 
-ILGPU currently uses an experimental IR inspired by the following papers:
+* Parallel Thread Execution ISA 6.3
+    - NVIDIA
 * A Graph-Based Higher-Order Intermediate Representation
     - Roland Leissa, Marcel Koester, and Sebastian Hack
 * Target-Specific Refinement of Multigrid Codes
     - Richard Membarth, Philipp Slusallek, Marcel Koester, Roland Leissa, and Sebastian Hack
 * Code Refinement of Stencil Codes
     - Marcel Koester, Roland Leissa, Sebastian Hack, Richard Membarth, and Philipp Slusallek
+* Simple and Efficient Construction of Static Single Assignment Form
+    - Matthias Braun, Sebastian Buchwald, Sebastian Hack, Roland Leissa, Christoph Mallon and Andreas Zwinkau
+* A Simple, Fast Dominance Algorithm
+    - Keith D. Cooper, Timothy J. Harvey and Ken Kennedy
 
 # License information
 

@@ -19,41 +19,33 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a new failed debug assertion.
         /// </summary>
-        /// <param name="parentMemoryValue">The parent memory operation.</param>
         /// <param name="message">The assertion message.</param>
         /// <returns>A node that represents the debug assertion.</returns>
         public ValueReference CreateDebugAssertFailed(
-            MemoryRef parentMemoryValue,
             Value message)
         {
-            Debug.Assert(parentMemoryValue != null, "Invalid parent memory value");
             Debug.Assert(message != null, "Invalid message value");
 
-            return Context.CreateInstantiated(new DebugAssertFailed(
-                Generation,
-                parentMemoryValue,
-                message,
-                VoidType));
+            return Append(new DebugAssertFailed(
+                Context,
+                BasicBlock,
+                message));
         }
 
         /// <summary>
         /// Creates a new debug trace.
         /// </summary>
-        /// <param name="parentMemoryValue">The parent memory operation.</param>
         /// <param name="message">The assertion message.</param>
         /// <returns>A node that represents the debug trace event.</returns>
         public ValueReference CreateDebugTrace(
-            MemoryRef parentMemoryValue,
             Value message)
         {
-            Debug.Assert(parentMemoryValue != null, "Invalid parent memory value");
             Debug.Assert(message != null, "Invalid message value");
 
-            return Context.CreateInstantiated(new DebugTrace(
-                Generation,
-                parentMemoryValue,
-                message,
-                VoidType));
+            return Append(new DebugTrace(
+                Context,
+                BasicBlock,
+                message));
         }
     }
 }

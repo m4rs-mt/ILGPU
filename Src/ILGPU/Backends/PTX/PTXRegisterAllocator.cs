@@ -9,10 +9,11 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.PointerViews;
 using ILGPU.IR;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -24,7 +25,6 @@ namespace ILGPU.Backends.PTX
     {
         Predicate,
 
-        Int8,
         Int16,
         Int32,
         Int64,
@@ -42,80 +42,9 @@ namespace ILGPU.Backends.PTX
     }
 
     /// <summary>
-    /// Represents a single PTX register.
-    /// </summary>
-    readonly struct PTXRegister : IRegister<PTXRegisterKind>
-    {
-        /// <summary>
-        /// Constructs a new PTX register.
-        /// </summary>
-        /// <param name="kind">The current register kind.</param>
-        /// <param name="registerValue">The register index value.</param>
-        public PTXRegister(PTXRegisterKind kind, int registerValue)
-        {
-            Kind = kind;
-            RegisterValue = registerValue;
-        }
-
-        /// <summary cref="IRegister{TKind}.Kind"/>
-        public PTXRegisterKind Kind { get; }
-
-        /// <summary cref="IRegister{TKind}.RegisterValue"/>
-        public int RegisterValue { get; }
-
-        /// <summary>
-        /// Returns the corresponding device constant string value.
-        /// </summary>
-        /// <returns>The corresponding device constant string value.</returns>
-        private string ResolveDeviceConstantValue() =>
-            ((DeviceConstantDimension3D)RegisterValue).ToString().ToLower();
-
-        /// <summary>
-        /// Returns the associated register name in PTX code.
-        /// </summary>
-        /// <returns>The register name in PTX code.</returns>
-        public override string ToString()
-        {
-            switch (Kind)
-            {
-                case PTXRegisterKind.Predicate:
-                    return "p" + RegisterValue;
-                case PTXRegisterKind.Int8:
-                    return "rb" + RegisterValue;
-                case PTXRegisterKind.Int16:
-                    return "rs" + RegisterValue;
-                case PTXRegisterKind.Int32:
-                    return "r" + RegisterValue;
-                case PTXRegisterKind.Int64:
-                    return "rd" + RegisterValue;
-                case PTXRegisterKind.Float32:
-                    return "f" + RegisterValue;
-                case PTXRegisterKind.Float64:
-                    return "fd" + RegisterValue;
-                case PTXRegisterKind.Ctaid:
-                    return "ctaid." +
-                        ResolveDeviceConstantValue();
-                case PTXRegisterKind.Tid:
-                    return "tid." +
-                        ResolveDeviceConstantValue();
-                case PTXRegisterKind.NctaId:
-                    return "nctaid." +
-                        ResolveDeviceConstantValue();
-                case PTXRegisterKind.NtId:
-                    return "ntid." +
-                        ResolveDeviceConstantValue();
-                case PTXRegisterKind.LaneId:
-                    return "laneid";
-                default:
-                    throw new InvalidCodeGenerationException();
-            }
-        }
-    }
-
-    /// <summary>
     /// Represents a specialized PTX register allocator.
     /// </summary>
-    sealed class PTXRegisterAllocator
+    class PTXRegisterAllocator : ViewRegisterAllocator<PTXRegisterKind>
     {
         #region Constants
 
@@ -126,41 +55,60 @@ namespace ILGPU.Backends.PTX
 
         #endregion
 
-        #region Nested Types
+        #region Static
 
         /// <summary>
-        /// The default PTX allocator behavior.
+        /// Returns the corresponding device constant string value.
         /// </summary>
-        readonly struct Behavior : IRegisterAllocationBehavior<PTXRegisterKind, PTXRegister>
+        /// <param name="register">The primitive register.</param>
+        /// <returns>The corresponding device constant string value.</returns>
+        private static string ResolveDeviceConstantValue(PrimitiveRegister register) =>
+            ((DeviceConstantDimension3D)register.RegisterValue).ToString().ToLower();
+
+        /// <summary>
+        /// Returns the string representation of the given primitive register.
+        /// </summary>
+        /// <param name="register">The register.</param>
+        /// <returns>The string representation.</returns>
+        public static string GetStringRepresentation(PrimitiveRegister register)
         {
-            /// <summary>
-            /// Constructs a new allocator behavior.
-            /// </summary>
-            /// <param name="allocator">The parent accelerator.</param>
-            public Behavior(PTXRegisterAllocator allocator)
+            switch (register.Kind)
             {
-                Allocator = allocator;
+                case PTXRegisterKind.Predicate:
+                    return "p" + register.RegisterValue;
+                case PTXRegisterKind.Int16:
+                    return "rs" + register.RegisterValue;
+                case PTXRegisterKind.Int32:
+                    return "r" + register.RegisterValue;
+                case PTXRegisterKind.Int64:
+                    return "rd" + register.RegisterValue;
+                case PTXRegisterKind.Float32:
+                    return "f" + register.RegisterValue;
+                case PTXRegisterKind.Float64:
+                    return "fd" + register.RegisterValue;
+                case PTXRegisterKind.Ctaid:
+                    return "ctaid." +
+                        ResolveDeviceConstantValue(register);
+                case PTXRegisterKind.Tid:
+                    return "tid." +
+                        ResolveDeviceConstantValue(register);
+                case PTXRegisterKind.NctaId:
+                    return "nctaid." +
+                        ResolveDeviceConstantValue(register);
+                case PTXRegisterKind.NtId:
+                    return "ntid." +
+                        ResolveDeviceConstantValue(register);
+                case PTXRegisterKind.LaneId:
+                    return "laneid";
+                default:
+                    throw new InvalidCodeGenerationException();
             }
-
-            /// <summary>
-            /// Returns the associated parent allocator.
-            /// </summary>
-            public PTXRegisterAllocator Allocator { get; }
-
-            /// <summary cref="IRegisterAllocationBehavior{TKind, T}.AllocateRegister(TKind)"/>
-            public PTXRegister AllocateRegister(PTXRegisterKind kind) =>
-                Allocator.AllocateRegister(kind);
-
-            /// <summary cref="IRegisterAllocationBehavior{TKind, T}.FreeRegister(T)"/>
-            public void FreeRegister(PTXRegister register) =>
-                Allocator.FreeRegister(register);
         }
 
         #endregion
 
         #region Instance
 
-        private readonly RegisterAllocator<PTXRegisterKind, PTXRegister, Behavior> registerAllocator;
         private readonly int[] registerCounters = new int[NumRegisterTypes];
         private readonly Stack<int>[] freeRegisters = new Stack<int>[NumRegisterTypes];
 
@@ -169,35 +117,15 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="abi">The current ABI.</param>
         public PTXRegisterAllocator(ABI abi)
+            : base(abi)
         {
-            Debug.Assert(abi != null, "Invalid abi");
-            registerAllocator = new RegisterAllocator<PTXRegisterKind, PTXRegister, Behavior>(
-                new Behavior(this));
-            ABI = abi;
             for (int i = 0; i < NumRegisterTypes; ++i)
                 freeRegisters[i] = new Stack<int>();
         }
 
         #endregion
 
-        #region Properties
-
-        /// <summary>
-        /// Returns the current ABI.
-        /// </summary>
-        public ABI ABI { get; }
-
-        #endregion
-
         #region Methods
-
-        /// <summary cref="RegisterAllocator{TKind, T, TBehavior}.Allocate(Value, TKind)"/>
-        public PTXRegister Allocate(Value node, PTXRegisterKind kind) =>
-            registerAllocator.Allocate(node, kind);
-
-        /// <summary cref="RegisterAllocator{TKind, T, TBehavior}.Alias(Value, Value)"/>
-        public void Alias(Value node, Value alias) =>
-            registerAllocator.Alias(node, alias);
 
         /// <summary>
         /// Allocates a platform-specific register and returns the resulting PTX type
@@ -205,7 +133,7 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="registerType">The platform register type.</param>
         /// <returns>The allocated register.</returns>
-        public PTXRegister AllocatePlatformRegister(out PTXType registerType)
+        public PrimitiveRegister AllocatePlatformRegister(out PTXType registerType)
         {
             registerType = PTXType.GetPTXType(ABI.PointerArithmeticType);
             return AllocateRegister(registerType.RegisterKind);
@@ -218,38 +146,32 @@ namespace ILGPU.Backends.PTX
         /// <param name="node">The node to allocate.</param>
         /// <param name="registerType">The platform register type.</param>
         /// <returns>The allocated register.</returns>
-        public PTXRegister AllocatePlatformRegister(Value node, out PTXType registerType)
+        public PrimitiveRegister AllocatePlatformRegister(Value node, out PTXType registerType)
         {
             registerType = PTXType.GetPTXType(ABI.PointerArithmeticType);
             return Allocate(node, registerType.RegisterKind);
         }
 
-        /// <summary cref="IRegisterAllocationBehavior{TKind, T}.AllocateRegister(TKind)"/>
-        public PTXRegister AllocateRegister(PTXRegisterKind kind)
-        {
-            var freeRegs = freeRegisters[(int)kind];
-            var registerValue = freeRegs.Count > 0 ?
-                freeRegs.Pop() :
-                registerCounters[(int)kind]++;
-            return new PTXRegister(
-                kind,
-                registerValue);
-        }
+        /// <summary cref="RegisterAllocator{TKind}.ConvertTypeToKind(TypeNode)"/>
+        protected override PTXRegisterKind ConvertTypeToKind(TypeNode type) =>
+            PTXType.GetPTXType(type, ABI).RegisterKind;
 
-        /// <summary cref="RegisterAllocator{TKind, T, TBehavior}.Free(Value)"/>
-        public void Free(Value value) =>
-            registerAllocator.Free(value);
-
-        /// <summary cref="IRegisterAllocationBehavior{TKind, T}.FreeRegister(T)"/>
-        public void FreeRegister(PTXRegister register)
+        /// <summary cref="RegisterAllocator{TKind}.FreeRegister(RegisterAllocator{TKind}.PrimitiveRegister)"/>
+        public override void FreeRegister(PrimitiveRegister register)
         {
             var freeRegs = freeRegisters[(int)register.Kind];
             freeRegs.Push(register.RegisterValue);
         }
 
-        /// <summary cref="RegisterAllocator{TKind, T, TBehavior}.Load(Value)"/>
-        public PTXRegister Load(Value node) =>
-            registerAllocator.Load(node);
+        /// <summary cref="RegisterAllocator{TKind}.AllocateRegister(TKind)"/>
+        public override PrimitiveRegister AllocateRegister(PTXRegisterKind kind)
+        {
+            var freeRegs = freeRegisters[(int)kind];
+            var registerValue = freeRegs.Count > 0 ?
+                freeRegs.Pop() :
+                ++registerCounters[(int)kind];
+            return new PrimitiveRegister(kind, registerValue);
+        }
 
         /// <summary>
         /// Appends register information to the given builder.
@@ -277,7 +199,7 @@ namespace ILGPU.Backends.PTX
             builder.Append('%');
             builder.Append(registerName);
             builder.Append('<');
-            builder.Append(registerCounter);
+            builder.Append(registerCounter + 1);
             builder.Append('>');
             builder.AppendLine(";");
         }
@@ -293,7 +215,6 @@ namespace ILGPU.Backends.PTX
 
             AppendRegisterDeclaration(builder, prefix, ".pred", "p", PTXRegisterKind.Predicate);
 
-            AppendRegisterDeclaration(builder, prefix, ".b8", "rb", PTXRegisterKind.Int8);
             AppendRegisterDeclaration(builder, prefix, ".b16", "rs", PTXRegisterKind.Int16);
 
             AppendRegisterDeclaration(builder, prefix, ".b32", "r", PTXRegisterKind.Int32);

@@ -52,7 +52,7 @@ namespace ILGPU.IR.Transformations
         /// <param name="level">The desired optimization level.</param>
         /// <returns>The maximum number of iterations.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int AddOptimizations<TInliningConfiguration>(
+        public static void AddOptimizations<TInliningConfiguration>(
             this Transformer.Builder builder,
             in TInliningConfiguration inliningConfiguration,
             OptimizationLevel level)
@@ -61,9 +61,11 @@ namespace ILGPU.IR.Transformations
             switch (level)
             {
                 case OptimizationLevel.Debug:
-                    return AddDebugOptimizations(builder, inliningConfiguration);
+                    AddDebugOptimizations(builder, inliningConfiguration);
+                    break;
                 case OptimizationLevel.Release:
-                    return AddReleaseOptimizations(builder, inliningConfiguration);
+                    AddReleaseOptimizations(builder, inliningConfiguration);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(level));
             }
@@ -76,22 +78,15 @@ namespace ILGPU.IR.Transformations
         /// <typeparam name="TInliningConfiguration">The inlining configuration type.</typeparam>
         /// <param name="builder">The transformation manager to populate.</param>
         /// <param name="inliningConfiguration">The desired inlining configuration.</param>
-        /// <returns>The maximum number of iterations.</returns>
-        public static int AddDebugOptimizations<TInliningConfiguration>(
+        public static void AddDebugOptimizations<TInliningConfiguration>(
             this Transformer.Builder builder,
             in TInliningConfiguration inliningConfiguration)
             where TInliningConfiguration : IInliningConfiguration
         {
-            const int NumPasses = 1;
-
-            builder.Add(new MergeCallChains(), NumPasses);
-            builder.Add(new Inliner<TInliningConfiguration>(inliningConfiguration), NumPasses);
-            builder.Add(new MergeCallChains(), NumPasses);
-            builder.Add(new OptimizeParameters(), NumPasses);
-            builder.Add(new InferAddressSpaces(), NumPasses);
-            builder.Add(new TransformToCPS(), NumPasses);
-
-            return NumPasses;
+            builder.Add(new Inliner<TInliningConfiguration>(inliningConfiguration));
+            builder.Add(new SimplifyControlFlow());
+            builder.Add(new SSAConstruction());
+            builder.Add(new DeadCodeElimination());
         }
 
         /// <summary>
@@ -101,22 +96,20 @@ namespace ILGPU.IR.Transformations
         /// <typeparam name="TInliningConfiguration">The inlining configuration type.</typeparam>
         /// <param name="builder">The transformation manager to populate.</param>
         /// <param name="inliningConfiguration">The desired inlining configuration.</param>
-        /// <returns>The maximum number of iterations.</returns>
-        public static int AddReleaseOptimizations<TInliningConfiguration>(
+        public static void AddReleaseOptimizations<TInliningConfiguration>(
             this Transformer.Builder builder,
             in TInliningConfiguration inliningConfiguration)
             where TInliningConfiguration : IInliningConfiguration
         {
-            const int NumPasses = 2;
+            builder.Add(new Inliner<TInliningConfiguration>(inliningConfiguration));
+            builder.Add(new SimplifyControlFlow());
+            builder.Add(new InferAddressSpaces());
+            builder.Add(new SSAConstruction());
+            builder.Add(new DeadCodeElimination());
 
-            builder.Add(new MergeCallChains(), NumPasses);
-            builder.Add(new Inliner<TInliningConfiguration>(inliningConfiguration), NumPasses);
-            builder.Add(new MergeCallChains(), NumPasses);
-            builder.Add(new OptimizeParameters(), NumPasses);
-            builder.Add(new InferAddressSpaces(), NumPasses);
-            builder.Add(new TransformToCPS(), NumPasses);
-
-            return NumPasses;
+            builder.Add(new SimplifyControlFlow());
+            builder.Add(new Inliner<TInliningConfiguration>(inliningConfiguration));
+            builder.Add(new SSAConstruction());
         }
 
         /// <summary>

@@ -47,58 +47,51 @@ namespace ILGPU.IR.Construction
             Debug.Assert(left != null, "Invalid left node");
             Debug.Assert(right != null, "Invalid right node");
 
-            var leftValue = left as PrimitiveValue;
-            var rightValue = right as PrimitiveValue;
-            if (leftValue != null && rightValue != null)
-                return CompareFoldConstants(leftValue, rightValue, kind, flags);
-
-            if (leftValue != null)
+            if (UseConstantPropagation)
             {
-                return CreateCompare(
-                    right,
-                    left,
-                    CompareValue.InvertIfNonCommutative(kind),
-                    flags);
-            }
+                var leftValue = left as PrimitiveValue;
+                var rightValue = right as PrimitiveValue;
+                if (leftValue != null && rightValue != null)
+                    return CompareFoldConstants(leftValue, rightValue, kind, flags);
 
-            if (left.Type is PrimitiveType leftType &&
-                leftType.BasicValueType == BasicValueType.Int1)
-            {
-                var isEqual = kind == CompareKind.Equal;
-                // Bool comparison -> convert to logical operation
-                if (rightValue != null)
+                if (leftValue != null)
                 {
-                    if (isEqual)
-                    {
-                        if (rightValue.Int1Value)
-                            return left;
-                        return CreateArithmetic(left, UnaryArithmeticKind.Not);
-                    }
-                    else
-                    {
-                        if (rightValue.Int1Value)
-                            return CreateArithmetic(left, UnaryArithmeticKind.Not);
-                        return left;
-                    }
+                    return CreateCompare(
+                        right,
+                        left,
+                        CompareValue.InvertIfNonCommutative(kind),
+                        flags);
                 }
 
-                var result = CreateArithmetic(
-                    left,
-                    right,
-                    BinaryArithmeticKind.Xor);
-                // Equal comparison?
-                if (isEqual)
-                    result = CreateArithmetic(result, UnaryArithmeticKind.Not);
-                return result;
+                if (left.Type is PrimitiveType leftType &&
+                    leftType.BasicValueType == BasicValueType.Int1)
+                {
+                    // Bool comparison -> convert to logical operation
+                    if (rightValue != null)
+                    {
+                        if (kind == CompareKind.Equal)
+                        {
+                            if (rightValue.Int1Value)
+                                return left;
+                            return CreateArithmetic(left, UnaryArithmeticKind.Not);
+                        }
+                        else
+                        {
+                            if (rightValue.Int1Value)
+                                return CreateArithmetic(left, UnaryArithmeticKind.Not);
+                            return left;
+                        }
+                    }
+                }
             }
 
-            return CreateUnifiedValue(new CompareValue(
-                Generation,
+            return Append(new CompareValue(
+                Context,
+                BasicBlock,
                 left,
                 right,
                 kind,
-                flags,
-                CreatePrimitiveType(BasicValueType.Int1)));
+                flags));
         }
 
     }

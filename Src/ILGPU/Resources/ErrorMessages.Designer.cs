@@ -61,15 +61,6 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The allocation analysis requires a top-level function.
-        /// </summary>
-        internal static string AllocaAnalysisRequiresTopLevelFunction {
-            get {
-                return ResourceManager.GetString("AllocaAnalysisRequiresTopLevelFunction", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to The assembly version &apos;{0}&apos; is not compatible with the current version &apos;{1}&apos;.
         /// </summary>
         internal static string AssemblyVersionNotCompatible {

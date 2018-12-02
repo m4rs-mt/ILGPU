@@ -36,14 +36,6 @@ namespace ILGPU.Backends.IL
 
         #region Methods
 
-        /// <summary cref="Backend.PrepareKernel(IRContext, TopLevelFunction, ABI, in ContextImportSpecification)"/>
-        protected override void PrepareKernel(
-            IRContext kernelContext,
-            TopLevelFunction kernelFunction,
-            ABI abi,
-            in ContextImportSpecification importSpecification)
-        { }
-
         /// <summary cref="ILBackend.GenerateLocals{TEmitter}(EntryPoint, TEmitter, KernelGenerationData, ImmutableArray{FieldInfo}, ILLocal)"/>
         protected override void GenerateLocals<TEmitter>(
             EntryPoint entryPoint,

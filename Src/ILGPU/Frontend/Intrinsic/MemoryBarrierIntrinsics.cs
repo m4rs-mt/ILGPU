@@ -45,11 +45,8 @@ namespace ILGPU.Frontend.Intrinsic
             in InvocationContext context,
             MemoryBarrierIntrinsicAttribute attribute)
         {
-            return context.PushMemory(
-                context.Builder.CreateMemoryBarrier(
-                    context.PopMemory(),
-                    attribute.IntrinsicKind));
+            return context.Builder.CreateMemoryBarrier(
+                attribute.IntrinsicKind);
         }
-
     }
 }

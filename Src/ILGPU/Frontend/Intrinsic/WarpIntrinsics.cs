@@ -61,22 +61,16 @@ namespace ILGPU.Frontend.Intrinsic
             switch (attribute.IntrinsicKind)
             {
                 case WarpIntrinsicKind.Barrier:
-                    var barrierMemory = context.PopMemory();
-                    return context.PushMemory(
-                        builder.CreateBarrier(barrierMemory, BarrierKind.WarpLevel));
+                    return builder.CreateBarrier(BarrierKind.WarpLevel);
                 case WarpIntrinsicKind.WarpSize:
                     return builder.CreateWarpSizeValue();
                 case WarpIntrinsicKind.LaneIdx:
                     return builder.CreateLaneIdxValue();
                 default:
-                    var shuffleMemory = context.PopMemory();
-                    var shuffledValue = builder.CreateShuffle(
-                        shuffleMemory,
-                        context[TopLevelFunction.ParametersOffset],
-                        context[TopLevelFunction.ParametersOffset + 1],
+                    return builder.CreateShuffle(
+                        context[0],
+                        context[1],
                         (ShuffleKind)attribute.IntrinsicKind);
-                    context.PushMemory(shuffledValue);
-                    return shuffledValue;
             }
         }
     }

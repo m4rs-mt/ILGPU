@@ -9,9 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace ILGPU.IR.Transformations
@@ -22,64 +20,59 @@ namespace ILGPU.IR.Transformations
     public sealed class InferAddressSpaces : UnorderedTransformation
     {
         /// <summary>
-        /// The desired transformations that should run after
-        /// applying this transformation.
-        /// </summary>
-        private const TransformationFlags FollowUpFlags = TransformationFlags.TransformToCPS;
-
-        /// <summary>
         /// Constructs a new address-space inference pass.
         /// </summary>
-        public InferAddressSpaces()
-            : base(TransformationFlags.InferAddressSpaces, FollowUpFlags)
-        { }
+        public InferAddressSpaces() { }
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(IRBuilder, TopLevelFunction)"/>
-        protected override bool PerformTransformation(
-            IRBuilder builder,
-            TopLevelFunction topLevelFunction)
+        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        protected override bool PerformTransformation(Method.Builder builder)
         {
-            var scope = Scope.Create(builder, topLevelFunction);
-            var castsToRemove = new List<AddressSpaceCast>(scope.Count >> 1);
+            var scope = builder.CreateScope();
 
-            foreach (var node in scope)
+            bool result = false;
+            foreach (var block in scope)
             {
-                if (node is AddressSpaceCast cast && IsRedundant(scope, cast))
-                    castsToRemove.Add(cast);
+                var blockBuilder = builder[block];
+
+                foreach (var valueEntry in block)
+                {
+                    if (valueEntry.Value is AddressSpaceCast cast && IsRedundant(cast))
+                    {
+                        cast.Replace(cast.Value);
+                        blockBuilder.Remove(cast);
+                        result = true;
+                    }
+                }
             }
 
-            if (castsToRemove.Count < 1)
-                return false;
-
-            foreach (var cast in castsToRemove)
-                cast.Replace(cast.Value);
-
-            return true;
+            return result;
         }
 
         /// <summary>
         /// Returns true iff the given cast is redundant.
         /// </summary>
-        /// <param name="scope">The current scope.</param>
         /// <param name="cast">The cast to check.</param>
         /// <returns>True, iff the given cast is redundant.</returns>
-        private static bool IsRedundant(Scope scope, AddressSpaceCast cast)
+        private static bool IsRedundant(AddressSpaceCast cast)
         {
             Debug.Assert(cast != null, "Invalid cast");
-            foreach (var use in scope.GetUses(cast))
+            foreach (var use in cast.Uses)
             {
                 var node = use.Resolve();
 
                 switch (node)
                 {
-                    case FunctionCall _:
-                        // A function call implies an implicit phi node.
-                        // We are not allowed to remove this cast in such a case.
+                    case MethodCall _:
+                        // We cannot remove casts to other address spaces in case
+                        // of a method invocation.
+                        return false;
+                    case PhiValue _:
+                        // We are not allowed to remove casts from phi node operands.
                         return false;
                     case Store _:
                         // We are not allowed to remove casts in the case of
                         // alloca stores
-                        if (use.Index != 1)
+                        if (use.Index != 0)
                             return false;
                         break;
                     case SetField setField:

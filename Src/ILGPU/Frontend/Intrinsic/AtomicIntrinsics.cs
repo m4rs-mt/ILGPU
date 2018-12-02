@@ -66,28 +66,22 @@ namespace ILGPU.Frontend.Intrinsic
             in InvocationContext context,
             AtomicIntrinsicAttribute attribute)
         {
-            var memory = context.PopMemory();
-            MemoryValue atomicValue;
             if (attribute.IntrinsicKind == AtomicIntrinsicKind.CompareExchange)
             {
-                atomicValue = context.Builder.CreateAtomicCAS(
-                    memory,
-                    context[TopLevelFunction.ParametersOffset + 0],
-                    context[TopLevelFunction.ParametersOffset + 1],
-                    context[TopLevelFunction.ParametersOffset + 2],
+                return context.Builder.CreateAtomicCAS(
+                    context[0],
+                    context[1],
+                    context[2],
                     attribute.IntrinsicFlags);
             }
             else
             {
-                atomicValue = context.Builder.CreateAtomic(
-                    memory,
-                    context[TopLevelFunction.ParametersOffset + 0],
-                    context[TopLevelFunction.ParametersOffset + 1],
+                return context.Builder.CreateAtomic(
+                    context[0],
+                    context[1],
                     (AtomicKind)attribute.IntrinsicKind,
                     attribute.IntrinsicFlags);
             }
-            context.PushMemory(atomicValue);
-            return atomicValue;
         }
     }
 }

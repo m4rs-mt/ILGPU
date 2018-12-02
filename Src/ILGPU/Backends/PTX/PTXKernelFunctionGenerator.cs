@@ -9,10 +9,12 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR;
+using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.PTX
 {
@@ -23,7 +25,7 @@ namespace ILGPU.Backends.PTX
     {
         #region Nested Types
 
-        private readonly struct KernelParameterSetupLogic : IParameterSetupLogic
+        private struct KernelParameterSetupLogic : IParameterSetupLogic
         {
             public KernelParameterSetupLogic(
                 EntryPoint entryPoint,
@@ -31,8 +33,10 @@ namespace ILGPU.Backends.PTX
             {
                 EntryPoint = entryPoint;
                 Parent = parent;
-                IndexParameters = new (Parameter, PTXRegister?)[
-                    entryPoint.NumFlattendedIndexParameters];
+
+                IndexParameter = null;
+                IndexRegister = null;
+                LengthRegister = null;
             }
 
             /// <summary>
@@ -41,30 +45,40 @@ namespace ILGPU.Backends.PTX
             public EntryPoint EntryPoint { get; }
 
             /// <summary>
-            /// Returns an array containing all index parameters.
+            /// Returns an the main index parameter.
             /// </summary>
-            public (Parameter, PTXRegister?)[] IndexParameters { get; }
+            public Parameter IndexParameter { get; private set; }
+
+            /// <summary>
+            /// Returns the main index register.
+            /// </summary>
+            public StructureRegister IndexRegister { get; private set; }
+
+            /// <summary>
+            /// Returns the length register of implicitly grouped kernels.
+            /// </summary>
+            public StructureRegister LengthRegister { get; private set; }
 
             /// <summary>
             /// Returns the associated register allocator.
             /// </summary>
             public PTXKernelFunctionGenerator Parent { get; }
 
-            /// <summary cref="PTXCodeGenerator.IParameterSetupLogic.HandleIntrinsicParameters(int, Parameter, PTXType)"/>
-            public PTXRegister? HandleIntrinsicParameters(
-                int parameterOffset,
-                Parameter parameter,
-                PTXType paramType)
+            /// <summary cref="PTXCodeGenerator.IParameterSetupLogic.HandleIntrinsicParameter(int, Parameter)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Register HandleIntrinsicParameter(int parameterOffset, Parameter parameter)
             {
-                PTXRegister? register = null;
+                IndexRegister = Parent.Allocate(parameter) as StructureRegister;
+                IndexParameter = parameter;
+
                 if (!EntryPoint.IsGroupedIndexEntry)
                 {
                     // This is an implicitly grouped kernel that needs
                     // boundary information to avoid out-of-bounds dispatches
-                    register = Parent.AllocateRegister(paramType.RegisterKind);
+                    LengthRegister = Parent.AllocateType(parameter.ParameterType) as StructureRegister;
+                    Debug.Assert(LengthRegister != null, "Invalid length register");
                 }
-                IndexParameters[parameterOffset] = (parameter, register);
-                return register;
+                return LengthRegister;
             }
         }
 
@@ -126,10 +140,8 @@ namespace ILGPU.Backends.PTX
             Builder.Append(PTXCompiledKernel.EntryName);
             Builder.AppendLine("(");
 
-            var parameterLogic = new KernelParameterSetupLogic(
-                entryPoint,
-                this);
-            var parameters = SetupParameters(ref parameterLogic, parameterLogic.IndexParameters.Length);
+            var parameterLogic = new KernelParameterSetupLogic(entryPoint, this);
+            var parameters = SetupParameters(ref parameterLogic, 1);
             Builder.AppendLine();
             Builder.AppendLine(")");
             SetupKernelSpecialization(entryPoint.Specialization);
@@ -146,7 +158,11 @@ namespace ILGPU.Backends.PTX
             BindParameters(parameters);
 
             // Setup kernel indices
-            SetupKernelIndex(entryPoint, parameterLogic.IndexParameters);
+            SetupKernelIndex(
+                entryPoint,
+                parameterLogic.IndexParameter,
+                parameterLogic.IndexRegister,
+                parameterLogic.LengthRegister);
 
             GenerateCode(registerOffset, ref constantOffset);
         }
@@ -207,17 +223,17 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Emits an implicit kernel index computation.
         /// </summary>
-        /// <param name="parameter">The index parameter.</param>
         /// <param name="dimension">The parameter dimension.</param>
+        /// <param name="targetRegister">The primitive target register to write to.</param>
         /// <param name="boundsRegister">The associated bounds register.</param>
         private void EmitImplicitKernelIndex(
-            Parameter parameter,
             int dimension,
-            PTXRegister boundsRegister)
+            PrimitiveRegister targetRegister,
+            PrimitiveRegister boundsRegister)
         {
-            var ctaid = new PTXRegister(PTXRegisterKind.Ctaid, dimension);
-            var ntid = new PTXRegister(PTXRegisterKind.NtId, dimension);
-            var tid = new PTXRegister(PTXRegisterKind.Tid, dimension);
+            var ctaid = new PrimitiveRegister(PTXRegisterKind.Ctaid, dimension);
+            var ntid = new PrimitiveRegister(PTXRegisterKind.NtId, dimension);
+            var tid = new PrimitiveRegister(PTXRegisterKind.Tid, dimension);
 
             var aReg = AllocateRegister(PTXRegisterKind.Int32);
             var bReg = AllocateRegister(PTXRegisterKind.Int32);
@@ -227,7 +243,6 @@ namespace ILGPU.Backends.PTX
             Move(ntid, bReg);
             Move(tid, cReg);
 
-            var targetRegister = Allocate(parameter, PTXRegisterKind.Int32);
             using (var command = BeginCommand(
                 Instructions.FMAOperationLo,
                 PTXType.GetPTXType(ArithmeticBasicValueType.Int32)))
@@ -242,63 +257,67 @@ namespace ILGPU.Backends.PTX
             FreeRegister(bReg);
             FreeRegister(cReg);
 
-            var predicateRegister = AllocateRegister(PTXRegisterKind.Predicate);
-            using (var command = BeginCommand(
-                Instructions.GetCompareOperation(
-                    CompareKind.GreaterEqual,
-                    ArithmeticBasicValueType.Int32)))
+            using (var predicateScope = new PredicateScope(this))
             {
-                command.AppendArgument(predicateRegister);
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(boundsRegister);
+                using (var command = BeginCommand(
+                    Instructions.GetCompareOperation(
+                        CompareKind.GreaterEqual,
+                        ArithmeticBasicValueType.Int32)))
+                {
+                    command.AppendArgument(predicateScope.PredicateRegister);
+                    command.AppendArgument(targetRegister);
+                    command.AppendArgument(boundsRegister);
+                }
+
+                using (var command = BeginCommand(
+                    Instructions.ReturnOperation,
+                    null,
+                    predicateScope.GetConfiguration(true)))
+                { }
             }
-
-            using (var command = BeginCommand(
-                Instructions.ReturnOperation,
-                null,
-                new PredicateConfiguration(predicateRegister, true)))
-            { }
-
-            FreeRegister(predicateRegister);
         }
 
         /// <summary>
         /// Emits an explicit kernel index computation.
         /// </summary>
-        /// <param name="gridIdx">The grid index parameter.</param>
-        /// <param name="groupIdx">The group index parameter.</param>
+        /// <param name="targetGridIdx">The target grid index register.</param>
+        /// <param name="targetGroupIdx">The targhet group index register.</param>
         /// <param name="dimension">The dimension index.</param>
         private void EmitExplicitKernelIndex(
-            Parameter gridIdx,
-            Parameter groupIdx,
+            PrimitiveRegister targetGridIdx,
+            PrimitiveRegister targetGroupIdx,
             int dimension)
         {
-            var ctaid = new PTXRegister(PTXRegisterKind.Ctaid, dimension);
-            var tid = new PTXRegister(PTXRegisterKind.Tid, dimension);
+            var ctaid = new PrimitiveRegister(PTXRegisterKind.Ctaid, dimension);
+            var tid = new PrimitiveRegister(PTXRegisterKind.Tid, dimension);
 
-            var gridIdxReg = Allocate(gridIdx, PTXRegisterKind.Int32);
-            var groupIdxReg = Allocate(groupIdx, PTXRegisterKind.Int32);
-
-            Move(ctaid, gridIdxReg);
-            Move(tid, groupIdxReg);
+            Move(ctaid, targetGridIdx);
+            Move(tid, targetGroupIdx);
         }
 
         /// <summary>
         /// Setups the current kernel indices.
         /// </summary>
         /// <param name="entryPoint">The current entry point.</param>
-        /// <param name="indexParameters">The index parameters to setup.</param>
+        /// <param name="indexParameter">The main kernel index parameter.</param>
+        /// <param name="indexRegister">The main kernel index register.</param>
+        /// <param name="lengthRegister">The length register of implicitly grouped kernels.</param>
         private void SetupKernelIndex(
             EntryPoint entryPoint,
-            (Parameter, PTXRegister?)[] indexParameters)
+            Parameter indexParameter,
+            StructureRegister indexRegister,
+            StructureRegister lengthRegister)
         {
             if (entryPoint.IsGroupedIndexEntry)
             {
+                var gridRegisters = indexRegister.Children[0] as StructureRegister;
+                var groupRegisters = indexRegister.Children[1] as StructureRegister;
+
                 for (int i = 0, e = (int)entryPoint.IndexType - (int)IndexType.Index3D; i < e; ++i)
                 {
                     EmitExplicitKernelIndex(
-                        indexParameters[i].Item1,
-                        indexParameters[i + e].Item1,
+                        gridRegisters.Children[i] as PrimitiveRegister,
+                        groupRegisters.Children[i] as PrimitiveRegister,
                         i);
                 }
             }
@@ -307,9 +326,9 @@ namespace ILGPU.Backends.PTX
                 for (int i = 0, e = (int)entryPoint.IndexType; i < e; ++i)
                 {
                     EmitImplicitKernelIndex(
-                        indexParameters[i].Item1,
                         i,
-                        indexParameters[i].Item2.Value);
+                        indexRegister.Children[i] as PrimitiveRegister,
+                        lengthRegister.Children[i] as PrimitiveRegister);
                 }
             }
         }
