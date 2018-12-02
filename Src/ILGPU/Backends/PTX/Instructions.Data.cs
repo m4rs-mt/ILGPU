@@ -361,8 +361,8 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Div, ArithmeticBasicValueType.UInt16), "div.u16" },
                 { (BinaryArithmeticKind.Div, ArithmeticBasicValueType.UInt32), "div.u32" },
                 { (BinaryArithmeticKind.Div, ArithmeticBasicValueType.UInt64), "div.u64" },
-                { (BinaryArithmeticKind.Div, ArithmeticBasicValueType.Float32), "div.f32" },
-                { (BinaryArithmeticKind.Div, ArithmeticBasicValueType.Float64), "div.f64" },
+                { (BinaryArithmeticKind.Div, ArithmeticBasicValueType.Float32), "div.rn.f32" },
+                { (BinaryArithmeticKind.Div, ArithmeticBasicValueType.Float64), "div.rn.f64" },
 
                 { (BinaryArithmeticKind.Rem, ArithmeticBasicValueType.Int16), "rem.s16" },
                 { (BinaryArithmeticKind.Rem, ArithmeticBasicValueType.Int32), "rem.s32" },
