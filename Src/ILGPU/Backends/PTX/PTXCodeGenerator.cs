@@ -43,26 +43,31 @@ namespace ILGPU.Backends.PTX
         {
             public GeneratorArgs(
                 EntryPoint entryPoint,
+                PTXDebugInfoGenerator debugInfoGenerator,
                 StringBuilder stringBuilder,
                 PTXArchitecture architecture,
                 ABI abi,
-                bool fastMath,
-                bool enableAssertions)
+                IRContextFlags contextFlags)
             {
                 EntryPoint = entryPoint;
+                DebugInfoGenerator = debugInfoGenerator;
                 StringBuilder = stringBuilder;
                 Architecture = architecture;
                 ABI = abi;
-                FastMath = fastMath;
-                EnableAssertions = enableAssertions;
+                ContextFlags = contextFlags;
             }
 
             public EntryPoint EntryPoint { get; }
+
             public StringBuilder StringBuilder { get; }
+
             public PTXArchitecture Architecture { get; }
+
             public ABI ABI { get; }
-            public bool FastMath { get; }
-            public bool EnableAssertions { get; }
+
+            public IRContextFlags ContextFlags { get; }
+
+            public PTXDebugInfoGenerator DebugInfoGenerator { get; }
         }
 
         /// <summary>
@@ -200,10 +205,11 @@ namespace ILGPU.Backends.PTX
         {
             Builder = args.StringBuilder;
             Scope = scope;
+            DebugInfoGenerator = args.DebugInfoGenerator;
 
             Architecture = args.Architecture;
-            FastMath = args.FastMath;
-            EnableAssertions = args.EnableAssertions;
+            FastMath = args.ContextFlags.HasFlags(IRContextFlags.FastMath);
+            EnableAssertions = args.ContextFlags.HasFlags(IRContextFlags.EnableAssertions);
 
             labelPrefix = "L_" + Method.Id.ToString();
             returnParamName = "retval_" + Method.Id;
@@ -227,6 +233,11 @@ namespace ILGPU.Backends.PTX
         /// Returns the currently used PTX architecture.
         /// </summary>
         public PTXArchitecture Architecture { get; }
+
+        /// <summary>
+        /// Returns the associated debug information generator.
+        /// </summary>
+        public PTXDebugInfoGenerator DebugInfoGenerator { get; }
 
         /// <summary>
         /// Returns true if fast math is active.
@@ -281,8 +292,24 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Generates code for all CFG nodes.
+        /// Prepares the general code generation process.
         /// </summary>
+        protected void PrepareCodeGeneration()
+        {
+            // Emit debug information
+            DebugInfoGenerator.ResetSequencePoints();
+            DebugInfoGenerator.GenerateDebugInfo(Builder, Method);
+        }
+
+        /// <summary>
+        /// Generates code for all basic blocks.
+        /// </summary>
+        /// <param name="registerOffset">
+        /// The offset in chars to append general register information.
+        /// </param>
+        /// <param name="constantOffset">
+        /// The constant offset (in chars) to append global constant information.
+        /// </param>
         protected void GenerateCode(
             int registerOffset,
             ref int constantOffset)
@@ -320,9 +347,22 @@ namespace ILGPU.Backends.PTX
             // Generate code
             foreach (var block in Scope)
             {
+                // Emit debug information
+                DebugInfoGenerator.GenerateDebugInfo(Builder, block);
+
+                // Mark block label
                 MarkLabel(blockLookup[block]);
+
                 foreach (var value in block)
+                {
+                    // Emit debug information
+                    DebugInfoGenerator.GenerateDebugInfo(Builder, value);
+
+                    // Emit value
                     value.Accept(this);
+                }
+
+                DebugInfoGenerator.ResetSequencePoints();
 
                 // Wire phi nodes
                 if (phiMapping.TryGetValue(block, out List<(Value, PhiValue)> phiArguments))

@@ -148,7 +148,7 @@ namespace ILGPU.Backends.PTX
             Builder.AppendLine("{");
 
             // Build memory allocations
-
+            PrepareCodeGeneration();
             var allocations = SetupLocalAllocations(allocas);
             SetupSharedAllocations(sharedAllocations, allocations);
             var registerOffset = Builder.Length;

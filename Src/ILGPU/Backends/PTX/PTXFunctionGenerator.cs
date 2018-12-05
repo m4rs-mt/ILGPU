@@ -113,6 +113,7 @@ namespace ILGPU.Backends.PTX
             var registerOffset = Builder.Length;
 
             // Build param bindings and local memory variables
+            PrepareCodeGeneration();
             BindAllocations(allocations);
             BindParameters(parameters);
 

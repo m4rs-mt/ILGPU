@@ -155,9 +155,12 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Initializes a PTX kernel and returns the created <see cref="StringBuilder"/>.
         /// </summary>
+        /// <param name="useDebugInfo">True, if this kernel uses debug information.</param>
         /// <param name="constantOffset">The offset for constants.</param>
         /// <returns>The created string builder.</returns>
-        private StringBuilder CreatePTXBuilder(out int constantOffset)
+        private StringBuilder CreatePTXBuilder(
+            bool useDebugInfo,
+            out int constantOffset)
         {
             var builder = new StringBuilder();
 
@@ -170,7 +173,11 @@ namespace ILGPU.Backends.PTX
             builder.Append(".version ");
             builder.AppendLine(PTXCodeGenerator.PTXVersion);
             builder.Append(".target ");
-            builder.AppendLine(Architecture.ToString().ToLower());
+            builder.Append(Architecture.ToString().ToLower());
+            if (useDebugInfo)
+                builder.AppendLine(", debug");
+            else
+                builder.AppendLine();
             builder.Append(".address_size ");
             builder.AppendLine((ABI.PointerSize * 8).ToString());
             builder.AppendLine();
@@ -186,17 +193,20 @@ namespace ILGPU.Backends.PTX
             in BackendContext backendContext,
             in KernelSpecialization specialization)
         {
-            var builder = CreatePTXBuilder(out int constantOffset);
-            var useFastMath = (Context.Flags & IRContextFlags.FastMath) == IRContextFlags.FastMath;
-            var enableAssertions = (Context.Flags & IRContextFlags.EnableAssertions) == IRContextFlags.EnableAssertions;
+            bool useDebugInfo = Context.HasFlags(IRContextFlags.EnableDebugInformation);
+
+            var builder = CreatePTXBuilder(useDebugInfo, out int constantOffset);
+            var debugInfoGenerator = useDebugInfo ?
+                new PTXDebugLineInfoGenerator() as PTXDebugInfoGenerator :
+                PTXNoDebugInfoGenerator.Empty;
 
             var args = new PTXCodeGenerator.GeneratorArgs(
                 entryPoint,
+                debugInfoGenerator,
                 builder,
                 Architecture,
                 ABI,
-                useFastMath,
-                enableAssertions);
+                Context.Flags);
 
             // Declare all methods
             foreach (var (_, scope, _) in backendContext)
@@ -212,12 +222,16 @@ namespace ILGPU.Backends.PTX
                     ref constantOffset);
             }
 
+            // Genrate kernel method
             PTXKernelFunctionGenerator.Generate(
                 args,
                 backendContext.KernelScope,
                 backendContext.KernelAllocas,
                 backendContext.SharedAllocations,
                 ref constantOffset);
+
+            // Append final debug information
+            debugInfoGenerator.GenerateDebugSections(builder);
 
             var ptxAssembly = builder.ToString();
             return new PTXCompiledKernel(Context, entryPoint, ptxAssembly);
