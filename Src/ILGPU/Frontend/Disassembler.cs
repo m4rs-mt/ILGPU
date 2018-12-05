@@ -132,7 +132,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the current sequence point.
         /// </summary>
-        public SequencePoint? CurrentSequencePoint { get; private set; }
+        public SequencePoint CurrentSequencePoint { get; private set; }
 
         #endregion
 

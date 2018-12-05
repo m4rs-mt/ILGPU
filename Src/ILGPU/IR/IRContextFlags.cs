@@ -78,5 +78,28 @@ namespace ILGPU.IR
         /// (e.g. for debugging purposes).
         /// </summary>
         DisableConstantPropagation = 1 << 8,
+
+        /// <summary>
+        /// Enables parallel code generation in frontend.
+        /// Note that this does not affect parallel transformations.
+        /// </summary>
+        EnableParallelCodeGenerationInFrontend = 1 << 9,
+    }
+
+    /// <summary>
+    /// Helper methods for the <see cref="IRContextFlags"/> enumeration.
+    /// </summary>
+    public static class IRContextFlagsExtensions
+    {
+        /// <summary>
+        /// Determines whether one or more bits are set in the current flags.
+        /// </summary>
+        /// <param name="flags">The current flags.</param>
+        /// <param name="flagsToCheck">The flags to check.</param>
+        /// <returns>True, the requested bits are set.</returns>
+        public static bool HasFlags(
+            this IRContextFlags flags,
+            IRContextFlags flagsToCheck) =>
+            (flags & flagsToCheck) == flagsToCheck;
     }
 }

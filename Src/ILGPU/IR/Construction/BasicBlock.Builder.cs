@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
@@ -112,6 +113,18 @@ namespace ILGPU.IR
             #endregion
 
             #region Methods
+
+            /// <summary>
+            /// Setups the current sequence point of this basic block and
+            /// sets the current sequence point of the parent method builder to
+            /// the given point.
+            /// </summary>
+            /// <param name="sequencePoint">The sequence point to setup.</param>
+            public void SetupSequencePoint(SequencePoint sequencePoint)
+            {
+                BasicBlock.SequencePoint = sequencePoint;
+                MethodBuilder.SequencePoint = sequencePoint;
+            }
 
             /// <summary>
             /// Sets the insert position to the index stored in the given value entry.

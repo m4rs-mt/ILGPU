@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR.Types;
 using System;
 using System.Collections.Immutable;
@@ -68,6 +69,11 @@ namespace ILGPU.IR.Values
         /// Returns the unique node id of the latest node.
         /// </summary>
         public NodeId Id => Resolve().Id;
+
+        /// <summary>
+        /// Returns the associated sequence point.
+        /// </summary>
+        public SequencePoint SequencePoint => Resolve().SequencePoint;
 
         /// <summary>
         /// Returns all child nodes of the latest node.

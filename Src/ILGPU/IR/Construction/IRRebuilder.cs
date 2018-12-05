@@ -75,6 +75,9 @@ namespace ILGPU.IR.Construction
             // Create blocks and prepare phi nodes
             foreach (var block in scope)
             {
+                // Setup debug information for the current block
+                Builder.SequencePoint = block.SequencePoint;
+
                 var newBlock = builder.CreateBasicBlock(block.Name);
                 blockMapping.Add(block, newBlock);
 
@@ -83,7 +86,11 @@ namespace ILGPU.IR.Construction
                     if (value is PhiValue phiValue)
                     {
                         Debug.Assert(!valueMapping.ContainsKey(value), "Phi already found");
+
+                        // Setup debug information for the current value
+                        Builder.SequencePoint = value.SequencePoint;
                         var phiBuilder = newBlock.CreatePhi(phiValue.Type);
+
                         phiMapping.Add((phiValue, phiBuilder));
                         Map(phiValue, phiBuilder.PhiValue);
                     }
@@ -231,6 +238,10 @@ namespace ILGPU.IR.Construction
 
             if (TryGetNewNode(source, out Value node))
                 return node;
+
+            // Setup debug information for the source value
+            Builder.SequencePoint = source.SequencePoint;
+
             Debug.Assert(!(source is Parameter), "Invalid recursive parameter rebuilding process");
             node = source.Rebuild(CurrentBlock, this);
             Map(source, node);

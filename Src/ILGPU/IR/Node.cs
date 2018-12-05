@@ -9,9 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Frontend.DebugInformation;
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace ILGPU.IR
@@ -25,6 +25,11 @@ namespace ILGPU.IR
         /// Returns the unique node id.
         /// </summary>
         NodeId Id { get; }
+
+        /// <summary>
+        /// Returns the associated sequence point.
+        /// </summary>
+        SequencePoint SequencePoint { get; }
 
         /// <summary>
         /// Marks the current node with the new marker value.
@@ -80,6 +85,11 @@ namespace ILGPU.IR
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the associated sequence point.
+        /// </summary>
+        public SequencePoint SequencePoint { get; internal set; }
 
         /// <summary>
         /// Returns the unique node id.

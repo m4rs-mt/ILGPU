@@ -12,9 +12,12 @@
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace ILGPU.Frontend.DebugInformation
 {
@@ -39,16 +42,23 @@ namespace ILGPU.Frontend.DebugInformation
 
         #region Instance
 
-        private readonly object thisLock = new object();
+        private ReaderWriterLockSlim cacheLock = new ReaderWriterLockSlim(
+            LockRecursionPolicy.SupportsRecursion);
         private readonly Dictionary<string, string> pdbFiles = new Dictionary<string, string>();
+        private readonly HashSet<string> lookupDirectories = new HashSet<string>();
         private readonly Dictionary<Assembly, AssemblyDebugInformation> assemblies =
             new Dictionary<Assembly, AssemblyDebugInformation>();
-        private readonly HashSet<Assembly> triedAssemlbies = new HashSet<Assembly>();
 
         /// <summary>
         /// Constructs a new debug-information manager.
         /// </summary>
-        public DebugInformationManager() { }
+        public DebugInformationManager()
+        {
+            // Register the current application path
+            var currentDirectory = Directory.GetCurrentDirectory();
+            if (Directory.Exists(currentDirectory))
+                RegisterLookupDirectory(currentDirectory);
+        }
 
         #endregion
 
@@ -64,11 +74,51 @@ namespace ILGPU.Frontend.DebugInformation
             Assembly assembly,
             out AssemblyDebugInformation assemblyDebugInformation)
         {
-            var debugDir = Path.GetDirectoryName(assembly.Location);
-            if (Directory.Exists(debugDir))
-                RegisterLookupDirectory(debugDir);
-            var pdbFileName = Path.GetFileNameWithoutExtension(assembly.GetName().Name) + PDBFileExtensions;
-            return TryLoadSymbols(assembly, pdbFileName, out assemblyDebugInformation);
+            cacheLock.EnterUpgradeableReadLock();
+            try
+            {
+                if (assemblies.TryGetValue(assembly, out assemblyDebugInformation))
+                    return true;
+
+                var debugDir = Path.GetDirectoryName(assembly.Location);
+                if (!lookupDirectories.Contains(debugDir))
+                    RegisterLookupDirectory(debugDir);
+
+                var pdbFileName = Path.GetFileNameWithoutExtension(assembly.GetName().Name);
+                return TryLoadSymbolsInternal(assembly, pdbFileName, out assemblyDebugInformation);
+            }
+            finally
+            {
+                cacheLock.ExitUpgradeableReadLock();
+            }
+        }
+
+        /// <summary>
+        /// Tries to load symbols for the given assembly based on the given debug-information file.
+        /// </summary>
+        /// <param name="assembly">The assembly.</param>
+        /// <param name="pdbFileName">The name of the debug-information file.</param>
+        /// <param name="assemblyDebugInformation">The loaded debug information (or null).</param>
+        /// <returns>True, iff the debug information could be loaded.</returns>
+        public bool TryLoadSymbols(
+            Assembly assembly,
+            string pdbFileName,
+            out AssemblyDebugInformation assemblyDebugInformation)
+        {
+            cacheLock.EnterUpgradeableReadLock();
+            try
+            {
+                if (assemblies.TryGetValue(assembly, out assemblyDebugInformation))
+                    return true;
+                return TryLoadSymbolsInternal(
+                    assembly,
+                    pdbFileName,
+                    out assemblyDebugInformation);
+            }
+            finally
+            {
+                cacheLock.ExitUpgradeableReadLock();
+            }
         }
 
         /// <summary>
@@ -79,33 +129,36 @@ namespace ILGPU.Frontend.DebugInformation
         /// <param name="assemblyDebugInformation">The loaded debug information (or null).</param>
         /// <returns>True, iff the debug information could be loaded.</returns>
         [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes", Justification = "Loading exceptions will be published on the debug output")]
-        public bool TryLoadSymbols(
+        private bool TryLoadSymbolsInternal(
             Assembly assembly,
             string pdbFileName,
             out AssemblyDebugInformation assemblyDebugInformation)
         {
-            lock (thisLock)
+            cacheLock.EnterWriteLock();
+            try
             {
-                if (assemblies.TryGetValue(assembly, out assemblyDebugInformation))
-                    return true;
-
-                if (triedAssemlbies.Contains(assembly) ||
-                   !TryFindPbdFile(pdbFileName, out string fileName))
-                    return false;
-                triedAssemlbies.Add(assembly);
-
-                try
+                if (pdbFiles.TryGetValue(pdbFileName, out string fileName))
                 {
-                    assemblyDebugInformation = new AssemblyDebugInformation(assembly, fileName);
+                    try
+                    {
+                        assemblyDebugInformation = new AssemblyDebugInformation(assembly, fileName);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("Error loading pdb file: " + pdbFileName);
+                        Debug.WriteLine(ex.ToString());
+                        assemblyDebugInformation = new AssemblyDebugInformation(assembly);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine("Error loading pdb file: " + pdbFileName);
-                    System.Diagnostics.Debug.WriteLine(ex.ToString());
-                    return false;
-                }
+                else
+                    assemblyDebugInformation = new AssemblyDebugInformation(assembly);
+
                 assemblies.Add(assembly, assemblyDebugInformation);
-                return true;
+                return assemblyDebugInformation.IsValid;
+            }
+            finally
+            {
+                cacheLock.ExitWriteLock();
             }
         }
 
@@ -117,9 +170,14 @@ namespace ILGPU.Frontend.DebugInformation
         /// <returns>True, iff the given debug-information file could be found.</returns>
         public bool TryFindPbdFile(string pdbFileName, out string fileName)
         {
-            lock (thisLock)
+            cacheLock.EnterReadLock();
+            try
             {
                 return pdbFiles.TryGetValue(pdbFileName, out fileName);
+            }
+            finally
+            {
+                cacheLock.ExitReadLock();
             }
         }
 
@@ -133,11 +191,30 @@ namespace ILGPU.Frontend.DebugInformation
                 throw new ArgumentNullException(nameof(directory));
             if (!Directory.Exists(directory))
                 throw new DirectoryNotFoundException();
-            var files = Directory.GetFiles(directory, PDBFileSearchPattern);
-            lock (thisLock)
+
+            cacheLock.EnterUpgradeableReadLock();
+            try
             {
-                foreach (var file in files)
-                    pdbFiles[Path.GetFileName(file)] = file;
+                if (lookupDirectories.Contains(directory))
+                    return;
+
+                cacheLock.EnterWriteLock();
+                try
+                {
+                    var files = Directory.GetFiles(directory, PDBFileSearchPattern);
+                    foreach (var file in files)
+                        pdbFiles[Path.GetFileNameWithoutExtension(file)] = file;
+
+                    lookupDirectories.Add(directory);
+                }
+                finally
+                {
+                    cacheLock.ExitWriteLock();
+                }
+            }
+            finally
+            {
+                cacheLock.ExitUpgradeableReadLock();
             }
         }
 
@@ -151,8 +228,7 @@ namespace ILGPU.Frontend.DebugInformation
             MethodBase methodBase,
             out MethodDebugInformation methodDebugInformation)
         {
-            if (methodBase == null)
-                throw new ArgumentNullException(nameof(methodBase));
+            Debug.Assert(methodBase != null, "Invalid method");
             methodDebugInformation = null;
             if (!TryLoadSymbols(
                 methodBase.Module.Assembly,
@@ -172,6 +248,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// If no debug information could be loaded for the given method, an empty
         /// <see cref="SequencePointEnumerator"/> will be returned.
         /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SequencePointEnumerator LoadSequencePoints(MethodBase methodBase)
         {
             if (TryLoadDebugInformation(methodBase, out MethodDebugInformation methodDebugInformation))
@@ -188,6 +265,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// If no debug information could be loaded for the given method, an empty
         /// <see cref="MethodScopeEnumerator"/> will be returned.
         /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public MethodScopeEnumerator LoadScopes(MethodBase methodBase)
         {
             if (TryLoadDebugInformation(methodBase, out MethodDebugInformation methodDebugInformation))
@@ -200,11 +278,14 @@ namespace ILGPU.Frontend.DebugInformation
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
+        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "cacheLock",
+            Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
             foreach (var assembly in assemblies.Values)
                 assembly.Dispose();
             assemblies.Clear();
+            Dispose(ref cacheLock);
         }
 
         #endregion

@@ -13,6 +13,7 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Reflection.Metadata;
@@ -31,6 +32,16 @@ namespace ILGPU.Frontend.DebugInformation
         private MetadataReaderProvider metadataReaderProvider;
         private readonly Dictionary<MethodBase, MethodDebugInformation> debugInformation =
             new Dictionary<MethodBase, MethodDebugInformation>();
+
+        /// <summary>
+        /// Constructs new empty assembly debug information.
+        /// </summary>
+        /// <param name="assembly">The referenced assembly.</param>
+        internal AssemblyDebugInformation(Assembly assembly)
+        {
+            Assembly = assembly;
+            Modules = ImmutableArray<Module>.Empty;
+        }
 
         /// <summary>
         /// Constructs new assembly debug information.
@@ -76,6 +87,11 @@ namespace ILGPU.Frontend.DebugInformation
         public ImmutableArray<Module> Modules { get; }
 
         /// <summary>
+        /// Returns true if this container holds valid debug information.
+        /// </summary>
+        public bool IsValid => !Modules.IsDefaultOrEmpty;
+
+        /// <summary>
         /// Returns the associated metadata reader.
         /// </summary>
         internal MetadataReader MetadataReader { get; }
@@ -109,14 +125,14 @@ namespace ILGPU.Frontend.DebugInformation
         /// <param name="methodBase">The method base.</param>
         /// <param name="methodDebugInformation">The loaded debug information (or null).</param>
         /// <returns>True, iff the requested debug information could be loaded.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryLoadDebugInformation(
             MethodBase methodBase,
             out MethodDebugInformation methodDebugInformation)
         {
-            if (methodBase == null)
-                throw new ArgumentNullException(nameof(methodBase));
-            if (methodBase.Module.Assembly != Assembly)
-                throw new InvalidOperationException();
+            Debug.Assert(methodBase != null, "Invalid method");
+            Debug.Assert(methodBase.Module.Assembly == Assembly, "Invalid method association");
+
             if (methodBase is MethodInfo methodInfo && methodInfo.GetGenericArguments().Length > 0)
                 methodBase = methodInfo.GetGenericMethodDefinition();
             if (!debugInformation.TryGetValue(methodBase, out methodDebugInformation))

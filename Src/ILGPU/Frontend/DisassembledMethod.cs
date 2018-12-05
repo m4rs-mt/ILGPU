@@ -52,6 +52,11 @@ namespace ILGPU.Frontend
         public ILInstruction FirstInstruction => Instructions[0];
 
         /// <summary>
+        /// Returns the first sequence point of this function.
+        /// </summary>
+        public SequencePoint FirstSequencePoint => FirstInstruction.SequencePoint;
+
+        /// <summary>
         /// Returns the disassembled instructions.
         /// </summary>
         public ImmutableArray<ILInstruction> Instructions { get; }

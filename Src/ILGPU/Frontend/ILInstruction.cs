@@ -642,7 +642,14 @@ namespace ILGPU.Frontend
             ushort popCount,
             ushort pushCount,
             object argument)
-            : this(offset, type, flagsContext, popCount, pushCount, argument, null)
+            : this(
+                  offset,
+                  type,
+                  flagsContext,
+                  popCount,
+                  pushCount,
+                  argument,
+                  SequencePoint.Invalid)
         { }
 
         /// <summary>
@@ -663,7 +670,7 @@ namespace ILGPU.Frontend
             ushort popCount,
             ushort pushCount,
             object argument,
-            SequencePoint? sequencePoint)
+            SequencePoint sequencePoint)
         {
             Offset = offset;
             InstructionType = type;
@@ -747,7 +754,12 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the associated sequence point.
         /// </summary>
-        public SequencePoint? SequencePoint { get; }
+        public SequencePoint SequencePoint { get; }
+
+        /// <summary>
+        /// Returns true if this instruction has a valid sequence point.
+        /// </summary>
+        public bool HasValidSequencePoint => SequencePoint.IsValid;
 
         #endregion
 

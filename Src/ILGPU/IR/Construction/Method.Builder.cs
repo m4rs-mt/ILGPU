@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -47,6 +48,8 @@ namespace ILGPU.IR
             {
                 Method = method;
                 parameters = method.parameters.ToBuilder();
+                EnableDebugInformation = Context.HasFlags(
+                    IRContextFlags.EnableDebugInformation);
             }
 
             #endregion
@@ -57,6 +60,11 @@ namespace ILGPU.IR
             /// Returns the associated IR context.
             /// </summary>
             public IRContext Context => Method.Context;
+
+            /// <summary>
+            /// Retruns true if debbug information is enabled.
+            /// </summary>
+            public bool EnableDebugInformation { get; }
 
             /// <summary>
             /// Returns the associated method.
@@ -114,9 +122,27 @@ namespace ILGPU.IR
             /// </summary>
             public int NumParams => parameters.Count;
 
+            /// <summary>
+            /// Gets or sets the current sequence point (if any).
+            /// </summary>
+            public SequencePoint SequencePoint { get; set; }
+
             #endregion
 
             #region Methods
+
+            /// <summary>
+            /// Setups the initial sequence point by binding the method's and
+            /// the entry block's sequence points.
+            /// </summary>
+            /// <param name="sequencePoint">The sequence point to setup.</param>
+            public void SetupInitialSequencePoint(SequencePoint sequencePoint)
+            {
+                SequencePoint = sequencePoint;
+                Method.SequencePoint = sequencePoint;
+                if (EntryBlock != null)
+                    EntryBlock.SequencePoint = sequencePoint;
+            }
 
             /// <summary>
             /// Creates a new unique node marker.
@@ -125,7 +151,7 @@ namespace ILGPU.IR
             public NodeMarker NewNodeMarker() => Context.NewNodeMarker();
 
             /// <summary>
-        /// Creates a new method scope with default flags.
+            /// Creates a new method scope with default flags.
             /// </summary>
             /// <returns>A new method scope.</returns>
             public Scope CreateScope() => Method.CreateScope();
@@ -225,7 +251,10 @@ namespace ILGPU.IR
             /// <returns>The created parameter.</returns>
             private Parameter CreateParam(TypeNode type, string name)
             {
-                var param = new Parameter(Method, type, name);
+                var param = new Parameter(Method, type, name)
+                {
+                    SequencePoint = SequencePoint
+                };
                 Context.Create(param);
                 return param;
             }
@@ -258,7 +287,10 @@ namespace ILGPU.IR
                 var block = new BasicBlock(
                     Method,
                     name,
-                    Context.Context.CreateNodeId());
+                    Context.Context.CreateNodeId())
+                {
+                    SequencePoint = SequencePoint
+                };
                 return this[block];
             }
 
@@ -267,7 +299,32 @@ namespace ILGPU.IR
             /// </summary>
             /// <param name="node">The node to create.</param>
             /// <returns>The created node.</returns>
-            internal void Create(Value node) => Context.Create(node);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal void Create(Value node)
+            {
+                // Register the node
+                Context.Create(node);
+
+                // Check for enabled debug information
+                if (!EnableDebugInformation)
+                    return;
+
+                // Create sequence point information
+                var currentSequencePoint = SequencePoint;
+                if (!currentSequencePoint.IsValid)
+                {
+                    // Try to infer sequence points from all child nodes
+                    foreach (var childNode in node.Nodes)
+                    {
+                        currentSequencePoint = SequencePoint.Merge(
+                            currentSequencePoint,
+                            childNode.SequencePoint);
+                    }
+                }
+
+                // Store final sequence point
+                node.SequencePoint = currentSequencePoint;
+            }
 
             /// <summary>
             /// Declares a method.

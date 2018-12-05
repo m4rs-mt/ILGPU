@@ -10,14 +10,55 @@
 // -----------------------------------------------------------------------------
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Frontend.DebugInformation
 {
     /// <summary>
     /// Represents a single sequence point of an instruction.
     /// </summary>
-    public struct SequencePoint : IEquatable<SequencePoint>
+    public readonly struct SequencePoint
+        : IEquatable<SequencePoint>
+        , IDebugInformationEnumeratorValue
     {
+        #region Constants
+
+        /// <summary>
+        /// Represents an invalid sequence point.
+        /// </summary>
+        public static readonly SequencePoint Invalid = default;
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Merges both sequence points.
+        /// </summary>
+        /// <param name="first">The first sequence point to merge.</param>
+        /// <param name="second">The second sequence point to merge.</param>
+        /// <returns>The merged sequence point</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SequencePoint Merge(
+            in SequencePoint first,
+            in SequencePoint second)
+        {
+            if (!first.IsValid)
+                return second;
+            if (!second.IsValid)
+                return first;
+
+            return new SequencePoint(
+                second.FileName,
+                XMath.Min(first.Offset, second.Offset),
+                XMath.Min(first.StartColumn, second.StartColumn),
+                XMath.Max(first.EndColumn, second.EndColumn),
+                XMath.Min(first.StartLine, second.StartLine),
+                XMath.Max(first.EndLine, second.EndLine));
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -29,6 +70,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// <param name="endColumn">The end column.</param>
         /// <param name="startLine">The start line.</param>
         /// <param name="endLine">The end line.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SequencePoint(
             string fileName,
             int offset,
@@ -53,13 +95,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// Returns true iff the current sequence point might represent
         /// a valid point within a file.
         /// </summary>
-        public bool IsValid =>
-            !string.IsNullOrEmpty(FileName) &&
-            Offset >= 0 &&
-            StartColumn > 0 &&
-            EndColumn > 0 &&
-            StartLine > 0 &&
-            EndLine > 0;
+        public bool IsValid => !string.IsNullOrEmpty(FileName);
 
         /// <summary>
         /// Returns the associated offset.
@@ -100,10 +136,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// </summary>
         /// <param name="other">The other sequence point.</param>
         /// <returns>True, iff the given sequence point is equal to the current sequence point.</returns>
-        public bool Equals(SequencePoint other)
-        {
-            return other == this;
-        }
+        public bool Equals(SequencePoint other) => other == this;
 
         #endregion
 
@@ -114,21 +147,15 @@ namespace ILGPU.Frontend.DebugInformation
         /// </summary>
         /// <param name="obj">The other sequence object.</param>
         /// <returns>True, iff the given object is equal to the current sequence point.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is SequencePoint other)
-                return Equals(other);
-            return false;
-        }
+        public override bool Equals(object obj) =>
+            obj is SequencePoint other && Equals(other);
 
         /// <summary>
         /// Returns the hash code of this sequence point.
         /// </summary>
         /// <returns>The hash code of this sequence point.</returns>
-        public override int GetHashCode()
-        {
-            return StartColumn ^ EndColumn ^ StartLine ^ EndLine;
-        }
+        public override int GetHashCode() =>
+            StartColumn ^ EndColumn ^ StartLine ^ EndLine;
 
         /// <summary>
         /// Returns the location information of this sequence point in VS format.
@@ -162,10 +189,13 @@ namespace ILGPU.Frontend.DebugInformation
         /// <param name="first">The first sequence point.</param>
         /// <param name="second">The second sequence point.</param>
         /// <returns>True, iff the first and the second sequence point are the same.</returns>
-        public static bool operator ==(SequencePoint first, SequencePoint second)
-        {
-            return first.Offset == second.Offset;
-        }
+        public static bool operator ==(SequencePoint first, SequencePoint second) =>
+            first.FileName == second.FileName &&
+            first.Offset == second.Offset &&
+            first.StartColumn == second.StartColumn &&
+            first.EndColumn == second.EndColumn &&
+            first.StartLine == second.StartLine &&
+            first.EndLine == second.EndLine;
 
         /// <summary>
         /// Returns true iff the first sequence point and the second sequence point are not the same.
@@ -173,10 +203,13 @@ namespace ILGPU.Frontend.DebugInformation
         /// <param name="first">The first sequence point.</param>
         /// <param name="second">The second sequence point.</param>
         /// <returns>True, iff the first and the second sequence point are not the same.</returns>
-        public static bool operator !=(SequencePoint first, SequencePoint second)
-        {
-            return first.Offset != second.Offset;
-        }
+        public static bool operator !=(SequencePoint first, SequencePoint second) =>
+            first.FileName != second.FileName ||
+            first.Offset != second.Offset ||
+            first.StartColumn != second.StartColumn ||
+            first.EndColumn != second.EndColumn ||
+            first.StartLine != second.StartLine ||
+            first.EndLine != second.EndLine;
 
         #endregion
     }

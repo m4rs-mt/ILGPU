@@ -61,6 +61,9 @@ namespace ILGPU.Frontend
                 methodBuilder,
                 cfgBuilder.CFG);
 
+            // Setup the initial sequence point of the first instruction
+            methodBuilder.SetupInitialSequencePoint(
+                disassembledMethod.FirstSequencePoint);
             SetupVariables();
         }
 
@@ -99,6 +102,7 @@ namespace ILGPU.Frontend
                     new VariableRef(0, VariableRefType.Argument),
                     Builder.InsertParameter(declaringType, "this"));
             }
+
             var methodParameters = Method.GetParameters();
             var parameterOffset = Method.GetParameterOffset();
             for (int i = 0, e = methodParameters.Length; i < e; ++i)
@@ -236,10 +240,18 @@ namespace ILGPU.Frontend
                 return;
 
             var blockBuilder = block.Builder;
+            blockBuilder.SetupSequencePoint(
+                DisassembledMethod[block.InstructionOffset].SequencePoint);
+
             for (int i = block.InstructionOffset, e = block.InstructionOffset + block.InstructionCount;
                 i < e; ++i)
             {
                 var instruction = DisassembledMethod[i];
+
+                // Setup debug information
+                Builder.SequencePoint = instruction.SequencePoint;
+
+                // Try to generate code for this instruction
                 if (!TryGenerateCode(block, blockBuilder, instruction))
                     throw this.GetNotSupportedException(
                         ErrorMessages.NotSupportedInstruction, Method.Name, instruction);
@@ -311,8 +323,7 @@ namespace ILGPU.Frontend
             Debug.Assert(field != null || !field.IsStatic, "Invalid field");
 
             if ((field.Attributes & FieldAttributes.InitOnly) != FieldAttributes.InitOnly &&
-                (Context.Flags & IRContextFlags.InlineMutableStaticFieldValues) !=
-                IRContextFlags.InlineMutableStaticFieldValues)
+                !Context.HasFlags(IRContextFlags.InlineMutableStaticFieldValues))
                 throw this.GetNotSupportedException(
                     ErrorMessages.NotSupportedLoadOfStaticField, field);
         }
@@ -326,8 +337,7 @@ namespace ILGPU.Frontend
         {
             Debug.Assert(field != null || !field.IsStatic, "Invalid field");
 
-            if ((Context.Flags & IRContextFlags.IgnoreStaticFieldStores) !=
-                IRContextFlags.IgnoreStaticFieldStores)
+            if (!Context.HasFlags(IRContextFlags.IgnoreStaticFieldStores))
                 throw this.GetNotSupportedException(
                     ErrorMessages.NotSupportedStoreToStaticField, field);
         }

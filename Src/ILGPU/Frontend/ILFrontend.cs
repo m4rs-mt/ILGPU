@@ -89,19 +89,22 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Constructs a new frontend with two threads.
         /// </summary>
-        public ILFrontend()
-            : this(2)
+        /// <param name="debugInformationManager">The associated debug information manager.</param>
+        public ILFrontend(DebugInformationManager debugInformationManager)
+            : this(debugInformationManager, 2)
         { }
 
         /// <summary>
         /// Constructs a new frontend that uses the given number of
         /// threads for code generation.
         /// </summary>
+        /// <param name="debugInformationManager">The associated debug information manager.</param>
         /// <param name="numThreads">The number of threads.</param>
-        public ILFrontend(int numThreads)
+        public ILFrontend(DebugInformationManager debugInformationManager, int numThreads)
         {
             if (numThreads < 1)
                 throw new ArgumentOutOfRangeException(nameof(numThreads));
+            DebugInformationManager = debugInformationManager;
             driverNotifier = new ManualResetEventSlim(false);
             threads = new Thread[numThreads];
             for (int i = 0; i < numThreads; ++i)
@@ -115,6 +118,15 @@ namespace ILGPU.Frontend
                 thread.Start();
             }
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the associated debug information manager (if any).
+        /// </summary>
+        public DebugInformationManager DebugInformationManager { get; }
 
         #endregion
 
@@ -339,12 +351,19 @@ namespace ILGPU.Frontend
         private volatile bool isFinished = false;
         private volatile bool hadWorkToDo = false;
 
+        /// <summary>
+        /// Constructs a new generation phase.
+        /// </summary>
+        /// <param name="frontend">The current frontend instance.</param>
+        /// <param name="context">The target IR context.</param>
         internal CodeGenerationPhase(ILFrontend frontend, IRContext context)
         {
             Debug.Assert(frontend != null, "Invalid frontend");
             Debug.Assert(context != null, "Invalid context");
+
             Context = context;
             Frontend = frontend;
+            DebugInformationManager = frontend.DebugInformationManager;
         }
 
         #endregion
@@ -360,6 +379,11 @@ namespace ILGPU.Frontend
         /// Returns the associated context.
         /// </summary>
         public ILFrontend Frontend { get; }
+
+        /// <summary>
+        /// Returns the associated debug information manager (if any).
+        /// </summary>
+        public DebugInformationManager DebugInformationManager { get; }
 
         /// <summary>
         /// Returns true if the generation phase has been finished.
@@ -411,9 +435,9 @@ namespace ILGPU.Frontend
             if (!created & isExternalRequest)
                 return;
 
-            var disassembler = new Disassembler(
-                method, 
-                SequencePointEnumerator.Empty);
+            SequencePointEnumerator sequencePoints =
+                DebugInformationManager?.LoadSequencePoints(method) ?? SequencePointEnumerator.Empty;
+            var disassembler = new Disassembler(method, sequencePoints);
             var diassembledMethod = disassembler.Disassemble();
             using (var builder = generatedMethod.CreateBuilder())
             {

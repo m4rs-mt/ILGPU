@@ -34,9 +34,8 @@ namespace ILGPU.IR.Construction
 
             BasicBlock = basicBlock;
             Context = Method.Context;
-            UseConstantPropagation =
-                (Context.Flags & IRContextFlags.DisableConstantPropagation) !=
-                IRContextFlags.DisableConstantPropagation;
+            UseConstantPropagation = !Context.HasFlags(
+                IRContextFlags.DisableConstantPropagation);
         }
 
         #endregion

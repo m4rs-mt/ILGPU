@@ -68,7 +68,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// <summary>
         /// Returns the current sequence point.
         /// </summary>
-        public SequencePoint? Current => IsValid ? SequencePoints[currentPoint] : new SequencePoint?();
+        public SequencePoint Current => IsValid ? SequencePoints[currentPoint] : SequencePoint.Invalid;
 
         #endregion
 
@@ -82,7 +82,7 @@ namespace ILGPU.Frontend.DebugInformation
         public bool TryGetCurrentDebugLocationString(out string debugLocationString)
         {
             debugLocationString = Current.ToString();
-            return Current.HasValue;
+            return Current.IsValid;
         }
 
         /// <summary>

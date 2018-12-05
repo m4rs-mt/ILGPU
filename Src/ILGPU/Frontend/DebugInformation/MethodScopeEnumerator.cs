@@ -67,7 +67,8 @@ namespace ILGPU.Frontend.DebugInformation
         /// <summary>
         /// Returns the current scope.
         /// </summary>
-        public MethodScope? Current => scopes.Count < 1 ? new MethodScope?() : new MethodScope(scopes.Peek(), MetadataReader);
+        public MethodScope Current =>
+            scopes.Count < 1 ? MethodScope.Invalid : new MethodScope(scopes.Peek(), MetadataReader);
 
         #endregion
 

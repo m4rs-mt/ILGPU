@@ -138,6 +138,13 @@ namespace ILGPU.IR
         #region Methods
 
         /// <summary>
+        /// Returns true if the current context has the given flags.
+        /// </summary>
+        /// <param name="flags">The flags to check.</param>
+        /// <returns>True, if the current context has the given flags.</returns>
+        public bool HasFlags(IRContextFlags flags) => Flags.HasFlag(flags);
+
+        /// <summary>
         /// Returns an unsafe (not thread-safe) function view.
         /// </summary>
         /// <typeparam name="TPredicate">The type of the predicate to apply.</typeparam>
@@ -422,6 +429,9 @@ namespace ILGPU.IR
             {
                 var targetMethod = methodMapping[sourceMethod];
 
+                // Store original sequence point
+                targetMethod.SequencePoint = sourceMethod.SequencePoint;
+
                 using (var builder = targetMethod.CreateBuilder())
                 {
                     // Build new parameters to match the old ones
@@ -573,7 +583,8 @@ namespace ILGPU.IR
                 irLock.ExitWriteLock();
             }
 
-            if ((Flags & IRContextFlags.ForceSystemGC) == IRContextFlags.ForceSystemGC)
+            // Check whether to call a forced system GC
+            if (HasFlags(IRContextFlags.ForceSystemGC))
                 System.GC.Collect();
         }
 

@@ -22,7 +22,10 @@ namespace ILGPU.Frontend.DebugInformation
     /// Represents a default method scope.
     /// </summary>
     [SuppressMessage("Microsoft.Naming", "CA1710:IdentifiersShouldHaveCorrectSuffix", Justification = "This is known to be a scope")]
-    public struct MethodScope : IEnumerable<LocalVariable>, IEquatable<MethodScope>
+    public readonly struct MethodScope
+        : IEnumerable<LocalVariable>
+        , IEquatable<MethodScope>
+        , IDebugInformationEnumeratorValue
     {
         #region Nested Types
 
@@ -109,6 +112,15 @@ namespace ILGPU.Frontend.DebugInformation
 
         #endregion
 
+        #region Constants
+
+        /// <summary>
+        /// Represents an invalid method scope.
+        /// </summary>
+        public static readonly MethodScope Invalid = default;
+
+        #endregion
+
         #region Instance
 
         private readonly LocalVariableHandleCollection localVariables;
@@ -136,6 +148,12 @@ namespace ILGPU.Frontend.DebugInformation
         /// Returns the associated metadata reader.
         /// </summary>
         internal MetadataReader MetadataReader { get; }
+
+        /// <summary>
+        /// Returns true iff the current method scope might represent
+        /// a valid scope of an existing method.
+        /// </summary>
+        public bool IsValid => MetadataReader != null;
 
         /// <summary>
         /// Returns the start offset of the current scope.

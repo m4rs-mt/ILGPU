@@ -159,7 +159,7 @@ namespace ILGPU
         private long functionHandleCounter = 0;
         private long nodeMarker = 0L;
 
-        private SemaphoreSlim codeGenerationSemaphore;
+        private SemaphoreSlim codeGenerationSemaphore = new SemaphoreSlim(1);
         private ILFrontend ilFrontend;
 
         private DebugInformationManager debugInformationManager = new DebugInformationManager();
@@ -222,27 +222,33 @@ namespace ILGPU
             OptimizationLevel optimizationLevel,
             ContextFlags contextFlags)
         {
+            OptimizationLevel = optimizationLevel;
+
+            // Initialize main contexts
             typeContext = new IRTypeContext(this, flags);
             mainContext = new IRContext(this, flags);
-#if !PARALLEL_PROCESSING
-            ilFrontend = new ILFrontend(1);
-#else
-            ilFrontend = new ILFrontend();
-#endif
+
+            // Create frontend
+            DebugInformationManager frontendDebugInformationManager =
+                HasFlags(IRContextFlags.EnableDebugInformation) ?  DebugInformationManager : null;
+
+            if (HasFlags(IRContextFlags.EnableParallelCodeGenerationInFrontend))
+                ilFrontend = new ILFrontend(frontendDebugInformationManager);
+            else
+                ilFrontend = new ILFrontend(frontendDebugInformationManager, 1);
+
+            // Create default IL backend
             if ((contextFlags & ContextFlags.SkipCPUCodeGeneration) == ContextFlags.SkipCPUCodeGeneration)
                 defaultILBackend = new SkipCodeGenerationDefaultILBackend(this);
             else
                 defaultILBackend = new DefaultILBackend(this);
 
-            OptimizationLevel = optimizationLevel;
-
-            codeGenerationSemaphore = new SemaphoreSlim(1);
-
+            // Initialize assembly and module builder
             var assemblyName = new AssemblyName(RuntimeAssemblyName);
-
             assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
 
+            // Initialize context-dependent information
             ptxContextData = new PTXContextData(this);
         }
 
@@ -293,6 +299,13 @@ namespace ILGPU
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns true if the current context has the given flags.
+        /// </summary>
+        /// <param name="flags">The flags to check.</param>
+        /// <returns>True, if the current context has the given flags.</returns>
+        public bool HasFlags(IRContextFlags flags) => Flags.HasFlags(flags);
 
         /// <summary>
         /// Creates a new unique node marker.

@@ -77,7 +77,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// </summary>
         internal void LoadSequencePoints()
         {
-            if (SequencePoints.Length < 1)
+            if (SequencePoints.Length > 0)
                 return;
 
             var debugInformation = MetadataReader.GetMethodDebugInformation(DebugInformationHandle);
@@ -95,19 +95,19 @@ namespace ILGPU.Frontend.DebugInformation
             }
             var sequencePoints = ImmutableArray.CreateBuilder<SequencePoint>(numSequencePoints);
             sequencePointEnumerator = sequencePointsCollection.GetEnumerator();
-            for (numSequencePoints = 0; sequencePointEnumerator.MoveNext(); )
+            while (sequencePointEnumerator.MoveNext())
             {
                 var sequencePoint = sequencePointEnumerator.Current;
                 if (sequencePoint.IsHidden || sequencePoint.Document.IsNil)
                     continue;
                 var doc = MetadataReader.GetDocument(sequencePoint.Document);
-                sequencePoints[numSequencePoints++] = new SequencePoint(
+                sequencePoints.Add(new SequencePoint(
                     doc.Name.IsNil ? string.Empty : MetadataReader.GetString(doc.Name),
                     sequencePoint.Offset,
                     sequencePoint.StartColumn,
                     sequencePoint.EndColumn,
                     sequencePoint.StartLine,
-                    sequencePoint.EndLine);
+                    sequencePoint.EndLine));
             }
             SequencePoints = sequencePoints.MoveToImmutable();
         }
@@ -116,19 +116,15 @@ namespace ILGPU.Frontend.DebugInformation
         /// Creates a new sequence-point enumerator for the current method.
         /// </summary>
         /// <returns>The created sequence-point enumerator.</returns>
-        public SequencePointEnumerator CreateSequencePointEnumerator()
-        {
-            return new SequencePointEnumerator(SequencePoints);
-        }
+        public SequencePointEnumerator CreateSequencePointEnumerator() =>
+            new SequencePointEnumerator(SequencePoints);
 
         /// <summary>
         /// Creates a new scope enumerator for the current method.
         /// </summary>
         /// <returns>The create scope enumerator.</returns>
-        public MethodScopeEnumerator CreateScopeEnumerator()
-        {
-            return new MethodScopeEnumerator(this);
-        }
+        public MethodScopeEnumerator CreateScopeEnumerator() =>
+            new MethodScopeEnumerator(this);
 
         #endregion
     }
