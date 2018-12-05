@@ -49,7 +49,7 @@ namespace ILGPU.IR.Transformations
     /// <summary>
     /// Represents an intrinsic implementation specializer.
     /// </summary>
-    public sealed class IntrinsicSpecializer<TConfiguration> : UnorderedTransformation<AsyncCachedScopeProvider>
+    public sealed class IntrinsicSpecializer<TConfiguration> : UnorderedTransformation<CachedScopeProvider>
         where TConfiguration : IIntrinsicSpecializerConfiguration
     {
         private TConfiguration configuration;
@@ -63,10 +63,13 @@ namespace ILGPU.IR.Transformations
         }
 
         /// <summary cref="UnorderedTransformation{TIntermediate}.CreateIntermediate"/>
-        protected override AsyncCachedScopeProvider CreateIntermediate() => new AsyncCachedScopeProvider();
+        protected override CachedScopeProvider CreateIntermediate() => new CachedScopeProvider();
+
+        /// <summary cref="UnorderedTransformation{TIntermediate}.FinishProcessing(TIntermediate)"/>
+        protected override void FinishProcessing(CachedScopeProvider intermediate) { }
 
         /// <summary cref="UnorderedTransformation{TIntermediate}.PerformTransformation(Method.Builder, TIntermediate)"/>
-        protected override bool PerformTransformation(Method.Builder builder, AsyncCachedScopeProvider scopeProvider)
+        protected override bool PerformTransformation(Method.Builder builder, CachedScopeProvider scopeProvider)
         {
             var scope = builder.CreateScope();
 

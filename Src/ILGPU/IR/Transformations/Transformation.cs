@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
-using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 #if !VERIFICATION
@@ -83,6 +82,7 @@ namespace ILGPU.IR.Transformations
     /// <summary>
     /// Represents a generic transformation that can be applied in an unordered manner.
     /// </summary>
+    /// <remarks>Note that this transformation is applied in parallel to all methods.</remarks>
     public abstract class UnorderedTransformation : Transformation
     {
         #region Nested Types
@@ -160,7 +160,6 @@ namespace ILGPU.IR.Transformations
     /// </summary>
     /// <typeparam name="TIntermediate">The type of the intermediate values.</typeparam>
     public abstract class UnorderedTransformation<TIntermediate> : Transformation
-        where TIntermediate : DisposeBase
     {
         #region Nested Types
 
@@ -216,29 +215,27 @@ namespace ILGPU.IR.Transformations
         /// <returns>The resulting intermediate value.</returns>
         protected abstract TIntermediate CreateIntermediate();
 
+        /// <summary>
+        /// Is invoked after all methods have been transformed.
+        /// </summary>
+        /// <param name="intermediate">The current intermediate value.</param>
+        protected abstract void FinishProcessing(TIntermediate intermediate);
+
         /// <summary cref="Transformation.Transform{TPredicate}(MethodCollection{TPredicate})"/>
         public override void Transform<TPredicate>(
             MethodCollection<TPredicate> methods)
         {
-            using (var intermediate = CreateIntermediate())
+            var intermediate = CreateIntermediate();
+
+            // Apply transformation to all methods
+            foreach (var method in methods)
             {
-#if VERIFICATION
-                foreach (var method in methods)
-                {
-                    var executor = new Executor(this, intermediate);
-                    using (var builder = method.CreateBuilder())
-                        ExecuteTransform(builder, executor);
-                }
-#else
-                Parallel.ForEach(methods,
-                    (Method method) =>
-                    {
-                        var executor = new Executor(this, intermediate);
-                        using (var builder = method.CreateBuilder())
-                            ExecuteTransform(builder, executor);
-                    });
-#endif
+                var executor = new Executor(this, intermediate);
+                using (var builder = method.CreateBuilder())
+                    ExecuteTransform(builder, executor);
             }
+
+            FinishProcessing(intermediate);
         }
 
         /// <summary>
