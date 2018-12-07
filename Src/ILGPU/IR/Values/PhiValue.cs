@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using ILGPU.Util;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -34,7 +33,7 @@ namespace ILGPU.IR.Values
         /// </summary>
         [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
             Justification = "This is the correct name of the current entity")]
-        public sealed class Builder : DisposeBase, IReadOnlyCollection<ValueReference>
+        public sealed class Builder : IReadOnlyCollection<ValueReference>
         {
             #region Instance
 
@@ -126,16 +125,6 @@ namespace ILGPU.IR.Values
 
             /// <summary cref="IEnumerable.GetEnumerator"/>
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-            #endregion
-
-            #region IDisposable
-
-            /// <summary cref="DisposeBase.Dispose(bool)"/>
-            protected override void Dispose(bool disposing)
-            {
-                Seal();
-            }
 
             #endregion
         }

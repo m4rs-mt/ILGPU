@@ -189,7 +189,7 @@ namespace ILGPU.IR
         /// <summary>
         /// The collection of all uses.
         /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         private readonly HashSet<Use> allUses = new HashSet<Use>();
 
         /// <summary>
@@ -279,12 +279,6 @@ namespace ILGPU.IR
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         public int AllNumUses => allUses.Count;
-
-        /// <summary>
-        /// Returns all internal uses.
-        /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-        protected HashSet<Use> AllUses => allUses;
 
         /// <summary>
         /// Returns all current uses (to non-replaced values).
