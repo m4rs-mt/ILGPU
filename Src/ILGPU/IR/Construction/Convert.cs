@@ -61,8 +61,9 @@ namespace ILGPU.IR.Construction
                     convert.SourceType == basicValueType.GetArithmeticBasicValueType(isSourceUnsigned))
                     return convert.Value;
             }
+
             // Match X to bool
-            else if (targetPrimitiveType.IsBool)
+            if (targetPrimitiveType.IsBool)
             {
                 return CreateCompare(
                     node,
