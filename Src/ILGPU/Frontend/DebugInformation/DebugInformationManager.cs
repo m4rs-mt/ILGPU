@@ -84,7 +84,7 @@ namespace ILGPU.Frontend.DebugInformation
                 if (!lookupDirectories.Contains(debugDir))
                     RegisterLookupDirectory(debugDir);
 
-                var pdbFileName = Path.GetFileNameWithoutExtension(assembly.GetName().Name);
+                var pdbFileName = assembly.GetName().Name;
                 return TryLoadSymbolsInternal(assembly, pdbFileName, out assemblyDebugInformation);
             }
             finally
