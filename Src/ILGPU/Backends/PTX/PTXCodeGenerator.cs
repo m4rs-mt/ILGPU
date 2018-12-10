@@ -47,7 +47,7 @@ namespace ILGPU.Backends.PTX
                 StringBuilder stringBuilder,
                 PTXArchitecture architecture,
                 ABI abi,
-                IRContextFlags contextFlags)
+                ContextFlags contextFlags)
             {
                 EntryPoint = entryPoint;
                 DebugInfoGenerator = debugInfoGenerator;
@@ -65,7 +65,7 @@ namespace ILGPU.Backends.PTX
 
             public ABI ABI { get; }
 
-            public IRContextFlags ContextFlags { get; }
+            public ContextFlags ContextFlags { get; }
 
             public PTXDebugInfoGenerator DebugInfoGenerator { get; }
         }
@@ -208,8 +208,8 @@ namespace ILGPU.Backends.PTX
             DebugInfoGenerator = args.DebugInfoGenerator;
 
             Architecture = args.Architecture;
-            FastMath = args.ContextFlags.HasFlags(IRContextFlags.FastMath);
-            EnableAssertions = args.ContextFlags.HasFlags(IRContextFlags.EnableAssertions);
+            FastMath = args.ContextFlags.HasFlags(ContextFlags.FastMath);
+            EnableAssertions = args.ContextFlags.HasFlags(ContextFlags.EnableAssertions);
 
             labelPrefix = "L_" + Method.Id.ToString();
             returnParamName = "retval_" + Method.Id;

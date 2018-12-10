@@ -230,7 +230,7 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(double value)
         {
-            if (Context.HasFlags(IRContextFlags.Force32BitFloats))
+            if (Context.HasFlags(ContextFlags.Force32BitFloats))
                 return CreatePrimitiveValue((float)value);
 
             return Append(new PrimitiveValue(

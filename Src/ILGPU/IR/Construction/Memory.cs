@@ -141,8 +141,8 @@ namespace ILGPU.IR.Construction
             Debug.Assert(length != null, "Invalid length value");
 
             Debug.Assert(source.Type.IsViewType, "Invalid source view type");
-            Debug.Assert(offset.BasicValueType == IRContext.ViewIndexType, "Invalid offset type");
-            Debug.Assert(length.BasicValueType == IRContext.ViewIndexType, "Invalid length type");
+            Debug.Assert(offset.BasicValueType == IRTypeContext.ViewIndexType, "Invalid offset type");
+            Debug.Assert(length.BasicValueType == IRTypeContext.ViewIndexType, "Invalid length type");
 
             return Append(new SubViewValue(
                 BasicBlock,
@@ -166,7 +166,7 @@ namespace ILGPU.IR.Construction
 
             var addressSpaceType = source.Type as AddressSpaceType;
             Debug.Assert(addressSpaceType != null, "Invalid address space type");
-            Debug.Assert(elementIndex.BasicValueType == IRContext.ViewIndexType, "Incompatible index type");
+            Debug.Assert(elementIndex.BasicValueType == IRTypeContext.ViewIndexType, "Incompatible index type");
 
             // Fold primitive pointer arithmetic that does not change anything
             if (source.Type is PointerType &&

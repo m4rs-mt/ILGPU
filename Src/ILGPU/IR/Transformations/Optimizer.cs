@@ -46,25 +46,23 @@ namespace ILGPU.IR.Transformations
         /// Populates the given transformation manager with the required
         /// optimization transformations.
         /// </summary>
-        /// <typeparam name="TInliningConfiguration">The inlining configuration type.</typeparam>
         /// <param name="builder">The transformation manager to populate.</param>
-        /// <param name="inliningConfiguration">The desired inlining configuration.</param>
+        /// <param name="contextFlags">The context flags.</param>
         /// <param name="level">The desired optimization level.</param>
         /// <returns>The maximum number of iterations.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AddOptimizations<TInliningConfiguration>(
+        public static void AddOptimizations(
             this Transformer.Builder builder,
-            in TInliningConfiguration inliningConfiguration,
+            ContextFlags contextFlags,
             OptimizationLevel level)
-            where TInliningConfiguration : IInliningConfiguration
         {
             switch (level)
             {
                 case OptimizationLevel.Debug:
-                    AddDebugOptimizations(builder, inliningConfiguration);
+                    AddDebugOptimizations(builder, contextFlags);
                     break;
                 case OptimizationLevel.Release:
-                    AddReleaseOptimizations(builder, inliningConfiguration);
+                    AddReleaseOptimizations(builder, contextFlags);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(level));
@@ -75,15 +73,13 @@ namespace ILGPU.IR.Transformations
         /// Populates the given transformation manager with the required
         /// debug optimization transformations.
         /// </summary>
-        /// <typeparam name="TInliningConfiguration">The inlining configuration type.</typeparam>
         /// <param name="builder">The transformation manager to populate.</param>
-        /// <param name="inliningConfiguration">The desired inlining configuration.</param>
-        public static void AddDebugOptimizations<TInliningConfiguration>(
+        /// <param name="contextFlags">The context flags.</param>
+        public static void AddDebugOptimizations(
             this Transformer.Builder builder,
-            in TInliningConfiguration inliningConfiguration)
-            where TInliningConfiguration : IInliningConfiguration
+            ContextFlags contextFlags)
         {
-            builder.Add(new Inliner<TInliningConfiguration>(inliningConfiguration));
+            builder.AddInliner(contextFlags);
             builder.Add(new SimplifyControlFlow());
             builder.Add(new SSAConstruction());
             builder.Add(new DeadCodeElimination());
@@ -93,22 +89,20 @@ namespace ILGPU.IR.Transformations
         /// Populates the given transformation manager with the required
         /// release optimization transformations.
         /// </summary>
-        /// <typeparam name="TInliningConfiguration">The inlining configuration type.</typeparam>
         /// <param name="builder">The transformation manager to populate.</param>
-        /// <param name="inliningConfiguration">The desired inlining configuration.</param>
-        public static void AddReleaseOptimizations<TInliningConfiguration>(
+        /// <param name="contextFlags">The context flags.</param>
+        public static void AddReleaseOptimizations(
             this Transformer.Builder builder,
-            in TInliningConfiguration inliningConfiguration)
-            where TInliningConfiguration : IInliningConfiguration
+            ContextFlags contextFlags)
         {
-            builder.Add(new Inliner<TInliningConfiguration>(inliningConfiguration));
+            builder.AddInliner(contextFlags);
             builder.Add(new SimplifyControlFlow());
             builder.Add(new InferAddressSpaces());
             builder.Add(new SSAConstruction());
             builder.Add(new DeadCodeElimination());
 
             builder.Add(new SimplifyControlFlow());
-            builder.Add(new Inliner<TInliningConfiguration>(inliningConfiguration));
+            builder.AddInliner(contextFlags);
             builder.Add(new SSAConstruction());
         }
 
@@ -117,16 +111,15 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         /// <param name="level">The level.</param>
         /// <param name="configuration">The transformer configuration.</param>
-        /// <param name="inliningConfiguration">The inlining configuration.</param>
+        /// <param name="contextFlags">The context flags.</param>
         /// <returns>The created transformer.</returns>
-        public static Transformer CreateTransformer<TInliningConfiguration>(
+        public static Transformer CreateTransformer(
             this OptimizationLevel level,
             TransformerConfiguration configuration,
-            in TInliningConfiguration inliningConfiguration)
-            where TInliningConfiguration : IInliningConfiguration
+            ContextFlags contextFlags)
         {
             var builder = Transformer.CreateBuilder(configuration);
-            builder.AddOptimizations(inliningConfiguration, level);
+            builder.AddOptimizations(contextFlags, level);
             return builder.ToTransformer();
         }
     }

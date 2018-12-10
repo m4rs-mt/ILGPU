@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Frontend.DebugInformation
@@ -79,6 +80,12 @@ namespace ILGPU.Frontend.DebugInformation
             int startLine,
             int endLine)
         {
+            Debug.Assert(!string.IsNullOrEmpty(fileName), "Invalid file name");
+            Debug.Assert(startColumn >= 0, "Invalid start column");
+            Debug.Assert(endColumn >= startColumn, "Invalid end column");
+            Debug.Assert(startLine >= 0, "Invalid start line");
+            Debug.Assert(endLine >= startLine, "Invalid end line");
+
             FileName = fileName;
             Offset = offset;
             StartColumn = startColumn;

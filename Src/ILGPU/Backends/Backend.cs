@@ -385,7 +385,7 @@ namespace ILGPU.Backends
             TBackendHandler backendHandler)
             where TBackendHandler : IBackendHandler
         {
-            using (var kernelContext = new IRContext(Context, Context.Flags))
+            using (var kernelContext = new IRContext(Context))
             {
                 IRContext mainContext;
                 Method generatedKernelMethod;

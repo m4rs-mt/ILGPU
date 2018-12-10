@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.Runtime;
@@ -45,7 +44,7 @@ namespace ILGPU.Backends.PTX
             /// <param name="abi">The ABI specification.</param>
             /// <param name="contextData">The global PTX context data.</param>
             public SpecializerConfiguration(
-                IRContextFlags flags,
+                ContextFlags flags,
                 ABI abi,
                 PTXContextData contextData)
             {
@@ -57,10 +56,10 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Returns the associated context.
             /// </summary>
-            public IRContextFlags ContextFlags { get; }
+            public ContextFlags ContextFlags { get; }
 
             /// <summary cref="IIntrinsicSpecializerConfiguration.EnableAssertions"/>
-            public bool EnableAssertions => (ContextFlags & IRContextFlags.EnableAssertions) == IRContextFlags.EnableAssertions;
+            public bool EnableAssertions => ContextFlags.HasFlags(ContextFlags.EnableAssertions);
 
             /// <summary cref="IIntrinsicSpecializerConfiguration.WarpSize"/>
             public int WarpSize => PTXBackend.WarpSize;
@@ -193,7 +192,7 @@ namespace ILGPU.Backends.PTX
             in BackendContext backendContext,
             in KernelSpecialization specialization)
         {
-            bool useDebugInfo = Context.HasFlags(IRContextFlags.EnableDebugInformation);
+            bool useDebugInfo = Context.HasFlags(ContextFlags.EnableDebugInformation);
 
             var builder = CreatePTXBuilder(useDebugInfo, out int constantOffset);
             var debugInfoGenerator = useDebugInfo ?

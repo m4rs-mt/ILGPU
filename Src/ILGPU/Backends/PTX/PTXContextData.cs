@@ -130,7 +130,7 @@ namespace ILGPU.Backends.PTX
                     new IntrinsicSpecializer<PTXIntrinsicConfiguration>(new PTXIntrinsicConfiguration(
                         this)));
                 irContext.Transform(transformer);
-                irContext.Optimize(OptimizationLevel.Debug);
+                irContext.Optimize();
                 resolver.ApplyTo(this);
             }
 
@@ -174,7 +174,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="context">The main context.</param>
         public PTXContextData(Context context)
         {
-            intrinsicContext = new IRContext(context, context.Flags);
+            intrinsicContext = new IRContext(context);
             ImplementationResolver = new Resolver(context, IntrinsicContext);
         }
 

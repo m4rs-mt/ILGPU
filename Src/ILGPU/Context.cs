@@ -29,53 +29,11 @@ using System.Threading.Tasks;
 namespace ILGPU
 {
     /// <summary>
-    /// Represents flags for a <see cref="Context"/>.
-    /// </summary>
-    [Flags]
-    public enum ContextFlags : int
-    {
-        /// <summary>
-        /// Default flags.
-        /// </summary>
-        None = 0,
-
-        /// <summary>
-        /// Skips the internal IR code generation phase for CPU kernels (debug flag).
-        /// </summary>
-        /// <remarks>
-        /// Caution: this avoids general kernel code-analysis and verfication checks.
-        /// </remarks>
-        SkipCPUCodeGeneration = 1 << 0,
-    }
-
-    /// <summary>
     /// Represents the main ILGPU context.
     /// </summary>
     /// <remarks>Members of this class are thread safe.</remarks>
-    public sealed class Context : DisposeBase
+    public sealed partial class Context : DisposeBase
     {
-        #region Constants
-
-        /// <summary>
-        /// The name of the dynamic runtime assembly.
-        /// </summary>
-        public const string RuntimeAssemblyName = "ILGPURuntime";
-
-        /// <summary>
-        /// Represents the general ILGPU assembly module name.
-        /// </summary>
-        public const string AssemblyModuleName = "ILGPU.dll";
-
-        /// <summary>
-        /// The ILGPU assembly file extension.
-        /// </summary>
-        public const string IRFileExtension = ".gpuil";
-
-        private const string CustomTypeName = "ILGPURuntimeType";
-        private const string LauncherMethodName = "ILGPULauncher";
-
-        #endregion
-
         #region Static
 
         /// <summary>
@@ -179,14 +137,14 @@ namespace ILGPU
         /// Constructs a new ILGPU main context
         /// </summary>
         public Context()
-            : this(IRContext.DefaultFlags)
+            : this(DefaultFlags)
         { }
 
         /// <summary>
         /// Constructs a new ILGPU main context
         /// </summary>
-        /// <param name="flags">The main IR context flags.</param>
-        public Context(IRContextFlags flags)
+        /// <param name="flags">The context flags.</param>
+        public Context(ContextFlags flags)
 #if DEBUG
             : this(flags, OptimizationLevel.Debug)
 #else
@@ -199,49 +157,43 @@ namespace ILGPU
         /// </summary>
         /// <param name="optimizationLevel">The optimization level.</param>
         public Context(OptimizationLevel optimizationLevel)
-            : this(IRContext.DefaultFlags, optimizationLevel)
+            : this(DefaultFlags, optimizationLevel)
         { }
 
         /// <summary>
         /// Constructs a new ILGPU main context
         /// </summary>
         /// <param name="optimizationLevel">The optimization level.</param>
-        /// <param name="flags">The main IR context flags.</param>
-        public Context(IRContextFlags flags, OptimizationLevel optimizationLevel)
-            : this(flags, optimizationLevel, ContextFlags.None)
-        { }
-
-        /// <summary>
-        /// Constructs a new ILGPU main context
-        /// </summary>
-        /// <param name="optimizationLevel">The optimization level.</param>
-        /// <param name="flags">The main IR context flags.</param>
-        /// <param name="contextFlags">The ILGPU context flags.</param>
-        public Context(
-            IRContextFlags flags,
-            OptimizationLevel optimizationLevel,
-            ContextFlags contextFlags)
+        /// <param name="flags">The context flags.</param>
+        public Context(ContextFlags flags, OptimizationLevel optimizationLevel)
         {
             OptimizationLevel = optimizationLevel;
+            Flags = flags.Prepare();
 
             // Initialize main contexts
-            typeContext = new IRTypeContext(this, flags);
-            mainContext = new IRContext(this, flags);
+            typeContext = new IRTypeContext(this);
+            mainContext = new IRContext(this);
 
             // Create frontend
             DebugInformationManager frontendDebugInformationManager =
-                HasFlags(IRContextFlags.EnableDebugInformation) ?  DebugInformationManager : null;
+                HasFlags(ContextFlags.EnableDebugInformation) ?  DebugInformationManager : null;
 
-            if (HasFlags(IRContextFlags.EnableParallelCodeGenerationInFrontend))
+            if (HasFlags(ContextFlags.EnableParallelCodeGenerationInFrontend))
                 ilFrontend = new ILFrontend(frontendDebugInformationManager);
             else
                 ilFrontend = new ILFrontend(frontendDebugInformationManager, 1);
 
             // Create default IL backend
-            if ((contextFlags & ContextFlags.SkipCPUCodeGeneration) == ContextFlags.SkipCPUCodeGeneration)
+            if (flags.HasFlags(ContextFlags.SkipCPUCodeGeneration))
                 defaultILBackend = new SkipCodeGenerationDefaultILBackend(this);
             else
                 defaultILBackend = new DefaultILBackend(this);
+
+            // Initialize default transformer
+            ContextTransformer = Optimizer.CreateTransformer(
+                OptimizationLevel,
+                TransformerConfiguration.Transformed,
+                Flags);
 
             // Initialize assembly and module builder
             var assemblyName = new AssemblyName(RuntimeAssemblyName);
@@ -262,9 +214,9 @@ namespace ILGPU
         public IRContext IRContext => mainContext;
 
         /// <summary>
-        /// Returns the associated flags.
+        /// Returns the associated context flags.
         /// </summary>
-        public IRContextFlags Flags => IRContext.Flags;
+        public ContextFlags Flags { get; }
 
         /// <summary>
         /// Returns the associated IL frontend.
@@ -292,6 +244,11 @@ namespace ILGPU
         public IRTypeContext TypeContext => typeContext;
 
         /// <summary>
+        /// Returns the default context transformer.
+        /// </summary>
+        public Transformer ContextTransformer { get; }
+
+        /// <summary>
         /// Returns internal PTX context data for PTX backends.
         /// </summary>
         internal PTXContextData PTXContextData => ptxContextData;
@@ -305,7 +262,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="flags">The flags to check.</param>
         /// <returns>True, if the current context has the given flags.</returns>
-        public bool HasFlags(IRContextFlags flags) => Flags.HasFlags(flags);
+        public bool HasFlags(ContextFlags flags) => Flags.HasFlags(flags);
 
         /// <summary>
         /// Creates a new unique node marker.
@@ -540,10 +497,7 @@ namespace ILGPU
         /// <summary>
         /// Optimizes the IR.
         /// </summary>
-        public void Optimize()
-        {
-            IRContext.Optimize(Context.OptimizationLevel);
-        }
+        public void Optimize() => IRContext.Optimize();
 
         #endregion
 

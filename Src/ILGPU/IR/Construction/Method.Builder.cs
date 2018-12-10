@@ -49,7 +49,7 @@ namespace ILGPU.IR
                 Method = method;
                 parameters = method.parameters.ToBuilder();
                 EnableDebugInformation = Context.HasFlags(
-                    IRContextFlags.EnableDebugInformation);
+                    ContextFlags.EnableDebugInformation);
             }
 
             #endregion

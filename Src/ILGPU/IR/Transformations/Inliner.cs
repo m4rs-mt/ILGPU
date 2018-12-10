@@ -63,6 +63,21 @@ namespace ILGPU.IR.Transformations
         }
 
         /// <summary>
+        /// Represents an inling configuration to inline functions marked
+        /// with "aggressive inlining" only.
+        /// </summary>
+        public readonly struct ConservativeInliningConfiguration : IInliningConfiguration
+        {
+            /// <summary cref="IInliningConfiguration.CanInline(Landscape.Entry, MethodCall, Scope)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool CanInline(
+                Landscape.Entry caller,
+                MethodCall methodCall,
+                Scope callee) =>
+                callee.Method.HasFlags(MethodFlags.AggressiveInlining);
+        }
+
+        /// <summary>
         /// Represents a default (but slightly aggressive) inlining configuration.
         /// </summary>
         public readonly struct DefaultInliningConfiguration : IInliningConfiguration
@@ -112,6 +127,12 @@ namespace ILGPU.IR.Transformations
         public static readonly AggressiveInliningConfiguration AggressiveInlining = default;
 
         /// <summary>
+        /// Represents an inling configuration to inline functions marked
+        /// with "aggressive inlining" only.
+        /// </summary>
+        public static readonly ConservativeInliningConfiguration ConservativeInlining = default;
+
+        /// <summary>
         /// Represents a default (but slightly aggressive) inlining configuration.
         /// </summary>
         public static readonly DefaultInliningConfiguration Default = default;
@@ -141,13 +162,14 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         /// <param name="builder">The current transformer builder.</param>
         /// <param name="flags">The current context flags.</param>
-        public static void AddInliner(
-            this Transformer.Builder builder,
-            IRContextFlags flags)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AddInliner(this Transformer.Builder builder, ContextFlags flags)
         {
-            if ((flags & IRContextFlags.AggressiveInlining) == IRContextFlags.AggressiveInlining)
+            if (flags.HasFlags(ContextFlags.AggressiveInlining))
                 builder.AddInliner(AggressiveInlining);
-            else
+            else if (flags.HasFlags(ContextFlags.ConservativeInlining))
+                builder.AddInliner(ConservativeInlining);
+            else if (!flags.HasFlags(ContextFlags.NoInlining))
                 builder.AddInliner(Default);
         }
 

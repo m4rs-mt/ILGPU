@@ -62,40 +62,17 @@ namespace ILGPU.IR
             LockRecursionPolicy.SupportsRecursion);
         private readonly Action<Method> gcDelegate;
 
-        private readonly Transformer[] transformers;
         private readonly MethodMapping<Method> methods = new MethodMapping<Method>();
 
         /// <summary>
         /// Constructs a new IR context.
         /// </summary>
         /// <param name="context">The associated main context.</param>
-        /// <param name="flags">The context flags.</param>
-        public IRContext(Context context, IRContextFlags flags)
+        public IRContext(Context context)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             TypeContext = context.TypeContext;
-            Flags = flags;
-
-            transformers = new Transformer[2];
-            if ((flags & IRContextFlags.AggressiveInlining) == IRContextFlags.AggressiveInlining)
-                CreateTransformers<Inliner.AggressiveInliningConfiguration>();
-            else
-                CreateTransformers<Inliner.DefaultInliningConfiguration>();
-
             gcDelegate = (Method method) => method.GC();
-        }
-
-        private void CreateTransformers<TInliningConfiguration>()
-            where TInliningConfiguration : IInliningConfiguration, new()
-        {
-            transformers[0] = Optimizer.CreateTransformer(
-                    OptimizationLevel.Debug,
-                    TransformerConfiguration.Transformed,
-                    new TInliningConfiguration());
-            transformers[1] = Optimizer.CreateTransformer(
-                    OptimizationLevel.Release,
-                    TransformerConfiguration.Transformed,
-                    new TInliningConfiguration());
         }
 
         #endregion
@@ -115,7 +92,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the associated flags.
         /// </summary>
-        public IRContextFlags Flags { get; }
+        public ContextFlags Flags => Context.Flags;
 
         /// <summary>
         /// Internal (unsafe) access to all top-level functions.
@@ -142,7 +119,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="flags">The flags to check.</param>
         /// <returns>True, if the current context has the given flags.</returns>
-        public bool HasFlags(IRContextFlags flags) => Flags.HasFlag(flags);
+        public bool HasFlags(ContextFlags flags) => Context.HasFlags(flags);
 
         /// <summary>
         /// Returns an unsafe (not thread-safe) function view.
@@ -477,23 +454,11 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Performs an aggressive optimization step.
+        /// Applies all default optimization transformations.
         /// </summary>
         public void Optimize()
         {
-            Optimize(OptimizationLevel.Release);
-        }
-
-        /// <summary>
-        /// Performs an optimization step with a particular
-        /// optimization level.
-        /// </summary>
-        /// <param name="level">The optimization level.</param>
-        public void Optimize(OptimizationLevel level)
-        {
-            if (level < OptimizationLevel.Debug || level > OptimizationLevel.Release)
-                throw new ArgumentOutOfRangeException(nameof(level));
-            Transform(transformers[(int)level]);
+            Transform(Context.ContextTransformer);
         }
 
         /// <summary>
@@ -584,7 +549,7 @@ namespace ILGPU.IR
             }
 
             // Check whether to call a forced system GC
-            if (HasFlags(IRContextFlags.ForceSystemGC))
+            if (HasFlags(ContextFlags.ForceSystemGC))
                 System.GC.Collect();
         }
 

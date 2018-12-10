@@ -38,6 +38,11 @@ namespace ILGPU.IR.Types
                 BasicValueType.Float32,
                 BasicValueType.Float64);
 
+        /// <summary>
+        /// Represents the index type of a view.
+        /// </summary>
+        internal static readonly BasicValueType ViewIndexType = BasicValueType.Int32;
+
         #endregion
 
         #region Instance
@@ -51,7 +56,8 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Constructs a new IR type context.
         /// </summary>
-        public IRTypeContext(Context context, IRContextFlags flags)
+        /// <param name="context">The associated main context.</param>
+        public IRTypeContext(Context context)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
 
@@ -65,7 +71,7 @@ namespace ILGPU.IR.Types
                     new PrimitiveType(type));
             }
 
-            if ((flags & IRContextFlags.Force32BitFloats) == IRContextFlags.Force32BitFloats)
+            if (context.HasFlags(ContextFlags.Force32BitFloats))
             {
                 basicValueTypes[
                     (int)BasicValueType.Float64] = basicValueTypes[
