@@ -13,6 +13,8 @@ using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -127,7 +129,7 @@ namespace ILGPU.Backends.PTX
     /// <summary>
     /// Generates line-based debug information for PTX kernels.
     /// </summary>
-    sealed class PTXDebugLineInfoGenerator : PTXDebugInfoGenerator
+    class PTXDebugLineInfoGenerator : PTXDebugInfoGenerator
     {
         #region Instance
 
@@ -156,6 +158,7 @@ namespace ILGPU.Backends.PTX
             }
 
             // Append a debug annotation for this value
+            builder.AppendLine();
             builder.Append("\t.loc\t");
             builder.Append(fileIndex);
             builder.Append(' ');
@@ -183,6 +186,62 @@ namespace ILGPU.Backends.PTX
             // Append debug section to enable debugging support
             builder.AppendLine();
             builder.AppendLine(".section.debug_info { }");
+        }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Generates line-based location information and inserts the referenced
+    /// source lines into the generated PTX code.
+    /// </summary>
+    sealed class PTXDebugSourceLineInfoGenerator : PTXDebugLineInfoGenerator
+    {
+        #region Instance
+
+        private readonly Dictionary<string, string[]> fileMapping = new Dictionary<string, string[]>();
+
+        /// <summary>
+        /// Constructs a debug information generator.
+        /// </summary>
+        public PTXDebugSourceLineInfoGenerator() { }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="PTXDebugInfoGenerator.GenerateDebugInfo(StringBuilder, Node, in SequencePoint)"/>
+        [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes",
+            Justification = "Exceptions of any kind are ignored when trying to load the referenced source files")]
+        protected override void GenerateDebugInfo(
+            StringBuilder builder,
+            Node node,
+            in SequencePoint sequencePoint)
+        {
+            base.GenerateDebugInfo(builder, node, sequencePoint);
+
+            // Try to load file
+            if (!File.Exists(sequencePoint.FileName))
+                return;
+
+            try
+            {
+                if (!fileMapping.TryGetValue(sequencePoint.FileName, out string[] lines))
+                {
+                    lines = File.ReadAllLines(sequencePoint.FileName);
+                    fileMapping.Add(sequencePoint.FileName, lines);
+                }
+                for (int i = sequencePoint.StartLine; i <= sequencePoint.EndLine; ++i)
+                {
+                    builder.Append("\t// ");
+                    builder.AppendLine(lines[i - 1].Trim());
+                }
+            }
+            catch
+            {
+                // No debug information could be found
+                builder.Append("\t// <No Source Line>");
+            }
         }
 
         #endregion

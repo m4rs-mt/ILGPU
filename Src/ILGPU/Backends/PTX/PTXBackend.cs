@@ -195,9 +195,13 @@ namespace ILGPU.Backends.PTX
             bool useDebugInfo = Context.HasFlags(ContextFlags.EnableDebugInformation);
 
             var builder = CreatePTXBuilder(useDebugInfo, out int constantOffset);
-            var debugInfoGenerator = useDebugInfo ?
-                new PTXDebugLineInfoGenerator() as PTXDebugInfoGenerator :
-                PTXNoDebugInfoGenerator.Empty;
+            PTXDebugInfoGenerator debugInfoGenerator = PTXNoDebugInfoGenerator.Empty;
+            if (useDebugInfo)
+            {
+                debugInfoGenerator = Context.HasFlags(ContextFlags.EnableInlineSourceAnnotations) ?
+                    new PTXDebugSourceLineInfoGenerator() :
+                    new PTXDebugLineInfoGenerator();
+            }
 
             var args = new PTXCodeGenerator.GeneratorArgs(
                 entryPoint,
