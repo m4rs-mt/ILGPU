@@ -69,6 +69,24 @@ namespace ILGPU.Frontend
         {
             var right = block.PopCompareValue(ConvertFlags.None);
             var left = block.PopCompareValue(ConvertFlags.None);
+            return CreateCompare(builder, left, right, compareKind, flags);
+        }
+
+        /// <summary>
+        /// Creates a compare instruction of the given type.
+        /// </summary>
+        /// <param name="left">The left operand.</param>
+        /// <param name="right">The right operand.</param>
+        /// <param name="builder">The current builder.</param>
+        /// <param name="compareKind">The comparison kind.</param>
+        /// <param name="flags">The comparison flags.</param>
+        private static Value CreateCompare(
+            IRBuilder builder,
+            Value left,
+            Value right,
+            CompareKind compareKind,
+            CompareFlags flags)
+        {
             var convertFlags = ConvertFlags.None;
             if ((flags & CompareFlags.UnsignedOrUnordered) == CompareFlags.UnsignedOrUnordered)
                 convertFlags = ConvertFlags.SourceUnsigned;
@@ -77,6 +95,5 @@ namespace ILGPU.Frontend
             Debug.Assert(left.BasicValueType == right.BasicValueType);
             return builder.CreateCompare(left, right, compareKind, flags);
         }
-
     }
 }

@@ -76,10 +76,9 @@ namespace ILGPU.Frontend
             var targets = block.GetBuilderTerminator(2);
 
             var comparisonValue = block.PopCompareValue(ConvertFlags.None);
-            block.Push(builder.CreatePrimitiveValue(comparisonValue.BasicValueType, 0));
-            block.Push(comparisonValue);
+            var rightValue = builder.CreatePrimitiveValue(comparisonValue.BasicValueType, 0);
 
-            var condition = CreateCompare(block, builder, kind, CompareFlags.None);
+            var condition = CreateCompare(builder, comparisonValue, rightValue, kind, CompareFlags.None);
             builder.CreateConditionalBranch(condition, targets[0], targets[1]);
         }
 
