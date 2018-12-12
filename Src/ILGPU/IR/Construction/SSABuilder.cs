@@ -381,7 +381,10 @@ namespace ILGPU.IR.Construction
 
                     // Convert the value into the target type
                     if (incompletePhi.PhiType is PrimitiveType primitiveType)
-                        value = Builder.CreateConvert(value, primitiveType);
+                    {
+                        // Use the predecessor block to convert the value
+                        value = valueContainer.Builder.CreateConvert(value, primitiveType);
+                    }
 
                     // Set argument value
                     phiBuilder.AddArgument(value);
