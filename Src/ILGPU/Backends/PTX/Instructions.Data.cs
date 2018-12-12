@@ -259,7 +259,7 @@ namespace ILGPU.Backends.PTX
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Float32), "neg.f32" },
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Float64), "neg.f64" },
 
-                { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.UInt1), "not.b32" },
+                { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.UInt1), "cnot.b32" },
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.Int16), "not.b16" },
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.Int32), "not.b32" },
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.Int64), "not.b64" },
