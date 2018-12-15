@@ -189,12 +189,12 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Tries to resolve a debug assert implementation method.
         /// </summary>
-        /// <param name="metho">The resolved assert implementation method.</param>
+        /// <param name="method">The resolved assert implementation method.</param>
         /// <returns>True, if the implementation method could be resolved.</returns>
         public virtual bool TryGetDebugImplementation(
-            out Method metho)
+            out Method method)
         {
-            metho = null;
+            method = null;
             return false;
         }
 

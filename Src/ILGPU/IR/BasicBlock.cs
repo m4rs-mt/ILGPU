@@ -81,6 +81,12 @@ namespace ILGPU.IR
             public Value ToValue() => Value;
 
             /// <summary>
+            /// Returns the string representation of the underlying value.
+            /// </summary>
+            /// <returns>The string representation of the underlying value.</returns>
+            public override string ToString() => Value.ToString();
+
+            /// <summary>
             /// Implicitly converts the given value entry to its associated value.
             /// </summary>
             /// <param name="valueEntry">The value entry to convert.</param>

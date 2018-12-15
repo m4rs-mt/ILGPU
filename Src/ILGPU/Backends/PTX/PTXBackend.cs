@@ -101,7 +101,7 @@ namespace ILGPU.Backends.PTX
 
             builder.Add(new IntrinsicSpecializer<SpecializerConfiguration>(
                 specializerConfiguration));
-            builder.AddInliner(context.Flags);
+            builder.Add(new Inliner());
 
             if (context.OptimizationLevel == OptimizationLevel.Release)
                 builder.Add(new SimplifyControlFlow());

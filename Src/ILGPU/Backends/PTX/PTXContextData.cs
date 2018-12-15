@@ -106,7 +106,7 @@ namespace ILGPU.Backends.PTX
                             new MethodDeclaration(
                                 WrapperDebugAssertFailedName,
                                 irContext.VoidType,
-                                MethodFlags.AggressiveInlining));
+                                MethodFlags.Inline));
                         using (var assertBuilder = debugAssertFunction.CreateBuilder())
                         {
                             var messageParam = assertBuilder.AddParameter(irContext.StringType, "message");
@@ -135,9 +135,9 @@ namespace ILGPU.Backends.PTX
             }
 
             public override bool TryGetDebugImplementation(
-                out Method topLevelFunction)
+                out Method method)
             {
-                topLevelFunction = debugAssertFunction;
+                method = debugAssertFunction;
                 return true;
             }
 

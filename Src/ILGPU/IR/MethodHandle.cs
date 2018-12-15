@@ -11,12 +11,13 @@
 
 using ILGPU.IR.Types;
 using System;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace ILGPU.IR
 {
     /// <summary>
-    /// Represents a function handle to an <see cref="Method"/>
+    /// Represents a method handle to an <see cref="Method"/>
     /// that is valid accross transformations.
     /// </summary>
     [Serializable]
@@ -25,15 +26,15 @@ namespace ILGPU.IR
         #region Static
 
         /// <summary>
-        /// An empty function handle.
+        /// An empty method handle.
         /// </summary>
         public static readonly MethodHandle Empty = default;
 
         /// <summary>
-        /// Reconstructs a function handle from a serialization string.
+        /// Reconstructs a method handle from a serialization string.
         /// </summary>
         /// <param name="serializationString">The handle serialization string.</param>
-        /// <returns>The deserialized function handle.</returns>
+        /// <returns>The deserialized method handle.</returns>
         public static MethodHandle Deserialize(string serializationString)
         {
             if (string.IsNullOrWhiteSpace(serializationString))
@@ -45,10 +46,10 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Creates an empty named function handle.
+        /// Creates an empty named method handle.
         /// </summary>
-        /// <param name="name">The name of the function reference.</param>
-        /// <returns>The created function handle.</returns>
+        /// <param name="name">The name of the method reference.</param>
+        /// <returns>The created method handle.</returns>
         public static MethodHandle Create(string name) =>
             new MethodHandle(0, name);
 
@@ -57,10 +58,10 @@ namespace ILGPU.IR
         #region Instance
 
         /// <summary>
-        /// Constructs a new function handle.
+        /// Constructs a new method handle.
         /// </summary>
         /// <param name="id">The unique id of the refernce.</param>
-        /// <param name="name">The name of the function reference.</param>
+        /// <param name="name">The name of the method reference.</param>
         internal MethodHandle(long id, string name)
         {
             if (string.IsNullOrWhiteSpace(name))
@@ -86,7 +87,7 @@ namespace ILGPU.IR
         public bool IsEmpty => Name == null || Id < 1;
 
         /// <summary>
-        /// Returns the name of the referenced function.
+        /// Returns the name of the referenced method.
         /// </summary>
         public string Name { get; }
 
@@ -169,16 +170,16 @@ namespace ILGPU.IR
     }
 
     /// <summary>
-    /// Represents a function declaration for an <see cref="Method"/>.
+    /// Represents a method declaration of a <see cref="Method"/>.
     /// </summary>
     public readonly struct MethodDeclaration : IEquatable<MethodDeclaration>
     {
         #region Instance
 
         /// <summary>
-        /// Constructs a new function declaration with an implicit handle.
+        /// Constructs a new method declaration with an implicit handle.
         /// </summary>
-        /// <param name="name">The function name.</param>
+        /// <param name="name">The method name.</param>
         /// <param name="returnType">The return type.</param>
         public MethodDeclaration(
             string name,
@@ -187,11 +188,11 @@ namespace ILGPU.IR
         { }
 
         /// <summary>
-        /// Constructs a new function declaration with an implicit handle.
+        /// Constructs a new method declaration with an implicit handle.
         /// </summary>
-        /// <param name="name">The function name.</param>
+        /// <param name="name">The method name.</param>
         /// <param name="returnType">The return type.</param>
-        /// <param name="flags">Custom function flags.</param>
+        /// <param name="flags">Custom method flags.</param>
         public MethodDeclaration(
             string name,
             TypeNode returnType,
@@ -200,9 +201,9 @@ namespace ILGPU.IR
         { }
 
         /// <summary>
-        /// Constructs a new function declaration.
+        /// Constructs a new method declaration.
         /// </summary>
-        /// <param name="handle">The function handle (may be an empty handle).</param>
+        /// <param name="handle">The method handle (may be an empty handle).</param>
         /// <param name="returnType">The return type.</param>
         public MethodDeclaration(
             MethodHandle handle,
@@ -211,11 +212,11 @@ namespace ILGPU.IR
         { }
 
         /// <summary>
-        /// Constructs a new function declaration.
+        /// Constructs a new method declaration.
         /// </summary>
-        /// <param name="handle">The function handle (may be an empty handle).</param>
+        /// <param name="handle">The method handle (may be an empty handle).</param>
         /// <param name="returnType">The return type.</param>
-        /// <param name="flags">Custom function flags.</param>
+        /// <param name="flags">Custom method flags.</param>
         public MethodDeclaration(
             MethodHandle handle,
             TypeNode returnType,
@@ -224,9 +225,9 @@ namespace ILGPU.IR
         { }
 
         /// <summary>
-        /// Constructs a new function declaration.
+        /// Constructs a new method declaration.
         /// </summary>
-        /// <param name="handle">The function handle (may be an empty handle).</param>
+        /// <param name="handle">The method handle (may be an empty handle).</param>
         /// <param name="returnType">The return type.</param>
         /// <param name="source">The source method.</param>
         public MethodDeclaration(
@@ -237,12 +238,12 @@ namespace ILGPU.IR
         { }
 
         /// <summary>
-        /// Constructs a new function declaration.
+        /// Constructs a new method declaration.
         /// </summary>
-        /// <param name="handle">The function handle (may be an empty handle).</param>
+        /// <param name="handle">The method handle (may be an empty handle).</param>
         /// <param name="returnType">The return type.</param>
         /// <param name="source">The source method.</param>
-        /// <param name="flags">Custom function flags.</param>
+        /// <param name="flags">Custom method flags.</param>
         public MethodDeclaration(
             MethodHandle handle,
             TypeNode returnType,
@@ -254,20 +255,8 @@ namespace ILGPU.IR
             Source = source;
             Flags = flags;
 
-            if (flags == MethodFlags.None)
-            {
-                if (Source != null)
-                {
-                    if ((Source.MethodImplementationFlags & MethodImplAttributes.AggressiveInlining)
-                        == MethodImplAttributes.AggressiveInlining)
-                        Flags |= MethodFlags.AggressiveInlining;
-                    if ((Source.MethodImplementationFlags & MethodImplAttributes.NoInlining)
-                        == MethodImplAttributes.NoInlining)
-                        Flags |= MethodFlags.NoInlining;
-                }
-                else if (source.Module.Name == Context.AssemblyModuleName)
-                    Flags |= MethodFlags.AggressiveInlining;
-            }
+            if (flags == MethodFlags.None && Source != null)
+                Flags = Method.ResolveMethodFlags(source);
         }
 
         #endregion
@@ -275,15 +264,14 @@ namespace ILGPU.IR
         #region Properties
 
         /// <summary>
-        /// Returns the associated function flags.
+        /// Returns the associated method flags.
         /// </summary>
         public MethodFlags Flags { get; }
 
         /// <summary>
-        /// Returns true if this function is an external function.
+        /// Returns true if this method is an external method.
         /// </summary>
-        public bool IsExternal => (Flags & MethodFlags.External) ==
-            MethodFlags.External;
+        public bool IsExternal => HasFlags(MethodFlags.External);
 
         /// <summary>
         /// Returns true if the associated handle is not empty.
@@ -315,26 +303,50 @@ namespace ILGPU.IR
         #region Methods
 
         /// <summary>
-        /// Specializes the current function declaration by specializing
-        /// an empty function handle.
+        /// Specializes the current method declaration by specializing
+        /// an empty method handle.
         /// </summary>
         /// <param name="handle">The handle to specialize.</param>
-        /// <returns>The specialized function declaration.</returns>
+        /// <returns>The specialized method declaration.</returns>
         public MethodDeclaration Specialize(MethodHandle handle)
         {
-            if (handle.IsEmpty)
-                throw new ArgumentNullException(nameof(handle));
+            Debug.Assert(!handle.IsEmpty, "Invalid handle");
             return new MethodDeclaration(handle, ReturnType, Source, Flags);
         }
 
         /// <summary>
-        /// Specializes the current function declaration by specializing
+        /// Specializes the current method declaration by specializing
         /// the return type.
         /// </summary>
         /// <param name="returnType">The return type to specialize.</param>
-        /// <returns>The specialized function declaration.</returns>
-        public MethodDeclaration Specialize(TypeNode returnType) =>
-            new MethodDeclaration(Handle, returnType, Source, Flags);
+        /// <returns>The specialized methomethod declaration.</returns>
+        public MethodDeclaration Specialize(TypeNode returnType)
+        {
+            Debug.Assert(returnType != null, "Invalid return type");
+            return new MethodDeclaration(Handle, returnType, Source, Flags);
+        }
+
+        /// <summary>
+        /// Returns true if this declaration has the given method flags.
+        /// </summary>
+        /// <param name="flags">The flags to check.</param>
+        /// <returns>True, if this declaration has the given method flags.</returns>
+        public bool HasFlags(MethodFlags flags) =>
+            (Flags & flags) == flags;
+
+        /// <summary>
+        /// Adds the given flags to this declaration.
+        /// </summary>
+        /// <param name="flags">The flags to add.</param>
+        public MethodDeclaration AddFlags(MethodFlags flags) =>
+            new MethodDeclaration(Handle, ReturnType, Source, Flags | flags);
+
+        /// <summary>
+        /// Removes the given flags from this declaration.
+        /// </summary>
+        /// <param name="flags">The flags to remove.</param>
+        public MethodDeclaration RemoveFlags(MethodFlags flags) =>
+            new MethodDeclaration(Handle, ReturnType, Source, Flags & ~flags);
 
         #endregion
 
@@ -356,12 +368,8 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, iff the given object is equal to this declaration.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is MethodDeclaration declaration)
-                return declaration == this;
-            return false;
-        }
+        public override bool Equals(object obj) =>
+            obj is MethodDeclaration declaration && declaration == this;
 
         /// <summary>
         /// Returns the hash code of this declaration.
@@ -392,11 +400,9 @@ namespace ILGPU.IR
         /// <param name="first">The first declaration.</param>
         /// <param name="second">The second declaration.</param>
         /// <returns>True, iff the first and the second declaration are the same.</returns>
-        public static bool operator ==(MethodDeclaration first, MethodDeclaration second)
-        {
-            return first.Handle == second.Handle &&
-                first.ReturnType == second.ReturnType;
-        }
+        public static bool operator ==(MethodDeclaration first, MethodDeclaration second) =>
+            first.Handle == second.Handle &&
+            first.ReturnType == second.ReturnType;
 
         /// <summary>
         /// Returns true iff the first and the second declaration are not the same.
@@ -404,11 +410,9 @@ namespace ILGPU.IR
         /// <param name="first">The first declaration.</param>
         /// <param name="second">The second declaration.</param>
         /// <returns>True, iff the first and the second declaration are not the same.</returns>
-        public static bool operator !=(MethodDeclaration first, MethodDeclaration second)
-        {
-            return first.Handle != second.Handle ||
-                first.ReturnType != second.ReturnType;
-        }
+        public static bool operator !=(MethodDeclaration first, MethodDeclaration second) =>
+            first.Handle != second.Handle ||
+            first.ReturnType != second.ReturnType;
 
         #endregion
     }

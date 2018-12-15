@@ -26,7 +26,7 @@ using System.Threading;
 namespace ILGPU.IR
 {
     /// <summary>
-    /// Represents custom function flags.
+    /// Represents custom method flags.
     /// </summary>
     [Flags]
     public enum MethodFlags : int
@@ -37,25 +37,14 @@ namespace ILGPU.IR
         None = 0,
 
         /// <summary>
-        /// This function should not be inlined.
+        /// This method should be inlined.
         /// </summary>
-        NoInlining = 1 << 0,
+        Inline = 1 << 0,
 
         /// <summary>
-        /// This function should always be inlined.
+        /// An external method declaration (without an implementation).
         /// </summary>
-        AggressiveInlining = 1 << 1,
-
-        /// <summary>
-        /// An external function declaration (without an implementation).
-        /// </summary>
-        ExternalDeclaration = 1 << 2,
-
-        /// <summary>
-        /// An external function reference (without an implementation).
-        /// </summary>
-        /// <remarks>Note that such a function is also marked as <see cref="NoInlining"/></remarks>
-        External = ExternalDeclaration | NoInlining,
+        External = 1 << 1,
     }
 
     /// <summary>
@@ -70,19 +59,19 @@ namespace ILGPU.IR
         None = 0,
 
         /// <summary>
-        /// This function has been modified since the last GC.
+        /// This method has been modified since the last GC.
         /// </summary>
         Dirty = 1 << 0,
 
         /// <summary>
-        /// This function has been transformed and does not require further
+        /// This method has been transformed and does not require further
         /// transformation passes.
         /// </summary>
         Transformed = 1 << 1
     }
 
     /// <summary>
-    /// Represents a function node within the IR.
+    /// Represents a method node within the IR.
     /// </summary>
     public sealed partial class Method : Node, IMethodMappingObject
     {
@@ -294,17 +283,38 @@ namespace ILGPU.IR
         internal static readonly new Comparison<Method> Comparison =
             (first, second) => first.Id.CompareTo(second.Id);
 
+        /// <summary>
+        /// Resolves <see cref="MethodFlags"/> that represents properties of the
+        /// given method base.
+        /// </summary>
+        /// <param name="methodBase">The method base.</param>
+        /// <returns>The resolved method flags.</returns>
+        public static MethodFlags ResolveMethodFlags(MethodBase methodBase)
+        {
+            Debug.Assert(methodBase != null, "Invalid method base");
+
+            // Check general method flags
+            if ((methodBase.MethodImplementationFlags & MethodImplAttributes.InternalCall) ==
+                MethodImplAttributes.InternalCall)
+                return MethodFlags.External;
+            else
+                return MethodFlags.None;
+        }
+
         #endregion
 
         #region Instance
 
         /// <summary>
-        /// Stores the internal transformation flags.
+        /// Stores internal transformation flags.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private volatile MethodTransformationFlags transformationFlags =
             MethodTransformationFlags.None;
 
+        /// <summary>
+        /// Stores all parameters.
+        /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private ImmutableArray<Parameter> parameters = ImmutableArray<Parameter>.Empty;
 
@@ -312,9 +322,9 @@ namespace ILGPU.IR
         private volatile Builder builder = null;
 
         /// <summary>
-        /// Creates a new IRFunction instance.
+        /// Creates a new method instance.
         /// </summary>
-        /// <param name="context">The context this function belongs to.</param>
+        /// <param name="context">The context this method belongs to.</param>
         /// <param name="declaration">The associated declaration.</param>
         internal Method(
             IRContext context,
@@ -339,22 +349,22 @@ namespace ILGPU.IR
         public IRContext Context { get; }
 
         /// <summary>
-        /// Returns the associated function name.
+        /// Returns the associated method name.
         /// </summary>
         public string Name => Declaration.Handle.ToString();
 
         /// <summary>
-        /// Returns the associated function flags.
+        /// Returns the associated method flags.
         /// </summary>
         public MethodFlags Flags => Declaration.Flags;
 
         /// <summary>
-        /// Returns the associated function declaration.
+        /// Returns the associated method declaration.
         /// </summary>
-        public MethodDeclaration Declaration { get; }
+        public MethodDeclaration Declaration { get; private set; }
 
         /// <summary>
-        /// Returns the associated function handle.
+        /// Returns the associated method handle.
         /// </summary>
         public MethodHandle Handle => Declaration.Handle;
 
@@ -362,6 +372,11 @@ namespace ILGPU.IR
         /// Returns the original source method (may be null).
         /// </summary>
         public MethodBase Source => Declaration.Source;
+
+        /// <summary>
+        /// Returns true if the associated source method is not null.
+        /// </summary>
+        public bool HasSource => Declaration.HasSource;
 
         /// <summary>
         /// Returns the return-type of the method.
@@ -372,6 +387,11 @@ namespace ILGPU.IR
         /// Returns true iff the return type of the method is void.
         /// </summary>
         public bool IsVoid => ReturnType.IsVoidType;
+
+        /// <summary>
+        /// Returns true if this method is an external method.
+        /// </summary>
+        public bool IsExternal => Declaration.IsExternal;
 
         /// <summary>
         /// Returns the current transformation flags.
@@ -415,12 +435,16 @@ namespace ILGPU.IR
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void GC()
         {
+            // Check for an active dirty flag
             if (!HasTransformationFlags(MethodTransformationFlags.Dirty))
                 return;
 
             var scope = CreateScope();
             foreach (var block in scope)
                 block.GC();
+
+            // Remove dirty flag form a transformed method
+            RemoveTransformationFlags(MethodTransformationFlags.Dirty);
         }
 
         /// <summary>
@@ -500,7 +524,7 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Creates a new builder for this function.
+        /// Creates a new builder for this method.
         /// </summary>
         /// <returns>The created builder.</returns>
         [SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope",
@@ -525,30 +549,43 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Returns true if this funct4ion has the given function flags.
+        /// Returns true if this method has the given method flags.
         /// </summary>
         /// <param name="flags">The flags to check.</param>
-        /// <returns>True, if this function has the given function flags.</returns>
-        public bool HasFlags(MethodFlags flags) =>
-            (Flags & flags) == flags;
+        /// <returns>True, if this method has the given method flags.</returns>
+        public bool HasFlags(MethodFlags flags) => Declaration.HasFlags(flags);
 
         /// <summary>
-        /// Returns true iff this function has the given transformation flags.
+        /// Adds the given flags to this method.
+        /// </summary>
+        /// <param name="flags">The flags to add.</param>
+        public void AddFlags(MethodFlags flags) =>
+            Declaration = Declaration.AddFlags(flags);
+
+        /// <summary>
+        /// Removes the given flags from this method.
+        /// </summary>
+        /// <param name="flags">The flags to remove.</param>
+        public void RemoveFlags(MethodFlags flags) =>
+            Declaration = Declaration.RemoveFlags(flags);
+
+        /// <summary>
+        /// Returns true iff this method has the given transformation flags.
         /// </summary>
         /// <param name="flags">The flags to check.</param>
-        /// <returns>True, iff this function has the given transformation flags.</returns>
+        /// <returns>True, iff this method has the given transformation flags.</returns>
         public bool HasTransformationFlags(MethodTransformationFlags flags) =>
             (transformationFlags & flags) == flags;
 
         /// <summary>
-        /// Adds the given flags to this function.
+        /// Adds the given flags to this method.
         /// </summary>
         /// <param name="flags">The flags to add.</param>
         public void AddTransformationFlags(MethodTransformationFlags flags) =>
             transformationFlags |= flags;
 
         /// <summary>
-        /// Removes the given flags from this function.
+        /// Removes the given flags from this method.
         /// </summary>
         /// <param name="flags">The flags to remove.</param>
         public void RemoveTransformationFlags(MethodTransformationFlags flags) =>
@@ -559,7 +596,13 @@ namespace ILGPU.IR
         #region Object
 
         /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => Name;
+        protected override string ToPrefixString()
+        {
+            string result = Name;
+            if (Flags != MethodFlags.None)
+                result += "[" + Flags.ToString() + "]";
+            return result;
+        }
 
         #endregion
     }

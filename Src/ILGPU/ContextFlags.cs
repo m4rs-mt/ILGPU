@@ -109,22 +109,15 @@ namespace ILGPU
         AggressiveInlining = 1 << 18,
 
         /// <summary>
-        /// Represents an convservative inlining policy.
-        /// (only functions that are marked with "aggressive inlinine" will be inlined).
+        /// No functions will be inlined at all.
         /// </summary>
-        ConservativeInlining = 1 << 19,
-
-        /// <summary>
-        /// Represents an convservative inlining policy.
-        /// (only functions that are marked with "aggressive inlinine" will be inlined).
-        /// </summary>
-        NoInlining = 1 << 20,
+        NoInlining = 1 << 19,
 
         /// <summary>
         /// Disables the on-the-fly constant propagation functionality
         /// (e.g. for debugging purposes).
         /// </summary>
-        DisableConstantPropagation = 1 << 21,
+        DisableConstantPropagation = 1 << 20,
     }
 
     /// <summary>
@@ -150,6 +143,12 @@ namespace ILGPU
         {
             if (flags.HasFlags(ContextFlags.EnableInlineSourceAnnotations))
                 flags |= ContextFlags.EnableDebugInformation;
+
+            if (flags.HasFlags(ContextFlags.NoInlining))
+                flags &= ~ContextFlags.AggressiveInlining;
+
+            if (flags.HasFlags(ContextFlags.AggressiveInlining))
+                flags &= ~ContextFlags.NoInlining;
 
             return flags;
         }

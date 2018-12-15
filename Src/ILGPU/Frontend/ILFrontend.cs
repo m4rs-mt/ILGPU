@@ -11,6 +11,7 @@
 
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
+using ILGPU.IR.Transformations;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
@@ -438,16 +439,23 @@ namespace ILGPU.Frontend
             SequencePointEnumerator sequencePoints =
                 DebugInformationManager?.LoadSequencePoints(method) ?? SequencePointEnumerator.Empty;
             var disassembler = new Disassembler(method, sequencePoints);
-            var diassembledMethod = disassembler.Disassemble();
+            var disassembledMethod = disassembler.Disassemble();
+
             using (var builder = generatedMethod.CreateBuilder())
             {
                 var codeGenerator = new CodeGenerator(
                     Frontend,
                     builder,
-                    diassembledMethod,
+                    disassembledMethod,
                     detectedMethods);
                 codeGenerator.GenerateCode();
             }
+
+            // Evaluate inlining heuristic to adjust method declaration
+            Inliner.SetupInliningAttributes(
+                Context,
+                generatedMethod,
+                disassembledMethod);
         }
 
         /// <summary>

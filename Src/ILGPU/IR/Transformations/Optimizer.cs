@@ -79,7 +79,8 @@ namespace ILGPU.IR.Transformations
             this Transformer.Builder builder,
             ContextFlags contextFlags)
         {
-            builder.AddInliner(contextFlags);
+            if (!contextFlags.HasFlags(ContextFlags.NoInlining))
+                builder.Add(new Inliner());
             builder.Add(new SimplifyControlFlow());
             builder.Add(new SSAConstruction());
             builder.Add(new DeadCodeElimination());
@@ -95,15 +96,12 @@ namespace ILGPU.IR.Transformations
             this Transformer.Builder builder,
             ContextFlags contextFlags)
         {
-            builder.AddInliner(contextFlags);
+            if (!contextFlags.HasFlags(ContextFlags.NoInlining))
+                builder.Add(new Inliner());
             builder.Add(new SimplifyControlFlow());
             builder.Add(new InferAddressSpaces());
             builder.Add(new SSAConstruction());
             builder.Add(new DeadCodeElimination());
-
-            builder.Add(new SimplifyControlFlow());
-            builder.AddInliner(contextFlags);
-            builder.Add(new SSAConstruction());
         }
 
         /// <summary>

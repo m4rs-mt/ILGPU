@@ -291,6 +291,11 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         public ImmutableArray<Transformation> Transformations { get; }
 
+        /// <summary>
+        /// Returns the number of stored transformations.
+        /// </summary>
+        public int Length => Transformations.Length;
+
         #endregion
 
         #region Methods
