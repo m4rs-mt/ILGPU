@@ -240,7 +240,7 @@ namespace ILGPU.Backends.PTX
             catch
             {
                 // No debug information could be found
-                builder.Append("\t// <No Source Line>");
+                builder.AppendLine("\t// <No Source Line>");
             }
         }
 
