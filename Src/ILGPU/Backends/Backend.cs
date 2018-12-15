@@ -185,6 +185,8 @@ namespace ILGPU.Backends
 
             #endregion
 
+            #region Properties
+
             /// <summary>
             /// The associated kernel context.
             /// </summary>
@@ -215,12 +217,29 @@ namespace ILGPU.Backends
             /// </summary>
             public AllocaKindInformation SharedAllocations { get; }
 
+            #endregion
+
+            #region Methods
+
             /// <summary>
             /// Returns an enumerator to enumerate all entries.
             /// </summary>
             /// <returns>An enumerator to enumerate all entries.</returns>
             public Enumerator GetEnumerator() => new Enumerator(this);
+
+            #endregion
         }
+
+        /// <summary>
+        /// Represents a function to create backend-specific transformers.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <param name="abi">The current ABI.</param>
+        /// <param name="builder">The target transformer builder.</param>
+        protected delegate void CreateTransformersHandler(
+            Context context,
+            ABI abi,
+            ImmutableArray<Transformer>.Builder builder);
 
         #endregion
 
@@ -301,7 +320,7 @@ namespace ILGPU.Backends
                   context,
                   abi,
                   argumentMapper,
-                  (_c, _abi) => Transformer.Empty)
+                  (_c, _abi, builder) => { })
         { }
 
         /// <summary>
@@ -310,19 +329,23 @@ namespace ILGPU.Backends
         /// <param name="context">The context to use.</param>
         /// <param name="abi">The current ABI.</param>
         /// <param name="argumentMapper">The argument mapper.</param>
-        /// <param name="createKernelTransformer">Creates the target kernel transformer (if any).</param>
+        /// <param name="createKernelTransformers">Creates target kernel transformers (if any).</param>
         protected Backend(
             Context context,
             ABI abi,
             ArgumentMapper argumentMapper,
-            Func<Context, ABI, Transformer> createKernelTransformer)
+            CreateTransformersHandler createKernelTransformers)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             ABI = abi ?? throw new ArgumentNullException(nameof(abi));
             ArgumentMapper = argumentMapper;
 
-            if (createKernelTransformer != null)
-                KernelTransformer = createKernelTransformer(context, abi);
+            if (createKernelTransformers != null)
+            {
+                var builder = ImmutableArray.CreateBuilder<Transformer>();
+                createKernelTransformers(context, abi, builder);
+                KernelTransformers = builder.ToImmutable();
+            }
         }
 
         #endregion
@@ -352,7 +375,8 @@ namespace ILGPU.Backends
         /// <summary>
         /// Returns the transformer that is applied before the final compilation step.
         /// </summary>
-        protected Transformer KernelTransformer { get; }
+        protected ImmutableArray<Transformer> KernelTransformers { get; } =
+            ImmutableArray<Transformer>.Empty;
 
         #endregion
 
@@ -409,7 +433,8 @@ namespace ILGPU.Backends
                 backendHandler.InitializedKernelContext(kernelContext, kernelMethod);
 
                 // Apply backend optimizations
-                kernelContext.Transform(KernelTransformer);
+                foreach (var transformer in KernelTransformers)
+                    kernelContext.Transform(transformer);
                 backendHandler.OptimizedKernelContext(kernelContext, kernelMethod);
 
                 // Compile kernel

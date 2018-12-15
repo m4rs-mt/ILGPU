@@ -12,6 +12,7 @@
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.Runtime;
+using System.Collections.Immutable;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -89,24 +90,33 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="context">The current context.</param>
         /// <param name="abi">The current ABI.</param>
-        /// <returns>The created kernel transformer.</returns>
-        private static Transformer CreateKernelTransformer(Context context, ABI abi)
+        /// <param name="builder">The target builder.</param>
+        private static void CreateKernelTransformers(
+            Context context,
+            ABI abi,
+            ImmutableArray<Transformer>.Builder builder)
         {
-            var builder = Transformer.CreateBuilder(TransformerConfiguration.Empty);
-
             var specializerConfiguration = new SpecializerConfiguration(
                 context.Flags,
                 abi,
                 context.PTXContextData);
+            builder.Add(Transformer.Create(
+                TransformerConfiguration.Empty,
+                new IntrinsicSpecializer<SpecializerConfiguration>(
+                    specializerConfiguration)));
 
-            builder.Add(new IntrinsicSpecializer<SpecializerConfiguration>(
-                specializerConfiguration));
-            builder.Add(new Inliner());
+            // Append further backend specific transformations in release mode
+            var transformerBuilder = Transformer.CreateBuilder(TransformerConfiguration.Empty);
+
+            if (!context.HasFlags(ContextFlags.NoInlining))
+                transformerBuilder.Add(new Inliner());
 
             if (context.OptimizationLevel == OptimizationLevel.Release)
-                builder.Add(new SimplifyControlFlow());
+                transformerBuilder.Add(new SimplifyControlFlow());
 
-            return builder.ToTransformer();
+            var transformations = transformerBuilder.ToTransformer();
+            if (transformations.Length > 0)
+                builder.Add(transformerBuilder.ToTransformer());
         }
 
         #endregion
@@ -127,7 +137,7 @@ namespace ILGPU.Backends.PTX
                   context,
                   new PTXABI(context.TypeContext, platform),
                   new PTXArgumentMapper(context),
-                  CreateKernelTransformer)
+                  CreateKernelTransformers)
         {
             Architecture = architecture;
         }
