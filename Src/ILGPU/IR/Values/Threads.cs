@@ -268,7 +268,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a shuffle operation.
     /// </summary>
-    public sealed class Shuffle : MemoryValue
+    public abstract class ShuffleOperation : MemoryValue
     {
         #region Static
 
@@ -289,18 +289,16 @@ namespace ILGPU.IR.Values
         /// Constructs a new shuffle operation.
         /// </summary>
         /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="variable">The source variable value.</param>
-        /// <param name="origin">The shuffle origin.</param>
+        /// <param name="values">The values.</param>
         /// <param name="kind">The operation kind.</param>
-        internal Shuffle(
+        internal ShuffleOperation(
             BasicBlock basicBlock,
-            ValueReference variable,
-            ValueReference origin,
+            ImmutableArray<ValueReference> values,
             ShuffleKind kind)
             : base(
                   basicBlock,
-                  ImmutableArray.Create(variable, origin),
-                  ComputeType(variable.Type))
+                  values,
+                  ComputeType(values[0].Type))
         {
             Kind = kind;
         }
@@ -329,8 +327,47 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
+        protected sealed override TypeNode UpdateType(IRContext context) =>
             ComputeType(Variable.Type);
+
+        #endregion
+
+        #region Object
+
+        /// <summary cref="Node.ToPrefixString"/>
+        protected override string ToPrefixString() => "shuffle" + Kind.ToString();
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a shuffle operation.
+    /// </summary>
+    public sealed class WarpShuffle : ShuffleOperation
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new shuffle operation.
+        /// </summary>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="variable">The source variable value.</param>
+        /// <param name="origin">The shuffle origin.</param>
+        /// <param name="kind">The operation kind.</param>
+        internal WarpShuffle(
+            BasicBlock basicBlock,
+            ValueReference variable,
+            ValueReference origin,
+            ShuffleKind kind)
+            : base(
+                  basicBlock,
+                  ImmutableArray.Create(variable, origin),
+                  kind)
+        { }
+
+        #endregion
+
+        #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
@@ -346,11 +383,69 @@ namespace ILGPU.IR.Values
 
         #region Object
 
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "shuffle" + Kind.ToString();
-
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() => $"{Variable}, {Origin}";
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents an sub-warp shuffle operation.
+    /// </summary>
+    public sealed class SubWarpShuffle : ShuffleOperation
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new shuffle operation.
+        /// </summary>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="variable">The source variable value.</param>
+        /// <param name="origin">The shuffle origin.</param>
+        /// <param name="width">The sub-warp width.</param>
+        /// <param name="kind">The operation kind.</param>
+        internal SubWarpShuffle(
+            BasicBlock basicBlock,
+            ValueReference variable,
+            ValueReference origin,
+            ValueReference width,
+            ShuffleKind kind)
+            : base(
+                  basicBlock,
+                  ImmutableArray.Create(variable, origin, width),
+                  kind)
+        { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the intra-warp width.
+        /// </summary>
+        public ValueReference Width => this[2];
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+            builder.CreateShuffle(
+                rebuilder.Rebuild(Variable),
+                rebuilder.Rebuild(Origin),
+                rebuilder.Rebuild(Width),
+                Kind);
+
+        /// <summary cref="Value.Accept" />
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region Object
+
+        /// <summary cref="Value.ToArgString"/>
+        protected override string ToArgString() => $"{Variable}, {Origin} [{Width}]";
 
         #endregion
     }

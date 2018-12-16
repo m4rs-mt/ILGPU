@@ -21,6 +21,11 @@ namespace ILGPU.Frontend.Intrinsic
         ShuffleUp = ShuffleKind.Up,
         ShuffleXor = ShuffleKind.Xor,
 
+        SubShuffle,
+        SubShuffleDown,
+        SubShuffleUp,
+        SubShuffleXor,
+
         Barrier,
         WarpSize,
         LaneIdx,
@@ -60,6 +65,23 @@ namespace ILGPU.Frontend.Intrinsic
             var builder = context.Builder;
             switch (attribute.IntrinsicKind)
             {
+                case WarpIntrinsicKind.Shuffle:
+                case WarpIntrinsicKind.ShuffleDown:
+                case WarpIntrinsicKind.ShuffleUp:
+                case WarpIntrinsicKind.ShuffleXor:
+                    return builder.CreateShuffle(
+                        context[0],
+                        context[1],
+                        (ShuffleKind)attribute.IntrinsicKind);
+                case WarpIntrinsicKind.SubShuffle:
+                case WarpIntrinsicKind.SubShuffleDown:
+                case WarpIntrinsicKind.SubShuffleUp:
+                case WarpIntrinsicKind.SubShuffleXor:
+                    return builder.CreateShuffle(
+                        context[0],
+                        context[1],
+                        context[2],
+                        (ShuffleKind)(attribute.IntrinsicKind - WarpIntrinsicKind.SubShuffle));
                 case WarpIntrinsicKind.Barrier:
                     return builder.CreateBarrier(BarrierKind.WarpLevel);
                 case WarpIntrinsicKind.WarpSize:
@@ -67,10 +89,7 @@ namespace ILGPU.Frontend.Intrinsic
                 case WarpIntrinsicKind.LaneIdx:
                     return builder.CreateLaneIdxValue();
                 default:
-                    return builder.CreateShuffle(
-                        context[0],
-                        context[1],
-                        (ShuffleKind)attribute.IntrinsicKind);
+                    throw new NotSupportedException("Invalid warp operation");
             }
         }
     }

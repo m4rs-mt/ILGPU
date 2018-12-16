@@ -244,7 +244,13 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="shuffle">The node.</param>
-        void Visit(Shuffle shuffle);
+        void Visit(WarpShuffle shuffle);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="shuffle">The node.</param>
+        void Visit(SubWarpShuffle shuffle);
 
         // Debug assert
 

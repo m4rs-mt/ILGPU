@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -93,8 +94,21 @@ namespace ILGPU
         /// <returns>The value of the variable in the scope of the desired lane.</returns>
         /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
         [WarpIntrinsic(WarpIntrinsicKind.Shuffle)]
-        public static int Shuffle(int variable, int sourceLane)
+        public static int Shuffle(int variable, int sourceLane) => variable;
+
+        /// <summary>
+        /// Performs a shuffle operation. It returns the value of the variable
+        /// in the context of the specified source lane.
+        /// </summary>
+        /// <param name="variable">The source variable to shuffle.</param>
+        /// <param name="sourceLane">The source lane.</param>
+        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
+        /// <returns>The value of the variable in the scope of the desired lane.</returns>
+        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        [WarpIntrinsic(WarpIntrinsicKind.SubShuffle)]
+        public static int Shuffle(int variable, int sourceLane, int width)
         {
+            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 
@@ -108,8 +122,21 @@ namespace ILGPU
         /// <returns>The value of the variable in the scope of the desired lane.</returns>
         /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
         [WarpIntrinsic(WarpIntrinsicKind.Shuffle)]
-        public static float Shuffle(float variable, int sourceLane)
+        public static float Shuffle(float variable, int sourceLane) => variable;
+
+        /// <summary>
+        /// Performs a shuffle operation. It returns the value of the variable
+        /// in the context of the specified source lane.
+        /// </summary>
+        /// <param name="variable">The source variable to shuffle.</param>
+        /// <param name="sourceLane">The source lane.</param>
+        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
+        /// <returns>The value of the variable in the scope of the desired lane.</returns>
+        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        [WarpIntrinsic(WarpIntrinsicKind.SubShuffle)]
+        public static float Shuffle(float variable, int sourceLane, int width)
         {
+            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 
@@ -127,8 +154,21 @@ namespace ILGPU
         /// <returns>The value of the variable in the scope of the desired lane.</returns>
         /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleDown)]
-        public static int ShuffleDown(int variable, int delta)
+        public static int ShuffleDown(int variable, int delta) => variable;
+
+        /// <summary>
+        /// Performs a shuffle operation. It returns the value of the variable
+        /// in the context of the lane with the id current lane + delta.
+        /// </summary>
+        /// <param name="variable">The source variable to shuffle.</param>
+        /// <param name="delta">The delta to add to the current lane.</param>
+        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
+        /// <returns>The value of the variable in the scope of the desired lane.</returns>
+        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        [WarpIntrinsic(WarpIntrinsicKind.SubShuffleDown)]
+        public static int ShuffleDown(int variable, int delta, int width)
         {
+            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 
@@ -142,8 +182,21 @@ namespace ILGPU
         /// <returns>The value of the variable in the scope of the desired lane.</returns>
         /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleDown)]
-        public static float ShuffleDown(float variable, int delta)
+        public static float ShuffleDown(float variable, int delta) => variable;
+
+        /// <summary>
+        /// Performs a shuffle operation. It returns the value of the variable
+        /// in the context of the lane with the id current lane + delta.
+        /// </summary>
+        /// <param name="variable">The source variable to shuffle.</param>
+        /// <param name="delta">The delta to add to the current lane.</param>
+        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
+        /// <returns>The value of the variable in the scope of the desired lane.</returns>
+        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        [WarpIntrinsic(WarpIntrinsicKind.SubShuffleDown)]
+        public static float ShuffleDown(float variable, int delta, int width)
         {
+            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 
@@ -161,8 +214,21 @@ namespace ILGPU
         /// <returns>The value of the variable in the scope of the desired lane.</returns>
         /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleUp)]
-        public static int ShuffleUp(int variable, int delta)
+        public static int ShuffleUp(int variable, int delta) => variable;
+
+        /// <summary>
+        /// Performs a shuffle operation. It returns the value of the variable
+        /// in the context of the lane with the id current lane - delta.
+        /// </summary>
+        /// <param name="variable">The source variable to shuffle.</param>
+        /// <param name="delta">The delta to subtract to the current lane.</param>
+        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
+        /// <returns>The value of the variable in the scope of the desired lane.</returns>
+        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        [WarpIntrinsic(WarpIntrinsicKind.SubShuffleUp)]
+        public static int ShuffleUp(int variable, int delta, int width)
         {
+            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 
@@ -176,8 +242,21 @@ namespace ILGPU
         /// <returns>The value of the variable in the scope of the desired lane.</returns>
         /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleUp)]
-        public static float ShuffleUp(float variable, int delta)
+        public static float ShuffleUp(float variable, int delta) => variable;
+
+        /// <summary>
+        /// Performs a shuffle operation. It returns the value of the variable
+        /// in the context of the lane with the id current lane - delta.
+        /// </summary>
+        /// <param name="variable">The source variable to shuffle.</param>
+        /// <param name="delta">The delta to subtract to the current lane.</param>
+        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
+        /// <returns>The value of the variable in the scope of the desired lane.</returns>
+        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        [WarpIntrinsic(WarpIntrinsicKind.SubShuffleUp)]
+        public static float ShuffleUp(float variable, int delta, int width)
         {
+            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 
@@ -195,8 +274,21 @@ namespace ILGPU
         /// <returns>The value of the variable in the scope of the desired lane.</returns>
         /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleXor)]
-        public static int ShuffleXor(int variable, int mask)
+        public static int ShuffleXor(int variable, int mask) => variable;
+
+        /// <summary>
+        /// Performs a shuffle operation. It returns the value of the variable
+        /// in the context of the lane with the id current lane xor mask.
+        /// </summary>
+        /// <param name="variable">The source variable to shuffle.</param>
+        /// <param name="mask">The mask to xor to the current lane.</param>
+        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
+        /// <returns>The value of the variable in the scope of the desired lane.</returns>
+        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        [WarpIntrinsic(WarpIntrinsicKind.SubShuffleXor)]
+        public static int ShuffleXor(int variable, int mask, int width)
         {
+            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 
@@ -210,8 +302,21 @@ namespace ILGPU
         /// <returns>The value of the variable in the scope of the desired lane.</returns>
         /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleXor)]
-        public static float ShuffleXor(float variable, int mask)
+        public static float ShuffleXor(float variable, int mask) => variable;
+
+        /// <summary>
+        /// Performs a shuffle operation. It returns the value of the variable
+        /// in the context of the lane with the id current lane xor mask.
+        /// </summary>
+        /// <param name="variable">The source variable to shuffle.</param>
+        /// <param name="mask">The mask to xor to the current lane.</param>
+        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
+        /// <returns>The value of the variable in the scope of the desired lane.</returns>
+        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        [WarpIntrinsic(WarpIntrinsicKind.SubShuffleXor)]
+        public static float ShuffleXor(float variable, int mask, int width)
         {
+            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 

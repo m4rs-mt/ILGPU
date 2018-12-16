@@ -65,12 +65,46 @@ namespace ILGPU.IR.Construction
             Debug.Assert(variable != null, "Invalid variable value");
             Debug.Assert(origin != null, "Invalid origin value");
 
-            return Append(new Shuffle(
+            return Append(new WarpShuffle(
                 BasicBlock,
                 variable,
                 origin,
                 kind));
         }
 
+        /// <summary>
+        /// Creates a new sub-warp shuffle operation that operates
+        /// on sub-groups of a warp.
+        /// </summary>
+        /// <param name="variable">The variable.</param>
+        /// <param name="origin">The shuffle origin (depends on the operation).</param>
+        /// <param name="width">The sub-warp width.</param>
+        /// <param name="kind">The operation kind.</param>
+        /// <returns>A node that represents the sub shuffle operation.</returns>
+        public ValueReference CreateShuffle(
+            Value variable,
+            Value origin,
+            Value width,
+            ShuffleKind kind)
+        {
+            Debug.Assert(variable != null, "Invalid variable value");
+            Debug.Assert(origin != null, "Invalid origin value");
+            Debug.Assert(width != null, "Invalid width value");
+
+            if (width is WarpSizeValue)
+            {
+                return CreateShuffle(
+                    variable,
+                    origin,
+                    kind);
+            }
+
+            return Append(new SubWarpShuffle(
+                BasicBlock,
+                variable,
+                origin,
+                width,
+                kind));
+        }
     }
 }

@@ -695,8 +695,29 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Shuffle)"/>
-        public void Visit(Shuffle shuffle)
+        /// <summary>
+        /// Represents an abstract emitter of warp shuffle masks.
+        /// </summary>
+        private interface IShuffleEmitter
+        {
+            /// <summary>
+            /// Emits a new warp mask.
+            /// </summary>
+            /// <param name="commandEmitter">The current command emitter.</param>
+            void EmitWarpMask(CommandEmitter commandEmitter);
+        }
+
+        /// <summary>
+        /// Creates a new shuffle operation.
+        /// </summary>
+        /// <typeparam name="TShuffleEmitter">The emitter type.</typeparam>
+        /// <param name="shuffle">The current shuffle operation.</param>
+        /// <param name="shuffleEmitter">The shuffle emitter.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void EmitShuffleOperation<TShuffleEmitter>(
+            ShuffleOperation shuffle,
+            in TShuffleEmitter shuffleEmitter)
+            where TShuffleEmitter : IShuffleEmitter
         {
             var ptxType = PTXType.GetPTXType(shuffle.Variable.BasicValueType);
             var targetRegister = Allocate(shuffle, ptxType.RegisterKind);
@@ -711,13 +732,148 @@ namespace ILGPU.Backends.PTX
                 command.AppendArgument(variable);
                 command.AppendArgument(delta);
 
-                if (shuffle.Kind == ShuffleKind.Up)
-                    command.AppendConstant(0);
-                else
-                    command.AppendConstant(0x1f);
+                // Invoke the shuffle emitter
+                shuffleEmitter.EmitWarpMask(command);
 
                 command.AppendConstant(Instructions.AllThreadsInAWarpMemberMask);
             }
+        }
+
+        /// <summary>
+        /// Emits warp masks of <see cref="WarpShuffle"/> operations.
+        /// </summary>
+        private readonly struct WarpShuffleEmitter : IShuffleEmitter
+        {
+            /// <summary>
+            /// The basic mask that has be combined with an 'or' command
+            /// in case of a <see cref="ShuffleKind.Xor"/> or a <see cref="ShuffleKind.Down"/>
+            /// shuffle instruction.
+            /// </summary>
+            public const int XorDownMask = 0x1f;
+
+            /// <summary>
+            /// The amount of bits the basic mask has to be shifted to
+            /// the left.
+            /// </summary>
+            public const int BaseMaskShiftAmount = 8;
+
+            /// <summary>
+            /// Constructs a new shuffle emitter.
+            /// </summary>
+            /// <param name="shuffleKind">The current shuffle kind.</param>
+            public WarpShuffleEmitter(ShuffleKind shuffleKind)
+            {
+                ShuffleKind = shuffleKind;
+            }
+
+            /// <summary>
+            /// The shuffle kind.
+            /// </summary>
+            public ShuffleKind ShuffleKind { get; }
+
+            /// <summary cref="IShuffleEmitter.EmitWarpMask(CommandEmitter)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void EmitWarpMask(CommandEmitter commandEmitter)
+            {
+                if (ShuffleKind == ShuffleKind.Up)
+                    commandEmitter.AppendConstant(0);
+                else
+                    commandEmitter.AppendConstant(XorDownMask);
+            }
+        }
+
+        /// <summary cref="IValueVisitor.Visit(WarpShuffle)"/>
+        public void Visit(WarpShuffle shuffle)
+        {
+            EmitShuffleOperation(
+                shuffle,
+                new WarpShuffleEmitter(shuffle.Kind));
+        }
+
+        /// <summary>
+        /// Emits warp masks of <see cref="SubWarpShuffle"/> operations.
+        /// </summary>
+        private readonly struct SubWarpShuffleEmitter : IShuffleEmitter
+        {
+            /// <summary>
+            /// Constructs a new shuffle emitter.
+            /// </summary>
+            /// <param name="warpMaskRegister">The current mask register.</param>
+            public SubWarpShuffleEmitter(PrimitiveRegister warpMaskRegister)
+            {
+                WarpMaskRegister = warpMaskRegister;
+            }
+
+            /// <summary>
+            /// Returns the current mask register.
+            /// </summary>
+            public PrimitiveRegister WarpMaskRegister { get; }
+
+            /// <summary cref="IShuffleEmitter.EmitWarpMask(CommandEmitter)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void EmitWarpMask(CommandEmitter commandEmitter)
+            {
+                commandEmitter.AppendArgument(WarpMaskRegister);
+            }
+        }
+
+        /// <summary cref="IValueVisitor.Visit(SubWarpShuffle)"/>
+        public void Visit(SubWarpShuffle shuffle)
+        {
+            // Compute the actual warp mask
+            var width = LoadPrimitive(shuffle.Width);
+            var ptxType = PTXType.GetPTXType(width.Kind);
+
+            // Create basic mask
+            var baseRegister = AllocateRegister(ptxType.RegisterKind);
+            using (var command = BeginCommand(
+                Instructions.GetArithmeticOperation(
+                    BinaryArithmeticKind.Sub,
+                    ArithmeticBasicValueType.UInt32,
+                    false)))
+            {
+                command.AppendArgument(baseRegister);
+                command.AppendConstant(PTXBackend.WarpSize);
+                command.AppendArgument(width);
+            }
+
+            // Shift mask
+            var maskRegister = AllocateRegister(ptxType.RegisterKind);
+            using (var command = BeginCommand(
+                Instructions.GetArithmeticOperation(
+                    BinaryArithmeticKind.Shl,
+                    ArithmeticBasicValueType.UInt32,
+                    false)))
+            {
+                command.AppendArgument(maskRegister);
+                command.AppendArgument(baseRegister);
+                command.AppendConstant(WarpShuffleEmitter.BaseMaskShiftAmount);
+            }
+            FreeRegister(baseRegister);
+
+            // Adjust mask register
+            if (shuffle.Kind != ShuffleKind.Up)
+            {
+                var adjustedMaskRegister = AllocateRegister(ptxType.RegisterKind);
+                using (var command = BeginCommand(
+                    Instructions.GetArithmeticOperation(
+                        BinaryArithmeticKind.Or,
+                        ArithmeticBasicValueType.UInt32,
+                        false)))
+                {
+                    command.AppendArgument(adjustedMaskRegister);
+                    command.AppendArgument(maskRegister);
+                    command.AppendConstant(WarpShuffleEmitter.XorDownMask);
+                }
+
+                FreeRegister(maskRegister);
+                maskRegister = adjustedMaskRegister;
+            }
+
+            EmitShuffleOperation(
+                shuffle,
+                new SubWarpShuffleEmitter(maskRegister));
+            FreeRegister(maskRegister);
         }
 
         /// <summary cref="IValueVisitor.Visit(DebugAssertFailed)"/>
