@@ -330,15 +330,15 @@ namespace ILGPU.Backends.PTX
                     Allocate(phi);
 
                     // Map all phi arguments
-                    foreach (Value arg in phi.Nodes)
+                    foreach (var argument in phi.Arguments)
                     {
-                        var argumentBlock = arg.BasicBlock ?? Scope.EntryBlock;
+                        var argumentBlock = argument.ResolvePredecessor(Scope.EntryBlock);
                         if (!phiMapping.TryGetValue(argumentBlock, out List<(Value, PhiValue)> arguments))
                         {
                             arguments = new List<(Value, PhiValue)>();
                             phiMapping.Add(argumentBlock, arguments);
                         }
-                        arguments.Add((arg, phi));
+                        arguments.Add((argument.Value, phi));
                     }
                 }
             }

@@ -49,22 +49,6 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
-        /// Creates a new phi node.
-        /// </summary>
-        /// <param name="phiArguments">All phi arguments.</param>
-        /// <returns>A node that represents the phi value.</returns>
-        public ValueReference CreatePhi(ImmutableArray<ValueReference> phiArguments)
-        {
-            Debug.Assert(phiArguments.Length > 0, "Invalid number of phi arguments");
-            if (phiArguments.Length == 1)
-                return phiArguments[0];
-
-            var phiNode = new PhiValue(BasicBlock, phiArguments[0].Type);
-            phiNode.SealPhiArguments(phiArguments);
-            return CreatePhiValue(phiNode);
-        }
-
-        /// <summary>
         /// Declares a method.
         /// </summary>
         /// <param name="declaration">The method declaration.</param>

@@ -157,12 +157,13 @@ namespace ILGPU.IR.Construction
             foreach (var (sourcePhi, targetPhiBuilder) in phiMapping)
             {
                 // Append all phi arguments
-                foreach (var arg in sourcePhi.Nodes)
+                foreach (var argument in sourcePhi.Arguments)
                 {
-                    if (valueMapping.TryGetValue(arg, out Value mappedValue))
+                    if (valueMapping.TryGetValue(argument.Value, out Value mappedValue))
                     {
                         // This value is reachable -> append it
-                        targetPhiBuilder.AddArgument(mappedValue);
+                        var newPredecessor = blockMapping[argument.Predecessor];
+                        targetPhiBuilder.AddArgument(mappedValue, newPredecessor.BasicBlock);
                     }
                     else
                     {

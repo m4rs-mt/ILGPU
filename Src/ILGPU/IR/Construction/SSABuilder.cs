@@ -387,7 +387,7 @@ namespace ILGPU.IR.Construction
                     }
 
                     // Set argument value
-                    phiBuilder.AddArgument(value);
+                    phiBuilder.AddArgument(value, predecessor.Block);
                 }
                 var phiValue = phiBuilder.Seal();
                 return TryRemoveTrivialPhi(phiValue);

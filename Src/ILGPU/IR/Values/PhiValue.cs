@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -29,6 +30,194 @@ namespace ILGPU.IR.Values
         #region Nested Types
 
         /// <summary>
+        /// Represents a single phi-value reference.
+        /// </summary>
+        public readonly struct Argument
+        {
+            /// <summary>
+            /// Constructs a new argument.
+            /// </summary>
+            /// <param name="value">The source value.</param>
+            /// <param name="predecessor">The associated predecessor.</param>
+            internal Argument(
+                Value value,
+                BasicBlock predecessor)
+            {
+                Value = value;
+                Predecessor = predecessor;
+            }
+
+            /// <summary>
+            /// Returns the associated value.
+            /// </summary>
+            public Value Value { get; }
+
+            /// <summary>
+            /// Returns the associated predecessor.
+            /// </summary>
+            public BasicBlock Predecessor { get; }
+
+            /// <summary>
+            /// Returns true if this entry has a predecessor.k
+            /// </summary>
+            public bool HasPredecessor
+            {
+                get
+                {
+                    bool hasPredecessor = Predecessor != null;
+                    Debug.Assert(hasPredecessor || Value is Parameter);
+                    return hasPredecessor;
+                }
+            }
+
+            /// <summary>
+            /// Resolves the appropriate predecessor (since this argument might not have a valid block).
+            /// </summary>
+            /// <param name="entryBlock">The entry block of the current method.</param>
+            /// <returns>The resolved predecessor.</returns>
+            public BasicBlock ResolvePredecessor(BasicBlock entryBlock) =>
+                HasPredecessor ? Predecessor : entryBlock;
+
+            /// <summary>
+            /// Implicitly converts the current argument to its associated value.
+            /// </summary>
+            public Value ToValue() => Value;
+
+            /// <summary>
+            /// Returns the string representation of the underlying value.
+            /// </summary>
+            /// <returns>The string representation of the underlying value.</returns>
+            public override string ToString() => Value.ToString();
+
+            /// <summary>
+            /// Implicitly converts the given argument to its associated value.
+            /// </summary>
+            /// <param name="argument">The argument to convert.</param>
+            public static implicit operator Value(Argument argument) => argument.Value;
+        }
+
+        /// <summary>
+        /// An enumerator for arguments.
+        /// </summary>
+        public struct ArgumentEnumerator : IEnumerator<Argument>
+        {
+            #region Instance
+
+            private int index;
+
+            /// <summary>
+            /// Constructs a new argument enumerator.
+            /// </summary>
+            /// <param name="phiValue">The phi value to iterate over.</param>
+            internal ArgumentEnumerator(PhiValue phiValue)
+            {
+                Debug.Assert(phiValue != null, "Invalid phi value");
+
+                PhiValue = phiValue;
+                index = -1;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the associated phi value.
+            /// </summary>
+            public PhiValue PhiValue { get; }
+
+            /// <summary>
+            /// Returns the current argument.
+            /// </summary>
+            public Argument Current => new Argument(
+                PhiValue.Nodes[index],
+                PhiValue.Predecessors[index]);
+
+            /// <summary cref="IEnumerator.Current"/>
+            object IEnumerator.Current => Current;
+
+            #endregion
+
+            #region Methods
+
+            /// <summary cref="IDisposable.Dispose"/>
+            public void Dispose() { }
+
+            /// <summary cref="IEnumerator.MoveNext"/>
+            public bool MoveNext() => ++index < PhiValue.Nodes.Length;
+
+            /// <summary cref="IEnumerator.Reset"/>
+            void IEnumerator.Reset() => throw new InvalidOperationException();
+
+            #endregion
+        }
+
+        /// <summary>
+        /// Represents a read-only collection of phi <see cref="Argument"/> values.
+        /// </summary>
+        public readonly struct ArgumentCollection : IReadOnlyCollection<Argument>
+        {
+            #region Instance
+
+            internal ArgumentCollection(PhiValue phiValue)
+            {
+                Debug.Assert(phiValue != null, "Invalid phi value");
+                PhiValue = phiValue;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the associated phi value.
+            /// </summary>
+            public PhiValue PhiValue { get; }
+
+            /// <summary>
+            /// Returns all associated values.
+            /// </summary>
+            public ImmutableArray<ValueReference> Values => PhiValue.Nodes;
+
+            /// <summary>
+            /// Returns an array of all referenced predecessors.
+            /// </summary>
+            public ImmutableArray<BasicBlock> Predecessors => PhiValue.Predecessors;
+
+            /// <summary>
+            /// Returns the number of arguments.
+            /// </summary>
+            public int Count => Values.Length;
+
+            /// <summary>
+            /// Returns the i-th phi argument.
+            /// </summary>
+            /// <param name="index">The argument index.</param>
+            /// <returns>The i-th phi argument.</returns>
+            public Argument this[int index] => new Argument(
+                Values[index],
+                Predecessors[index]);
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns a argument enumerator.
+            /// </summary>
+            /// <returns>The resolved enumerator.</returns>
+            public ArgumentEnumerator GetEnumerator() => new ArgumentEnumerator(PhiValue);
+
+            /// <summary cref="IEnumerable{T}.GetEnumerator"/>
+            IEnumerator<Argument> IEnumerable<Argument>.GetEnumerator() => GetEnumerator();
+
+            /// <summary cref="IEnumerable.GetEnumerator"/>
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            #endregion
+        }
+
+        /// <summary>
         /// A phi builder.
         /// </summary>
         [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
@@ -38,6 +227,7 @@ namespace ILGPU.IR.Values
             #region Instance
 
             private readonly ImmutableArray<ValueReference>.Builder arguments;
+            private readonly ImmutableArray<BasicBlock>.Builder predecessors;
             private readonly HashSet<Value> argumentSet;
 
             /// <summary>
@@ -50,6 +240,7 @@ namespace ILGPU.IR.Values
                 PhiValue = phiValue;
 
                 arguments = ImmutableArray.CreateBuilder<ValueReference>();
+                predecessors = ImmutableArray.CreateBuilder<BasicBlock>();
                 argumentSet = new HashSet<Value>
                 {
                     phiValue
@@ -95,14 +286,22 @@ namespace ILGPU.IR.Values
             /// Adds the given argument.
             /// </summary>
             /// <param name="value">The argument value to add.</param>
+            /// <param name="predecessor">
+            /// The associated predecessor from which to resolve the value from.
+            /// </param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void AddArgument(Value value)
+            public void AddArgument(
+                Value value,
+                BasicBlock predecessor)
             {
                 Debug.Assert(value != null, "Invalid phi argument");
                 Debug.Assert(value.Type == Type, "Incompatible phi argument");
 
                 if (argumentSet.Add(value))
+                {
                     arguments.Add(value);
+                    predecessors.Add(predecessor);
+                }
             }
 
             /// <summary>
@@ -111,8 +310,9 @@ namespace ILGPU.IR.Values
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public PhiValue Seal()
             {
-                var args = arguments.ToImmutable();
-                PhiValue.SealPhiArguments(args);
+                PhiValue.SealPhiArguments(
+                    arguments.ToImmutable(),
+                    predecessors.ToImmutable());
                 return PhiValue;
             }
 
@@ -143,6 +343,8 @@ namespace ILGPU.IR.Values
         {
             Debug.Assert(type != null, "Invalid type");
             Debug.Assert(!type.IsVoidType, "Invalid void type");
+
+            Predecessors = ImmutableArray<BasicBlock>.Empty;
             PhiType = type;
         }
 
@@ -155,6 +357,19 @@ namespace ILGPU.IR.Values
         /// </summary>
         public TypeNode PhiType { get; }
 
+        /// <summary>
+        /// Returns an array of all referenced predecessors.
+        /// </summary>
+        /// <remarks>
+        /// Note that the i-th value is associated with the i-th predecessor.
+        /// </remarks>
+        public ImmutableArray<BasicBlock> Predecessors { get; private set; }
+
+        /// <summary>
+        /// Returns all argument sources.
+        /// </summary>
+        public ArgumentCollection Arguments => new ArgumentCollection(this);
+
         #endregion
 
         #region Methods
@@ -163,8 +378,15 @@ namespace ILGPU.IR.Values
         /// Seals the given phi arguments.
         /// </summary>
         /// <param name="phiArguments">The phi arguments.</param>
-        internal void SealPhiArguments(ImmutableArray<ValueReference> phiArguments) =>
+        /// <param name="predecessors">The associated predecessors.</param>
+        internal void SealPhiArguments(
+            ImmutableArray<ValueReference> phiArguments,
+            ImmutableArray<BasicBlock> predecessors)
+        {
+            Debug.Assert(phiArguments.Length == predecessors.Length);
             Seal(phiArguments);
+            Predecessors = predecessors;
+        }
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
         protected override TypeNode UpdateType(IRContext context) => PhiType;
