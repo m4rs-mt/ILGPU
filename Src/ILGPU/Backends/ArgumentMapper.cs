@@ -377,7 +377,6 @@ namespace ILGPU.Backends
             if (typeMapping.TryGetValue(type, out Type mappedType))
                 return mappedType;
 
-            type = TypeInformationManager.MapType(type);
             if (type.IsVoidPtr() || type == typeof(void) || type.IsByRef ||
                 type.IsPointer || type.IsDelegate() || type.IsArray || type.IsClass)
                 throw new ArgumentOutOfRangeException(nameof(type));

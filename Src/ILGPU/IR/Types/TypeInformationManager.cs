@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
@@ -22,81 +21,184 @@ using System.Threading;
 namespace ILGPU.IR.Types
 {
     /// <summary>
-    /// Represents the base interface for custom types that require a specific mapping.
-    /// </summary>
-    public interface ITypeMapper
-    {
-        /// <summary>
-        /// Maps the given type to a custom type.
-        /// </summary>
-        /// <param name="type">The type to map.</param>
-        /// <returns>The mapped result type, or null iff the type could not be mapped.</returns>
-        Type MapType(Type type);
-    }
-
-    /// <summary>
     /// Represents a context that manages type information.
     /// </summary>
     public class TypeInformationManager : DisposeBase
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents a type information about a managed type.
+        /// </summary>
+        /// <remarks>Members of this class are not thread safe.</remarks>
+        public sealed class TypeInformation
+        {
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new type information.
+            /// </summary>
+            /// <param name="type">The .Net type.</param>
+            /// <param name="fields">All managed fields.</param>
+            /// <param name="fieldTypes">All managed field types.</param>
+            /// <param name="fieldIndices">Maps fields to their indices.</param>
+            /// <param name="isBlittable">True, if this type is blittable.</param>
+            internal TypeInformation(
+                Type type,
+                ImmutableArray<FieldInfo> fields,
+                ImmutableArray<Type> fieldTypes,
+                ImmutableDictionary<FieldInfo, int> fieldIndices,
+                bool isBlittable)
+            {
+                Debug.Assert(type != null, "Invalid type");
+                ManagedType = type;
+                Fields = fields;
+                FieldTypes = fieldTypes;
+                FieldIndices = fieldIndices;
+                IsBlittable = isBlittable;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the .Net type.
+            /// </summary>
+            public Type ManagedType { get; }
+
+            /// <summary>
+            /// Returns the number of fields.
+            /// </summary>
+            public int NumFields => Fields.Length;
+
+            /// <summary>
+            /// Resolves the index of the given field.
+            /// </summary>
+            /// <param name="field">The field.</param>
+            /// <returns>The field index.</returns>
+            public int this[FieldInfo field] => FieldIndices[field];
+
+            /// <summary>
+            /// Returns all fields.
+            /// </summary>
+            public ImmutableArray<FieldInfo> Fields { get; }
+
+            /// <summary>
+            /// Returns all field types.
+            /// </summary>
+            public ImmutableArray<Type> FieldTypes { get; }
+
+            /// <summary>
+            /// Maps field information to field indices.
+            /// </summary>
+            public ImmutableDictionary<FieldInfo, int> FieldIndices { get; }
+
+            /// <summary>
+            /// Returns true if the associated .Net type is blittable.
+            /// </summary>
+            public bool IsBlittable { get; }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Tries to resolve the field of the given field.
+            /// </summary>
+            /// <param name="index">The target index.</param>
+            /// <param name="field">The resolved field.</param>
+            /// <returns>True, if the field could be resolved.</returns>
+            public bool TryResolveField(int index, out FieldInfo field)
+            {
+                field = default;
+                if (index < 0 || index >= NumFields)
+                    return false;
+                field = Fields[index];
+                return true;
+            }
+
+            /// <summary>
+            /// Tries to resolve an index of the given field.
+            /// </summary>
+            /// <param name="info">The field.</param>
+            /// <param name="index">The target index.</param>
+            /// <returns>True, if the field could be resolved.</returns>
+            public bool TryResolveIndex(FieldInfo info, out int index)
+            {
+                return FieldIndices.TryGetValue(info, out index);
+            }
+
+            #endregion
+
+            #region Object
+
+            /// <summary>
+            /// Returns the string representation of this type.
+            /// </summary>
+            /// <returns>The string representation of this type.</returns>
+            public override string ToString()
+            {
+                return ManagedType.Name;
+            }
+
+            #endregion
+        }
+
+        #endregion
+
         #region Instance
 
-        private readonly ReaderWriterLockSlim mappingLock = new ReaderWriterLockSlim();
         private readonly ReaderWriterLockSlim cachingLock = new ReaderWriterLockSlim();
-        private readonly Dictionary<Type, ManagedTypeInfo> typeInfoMapping =
-            new Dictionary<Type, ManagedTypeInfo>();
-        private readonly List<ITypeMapper> typeMappers = new List<ITypeMapper>();
+        private readonly Dictionary<Type, TypeInformation> typeInfoMapping =
+            new Dictionary<Type, TypeInformation>();
 
         /// <summary>
         /// Constructs a new type context.
         /// </summary>
-        public TypeInformationManager() { }
+        public TypeInformationManager()
+        {
+            AddTypeInfo(typeof(bool), false);
+
+            AddTypeInfo(typeof(byte), true);
+            AddTypeInfo(typeof(ushort), true);
+            AddTypeInfo(typeof(uint), true);
+            AddTypeInfo(typeof(ulong), true);
+
+            AddTypeInfo(typeof(sbyte), true);
+            AddTypeInfo(typeof(short), true);
+            AddTypeInfo(typeof(int), true);
+            AddTypeInfo(typeof(long), true);
+
+            AddTypeInfo(typeof(float), true);
+            AddTypeInfo(typeof(double), true);
+
+            AddTypeInfo(typeof(char), false);
+            AddTypeInfo(typeof(string), false);
+        }
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Registers the given type mapper.
-        /// Such a mapper allows to intercept 
-        /// </summary>
-        /// <param name="typeMapper"></param>
-        public void RegisterTypeMapper(ITypeMapper typeMapper)
-        {
-            mappingLock.EnterWriteLock();
-            try
-            {
-                typeMappers.Add(typeMapper);
-            }
-            finally
-            {
-                mappingLock.ExitWriteLock();
-            }
-        }
-
-        /// <summary>
         /// Resolves type information for the given type.
         /// </summary>
         /// <param name="type">The type to resolve.</param>
         /// <returns>The resolved type information.</returns>
-        public ManagedTypeInfo GetTypeInfo(Type type)
+        public TypeInformation GetTypeInfo(Type type)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
-            if (type.IsPrimitive || type.IsPointer())
-                throw new ArgumentException("Not supported type", nameof(type));
             cachingLock.EnterUpgradeableReadLock();
             try
             {
-                if (!typeInfoMapping.TryGetValue(type, out ManagedTypeInfo typeInfo))
-                    type = MapType(type);
-                if (!typeInfoMapping.TryGetValue(type, out typeInfo))
+                if (!typeInfoMapping.TryGetValue(type, out TypeInformation typeInfo))
                 {
                     cachingLock.EnterWriteLock();
                     try
                     {
-                        typeInfo = new ManagedTypeInfo(type);
-                        typeInfoMapping.Add(type, typeInfo);
+                        typeInfo = CreateTypeInfo(type);
                     }
                     finally
                     {
@@ -112,33 +214,103 @@ namespace ILGPU.IR.Types
         }
 
         /// <summary>
-        /// Maps a type using the given address space for pointers.
+        /// Resolves type information for the given type.
         /// </summary>
-        /// <param name="type">The type to map.</param>
-        /// <returns>The mapped type.</returns>
-        public Type MapType(Type type)
+        /// <param name="type">The type to resolve.</param>
+        /// <returns>The resolved type information.</returns>
+        private TypeInformation GetTypeInfoInternal(Type type)
         {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
+            if (!typeInfoMapping.TryGetValue(type, out TypeInformation typeInfo))
+                typeInfo = CreateTypeInfo(type);
+            return typeInfo;
+        }
 
-            if (!type.IsEnum && !type.IsDelegate() &&
-                (type.IsClass || type.IsInterface) && type != typeof(string) &&
-                !type.IsPointer() || type.IsArray)
-                throw new NotSupportedException(
-                    string.Format(ErrorMessages.NotSupportedType, type.GetStringRepresentation()));
+        /// <summary>
+        /// Adds primitive type information.
+        /// </summary>
+        /// <param name="type">The type to add.</param>
+        /// <param name="isBlittable">True, if this type is blittable.</param>
+        /// <returns>The created type information instance.</returns>
+        private TypeInformation AddTypeInfo(Type type, bool isBlittable)
+        {
+            var result = new TypeInformation(
+                type,
+                ImmutableArray<FieldInfo>.Empty,
+                ImmutableArray<Type>.Empty,
+                ImmutableDictionary<FieldInfo, int>.Empty,
+                isBlittable);
+            typeInfoMapping.Add(type, result);
+            return result;
+        }
 
-            mappingLock.EnterReadLock();
-            try
+        /// <summary>
+        /// Creates new type information and registers the created object
+        /// in the internal cache.
+        /// </summary>
+        /// <param name="type">The base .Net type.</param>
+        /// <returns>The created type information object.</returns>
+        private TypeInformation CreateTypeInfo(Type type)
+        {
+            Debug.Assert(type != null, "Invalid type");
+
+            TypeInformation result;
+
+            // Check for pointers and arrays
+            if (type.IsPointer || type.IsByRef || type.IsArray)
             {
-                foreach (var typeMapper in typeMappers)
-                    type = typeMapper.MapType(type);
+                var elementInfo = GetTypeInfoInternal(type.GetElementType());
+                result = AddTypeInfo(type, elementInfo.IsBlittable);
             }
-            finally
+            // Check for opaque view types
+            else if (type.IsArrayViewType(out Type elementType))
             {
-                mappingLock.ExitReadLock();
+                var elementInfo = GetTypeInfoInternal(elementType);
+                result = AddTypeInfo(type, elementInfo.IsBlittable);
+            }
+            else
+            {
+                result = CreateCompoundTypeInfo(type);
+                typeInfoMapping.Add(type, result);
             }
 
-            return type;
+            return result;
+        }
+
+        /// <summary>
+        /// Creates new type information for compound types.
+        /// </summary>
+        /// <param name="type">The base .Net type.</param>
+        /// <returns>The created type information object.</returns>
+        private TypeInformation CreateCompoundTypeInfo(Type type)
+        {
+            var fieldArray = type.GetFields(
+                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+            Array.Sort(fieldArray, (left, right) =>
+            {
+                var leftOffset = Marshal.OffsetOf(type, left.Name).ToInt32();
+                var rightOffset = Marshal.OffsetOf(type, right.Name).ToInt32();
+                return leftOffset.CompareTo(rightOffset);
+            });
+            var fields = ImmutableArray.Create(fieldArray);
+            var fieldIndicesBuilder = ImmutableDictionary.CreateBuilder<FieldInfo, int>();
+            var fieldTypesBuilder = ImmutableArray.CreateBuilder<Type>(fields.Length);
+            var fieldIndex = 0;
+            bool isBlittable = !type.IsEnum;
+            foreach (var field in fields)
+            {
+                fieldIndicesBuilder.Add(field, fieldIndex++);
+                fieldTypesBuilder.Add(field.FieldType);
+                isBlittable &= GetTypeInfoInternal(field.FieldType).IsBlittable;
+            }
+            var fieldIndices = fieldIndicesBuilder.ToImmutable();
+            var fieldTypes = fieldTypesBuilder.MoveToImmutable();
+
+            return new TypeInformation(
+                type,
+                fields,
+                fieldTypes,
+                fieldIndices,
+                isBlittable);
         }
 
         /// <summary>
@@ -164,126 +336,7 @@ namespace ILGPU.IR.Types
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            mappingLock.Dispose();
             cachingLock.Dispose();
-        }
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents a type information about a managed type.
-    /// </summary>
-    /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed class ManagedTypeInfo
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new type information.
-        /// </summary>
-        /// <param name="type">The .Net type.</param>
-        internal ManagedTypeInfo(Type type)
-        {
-            Debug.Assert(type != null, "Invalid type");
-            ManagedType = type;
-            var fieldArray = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-            Array.Sort(fieldArray, (left, right) =>
-            {
-                var leftOffset = Marshal.OffsetOf(type, left.Name).ToInt32();
-                var rightOffset = Marshal.OffsetOf(type, right.Name).ToInt32();
-                return leftOffset.CompareTo(rightOffset);
-            });
-            Fields = ImmutableArray.Create(fieldArray);
-            var fieldIndicesBuilder = ImmutableDictionary.CreateBuilder<FieldInfo, int>();
-            var fieldTypesBuilder = ImmutableArray.CreateBuilder<Type>(Fields.Length);
-            var fieldIndex = 0;
-            foreach (var field in Fields)
-            {
-                fieldIndicesBuilder.Add(field, fieldIndex++);
-                fieldTypesBuilder.Add(field.FieldType);
-            }
-            FieldIndices = fieldIndicesBuilder.ToImmutable();
-            FieldTypes = fieldTypesBuilder.MoveToImmutable();
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the .Net type.
-        /// </summary>
-        public Type ManagedType { get; }
-
-        /// <summary>
-        /// Returns the number of fields.
-        /// </summary>
-        public int NumFields => Fields.Length;
-
-        /// <summary>
-        /// Resolves the index of the given field.
-        /// </summary>
-        /// <param name="field">The field.</param>
-        /// <returns>The field index.</returns>
-        public int this[FieldInfo field] => FieldIndices[field];
-
-        /// <summary>
-        /// Returns all fields.
-        /// </summary>
-        public ImmutableArray<FieldInfo> Fields { get; }
-
-        /// <summary>
-        /// Returns all field types.
-        /// </summary>
-        public ImmutableArray<Type> FieldTypes { get; }
-
-        /// <summary>
-        /// Maps field information to field indices.
-        /// </summary>
-        public ImmutableDictionary<FieldInfo, int> FieldIndices { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Tries to resolve the field of the given field.
-        /// </summary>
-        /// <param name="index">The target index.</param>
-        /// <param name="field">The resolved field.</param>
-        /// <returns>True, if the field could be resolved.</returns>
-        public bool TryResolveField(int index, out FieldInfo field)
-        {
-            field = default;
-            if (index < 0 || index >= NumFields)
-                return false;
-            field = Fields[index];
-            return true;
-        }
-
-        /// <summary>
-        /// Tries to resolve an index of the given field.
-        /// </summary>
-        /// <param name="info">The field.</param>
-        /// <param name="index">The target index.</param>
-        /// <returns>True, if the field could be resolved.</returns>
-        public bool TryResolveIndex(FieldInfo info, out int index)
-        {
-            return FieldIndices.TryGetValue(info, out index);
-        }
-
-        #endregion
-
-        #region Object
-
-        /// <summary>
-        /// Returns the string representation of this type.
-        /// </summary>
-        /// <returns>The string representation of this type.</returns>
-        public override string ToString()
-        {
-            return ManagedType.Name;
         }
 
         #endregion

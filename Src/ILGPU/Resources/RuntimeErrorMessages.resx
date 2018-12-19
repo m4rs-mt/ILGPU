@@ -156,6 +156,9 @@
   <data name="NotSupportedKernelSpecialization" xml:space="preserve">
     <value>The given kernel specialization is not compatible with the current accelerator.</value>
   </data>
+  <data name="NotSupportedNonBlittableType" xml:space="preserve">
+    <value>Type type '{0}' is not blittable</value>
+  </data>
   <data name="NotSupportedOSPlatform" xml:space="preserve">
     <value>Not supported OS platform</value>
   </data>

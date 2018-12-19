@@ -232,6 +232,18 @@ namespace ILGPU.Runtime
             where T : struct
             where TIndex : struct, IIndex, IGenericIndex<TIndex>
         {
+            // Check for blittable types
+            var typeContext = Context.TypeContext;
+            var elementType = typeof(T);
+            var typeInfo = typeContext.GetTypeInfo(elementType);
+            if (!typeInfo.IsBlittable)
+            {
+                throw new NotSupportedException(
+                    string.Format(
+                        RuntimeErrorMessages.NotSupportedNonBlittableType,
+                        elementType.GetStringRepresentation()));
+            }
+
             Bind(); return AllocateInternal<T, TIndex>(extent);
         }
 

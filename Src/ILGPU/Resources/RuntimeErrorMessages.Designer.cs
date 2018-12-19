@@ -178,6 +178,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Type type &apos;{0}&apos; is not blittable.
+        /// </summary>
+        internal static string NotSupportedNonBlittableType {
+            get {
+                return ResourceManager.GetString("NotSupportedNonBlittableType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported OS platform.
         /// </summary>
         internal static string NotSupportedOSPlatform {

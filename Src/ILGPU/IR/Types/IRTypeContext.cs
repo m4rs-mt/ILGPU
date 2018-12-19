@@ -211,7 +211,6 @@ namespace ILGPU.IR.Types
         public TypeNode CreateType(Type type, MemoryAddressSpace addressSpace)
         {
             Debug.Assert(type != null, "Invalid type");
-            type = MapType(type);
 
             Debug.Assert(!type.IsArray, "Invalid array type");
 
