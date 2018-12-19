@@ -41,22 +41,6 @@ namespace ILGPU.Backends
         #region Static
 
         /// <summary>
-        /// Contains default .Net size information about built-in blittable types.
-        /// </summary>
-        private static readonly Dictionary<BasicValueType, int> ManagedSizes =
-            new Dictionary<BasicValueType, int>()
-            {
-                { BasicValueType.Int1, 1 },
-                { BasicValueType.Int8, 1 },
-                { BasicValueType.Int16, 2 },
-                { BasicValueType.Int32, 4 },
-                { BasicValueType.Int64, 8 },
-
-                { BasicValueType.Float32, 4 },
-                { BasicValueType.Float64, 8 },
-            };
-
-        /// <summary>
         /// Computes a properly alligned offset in bytes for the given field size.
         /// </summary>
         /// <param name="offset">The current.</param>
@@ -115,6 +99,22 @@ namespace ILGPU.Backends
         #endregion
 
         #region Instance
+
+        /// <summary>
+        /// Contains default size information about built-in types.
+        /// </summary>
+        private readonly Dictionary<BasicValueType, int> basicTypeInformation =
+            new Dictionary<BasicValueType, int>()
+            {
+                { BasicValueType.Int1, 1 },
+                { BasicValueType.Int8, 1 },
+                { BasicValueType.Int16, 2 },
+                { BasicValueType.Int32, 4 },
+                { BasicValueType.Int64, 8 },
+
+                { BasicValueType.Float32, 4 },
+                { BasicValueType.Float64, 8 },
+            };
 
         private readonly Dictionary<TypeNode, ABITypeInfo> typeInformation =
             new Dictionary<TypeNode, ABITypeInfo>();
@@ -181,6 +181,16 @@ namespace ILGPU.Backends
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Defines a new type information for the specified basic value type.
+        /// </summary>
+        /// <param name="basicValueType">The type to define.</param>
+        /// <param name="size">New size information</param>
+        protected void DefineBasicTypeInformation(BasicValueType basicValueType, int size)
+        {
+            basicTypeInformation[basicValueType] = size;
+        }
 
         /// <summary>
         /// Resolves all fields offsets of the given type.
@@ -270,7 +280,7 @@ namespace ILGPU.Backends
                 return new ABITypeInfo(ImmutableArray<int>.Empty, PointerSize, PointerSize);
             if (type.IsViewType)
                 return ViewTypeInfo;
-            if (ManagedSizes.TryGetValue(type.BasicValueType, out int size))
+            if (basicTypeInformation.TryGetValue(type.BasicValueType, out int size))
                 return new ABITypeInfo(ImmutableArray<int>.Empty, size, size);
 
             if (typeInformation.TryGetValue(type, out ABITypeInfo info))

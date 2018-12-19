@@ -31,7 +31,10 @@ namespace ILGPU.Backends.PTX
             IRTypeContext typeContext,
             TargetPlatform targetPlatform)
             : base(typeContext, targetPlatform)
-        { }
+        {
+            // Bools are mapped to 32bit int registers in PTX
+            DefineBasicTypeInformation(BasicValueType.Int1, 4);
+        }
 
         #endregion
     }
