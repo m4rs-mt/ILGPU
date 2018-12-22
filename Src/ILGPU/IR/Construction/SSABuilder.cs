@@ -372,8 +372,9 @@ namespace ILGPU.IR.Construction
             private Value SetupPhiArguments(in IncompletePhi incompletePhi, ref MarkerProvider markerProvider)
             {
                 var phiBuilder = incompletePhi.PhiBuilder;
-                foreach (var predecessor in Node.Predecessors)
+                for (int i = 0, e = Node.Predecessors.Count; i < e; ++i)
                 {
+                    var predecessor = Node.Predecessors[i];
                     var valueContainer = Parent[predecessor];
 
                     // Get the related predecessor value
@@ -387,7 +388,7 @@ namespace ILGPU.IR.Construction
                     }
 
                     // Set argument value
-                    phiBuilder.AddArgument(value, predecessor.Block);
+                    phiBuilder.AddArgument(value, i);
                 }
                 var phiValue = phiBuilder.Seal();
                 return TryRemoveTrivialPhi(phiValue);

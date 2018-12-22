@@ -41,7 +41,7 @@ namespace ILGPU.IR.Values
             /// <param name="predecessor">The associated predecessor.</param>
             internal Argument(
                 Value value,
-                BasicBlock predecessor)
+                int predecessor)
             {
                 Value = value;
                 Predecessor = predecessor;
@@ -55,28 +55,7 @@ namespace ILGPU.IR.Values
             /// <summary>
             /// Returns the associated predecessor.
             /// </summary>
-            public BasicBlock Predecessor { get; }
-
-            /// <summary>
-            /// Returns true if this entry has a predecessor.k
-            /// </summary>
-            public bool HasPredecessor
-            {
-                get
-                {
-                    bool hasPredecessor = Predecessor != null;
-                    Debug.Assert(hasPredecessor || Value is Parameter);
-                    return hasPredecessor;
-                }
-            }
-
-            /// <summary>
-            /// Resolves the appropriate predecessor (since this argument might not have a valid block).
-            /// </summary>
-            /// <param name="entryBlock">The entry block of the current method.</param>
-            /// <returns>The resolved predecessor.</returns>
-            public BasicBlock ResolvePredecessor(BasicBlock entryBlock) =>
-                HasPredecessor ? Predecessor : entryBlock;
+            public int Predecessor { get; }
 
             /// <summary>
             /// Implicitly converts the current argument to its associated value.
@@ -182,7 +161,7 @@ namespace ILGPU.IR.Values
             /// <summary>
             /// Returns an array of all referenced predecessors.
             /// </summary>
-            public ImmutableArray<BasicBlock> Predecessors => PhiValue.Predecessors;
+            public ImmutableArray<int> Predecessors => PhiValue.Predecessors;
 
             /// <summary>
             /// Returns the number of arguments.
@@ -227,7 +206,7 @@ namespace ILGPU.IR.Values
             #region Instance
 
             private readonly ImmutableArray<ValueReference>.Builder arguments;
-            private readonly ImmutableArray<BasicBlock>.Builder predecessors;
+            private readonly ImmutableArray<int>.Builder predecessors;
             private readonly HashSet<Value> argumentSet;
 
             /// <summary>
@@ -240,7 +219,7 @@ namespace ILGPU.IR.Values
                 PhiValue = phiValue;
 
                 arguments = ImmutableArray.CreateBuilder<ValueReference>();
-                predecessors = ImmutableArray.CreateBuilder<BasicBlock>();
+                predecessors = ImmutableArray.CreateBuilder<int>();
                 argumentSet = new HashSet<Value>
                 {
                     phiValue
@@ -292,10 +271,11 @@ namespace ILGPU.IR.Values
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void AddArgument(
                 Value value,
-                BasicBlock predecessor)
+                int predecessor)
             {
                 Debug.Assert(value != null, "Invalid phi argument");
                 Debug.Assert(value.Type == Type, "Incompatible phi argument");
+                Debug.Assert(predecessor >= 0, "Invalid predecessor value");
 
                 if (argumentSet.Add(value))
                 {
@@ -344,7 +324,7 @@ namespace ILGPU.IR.Values
             Debug.Assert(type != null, "Invalid type");
             Debug.Assert(!type.IsVoidType, "Invalid void type");
 
-            Predecessors = ImmutableArray<BasicBlock>.Empty;
+            Predecessors = ImmutableArray<int>.Empty;
             PhiType = type;
         }
 
@@ -363,7 +343,7 @@ namespace ILGPU.IR.Values
         /// <remarks>
         /// Note that the i-th value is associated with the i-th predecessor.
         /// </remarks>
-        public ImmutableArray<BasicBlock> Predecessors { get; private set; }
+        public ImmutableArray<int> Predecessors { get; private set; }
 
         /// <summary>
         /// Returns all argument sources.
@@ -381,7 +361,7 @@ namespace ILGPU.IR.Values
         /// <param name="predecessors">The associated predecessors.</param>
         internal void SealPhiArguments(
             ImmutableArray<ValueReference> phiArguments,
-            ImmutableArray<BasicBlock> predecessors)
+            ImmutableArray<int> predecessors)
         {
             Debug.Assert(phiArguments.Length == predecessors.Length);
             Seal(phiArguments);
@@ -413,10 +393,16 @@ namespace ILGPU.IR.Values
         {
             var result = new StringBuilder();
             result.Append(this[0]);
+            result.Append(" [");
+            result.Append(Predecessors[0]);
+            result.Append("]");
             for (int i = 1, e = Nodes.Length; i < e; ++i)
             {
                 result.Append(", ");
                 result.Append(this[i]);
+                result.Append(" [");
+                result.Append(Predecessors[i]);
+                result.Append("]");
             }
             return result.ToString();
         }

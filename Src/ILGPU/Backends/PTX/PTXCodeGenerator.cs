@@ -320,10 +320,12 @@ namespace ILGPU.Backends.PTX
 
             // Find all phi nodes, allocate target registers and prepare
             // register mapping for all arguments
+            var cfg = Scope.CreateCFG();
             var phiMapping = new Dictionary<BasicBlock, List<(Value, PhiValue)>>();
             foreach (var block in Scope.PostOrder)
             {
                 // Gather phis in this block and allocate registers
+                var cfgNode = cfg[block];
                 var phis = Phis.Create(block);
                 foreach (var phi in phis)
                 {
@@ -332,7 +334,7 @@ namespace ILGPU.Backends.PTX
                     // Map all phi arguments
                     foreach (var argument in phi.Arguments)
                     {
-                        var argumentBlock = argument.ResolvePredecessor(Scope.EntryBlock);
+                        BasicBlock argumentBlock = cfgNode.Predecessors[argument.Predecessor].Block;
                         if (!phiMapping.TryGetValue(argumentBlock, out List<(Value, PhiValue)> arguments))
                         {
                             arguments = new List<(Value, PhiValue)>();

@@ -262,10 +262,11 @@ namespace ILGPU.IR
                         // We require a custom phi parameter
                         var returnValueSet = new HashSet<Value>();
                         var phiBuilder = tempBlock.CreatePhi(callTarget.ReturnType);
-                        foreach (var (returnValueBlockBuilder, returnValue) in exitBlocks)
+                        for (int i = 0, e = exitBlocks.Length; i < e; ++i)
                         {
+                            var (_, returnValue) = exitBlocks[i];
                             if (returnValueSet.Add(returnValue))
-                                phiBuilder.AddArgument(returnValue, returnValueBlockBuilder.BasicBlock);
+                                phiBuilder.AddArgument(returnValue, i);
                         }
                         call.Replace(phiBuilder.PhiValue);
                         phiBuilder.Seal();
