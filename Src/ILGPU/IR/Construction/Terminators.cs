@@ -70,12 +70,6 @@ namespace ILGPU.IR.Construction
             Debug.Assert(trueTarget != null, "Invalid true target");
             Debug.Assert(falseTarget != null, "Invalid false target");
 
-            if (UseConstantPropagation && condition is PrimitiveValue primitiveValue)
-            {
-                return CreateUnconditionalBranch(
-                    primitiveValue.Int1Value ? trueTarget : falseTarget);
-            }
-
             return CreateTerminator(new ConditionalBranch(
                 Context,
                 BasicBlock,
@@ -99,15 +93,6 @@ namespace ILGPU.IR.Construction
             Debug.Assert(targets.Length > 0, "Invalid number of targets");
 
             value = CreateConvert(value, GetPrimitiveType(BasicValueType.Int32));
-
-            if (UseConstantPropagation && value is PrimitiveValue primitiveValue)
-            {
-                // Perform the actual switch operation
-                var switchValue = primitiveValue.Int32Value;
-                if (switchValue < 0 || switchValue >= targets.Length)
-                    return CreateUnconditionalBranch(targets[0]);
-                return CreateUnconditionalBranch(targets[switchValue + 1]);
-            }
 
             // Transformation to create simple predicates
             if (targets.Length == 2)
