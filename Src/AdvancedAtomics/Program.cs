@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -13,7 +13,6 @@ using ILGPU;
 using ILGPU.AtomicOperations;
 using ILGPU.Runtime;
 using System;
-using System.Reflection;
 
 namespace AdvancedAtomics
 {
@@ -23,10 +22,7 @@ namespace AdvancedAtomics
     /// </summary>
     struct AddDoubleOperation : IAtomicOperation<double>
     {
-        public double Operation(double current, double value)
-        {
-            return current + value;
-        }
+        public double Operation(double current, double value) => current + value;
     }
 
     /// <summary>
@@ -43,9 +39,9 @@ namespace AdvancedAtomics
         /// <param name="compare">The expected comparison value.</param>
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
-        public double CompareExchange(VariableView<double> target, double compare, double value)
+        public double CompareExchange(ref double target, double compare, double value)
         {
-            return Atomic.CompareExchange(target, compare, value);
+            return Atomic.CompareExchange(ref target, compare, value);
         }
     }
 
@@ -67,7 +63,7 @@ namespace AdvancedAtomics
         {
             // atomic add: dataView[0] += value;
             Atomic.MakeAtomic(
-                dataView.GetVariableView(0),
+                ref dataView[0],
                 value,
                 new AddDoubleOperation(),
                 new DoubleCompareExchangeOperation());
@@ -87,7 +83,7 @@ namespace AdvancedAtomics
         {
             // atomic add: dataView[0] += value;
             Atomic.MakeAtomic(
-                dataView.GetVariableView(0),
+                ref dataView[0],
                 value,
                 new AddDoubleOperation(),
                 new CompareExchangeDouble());
@@ -105,7 +101,7 @@ namespace AdvancedAtomics
             double value)
         {
             // atomic add: dataView[0] += value;
-            Atomic.Add(dataView.GetVariableView(0), value);
+            Atomic.Add(ref dataView[0], value);
         }
 
         static void LaunchKernel(

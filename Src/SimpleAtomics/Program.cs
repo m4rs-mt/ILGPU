@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -12,7 +12,6 @@
 using ILGPU;
 using ILGPU.Runtime;
 using System;
-using System.Reflection;
 
 namespace SimpleAtomics
 {
@@ -32,25 +31,22 @@ namespace SimpleAtomics
             int constant)              // A sample uniform constant
         {
             // dataView[0] += constant
-            Atomic.Add(dataView.GetVariableView(0), constant);
+            Atomic.Add(ref dataView[0], constant);
 
-            // dataView[1] -= constant
-            Atomic.Sub(dataView.GetVariableView(1), constant);
+            // dataView[1] = Max(dataView[1], constant)
+            Atomic.Max(ref dataView[1], constant);
 
-            // dataView[2] = Max(dataView[2], constant)
-            Atomic.Max(dataView.GetVariableView(2), constant);
+            // dataView[2] = Min(dataView[2], constant)
+            Atomic.Min(ref dataView[2], constant);
 
             // dataView[3] = Min(dataView[3], constant)
-            Atomic.Min(dataView.GetVariableView(3), constant);
+            Atomic.And(ref dataView[3], constant);
 
             // dataView[4] = Min(dataView[4], constant)
-            Atomic.And(dataView.GetVariableView(4), constant);
+            Atomic.Or(ref dataView[4], constant);
 
-            // dataView[5] = Min(dataView[5], constant)
-            Atomic.Or(dataView.GetVariableView(5), constant);
-
-            // dataView[6] = Min(dataView[6], constant)
-            Atomic.Xor(dataView.GetVariableView(6), constant);
+            // dataView[6] = Min(dataView[5], constant)
+            Atomic.Xor(ref dataView[5], constant);
         }
 
         /// <summary>

@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -169,39 +169,6 @@ namespace SimpleAlloc
         }
 
         /// <summary>
-        /// Demonstrates a (really slow) direct way to access a memory buffer
-        /// on an accelerator from the CPU.
-        /// Hint: try to batch copy operations instead of single direct memory
-        /// accesses for every element (as shown above).
-        /// </summary>
-        /// <param name="accelerator">The target accelerator.</param>
-        static void DirectAccessFromCPU(Accelerator accelerator)
-        {
-            using (var buffer = accelerator.Allocate<int>(1))
-            {
-                // Copy int(42) to the buffer at index 0.
-                buffer[0] = 42;
-                // You can also use:
-                buffer.CopyFrom(42, 0);
-
-                // Read value of buffer at index 0.
-                Console.WriteLine("Resolved value: " + buffer[0]);
-
-                // You can also use:
-                int bufferValue;
-                buffer.CopyTo(out bufferValue, 0);
-
-                Console.WriteLine("Resolved value 2: " + buffer[0]);
-
-                // Note that accessing data this way from the CPU is only possible on the buffer, but not on its views:
-                var view = buffer.View;
-                //var value = view[0]; // This does not work!
-                //view[0] = 42; // Neither does this!
-                // However, both of these options are perfectly valid when used within a kernel.
-            }
-        }
-
-        /// <summary>
         /// Performs different memory allocations and operations on all available accelerators.
         /// Note that a MemoryBuffer<T> can only be constructed for blittable T (see
         /// "https://msdn.microsoft.com/de-de/library/75dwhxf7(v=vs.110).aspx", the gist of
@@ -232,7 +199,6 @@ namespace SimpleAlloc
                         Alloc1D(accelerator);
                         Alloc2D(accelerator);
                         Alloc3D(accelerator);
-                        DirectAccessFromCPU(accelerator);
                     }
                 }
             }

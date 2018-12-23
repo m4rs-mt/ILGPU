@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -13,14 +13,18 @@ using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
-using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace IndexImplementation
 {
     /// <summary>
     /// Implements a custom 4D indexing scheme
     /// </summary>
-    struct MyIndex4 : IIndex, IGenericIndex<MyIndex4>
+    /// <remarks>
+    /// Note that an internal type requires all internals to be visible to the ILGPU runtime.
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential)]
+    readonly struct MyIndex4 : IIndex, IGenericIndex<MyIndex4>
     {
         #region Static
 
@@ -45,10 +49,10 @@ namespace IndexImplementation
 
         #region Instance
 
-        private int x;
-        private int y;
-        private int z;
-        private int w;
+        private readonly int x;
+        private readonly int y;
+        private readonly int z;
+        private readonly int w;
 
         /// <summary>
         /// Constructs a new index.
