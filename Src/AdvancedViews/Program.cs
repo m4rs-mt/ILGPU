@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -12,7 +12,6 @@
 using ILGPU;
 using ILGPU.Runtime;
 using System;
-using System.Reflection;
 
 namespace AdvancedViews
 {
@@ -64,7 +63,7 @@ namespace AdvancedViews
             {
                 var baseView = view.GetVariableView(0);
                 var counterView = baseView.GetSubView<int>(ComposedStructure.ElementCounterOffset);
-                Atomic.Add(counterView, 1);
+                Atomic.Add(ref counterView.Value, 1);
             }
         }
 
@@ -97,7 +96,8 @@ namespace AdvancedViews
 
                                 accelerator.Synchronize();
 
-                                var composedResult = composedStructBuffer[0];
+                                var results = composedStructBuffer.GetAsArray();
+                                ComposedStructure composedResult = results[0];
                                 Console.WriteLine("Composed.SomeElement = " + composedResult.SomeElement);
                                 Console.WriteLine("Composed.SomeOtherElement = " + composedResult.SomeOtherElement);
                                 Console.WriteLine("Composed.ElementCounter = " + composedResult.ElementCounter);

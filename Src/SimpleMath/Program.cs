@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -37,8 +37,8 @@ namespace SimpleMath
             ArrayView<double> doubleView2)  // A view of doubles to store double results from .Net Math
         {
             // Note the different returns type of GPUMath.Sqrt and Math.Sqrt.
-            singleView[index] = GPUMath.Sqrt(index);
-            doubleView[index] = GPUMath.Sqrt((double)index);
+            singleView[index] = XMath.Sqrt(index);
+            doubleView[index] = XMath.Sqrt((double)(int)index);
             doubleView2[index] = Math.Sqrt(index);
         }
 

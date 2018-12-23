@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -30,9 +30,14 @@ namespace SimpleConstants
         static readonly int ReadOnlyValue = 2;
 
         /// <summary>
+        /// The default write-enabled value.
+        /// </summary>
+        const int DefaultWriteEnabledValue = 4;
+
+        /// <summary>
         /// A write-enabled field.
         /// </summary>
-        static int WriteEnabledValue = 4;
+        static int WriteEnabledValue = DefaultWriteEnabledValue;
 
         /// <summary>
         /// A simple 1D kernel. By default, all kernels can access global constants
@@ -119,14 +124,24 @@ namespace SimpleConstants
         /// </summary>
         static void Main(string[] args)
         {
+            // All kernels reject read accesses to write-enabled static fields by default.
+            // However, you can disable this restriction via:
+            // ContextFlags.InlineMutableStaticFieldValues.
+
+            // All kernels reject write accesses to static fields by default.
+            // However, you can skip such assignments by via:
+            // ContextFlags.IgnoreStaticFieldStores.
+
             // Create main context
-            using (var context = new Context())
+            using (var context = new Context(
+                ContextFlags.InlineMutableStaticFieldValues |
+                ContextFlags.IgnoreStaticFieldStores))
             {
                 // For each available accelerator...
                 foreach (var acceleratorId in Accelerator.Accelerators)
                 {
                     // Create default accelerator for the given accelerator id
-                    using (var accelerator = Accelerator.Create(context, acceleratorId, CompileUnitFlags.None))
+                    using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
@@ -142,53 +157,17 @@ namespace SimpleConstants
                             StaticFieldAccessKernel,
                             ReadOnlyValue);
 
-                        // Launch StaticNonReadOnlyFieldAccessKernel:
-                        try
-                        {
-                            LaunchKernel(
-                                accelerator,
-                                StaticNonReadOnlyFieldAccessKernel,
-                                WriteEnabledValue);
-                        }
-                        catch (NotSupportedException)
-                        {
-                            // All kernels reject read accesses to write-enabled static fields by default.
-                            // However, you can disable this restriction via:
-                            // CompileUnitFlags.InlineMutableStaticFieldValues.
-                            Console.WriteLine("Rejected reading a write-enabled static field");
-                        }
-
-                        // Launch StaticFieldWriteAccessKernel:
-                        try
-                        {
-                            LaunchKernel(
-                                accelerator,
-                                StaticFieldWriteAccessKernel,
-                                WriteEnabledValue);
-                        }
-                        catch (NotSupportedException)
-                        {
-                            // All kernels reject write accesses to static fields by default.
-                            // However, you can skip such assignments by via:
-                            // CompileUnitFlags.IgnoreStaticFieldStores.
-                            Console.WriteLine("Rejected write to static field");
-                        }
-                    }
-
-                    using (var accelerator = Accelerator.Create(context, acceleratorId, CompileUnitFlags.InlineMutableStaticFieldValues))
-                    {
                         // Launch StaticNonReadOnlyFieldAccessKernel while inlining static field values:
+                        WriteEnabledValue = DefaultWriteEnabledValue;
                         LaunchKernel(
                             accelerator,
                             StaticNonReadOnlyFieldAccessKernel,
-                            WriteEnabledValue);
+                            DefaultWriteEnabledValue);
                         // Note that a change of the field WriteEnabledValue will not change the result
                         // of a previously compiled kernel that accessed the field WriteEnabledValue.
-                    }
 
-                    using (var accelerator = Accelerator.Create(context, acceleratorId, CompileUnitFlags.IgnoreStaticFieldStores))
-                    {
                         // Launch StaticFieldWriteAccessKernel while ignoring static stores:
+                        // Note that the CPU accelerator will write to static field during execution!
                         LaunchKernel(
                             accelerator,
                             StaticFieldWriteAccessKernel,

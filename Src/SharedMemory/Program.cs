@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -127,15 +127,12 @@ namespace SharedMemory
 
                             using (var dataTarget = accelerator.Allocate<int>(data.Length))
                             {
-                                var sharedMemVarKernel = accelerator.LoadKernel<
+                                var sharedMemVarKernel = accelerator.LoadStreamKernel<
                                     GroupedIndex, ArrayView<int>, ArrayView<int>>(SharedMemoryVariableKernel);
                                 dataTarget.MemSetToZero();
 
-                                // Note that *no* value is passed for the shared-memory variable
-                                // since shared memory is handled automatically inside the runtime
-                                // and shared memory has to be initialized inside a kernel.
-                                // The delegate type for this kernel would be:
-                                // Action<GroupedIndex, ArrayView<int>, ArrayView<int>>.
+                                // Note that shared memory cannot be accessed from the outside
+                                // and must be initialized by the kernel
                                 sharedMemVarKernel(dimension, dataSource.View, dataTarget.View);
 
                                 accelerator.Synchronize();
@@ -145,15 +142,12 @@ namespace SharedMemory
                                 for (int i = 0, e = target.Length; i < e; ++i)
                                     Console.WriteLine($"Data[{i}] = {target[i]}");
 
-                                var sharedMemArrKernel = accelerator.LoadKernel<
+                                var sharedMemArrKernel = accelerator.LoadStreamKernel<
                                     GroupedIndex, ArrayView<int>, ArrayView<int>>(SharedMemoryArrayKernel);
                                 dataTarget.MemSetToZero();
 
-                                // Note that *no* value is passed for the shared-memory variable
-                                // since shared memory is handled automatically inside the runtime
-                                // and shared memory has to be initialized inside a kernel.
-                                // The delegate type for this kernel would be:
-                                // Action<GroupedIndex, ArrayView<int>, ArrayView<int>>.
+                                // Note that shared memory cannot be accessed from the outside
+                                // and must be initialized by the kernel
                                 sharedMemArrKernel(dimension, dataSource.View, dataTarget.View);
 
                                 accelerator.Synchronize();

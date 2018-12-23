@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -25,6 +25,11 @@ namespace Empty
             {
                 // Note that every other instantiated ILGPU object needs to be disposed before
                 // disposing the global context.
+
+
+                // Note that access to non-public internal user-defined types and methods
+                // requires all internals to be visible to the ILGPU runtime.
+                // Refer to AssemblyAttributes.cs for further information.
             }
         }
     }

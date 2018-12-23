@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -64,10 +64,9 @@ namespace SimpleViews
             // Creates a variable view that points to the last accessible element
             // of the provided view
             var variableView = view.GetVariableView(view.Length - 1);
-            variableView.Store(13);
+            variableView.Value = 13;
 
-            // Note that view.Load(idx) is an alias for view[idx]
-            Debug.Assert(variableView.Load() == view.Load(view.Length - 1));
+            Debug.Assert(variableView.Value == view[view.Length - 1]);
         }
 
         static void UnsafeVariableViewAccess(ArrayView<int> view)
@@ -80,9 +79,9 @@ namespace SimpleViews
             // The primary use case for this functionality are direct accesses
             // to structure members.
             var subView = variableView.GetSubView<short>(sizeof(short));
-            subView.Store(short.MaxValue);
+            subView.Value = short.MaxValue;
 
-            Debug.Assert(variableView.Load() == short.MaxValue << 16);
+            Debug.Assert(variableView.Value == short.MaxValue << 16);
         }
 
         /// <summary>

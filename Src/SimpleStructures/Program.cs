@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                ILGPU Samples
-//                   Copyright (c) 2017 ILGPU Samples Project
+//                 Copyright (c) 2017-2019 ILGPU Samples Project
 //                                www.ilgpu.net
 //
 // File: Program.cs
@@ -12,7 +12,6 @@
 using ILGPU;
 using ILGPU.Runtime;
 using System;
-using System.Reflection;
 
 namespace SimpleStructures
 {
@@ -25,23 +24,20 @@ namespace SimpleStructures
         /// assembly cannot access this type. Consequently, we have to make this custom
         /// type visible to the <see cref="CPUAccelerator"/>. To this end, we can add
         /// the following assembly attribute to the current asembly:
-        /// [assembly: InternalsVisibleTo("CPUAccelerator")] (see AssemblyInfo.cs, 28).
+        /// [assembly: InternalsVisibleTo(ILGPU.Context.RuntimeAssemblyName)] (see AssemblyAttributes.cs, 4).
         /// Furthermore, this structure needs to be internally visible to other types in
         /// the current assembly.
         /// </summary>
-        internal struct CustomDataType
+        internal readonly struct CustomDataType
         {
-            private int first;
-            private int second;
-
             public CustomDataType(int value)
             {
-                first = value;
-                second = value * value;
+                First = value;
+                Second = value * value;
             }
 
-            public int First => first;
-            public int Second => second;
+            public int First { get; }
+            public int Second { get; }
         }
 
         /// <summary>
