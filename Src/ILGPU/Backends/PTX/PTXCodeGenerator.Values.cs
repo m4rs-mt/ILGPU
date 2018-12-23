@@ -108,17 +108,35 @@ namespace ILGPU.Backends.PTX
         public void Visit(UnaryArithmeticValue value)
         {
             var argument = LoadPrimitive(value.Value);
-
             var ptxType = PTXType.GetPTXType(value.BasicValueType);
             var targetRegister = Allocate(value, ptxType.RegisterKind);
-            using (var command = BeginCommand(
-                Instructions.GetArithmeticOperation(
-                    value.Kind,
-                    value.ArithmeticBasicValueType,
-                    FastMath)))
+
+            var commandString = Instructions.GetArithmeticOperation(
+                value.Kind,
+                value.ArithmeticBasicValueType,
+                FastMath);
+            switch (value.Kind)
             {
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(argument);
+                case UnaryArithmeticKind.IsInfF:
+                case UnaryArithmeticKind.IsNaNF:
+                    using (var predicateScope = new PredicateScope(this))
+                    {
+                        using (var command = BeginCommand(commandString))
+                        {
+                            command.AppendArgument(predicateScope.PredicateRegister);
+                            command.AppendArgument(argument);
+                        }
+
+                        predicateScope.ConvertToValue(this, targetRegister);
+                    }
+                    break;
+                default:
+                    using (var command = BeginCommand(commandString))
+                    {
+                        command.AppendArgument(targetRegister);
+                        command.AppendArgument(argument);
+                    }
+                    break;
             }
         }
 
@@ -181,14 +199,7 @@ namespace ILGPU.Backends.PTX
                     command.AppendArgument(right);
                 }
 
-                using (var command = BeginCommand(
-                    Instructions.GetSelectValueOperation(BasicValueType.Int32)))
-                {
-                    command.AppendArgument(targetRegister);
-                    command.AppendConstant(1);
-                    command.AppendConstant(0);
-                    command.AppendArgument(predicateScope.PredicateRegister);
-                }
+                predicateScope.ConvertToValue(this, targetRegister);
             }
         }
 
@@ -636,42 +647,37 @@ namespace ILGPU.Backends.PTX
         public void Visit(PredicateBarrier barrier)
         {
             var targetRegister = Allocate(barrier, PTXRegisterKind.Int32);
-            var predicate = LoadPrimitive(barrier.Predicate);
-
-            switch (barrier.Kind)
+            var sourcePredicate = LoadPrimitive(barrier.Predicate);
+            using (var predciateScope = ConvertToPredicateScope(sourcePredicate))
             {
-                case PredicateBarrierKind.And:
-                case PredicateBarrierKind.Or:
-                    using (var predicateScope = new PredicateScope(this))
-                    {
+                switch (barrier.Kind)
+                {
+                    case PredicateBarrierKind.And:
+                    case PredicateBarrierKind.Or:
+                        using (var targetPredicateScope = new PredicateScope(this))
+                        {
+                            using (var command = BeginCommand(
+                                Instructions.GetPredicateBarrier(barrier.Kind)))
+                            {
+                                command.AppendArgument(targetPredicateScope.PredicateRegister);
+                                command.AppendConstant(0);
+                                command.AppendArgument(predciateScope.PredicateRegister);
+                            }
+                            targetPredicateScope.ConvertToValue(this, targetRegister);
+                        }
+                        break;
+                    case PredicateBarrierKind.PopCount:
                         using (var command = BeginCommand(
                             Instructions.GetPredicateBarrier(barrier.Kind)))
                         {
-                            command.AppendArgument(predicateScope.PredicateRegister);
-                            command.AppendConstant(0);
-                            command.AppendArgument(predicate);
-                        }
-                        using (var command = BeginCommand(
-                            Instructions.GetSelectValueOperation(BasicValueType.Int32)))
-                        {
                             command.AppendArgument(targetRegister);
-                            command.AppendConstant(1);
                             command.AppendConstant(0);
-                            command.AppendArgument(predicateScope.PredicateRegister);
+                            command.AppendArgument(predciateScope.PredicateRegister);
                         }
-                    }
-                    break;
-                case PredicateBarrierKind.PopCount:
-                    using (var command = BeginCommand(
-                        Instructions.GetPredicateBarrier(barrier.Kind)))
-                    {
-                        command.AppendArgument(targetRegister);
-                        command.AppendConstant(0);
-                        command.AppendArgument(predicate);
-                    }
-                    break;
-                default:
-                    throw new InvalidCodeGenerationException();
+                        break;
+                    default:
+                        throw new InvalidCodeGenerationException();
+                }
             }
         }
 

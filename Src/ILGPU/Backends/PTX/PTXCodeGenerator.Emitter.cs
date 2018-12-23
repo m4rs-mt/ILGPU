@@ -350,6 +350,26 @@ namespace ILGPU.Backends.PTX
                 new PredicateConfiguration(PredicateRegister, isTrue);
 
             /// <summary>
+            /// Converts the underlying predicate register to a
+            /// default target register.
+            /// </summary>
+            /// <param name="codeGenerator">The target code generator.</param>
+            /// <param name="targetRegister">The target register to write to.</param>
+            public void ConvertToValue(
+                PTXCodeGenerator codeGenerator,
+                PrimitiveRegister targetRegister)
+            {
+                using (var command = codeGenerator.BeginCommand(
+                    Instructions.GetSelectValueOperation(BasicValueType.Int32)))
+                {
+                    command.AppendArgument(targetRegister);
+                    command.AppendConstant(1);
+                    command.AppendConstant(0);
+                    command.AppendArgument(PredicateRegister);
+                }
+            }
+
+            /// <summary>
             /// Frees the allocated predicate register.
             /// </summary>
             public void Dispose()
