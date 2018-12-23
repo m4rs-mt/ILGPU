@@ -2,12 +2,14 @@
                              ILGPU.Samples License
 ********************************************************************************
 University of Illinois/NCSA Open Source License
-Copyright (c) 2016-2017 ILGPU.Lightning Team
+Copyright (c) 2016-2019 ILGPU.Lightning Team
 All rights reserved.
 
 Developed by:           Marcel Koester (m4rs@m4rs.net)
                         Christian Hauck (Christian_Hauck@yahoo.com)
                         Denis Mueller (lightningdevx@gmail.com)
+                        And all contributers (See github)
+
                         www.ilgpu.net
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
