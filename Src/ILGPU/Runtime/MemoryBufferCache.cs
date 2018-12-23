@@ -11,6 +11,7 @@
 
 using ILGPU.Util;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
@@ -76,12 +77,10 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <typeparam name="T">The desired element type.</typeparam>
         /// <returns>The available number of elements of type T.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter", Justification = "The generic parameter is required to compute the number of elements of the given type that can be stored")]
+        [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter",
+            Justification = "The generic parameter is required to compute the number of elements of the given type that can be stored")]
         public Index GetCacheSize<T>()
-            where T : struct
-        {
-            return (cache?.Length ?? 0) * ArrayView<T>.ElementSize;
-        }
+            where T : struct => (cache?.Length ?? 0) * ArrayView<T>.ElementSize;
 
         /// <summary>
         /// Allocates the given number of elements and returns an array view
