@@ -38,5 +38,5 @@ These samples show how to leverage ILGPU.Lightning for even more comfortable GPU
 
 There are a few settings that you should remember to change for your own projects:
 
-- In the project properties, set the target framework to .NET Framework **4.6**.
+- In the project properties, set the target framework to .NET Framework **4.7** or .NET Core 2.0.
 - Make sure that **Prefer 32-bit** is disabled in the project settings and/or that the target platform is set to X64.
