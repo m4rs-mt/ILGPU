@@ -6,7 +6,7 @@
     <title>ILGPU</title>
     <owners>Marcel Koester</owners>
     <authors>Marcel Koester</authors>
-    <licenseUrl>http://www.ilgpu.net/licenses/ILGPU.LicenseV2.txt</licenseUrl>
+    <license type="file">LICENSE.txt</license>
     <projectUrl>http://www.ilgpu.net</projectUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <description>
