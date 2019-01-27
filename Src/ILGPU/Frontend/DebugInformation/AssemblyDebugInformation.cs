@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Util;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -47,19 +46,16 @@ namespace ILGPU.Frontend.DebugInformation
         /// Constructs new assembly debug information.
         /// </summary>
         /// <param name="assembly">The referenced assembly.</param>
-        /// <param name="fileName">The associated PDB file.</param>
-        internal AssemblyDebugInformation(Assembly assembly, string fileName)
+        /// <param name="pdbStream">The associated PDB stream.</param>
+        internal AssemblyDebugInformation(Assembly assembly, Stream pdbStream)
         {
             Assembly = assembly;
             Modules = ImmutableArray.Create(assembly.GetModules());
 
-            using (var pdbFileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read))
-            {
-                metadataReaderProvider = MetadataReaderProvider.FromPortablePdbStream(
-                    pdbFileStream,
-                    MetadataStreamOptions.PrefetchMetadata);
-                MetadataReader = metadataReaderProvider.GetMetadataReader();
-            }
+            metadataReaderProvider = MetadataReaderProvider.FromPortablePdbStream(
+                pdbStream,
+                MetadataStreamOptions.PrefetchMetadata);
+            MetadataReader = metadataReaderProvider.GetMetadataReader();
 
             var methodDebugInformationEnumerator = MetadataReader.MethodDebugInformation.GetEnumerator();
             while (methodDebugInformationEnumerator.MoveNext())
