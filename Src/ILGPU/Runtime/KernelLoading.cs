@@ -448,6 +448,82 @@ namespace ILGPU.Runtime
                 ref loader);
         }
 
+        // Delegate loaders
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <typeparam name="TDelegate">The delegate type.</typeparam>
+        /// <param name="methodDelegate">The delegate to compile into a kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels will be launched with a group size
+        /// of the current warp size of the accelerator.
+        /// </remarks>
+        public TDelegate LoadKernel<TDelegate>(TDelegate methodDelegate)
+            where TDelegate : Delegate =>
+            LoadKernel<TDelegate>(methodDelegate.GetMethodInfo());
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <typeparam name="TDelegate">The delegate type.</typeparam>
+        /// <param name="methodDelegate">The delegate to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernels will be launched with a group size
+        /// of the current warp size of the accelerator.
+        /// </remarks>
+        public TDelegate LoadKernel<TDelegate>(TDelegate methodDelegate, KernelSpecialization specialization)
+            where TDelegate : Delegate =>
+            LoadKernel<TDelegate>(methodDelegate.GetMethodInfo(), specialization);
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <param name="methodDelegate">The delegate to compile into a kernel.</param>
+        /// <param name="customGroupSize">The custom group size to use.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implictly-grouped kernel will be launched with the given
+        /// group size.
+        /// </remarks>
+        public TDelegate LoadImplicitlyGroupedKernel<TDelegate>(TDelegate methodDelegate, int customGroupSize)
+            where TDelegate : Delegate =>
+            LoadImplicitlyGroupedKernel<TDelegate>(methodDelegate.GetMethodInfo(), customGroupSize);
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <param name="methodDelegate">The delegate to compile into a kernel.</param>
+        /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
+        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        public TDelegate LoadAutoGroupedKernel<TDelegate>(
+            TDelegate methodDelegate,
+            out int groupSize,
+            out int minGridSize)
+            where TDelegate : Delegate =>
+            LoadAutoGroupedKernel<TDelegate>(
+                methodDelegate.GetMethodInfo(),
+                out groupSize,
+                out minGridSize);
+
+        /// <summary>
+        /// Loads the given kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <param name="methodDelegate">The delegate to compile into a kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        public TDelegate LoadAutoGroupedKernel<TDelegate>(TDelegate methodDelegate)
+            where TDelegate : Delegate =>
+            LoadAutoGroupedKernel<TDelegate>(methodDelegate.GetMethodInfo());
+
         #endregion
     }
 }

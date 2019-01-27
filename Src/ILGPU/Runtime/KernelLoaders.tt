@@ -82,7 +82,7 @@ namespace ILGPU.Runtime
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
-            var baseKernel = accelerator.LoadKernel(action);
+            var baseKernel = accelerator.LoadKernel<TIndex, <#= delegateParams.TypeParams #>>(action);
             return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
                 baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
         }
@@ -135,7 +135,7 @@ namespace ILGPU.Runtime
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
-            var baseKernel = accelerator.LoadKernel(action, specialization);
+            var baseKernel = accelerator.LoadKernel<TIndex, <#= delegateParams.TypeParams #>>(action, specialization);
             return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
                 baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
         }
@@ -191,7 +191,7 @@ namespace ILGPU.Runtime
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
-            var baseKernel = accelerator.LoadImplicitlyGroupedKernel(action, customGroupSize);
+            var baseKernel = accelerator.LoadImplicitlyGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(action, customGroupSize);
             return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
                 baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
         }
@@ -231,7 +231,7 @@ namespace ILGPU.Runtime
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
-            var baseKernel = accelerator.LoadAutoGroupedKernel(action);
+            var baseKernel = accelerator.LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(action);
             return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
                 baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
         }
