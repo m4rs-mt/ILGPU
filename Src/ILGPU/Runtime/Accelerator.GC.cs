@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------------
 //                                    ILGPU
-//                     Copyright (c) 2016-2018 Marcel Koester
+//                     Copyright (c) 2016-2019 Marcel Koester
 //                                www.ilgpu.net
 //
 // File: AcceleratorGC.cs

@@ -42,7 +42,7 @@ Alternatively, you can open and save any text template in Visual Studio.
 ILGPU is licensed under the University of Illinois/NCSA Open Source License.
 Detailed license information can be found in LICENSE.txt.
 
-Copyright (c) 2016-2018 Marcel Koester (www.ilgpu.net). All rights reserved.
+Copyright (c) 2016-2019 Marcel Koester (www.ilgpu.net). All rights reserved.
 
 ## License information of required dependencies
 
