@@ -5,6 +5,6 @@
     <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ILGPU" Version="0.5.0-beta" />
+    <PackageReference Include="ILGPU" Version="0.5.0" />
   </ItemGroup>
 </Project>
