@@ -147,6 +147,26 @@ namespace ILGPU.Backends.PTX
             }
 
             /// <summary>
+            /// Appends the constant value 'null' of the given type.
+            /// </summary>
+            /// <param name="type">The target type.</param>
+            public void AppendNull(PTXType type)
+            {
+                switch (type.RegisterKind)
+                {
+                    case PTXRegisterKind.Float32:
+                        AppendConstant(0.0f);
+                        break;
+                    case PTXRegisterKind.Float64:
+                        AppendConstant(0.0);
+                        break;
+                    default:
+                        AppendConstant(0);
+                        break;
+                }
+            }
+
+            /// <summary>
             /// Appends a constant.
             /// </summary>
             /// <param name="value">The constant to append.</param>

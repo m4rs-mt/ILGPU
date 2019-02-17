@@ -562,11 +562,12 @@ namespace ILGPU.Backends.PTX
             /// <summary cref="IComplexCommandEmitter.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister[])"/>
             public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
             {
-                var type = PTXType.GetPTXType(registers[0].Kind);
+                var primaryRegister = registers[0];
+                var type = PTXType.GetPTXType(primaryRegister.Kind);
 
                 commandEmitter.AppendPostFix(type);
-                commandEmitter.AppendArgument(registers[0]);
-                commandEmitter.AppendConstant(0);
+                commandEmitter.AppendArgument(primaryRegister);
+                commandEmitter.AppendNull(type);
             }
         }
 
