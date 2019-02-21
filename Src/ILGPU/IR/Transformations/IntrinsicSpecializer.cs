@@ -49,6 +49,10 @@ namespace ILGPU.IR.Transformations
     /// <summary>
     /// Represents an intrinsic implementation specializer.
     /// </summary>
+    /// <remarks>
+    /// Note that this class does not perform recursive specialization operations.
+    /// See <see cref="Backends.PTX.PTXContextData"/> for additional remarks.
+    /// </remarks>
     public sealed class IntrinsicSpecializer<TConfiguration> : UnorderedTransformation<CachedScopeProvider>
         where TConfiguration : IIntrinsicSpecializerConfiguration
     {

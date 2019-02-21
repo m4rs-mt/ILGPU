@@ -125,13 +125,24 @@ namespace ILGPU.Backends.PTX
                     }
                 }
 
+                // Perform an initial pass to resolve all PTX-specific intrinsic functions
                 var transformer = Transformer.Create(
                     new TransformerConfiguration(MethodTransformationFlags.None, false),
                     new IntrinsicSpecializer<PTXIntrinsicConfiguration>(new PTXIntrinsicConfiguration(
                         this)));
                 irContext.Transform(transformer);
-                irContext.Optimize();
                 resolver.ApplyTo(this);
+
+                // Resolve all previously unresolved intrinsic functions
+                /* This is required since the intrinsic implementation resolver does not perform
+                   time-consuming recursive dependency analyses. This is not an issue since
+                   these analyses and recursive passes are not required for default user kernels.
+                   Unfortunately, we need a second pass at this point to ensure that all intrinsic
+                   function declarations have been properly resolved. */
+                irContext.Transform(transformer);
+
+                // Optimize the whole module
+                irContext.Optimize();
             }
 
             public override bool TryGetDebugImplementation(
@@ -160,6 +171,18 @@ namespace ILGPU.Backends.PTX
 
             [MathIntrinsic(MathIntrinsicKind.Exp2F)]
             static double Exp2(double x) => XMath.Exp2((float)x);
+
+            [MathIntrinsic(MathIntrinsicKind.LogF)]
+            static double Log(double x) => XMath.Log((float)x);
+
+            [MathIntrinsic(MathIntrinsicKind.SinHF)]
+            static double Sih(double x) => XMath.Sinh((float)x);
+
+            [MathIntrinsic(MathIntrinsicKind.CosHF)]
+            static double Cosh(double x) => XMath.Cosh((float)x);
+
+            [MathIntrinsic(MathIntrinsicKind.TanHF)]
+            static double Tanh(double x) => XMath.Tanh((float)x);
 
             #endregion
         }
