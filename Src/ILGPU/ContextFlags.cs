@@ -20,6 +20,7 @@ namespace ILGPU
     /// [ 0 -  7] = debugging settings
     /// [ 8 - 15] = code generation settings
     /// [16 - 23] = transformation settings
+    /// [24 - 32] = accelerator settings
     /// </remarks>
     [Flags]
     public enum ContextFlags : int
@@ -118,6 +119,54 @@ namespace ILGPU
         /// (e.g. for debugging purposes).
         /// </summary>
         DisableConstantPropagation = 1 << 20,
+
+        // Accelerator settings
+
+        /// <summary>
+        /// Disables all kernel-loading caches.
+        /// </summary>
+        /// <remarks>
+        /// However, IR nodes, type information and debug information will still
+        /// be cached, since they are used for different kernel compilation operations.
+        /// </remarks>
+        DisableKernelCaching = 1 << 24,
+
+        /// <summary>
+        /// Disables automatic disposal of memory buffers in the scope of ILGPU GC threads.
+        /// It should only be used by experienced users.
+        /// </summary>
+        /// <remarks>
+        /// In theory, allocated memory buffers will be disposed automatically by the .Net GC.
+        /// However, disposing accelerator objects before their associated memory buffers have been
+        /// freed will end up in exceptions and sometimes driver crashes on different systems.
+        /// If you disable automatic buffer disposal, you have to ensure that all accelerator
+        /// child objects have been freed manually before disposing the associated accelerator object.
+        /// </remarks>
+        DisableAutomaticBufferDisposal = 1 << 25,
+
+        /// <summary>
+        /// Disables automatic disposal of kernels in the scope of ILGPU GC threads.  This is dangerous as the
+        /// 'default' kernel-loading methods do not return <see cref="Runtime.Kernel"/> instances that can
+        /// be disposed manually.
+        /// It should only be used by experienced users.
+        /// </summary>
+        /// <remarks>
+        /// In theory, allocated accelerator kernels will be disposed automatically by the .Net GC.
+        /// However, disposing accelerator objects before their associated kernels have been
+        /// freed will end up in exceptions and sometimes driver crashes on different systems.
+        /// If you disable automatic kernel disposal, you have to ensure that all accelerator
+        /// child objects have been freed manually before disposing the associated accelerator object.
+        /// </remarks>
+        DisableAutomaticKernelDisposal = 1 << 26,
+
+        /// <summary>
+        /// Disables kernel caching and automatic disposal of memory buffers and kernels.
+        /// It should only be used by experienced users.
+        /// </summary>
+        DisableAcceleratorGC =
+            DisableKernelCaching |
+            DisableAutomaticBufferDisposal |
+            DisableAutomaticKernelDisposal
     }
 
     /// <summary>

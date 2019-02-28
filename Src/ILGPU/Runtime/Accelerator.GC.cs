@@ -20,10 +20,10 @@ namespace ILGPU.Runtime
         #region Instance
 
         /// <summary>
-        /// True, iff the GC thread is enabled.
+        /// True, if the GC thread is activated.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private volatile bool gcEnabled = true;
+        private volatile bool gcActivated = false;
 
         /// <summary>
         /// The child-object GC thread
@@ -36,6 +36,10 @@ namespace ILGPU.Runtime
         /// </summary>
         private void InitGC()
         {
+            if (Context.HasFlags(ContextFlags.DisableAcceleratorGC))
+                return;
+
+            gcActivated = true;
             gcThread = new Thread(GCThread)
             {
                 Name = "ILGPUAcceleratorGCThread",
@@ -48,13 +52,25 @@ namespace ILGPU.Runtime
         /// </summary>
         private void DisposeGC()
         {
+            if (!gcActivated)
+                return;
+
             lock (syncRoot)
             {
-                gcEnabled = false;
+                gcActivated = false;
                 Monitor.Pulse(syncRoot);
             }
             gcThread.Join();
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns true if the GC thread is enabled.
+        /// </summary>
+        private bool GCEnabled => gcThread != null;
 
         #endregion
 
@@ -78,7 +94,7 @@ namespace ILGPU.Runtime
         {
             lock (syncRoot)
             {
-                while (gcEnabled)
+                while (gcActivated)
                 {
                     Monitor.Wait(syncRoot);
 

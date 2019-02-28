@@ -57,7 +57,9 @@ namespace ILGPU.Runtime
         /// <param name="accelerator">The associated accelerator.</param>
         protected AcceleratorObject(Accelerator accelerator)
         {
-            Accelerator = accelerator ?? throw new ArgumentNullException(nameof(accelerator));
+            Debug.Assert(accelerator != null, "Invalid accelerator");
+
+            Accelerator = accelerator;
             AcceleratorType = accelerator.AcceleratorType;
             accelerator.RegisterChildObject(this);
         }
@@ -110,9 +112,13 @@ namespace ILGPU.Runtime
         #region Properties
 
         /// <summary>
-        /// Returns the number of the associated child objects that depend
+        /// Returns the number of the registered child objects that depend
         /// on this accelerator object.
         /// </summary>
+        /// <remarks>
+        /// Note that this number is affected by the flags
+        /// <see cref="ContextFlags.DisableAutomaticBufferDisposal"/> and <see cref="ContextFlags.DisableAutomaticKernelDisposal"/>.
+        /// </remarks>
         public int NumberChildObjects
         {
             get
@@ -141,6 +147,11 @@ namespace ILGPU.Runtime
         internal void RegisterChildObject<T>(T child)
             where T : AcceleratorObject
         {
+            if (!GCEnabled ||
+                !AutomaticBufferDisposalEnabled && child is MemoryBuffer ||
+                !AutomaticKernelDisposalEnabled && child is Kernel)
+                return;
+
             var objRef = new WeakReference<AcceleratorObject>(child);
             lock (syncRoot)
             {

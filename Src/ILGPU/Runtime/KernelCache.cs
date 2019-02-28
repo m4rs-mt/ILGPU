@@ -283,19 +283,34 @@ namespace ILGPU.Runtime
         /// A cache for compiled kernel objects.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Dictionary<CachedCompiledKernelKey, WeakReference<CompiledKernel>> compiledKernelCache =
-            new Dictionary<CachedCompiledKernelKey, WeakReference<CompiledKernel>>();
+        private Dictionary<CachedCompiledKernelKey, WeakReference<CompiledKernel>> compiledKernelCache;
 
         /// <summary>
         /// A cache for loaded kernel objects.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Dictionary<CachedKernelKey, CachedKernel> kernelCache =
-            new Dictionary<CachedKernelKey, CachedKernel>();
+        private Dictionary<CachedKernelKey, CachedKernel> kernelCache;
+
+        /// <summary>
+        /// Initializes the local kernel cache.
+        /// </summary>
+        private void InitKernelCache()
+        {
+            if (Context.HasFlags(ContextFlags.DisableKernelCaching))
+                return;
+
+            compiledKernelCache = new Dictionary<CachedCompiledKernelKey, WeakReference<CompiledKernel>>();
+            kernelCache = new Dictionary<CachedKernelKey, CachedKernel>();
+        }
 
         #endregion
 
         #region Internal Properties
+
+        /// <summary>
+        /// Returns true if the kernel cache is enabled.
+        /// </summary>
+        private bool KernelCacheEnabled => kernelCache != null;
 
         /// <summary>
         /// True, iff a GC run is requested to clean disposed child kernels.
@@ -308,6 +323,25 @@ namespace ILGPU.Runtime
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Loads a kernel specified by the given method without using internal caches.
+        /// </summary>
+        /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
+        /// <param name="method">The method to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <param name="kernelLoader">The kernel loader.</param>
+        /// <returns>The loaded kernel.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Kernel LoadGenericKernelDirect<TKernelLoader>(
+            MethodInfo method,
+            KernelSpecialization specialization,
+            ref TKernelLoader kernelLoader)
+            where TKernelLoader : struct, IKernelLoader
+        {
+            var compiledKernel = CompileKernel(method, specialization);
+            return kernelLoader.LoadKernel(this, compiledKernel);
+        }
 
         /// <summary>
         /// Loads a kernel specified by the given method.
@@ -326,28 +360,32 @@ namespace ILGPU.Runtime
         {
             if (method == null)
                 throw new ArgumentNullException(nameof(method));
-            var cachedCompiledKernelKey = new CachedCompiledKernelKey(method, specialization);
-            var cachedKey = new CachedKernelKey(cachedCompiledKernelKey, kernelLoader.GroupSize);
-            lock (syncRoot)
+            if (KernelCacheEnabled)
             {
-                if (!kernelCache.TryGetValue(cachedKey, out CachedKernel cached) ||
-                    !cached.TryGetKernel(out Kernel result))
+                var cachedCompiledKernelKey = new CachedCompiledKernelKey(method, specialization);
+                var cachedKey = new CachedKernelKey(cachedCompiledKernelKey, kernelLoader.GroupSize);
+                lock (syncRoot)
                 {
-                    var compiledKernel = CompileKernel(method, specialization);
-                    result = kernelLoader.LoadKernel(this, compiledKernel);
-                    kernelCache[cachedKey] = new CachedKernel(
-                        cached.UpdateReference(result),
-                        kernelLoader.GroupSize,
-                        kernelLoader.MinGridSize);
+                    if (!kernelCache.TryGetValue(cachedKey, out CachedKernel cached) ||
+                        !cached.TryGetKernel(out Kernel result))
+                    {
+                        result = LoadGenericKernelDirect(method, specialization, ref kernelLoader);
+                        kernelCache[cachedKey] = new CachedKernel(
+                            cached.UpdateReference(result),
+                            kernelLoader.GroupSize,
+                            kernelLoader.MinGridSize);
+                    }
+                    else
+                    {
+                        kernelLoader.MinGridSize = cached.MinGridSize;
+                        kernelLoader.GroupSize = cached.GroupSize;
+                    }
+                    RequestGC_SyncRoot();
+                    return result;
                 }
-                else
-                {
-                    kernelLoader.MinGridSize = cached.MinGridSize;
-                    kernelLoader.GroupSize = cached.GroupSize;
-                }
-                RequestGC_SyncRoot();
-                return result;
             }
+            else
+                return LoadGenericKernelDirect(method, specialization, ref kernelLoader);
         }
 
         /// <summary>
@@ -355,10 +393,8 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="method">The method to compile into a <see cref="CompiledKernel"/>.</param>
         /// <returns>The compiled kernel.</returns>
-        public CompiledKernel CompileKernel(MethodInfo method)
-        {
-            return CompileKernel(method, KernelSpecialization.Empty);
-        }
+        public CompiledKernel CompileKernel(MethodInfo method) =>
+            CompileKernel(method, KernelSpecialization.Empty);
 
         /// <summary>
         /// Compiles the given method into a <see cref="CompiledKernel"/> using the given
@@ -376,22 +412,27 @@ namespace ILGPU.Runtime
             if (!specialization.IsCompatibleWith(this))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernelSpecialization);
 
-            // Check and update cache
-            var cachedKey = new CachedCompiledKernelKey(method, specialization);
-            lock (syncRoot)
+            if (KernelCacheEnabled)
             {
-                if (!compiledKernelCache.TryGetValue(cachedKey, out WeakReference<CompiledKernel> cached) ||
-                    !cached.TryGetTarget(out CompiledKernel result))
+                // Check and update cache
+                var cachedKey = new CachedCompiledKernelKey(method, specialization);
+                lock (syncRoot)
                 {
-                    result = Backend.Compile(method, specialization);
-                    if (cached == null)
-                        compiledKernelCache.Add(cachedKey, new WeakReference<CompiledKernel>(result));
-                    else
-                        cached.SetTarget(result);
+                    if (!compiledKernelCache.TryGetValue(cachedKey, out WeakReference<CompiledKernel> cached) ||
+                        !cached.TryGetTarget(out CompiledKernel result))
+                    {
+                        result = Backend.Compile(method, specialization);
+                        if (cached == null)
+                            compiledKernelCache.Add(cachedKey, new WeakReference<CompiledKernel>(result));
+                        else
+                            cached.SetTarget(result);
+                    }
+                    RequestGC_SyncRoot();
+                    return result;
                 }
-                RequestGC_SyncRoot();
-                return result;
             }
+            else
+                return Backend.Compile(method, specialization);
         }
 
         /// <summary>
@@ -400,6 +441,9 @@ namespace ILGPU.Runtime
         /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
         private void KernelCacheGC_SyncRoot()
         {
+            if (!KernelCacheEnabled)
+                return;
+
             if (compiledKernelCache.Count >= MinNumberOfKernelsInGC)
             {
                 var oldCompiledKernels = compiledKernelCache;

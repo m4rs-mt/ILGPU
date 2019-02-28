@@ -118,7 +118,14 @@ namespace ILGPU.Runtime
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             AcceleratorType = type;
+
+            AutomaticBufferDisposalEnabled = !context.HasFlags(
+                ContextFlags.DisableAutomaticBufferDisposal);
+            AutomaticKernelDisposalEnabled = !context.HasFlags(
+                ContextFlags.DisableAutomaticKernelDisposal);
+            InitKernelCache();
             InitGC();
+
             memoryCache = new MemoryBufferCache(this);
         }
 
@@ -206,6 +213,18 @@ namespace ILGPU.Runtime
         /// Returns the default memory-buffer cache that can be used by several operations.
         /// </summary>
         public MemoryBufferCache MemoryCache => memoryCache;
+
+        /// <summary>
+        /// See <see cref="ContextFlags.DisableAutomaticBufferDisposal"/> for more information.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool AutomaticBufferDisposalEnabled { get; }
+
+        /// <summary>
+        /// See <see cref="ContextFlags.DisableAutomaticKernelDisposal"/> for more information.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool AutomaticKernelDisposalEnabled { get; }
 
         #endregion
 
