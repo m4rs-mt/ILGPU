@@ -14,6 +14,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -143,6 +144,30 @@ namespace ILGPU.Backends.PTX
         #endregion
 
         #region Static
+
+        /// <summary>
+        /// Maps basic types to basic PTX suffixes.
+        /// </summary>
+        private static readonly ImmutableArray<string> BasicSuffixes = ImmutableArray.Create(
+            default, "b32",
+            "b8", "b16", "b32", "b64",
+            "f32", "f64");
+
+        /// <summary>
+        /// Maps basic types to constant-loading target basic types.
+        /// </summary>
+        private static readonly ImmutableArray<BasicValueType> PrimitiveValueLoadingTypeRemapping = ImmutableArray.Create(
+            default, BasicValueType.Int32,
+            BasicValueType.Int16, BasicValueType.Int16, BasicValueType.Int32, BasicValueType.Int64,
+            BasicValueType.Float32, BasicValueType.Float64);
+
+        /// <summary>
+        /// Resolves the PTX suffix for the given basic value type.
+        /// </summary>
+        /// <param name="basicValueType">The basic value type.</param>
+        /// <returns>The resolved type suffix.</returns>
+        private static string GetBasicSuffix(BasicValueType basicValueType) =>
+            BasicSuffixes[(int)basicValueType];
 
         /// <summary>
         /// Returns a PTX compatible name for the given entity.
@@ -283,9 +308,7 @@ namespace ILGPU.Backends.PTX
             /// <summary cref="IComplexCommandEmitter.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister[])"/>
             public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
             {
-                var type = PTXType.GetPTXType(registers[0].Kind);
-
-                commandEmitter.AppendPostFix(type);
+                commandEmitter.AppendSuffix(registers[0].BasicValueType);
                 commandEmitter.AppendArgument(registers[0]);
                 commandEmitter.AppendArgument(registers[1]);
             }
@@ -503,9 +526,7 @@ namespace ILGPU.Backends.PTX
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Emit(CommandEmitter commandEmitter, PrimitiveRegister register, int offset)
             {
-                var type = PTXType.GetPTXType(register.Kind);
-
-                commandEmitter.AppendPostFix(type);
+                commandEmitter.AppendSuffix(register.BasicValueType);
                 commandEmitter.AppendArgument(register);
                 commandEmitter.AppendRawValue(ParamName, offset);
             }
@@ -546,9 +567,7 @@ namespace ILGPU.Backends.PTX
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Emit(CommandEmitter commandEmitter, PrimitiveRegister register, int offset)
             {
-                var type = PTXType.GetPTXType(register.Kind);
-
-                commandEmitter.AppendPostFix(type);
+                commandEmitter.AppendSuffix(register.BasicValueType);
                 commandEmitter.AppendRawValue(ParamName, offset);
                 commandEmitter.AppendArgument(register);
             }
@@ -588,11 +607,11 @@ namespace ILGPU.Backends.PTX
         {
             foreach (var allocaEntry in allocations)
             {
-                var allocaType = PTXType.GetPTXType(ABI.PointerArithmeticType);
-                var targetRegister = Allocate(allocaEntry.Item1, allocaType.RegisterKind);
-                using (var command = BeginCommand(
-                    Instructions.MoveOperation, allocaType))
+                var description = ResolveRegisterDescription(ABI.PointerBasicValueType);
+                var targetRegister = Allocate(allocaEntry.Item1, description);
+                using (var command = BeginMove())
                 {
+                    command.AppendSuffix(description.BasicValueType);
                     command.AppendArgument(targetRegister);
                     command.AppendRawValueReference(allocaEntry.Item2);
                 }
@@ -638,8 +657,8 @@ namespace ILGPU.Backends.PTX
                 case PrimitiveType _:
                 case StringType _:
                 case PointerType _:
-                    var basicRegisterType = PTXType.GetPTXParameterType(paramType, ABI);
-                    Builder.Append(basicRegisterType.Name);
+                    var registerDescription = ResolveParameterRegisterDescription(paramType);
+                    Builder.Append(GetBasicSuffix(registerDescription.BasicValueType));
                     Builder.Append(' ');
                     Builder.Append(paramName);
                     break;

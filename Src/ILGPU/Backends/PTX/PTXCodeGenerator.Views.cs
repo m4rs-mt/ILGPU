@@ -45,17 +45,15 @@ namespace ILGPU.Backends.PTX
         private void MakeNullView(NullValue value, ViewType viewType)
         {
             var viewRegister = AllocateViewRegisterAs<ViewImplementationRegister>(viewType);
-            using (var command = BeginCommand(
-                Instructions.MoveOperation,
-                PTXType.GetPTXType(viewRegister.Pointer.Kind)))
+            using (var command = BeginMove())
             {
+                command.AppendSuffix(viewRegister.Pointer.BasicValueType);
                 command.AppendArgument(viewRegister.Pointer);
                 command.AppendConstant(0);
             }
-            using (var command = BeginCommand(
-                Instructions.MoveOperation,
-                PTXType.GetPTXType(viewRegister.Length.Kind)))
+            using (var command = BeginMove())
             {
+                command.AppendSuffix(viewRegister.Length.BasicValueType);
                 command.AppendArgument(viewRegister.Length);
                 command.AppendConstant(0);
             }
@@ -73,8 +71,8 @@ namespace ILGPU.Backends.PTX
             var targetElementSize = ABI.GetSizeOf(value.TargetElementType);
 
             // var newLength = length * sourceElementSize / targetElementSize;
-            var lengthTimesSourceElementSize = AllocateRegister(PTXRegisterKind.Int32);
-            var newLength = AllocateRegister(PTXRegisterKind.Int32);
+            var lengthTimesSourceElementSize = AllocateRegister(length.Description);
+            var newLength = AllocateRegister(length.Description);
             using (var command = BeginCommand(
                 Instructions.GetArithmeticOperation(
                     BinaryArithmeticKind.Mul,
@@ -114,7 +112,7 @@ namespace ILGPU.Backends.PTX
             var offset = LoadPrimitive(value.Offset);
             var length = LoadPrimitive(value.Length);
 
-            var targetAddressRegister = AllocatePlatformRegister(value, out PTXType _);
+            var targetAddressRegister = AllocatePlatformRegister(value, out RegisterDescription _);
             MakeLoadElementAddress(
                 viewType,
                 offset,
@@ -132,7 +130,7 @@ namespace ILGPU.Backends.PTX
         public void Visit(LoadElementAddress value)
         {
             var elementIndex = LoadPrimitive(value.ElementIndex);
-            var targetAddressRegister = AllocatePlatformRegister(value, out PTXType _);
+            var targetAddressRegister = AllocatePlatformRegister(value, out RegisterDescription _);
 
             PrimitiveRegister address;
             if (value.IsPointerAccess)
@@ -164,7 +162,7 @@ namespace ILGPU.Backends.PTX
             PrimitiveRegister address)
         {
             var elementSize = ABI.GetSizeOf(sourceType.ElementType);
-            var offsetRegister = AllocatePlatformRegister(out PTXType _);
+            var offsetRegister = AllocatePlatformRegister(out RegisterDescription _);
             using (var command = BeginCommand(
                 Instructions.GetLEAMulOperation(ABI.PointerArithmeticType)))
             {
@@ -191,8 +189,7 @@ namespace ILGPU.Backends.PTX
         public void Visit(AddressSpaceCast value)
         {
             var sourceType = value.SourceType as AddressSpaceType;
-
-            var targetAdressRegister = AllocatePlatformRegister(value, out PTXType postFix);
+            var targetAdressRegister = AllocatePlatformRegister(value, out RegisterDescription _);
 
             PrimitiveRegister address;
             if (value.IsPointerCast)
@@ -202,7 +199,7 @@ namespace ILGPU.Backends.PTX
                 var viewSource = LoadAs<ViewImplementationRegister>(value.Value);
                 address = viewSource.Pointer;
 
-                // Reuse the existing length register since didn't modify the result
+                // Reuse the existing length register since we don't modify the result
                 var viewTarget = new ViewImplementationRegister(
                     value.Type as ViewType,
                     targetAdressRegister,
@@ -212,13 +209,13 @@ namespace ILGPU.Backends.PTX
 
             var toGeneric = value.TargetAddressSpace == MemoryAddressSpace.Generic;
             var addressSpaceOperation = Instructions.GetAddressSpaceCast(toGeneric);
+            var addressSpaceOperationSuffix = Instructions.GetAddressSpaceCastSuffix(ABI);
 
             using (var command = BeginCommand(addressSpaceOperation))
             {
                 command.AppendAddressSpace(
                     toGeneric ? sourceType.AddressSpace : value.TargetAddressSpace);
-
-                command.AppendPostFix(postFix);
+                command.AppendSuffix(addressSpaceOperationSuffix);
                 command.AppendArgument(targetAdressRegister);
                 command.AppendArgument(address);
             }

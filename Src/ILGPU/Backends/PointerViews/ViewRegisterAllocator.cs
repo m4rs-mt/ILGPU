@@ -55,12 +55,12 @@ namespace ILGPU.Backends.PointerViews
         /// <summary cref="RegisterAllocator{TKind}.AllocateViewRegister(ViewType)"/>
         public override Register AllocateViewRegister(ViewType viewType)
         {
-            var ptrKind = ConvertTypeToKind(ABI.PointerType);
-            var pointerRegister = AllocateRegister(ptrKind);
+            var ptrDesc = ResolveRegisterDescription(ABI.PointerType);
+            var pointerRegister = AllocateRegister(ptrDesc);
 
-            var lengthKind = ConvertTypeToKind(
+            var lengthDesc = ResolveRegisterDescription(
                 ABI.TypeContext.GetPrimitiveType(BasicValueType.Int32));
-            var lengthRegister = AllocateRegister(lengthKind);
+            var lengthRegister = AllocateRegister(lengthDesc);
 
             return new ViewImplementationRegister(viewType, pointerRegister, lengthRegister);
         }

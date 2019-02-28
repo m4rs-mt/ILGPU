@@ -14,6 +14,7 @@ using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -53,9 +54,41 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private const int NumRegisterTypes = (int)PTXRegisterKind.Float64 + 1;
 
+        /// <summary>
+        /// Maps basic types to PTX register kinds.
+        /// </summary>
+        private static readonly ImmutableArray<PTXRegisterKind> RegisterTypeMapping = ImmutableArray.Create(
+            default, PTXRegisterKind.Int32,
+            PTXRegisterKind.Int16, PTXRegisterKind.Int16, PTXRegisterKind.Int32, PTXRegisterKind.Int64,
+            PTXRegisterKind.Float32, PTXRegisterKind.Float64);
+
+        /// <summary>
+        /// Maps basic value types to their PTX-specific parameter-type counterparts.
+        /// </summary>
+        private static readonly ImmutableArray<BasicValueType> ParameterTypeRemapping = ImmutableArray.Create(
+            default, BasicValueType.Int32,
+            BasicValueType.Int8, BasicValueType.Int16, BasicValueType.Int32, BasicValueType.Int64,
+            BasicValueType.Float32, BasicValueType.Float64);
+
         #endregion
 
         #region Static
+
+        /// <summary>
+        /// Returns the associated register kind.
+        /// </summary>
+        /// <param name="basicValueType">The basic value type.</param>
+        /// <returns>The resolved register kind.</returns>
+        public static PTXRegisterKind GetRegisterKind(BasicValueType basicValueType) =>
+            RegisterTypeMapping[(int)basicValueType];
+
+        /// <summary>
+        /// Returns the associated register kind.
+        /// </summary>
+        /// <param name="basicValueType">The basic value type.</param>
+        /// <returns>The resolved register kind.</returns>
+        public static BasicValueType ResolveParameterBasicValueType(BasicValueType basicValueType) =>
+            ParameterTypeRemapping[(int)basicValueType];
 
         /// <summary>
         /// Returns the corresponding device constant string value.
@@ -131,12 +164,12 @@ namespace ILGPU.Backends.PTX
         /// Allocates a platform-specific register and returns the resulting PTX type
         /// for the current platform.
         /// </summary>
-        /// <param name="registerType">The platform register type.</param>
+        /// <param name="description">The resolved register.</param>
         /// <returns>The allocated register.</returns>
-        public PrimitiveRegister AllocatePlatformRegister(out PTXType registerType)
+        public PrimitiveRegister AllocatePlatformRegister(out RegisterDescription description)
         {
-            registerType = PTXType.GetPTXType(ABI.PointerArithmeticType);
-            return AllocateRegister(registerType.RegisterKind);
+            description = ResolveRegisterDescription(ABI.PointerBasicValueType);
+            return AllocateRegister(description);
         }
 
         /// <summary>
@@ -144,33 +177,63 @@ namespace ILGPU.Backends.PTX
         /// returns the resulting PTX type for the current platform.
         /// </summary>
         /// <param name="node">The node to allocate.</param>
-        /// <param name="registerType">The platform register type.</param>
+        /// <param name="description">The resolved register description.</param>
         /// <returns>The allocated register.</returns>
-        public PrimitiveRegister AllocatePlatformRegister(Value node, out PTXType registerType)
+        public PrimitiveRegister AllocatePlatformRegister(Value node, out RegisterDescription description)
         {
-            registerType = PTXType.GetPTXType(ABI.PointerArithmeticType);
-            return Allocate(node, registerType.RegisterKind);
+            var register = AllocatePlatformRegister(out description);
+            Bind(node, register);
+            return register;
         }
 
-        /// <summary cref="RegisterAllocator{TKind}.ConvertTypeToKind(TypeNode)"/>
-        protected override PTXRegisterKind ConvertTypeToKind(TypeNode type) =>
-            PTXType.GetPTXType(type, ABI).RegisterKind;
+        /// <summary>
+        /// Resolves a register description for the basic value type.
+        /// </summary>
+        /// <param name="basicValueType">The basic value type to resolve.</param>
+        /// <returns>The resolved register description.</returns>
+        protected static RegisterDescription ResolveRegisterDescription(BasicValueType basicValueType) =>
+            new RegisterDescription(
+                basicValueType,
+                GetRegisterKind(basicValueType));
+
+        /// <summary>
+        /// Resolves a register description for the given parameter type.
+        /// </summary>
+        /// <param name="type">The parameter type to resolve.</param>
+        /// <returns>The resolved register description.</returns>
+        protected RegisterDescription ResolveParameterRegisterDescription(TypeNode type)
+        {
+            if (type.IsPointerType || type.IsReferenceType)
+                return ResolveRegisterDescription(ABI.PointerBasicValueType);
+            // A return call cannot handle some types -> we have to
+            // perform a PTX-specific type remapping
+            var remapped = ResolveParameterBasicValueType(type.BasicValueType);
+            return ResolveRegisterDescription(remapped);
+        }
+
+        /// <summary cref="RegisterAllocator{TKind}.ResolveRegisterDescription(TypeNode)"/>
+        protected sealed override RegisterDescription ResolveRegisterDescription(TypeNode type)
+        {
+            if (type.IsPointerType || type.IsReferenceType)
+                return ResolveRegisterDescription(ABI.PointerBasicValueType);
+            return ResolveRegisterDescription(type.BasicValueType);
+        }
 
         /// <summary cref="RegisterAllocator{TKind}.FreeRegister(RegisterAllocator{TKind}.PrimitiveRegister)"/>
-        public override void FreeRegister(PrimitiveRegister register)
+        public sealed override void FreeRegister(PrimitiveRegister register)
         {
             var freeRegs = freeRegisters[(int)register.Kind];
             freeRegs.Push(register.RegisterValue);
         }
 
-        /// <summary cref="RegisterAllocator{TKind}.AllocateRegister(TKind)"/>
-        public override PrimitiveRegister AllocateRegister(PTXRegisterKind kind)
+        /// <summary cref="RegisterAllocator{TKind}.AllocateRegister(RegisterAllocator{TKind}.RegisterDescription)"/>
+        public sealed override PrimitiveRegister AllocateRegister(RegisterDescription description)
         {
-            var freeRegs = freeRegisters[(int)kind];
+            var freeRegs = freeRegisters[(int)description.Kind];
             var registerValue = freeRegs.Count > 0 ?
                 freeRegs.Pop() :
-                ++registerCounters[(int)kind];
-            return new PrimitiveRegister(kind, registerValue);
+                ++registerCounters[(int)description.Kind];
+            return new PrimitiveRegister(description, registerValue);
         }
 
         /// <summary>

@@ -28,9 +28,31 @@ namespace ILGPU.Backends
     {
         #region Nested Types
 
-        public interface IRegisterHandler
+        /// <summary>
+        /// Describes allocation information of a single primitive register.
+        /// </summary>
+        public readonly struct RegisterDescription
         {
-            void Handle(int index, PrimitiveRegister register);
+            /// <summary>
+            /// Constructs a new register description.
+            /// </summary>
+            /// <param name="basicValueType">The basic value type.</param>
+            /// <param name="kind">The register kind.</param>
+            public RegisterDescription(BasicValueType basicValueType, TKind kind)
+            {
+                BasicValueType = basicValueType;
+                Kind = kind;
+            }
+
+            /// <summary>
+            /// Returns the associated basic value type.
+            /// </summary>
+            public BasicValueType BasicValueType { get; }
+
+            /// <summary>
+            /// Returns the associated register kind.
+            /// </summary>
+            public TKind Kind { get; }
         }
 
         /// <summary>
@@ -54,28 +76,43 @@ namespace ILGPU.Backends
             public bool IsCompound => this is CompoundRegister;
         }
 
+        /// <summary>
+        /// Represents a primitive register that represents an actual hardware register.
+        /// </summary>
         public sealed class PrimitiveRegister : Register
         {
             /// <summary>
             /// Constructs a new primitive register.
             /// </summary>
-            /// <param name="kind">The actual register kind.</param>
+            /// <param name="description">The current register description.</param>
             /// <param name="registerValue">The associated register value.</param>
-            internal PrimitiveRegister(TKind kind, int registerValue)
+            internal PrimitiveRegister(
+                RegisterDescription description,
+                int registerValue)
             {
-                Kind = kind;
+                Description = description;
                 RegisterValue = registerValue;
             }
 
             /// <summary>
-            /// Returns the actual register kind.
+            /// Returns the associated register description.
             /// </summary>
-            public TKind Kind { get; }
+            public RegisterDescription Description { get; }
 
             /// <summary>
             /// Returns the register index value.
             /// </summary>
             public int RegisterValue { get; }
+
+            /// <summary>
+            /// Returns the associated basic value type.
+            /// </summary>
+            public BasicValueType BasicValueType => Description.BasicValueType;
+
+            /// <summary>
+            /// Returns the actual register kind.
+            /// </summary>
+            public TKind Kind => Description.Kind;
 
             public override string ToString() =>
                 $"Register {Kind}, {RegisterValue}";
@@ -93,7 +130,9 @@ namespace ILGPU.Backends
             /// </summary>
             /// <param name="typeNode">The underlying type node.</param>
             /// <param name="registers">The child registers.</param>
-            internal CompoundRegister(TypeNode typeNode, ImmutableArray<Register> registers)
+            internal CompoundRegister(
+                TypeNode typeNode,
+                ImmutableArray<Register> registers)
             {
                 Type = typeNode;
                 Children = registers;
@@ -239,18 +278,18 @@ namespace ILGPU.Backends
         #region Methods
 
         /// <summary>
-        /// Converts the given type to a register kind.
+        /// Resolves a register description for the given type.
         /// </summary>
         /// <param name="type">The type to convert to.</param>
-        /// <returns>The resolved register kind.</returns>
-        protected abstract TKind ConvertTypeToKind(TypeNode type);
+        /// <returns>The resolved register description.</returns>
+        protected abstract RegisterDescription ResolveRegisterDescription(TypeNode type);
 
         /// <summary>
         /// Allocates a new primitive register of the given kind.
         /// </summary>
-        /// <param name="kind">The register kind to allocate.</param>
+        /// <param name="description">The register description used for allocation.</param>
         /// <returns>The allocated register.</returns>
-        public abstract PrimitiveRegister AllocateRegister(TKind kind);
+        public abstract PrimitiveRegister AllocateRegister(RegisterDescription description);
 
         /// <summary>
         /// Frees the given register.
@@ -288,9 +327,9 @@ namespace ILGPU.Backends
         /// Allocates a specific register kind for the given node.
         /// </summary>
         /// <param name="node">The node to allocate the register for.</param>
-        /// <param name="kind">The register kind to allocate.</param>
+        /// <param name="description">The register description to allocate.</param>
         /// <returns>The allocated register.</returns>
-        public PrimitiveRegister Allocate(Value node, TKind kind)
+        public PrimitiveRegister Allocate(Value node, RegisterDescription description)
         {
             Debug.Assert(node != null, "Invalid node");
 
@@ -298,13 +337,24 @@ namespace ILGPU.Backends
                 node = alias;
             if (!registerLookup.TryGetValue(node, out RegisterEntry entry))
             {
-                var targetRegister = AllocateRegister(kind);
+                var targetRegister = AllocateRegister(description);
                 entry = new RegisterEntry(targetRegister, node);
                 registerLookup.Add(node, entry);
             }
             var result = entry.Register as PrimitiveRegister;
             Debug.Assert(result != null, "Invalid primitive register");
             return result;
+        }
+
+        /// <summary>
+        /// Allocates a specific register kind for the given node.
+        /// </summary>
+        /// <param name="node">The node to allocate the register for.</param>
+        /// <returns>The allocated register.</returns>
+        public PrimitiveRegister AllocatePrimitive(Value node)
+        {
+            var description = ResolveRegisterDescription(node.Type);
+            return Allocate(node, description);
         }
 
         /// <summary>
@@ -347,7 +397,7 @@ namespace ILGPU.Backends
             switch (typeNode)
             {
                 case PrimitiveType primitiveType:
-                    var primitiveRegisterKind = ConvertTypeToKind(primitiveType);
+                    var primitiveRegisterKind = ResolveRegisterDescription(primitiveType);
                     return AllocateRegister(primitiveRegisterKind);
                 case StructureType structureType:
                     var childRegisters = ImmutableArray.CreateBuilder<Register>(

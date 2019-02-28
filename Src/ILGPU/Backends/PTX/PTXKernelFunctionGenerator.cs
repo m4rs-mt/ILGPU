@@ -231,21 +231,11 @@ namespace ILGPU.Backends.PTX
             PrimitiveRegister targetRegister,
             PrimitiveRegister boundsRegister)
         {
-            var ctaid = new PrimitiveRegister(PTXRegisterKind.Ctaid, dimension);
-            var ntid = new PrimitiveRegister(PTXRegisterKind.NtId, dimension);
-            var tid = new PrimitiveRegister(PTXRegisterKind.Tid, dimension);
+            var aReg = MoveFromIntrinsicRegister(PTXRegisterKind.Ctaid, dimension);
+            var bReg = MoveFromIntrinsicRegister(PTXRegisterKind.NtId, dimension);
+            var cReg = MoveFromIntrinsicRegister(PTXRegisterKind.Tid, dimension);
 
-            var aReg = AllocateRegister(PTXRegisterKind.Int32);
-            var bReg = AllocateRegister(PTXRegisterKind.Int32);
-            var cReg = AllocateRegister(PTXRegisterKind.Int32);
-
-            Move(ctaid, aReg);
-            Move(ntid, bReg);
-            Move(tid, cReg);
-
-            using (var command = BeginCommand(
-                Instructions.FMAOperationLo,
-                PTXType.GetPTXType(ArithmeticBasicValueType.Int32)))
+            using (var command = BeginCommand(Instructions.IndexFMAOperationLo))
             {
                 command.AppendArgument(targetRegister);
                 command.AppendArgument(aReg);
@@ -269,11 +259,9 @@ namespace ILGPU.Backends.PTX
                     command.AppendArgument(boundsRegister);
                 }
 
-                using (var command = BeginCommand(
+                Command(
                     Instructions.ReturnOperation,
-                    null,
-                    predicateScope.GetConfiguration(true)))
-                { }
+                    predicateScope.GetConfiguration(true));
             }
         }
 
@@ -288,11 +276,8 @@ namespace ILGPU.Backends.PTX
             PrimitiveRegister targetGroupIdx,
             int dimension)
         {
-            var ctaid = new PrimitiveRegister(PTXRegisterKind.Ctaid, dimension);
-            var tid = new PrimitiveRegister(PTXRegisterKind.Tid, dimension);
-
-            Move(ctaid, targetGridIdx);
-            Move(tid, targetGroupIdx);
+            MoveFromIntrinsicRegister(targetGridIdx, PTXRegisterKind.Ctaid, dimension);
+            MoveFromIntrinsicRegister(targetGroupIdx, PTXRegisterKind.Tid, dimension);
         }
 
         /// <summary>

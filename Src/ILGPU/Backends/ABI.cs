@@ -164,6 +164,11 @@ namespace ILGPU.Backends
         public PrimitiveType PointerType { get; }
 
         /// <summary>
+        /// Returns the basic type of a native pointer.
+        /// </summary>
+        public BasicValueType PointerBasicValueType => PointerType.BasicValueType;
+
+        /// <summary>
         /// Returns the arithmetic type of a native pointer.
         /// </summary>
         public ArithmeticBasicValueType PointerArithmeticType { get; }

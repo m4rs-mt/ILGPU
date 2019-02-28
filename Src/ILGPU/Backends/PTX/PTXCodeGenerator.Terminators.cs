@@ -23,7 +23,7 @@ namespace ILGPU.Backends.PTX
                 var resultRegister = Load(returnTerminator.ReturnValue);
                 EmitStoreParam(returnParamName, resultRegister);
             }
-            Command(Instructions.ReturnOperation, null);
+            Command(Instructions.ReturnOperation);
         }
 
         /// <summary cref="IValueVisitor.Visit(UnconditionalBranch)"/>
@@ -44,7 +44,6 @@ namespace ILGPU.Backends.PTX
             {
                 using (var command = BeginCommand(
                     Instructions.BranchOperation,
-                    null,
                     predicateScope.GetConfiguration(true)))
                 {
                     var trueLabel = blockLookup[branch.TrueTarget];
@@ -90,7 +89,6 @@ namespace ILGPU.Backends.PTX
                     }
                     using (var command = BeginCommand(
                         Instructions.BranchOperation,
-                        null,
                         new PredicateConfiguration(upperBoundsScope.PredicateRegister, true)))
                     {
                         var defaultTarget = blockLookup[branch.DefaultBlock];

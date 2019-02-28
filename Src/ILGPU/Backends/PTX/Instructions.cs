@@ -65,11 +65,14 @@ namespace ILGPU.Backends.PTX
         public static string GetAtomicOperation(AtomicKind kind, bool requireResult) =>
             AtomicOperations[(kind, requireResult)];
 
-        public static string GetAtomicOperationPostfix(AtomicKind kind, ArithmeticBasicValueType type) =>
+        public static string GetAtomicOperationSuffix(AtomicKind kind, ArithmeticBasicValueType type) =>
             AtomicOperationsTypes[(kind, type)];
 
         public static string GetAddressSpaceCast(bool convertToGeneric) =>
             AddressSpaceCastOperations[convertToGeneric ? 0 : 1];
+
+        public static string GetAddressSpaceCastSuffix(ABI abi) =>
+            AddressSpaceCastOperationSuffix[abi.PointerBasicValueType == BasicValueType.Int32 ? 0 : 1];
 
         public static string GetBarrier(BarrierKind kind) =>
             BarrierOperations[(int)kind];

@@ -27,7 +27,7 @@ namespace ILGPU.Backends.PTX
         public const string BranchIndexOperation = "brx.idx";
         public const string BranchIndexRangeComparison = "setp.ge.or.s32";
         public const string BranchTargetsDeclaration = ".branchtargets";
-        public const string FMAOperationLo = "mad.lo";
+        public const string IndexFMAOperationLo = "mad.lo.s32";
         public const string AtomicCASOperation = "atom.cas";
         public const uint AllThreadsInAWarpMemberMask = 0xffffffff;
 
@@ -42,6 +42,12 @@ namespace ILGPU.Backends.PTX
         {
             "cvta",
             "cvta.to",
+        };
+
+        private static readonly string[] AddressSpaceCastOperationSuffix =
+        {
+            "u32",
+            "u64",
         };
 
         private static readonly string[] BarrierOperations =

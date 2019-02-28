@@ -83,13 +83,20 @@ namespace ILGPU.Backends.PTX
             }
 
             /// <summary>
+            /// Appends the given command basic value type suffix.
+            /// </summary>
+            /// <param name="basicValueType">The type suffix.</param>
+            public void AppendSuffix(BasicValueType basicValueType) =>
+                AppendSuffix(GetBasicSuffix(basicValueType));
+
+            /// <summary>
             /// Appends the given command postfix.
             /// </summary>
-            /// <param name="postFix">The postfix.</param>
-            public void AppendPostFix(string postFix)
+            /// <param name="suffix">The postfix.</param>
+            public void AppendSuffix(string suffix)
             {
                 stringBuilder.Append('.');
-                stringBuilder.Append(postFix);
+                stringBuilder.Append(suffix);
             }
 
             /// <summary>
@@ -149,10 +156,10 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Appends the constant value 'null' of the given type.
             /// </summary>
-            /// <param name="type">The target type.</param>
-            public void AppendNull(PTXType type)
+            /// <param name="kind">The register kind.</param>
+            public void AppendNull(PTXRegisterKind kind)
             {
-                switch (type.RegisterKind)
+                switch (kind)
                 {
                     case PTXRegisterKind.Float32:
                         AppendConstant(0.0f);
@@ -340,7 +347,10 @@ namespace ILGPU.Backends.PTX
                 Debug.Assert(registerAllocator != null, "Invalid register allocator");
 
                 RegisterAllocator = registerAllocator;
-                PredicateRegister = registerAllocator.AllocateRegister(PTXRegisterKind.Predicate);
+                PredicateRegister = registerAllocator.AllocateRegister(
+                    new RegisterDescription(
+                        BasicValueType.Int1,
+                        PTXRegisterKind.Predicate));
             }
 
             public PredicateScope(PrimitiveRegister predicateRegister)
@@ -570,6 +580,43 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
+        /// Begins a new command.
+        /// </summary>
+        /// <param name="command">The command to begin.</param>
+        /// <param name="predicate">The predicate under which to execute the command.</param>
+        /// <returns>The created command emitter.</returns>
+        protected CommandEmitter BeginCommand(
+            string command,
+            PredicateConfiguration? predicate = null)
+        {
+            Builder.Append('\t');
+            if (predicate.HasValue)
+            {
+                Builder.Append('@');
+                var predicateValue = predicate.Value;
+                if (!predicateValue.IsTrue)
+                    Builder.Append('!');
+                Builder.Append('%');
+                Builder.Append(GetStringRepresentation(predicateValue.PredicateRegister));
+                Builder.Append(' ');
+            }
+            Builder.Append(command);
+            return new CommandEmitter(Builder);
+        }
+
+        /// <summary>
+        /// Emits the given commmand.
+        /// </summary>
+        /// <param name="command">The command to emit.</param>
+        /// <param name="predicate">The predicate under which to execute the command.</param>
+        protected void Command(
+            string command,
+            PredicateConfiguration? predicate = null)
+        {
+            using (BeginCommand(command, predicate)) { }
+        }
+
+        /// <summary>
         /// Emits a simple move command.
         /// </summary>
         /// <param name="source">The source register.</param>
@@ -584,71 +631,75 @@ namespace ILGPU.Backends.PTX
                 source.RegisterValue == target.RegisterValue)
                 return;
 
-            using (var emitter = BeginCommand(
-                Instructions.MoveOperation,
-                PTXType.GetPTXType(target.Kind),
-                predicate))
+            using (var emitter = BeginMove(predicate))
             {
+                emitter.AppendSuffix(target.BasicValueType);
                 emitter.AppendArgument(target);
                 emitter.AppendArgument(source);
             }
         }
 
         /// <summary>
-        /// Begins a new command.
+        /// Begins a new move command.
         /// </summary>
-        /// <param name="command">The command to begin.</param>
-        /// <param name="postfix">The command postfix.</param>
         /// <param name="predicate">The predicate under which to execute the command.</param>
         /// <returns>The created command emitter.</returns>
-        protected CommandEmitter BeginCommand(
-            string command,
-            string postfix = null,
-            in PredicateConfiguration? predicate = null)
+        protected CommandEmitter BeginMove(
+            PredicateConfiguration? predicate = null) =>
+            BeginCommand(
+                Instructions.MoveOperation,
+                predicate);
+
+        /// <summary>
+        /// Moves the value of the specified intrinsic register to the target register.
+        /// </summary>
+        /// <param name="targetRegister">The target register.</param>
+        /// <param name="registerKind">The intrinsic register kind.</param>
+        /// <param name="dimension">The register dimension (if any).</param>
+        protected void MoveFromIntrinsicRegister(
+            PrimitiveRegister targetRegister,
+            PTXRegisterKind registerKind,
+            int dimension = 0)
         {
-            Builder.Append('\t');
-            if (predicate.HasValue)
-            {
-                Builder.Append('@');
-                var predicateValue = predicate.Value;
-                if (!predicateValue.IsTrue)
-                    Builder.Append('!');
-                Builder.Append('%');
-                Builder.Append(GetStringRepresentation(predicateValue.PredicateRegister));
-                Builder.Append(' ');
-            }
-            Builder.Append(command);
-            var emitter = new CommandEmitter(Builder);
-            if (!string.IsNullOrEmpty(postfix))
-                emitter.AppendPostFix(postfix);
-            return emitter;
+            var intrinsicDescription = new RegisterDescription(
+                BasicValueType.Int32,
+                registerKind);
+            Move(
+                new PrimitiveRegister(intrinsicDescription, dimension),
+                targetRegister);
         }
 
         /// <summary>
-        /// Begins a new command.
+        /// Allocates a new target register and moves the value of the
+        /// specified intrinsic register to the target register.
         /// </summary>
-        /// <param name="command">The command to begin.</param>
-        /// <param name="postfix">The command postfix.</param>
-        /// <returns>The created command emitter.</returns>
-        protected CommandEmitter BeginCommand(string command, string postfix) =>
-            BeginCommand(command, postfix, null);
-
-        /// <summary>
-        /// Begins a new command.
-        /// </summary>
-        /// <param name="command">The command to begin.</param>
-        /// <returns>The created command emitter.</returns>
-        protected CommandEmitter BeginCommand(string command) =>
-            BeginCommand(command, null, null);
-
-        /// <summary>
-        /// Emits the given commmand.
-        /// </summary>
-        /// <param name="command">The command to emit.</param>
-        /// <param name="postfix">The command postfix (if any).</param>
-        protected void Command(string command, string postfix)
+        /// <param name="registerKind">The intrinsic register kind.</param>
+        /// <param name="dimension">The register dimension (if any).</param>
+        protected PrimitiveRegister MoveFromIntrinsicRegister(
+            PTXRegisterKind registerKind,
+            int dimension = 0)
         {
-            using (BeginCommand(command, postfix)) { }
+            var description = ResolveRegisterDescription(BasicValueType.Int32);
+            var target = AllocateRegister(description);
+            MoveFromIntrinsicRegister(target, registerKind, dimension);
+            return target;
+        }
+
+        /// <summary>
+        /// Allocates a new target register for the given value and
+        /// moves the value of the specified intrinsic register to the target register.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="registerKind">The intrinsic register kind.</param>
+        /// <param name="dimension">The register dimension (if any).</param>
+        protected PrimitiveRegister MoveFromIntrinsicRegister(
+            Value value,
+            PTXRegisterKind registerKind,
+            int dimension = 0)
+        {
+            var register = MoveFromIntrinsicRegister(registerKind, dimension);
+            Bind(value, register);
+            return register;
         }
 
         #endregion
