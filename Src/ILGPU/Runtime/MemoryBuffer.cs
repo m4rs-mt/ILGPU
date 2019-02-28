@@ -337,15 +337,15 @@ namespace ILGPU.Runtime
                 throw new ArgumentNullException(nameof(target));
             if (!sourceOffset.InBounds(Extent))
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
-            if (!targetOffset.InBounds(Extent))
+            if (!targetOffset.InBounds(extent))
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
             if (!sourceOffset.Add(extent).InBoundsInclusive(Extent) ||
-                !targetOffset.Add(extent).InBoundsInclusive(Extent))
+                !targetOffset.Add(extent).InBoundsInclusive(target.Extent))
                 throw new ArgumentOutOfRangeException(nameof(extent));
 
             CopyToView(
                 stream,
-                target.GetSubView(targetOffset, Extent).AsLinearView(),
+                target.GetSubView(targetOffset, extent).AsLinearView(),
                 sourceOffset.ComputeLinearIndex(Extent));
         }
 
