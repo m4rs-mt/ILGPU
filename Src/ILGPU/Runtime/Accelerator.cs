@@ -39,7 +39,7 @@ namespace ILGPU.Runtime
     /// Represents a general abstract accelerator.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract partial class Accelerator : DisposeBase
+    public abstract partial class Accelerator : DisposeBase, ICache
     {
         #region Static
 
@@ -367,6 +367,19 @@ namespace ILGPU.Runtime
         /// Synchronizes pending operations.
         /// </summary>
         protected abstract void SynchronizeInternal();
+
+        /// <summary>
+        /// Clears all internal caches.
+        /// </summary>
+        /// <param name="mode">The clear mode.</param>
+        public void ClearCache(ClearCacheMode mode)
+        {
+            lock (syncRoot)
+            {
+                Backend.ClearCache(mode);
+                ClearKernelCache_SyncRoot();
+            }
+        }
 
         #endregion
 

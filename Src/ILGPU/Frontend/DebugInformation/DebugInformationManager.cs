@@ -24,7 +24,7 @@ namespace ILGPU.Frontend.DebugInformation
     /// <summary>
     /// Represents a debug-information manager.
     /// </summary>
-    public sealed class DebugInformationManager : DisposeBase
+    public sealed class DebugInformationManager : DisposeBase, ICache
     {
         #region Constants
 
@@ -203,7 +203,7 @@ namespace ILGPU.Frontend.DebugInformation
 
         #region Instance
 
-        private ReaderWriterLockSlim cacheLock = new ReaderWriterLockSlim(
+        private readonly ReaderWriterLockSlim cacheLock = new ReaderWriterLockSlim(
             LockRecursionPolicy.SupportsRecursion);
         private readonly Dictionary<string, string> pdbFiles = new Dictionary<string, string>();
         private readonly HashSet<string> lookupDirectories = new HashSet<string>();
@@ -432,6 +432,44 @@ namespace ILGPU.Frontend.DebugInformation
             return MethodScopeEnumerator.Empty;
         }
 
+        /// <summary>
+        /// Clears cached debug information.
+        /// </summary>
+        /// <param name="mode">The clear mode.</param>
+        public void ClearCache(ClearCacheMode mode)
+        {
+            cacheLock.EnterWriteLock();
+            try
+            {
+                if (mode == ClearCacheMode.Everything)
+                {
+                    foreach (var debugInformation in assemblies.Values)
+                        debugInformation.Dispose();
+                    assemblies.Clear();
+                }
+                else
+                {
+                    // Do not dispose system assemblies
+                    var assembliesToRemove = new List<Assembly>(assemblies.Count);
+                    foreach (var assembly in assemblies.Keys)
+                    {
+                        if (assembly.FullName.StartsWith(Context.AssemblyName, StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        assembliesToRemove.Add(assembly);
+                    }
+                    foreach (var assemblyToRemove in assembliesToRemove)
+                    {
+                        assemblies[assemblyToRemove].Dispose();
+                        assemblies.Remove(assemblyToRemove);
+                    }
+                }
+            }
+            finally
+            {
+                cacheLock.ExitWriteLock();
+            }
+        }
+
         #endregion
 
         #region IDisposable
@@ -441,10 +479,8 @@ namespace ILGPU.Frontend.DebugInformation
             Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
-            foreach (var assembly in assemblies.Values)
-                assembly.Dispose();
-            assemblies.Clear();
-            Dispose(ref cacheLock);
+            ClearCache(ClearCacheMode.Everything);
+            cacheLock.Dispose();
         }
 
         #endregion

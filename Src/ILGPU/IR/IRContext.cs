@@ -30,7 +30,7 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents an IR context.
     /// </summary>
-    public sealed partial class IRContext : DisposeBase
+    public sealed partial class IRContext : DisposeBase, ICache
     {
         #region Nested Types
 
@@ -554,9 +554,16 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Clears this context and removes all nodes
+        /// Clears cached IR nodes.
         /// </summary>
-        public void Clear()
+        [Obsolete("Use ClearCache(ClearCacheMode.Everything) instead")]
+        public void Clear() => ClearCache(ClearCacheMode.Everything);
+
+        /// <summary>
+        /// Clears cached IR nodes.
+        /// </summary>
+        /// <param name="mode">The clear mode.</param>
+        public void ClearCache(ClearCacheMode mode)
         {
             irLock.EnterWriteLock();
             try

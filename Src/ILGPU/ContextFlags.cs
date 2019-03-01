@@ -128,6 +128,8 @@ namespace ILGPU
         /// <remarks>
         /// However, IR nodes, type information and debug information will still
         /// be cached, since they are used for different kernel compilation operations.
+        /// If you want to clear those caches as well, you will have to clear them
+        /// manually using <see cref="Context.ClearCache(ClearCacheMode)"/>.
         /// </remarks>
         DisableKernelCaching = 1 << 24,
 

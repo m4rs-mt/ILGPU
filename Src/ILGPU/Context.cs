@@ -32,7 +32,7 @@ namespace ILGPU
     /// Represents the main ILGPU context.
     /// </summary>
     /// <remarks>Members of this class are thread safe.</remarks>
-    public sealed partial class Context : DisposeBase
+    public sealed partial class Context : DisposeBase, ICache
     {
         #region Static
 
@@ -129,8 +129,9 @@ namespace ILGPU
         private PTXContextData ptxContextData;
 
         private readonly object assemblyLock = new object();
-        private readonly AssemblyBuilder assemblyBuilder;
-        private readonly ModuleBuilder moduleBuilder;
+        private int assemblyVersion = 0;
+        private AssemblyBuilder assemblyBuilder;
+        private ModuleBuilder moduleBuilder;
         private volatile int typeBuilderIdx = 0;
 
         /// <summary>
@@ -195,13 +196,9 @@ namespace ILGPU
                 TransformerConfiguration.Transformed,
                 Flags);
 
-            // Initialize assembly and module builder
-            var assemblyName = new AssemblyName(RuntimeAssemblyName);
-            assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-            moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
-
-            // Initialize context-dependent information
-            ptxContextData = new PTXContextData(this);
+            // Initialize assembly builder and context data
+            ReloadAssemblyBuilder();
+            ReloadContextData();
         }
 
         #endregion
@@ -256,6 +253,31 @@ namespace ILGPU
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Reloads the assembly builder.
+        /// </summary>
+        private void ReloadAssemblyBuilder()
+        {
+            var assemblyName = new AssemblyName(RuntimeAssemblyName)
+            {
+                Version = new Version(1, assemblyVersion++),
+            };
+            assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(
+                assemblyName,
+                AssemblyBuilderAccess.RunAndCollect);
+            moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
+        }
+
+        /// <summary>
+        /// Reloads context-dependent information.
+        /// </summary>
+        private void ReloadContextData()
+        {
+            Dispose(ref ptxContextData);
+
+            ptxContextData = new PTXContextData(this);
+        }
 
         /// <summary>
         /// Returns true if the current context has the given flags.
@@ -344,6 +366,24 @@ namespace ILGPU
             if (irContext == null)
                 throw new ArgumentNullException(nameof(irContext));
             return Task.Run(() => BeginCodeGeneration(irContext));
+        }
+
+        /// <summary>
+        /// Clears internal caches. However, this does not affect individual accelerator caches.
+        /// </summary>
+        /// <param name="mode">The clear mode.</param>
+        /// <remarks>
+        /// This method is not thread-safe.
+        /// </remarks>
+        public void ClearCache(ClearCacheMode mode)
+        {
+            mainContext.ClearCache(mode);
+            typeContext.ClearCache(mode);
+            debugInformationManager.ClearCache(mode);
+            defaultILBackend.ClearCache(mode);
+
+            ReloadAssemblyBuilder();
+            ReloadContextData();
         }
 
         #endregion

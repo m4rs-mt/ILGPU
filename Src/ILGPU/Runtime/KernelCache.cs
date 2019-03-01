@@ -317,8 +317,9 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
         private bool RequestKernelCacheGC_SyncRoot =>
-            (compiledKernelCache.Count % NumberNewKernelsUntilGC) == 0 ||
-            (kernelCache.Count % NumberNewKernelsUntilGC) == 0;
+            KernelCacheEnabled &&
+            ((compiledKernelCache.Count % NumberNewKernelsUntilGC) == 0 ||
+            (kernelCache.Count % NumberNewKernelsUntilGC) == 0);
 
         #endregion
 
@@ -433,6 +434,17 @@ namespace ILGPU.Runtime
             }
             else
                 return Backend.Compile(method, specialization);
+        }
+
+        /// <summary>
+        /// Clears the internal cache cache.
+        /// </summary>
+        private void ClearKernelCache_SyncRoot()
+        {
+            if (!KernelCacheEnabled)
+                return;
+            compiledKernelCache.Clear();
+            kernelCache.Clear();
         }
 
         /// <summary>

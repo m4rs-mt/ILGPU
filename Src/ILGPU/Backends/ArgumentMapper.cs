@@ -27,7 +27,7 @@ namespace ILGPU.Backends
     /// can be accessed by the native kernel.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract class ArgumentMapper
+    public abstract class ArgumentMapper : ICache
     {
         #region Nested Types
 
@@ -524,6 +524,15 @@ namespace ILGPU.Backends
                     mappingHandler.MapArgument(emitter, argumentSource, i);
                 }
             }
+        }
+
+        /// <summary>
+        /// Clears internal caches.
+        /// </summary>
+        /// <param name="mode">The clear mode.</param>
+        public void ClearCache(ClearCacheMode mode)
+        {
+            typeMapping.Clear();
         }
 
         #endregion

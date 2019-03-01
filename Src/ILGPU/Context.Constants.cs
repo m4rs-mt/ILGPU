@@ -19,9 +19,14 @@ namespace ILGPU
         public const string RuntimeAssemblyName = "ILGPURuntime";
 
         /// <summary>
+        /// Represents the general ILGPU assembly name.
+        /// </summary>
+        public const string AssemblyName = "ILGPU";
+
+        /// <summary>
         /// Represents the general ILGPU assembly module name.
         /// </summary>
-        public const string AssemblyModuleName = "ILGPU.dll";
+        public const string FullAssemblyModuleName = AssemblyName + ".dll";
 
         /// <summary>
         /// The ILGPU assembly file extension.

@@ -43,7 +43,7 @@ namespace ILGPU.Backends
     /// <summary>
     /// Represents a general ILGPU backend.
     /// </summary>
-    public abstract class Backend : DisposeBase
+    public abstract class Backend : DisposeBase, ICache
     {
         #region Nested Types
 
@@ -459,6 +459,16 @@ namespace ILGPU.Backends
             EntryPoint entryPoint,
             in BackendContext backendContext,
             in KernelSpecialization specialization);
+
+        /// <summary>
+        /// Clears all internal caches.
+        /// </summary>
+        /// <param name="mode">The clear mode.</param>
+        /// <remarks>This method is not thread-safe.</remarks>
+        public void ClearCache(ClearCacheMode mode)
+        {
+            ArgumentMapper?.ClearCache(mode);
+        }
 
         #endregion
 

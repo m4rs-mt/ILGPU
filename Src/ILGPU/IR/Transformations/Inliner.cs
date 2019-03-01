@@ -53,7 +53,7 @@ namespace ILGPU.IR.Transformations
 
                 if ((source.MethodImplementationFlags & MethodImplAttributes.AggressiveInlining)
                     == MethodImplAttributes.AggressiveInlining ||
-                    source.Module.Name == Context.AssemblyModuleName)
+                    source.Module.Name == Context.FullAssemblyModuleName)
                     method.AddFlags(MethodFlags.Inline);
             }
 

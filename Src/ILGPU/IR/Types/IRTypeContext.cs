@@ -253,7 +253,7 @@ namespace ILGPU.IR.Types
         }
 
         /// <summary>
-        /// Specializes the address space of the given <see cref="AddressSpaceType"/>.
+        /// Specializes the address space of the given <seeVoidType cref="AddressSpaceType"/>.
         /// </summary>
         /// <param name="addressSpaceType">The source type.</param>
         /// <param name="addressSpace">The new address space.</param>
@@ -332,6 +332,47 @@ namespace ILGPU.IR.Types
             {
                 typeLock.ExitUpgradeableReadLock();
             }
+        }
+
+        /// <summary>
+        /// Clears all internal caches.
+        /// </summary>
+        /// <param name="mode">The clear mode.</param>
+        public override void ClearCache(ClearCacheMode mode)
+        {
+            base.ClearCache(mode);
+
+            typeLock.EnterWriteLock();
+            try
+            {
+                unifiedTypes.Clear();
+
+                unifiedTypes.Add(VoidType, VoidType);
+                unifiedTypes.Add(StringType, StringType);
+
+                foreach (var basicType in BasicValueTypes)
+                {
+                    var type = GetPrimitiveType(basicType);
+                    unifiedTypes.Add(type, type);
+                }
+
+                unifiedTypes.Add(IndexType, IndexType);
+            }
+            finally
+            {
+                typeLock.ExitWriteLock();
+            }
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary cref="DisposeBase.Dispose(bool)"/>
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            typeLock.Dispose();
         }
 
         #endregion

@@ -23,7 +23,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a context that manages type information.
     /// </summary>
-    public class TypeInformationManager : DisposeBase
+    public class TypeInformationManager : DisposeBase, ICache
     {
         #region Nested Types
 
@@ -158,6 +158,18 @@ namespace ILGPU.IR.Types
         /// </summary>
         public TypeInformationManager()
         {
+            InitIntrinsicTypeInformation();
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Initializes intrinsic type information.
+        /// </summary>
+        private void InitIntrinsicTypeInformation()
+        {
             AddTypeInfo(typeof(bool), false);
 
             AddTypeInfo(typeof(byte), true);
@@ -176,10 +188,6 @@ namespace ILGPU.IR.Types
             AddTypeInfo(typeof(char), false);
             AddTypeInfo(typeof(string), false);
         }
-
-        #endregion
-
-        #region Methods
 
         /// <summary>
         /// Resolves type information for the given type.
@@ -314,14 +322,16 @@ namespace ILGPU.IR.Types
         }
 
         /// <summary>
-        /// Clears the cached type information.
+        /// Clears all internal caches.
         /// </summary>
-        public void Clear()
+        /// <param name="mode">The clear mode.</param>
+        public virtual void ClearCache(ClearCacheMode mode)
         {
             cachingLock.EnterWriteLock();
             try
             {
                 typeInfoMapping.Clear();
+                InitIntrinsicTypeInformation();
             }
             finally
             {

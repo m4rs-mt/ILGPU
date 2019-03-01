@@ -24,7 +24,7 @@ namespace ILGPU.Runtime
     /// buffer will be freed and a new buffer will be allocated.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed class MemoryBufferCache : AcceleratorObject
+    public sealed class MemoryBufferCache : AcceleratorObject, ICache
     {
         #region Instance
 
@@ -139,6 +139,15 @@ namespace ILGPU.Runtime
             }
         }
 
+        /// <summary>
+        /// Clears all internal caches.
+        /// </summary>
+        /// <param name="mode">The clear mode.</param>
+        public void ClearCache(ClearCacheMode mode)
+        {
+            Dispose(ref cache);
+        }
+
         #endregion
 
         #region IDisposable
@@ -146,7 +155,7 @@ namespace ILGPU.Runtime
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            Dispose(ref cache);
+            ClearCache(ClearCacheMode.Everything);
         }
 
         #endregion
