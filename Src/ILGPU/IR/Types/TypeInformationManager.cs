@@ -270,11 +270,8 @@ namespace ILGPU.IR.Types
                 result = AddTypeInfo(type, elementInfo.IsBlittable);
             }
             // Check for opaque view types
-            else if (type.IsArrayViewType(out Type elementType))
-            {
-                var elementInfo = GetTypeInfoInternal(elementType);
-                result = AddTypeInfo(type, elementInfo.IsBlittable);
-            }
+            else if (type.IsArrayViewType(out Type _))
+                result = AddTypeInfo(type, false);
             else
             {
                 result = CreateCompoundTypeInfo(type);
