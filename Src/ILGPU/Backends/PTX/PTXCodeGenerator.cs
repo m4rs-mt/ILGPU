@@ -156,7 +156,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Maps basic types to constant-loading target basic types.
         /// </summary>
-        private static readonly ImmutableArray<BasicValueType> PrimitiveValueLoadingTypeRemapping = ImmutableArray.Create(
+        private static readonly ImmutableArray<BasicValueType> RegisterMovementTypeRemapping = ImmutableArray.Create(
             default, BasicValueType.Int32,
             BasicValueType.Int16, BasicValueType.Int16, BasicValueType.Int32, BasicValueType.Int64,
             BasicValueType.Float32, BasicValueType.Float64);
@@ -168,6 +168,14 @@ namespace ILGPU.Backends.PTX
         /// <returns>The resolved type suffix.</returns>
         private static string GetBasicSuffix(BasicValueType basicValueType) =>
             BasicSuffixes[(int)basicValueType];
+
+        /// <summary>
+        /// Remaps the given basic type for register movement instructions.
+        /// </summary>
+        /// <param name="basicValueType">The basic value type.</param>
+        /// <returns>The remapped type.</returns>
+        private static BasicValueType ResolveRegisterMovementType(BasicValueType basicValueType) =>
+            RegisterMovementTypeRemapping[(int)basicValueType];
 
         /// <summary>
         /// Returns a PTX compatible name for the given entity.
@@ -308,8 +316,10 @@ namespace ILGPU.Backends.PTX
             /// <summary cref="IComplexCommandEmitter.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister[])"/>
             public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
             {
-                commandEmitter.AppendSuffix(registers[0].BasicValueType);
-                commandEmitter.AppendArgument(registers[0]);
+                var primaryRegister = registers[0];
+
+                commandEmitter.AppendRegisterMovementSuffix(primaryRegister.BasicValueType);
+                commandEmitter.AppendArgument(primaryRegister);
                 commandEmitter.AppendArgument(registers[1]);
             }
         }

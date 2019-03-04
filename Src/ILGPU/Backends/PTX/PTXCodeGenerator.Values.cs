@@ -489,8 +489,7 @@ namespace ILGPU.Backends.PTX
             var register = AllocatePrimitive(value);
             using (var command = BeginMove())
             {
-                command.AppendSuffix(
-                    PrimitiveValueLoadingTypeRemapping[(int)register.BasicValueType]);
+                command.AppendRegisterMovementSuffix(register.BasicValueType);
                 command.AppendArgument(register);
 
                 switch (value.BasicValueType)
@@ -549,7 +548,7 @@ namespace ILGPU.Backends.PTX
             {
                 var primaryRegister = registers[0];
 
-                commandEmitter.AppendSuffix(primaryRegister.BasicValueType);
+                commandEmitter.AppendRegisterMovementSuffix(primaryRegister.BasicValueType);
                 commandEmitter.AppendArgument(primaryRegister);
                 commandEmitter.AppendNull(primaryRegister.Kind);
             }

@@ -83,6 +83,13 @@ namespace ILGPU.Backends.PTX
             }
 
             /// <summary>
+            /// Appends a specialized basic type suffix for mov instructions.
+            /// </summary>
+            /// <param name="basicValueType">The type suffix.</param>
+            public void AppendRegisterMovementSuffix(BasicValueType basicValueType) =>
+                AppendSuffix(ResolveRegisterMovementType(basicValueType));
+
+            /// <summary>
             /// Appends the given command basic value type suffix.
             /// </summary>
             /// <param name="basicValueType">The type suffix.</param>
