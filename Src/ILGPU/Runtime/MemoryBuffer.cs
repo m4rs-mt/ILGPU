@@ -337,7 +337,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentNullException(nameof(target));
             if (!sourceOffset.InBounds(Extent))
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
-            if (!targetOffset.InBounds(extent))
+            if (!targetOffset.InBounds(target.Extent))
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
             if (!sourceOffset.Add(extent).InBoundsInclusive(Extent) ||
                 !targetOffset.Add(extent).InBoundsInclusive(target.Extent))
