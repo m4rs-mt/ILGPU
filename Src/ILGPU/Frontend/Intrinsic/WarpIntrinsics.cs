@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -89,7 +90,9 @@ namespace ILGPU.Frontend.Intrinsic
                 case WarpIntrinsicKind.LaneIdx:
                     return builder.CreateLaneIdxValue();
                 default:
-                    throw new NotSupportedException("Invalid warp operation");
+                    throw context.GetNotSupportedException(
+                        ErrorMessages.NotSupportedWarpIntrinsic,
+                        attribute.IntrinsicKind.ToString());
             }
         }
     }

@@ -132,15 +132,6 @@
   <data name="InvalidILCode" xml:space="preserve">
     <value>Invalid IL Code</value>
   </data>
-  <data name="InvalidMathIntrinsic" xml:space="preserve">
-    <value>Invalid math-intrinsic implementation of '{0}'</value>
-  </data>
-  <data name="InvalidUseOfVariableViewsInSharedMemory" xml:space="preserve">
-    <value>Variable views cannot have a specified element count in shared memory. Consider using an array view instead.</value>
-  </data>
-  <data name="MismatchingTypes" xml:space="preserve">
-    <value>The provided types '{0}' and '{1}' do not match</value>
-  </data>
   <data name="NotSupportedArithmeticOperandTypes" xml:space="preserve">
     <value>Not supported arithmetic operands '{0}' &amp; '{1}'</value>
   </data>
@@ -150,47 +141,23 @@
   <data name="NotSupportedArrayElementType" xml:space="preserve">
     <value>The array type '{0}' uses a non-value element type</value>
   </data>
-  <data name="NotSupportedBoxing" xml:space="preserve">
-    <value>Boxing a value is currently not supported</value>
-  </data>
   <data name="NotSupportedClassType" xml:space="preserve">
     <value>Class type '{0}' is not supported</value>
-  </data>
-  <data name="NotSupportedCompareOperation" xml:space="preserve">
-    <value>Not supported compare operation of types '{0}' &amp; '{1}'</value>
   </data>
   <data name="NotSupportedCompareOrArithmeticValue" xml:space="preserve">
     <value>Not supported compare or arithmetic value of type '{0}'</value>
   </data>
-  <data name="NotSupportedConversion" xml:space="preserve">
-    <value>Not supported conversion</value>
-  </data>
-  <data name="NotSupportedFloatComparison" xml:space="preserve">
-    <value>Not supported float comparison of type '{0}'</value>
-  </data>
-  <data name="NotSupportedFloatConversion" xml:space="preserve">
-    <value>Not supported float conversion</value>
-  </data>
-  <data name="NotSupportedGenericType" xml:space="preserve">
-    <value>Generic type '{0}' without required type arguments cannot be converted to an object type</value>
-  </data>
   <data name="NotSupportedILInstruction" xml:space="preserve">
-    <value>Not supported IL instruction in method of type '{0}'</value>
+    <value>Not supported IL instruction in method '{0}' of type '{1}'</value>
   </data>
   <data name="NotSupportedILInstructionPossibleLambda" xml:space="preserve">
-    <value>Not supported IL instruction in method of type '{0}'. Are you using a lambda closure?</value>
+    <value>Not supported IL instruction in method '{0}' of type '{1}'. Are you using a lambda closure? (see {2})</value>
   </data>
   <data name="NotSupportedIndirectMethodCall" xml:space="preserve">
     <value>Not supported indirect call to a method with the signature '{0}'</value>
   </data>
   <data name="NotSupportedInstruction" xml:space="preserve">
     <value>Not supported instruction in method '{0}' of type '{1}'.</value>
-  </data>
-  <data name="NotSupportedIntComparison" xml:space="preserve">
-    <value>Not supported int comparison of type '{0}'</value>
-  </data>
-  <data name="NotSupportedIntConversion" xml:space="preserve">
-    <value>Not supported int conversion</value>
   </data>
   <data name="NotSupportedInterfaceType" xml:space="preserve">
     <value>Interface type '{0}' is not supported</value>
@@ -207,20 +174,8 @@
   <data name="NotSupportedLoadOfStaticField" xml:space="preserve">
     <value>Cannot load from the static field '{0}' since it is not read only</value>
   </data>
-  <data name="NotSupportedLoadOfStaticFieldAddress" xml:space="preserve">
-    <value>Cannot take address of the static field '{0}'</value>
-  </data>
   <data name="NotSupportedMethodJump" xml:space="preserve">
     <value>Not supported jump to method '{0}'</value>
-  </data>
-  <data name="NotSupportedPointerConversion" xml:space="preserve">
-    <value>Not supported pointer conversion</value>
-  </data>
-  <data name="NotSupportedPointerToObjectType" xml:space="preserve">
-    <value>Pointer type '{0}' cannot be converted to an object type</value>
-  </data>
-  <data name="NotSupportedPrimitiveToObjectType" xml:space="preserve">
-    <value>The primitive type '{0}' cannot be converted to an object type</value>
   </data>
   <data name="NotSupportedRecursiveProgram" xml:space="preserve">
     <value>Not supported recursive program</value>
@@ -231,38 +186,8 @@
   <data name="NotSupportedStoreToStaticField" xml:space="preserve">
     <value>Cannot store a value to the static field '{0}'</value>
   </data>
-  <data name="NotSupportedStringOperation" xml:space="preserve">
-    <value>String operations are not supported</value>
-  </data>
-  <data name="NotSupportedStructDueToExplicitPacking" xml:space="preserve">
-    <value>The struct type '{0}' requires an explicit packing</value>
-  </data>
-  <data name="NotSupportedStructDueToExplicitSize" xml:space="preserve">
-    <value>The struct type '{0}' requires an explicit size</value>
-  </data>
-  <data name="NotSupportedStructDueToNonAnsiCharSet" xml:space="preserve">
-    <value>The struct type '{0}' requires a non-ansi charset</value>
-  </data>
-  <data name="NotSupportedStructDueToNonSequentialMemoryLayout" xml:space="preserve">
-    <value>The struct type '{0}' requires a non-sequential memory layout</value>
-  </data>
   <data name="NotSupportedType" xml:space="preserve">
     <value>Not supported type '{0}'</value>
-  </data>
-  <data name="NotSupportedUnboxing" xml:space="preserve">
-    <value>Unboxing a value is currently not supported</value>
-  </data>
-  <data name="NotSupportedUnsafeAllocation" xml:space="preserve">
-    <value>Not supported unsafe allocation on stack</value>
-  </data>
-  <data name="NotSupportedUnsignedToFloatConversion" xml:space="preserve">
-    <value>Not supported unsigned to float conversion</value>
-  </data>
-  <data name="NotSupportedUseOfSharedMemory" xml:space="preserve">
-    <value>Shared memory can only be used in the context of a grouped kernel. Consider using a grouped index.</value>
-  </data>
-  <data name="NotSupportedValue" xml:space="preserve">
-    <value>Not supported value '{0}' of type '{1}'</value>
   </data>
   <data name="NotSupportedVirtualMethodCall" xml:space="preserve">
     <value>Not supported virtual call to method '{0}'</value>
@@ -273,101 +198,23 @@
   <data name="NotSupportedVirtualMethodCallToUnconstrainedInstance" xml:space="preserve">
     <value>Calling the virtual method '{0}' of unconstrained instance is not supported</value>
   </data>
-  <data name="WrongArrayType" xml:space="preserve">
-    <value>The type '{0}' does not represent an array type</value>
-  </data>
   <data name="NativePlatformInvocationRequired" xml:space="preserve">
     <value>This operation is only permitted in native-OS-platform mode. The current runtime is '{0}' but the native OS platform is '{1}'</value>
-  </data>
-  <data name="NotSupportedBackend" xml:space="preserve">
-    <value>Not supported backend</value>
-  </data>
-  <data name="NotSupportedSharedMemoryVariableType" xml:space="preserve">
-    <value>Not supported shared-memory variable of type '{0}'</value>
-  </data>
-  <data name="NotSupportedTargetPlatform" xml:space="preserve">
-    <value>Not supported target platform</value>
-  </data>
-  <data name="CouldNotGenerateMachineCode" xml:space="preserve">
-    <value>Could not generate machine code: '{0}'</value>
-  </data>
-  <data name="CouldNotLoadLibDevice" xml:space="preserve">
-    <value>Could not load lib-device library: '{0}'</value>
-  </data>
-  <data name="CouldNotReadLibDevice" xml:space="preserve">
-    <value>Could not read lib-device library: '{0}'</value>
-  </data>
-  <data name="CudaPathNotFound" xml:space="preserve">
-    <value>Cuda path could not be determined automatically. Custom device library could not be found.</value>
-  </data>
-  <data name="CustomABIImplementationRequired" xml:space="preserve">
-    <value>The type '{0}' requires a custom ABI implementation</value>
-  </data>
-  <data name="ExplicitMemoryOffsetRequired" xml:space="preserve">
-    <value>The field '{0}.{1}' requires an explicit memory offset</value>
-  </data>
-  <data name="LibDeviceNotFound" xml:space="preserve">
-    <value>Could not find a compatible lib-device library</value>
-  </data>
-  <data name="LibDevicePathNotFound" xml:space="preserve">
-    <value>Custom device-library path could not be determined automatically. Try specifying the path explicitly.</value>
-  </data>
-  <data name="LLVMModuleVerificationFailed" xml:space="preserve">
-    <value>LLVM-module verification failed: {0}</value>
-  </data>
-  <data name="NotSupportedAtomicOperation" xml:space="preserve">
-    <value>Atomic operation of type '{0}' is not supported</value>
-  </data>
-  <data name="NotSupportedCompileUnit" xml:space="preserve">
-    <value>Not supported compile unit</value>
-  </data>
-  <data name="NotSupportedGridIntrinsic" xml:space="preserve">
-    <value>Not supported grid intrinsic of type '{0}'</value>
-  </data>
-  <data name="NotSupportedGroupIntrinsic" xml:space="preserve">
-    <value>Not supported group intrinsic of type '{0}'</value>
-  </data>
-  <data name="NotSupportedMathIntrinsic" xml:space="preserve">
-    <value>Not supported math intrinsic of type '{0}'</value>
-  </data>
-  <data name="NotSupportedMemoryFenceOperation" xml:space="preserve">
-    <value>Not supported memory-fence operation of type '{0}'</value>
-  </data>
-  <data name="NotSupportedWarpIntrinsic" xml:space="preserve">
-    <value>Not supported warp intrinsic of type '{0}'</value>
   </data>
   <data name="CannotFindFieldOfType" xml:space="preserve">
     <value>Cannot find the field '{0}' of type '{1}'</value>
   </data>
-  <data name="CannotTakeFieldOffsetOfPrimitiveType" xml:space="preserve">
-    <value>Cannot take field offset of primitive type '{0}'</value>
-  </data>
   <data name="NotSupportedIntrinsic" xml:space="preserve">
     <value>Not supported intrinsic type '{0}'</value>
   </data>
-  <data name="CannotLoadLLVMLib" xml:space="preserve">
-    <value>Cannot load required LLVM library</value>
-  </data>
   <data name="NativeMethodNotSupported" xml:space="preserve">
     <value>Native method '{0}' is not supported</value>
-  </data>
-  <data name="NotSupportedGenericMethod" xml:space="preserve">
-    <value>Not supported generic method '{0}'</value>
-  </data>
-  <data name="RuntimeInternalMethodNotSupported" xml:space="preserve">
-    <value>Runtime-internal method '{0}' is not supported</value>
-  </data>
-  <data name="NotSupportedWarpShuffle" xml:space="preserve">
-    <value>The warp-shuffle function '{0}' is not supported in the scope of implicitly-grouped kernels</value>
   </data>
   <data name="NotSupportedActivatorOperation" xml:space="preserve">
     <value>The operation '{0}' on the .Net activator is not supported.</value>
   </data>
   <data name="NotSupportedPlatform" xml:space="preserve">
     <value>Not supported platform '{0}' ({1} required)</value>
-  </data>
-  <data name="NotSupportedGroupBarrier" xml:space="preserve">
-    <value>The group-barrier function '{0}' is not supported in the scope of implicitly-grouped kernels</value>
   </data>
   <data name="NotSupportedSizeOf" xml:space="preserve">
     <value>Could not resolve the native size of the type '{0}'</value>
@@ -386,5 +233,56 @@
   </data>
   <data name="CannotDeserializeDuplicateNodeId" xml:space="preserve">
     <value>Duplicate node id '{0}' detected</value>
+  </data>
+  <data name="InvalidEntryPointParameter" xml:space="preserve">
+    <value>Not supported by-ref kernel parameter</value>
+  </data>
+  <data name="InvalidEntryPointWithoutDotNetMethod" xml:space="preserve">
+    <value>Not supported entry point without a valid .Net runtime entry</value>
+  </data>
+  <data name="NotSupportedILInstructionDebugLoc" xml:space="preserve">
+    <value>Not supported IL instruction in method '{0}' of type '{1}' (see {2})</value>
+  </data>
+  <data name="NotSupportedWarpIntrinsic" xml:space="preserve">
+    <value>The warp intrinsic '{0}' is not supported</value>
+  </data>
+  <data name="NotSupportedInteropIntrinsic" xml:space="preserve">
+    <value>The interop intrinsic '{0}' is not supported</value>
+  </data>
+  <data name="NotSupportedMathIntrinsic" xml:space="preserve">
+    <value>The math intrinsic with {0} arguments is not supported</value>
+  </data>
+  <data name="NotSupportedSharedMemoryIntrinsic" xml:space="preserve">
+    <value>The shared memory intrinsic '{0}' is not supported</value>
+  </data>
+  <data name="NotSupportedViewIntrinsic" xml:space="preserve">
+    <value>The view intrinsic '{0}' is not supported</value>
+  </data>
+  <data name="CouldNotFindCorrespondingIRMethod" xml:space="preserve">
+    <value>Could not find IR method that corresponds to the method handle '{0}'</value>
+  </data>
+  <data name="IntrinsicAcceleratorsBroken" xml:space="preserve">
+    <value>Intrinsic accelerators broken (contact developers)</value>
+  </data>
+  <data name="InvalidKernelOperation" xml:space="preserve">
+    <value>This operation can only be called from an ILGPU kernel</value>
+  </data>
+  <data name="NotSupportedArithmeticArgumentType" xml:space="preserve">
+    <value>The type '{0}' is not supported in the scope of this arithmetic operation</value>
+  </data>
+  <data name="NotSupportedCompareArgumentType" xml:space="preserve">
+    <value>The type '{0}' is not supported in the scope of this compare operation</value>
+  </data>
+  <data name="NotSupportedConversion" xml:space="preserve">
+    <value>Cannot convert from '{0}' to type '{1}'</value>
+  </data>
+  <data name="NotSupportedFloatIntCast" xml:space="preserve">
+    <value>Cannot cast type '{0}' to float/int</value>
+  </data>
+  <data name="NoUses" xml:space="preserve">
+    <value>There are no uses to resolve</value>
+  </data>
+  <data name="NotSupportedByRefKernelParameters" xml:space="preserve">
+    <value>Not supported by-ref kernel parameters</value>
   </data>
 </root>

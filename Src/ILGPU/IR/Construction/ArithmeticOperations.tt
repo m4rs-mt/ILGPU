@@ -77,6 +77,7 @@ var binaryOperations = new []
 #>
 
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -117,11 +118,13 @@ namespace ILGPU.IR.Construction
                                 return CreatePrimitiveValue(<#= operation.Prefix #>value.Int64Value<#= operation.Suffix #>);
 <#          } #>
                         }
-                        throw new NotSupportedException();
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedArithmeticArgumentType,
+                            value.BasicValueType));
                     }
 <#    } #>
                 default:
-                    throw new NotSupportedException();
+                    throw new ArgumentOutOfRangeException(nameof(kind));
             }
         }
 
@@ -173,11 +176,13 @@ namespace ILGPU.IR.Construction
                                     return CreatePrimitiveValue(<#= operation.Prefix #>left.Int64Value<#= operation.Operation #>right.Int64Value<#= operation.Suffix #>);
 <#          } #>
                         }
-                        throw new NotSupportedException();
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedArithmeticArgumentType,
+                            left.BasicValueType));
                     }
 <#    } #>
                 default:
-                    throw new NotSupportedException();
+                    throw new ArgumentOutOfRangeException(nameof(kind));
             }
         }
     }

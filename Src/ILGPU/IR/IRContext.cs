@@ -13,6 +13,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
@@ -246,7 +247,9 @@ namespace ILGPU.IR
         public Method GetMethod(MethodHandle method)
         {
             if (!TryGetMethod(method, out Method function))
-                throw new InvalidOperationException("Could not find the corresponding top-level function");
+                throw new InvalidOperationException(string.Format(
+                    ErrorMessages.CouldNotFindCorrespondingIRMethod,
+                    method.Name));
             return function;
         }
 

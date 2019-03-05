@@ -3,12 +3,11 @@
 //                     Copyright (c) 2016-2019 Marcel Koester
 //                                www.ilgpu.net
 //
-// File: CudaAccelerator.cs
+// File: CudaCacheConfiguration.cs
 //
 // This file is part of ILGPU and is distributed under the University of
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
-
 
 namespace ILGPU.Runtime.Cuda
 {

@@ -291,7 +291,7 @@ namespace ILGPU.IR.Analyses
             {
                 if (TryGetEntry(method, out Entry entry))
                     return entry;
-                throw new KeyNotFoundException("Could not find the given function in this landscape");
+                throw new KeyNotFoundException();
             }
         }
 

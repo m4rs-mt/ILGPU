@@ -187,15 +187,6 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported OS platform.
-        /// </summary>
-        internal static string NotSupportedOSPlatform {
-            get {
-                return ResourceManager.GetString("NotSupportedOSPlatform", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Not supported PTX architecture.
         /// </summary>
         internal static string NotSupportedPTXArchitecture {
@@ -210,6 +201,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedTargetAccelerator {
             get {
                 return ResourceManager.GetString("NotSupportedTargetAccelerator", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported total group size. The total group size must be &lt;= the number of available threads ({0}}.
+        /// </summary>
+        internal static string NotSupportedTotalGroupSize {
+            get {
+                return ResourceManager.GetString("NotSupportedTotalGroupSize", resourceCulture);
             }
         }
     }

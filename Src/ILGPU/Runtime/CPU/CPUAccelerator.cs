@@ -249,7 +249,9 @@ namespace ILGPU.Runtime.CPU
         {
             var numThreads = groupSize + (groupSize % WarpSize);
             if (numThreads > NumThreads)
-                throw new NotSupportedException($"Not supported total group size. The total group size must be <= the number of available threads ({NumThreads})");
+                throw new NotSupportedException(string.Format(
+                    RuntimeErrorMessages.NotSupportedTotalGroupSize,
+                    NumThreads));
             return numThreads;
         }
 
@@ -449,9 +451,8 @@ namespace ILGPU.Runtime.CPU
             int groupSize,
             int dynamicSharedMemorySizeInBytes)
         {
-            var cpuKernel = kernel as CPUKernel;
-            if (cpuKernel == null)
-                throw new NotSupportedException("Not supported kernel");
+            if (!(kernel is CPUKernel))
+                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
             return NumThreads / groupSize;
         }
@@ -463,9 +464,8 @@ namespace ILGPU.Runtime.CPU
             int maxGroupSize,
             out int minGridSize)
         {
-            var cpuKernel = kernel as CPUKernel;
-            if (cpuKernel == null)
-                throw new NotSupportedException("Not supported kernel");
+            if (!(kernel is CPUKernel))
+                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
             // Estimation
             minGridSize = NumThreads;
@@ -479,9 +479,8 @@ namespace ILGPU.Runtime.CPU
             int maxGroupSize,
             out int minGridSize)
         {
-            var cpuKernel = kernel as CPUKernel;
-            if (cpuKernel == null)
-                throw new NotSupportedException("Not supported kernel");
+            if (!(kernel is CPUKernel))
+                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
             // Estimation
             minGridSize = NumThreads;

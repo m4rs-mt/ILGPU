@@ -11,6 +11,7 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -67,7 +68,9 @@ namespace ILGPU.Frontend.Intrinsic
                     length = context[0];
                     break;
                 default:
-                    throw new NotSupportedException("Invalid shared memory operation");
+                    throw context.GetNotSupportedException(
+                        ErrorMessages.NotSupportedSharedMemoryIntrinsic,
+                        attribute.IntrinsicKind.ToString());
             }
 
             var alloca = context.Builder.CreateAlloca(

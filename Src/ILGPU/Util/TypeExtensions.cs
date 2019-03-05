@@ -10,10 +10,8 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
-using ILGPU.Resources;
 using System;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace ILGPU.Util
@@ -23,7 +21,13 @@ namespace ILGPU.Util
     /// </summary>
     public static class TypeExtensions
     {
-        internal static bool IsArrayViewType(this Type type, out Type elementType)
+        /// <summary>
+        /// Checks whether the given type is an array view type.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <param name="elementType">The resolved element type in case of an array view.</param>
+        /// <returns>True, in case of an array view.</returns>
+        public static bool IsArrayViewType(this Type type, out Type elementType)
         {
             elementType = null;
             if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(ArrayView<>))
@@ -33,17 +37,28 @@ namespace ILGPU.Util
             return true;
         }
 
-        internal static bool HasSupportedBaseClass(this Type type)
-        {
-            return !type.IsValueType && type.BaseType != typeof(object);
-        }
+        /// <summary>
+        /// Returns true if the given type has a supported base class.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>True, if the given type has a supported base class.</returns>
+        internal static bool HasSupportedBaseClass(this Type type) =>
+            !type.IsValueType && type.BaseType != typeof(object);
 
-        internal static bool IsDelegate(this Type type)
-        {
-            return type.IsSubclassOf(typeof(Delegate)) || type == typeof(Delegate);
-        }
+        /// <summary>
+        /// Returns true if the given type is a delegate type.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>True, if the given type is a delegate type.</returns>
+        public static bool IsDelegate(this Type type) =>
+            type.IsSubclassOf(typeof(Delegate)) || type == typeof(Delegate);
 
-        internal static MethodInfo GetDelegateInvokeMethod(this Type type)
+        /// <summary>
+        /// Resolves the delegate invocation method of the given type.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>The resolved delegate invocation method.</returns>
+        public static MethodInfo GetDelegateInvokeMethod(this Type type)
         {
             const string InvokeMethodName = "Invoke";
             if (!type.IsDelegate())
@@ -51,59 +66,48 @@ namespace ILGPU.Util
             return type.GetMethod(InvokeMethodName, BindingFlags.Public | BindingFlags.Instance);
         }
 
-        internal static Type GetReturnType(this MethodBase method)
+        /// <summary>
+        /// Resolves the return type of the given method.
+        /// </summary>
+        /// <param name="method">The method base.</param>
+        /// <returns>The resolved return type.</returns>
+        public static Type GetReturnType(this MethodBase method)
         {
             if (method is MethodInfo methodInfo)
                 return methodInfo.ReturnType;
             return typeof(void);
         }
 
-        internal static bool IsPointer(this Type type)
-        {
-            return type.IsByRef || type.IsPointer ||
-                type == typeof(IntPtr) ||
-                type == typeof(UIntPtr);
-        }
-
-        internal static bool IsVoidPtr(this Type type)
+        /// <summary>
+        /// Returns true if the given type is a void pointer.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>True, if the given type is a void pointer.</returns>
+        public static bool IsVoidPtr(this Type type)
         {
             return type == typeof(IntPtr) ||
                 type == typeof(UIntPtr) ||
                 (type.IsPointer && type.GetElementType() == typeof(void));
         }
 
-        internal static int SizeOf(this Type type)
-        {
-            if (type == null)
-                throw new ArgumentNullException(nameof(type));
-            if (!type.IsValueType)
-                throw new NotSupportedException(
-                    string.Format(ErrorMessages.NotSupportedType, type));
-            // We cannot use Marshal.SizeOf<T> since SizeOf<T> throws an exception when using generic types
-            // TODO: replace with other functionality
-            try
-            {
-                return Marshal.SizeOf(Activator.CreateInstance(type));
-            }
-            catch (Exception e)
-            {
-                throw new NotSupportedException(
-                    string.Format(ErrorMessages.NotSupportedSizeOf, type), e);
-            }
-        }
+        /// <summary>
+        /// Returns true if the given type is passed via reference.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>True, if the given type is passed via reference.</returns>
+        internal static bool IsPassedViaPtr(this Type type) =>
+            !type.IsValueType &&
+            !type.IsArray &&
+            !type.IsTreatedAsPtr() &&
+            type != typeof(string);
 
-        internal static bool IsPassedViaPtr(this Type type)
-        {
-            return !type.IsValueType &&
-                !type.IsArray &&
-                !type.IsTreatedAsPtr() &&
-                type != typeof(string);
-        }
-
-        internal static bool IsTreatedAsPtr(this Type type)
-        {
-            return type.IsPointer || type.IsByRef;
-        }
+        /// <summary>
+        /// Returns true if the given type is treated as a pointer type.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>True, if the given type is treated as a pointer type.</returns>
+        internal static bool IsTreatedAsPtr(this Type type) =>
+            type.IsPointer || type.IsByRef;
 
         /// <summary>
         /// Returns true iff the given type represents a signed int.
@@ -308,10 +312,8 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="type">The source type.</param>
         /// <returns>True, iff the given type represents an int.</returns>
-        public static bool IsInt(this Type type)
-        {
-            return type.GetBasicValueType().IsInt();
-        }
+        public static bool IsInt(this Type type) =>
+            type.GetBasicValueType().IsInt();
 
         /// <summary>
         /// Returns true iff the given basic-value type represents an int.
@@ -338,10 +340,8 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="type">The source type.</param>
         /// <returns>True, iff the given type represents a float.</returns>
-        public static bool IsFloat(this Type type)
-        {
-            return type.GetBasicValueType().IsFloat();
-        }
+        public static bool IsFloat(this Type type) =>
+            type.GetBasicValueType().IsFloat();
 
         /// <summary>
         /// Returns true iff the given basic-value type represents a float.
@@ -365,12 +365,8 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="type">The type to convert.</param>
         /// <returns>The required conversion flags.</returns>
-        internal static ConvertFlags ToTargetUnsignedFlags(this Type type)
-        {
-            if (type.IsUnsignedInt())
-                return ConvertFlags.TargetUnsigned;
-            return ConvertFlags.None;
-        }
+        internal static ConvertFlags ToTargetUnsignedFlags(this Type type) =>
+            type.IsUnsignedInt() ? ConvertFlags.TargetUnsigned : ConvertFlags.None;
 
         /// <summary>
         /// Returns the string representation of the given type.

@@ -11,6 +11,7 @@
 
 using ILGPU.Backends.IL;
 using ILGPU.IR.Types;
+using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
@@ -498,7 +499,7 @@ namespace ILGPU.Backends
             for (int i = 0, e = specification.NumParameters; i < e; ++i)
             {
                 if (specification.IsByRef(i))
-                    throw new NotSupportedException("Not supported kernel parameter");
+                    throw new NotSupportedException(ErrorMessages.InvalidEntryPointParameter);
 
                 // Load parameter argument and map instance
                 var parameterType = specification.ParameterTypes[i];

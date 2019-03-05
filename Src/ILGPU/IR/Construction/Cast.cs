@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 using System.Diagnostics;
 
@@ -119,7 +120,9 @@ namespace ILGPU.IR.Construction
                         return CreatePrimitiveValue(
                             Interop.FloatAsInt(primitive.Float64Value));
                     default:
-                        throw new ArgumentOutOfRangeException(nameof(node));
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedFloatIntCast,
+                            primitiveType));
                 }
             }
 
@@ -133,7 +136,9 @@ namespace ILGPU.IR.Construction
                     basicValueType = BasicValueType.Int64;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(node));
+                    throw new NotSupportedException(string.Format(
+                        ErrorMessages.NotSupportedFloatIntCast,
+                        primitiveType));
             }
 
             var type = GetPrimitiveType(basicValueType);
@@ -166,7 +171,9 @@ namespace ILGPU.IR.Construction
                         return CreatePrimitiveValue(
                             Interop.IntAsFloat(primitive.UInt64Value));
                     default:
-                        throw new ArgumentOutOfRangeException(nameof(node));
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedFloatIntCast,
+                            primitiveType));
                 }
             }
 
@@ -180,7 +187,9 @@ namespace ILGPU.IR.Construction
                     basicValueType = BasicValueType.Float64;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(node));
+                    throw new NotSupportedException(string.Format(
+                        ErrorMessages.NotSupportedFloatIntCast,
+                        primitiveType));
             }
 
             var type = GetPrimitiveType(basicValueType);

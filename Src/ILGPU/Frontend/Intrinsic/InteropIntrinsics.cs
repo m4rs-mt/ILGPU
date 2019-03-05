@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -65,7 +66,9 @@ namespace ILGPU.Frontend.Intrinsic
                 case InteropIntrinsicKind.IntAsFloat:
                     return builder.CreateIntAsFloatCast(context[0]);
                 default:
-                    throw new NotSupportedException("Invalid interop operation");
+                    throw context.GetNotSupportedException(
+                        ErrorMessages.NotSupportedInteropIntrinsic,
+                        attribute.IntrinsicKind.ToString());
             }
         }
     }

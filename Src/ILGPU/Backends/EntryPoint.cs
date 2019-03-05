@@ -112,7 +112,7 @@ namespace ILGPU.Backends
         {
             MethodInfo = methodSource;
             if (MethodInfo == null)
-                throw new NotSupportedException("Not supported entry point without a valid .Net runtime entry");
+                throw new NotSupportedException(ErrorMessages.InvalidEntryPointWithoutDotNetMethod);
             Specialization = specialization;
             SharedMemorySize = sharedMemorySize;
 

@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -116,7 +117,9 @@ namespace ILGPU.Frontend.Intrinsic
                 case ViewIntrinsicKind.AsLinearView:
                     return instanceValue;
                 default:
-                    throw new NotSupportedException("Invalid view operation");
+                    throw context.GetNotSupportedException(
+                        ErrorMessages.NotSupportedViewIntrinsic,
+                        attribute.IntrinsicKind.ToString());
             }
         }
     }

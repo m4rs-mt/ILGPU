@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -49,7 +50,10 @@ namespace ILGPU.IR.Construction
                 return node;
 
             if (!(targetType is PrimitiveType targetPrimitiveType))
-                throw new NotSupportedException("Not supported target type");
+                throw new NotSupportedException(string.Format(
+                    ErrorMessages.NotSupportedConversion,
+                    node.Type,
+                    targetType));
 
             bool isSourceUnsigned = (flags & ConvertFlags.SourceUnsigned) == ConvertFlags.SourceUnsigned;
 
@@ -144,7 +148,10 @@ namespace ILGPU.IR.Construction
                             case BasicValueType.Float64:
                                 return CreatePrimitiveValue((double)value.Float32Value);
                         }
-                        throw new NotSupportedException();
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedConversion,
+                            value.BasicValueType,
+                            targetBasicValueType));
                     case BasicValueType.Float64:
                         switch (targetBasicValueType)
                         {
@@ -160,9 +167,15 @@ namespace ILGPU.IR.Construction
                             case BasicValueType.Float32:
                                 return CreatePrimitiveValue((float)value.Float64Value);
                         }
-                        throw new NotSupportedException();
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedConversion,
+                            value.BasicValueType,
+                            targetBasicValueType));
                     default:
-                        throw new NotSupportedException();
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedConversion,
+                            value.Type,
+                            targetType));
                 }
             }
 

@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -147,13 +148,17 @@ namespace ILGPU.IR.Construction
                 case BinaryArithmeticKind.Or:
                 case BinaryArithmeticKind.Xor:
                     if (left.BasicValueType.IsFloat())
-                        throw new NotSupportedException("Not supported argument type");
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedArithmeticArgumentType,
+                            left.BasicValueType));
                     break;
 
                 case BinaryArithmeticKind.Atan2F:
                 case BinaryArithmeticKind.PowF:
                     if (!left.BasicValueType.IsFloat())
-                        throw new NotSupportedException("Not supported argument type");
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedArithmeticArgumentType,
+                            left.BasicValueType));
                     break;
             }
 

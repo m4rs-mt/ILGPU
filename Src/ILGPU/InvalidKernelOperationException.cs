@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using System;
 
 namespace ILGPU
@@ -25,7 +26,7 @@ namespace ILGPU
         /// Constructs a new exception.
         /// </summary>
         public InvalidKernelOperationException()
-            : base("This operation can only be called from an ILGPU kernel")
+            : base(ErrorMessages.InvalidKernelOperation)
         { }
     }
 }

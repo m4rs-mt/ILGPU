@@ -89,7 +89,9 @@ namespace ILGPU.Frontend
             TypeGenericArguments = MethodBase.DeclaringType.GetGenericArguments();
             MethodBody = MethodBase.GetMethodBody();
             if (MethodBody == null)
-                throw new NotSupportedException("Not supported method");
+                throw new NotSupportedException(string.Format(
+                    ErrorMessages.NativeMethodNotSupported,
+                    MethodBase.Name));
             il = MethodBody.GetILAsByteArray();
             instructions = ImmutableArray.CreateBuilder<ILInstruction>(il.Length);
             debugInformationEnumerator = sequencePointEnumerator ?? SequencePointEnumerator.Empty;
@@ -176,9 +178,8 @@ namespace ILGPU.Frontend
                                     opCode,
                                     debugLocation));
                             default:
-                                // TODO: fix error message
                                 throw new NotSupportedException(string.Format(
-                                    ErrorMessages.NotSupportedILInstruction,
+                                    ErrorMessages.NotSupportedILInstructionDebugLoc,
                                     MethodBase.ToString(),
                                     opCode,
                                     debugLocation));

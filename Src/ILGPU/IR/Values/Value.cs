@@ -12,6 +12,7 @@
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -329,7 +330,7 @@ namespace ILGPU.IR
             using (var enumerator = allUses.GetEnumerator())
             {
                 if (!enumerator.MoveNext())
-                    throw new InvalidOperationException("No uses");
+                    throw new InvalidOperationException(ErrorMessages.NoUses);
                 return enumerator.Current;
             }
         }

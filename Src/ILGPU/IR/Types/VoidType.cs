@@ -9,8 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
-
 namespace ILGPU.IR.Types
 {
     /// <summary>

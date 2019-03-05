@@ -159,13 +159,13 @@
   <data name="NotSupportedNonBlittableType" xml:space="preserve">
     <value>Type type '{0}' is not blittable</value>
   </data>
-  <data name="NotSupportedOSPlatform" xml:space="preserve">
-    <value>Not supported OS platform</value>
-  </data>
   <data name="NotSupportedPTXArchitecture" xml:space="preserve">
     <value>Not supported PTX architecture</value>
   </data>
   <data name="NotSupportedTargetAccelerator" xml:space="preserve">
     <value>Not supported target accelerator</value>
+  </data>
+  <data name="NotSupportedTotalGroupSize" xml:space="preserve">
+    <value>Not supported total group size. The total group size must be &lt;= the number of available threads ({0}}</value>
   </data>
 </root>

@@ -27,6 +27,7 @@ var operations = new []
 #>
 
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -79,11 +80,13 @@ namespace ILGPU.IR.Construction
                                 else
                                     return CreatePrimitiveValue(<#= operation.Prefix #>left.Int64Value<#= operation.Operation #>right.Int64Value<#= operation.Suffix #>);
                         }
-                        throw new NotSupportedException();
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedCompareArgumentType,
+                            left.BasicValueType));
                     }
 <#    } #>
                 default:
-                    throw new NotSupportedException();
+                    throw new ArgumentOutOfRangeException(nameof(kind));
             }
         }
     }

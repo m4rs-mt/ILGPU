@@ -9,8 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR;
-using ILGPU.IR.Values;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Reflection.Emit;

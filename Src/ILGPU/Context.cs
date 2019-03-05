@@ -16,6 +16,7 @@ using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
+using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -69,7 +70,7 @@ namespace ILGPU
 
             // Ensure initialized runtime
             if (Runtime.Accelerator.Accelerators.Length < 1)
-                throw new TypeLoadException("Intrinsic accelerators broken");
+                throw new TypeLoadException(ErrorMessages.IntrinsicAcceleratorsBroken);
         }
 
         #endregion

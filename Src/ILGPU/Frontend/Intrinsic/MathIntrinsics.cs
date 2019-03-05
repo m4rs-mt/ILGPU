@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -116,7 +117,9 @@ namespace ILGPU.Frontend.Intrinsic
                         (BinaryArithmeticKind)(attribute.IntrinsicKind - MathIntrinsicKind._BinaryFunctions - 1),
                         attribute.IntrinsicFlags);
                 default:
-                    throw new NotSupportedException("Invalid math operation");
+                    throw context.GetNotSupportedException(
+                        ErrorMessages.NotSupportedMathIntrinsic,
+                        context.NumArguments.ToString());
             }
         }
 

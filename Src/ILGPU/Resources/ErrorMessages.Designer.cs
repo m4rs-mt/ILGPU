@@ -88,24 +88,6 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cannot load required LLVM library.
-        /// </summary>
-        internal static string CannotLoadLLVMLib {
-            get {
-                return ResourceManager.GetString("CannotLoadLLVMLib", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Cannot take field offset of primitive type &apos;{0}&apos;.
-        /// </summary>
-        internal static string CannotTakeFieldOffsetOfPrimitiveType {
-            get {
-                return ResourceManager.GetString("CannotTakeFieldOffsetOfPrimitiveType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to The context flags &apos;{0}&apos; of the deserialized context are not compatible with the current flags &apos;{1}&apos;.
         /// </summary>
         internal static string ContextFlagsAreNotCompatible {
@@ -133,47 +115,11 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Could not generate machine code: &apos;{0}&apos;.
+        ///   Looks up a localized string similar to Could not find IR method that corresponds to the method handle &apos;{0}&apos;.
         /// </summary>
-        internal static string CouldNotGenerateMachineCode {
+        internal static string CouldNotFindCorrespondingIRMethod {
             get {
-                return ResourceManager.GetString("CouldNotGenerateMachineCode", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Could not load lib-device library: &apos;{0}&apos;.
-        /// </summary>
-        internal static string CouldNotLoadLibDevice {
-            get {
-                return ResourceManager.GetString("CouldNotLoadLibDevice", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Could not read lib-device library: &apos;{0}&apos;.
-        /// </summary>
-        internal static string CouldNotReadLibDevice {
-            get {
-                return ResourceManager.GetString("CouldNotReadLibDevice", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Cuda path could not be determined automatically. Custom device library could not be found..
-        /// </summary>
-        internal static string CudaPathNotFound {
-            get {
-                return ResourceManager.GetString("CudaPathNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The type &apos;{0}&apos; requires a custom ABI implementation.
-        /// </summary>
-        internal static string CustomABIImplementationRequired {
-            get {
-                return ResourceManager.GetString("CustomABIImplementationRequired", resourceCulture);
+                return ResourceManager.GetString("CouldNotFindCorrespondingIRMethod", resourceCulture);
             }
         }
         
@@ -187,11 +133,11 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The field &apos;{0}.{1}&apos; requires an explicit memory offset.
+        ///   Looks up a localized string similar to Intrinsic accelerators broken (contact developers).
         /// </summary>
-        internal static string ExplicitMemoryOffsetRequired {
+        internal static string IntrinsicAcceleratorsBroken {
             get {
-                return ResourceManager.GetString("ExplicitMemoryOffsetRequired", resourceCulture);
+                return ResourceManager.GetString("IntrinsicAcceleratorsBroken", resourceCulture);
             }
         }
         
@@ -223,6 +169,24 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Not supported by-ref kernel parameter.
+        /// </summary>
+        internal static string InvalidEntryPointParameter {
+            get {
+                return ResourceManager.GetString("InvalidEntryPointParameter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported entry point without a valid .Net runtime entry.
+        /// </summary>
+        internal static string InvalidEntryPointWithoutDotNetMethod {
+            get {
+                return ResourceManager.GetString("InvalidEntryPointWithoutDotNetMethod", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invalid IL Code.
         /// </summary>
         internal static string InvalidILCode {
@@ -232,56 +196,11 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid math-intrinsic implementation of &apos;{0}&apos;.
+        ///   Looks up a localized string similar to This operation can only be called from an ILGPU kernel.
         /// </summary>
-        internal static string InvalidMathIntrinsic {
+        internal static string InvalidKernelOperation {
             get {
-                return ResourceManager.GetString("InvalidMathIntrinsic", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Variable views cannot have a specified element count in shared memory. Consider using an array view instead..
-        /// </summary>
-        internal static string InvalidUseOfVariableViewsInSharedMemory {
-            get {
-                return ResourceManager.GetString("InvalidUseOfVariableViewsInSharedMemory", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Could not find a compatible lib-device library.
-        /// </summary>
-        internal static string LibDeviceNotFound {
-            get {
-                return ResourceManager.GetString("LibDeviceNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Custom device-library path could not be determined automatically. Try specifying the path explicitly..
-        /// </summary>
-        internal static string LibDevicePathNotFound {
-            get {
-                return ResourceManager.GetString("LibDevicePathNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to LLVM-module verification failed: {0}.
-        /// </summary>
-        internal static string LLVMModuleVerificationFailed {
-            get {
-                return ResourceManager.GetString("LLVMModuleVerificationFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The provided types &apos;{0}&apos; and &apos;{1}&apos; do not match.
-        /// </summary>
-        internal static string MismatchingTypes {
-            get {
-                return ResourceManager.GetString("MismatchingTypes", resourceCulture);
+                return ResourceManager.GetString("InvalidKernelOperation", resourceCulture);
             }
         }
         
@@ -313,6 +232,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The type &apos;{0}&apos; is not supported in the scope of this arithmetic operation.
+        /// </summary>
+        internal static string NotSupportedArithmeticArgumentType {
+            get {
+                return ResourceManager.GetString("NotSupportedArithmeticArgumentType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported arithmetic operands &apos;{0}&apos; &amp; &apos;{1}&apos;.
         /// </summary>
         internal static string NotSupportedArithmeticOperandTypes {
@@ -340,29 +268,11 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Atomic operation of type &apos;{0}&apos; is not supported.
+        ///   Looks up a localized string similar to Not supported by-ref kernel parameters.
         /// </summary>
-        internal static string NotSupportedAtomicOperation {
+        internal static string NotSupportedByRefKernelParameters {
             get {
-                return ResourceManager.GetString("NotSupportedAtomicOperation", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported backend.
-        /// </summary>
-        internal static string NotSupportedBackend {
-            get {
-                return ResourceManager.GetString("NotSupportedBackend", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Boxing a value is currently not supported.
-        /// </summary>
-        internal static string NotSupportedBoxing {
-            get {
-                return ResourceManager.GetString("NotSupportedBoxing", resourceCulture);
+                return ResourceManager.GetString("NotSupportedByRefKernelParameters", resourceCulture);
             }
         }
         
@@ -376,11 +286,11 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported compare operation of types &apos;{0}&apos; &amp; &apos;{1}&apos;.
+        ///   Looks up a localized string similar to The type &apos;{0}&apos; is not supported in the scope of this compare operation.
         /// </summary>
-        internal static string NotSupportedCompareOperation {
+        internal static string NotSupportedCompareArgumentType {
             get {
-                return ResourceManager.GetString("NotSupportedCompareOperation", resourceCulture);
+                return ResourceManager.GetString("NotSupportedCompareArgumentType", resourceCulture);
             }
         }
         
@@ -394,16 +304,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported compile unit.
-        /// </summary>
-        internal static string NotSupportedCompileUnit {
-            get {
-                return ResourceManager.GetString("NotSupportedCompileUnit", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported conversion.
+        ///   Looks up a localized string similar to Cannot convert from &apos;{0}&apos; to type &apos;{1}&apos;.
         /// </summary>
         internal static string NotSupportedConversion {
             get {
@@ -412,70 +313,16 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported float comparison of type &apos;{0}&apos;.
+        ///   Looks up a localized string similar to Cannot cast type &apos;{0}&apos; to float/int.
         /// </summary>
-        internal static string NotSupportedFloatComparison {
+        internal static string NotSupportedFloatIntCast {
             get {
-                return ResourceManager.GetString("NotSupportedFloatComparison", resourceCulture);
+                return ResourceManager.GetString("NotSupportedFloatIntCast", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported float conversion.
-        /// </summary>
-        internal static string NotSupportedFloatConversion {
-            get {
-                return ResourceManager.GetString("NotSupportedFloatConversion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported generic method &apos;{0}&apos;.
-        /// </summary>
-        internal static string NotSupportedGenericMethod {
-            get {
-                return ResourceManager.GetString("NotSupportedGenericMethod", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Generic type &apos;{0}&apos; without required type arguments cannot be converted to an object type.
-        /// </summary>
-        internal static string NotSupportedGenericType {
-            get {
-                return ResourceManager.GetString("NotSupportedGenericType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported grid intrinsic of type &apos;{0}&apos;.
-        /// </summary>
-        internal static string NotSupportedGridIntrinsic {
-            get {
-                return ResourceManager.GetString("NotSupportedGridIntrinsic", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The group-barrier function &apos;{0}&apos; is not supported in the scope of implicitly-grouped kernels.
-        /// </summary>
-        internal static string NotSupportedGroupBarrier {
-            get {
-                return ResourceManager.GetString("NotSupportedGroupBarrier", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported group intrinsic of type &apos;{0}&apos;.
-        /// </summary>
-        internal static string NotSupportedGroupIntrinsic {
-            get {
-                return ResourceManager.GetString("NotSupportedGroupIntrinsic", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported IL instruction in method of type &apos;{0}&apos;.
+        ///   Looks up a localized string similar to Not supported IL instruction in method &apos;{0}&apos; of type &apos;{1}&apos;.
         /// </summary>
         internal static string NotSupportedILInstruction {
             get {
@@ -484,7 +331,16 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported IL instruction in method of type &apos;{0}&apos;. Are you using a lambda closure?.
+        ///   Looks up a localized string similar to Not supported IL instruction in method &apos;{0}&apos; of type &apos;{1}&apos; (see {2}).
+        /// </summary>
+        internal static string NotSupportedILInstructionDebugLoc {
+            get {
+                return ResourceManager.GetString("NotSupportedILInstructionDebugLoc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported IL instruction in method &apos;{0}&apos; of type &apos;{1}&apos;. Are you using a lambda closure? (see {2}).
         /// </summary>
         internal static string NotSupportedILInstructionPossibleLambda {
             get {
@@ -511,29 +367,20 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported int comparison of type &apos;{0}&apos;.
-        /// </summary>
-        internal static string NotSupportedIntComparison {
-            get {
-                return ResourceManager.GetString("NotSupportedIntComparison", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported int conversion.
-        /// </summary>
-        internal static string NotSupportedIntConversion {
-            get {
-                return ResourceManager.GetString("NotSupportedIntConversion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Interface type &apos;{0}&apos; is not supported.
         /// </summary>
         internal static string NotSupportedInterfaceType {
             get {
                 return ResourceManager.GetString("NotSupportedInterfaceType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The interop intrinsic &apos;{0}&apos; is not supported.
+        /// </summary>
+        internal static string NotSupportedInteropIntrinsic {
+            get {
+                return ResourceManager.GetString("NotSupportedInteropIntrinsic", resourceCulture);
             }
         }
         
@@ -583,29 +430,11 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cannot take address of the static field &apos;{0}&apos;.
-        /// </summary>
-        internal static string NotSupportedLoadOfStaticFieldAddress {
-            get {
-                return ResourceManager.GetString("NotSupportedLoadOfStaticFieldAddress", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported math intrinsic of type &apos;{0}&apos;.
+        ///   Looks up a localized string similar to The math intrinsic with {0} arguments is not supported.
         /// </summary>
         internal static string NotSupportedMathIntrinsic {
             get {
                 return ResourceManager.GetString("NotSupportedMathIntrinsic", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported memory-fence operation of type &apos;{0}&apos;.
-        /// </summary>
-        internal static string NotSupportedMemoryFenceOperation {
-            get {
-                return ResourceManager.GetString("NotSupportedMemoryFenceOperation", resourceCulture);
             }
         }
         
@@ -628,33 +457,6 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported pointer conversion.
-        /// </summary>
-        internal static string NotSupportedPointerConversion {
-            get {
-                return ResourceManager.GetString("NotSupportedPointerConversion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Pointer type &apos;{0}&apos; cannot be converted to an object type.
-        /// </summary>
-        internal static string NotSupportedPointerToObjectType {
-            get {
-                return ResourceManager.GetString("NotSupportedPointerToObjectType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The primitive type &apos;{0}&apos; cannot be converted to an object type.
-        /// </summary>
-        internal static string NotSupportedPrimitiveToObjectType {
-            get {
-                return ResourceManager.GetString("NotSupportedPrimitiveToObjectType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Not supported recursive program.
         /// </summary>
         internal static string NotSupportedRecursiveProgram {
@@ -673,11 +475,11 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported shared-memory variable of type &apos;{0}&apos;.
+        ///   Looks up a localized string similar to The shared memory intrinsic &apos;{0}&apos; is not supported.
         /// </summary>
-        internal static string NotSupportedSharedMemoryVariableType {
+        internal static string NotSupportedSharedMemoryIntrinsic {
             get {
-                return ResourceManager.GetString("NotSupportedSharedMemoryVariableType", resourceCulture);
+                return ResourceManager.GetString("NotSupportedSharedMemoryIntrinsic", resourceCulture);
             }
         }
         
@@ -700,60 +502,6 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to String operations are not supported.
-        /// </summary>
-        internal static string NotSupportedStringOperation {
-            get {
-                return ResourceManager.GetString("NotSupportedStringOperation", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The struct type &apos;{0}&apos; requires an explicit packing.
-        /// </summary>
-        internal static string NotSupportedStructDueToExplicitPacking {
-            get {
-                return ResourceManager.GetString("NotSupportedStructDueToExplicitPacking", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The struct type &apos;{0}&apos; requires an explicit size.
-        /// </summary>
-        internal static string NotSupportedStructDueToExplicitSize {
-            get {
-                return ResourceManager.GetString("NotSupportedStructDueToExplicitSize", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The struct type &apos;{0}&apos; requires a non-ansi charset.
-        /// </summary>
-        internal static string NotSupportedStructDueToNonAnsiCharSet {
-            get {
-                return ResourceManager.GetString("NotSupportedStructDueToNonAnsiCharSet", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The struct type &apos;{0}&apos; requires a non-sequential memory layout.
-        /// </summary>
-        internal static string NotSupportedStructDueToNonSequentialMemoryLayout {
-            get {
-                return ResourceManager.GetString("NotSupportedStructDueToNonSequentialMemoryLayout", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported target platform.
-        /// </summary>
-        internal static string NotSupportedTargetPlatform {
-            get {
-                return ResourceManager.GetString("NotSupportedTargetPlatform", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Not supported type &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedType {
@@ -763,47 +511,11 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unboxing a value is currently not supported.
+        ///   Looks up a localized string similar to The view intrinsic &apos;{0}&apos; is not supported.
         /// </summary>
-        internal static string NotSupportedUnboxing {
+        internal static string NotSupportedViewIntrinsic {
             get {
-                return ResourceManager.GetString("NotSupportedUnboxing", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported unsafe allocation on stack.
-        /// </summary>
-        internal static string NotSupportedUnsafeAllocation {
-            get {
-                return ResourceManager.GetString("NotSupportedUnsafeAllocation", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported unsigned to float conversion.
-        /// </summary>
-        internal static string NotSupportedUnsignedToFloatConversion {
-            get {
-                return ResourceManager.GetString("NotSupportedUnsignedToFloatConversion", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Shared memory can only be used in the context of a grouped kernel. Consider using a grouped index..
-        /// </summary>
-        internal static string NotSupportedUseOfSharedMemory {
-            get {
-                return ResourceManager.GetString("NotSupportedUseOfSharedMemory", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported value &apos;{0}&apos; of type &apos;{1}&apos;.
-        /// </summary>
-        internal static string NotSupportedValue {
-            get {
-                return ResourceManager.GetString("NotSupportedValue", resourceCulture);
+                return ResourceManager.GetString("NotSupportedViewIntrinsic", resourceCulture);
             }
         }
         
@@ -835,7 +547,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported warp intrinsic of type &apos;{0}&apos;.
+        ///   Looks up a localized string similar to The warp intrinsic &apos;{0}&apos; is not supported.
         /// </summary>
         internal static string NotSupportedWarpIntrinsic {
             get {
@@ -844,29 +556,11 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The warp-shuffle function &apos;{0}&apos; is not supported in the scope of implicitly-grouped kernels.
+        ///   Looks up a localized string similar to There are no uses to resolve.
         /// </summary>
-        internal static string NotSupportedWarpShuffle {
+        internal static string NoUses {
             get {
-                return ResourceManager.GetString("NotSupportedWarpShuffle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Runtime-internal method &apos;{0}&apos; is not supported.
-        /// </summary>
-        internal static string RuntimeInternalMethodNotSupported {
-            get {
-                return ResourceManager.GetString("RuntimeInternalMethodNotSupported", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The type &apos;{0}&apos; does not represent an array type.
-        /// </summary>
-        internal static string WrongArrayType {
-            get {
-                return ResourceManager.GetString("WrongArrayType", resourceCulture);
+                return ResourceManager.GetString("NoUses", resourceCulture);
             }
         }
     }

@@ -11,7 +11,6 @@
 
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
-using ILGPU.Backends.PointerViews;
 using ILGPU.Resources;
 using System;
 using System.Diagnostics;

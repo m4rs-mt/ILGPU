@@ -522,7 +522,7 @@ namespace ILGPU.Runtime.Cuda
 
             // Add support for by ref parameters
             if (entryPoint.HasByRefParameters)
-                throw new NotSupportedException("Not supported by reference parameters");
+                throw new NotSupportedException(ErrorMessages.NotSupportedByRefKernelParameters);
 
             var launcher = entryPoint.CreateLauncherMethod(Context);
             var emitter = new ILEmitter(launcher.ILGenerator);
