@@ -202,7 +202,7 @@ namespace ILGPU.Frontend
                     MakeLoadFieldAddress(block, builder, instruction.GetArgumentAs<FieldInfo>());
                     return true;
                 case ILInstructionType.Ldsflda:
-                    MakeLoadStaticFieldAddress(instruction.GetArgumentAs<FieldInfo>());
+                    MakeLoadStaticFieldAddress(block, builder, instruction.GetArgumentAs<FieldInfo>());
                     return true;
                 case ILInstructionType.Stfld:
                     MakeStoreField(block, builder, instruction.GetArgumentAs<FieldInfo>());

@@ -12,7 +12,6 @@
 using ILGPU.IR;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
-using ILGPU.Resources;
 using ILGPU.Util;
 using System.Reflection;
 
@@ -88,7 +87,27 @@ namespace ILGPU.Frontend
         }
 
         /// <summary>
-        /// Loads a static field specified by the given metadata token.
+        /// Loads a static field value and returns the created IR node.
+        /// </summary>
+        /// <param name="builder">The current builder.</param>
+        /// <param name="field">The field.</param>
+        /// <returns>The loaded field value.</returns>
+        private ValueReference CreateLoadStaticFieldValue(
+            IRBuilder builder,
+            FieldInfo field)
+        {
+            if (field == null)
+                throw this.GetInvalidILCodeException();
+            VerifyStaticFieldLoad(field);
+
+            var fieldValue = field.GetValue(null);
+            return fieldValue == null ?
+                builder.CreateObjectValue(field.FieldType) :
+                builder.CreateObjectValue(fieldValue);
+        }
+
+        /// <summary>
+        /// Loads a static field value.
         /// </summary>
         /// <param name="block">The current basic block.</param>
         /// <param name="builder">The current builder.</param>
@@ -98,25 +117,24 @@ namespace ILGPU.Frontend
             IRBuilder builder,
             FieldInfo field)
         {
-            if (field == null)
-                throw this.GetInvalidILCodeException();
-            VerifyStaticFieldLoad(field);
-
-            var fieldValue = field.GetValue(null);
-            var value = fieldValue == null ?
-                builder.CreateObjectValue(field.FieldType) :
-                builder.CreateObjectValue(fieldValue);
-            block.Push(value);
+            block.Push(CreateLoadStaticFieldValue(builder, field));
         }
 
         /// <summary>
         /// Loads the address of a static field specified by the given metadata token.
         /// </summary>
+        /// <param name="block">The current basic block.</param>
+        /// <param name="builder">The current builder.</param>
         /// <param name="field">The field.</param>
-        private void MakeLoadStaticFieldAddress(FieldInfo field)
+        private void MakeLoadStaticFieldAddress(
+            Block block,
+            IRBuilder builder,
+            FieldInfo field)
         {
-            throw this.GetNotSupportedException(
-                ErrorMessages.NotSupportedLoadOfStaticFieldAddress, field);
+            var fieldValue = CreateLoadStaticFieldValue(builder, field);
+            var tempAlloca = CreateTempAlloca(fieldValue.Type);
+            builder.CreateStore(tempAlloca, fieldValue);
+            block.Push(tempAlloca);
         }
 
         /// <summary>
