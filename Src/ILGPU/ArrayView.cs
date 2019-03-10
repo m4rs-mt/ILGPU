@@ -75,7 +75,7 @@ namespace ILGPU
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     [DebuggerTypeProxy(typeof(DebugArrayView<>))]
-    [DebuggerDisplay("Index = {Index}, Length = {Length}, Source = {Source}")]
+    [DebuggerDisplay("Extent = {Extent}, Length = {Length}")]
     public readonly struct ArrayView<T> : IArrayView<T>
         where T : struct
     {
