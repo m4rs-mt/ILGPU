@@ -4,6 +4,6 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ILGPU" Version="0.5.0" />
+    <PackageReference Include="ILGPU" Version="0.5.1" />
   </ItemGroup>
 </Project>
