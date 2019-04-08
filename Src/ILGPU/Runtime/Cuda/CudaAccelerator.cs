@@ -535,11 +535,6 @@ namespace ILGPU.Runtime.Cuda
             if (!entryPoint.IsGroupedIndexEntry)
                 PTXArgumentMapper.StoreKernelLength(emitter, argumentBuffer);
 
-            // Compute sizes of dynamic-shared variables
-            var sharedMemSize = KernelLauncherBuilder.EmitSharedMemorySizeComputation(
-                entryPoint,
-                emitter);
-
             // Emit kernel launch
 
             // Load current driver API
@@ -559,8 +554,8 @@ namespace ILGPU.Runtime.Cuda
                 () => { },
                 customGroupSize);
 
-            // Load shared-mem size
-            emitter.Emit(LocalOperation.Load, sharedMemSize);
+            // Load shared-mem size (0 bytes in dynamic shared memory)
+            emitter.Emit(OpCodes.Ldc_I4_0);
 
             // Load stream
             KernelLauncherBuilder.EmitLoadAcceleratorStream<CudaStream, ILEmitter>(
