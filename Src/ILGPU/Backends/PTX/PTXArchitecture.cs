@@ -76,9 +76,9 @@ namespace ILGPU.Backends
         SM_70,
 
         /// <summary>
-        /// The 7.1 architecture.
+        /// The 7.5 architecture.
         /// </summary>
-        SM_71,
+        SM_75,
     }
 
     /// <summary>
@@ -108,7 +108,7 @@ namespace ILGPU.Backends
             { (6L << 32) | 3L, PTXArchitecture.SM_63 },
 
             { (7L << 32) | 0L, PTXArchitecture.SM_70 },
-            { (7L << 32) | 1L, PTXArchitecture.SM_71 },
+            { (7L << 32) | 5L, PTXArchitecture.SM_75 },
         };
 
         /// <summary>
