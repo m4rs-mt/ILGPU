@@ -51,6 +51,8 @@ namespace ILGPU.Runtime.CPU
             ArrayView<T> target,
             Index sourceOffset)
         {
+            var binding = stream.BindScoped();
+
             var sourceAddress = ComputeEffectiveAddress(sourceOffset);
             switch (target.AcceleratorType)
             {
@@ -70,6 +72,8 @@ namespace ILGPU.Runtime.CPU
                 default:
                     throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
+
+            binding.Recover();
         }
 
         /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(AcceleratorStream, ArrayView{T}, Index)"/>
@@ -78,6 +82,8 @@ namespace ILGPU.Runtime.CPU
             ArrayView<T> source,
             Index targetOffset)
         {
+            var binding = stream.BindScoped();
+
             var targetAddress = ComputeEffectiveAddress(targetOffset);
             switch (source.AcceleratorType)
             {
@@ -97,6 +103,8 @@ namespace ILGPU.Runtime.CPU
                 default:
                     throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
+
+            binding.Recover();
         }
 
         /// <summary cref="MemoryBuffer.MemSetToZero(AcceleratorStream)"/>

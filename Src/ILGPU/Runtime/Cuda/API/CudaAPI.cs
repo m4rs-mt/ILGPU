@@ -657,6 +657,54 @@ namespace ILGPU.Runtime.Cuda.API
         /// <summary>
         /// Launches the given kernel function.
         /// </summary>
+        /// <param name="stream">The current stream.</param>
+        /// <param name="kernel">The current kernel.</param>
+        /// <param name="gridDimX">The grid dimension in X dimension.</param>
+        /// <param name="gridDimY">The grid dimension in Y dimension.</param>
+        /// <param name="gridDimZ">The grid dimension in Z dimension.</param>
+        /// <param name="blockDimX">The block dimension in X dimension.</param>
+        /// <param name="blockDimY">The block dimension in Y dimension.</param>
+        /// <param name="blockDimZ">The block dimension in Z dimension.</param>
+        /// <param name="sharedMemSizeInBytes">The shared-memory size in bytes.</param>
+        /// <param name="args">The arguments.</param>
+        /// <param name="kernelArgs">The kernel arguments.</param>
+        /// <returns>The error status.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public CudaError LaunchKernelWithStreamBinding(
+            CudaStream stream,
+            CudaKernel kernel,
+            int gridDimX,
+            int gridDimY,
+            int gridDimZ,
+            int blockDimX,
+            int blockDimY,
+            int blockDimZ,
+            int sharedMemSizeInBytes,
+            IntPtr args,
+            IntPtr kernelArgs)
+        {
+            var binding = stream.BindScoped();
+
+            var result = LaunchKernel(
+                kernel.FunctionPtr,
+                gridDimX,
+                gridDimY,
+                gridDimZ,
+                blockDimX,
+                blockDimY,
+                blockDimZ,
+                sharedMemSizeInBytes,
+                stream.StreamPtr,
+                args,
+                kernelArgs);
+
+            binding.Recover();
+            return result;
+        }
+
+        /// <summary>
+        /// Launches the given kernel function.
+        /// </summary>
         /// <param name="kernelFunction">The function to launch.</param>
         /// <param name="gridDimX">The grid dimension in X dimension.</param>
         /// <param name="gridDimY">The grid dimension in Y dimension.</param>

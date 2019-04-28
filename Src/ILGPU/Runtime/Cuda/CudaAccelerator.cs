@@ -46,25 +46,11 @@ namespace ILGPU.Runtime.Cuda
             BindingFlags.Public | BindingFlags.Static).GetGetMethod();
 
         /// <summary>
-        /// Represents the <see cref="CudaStream.StreamPtr"/> property.
-        /// </summary>
-        private static readonly MethodInfo GetStreamPtrMethod = typeof(CudaStream).GetProperty(
-            nameof(CudaStream.StreamPtr),
-            BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false);
-
-        /// <summary>
-        /// Represents the <see cref="CudaKernel.FunctionPtr"/> property.
-        /// </summary>
-        private static readonly MethodInfo GetFunctionPtrMethod = typeof(CudaKernel).GetProperty(
-            nameof(CudaKernel.FunctionPtr),
-            BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false);
-
-        /// <summary>
-        /// Represents the <see cref="CudaAPI.LaunchKernel(IntPtr, int, int, int, int, int, int, int, IntPtr, IntPtr, IntPtr)"/>
+        /// Represents the <see cref="CudaAPI.LaunchKernelWithStreamBinding(CudaStream, CudaKernel, int, int, int, int, int, int, int, IntPtr, IntPtr)"/>
         /// method.
         /// </summary>
         private static readonly MethodInfo LaunchKernelMethod = typeof(CudaAPI).GetMethod(
-            nameof(CudaAPI.LaunchKernel),
+            nameof(CudaAPI.LaunchKernelWithStreamBinding),
             BindingFlags.Public | BindingFlags.Instance);
 
         /// <summary>
@@ -540,11 +526,15 @@ namespace ILGPU.Runtime.Cuda
             // Load current driver API
             emitter.EmitCall(GetCudaAPIMethod);
 
+            // Load stream
+            KernelLauncherBuilder.EmitLoadAcceleratorStream<CudaStream, ILEmitter>(
+                Kernel.KernelStreamParamIdx,
+                emitter);
+
             // Load function ptr
             KernelLauncherBuilder.EmitLoadKernelArgument<CudaKernel, ILEmitter>(
                 Kernel.KernelInstanceParamIdx,
                 emitter);
-            emitter.EmitCall(GetFunctionPtrMethod);
 
             // Load dimensions
             KernelLauncherBuilder.EmitLoadDimensions(
@@ -556,12 +546,6 @@ namespace ILGPU.Runtime.Cuda
 
             // Load shared-mem size (0 bytes in dynamic shared memory)
             emitter.Emit(OpCodes.Ldc_I4_0);
-
-            // Load stream
-            KernelLauncherBuilder.EmitLoadAcceleratorStream<CudaStream, ILEmitter>(
-                Kernel.KernelStreamParamIdx,
-                emitter);
-            emitter.EmitCall(GetStreamPtrMethod);
 
             // Load kernel args
             emitter.Emit(LocalOperation.Load, argumentBuffer);

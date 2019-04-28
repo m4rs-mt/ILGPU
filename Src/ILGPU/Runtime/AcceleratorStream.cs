@@ -48,10 +48,17 @@ namespace ILGPU.Runtime
         /// Synchronizes all queued operations asynchronously.
         /// </summary>
         /// <returns>A task object to wait for.</returns>
-        public Task SynchronizeAsync()
-        {
-            return Task.Run(synchronizeAction);
-        }
+        public Task SynchronizeAsync() =>
+            Task.Run(synchronizeAction);
+
+        /// <summary>
+        /// Makes the associated accelerator the current one for this thread and
+        /// returns a <see cref="ScopedAcceleratorBinding"/> object that allows
+        /// to easily recover the old binding.
+        /// </summary>
+        /// <returns>A scoped binding object.</returns>
+        public ScopedAcceleratorBinding BindScoped() =>
+            Accelerator.BindScoped();
 
         #endregion
     }

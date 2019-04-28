@@ -52,31 +52,32 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<T> target,
             Index sourceOffset)
         {
-            using (var binding = Accelerator.BindScoped())
+            var binding = Accelerator.BindScoped();
+
+            var targetBuffer = target.Source;
+            var sourceAddress = new IntPtr(ComputeEffectiveAddress(sourceOffset));
+            var targetAddress = new IntPtr(target.LoadEffectiveAddress());
+            switch (targetBuffer.AcceleratorType)
             {
-                var targetBuffer = target.Source;
-                var sourceAddress = new IntPtr(ComputeEffectiveAddress(sourceOffset));
-                var targetAddress = new IntPtr(target.LoadEffectiveAddress());
-                switch (targetBuffer.AcceleratorType)
-                {
-                    case AcceleratorType.CPU:
-                        CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
-                            targetAddress,
-                            sourceAddress,
-                            new IntPtr(target.LengthInBytes),
-                            stream));
-                        break;
-                    case AcceleratorType.Cuda:
-                        CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
-                            targetAddress,
-                            sourceAddress,
-                            new IntPtr(target.LengthInBytes),
-                            stream));
-                        break;
-                    default:
-                        throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
-                }
+                case AcceleratorType.CPU:
+                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
+                        targetAddress,
+                        sourceAddress,
+                        new IntPtr(target.LengthInBytes),
+                        stream));
+                    break;
+                case AcceleratorType.Cuda:
+                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
+                        targetAddress,
+                        sourceAddress,
+                        new IntPtr(target.LengthInBytes),
+                        stream));
+                    break;
+                default:
+                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
+
+            binding.Recover();
         }
 
         /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(AcceleratorStream, ArrayView{T}, Index)"/>
@@ -85,37 +86,41 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<T> source,
             Index targetOffset)
         {
-            using (var binding = Accelerator.BindScoped())
+            var binding = Accelerator.BindScoped();
+
+            var sourceAddress = new IntPtr(source.LoadEffectiveAddress());
+            var targetAddress = new IntPtr(ComputeEffectiveAddress(targetOffset));
+            switch (source.AcceleratorType)
             {
-                var sourceAddress = new IntPtr(source.LoadEffectiveAddress());
-                var targetAddress = new IntPtr(ComputeEffectiveAddress(targetOffset));
-                switch (source.AcceleratorType)
-                {
-                    case AcceleratorType.CPU:
-                        CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
-                            targetAddress,
-                            sourceAddress,
-                            new IntPtr(source.LengthInBytes),
-                            stream));
-                        break;
-                    case AcceleratorType.Cuda:
-                        CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
-                            targetAddress,
-                            sourceAddress,
-                            new IntPtr(source.LengthInBytes),
-                            stream));
-                        break;
-                    default:
-                        throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
-                }
+                case AcceleratorType.CPU:
+                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
+                        targetAddress,
+                        sourceAddress,
+                        new IntPtr(source.LengthInBytes),
+                        stream));
+                    break;
+                case AcceleratorType.Cuda:
+                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
+                        targetAddress,
+                        sourceAddress,
+                        new IntPtr(source.LengthInBytes),
+                        stream));
+                    break;
+                default:
+                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
+
+            binding.Recover();
         }
 
         /// <summary cref="MemoryBuffer.MemSetToZero(AcceleratorStream)"/>
         public override void MemSetToZero(AcceleratorStream stream)
         {
-            using (var binding = Accelerator.BindScoped())
-                CudaAPI.Current.Memset(NativePtr, 0, new IntPtr(LengthInBytes));
+            var binding = Accelerator.BindScoped();
+
+            CudaAPI.Current.Memset(NativePtr, 0, new IntPtr(LengthInBytes));
+
+            binding.Recover();
         }
 
         #endregion

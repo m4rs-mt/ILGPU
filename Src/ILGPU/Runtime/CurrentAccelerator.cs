@@ -101,6 +101,7 @@ namespace ILGPU.Runtime
         /// Constructs a new scoped binding.
         /// </summary>
         /// <param name="accelerator">The new accelerator.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ScopedAcceleratorBinding(Accelerator accelerator)
         {
             Debug.Assert(accelerator != null, "Invalid accelerator binding");
@@ -133,6 +134,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Recovers the old accelerator and resets the internal state.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Recover()
         {
             if (!IsRecoverable)
