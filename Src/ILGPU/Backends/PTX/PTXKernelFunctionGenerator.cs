@@ -182,10 +182,13 @@ namespace ILGPU.Backends.PTX
                 Builder.Append('\t');
                 Builder.Append(".shared ");
                 var elementType = allocaInfo.ElementType;
-                var elementSize = ABI.GetSizeOf(elementType);
+                ABI.GetAlignmentAndSizeOf(
+                    elementType,
+                    out int elementSize,
+                    out int elementAlignment);
 
                 Builder.Append(".align ");
-                Builder.Append(elementSize);
+                Builder.Append(elementAlignment);
                 Builder.Append(" .b8 ");
 
                 var name = "__shared_alloca" + offset++;
