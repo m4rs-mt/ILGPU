@@ -157,11 +157,8 @@ namespace ILGPU.IR.Construction
             foreach (var (sourcePhi, targetPhiBuilder) in phiMapping)
             {
                 // Append all phi arguments
-                foreach (var argument in sourcePhi.Arguments)
-                {
-                    var mappedValue = valueMapping[argument.Value];
-                    targetPhiBuilder.AddArgument(mappedValue, argument.Predecessor);
-                }
+                foreach (var argument in sourcePhi)
+                    targetPhiBuilder.AddArgument(valueMapping[argument]);
                 targetPhiBuilder.Seal();
             }
 

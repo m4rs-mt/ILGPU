@@ -15,6 +15,7 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -365,15 +366,16 @@ namespace ILGPU.Backends.PTX
                     Allocate(phi);
 
                     // Map all phi arguments
-                    foreach (var argument in phi.Arguments)
+                    Debug.Assert(cfgNode.NumPredecessors == phi.Nodes.Length, "Invalid phi value");
+                    for (int i = 0, e = cfgNode.NumPredecessors; i < e; ++i)
                     {
-                        BasicBlock argumentBlock = cfgNode.Predecessors[argument.Predecessor].Block;
+                        BasicBlock argumentBlock = cfgNode.Predecessors[i].Block;
                         if (!phiMapping.TryGetValue(argumentBlock, out List<(Value, PhiValue)> arguments))
                         {
                             arguments = new List<(Value, PhiValue)>();
                             phiMapping.Add(argumentBlock, arguments);
                         }
-                        arguments.Add((argument.Value, phi));
+                        arguments.Add((phi[i], phi));
                     }
                 }
             }
