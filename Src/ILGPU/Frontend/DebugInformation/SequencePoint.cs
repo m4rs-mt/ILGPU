@@ -82,7 +82,7 @@ namespace ILGPU.Frontend.DebugInformation
         {
             Debug.Assert(!string.IsNullOrEmpty(fileName), "Invalid file name");
             Debug.Assert(startColumn >= 0, "Invalid start column");
-            Debug.Assert(endColumn >= startColumn, "Invalid end column");
+            Debug.Assert(endColumn >= 0, "Invalid end column");
             Debug.Assert(startLine >= 0, "Invalid start line");
             Debug.Assert(endLine >= startLine, "Invalid end line");
 
