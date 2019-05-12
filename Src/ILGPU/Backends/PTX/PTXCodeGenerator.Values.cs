@@ -920,6 +920,9 @@ namespace ILGPU.Backends.PTX
             FreeRegister(maskRegister);
         }
 
+        /// <summary cref="IValueVisitor.Visit(UndefinedValue)"/>
+        public void Visit(UndefinedValue undefined) => throw new InvalidCodeGenerationException();
+
         /// <summary cref="IValueVisitor.Visit(DebugAssertFailed)"/>
         public void Visit(DebugAssertFailed assert)
         {

@@ -149,6 +149,18 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
+        /// Creates a node that represents an undefined value of
+        /// the given type.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns>A reference to the requested value.</returns>
+        public ValueReference CreateUndefined(TypeNode type)
+        {
+            Debug.Assert(type != null, "Invalid type node");
+            return new UndefinedValue(BasicBlock, type);
+        }
+
+        /// <summary>
         /// Creates an instantiated phi value.
         /// </summary>
         /// <param name="phiValue">The phi value to create.</param>
