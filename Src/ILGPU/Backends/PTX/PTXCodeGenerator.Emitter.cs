@@ -394,17 +394,10 @@ namespace ILGPU.Backends.PTX
             /// <param name="targetRegister">The target register to write to.</param>
             public void ConvertToValue(
                 PTXCodeGenerator codeGenerator,
-                PrimitiveRegister targetRegister)
-            {
-                using (var command = codeGenerator.BeginCommand(
-                    Instructions.GetSelectValueOperation(BasicValueType.Int32)))
-                {
-                    command.AppendArgument(targetRegister);
-                    command.AppendConstant(1);
-                    command.AppendConstant(0);
-                    command.AppendArgument(PredicateRegister);
-                }
-            }
+                PrimitiveRegister targetRegister) =>
+                codeGenerator.ConvertPredicateToValue(
+                    PredicateRegister,
+                    targetRegister);
 
             /// <summary>
             /// Frees the allocated predicate register.
@@ -437,13 +430,36 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Emits a nested primitive command in the scope of a complex command chain.
             /// </summary>
-            /// <param name="commandEmitter">The command emitter.</param>
-            /// <param name="register">The involved primitive registers.</param>
+            /// <param name="codeGenerator">The code generator.</param>
+            /// <param name="command">The current command to emit.</param>
+            /// <param name="register">The involved primitive register.</param>
             /// <param name="offset">The offset in bytes.</param>
             void Emit(
-                CommandEmitter commandEmitter,
+                PTXCodeGenerator codeGenerator,
+                string command,
                 PrimitiveRegister register,
                 int offset);
+        }
+
+        /// <summary>
+        /// Emits a sequence of IO instructions.
+        /// </summary>
+        /// <typeparam name="T">The user state type.</typeparam>
+        protected interface IIOEmitter<T>
+            where T : struct
+        {
+            /// <summary>
+            /// Emits a new sequence of primitive IO instructions.
+            /// </summary>
+            /// <param name="codeGenerator">The code generator.</param>
+            /// <param name="command">The current command to emit.</param>
+            /// <param name="register">The involved primitive register.</param>
+            /// <param name="userState">The current user state.</param>
+            void Emit(
+                PTXCodeGenerator codeGenerator,
+                string command,
+                PrimitiveRegister register,
+                T userState);
         }
 
         #endregion
@@ -524,8 +540,7 @@ namespace ILGPU.Backends.PTX
             switch (register)
             {
                 case PrimitiveRegister primitiveRegister:
-                    using (var commandEmitter = BeginCommand(command))
-                        emitter.Emit(commandEmitter, primitiveRegister, offset);
+                    emitter.Emit(this, command, primitiveRegister, offset);
                     break;
                 case ViewImplementationRegister viewRegister:
                     // We have to emit two load operations
@@ -572,6 +587,75 @@ namespace ILGPU.Backends.PTX
                 register.Kind == PTXRegisterKind.Int32,
                 "Invalid register kind");
             var scope = new PredicateScope(this);
+            ConvertValueToPredicate(register, scope.PredicateRegister);
+            return scope;
+        }
+
+        /// <summary>
+        /// Converts the given predicate register to a default integer register.
+        /// </summary>
+        /// <param name="register">The source register.</param>
+        /// <param name="targetRegister">The target register to write to.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void ConvertPredicateToValue(
+            PrimitiveRegister register,
+            PrimitiveRegister targetRegister)
+        {
+            Debug.Assert(
+                register.Kind == PTXRegisterKind.Predicate,
+                "Invalid predicate register");
+            Debug.Assert(
+                targetRegister.Kind == PTXRegisterKind.Int32,
+                "Invalid target register");
+            using (var command = BeginCommand(
+                Instructions.GetSelectValueOperation(BasicValueType.Int32)))
+            {
+                command.AppendArgument(targetRegister);
+                command.AppendConstant(1);
+                command.AppendConstant(0);
+                command.AppendArgument(register);
+            }
+        }
+
+        /// <summary>
+        /// Converts the given register to a predicate register scope.
+        /// </summary>
+        /// <param name="register">The register to convert.</param>
+        /// <returns>The created predicate scope.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected PrimitiveRegister ConvertValueToPredicate(PrimitiveRegister register)
+        {
+            if (register.Kind == PTXRegisterKind.Predicate)
+                return register;
+
+            Debug.Assert(
+                register.Kind == PTXRegisterKind.Int32,
+                "Invalid register kind");
+
+            var targetRegister = AllocateRegister(
+                new RegisterDescription(
+                    BasicValueType.Int1,
+                    PTXRegisterKind.Predicate));
+            ConvertValueToPredicate(register, targetRegister);
+            return targetRegister;
+        }
+
+        /// <summary>
+        /// Converts the given register to a predicate value in the target register.
+        /// </summary>
+        /// <param name="register">The register to convert.</param>
+        /// <param name="targetRegister">The target register.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void ConvertValueToPredicate(
+            PrimitiveRegister register,
+            PrimitiveRegister targetRegister)
+        {
+            Debug.Assert(
+                register.Kind == PTXRegisterKind.Int32,
+                "Invalid register kind");
+            Debug.Assert(
+                targetRegister.Kind == PTXRegisterKind.Predicate,
+                "Invalid register kind");
 
             // Convert to predicate value
             using (var command = BeginCommand(
@@ -579,11 +663,92 @@ namespace ILGPU.Backends.PTX
                     CompareKind.NotEqual,
                     ArithmeticBasicValueType.UInt32)))
             {
-                command.AppendArgument(scope.PredicateRegister);
+                command.AppendArgument(targetRegister);
                 command.AppendArgument(register);
                 command.AppendConstant(0);
             }
-            return scope;
+        }
+
+        /// <summary>
+        /// Emits a generic IO load operation.
+        /// </summary>
+        /// <typeparam name="TIOEmitter">The type of the load emitter.</typeparam>
+        /// <typeparam name="T">The user state type.</typeparam>
+        /// <param name="emitter">The emitter type.</param>
+        /// <param name="command">The command to emit.</param>
+        /// <param name="register">The register for emission.</param>
+        /// <param name="userState">The user state.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void EmitIOLoad<TIOEmitter, T>(
+            TIOEmitter emitter,
+            string command,
+            PrimitiveRegister register,
+            T userState)
+            where TIOEmitter : struct, IIOEmitter<T>
+            where T : struct
+        {
+            PrimitiveRegister originalRegister = null;
+            // We need a temporary 32bit register for predicate conversion at this point:
+            // 1) load value into temporary register
+            // 2) convert loaded value into predicate
+            if (register.BasicValueType == BasicValueType.Int1)
+            {
+                originalRegister = register;
+                register = AllocateInt32Register();
+            }
+
+            // Emit load
+            emitter.Emit(this, command, register, userState);
+
+            // We need a final predicate conversion
+            if (originalRegister != null)
+            {
+                ConvertValueToPredicate(
+                    register,
+                    originalRegister);
+                FreeRegister(register);
+            }
+        }
+
+        /// <summary>
+        /// Emits a generic IO load operation.
+        /// </summary>
+        /// <typeparam name="TIOEmitter">The type of the load emitter.</typeparam>
+        /// <typeparam name="T">The user state type.</typeparam>
+        /// <param name="emitter">The emitter type.</param>
+        /// <param name="command">The command to emit.</param>
+        /// <param name="register">THe register for emission.</param>
+        /// <param name="userState">The user state.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void EmitIOStore<TIOEmitter, T>(
+            TIOEmitter emitter,
+            string command,
+            PrimitiveRegister register,
+            T userState)
+            where TIOEmitter : struct, IIOEmitter<T>
+            where T : struct
+        {
+            // We need a temporary 32bit register for predicate conversion at this point:
+            // 1) convert current predicate into 32bit integer
+            // 2) store the converted value from the temporary register
+            PrimitiveRegister originalRegister = null;
+            if (register.BasicValueType == BasicValueType.Int1)
+            {
+                originalRegister = register;
+                register = AllocateInt32Register();
+
+                // Convert predicate
+                ConvertPredicateToValue(
+                    originalRegister,
+                    register);
+            }
+
+            // Emit store
+            emitter.Emit(this, command, register, userState);
+
+            // Free temp register
+            if (originalRegister != null)
+                FreeRegister(register);
         }
 
         /// <summary>

@@ -306,12 +306,12 @@ namespace ILGPU.Frontend
             var type = PeekBasicValueType();
             switch (type)
             {
+                case BasicValueType.Int1:
                 case BasicValueType.Int32:
                 case BasicValueType.Int64:
                 case BasicValueType.Float32:
                 case BasicValueType.Float64:
                     return Pop();
-                case BasicValueType.Int1:
                 case BasicValueType.Int8:
                 case BasicValueType.Int16:
                     return Pop(
@@ -343,6 +343,7 @@ namespace ILGPU.Frontend
 
             switch (left.BasicValueType)
             {
+                case BasicValueType.Int1:
                 case BasicValueType.Int32:
                 case BasicValueType.Int64:
                 case BasicValueType.Float32:

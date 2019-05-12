@@ -58,7 +58,7 @@ namespace ILGPU.Backends.PTX
         /// Maps basic types to PTX register kinds.
         /// </summary>
         private static readonly ImmutableArray<PTXRegisterKind> RegisterTypeMapping = ImmutableArray.Create(
-            default, PTXRegisterKind.Int32,
+            default, PTXRegisterKind.Predicate,
             PTXRegisterKind.Int16, PTXRegisterKind.Int16, PTXRegisterKind.Int32, PTXRegisterKind.Int64,
             PTXRegisterKind.Float32, PTXRegisterKind.Float64);
 
@@ -225,6 +225,14 @@ namespace ILGPU.Backends.PTX
             var freeRegs = freeRegisters[(int)register.Kind];
             freeRegs.Push(register.RegisterValue);
         }
+
+        /// <summary>
+        /// Allocates a new 32bit integer register.
+        /// </summary>
+        /// <returns>The allocated primitive 32bit integer register.</returns>
+        public PrimitiveRegister AllocateInt32Register() =>
+            AllocateRegister(
+                new RegisterDescription(BasicValueType.Int32, PTXRegisterKind.Int32));
 
         /// <summary cref="RegisterAllocator{TKind}.AllocateRegister(RegisterAllocator{TKind}.RegisterDescription)"/>
         public sealed override PrimitiveRegister AllocateRegister(RegisterDescription description)

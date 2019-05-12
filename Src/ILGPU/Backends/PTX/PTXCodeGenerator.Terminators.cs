@@ -40,15 +40,12 @@ namespace ILGPU.Backends.PTX
         public void Visit(ConditionalBranch branch)
         {
             var condition = LoadPrimitive(branch.Condition);
-            using (var predicateScope = ConvertToPredicateScope(condition))
+            using (var command = BeginCommand(
+                Instructions.BranchOperation,
+                new PredicateConfiguration(condition, true)))
             {
-                using (var command = BeginCommand(
-                    Instructions.BranchOperation,
-                    predicateScope.GetConfiguration(true)))
-                {
-                    var trueLabel = blockLookup[branch.TrueTarget];
-                    command.AppendLabel(trueLabel);
-                }
+                var trueLabel = blockLookup[branch.TrueTarget];
+                command.AppendLabel(trueLabel);
             }
 
             // Jump to false target in the else case

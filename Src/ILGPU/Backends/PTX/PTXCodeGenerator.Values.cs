@@ -110,32 +110,14 @@ namespace ILGPU.Backends.PTX
             var argument = LoadPrimitive(value.Value);
             var targetRegister = AllocatePrimitive(value);
 
-            var commandString = Instructions.GetArithmeticOperation(
-                value.Kind,
-                value.ArithmeticBasicValueType,
-                FastMath);
-            switch (value.Kind)
+            using (var command = BeginCommand(
+                Instructions.GetArithmeticOperation(
+                    value.Kind,
+                    value.ArithmeticBasicValueType,
+                    FastMath)))
             {
-                case UnaryArithmeticKind.IsInfF:
-                case UnaryArithmeticKind.IsNaNF:
-                    using (var predicateScope = new PredicateScope(this))
-                    {
-                        using (var command = BeginCommand(commandString))
-                        {
-                            command.AppendArgument(predicateScope.PredicateRegister);
-                            command.AppendArgument(argument);
-                        }
-
-                        predicateScope.ConvertToValue(this, targetRegister);
-                    }
-                    break;
-                default:
-                    using (var command = BeginCommand(commandString))
-                    {
-                        command.AppendArgument(targetRegister);
-                        command.AppendArgument(argument);
-                    }
-                    break;
+                command.AppendArgument(targetRegister);
+                command.AppendArgument(argument);
             }
         }
 
@@ -185,20 +167,45 @@ namespace ILGPU.Backends.PTX
             var left = LoadPrimitive(value.Left);
             var right = LoadPrimitive(value.Right);
 
-            var targetRegister = Allocate(value) as PrimitiveRegister;
-            using (var predicateScope = new PredicateScope(this))
+            var targetRegister = AllocatePrimitive(value);
+            if (left.Kind == PTXRegisterKind.Predicate)
+            {
+                // Predicate registers require a special treatment
+                using (var command = BeginCommand(
+                    Instructions.GetArithmeticOperation(
+                        BinaryArithmeticKind.Xor,
+                        ArithmeticBasicValueType.UInt1,
+                        false)))
+                {
+                    command.AppendArgument(targetRegister);
+                    command.AppendArgument(left);
+                    command.AppendArgument(right);
+                }
+
+                if (value.Kind == CompareKind.Equal)
+                {
+                    using (var command = BeginCommand(
+                        Instructions.GetArithmeticOperation(
+                            UnaryArithmeticKind.Not,
+                            ArithmeticBasicValueType.UInt1,
+                            false)))
+                    {
+                        command.AppendArgument(targetRegister);
+                        command.AppendArgument(targetRegister);
+                    }
+                }
+            }
+            else
             {
                 using (var command = BeginCommand(
                     Instructions.GetCompareOperation(
                         value.Kind,
                         value.CompareType)))
                 {
-                    command.AppendArgument(predicateScope.PredicateRegister);
+                    command.AppendArgument(targetRegister);
                     command.AppendArgument(left);
                     command.AppendArgument(right);
                 }
-
-                predicateScope.ConvertToValue(this, targetRegister);
             }
         }
 
@@ -289,16 +296,13 @@ namespace ILGPU.Backends.PTX
             var trueValue = Load(predicate.TrueValue);
             var falseValue = Load(predicate.FalseValue);
 
-            using (var predicateScope = ConvertToPredicateScope(condition))
-            {
-                var targetRegister = Allocate(predicate);
-                EmitComplexCommand(
-                    Instructions.GetSelectValueOperation(predicate.BasicValueType),
-                    new PredicateEmitter(predicateScope.PredicateRegister),
-                    targetRegister,
-                    trueValue,
-                    falseValue);
-            }
+            var targetRegister = Allocate(predicate);
+            EmitComplexCommand(
+                Instructions.GetSelectValueOperation(predicate.BasicValueType),
+                new PredicateEmitter(condition),
+                targetRegister,
+                trueValue,
+                falseValue);
         }
 
         /// <summary cref="IValueVisitor.Visit(GenericAtomic)"/>
@@ -367,33 +371,64 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private readonly struct LoadEmitter : IComplexCommandEmitterWithOffsets
         {
+            private readonly struct IOEmitter : IIOEmitter<int>
+            {
+                public IOEmitter(
+                    PointerType sourceType,
+                    PrimitiveRegister addressRegister)
+                {
+                    SourceType = sourceType;
+                    AddressRegister = addressRegister;
+                }
+
+                /// <summary>
+                /// The current source type.
+                /// </summary>
+                public PointerType SourceType { get; }
+
+                /// <summary>
+                /// Returns the associated address register.
+                /// </summary>
+                public PrimitiveRegister AddressRegister { get; }
+
+                /// <summary cref="IIOEmitter{T}.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, T)"/>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public void Emit(
+                    PTXCodeGenerator codeGenerator,
+                    string command,
+                    PrimitiveRegister register,
+                    int offset)
+                {
+                    using (var commandEmitter = codeGenerator.BeginCommand(command))
+                    {
+                        commandEmitter.AppendAddressSpace(SourceType.AddressSpace);
+                        commandEmitter.AppendSuffix(register.BasicValueType);
+                        commandEmitter.AppendArgument(register);
+                        commandEmitter.AppendArgumentValue(AddressRegister, offset);
+                    }
+                }
+            }
+
             public LoadEmitter(
                 PointerType sourceType,
                 PrimitiveRegister addressRegister)
             {
-                SourceType = sourceType;
-                AddressRegister = addressRegister;
+                Emitter = new IOEmitter(sourceType, addressRegister);
             }
 
             /// <summary>
-            /// The current source type.
+            /// The underlying IO emitter.
             /// </summary>
-            public PointerType SourceType { get; }
+            private IOEmitter Emitter { get; }
 
-            /// <summary>
-            /// Returns the associated address register.
-            /// </summary>
-            public PrimitiveRegister AddressRegister { get; }
-
-            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
+            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister register, int offset)
-            {
-                commandEmitter.AppendAddressSpace(SourceType.AddressSpace);
-                commandEmitter.AppendSuffix(register.BasicValueType);
-                commandEmitter.AppendArgument(register);
-                commandEmitter.AppendArgumentValue(AddressRegister, offset);
-            }
+            public void Emit(
+                PTXCodeGenerator codeGenerator,
+                string command,
+                PrimitiveRegister register,
+                int offset) =>
+                codeGenerator.EmitIOLoad(Emitter, command, register, offset);
         }
 
         /// <summary cref="IValueVisitor.Visit(Load)"/>
@@ -414,33 +449,64 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private readonly struct StoreEmitter : IComplexCommandEmitterWithOffsets
         {
+            private readonly struct IOEmitter : IIOEmitter<int>
+            {
+                public IOEmitter(
+                    PointerType targetType,
+                    PrimitiveRegister addressRegister)
+                {
+                    TargetType = targetType;
+                    AddressRegister = addressRegister;
+                }
+
+                /// <summary>
+                /// The current source type.
+                /// </summary>
+                public PointerType TargetType { get; }
+
+                /// <summary>
+                /// Returns the associated address register.
+                /// </summary>
+                public PrimitiveRegister AddressRegister { get; }
+
+                /// <summary cref="IIOEmitter{T}.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, T)"/>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public void Emit(
+                    PTXCodeGenerator codeGenerator,
+                    string command,
+                    PrimitiveRegister register,
+                    int offset)
+                {
+                    using (var commandEmitter = codeGenerator.BeginCommand(command))
+                    {
+                        commandEmitter.AppendAddressSpace(TargetType.AddressSpace);
+                        commandEmitter.AppendSuffix(register.BasicValueType);
+                        commandEmitter.AppendArgumentValue(AddressRegister, offset);
+                        commandEmitter.AppendArgument(register);
+                    }
+                }
+            }
+
             public StoreEmitter(
                 PointerType targetType,
                 PrimitiveRegister addressRegister)
             {
-                TargetType = targetType;
-                AddressRegister = addressRegister;
+                Emitter = new IOEmitter(targetType, addressRegister);
             }
 
             /// <summary>
-            /// The current source type.
+            /// The underlying IO emitter.
             /// </summary>
-            public PointerType TargetType { get; }
+            private IOEmitter Emitter { get; }
 
-            /// <summary>
-            /// Returns the associated address register.
-            /// </summary>
-            public PrimitiveRegister AddressRegister { get; }
-
-            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
+            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister register, int offset)
-            {
-                commandEmitter.AppendAddressSpace(TargetType.AddressSpace);
-                commandEmitter.AppendSuffix(register.BasicValueType);
-                commandEmitter.AppendArgumentValue(AddressRegister, offset);
-                commandEmitter.AppendArgument(register);
-            }
+            public void Emit(
+                PTXCodeGenerator codeGenerator,
+                string command,
+                PrimitiveRegister register,
+                int offset) =>
+                codeGenerator.EmitIOStore(Emitter, command, register, offset);
         }
 
         /// <summary cref="IValueVisitor.Visit(Store)"/>
@@ -495,6 +561,8 @@ namespace ILGPU.Backends.PTX
                 switch (value.BasicValueType)
                 {
                     case BasicValueType.Int1:
+                        command.AppendConstant(value.Int1Value ? 1 : 0);
+                        break;
                     case BasicValueType.Int8:
                         command.AppendConstant(value.UInt8Value);
                         break;
@@ -627,36 +695,29 @@ namespace ILGPU.Backends.PTX
             var description = ResolveRegisterDescription(BasicValueType.Int32);
             var targetRegister = Allocate(barrier, description);
             var sourcePredicate = LoadPrimitive(barrier.Predicate);
-            using (var predciateScope = ConvertToPredicateScope(sourcePredicate))
+            switch (barrier.Kind)
             {
-                switch (barrier.Kind)
-                {
-                    case PredicateBarrierKind.And:
-                    case PredicateBarrierKind.Or:
-                        using (var targetPredicateScope = new PredicateScope(this))
-                        {
-                            using (var command = BeginCommand(
-                                Instructions.GetPredicateBarrier(barrier.Kind)))
-                            {
-                                command.AppendArgument(targetPredicateScope.PredicateRegister);
-                                command.AppendConstant(0);
-                                command.AppendArgument(predciateScope.PredicateRegister);
-                            }
-                            targetPredicateScope.ConvertToValue(this, targetRegister);
-                        }
-                        break;
-                    case PredicateBarrierKind.PopCount:
-                        using (var command = BeginCommand(
-                            Instructions.GetPredicateBarrier(barrier.Kind)))
-                        {
-                            command.AppendArgument(targetRegister);
-                            command.AppendConstant(0);
-                            command.AppendArgument(predciateScope.PredicateRegister);
-                        }
-                        break;
-                    default:
-                        throw new InvalidCodeGenerationException();
-                }
+                case PredicateBarrierKind.And:
+                case PredicateBarrierKind.Or:
+                    using (var command = BeginCommand(
+                        Instructions.GetPredicateBarrier(barrier.Kind)))
+                    {
+                        command.AppendArgument(targetRegister);
+                        command.AppendConstant(0);
+                        command.AppendArgument(sourcePredicate);
+                    }
+                    break;
+                case PredicateBarrierKind.PopCount:
+                    using (var command = BeginCommand(
+                        Instructions.GetPredicateBarrier(barrier.Kind)))
+                    {
+                        command.AppendArgument(targetRegister);
+                        command.AppendConstant(0);
+                        command.AppendArgument(sourcePredicate);
+                    }
+                    break;
+                default:
+                    throw new InvalidCodeGenerationException();
             }
         }
 

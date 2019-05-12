@@ -93,7 +93,6 @@ namespace ILGPU.Backends.PTX
         private static readonly Dictionary<(CompareKind, ArithmeticBasicValueType), string> CompareOperations =
             new Dictionary<(CompareKind, ArithmeticBasicValueType), string>()
             {
-                { (CompareKind.Equal, ArithmeticBasicValueType.UInt1), "setp.eq.u32" },
                 { (CompareKind.Equal, ArithmeticBasicValueType.Int16), "setp.eq.s16" },
                 { (CompareKind.Equal, ArithmeticBasicValueType.Int32), "setp.eq.s32" },
                 { (CompareKind.Equal, ArithmeticBasicValueType.Int64), "setp.eq.s64" },
@@ -103,7 +102,6 @@ namespace ILGPU.Backends.PTX
                 { (CompareKind.Equal, ArithmeticBasicValueType.Float32), "setp.eq.f32" },
                 { (CompareKind.Equal, ArithmeticBasicValueType.Float64), "setp.eq.f64" },
 
-                { (CompareKind.NotEqual, ArithmeticBasicValueType.UInt1), "setp.ne.u32" },
                 { (CompareKind.NotEqual, ArithmeticBasicValueType.Int16), "setp.ne.s16" },
                 { (CompareKind.NotEqual, ArithmeticBasicValueType.Int32), "setp.ne.s32" },
                 { (CompareKind.NotEqual, ArithmeticBasicValueType.Int64), "setp.ne.s64" },
@@ -265,7 +263,7 @@ namespace ILGPU.Backends.PTX
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Float32), "neg.f32" },
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Float64), "neg.f64" },
 
-                { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.UInt1), "cnot.b32" },
+                { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.UInt1), "not.pred" },
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.Int16), "not.b16" },
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.Int32), "not.b32" },
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.Int64), "not.b64" },
@@ -379,7 +377,7 @@ namespace ILGPU.Backends.PTX
 
                 // Logic
 
-                { (BinaryArithmeticKind.And, ArithmeticBasicValueType.UInt1), "and.b32" },
+                { (BinaryArithmeticKind.And, ArithmeticBasicValueType.UInt1), "and.pred" },
                 { (BinaryArithmeticKind.And, ArithmeticBasicValueType.Int16), "and.b16" },
                 { (BinaryArithmeticKind.And, ArithmeticBasicValueType.Int32), "and.b32" },
                 { (BinaryArithmeticKind.And, ArithmeticBasicValueType.Int64), "and.b64" },
@@ -389,7 +387,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.And, ArithmeticBasicValueType.Float32), "and.b32" },
                 { (BinaryArithmeticKind.And, ArithmeticBasicValueType.Float64), "and.b64" },
 
-                { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.UInt1), "or.b32" },
+                { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.UInt1), "or.pred" },
                 { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.Int16), "or.b16" },
                 { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.Int32), "or.b32" },
                 { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.Int64), "or.b64" },
@@ -399,7 +397,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.Float32), "or.b32" },
                 { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.Float64), "or.b64" },
 
-                { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.UInt1), "xor.b32" },
+                { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.UInt1), "xor.pred" },
                 { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.Int16), "xor.b16" },
                 { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.Int32), "xor.b32" },
                 { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.Int64), "xor.b64" },

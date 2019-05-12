@@ -150,7 +150,7 @@ namespace ILGPU.Backends.PTX
         /// Maps basic types to basic PTX suffixes.
         /// </summary>
         private static readonly ImmutableArray<string> BasicSuffixes = ImmutableArray.Create(
-            default, "b32",
+            default, "pred",
             "b8", "b16", "b32", "b64",
             "f32", "f64");
 
@@ -158,7 +158,7 @@ namespace ILGPU.Backends.PTX
         /// Maps basic types to constant-loading target basic types.
         /// </summary>
         private static readonly ImmutableArray<BasicValueType> RegisterMovementTypeRemapping = ImmutableArray.Create(
-            default, BasicValueType.Int32,
+            default, BasicValueType.Int1,
             BasicValueType.Int16, BasicValueType.Int16, BasicValueType.Int32, BasicValueType.Int64,
             BasicValueType.Float32, BasicValueType.Float64);
 
@@ -524,24 +524,54 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private readonly struct LoadParamEmitter : IComplexCommandEmitterWithOffsets
         {
+            /// <summary>
+            /// The underlying IO emitter.
+            /// </summary>
+            private readonly struct IOEmitter : IIOEmitter<int>
+            {
+                public IOEmitter(string paramName)
+                {
+                    ParamName = paramName;
+                }
+
+                /// <summary>
+                /// Returns the associated parameter name.
+                /// </summary>
+                public string ParamName { get; }
+
+                /// <summary cref="IIOEmitter{T}.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, T)"/>
+                public void Emit(
+                    PTXCodeGenerator codeGenerator,
+                    string command,
+                    PrimitiveRegister register,
+                    int offset)
+                {
+                    using (var commandEmitter = codeGenerator.BeginCommand(command))
+                    {
+                        commandEmitter.AppendSuffix(register.BasicValueType);
+                        commandEmitter.AppendArgument(register);
+                        commandEmitter.AppendRawValue(ParamName, offset);
+                    }
+                }
+            }
+
             public LoadParamEmitter(string paramName)
             {
-                ParamName = paramName;
+                Emitter = new IOEmitter(paramName);
             }
 
             /// <summary>
-            /// The param name
+            /// The underlying IO emitter.
             /// </summary>
-            public string ParamName { get; }
+            private IOEmitter Emitter { get; }
 
-            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister register, int offset)
-            {
-                commandEmitter.AppendSuffix(register.BasicValueType);
-                commandEmitter.AppendArgument(register);
-                commandEmitter.AppendRawValue(ParamName, offset);
-            }
+            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
+            public void Emit(
+                PTXCodeGenerator codeGenerator,
+                string command,
+                PrimitiveRegister register,
+                int offset) =>
+                codeGenerator.EmitIOLoad(Emitter, command, register, offset);
         }
 
         /// <summary>
@@ -565,24 +595,54 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private readonly struct StoreParamEmitter : IComplexCommandEmitterWithOffsets
         {
+            /// <summary>
+            /// The underlying IO emitter.
+            /// </summary>
+            private readonly struct IOEmitter : IIOEmitter<int>
+            {
+                public IOEmitter(string paramName)
+                {
+                    ParamName = paramName;
+                }
+
+                /// <summary>
+                /// Returns the associated parameter name.
+                /// </summary>
+                public string ParamName { get; }
+
+                /// <summary cref="IIOEmitter{T}.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, T)"/>
+                public void Emit(
+                    PTXCodeGenerator codeGenerator,
+                    string command,
+                    PrimitiveRegister register,
+                    int offset)
+                {
+                    using (var commandEmitter = codeGenerator.BeginCommand(command))
+                    {
+                        commandEmitter.AppendSuffix(register.BasicValueType);
+                        commandEmitter.AppendRawValue(ParamName, offset);
+                        commandEmitter.AppendArgument(register);
+                    }
+                }
+            }
+
             public StoreParamEmitter(string paramName)
             {
-                ParamName = paramName;
+                Emitter = new IOEmitter(paramName);
             }
 
             /// <summary>
-            /// The param name
+            /// The underlying IO emitter.
             /// </summary>
-            public string ParamName { get; }
+            private IOEmitter Emitter { get; }
 
-            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister register, int offset)
-            {
-                commandEmitter.AppendSuffix(register.BasicValueType);
-                commandEmitter.AppendRawValue(ParamName, offset);
-                commandEmitter.AppendArgument(register);
-            }
+            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
+            public void Emit(
+                PTXCodeGenerator codeGenerator,
+                string command,
+                PrimitiveRegister register,
+                int offset) =>
+                codeGenerator.EmitIOStore(Emitter, command, register, offset);
         }
 
         /// <summary>
