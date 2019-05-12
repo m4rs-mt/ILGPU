@@ -196,16 +196,28 @@ namespace ILGPU.IR
             {
                 if (toRemove.Count < 1)
                     return;
-
                 var newValues = new List<ValueReference>(
                     XMath.Max(Count - toRemove.Count, 0));
+                PerformRemoval(newValues);
+                Values = newValues;
+            }
+
+            /// <summary>
+            /// Applies all scheduled removal operations by adding them to
+            /// the given <paramref name="targetCollection"/>.
+            /// </summary>
+            /// <param name="targetCollection">The target collection to wich all elements will be appended.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private void PerformRemoval<TCollection>(TCollection targetCollection)
+                where TCollection : ICollection<ValueReference>
+            {
                 for (int i = 0, e = Count; i < e; ++i)
                 {
-                    if (toRemove.Contains(values[i].DirectTarget))
+                    var valueRef = values[i];
+                    if (toRemove.Contains(valueRef.DirectTarget))
                         continue;
-                    newValues.Add(Values[i]);
+                    targetCollection.Add(valueRef);
                 }
-                Values = newValues;
 
                 toRemove.Clear();
             }
@@ -333,11 +345,14 @@ namespace ILGPU.IR
 
                 var otherBuilder = MethodBuilder[other];
 
-                // Move values
-                foreach (Value valueToMove in otherBuilder.Values)
+                int offset = Count;
+                otherBuilder.PerformRemoval(values);
+
+                // Attach values to another block
+                for (; offset < Count; ++offset)
                 {
-                    valueToMove.BasicBlock = BasicBlock;
-                    Values.Add(valueToMove);
+                    Value movedValue = values[offset];
+                    movedValue.BasicBlock = BasicBlock;
                 }
                 otherBuilder.Clear();
 
