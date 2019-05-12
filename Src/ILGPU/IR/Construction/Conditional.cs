@@ -39,6 +39,10 @@ namespace ILGPU.IR.Construction
             if (UseConstantPropagation && condition is PrimitiveValue constant)
                 return constant.Int1Value ? trueValue : falseValue;
 
+            // Match negated predicates
+            if (condition is UnaryArithmeticValue unary && unary.Kind == UnaryArithmeticKind.Not)
+                return CreatePredicate(unary.Value, falseValue, trueValue);
+
             return Append(new Predicate(
                 BasicBlock,
                 condition,
