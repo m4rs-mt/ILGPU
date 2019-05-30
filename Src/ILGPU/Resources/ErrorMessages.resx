@@ -285,4 +285,7 @@
   <data name="NotSupportedByRefKernelParameters" xml:space="preserve">
     <value>Not supported by-ref kernel parameters</value>
   </data>
+  <data name="NotSupportedDynamicAllocation" xml:space="preserve">
+    <value>The allocation size of type '{0}' must be statically known and not a dynamic value '{1}'</value>
+  </data>
 </root>

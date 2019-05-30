@@ -91,9 +91,6 @@ namespace ILGPU.IR.Values
                   ComputeType(context, allocaType, addressSpace))
         {
             Debug.Assert(
-                arrayLength.Resolve().IsInstantiatedConstant(),
-                "Invalid array length to allocate");
-            Debug.Assert(
                 addressSpace == MemoryAddressSpace.Local ||
                 addressSpace == MemoryAddressSpace.Shared,
                 "Invalid alloca address space");

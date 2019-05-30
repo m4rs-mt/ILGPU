@@ -313,6 +313,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The allocation size of type &apos;{0}&apos; must be statically known and not a dynamic value &apos;{1}&apos;.
+        /// </summary>
+        internal static string NotSupportedDynamicAllocation {
+            get {
+                return ResourceManager.GetString("NotSupportedDynamicAllocation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot cast type &apos;{0}&apos; to float/int.
         /// </summary>
         internal static string NotSupportedFloatIntCast {

@@ -12,6 +12,7 @@
 using ILGPU.Backends;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -37,6 +38,17 @@ namespace ILGPU.IR.Analyses
             Index = index;
             Alloca = alloca;
             ElementSize = elementSize;
+
+            var arrayLength = alloca.ArrayLength.ResolveAs<PrimitiveValue>();
+            if (arrayLength == null)
+            {
+                throw new NotSupportedException(
+                    string.Format(
+                        ErrorMessages.NotSupportedDynamicAllocation,
+                        alloca.AddressSpace,
+                        arrayLength));
+            }
+            ArraySize = arrayLength.Int32Value;
         }
 
         /// <summary>
@@ -57,14 +69,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Returns the number 
         /// </summary>
-        public int ArraySize
-        {
-            get
-            {
-                var arrayLength = Alloca.ArrayLength;
-                return arrayLength.ResolveAs<PrimitiveValue>().Int32Value;
-            }
-        }
+        public int ArraySize { get; }
 
         /// <summary>
         /// Returns the element size in bytes of a single element.

@@ -50,7 +50,6 @@ namespace ILGPU.IR.Construction
             MemoryAddressSpace addressSpace)
         {
             Debug.Assert(arrayLength != null, "Invalid array length");
-            Debug.Assert(arrayLength.IsInstantiatedConstant(), "Invalid array length constant");
             Debug.Assert(type != null, "Invalid alloca type");
 
             switch (addressSpace)
