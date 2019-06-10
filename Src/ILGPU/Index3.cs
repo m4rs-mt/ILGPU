@@ -122,11 +122,26 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value of every component (x, y, z).</param>
         public Index3(int value)
-        {
-            x = value;
-            y = value;
-            z = value;
-        }
+            : this(value, value, value)
+        { }
+
+        /// <summary>
+        /// Constructs a new 3D index.
+        /// </summary>
+        /// <param name="xy">The x and y indices.</param>
+        /// <param name="z">The z index.</param>
+        public Index3(Index2 xy, int z)
+            : this(xy.X, xy.Y, z)
+        { }
+
+        /// <summary>
+        /// Constructs a new 3D index.
+        /// </summary>
+        /// <param name="x">The x index.</param>
+        /// <param name="yz">The y and z indices.</param>
+        public Index3(int x, Index2 yz)
+            : this(x, yz.X, yz.Y)
+        { }
 
         /// <summary>
         /// Constructs a new 3D index.
@@ -174,6 +189,16 @@ namespace ILGPU
         /// Returns the size represented by this index (x * y * z).
         /// </summary>
         public int Size => X * Y * Z;
+
+        /// <summary>
+        /// /Returns the x and y components as <see cref="Index2"/>.
+        /// </summary>
+        public Index2 XY => new Index2(X, Y);
+
+        /// <summary>
+        /// /Returns the y and z components as <see cref="Index2"/>.
+        /// </summary>
+        public Index2 YZ => new Index2(Y, Z);
 
         #endregion
 
