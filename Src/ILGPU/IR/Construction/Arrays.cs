@@ -69,9 +69,6 @@ namespace ILGPU.IR.Construction
                             return setElement.Value;
                         current = setElement.ObjectValue;
                         continue;
-                    case GetElement getElement:
-                        current = getElement.ObjectValue;
-                        continue;
                     case NullValue _:
                         return CreateNull(arrayType.ElementType);
                 }

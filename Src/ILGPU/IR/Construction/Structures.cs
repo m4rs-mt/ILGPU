@@ -75,10 +75,24 @@ namespace ILGPU.IR.Construction
             Debug.Assert(structType != null, "Invalid object structure type");
             Debug.Assert(fieldIndex >= 0 && fieldIndex < structType.NumFields, "Invalid field index");
 
-            if (objectValue is NullValue)
-                return CreateNull(structType.Children[fieldIndex]);
-            else if (objectValue is SetField setField && setField.FieldIndex == fieldIndex)
-                return setField.Value;
+            // Try to combine different get and set operations on the same value
+            var current = objectValue;
+            for (; ;)
+            {
+                switch (current)
+                {
+                    case SetField setField:
+                        if (setField.FieldIndex == fieldIndex)
+                            return setField.Value;
+                        current = setField.ObjectValue;
+                        continue;
+                    case NullValue _:
+                        return CreateNull(structType.Fields[fieldIndex]);
+                }
+
+                // Value could not be resolved
+                break;
+            }
 
             return Append(new GetField(
                 BasicBlock,
