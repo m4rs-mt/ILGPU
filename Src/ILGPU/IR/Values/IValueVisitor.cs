@@ -208,6 +208,18 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="value">The node.</param>
+        void Visit(GetElement value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
+        void Visit(SetElement value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
         void Visit(GridDimensionValue value);
 
         /// <summary>
@@ -257,6 +269,12 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="undefined">The node.</param>
         void Visit(UndefinedValue undefined);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="handle">The node.</param>
+        void Visit(HandleValue handle);
 
         // Debug assert
 

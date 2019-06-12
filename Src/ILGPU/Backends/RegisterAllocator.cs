@@ -123,6 +123,35 @@ namespace ILGPU.Backends
         /// </summary>
         public abstract class CompoundRegister : Register
         {
+            #region Static
+
+            /// <summary>
+            /// Creates a new compound-register instance.
+            /// </summary>
+            /// <param name="source">The source register.</param>
+            /// <param name="registers">The updated child registers.</param>
+            /// <returns>The created compound register.</returns>
+            public static CompoundRegister NewRegister(
+                CompoundRegister source,
+                ImmutableArray<Register> registers)
+            {
+                switch (source)
+                {
+                    case StructureRegister structureRegister:
+                        return new StructureRegister(
+                            structureRegister.StructureType,
+                            registers);
+                    case ArrayRegister arrayRegister:
+                        return new ArrayRegister(
+                            arrayRegister.ArrayType,
+                            registers);
+                    default:
+                        throw new InvalidCodeGenerationException();
+                }
+            }
+
+            #endregion
+
             #region Instance
 
             /// <summary>
@@ -186,6 +215,36 @@ namespace ILGPU.Backends
             /// Returns the underlying structure type.
             /// </summary>
             public StructureType StructureType => Type as StructureType;
+
+            #endregion
+        }
+
+        /// <summary>
+        /// Represents a compound register of an array type.
+        /// </summary>
+        public sealed class ArrayRegister : CompoundRegister
+        {
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new array register.
+            /// </summary>
+            /// <param name="arrayType">The array type.</param>
+            /// <param name="registers">The child registers.</param>
+            internal ArrayRegister(
+                ArrayType arrayType,
+                ImmutableArray<Register> registers)
+                : base(arrayType, registers)
+            { }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the underlying array type.
+            /// </summary>
+            public ArrayType ArrayType => Type as ArrayType;
 
             #endregion
         }
@@ -400,11 +459,15 @@ namespace ILGPU.Backends
                     var primitiveRegisterKind = ResolveRegisterDescription(primitiveType);
                     return AllocateRegister(primitiveRegisterKind);
                 case StructureType structureType:
-                    var childRegisters = ImmutableArray.CreateBuilder<Register>(
-                        structureType.NumChildren);
-                    for (int i = 0, e = structureType.NumChildren; i < e; ++i)
-                        childRegisters.Add(AllocateType(structureType.Children[i]));
+                    var childRegisters = ImmutableArray.CreateBuilder<Register>(structureType.NumFields);
+                    for (int i = 0, e = structureType.NumFields; i < e; ++i)
+                        childRegisters.Add(AllocateType(structureType.Fields[i]));
                     return new StructureRegister(structureType, childRegisters.MoveToImmutable());
+                case ArrayType arrayType:
+                    var arrayRegisters = ImmutableArray.CreateBuilder<Register>(arrayType.Length);
+                    for (int i = 0, e = arrayType.Length; i < e; ++i)
+                        arrayRegisters.Add(AllocateType(arrayType.ElementType));
+                    return new ArrayRegister(arrayType, arrayRegisters.MoveToImmutable());
                 case ViewType viewType:
                     return AllocateViewRegister(viewType);
                 case PointerType _:

@@ -555,17 +555,30 @@ namespace ILGPU.Backends.PTX
                         viewRegister.Length,
                         offset + ABI.PointerSize);
                     break;
-                case CompoundRegister compoundRegister:
-                    var structType = compoundRegister.Type as StructureType;
+                case StructureRegister structureRegister:
+                    var structType = structureRegister.StructureType;
                     var offsets = ABI.GetOffsetsOf(structType);
-                    for (int i = 0, e = structType.NumChildren; i < e; ++i)
+                    for (int i = 0, e = structType.NumFields; i < e; ++i)
                     {
                         var fieldOffset = offsets[i];
                         EmitComplexCommandWithOffsets(
                             command,
                             emitter,
-                            compoundRegister.Children[i],
+                            structureRegister.Children[i],
                             offset + fieldOffset);
+                    }
+                    break;
+                case ArrayRegister arrayRegister:
+                    var arrayType = arrayRegister.ArrayType;
+                    var arrayElementSize = ABI.GetSizeOf(arrayType.ElementType);
+                    for (int i = 0, e = arrayType.Length; i < e; ++i)
+                    {
+                        int fieldOffset = i * arrayElementSize;
+                        EmitComplexCommandWithOffsets(
+                            command,
+                            emitter,
+                            arrayRegister.Children[i],
+                            fieldOffset);
                     }
                     break;
                 default:

@@ -646,24 +646,58 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(SizeOfValue)"/>
         public void Visit(SizeOfValue value) => throw new InvalidCodeGenerationException();
 
-        /// <summary cref="IValueVisitor.Visit(GetField)"/>
-        public void Visit(GetField value)
+        /// <summary>
+        /// Emits a new compound-register load operation.
+        /// </summary>
+        /// <param name="value">The source value.</param>
+        /// <param name="index">The child index to load.</param>
+        private void MakeCompoundRegisterLoad(ObjectOperationValue value, int index)
         {
-            var source = LoadAs<StructureRegister>(value.StructValue);
-            Bind(value, source.Children[value.FieldIndex]);
+            var source = LoadAs<CompoundRegister>(value.ObjectValue);
+            Bind(value, source.Children[index]);
         }
 
-        /// <summary cref="IValueVisitor.Visit(SetField)"/>
-        public void Visit(SetField value)
+        /// <summary>
+        /// Emits a new compound-register store operation.
+        /// </summary>
+        /// <param name="value">The source value.</param>
+        /// <param name="index">The child index to update.</param>
+        /// <param name="valueToStore">The value to store.</param>
+        private void MakeCompoundRegisterStore(
+            ObjectOperationValue value,
+            int index,
+            Value valueToStore)
         {
-            var source = LoadAs<StructureRegister>(value.StructValue);
-            var storeValue = Load(value.Value);
+            var source = LoadAs<CompoundRegister>(value.ObjectValue);
+            var storeValue = Load(valueToStore);
 
-            var targetChildren = source.Children.SetItem(value.FieldIndex, storeValue);
-            var targetRegister = new StructureRegister(
-                value.StructureType,
-                targetChildren);
+            var targetChildren = source.Children.SetItem(index, storeValue);
+            var targetRegister = CompoundRegister.NewRegister(source, targetChildren);
             Bind(value, targetRegister);
+        }
+
+        /// <summary cref="IValueVisitor.Visit(GetField)"/>
+        public void Visit(GetField value) =>
+            MakeCompoundRegisterLoad(value, value.FieldIndex);
+
+        /// <summary cref="IValueVisitor.Visit(SetField)"/>
+        public void Visit(SetField value) =>
+            MakeCompoundRegisterStore(value, value.FieldIndex, value.Value);
+
+        /// <summary cref="IValueVisitor.Visit(GetElement)"/>
+        public void Visit(GetElement value)
+        {
+            if (!value.TryResolveConstantIndex(out int index))
+                throw new InvalidCodeGenerationException();
+            MakeCompoundRegisterLoad(value, index);
+        }
+
+        /// <summary cref="IValueVisitor.Visit(SetElement)"/>
+        public void Visit(SetElement value)
+        {
+            if (!value.TryResolveConstantIndex(out int index))
+                throw new InvalidCodeGenerationException();
+            MakeCompoundRegisterStore(value, index, value.Value);
         }
 
         /// <summary cref="IValueVisitor.Visit(GridDimensionValue)"/>
@@ -922,6 +956,9 @@ namespace ILGPU.Backends.PTX
 
         /// <summary cref="IValueVisitor.Visit(UndefinedValue)"/>
         public void Visit(UndefinedValue undefined) => throw new InvalidCodeGenerationException();
+
+        /// <summary cref="IValueVisitor.Visit(HandleValue)"/>
+        public void Visit(HandleValue handle) => throw new InvalidCodeGenerationException();
 
         /// <summary cref="IValueVisitor.Visit(DebugAssertFailed)"/>
         public void Visit(DebugAssertFailed assert)

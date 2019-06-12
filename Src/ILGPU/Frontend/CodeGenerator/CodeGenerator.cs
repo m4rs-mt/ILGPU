@@ -214,6 +214,15 @@ namespace ILGPU.Frontend
             EntryBlock.Builder.CreateAlloca(type, MemoryAddressSpace.Local);
 
         /// <summary>
+        /// Creates a temporary alloca for the given type.
+        /// </summary>
+        /// <param name="length">The length of the array.</param>
+        /// <param name="type">The type to allocate.</param>
+        /// <returns>The created alloca.</returns>
+        public ValueReference CreateTempAlloca(ValueReference length, TypeNode type) =>
+            EntryBlock.Builder.CreateAlloca(length, type, MemoryAddressSpace.Local);
+
+        /// <summary>
         /// Generates code for the current function.
         /// </summary>
         /// <returns>The created top-level function.</returns>
@@ -305,7 +314,7 @@ namespace ILGPU.Frontend
             Debug.Assert(method != null, "Invalid method");
             var @namespace = method.DeclaringType.FullName;
             // Internal unsafe intrinsic methods
-            if (@namespace == "System.Runtime.CompilerServices.Unsafe")
+            if (@namespace.StartsWith("System.Runtime.CompilerServices", StringComparison.OrdinalIgnoreCase))
                 return;
             if (@namespace.StartsWith("System.Runtime", StringComparison.OrdinalIgnoreCase) ||
                 @namespace.StartsWith("System.Reflection", StringComparison.OrdinalIgnoreCase))
@@ -440,6 +449,21 @@ namespace ILGPU.Frontend
         private static void MakePop(Block block)
         {
             block.Pop();
+        }
+
+        /// <summary>
+        /// Realizes an internal load-token operation.
+        /// </summary>
+        /// <param name="block">The current basic block.</param>
+        /// <param name="builder">The current builder.</param>
+        /// <param name="handleValue">The managed handle object.</param>
+        private static void MakeLoadToken(
+            Block block,
+            IRBuilder builder,
+            object handleValue)
+        {
+            var handle = builder.CreateRuntimeHandle(handleValue);
+            block.Push(handle);
         }
 
         #endregion

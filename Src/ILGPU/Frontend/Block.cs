@@ -9,12 +9,14 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
@@ -187,7 +189,7 @@ namespace ILGPU.Frontend
         /// <param name="flags">The conversion flags.</param>
         private Value Convert(Value value, TypeNode targetType, ConvertFlags flags)
         {
-            if (value.Type == targetType)
+            if (value.Type == targetType || targetType == StructureType.Root)
                 return value;
             return CodeGenerator.CreateConversion(
                 Builder,
@@ -258,9 +260,12 @@ namespace ILGPU.Frontend
                 if (instanceValue == null)
                 {
                     var declaringType = Builder.CreateType(methodBase.DeclaringType);
-                    declaringType = Builder.CreatePointerType(
-                        declaringType,
-                        MemoryAddressSpace.Generic);
+                    if (!Intrinsics.IsIntrinsicArrayType(methodBase.DeclaringType))
+                    {
+                        declaringType = Builder.CreatePointerType(
+                            declaringType,
+                            MemoryAddressSpace.Generic);
+                    }
                     instanceValue = Pop(declaringType, ConvertFlags.None);
                 }
                 else

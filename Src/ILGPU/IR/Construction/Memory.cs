@@ -197,7 +197,7 @@ namespace ILGPU.IR.Construction
 
             var structureType = pointerType.ElementType as StructureType;
             Debug.Assert(structureType != null, "Invalid pointer to a non-struct type");
-            Debug.Assert(fieldIndex >= 0 || fieldIndex < structureType.NumChildren, "Invalid field index");
+            Debug.Assert(fieldIndex >= 0 || fieldIndex < structureType.NumFields, "Invalid field index");
 
             return Append(new LoadFieldAddress(
                 Context,

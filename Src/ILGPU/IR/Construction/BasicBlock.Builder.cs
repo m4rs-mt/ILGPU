@@ -137,6 +137,17 @@ namespace ILGPU.IR
             }
 
             /// <summary>
+            /// Sets the insert position to the index stored in the given value entry.
+            /// </summary>
+            /// <param name="value">The value entry.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void SetupInsertPosition(in Value value)
+            {
+                Debug.Assert(value.BasicBlock == BasicBlock, "Invalid block association");
+                InsertPosition = Values.IndexOf(value);
+            }
+
+            /// <summary>
             /// Inserts the given value at the beginning of this block.
             /// </summary>
             /// <param name="value">The value to add.</param>

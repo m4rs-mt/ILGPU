@@ -257,7 +257,7 @@ namespace ILGPU.IR.Values
             var structureType = pointerType.ElementType as StructureType;
 
             Debug.Assert(structureType != null, "Invalid structure type");
-            var fieldType = structureType.Children[fieldIndex];
+            var fieldType = structureType.Fields[fieldIndex];
 
             return context.CreatePointerType(
                 fieldType,

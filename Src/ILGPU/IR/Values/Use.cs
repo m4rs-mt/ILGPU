@@ -63,11 +63,17 @@ namespace ILGPU.IR.Values
         public Use Refresh() => new Use(Resolve(), Index);
 
         /// <summary>
-        /// Resolves the actual node with respect to
-        /// replacement information.
+        /// Resolves the actual node with respect to replacement information.
         /// </summary>
         /// <returns>The actual node.</returns>
         public Value Resolve() => Target.Resolve();
+
+        /// <summary>
+        /// Resolves the actual value with respect to replacement information.
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <returns>The actual value.</returns>
+        public T ResolveAs<T>() where T : Value => Resolve() as T;
 
         #endregion
 

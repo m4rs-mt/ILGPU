@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -35,8 +36,9 @@ namespace ILGPU.IR.Construction
                 return CreatePrimitiveValue(instance);
             if (type.IsEnum)
                 return CreateEnumValue(instance);
-            if (type.IsClass)
-                throw new ArgumentOutOfRangeException(nameof(instance));
+            if (type.IsClass || type.IsArray)
+                throw new NotSupportedException(
+                    string.Format(ErrorMessages.NotSupportedClassType, type));
             var typeInfo = Context.TypeContext.GetTypeInfo(type);
 
             var result = CreateNull(CreateType(type));
@@ -48,6 +50,14 @@ namespace ILGPU.IR.Construction
             }
             return result;
         }
+
+        /// <summary>
+        /// Creates a new structure value.
+        /// </summary>
+        /// <param name="structureType">The structure type.</param>
+        /// <returns>The created empty structure value.</returns>
+        public ValueReference CreateStructure(StructureType structureType) =>
+            CreateNull(structureType);
 
         /// <summary>
         /// Creates a load operation of an object field.
@@ -63,7 +73,7 @@ namespace ILGPU.IR.Construction
 
             var structType = objectValue.Type as StructureType;
             Debug.Assert(structType != null, "Invalid object structure type");
-            Debug.Assert(fieldIndex >= 0 && fieldIndex < structType.NumChildren, "Invalid field index");
+            Debug.Assert(fieldIndex >= 0 && fieldIndex < structType.NumFields, "Invalid field index");
 
             if (objectValue is NullValue)
                 return CreateNull(structType.Children[fieldIndex]);
@@ -111,8 +121,8 @@ namespace ILGPU.IR.Construction
 
             var structType = objectValue.Type as StructureType;
             Debug.Assert(structType != null, "Invalid object structure type");
-            Debug.Assert(fieldIndex >= 0 && fieldIndex < structType.NumChildren, "Invalid field index");
-            Debug.Assert(structType.Children[fieldIndex] == value.Type, "Incompatible value type");
+            Debug.Assert(fieldIndex >= 0 && fieldIndex < structType.NumFields, "Invalid field index");
+            Debug.Assert(structType.Fields[fieldIndex] == value.Type, "Incompatible value type");
 
             return Append(new SetField(
                 BasicBlock,

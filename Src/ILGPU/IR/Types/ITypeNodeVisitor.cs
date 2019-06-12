@@ -50,6 +50,18 @@ namespace ILGPU.IR.Types
         /// Visits the type.
         /// </summary>
         /// <param name="type">The type.</param>
+        void Visit(ArrayType type);
+
+        /// <summary>
+        /// Visits the type.
+        /// </summary>
+        /// <param name="type">The type.</param>
         void Visit(StructureType type);
+
+        /// <summary>
+        /// Visits the type.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        void Visit(HandleType type);
     }
 }

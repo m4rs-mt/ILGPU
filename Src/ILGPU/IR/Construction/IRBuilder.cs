@@ -12,6 +12,7 @@
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ILGPU.IR.Construction
@@ -149,6 +150,13 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
+        /// Creates a node that represents an undefined value of type void.
+        /// </summary>
+        /// <returns>A reference to the requested value.</returns>
+        public ValueReference CreateUndefinedVoid() =>
+            CreateUndefined(VoidType);
+
+        /// <summary>
         /// Creates a node that represents an undefined value of
         /// the given type.
         /// </summary>
@@ -158,6 +166,46 @@ namespace ILGPU.IR.Construction
         {
             Debug.Assert(type != null, "Invalid type node");
             return new UndefinedValue(BasicBlock, type);
+        }
+
+        /// <summary>
+        /// Creates a node that represents a managed runtime handle.
+        /// </summary>
+        /// <param name="handle">The runtime handle.</param>
+        /// <returns>A reference to the requested value.</returns>
+        public ValueReference CreateRuntimeHandle(object handle)
+        {
+            Debug.Assert(handle != null, "Invalid runtime handle");
+            return Append(new HandleValue(
+                BasicBlock,
+                Context.HandleType,
+                handle));
+        }
+
+        /// <summary>
+        /// Creates a new index structure instance.
+        /// </summary>
+        /// <param name="dimension">The dimension value.</param>
+        /// <returns>The created index type.</returns>
+        public ValueReference CreateIndex(ValueReference dimension)
+        {
+            var indexType = GetIndexType(0);
+            var instance = CreateNull(indexType);
+            return CreateSetField(instance, 0, dimension);
+        }
+
+        /// <summary>
+        /// Creates a new index structure instance.
+        /// </summary>
+        /// <param name="dimensions">The dimension values.</param>
+        /// <returns>The created index type.</returns>
+        public ValueReference CreateIndex(ImmutableArray<ValueReference> dimensions)
+        {
+            var indexType = GetIndexType(dimensions.Length);
+            var instance = CreateNull(indexType);
+            for (int i = 0, e = dimensions.Length; i < e; ++i)
+                instance = CreateSetField(instance, i, dimensions[i]);
+            return instance;
         }
 
         /// <summary>

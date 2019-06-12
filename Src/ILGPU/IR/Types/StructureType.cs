@@ -9,8 +9,10 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Text;
 
 namespace ILGPU.IR.Types
@@ -18,7 +20,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a structure type.
     /// </summary>
-    public sealed class StructureType : ContainerType
+    public sealed class StructureType : ObjectType
     {
         #region Nested Types
 
@@ -290,6 +292,14 @@ namespace ILGPU.IR.Types
         #region Static
 
         /// <summary>
+        /// Represents the base object class of all objects.
+        /// </summary>
+        public static StructureType Root { get; } = new StructureType(
+            ImmutableArray<TypeNode>.Empty,
+            ImmutableArray<string>.Empty,
+            typeof(object));
+
+        /// <summary>
         /// Performs the given <see cref="IBasicFieldAction"/>
         /// by recursively applying the action to all (nested) structure fields.
         /// </summary>
@@ -301,9 +311,9 @@ namespace ILGPU.IR.Types
             ref TAction action)
             where TAction : IBasicFieldAction
         {
-            for (int i = 0, e = structureType.NumChildren; i < e; ++i)
+            for (int i = 0, e = structureType.NumFields; i < e; ++i)
             {
-                if (structureType.Children[i] is StructureType childType)
+                if (structureType.Fields[i] is StructureType childType)
                     ForEachField(childType, ref action);
                 else
                     action.Apply(structureType, i);
@@ -325,10 +335,10 @@ namespace ILGPU.IR.Types
             ref TAction action)
             where TAction : IFieldAction<T>
         {
-            for (int i = 0, e = structureType.NumChildren; i < e; ++i)
+            for (int i = 0, e = structureType.NumFields; i < e; ++i)
             {
                 var fieldValue = action.GetFieldValue(value, structureType, i);
-                if (structureType.Children[i] is StructureType childType)
+                if (structureType.Fields[i] is StructureType childType)
                     ForEachField(childType, fieldValue, ref action);
                 else
                     action.Apply(fieldValue, structureType, i);
@@ -352,11 +362,11 @@ namespace ILGPU.IR.Types
             ref TAction action)
             where TAction : IFieldRefAction<T>
         {
-            for (int i = 0, e = structureType.NumChildren; i < e; ++i)
+            for (int i = 0, e = structureType.NumFields; i < e; ++i)
             {
                 var fieldRef = currentRef.Access(i);
                 var fieldValue = action.GetFieldValue(fieldRef, value, structureType, i);
-                if (structureType.Children[i] is StructureType childType)
+                if (structureType.Fields[i] is StructureType childType)
                     ForEachField(childType, fieldRef, fieldValue, ref action);
                 else
                     action.Apply(fieldRef, fieldValue, structureType, i);
@@ -368,21 +378,101 @@ namespace ILGPU.IR.Types
         #region Instance
 
         /// <summary>
-        /// Constructs a new structure type.
+        /// Caches the internal hash code of all child nodes.
+        /// </summary>
+        private readonly int hashCode;
+
+        /// <summary>
+        /// Constructs a new object type.
         /// </summary>
         /// <param name="fieldTypes">The field types.</param>
         /// <param name="fieldNames">The field names.</param>
         /// <param name="source">The original source type (or null).</param>
-        internal StructureType(
+        private StructureType(
             ImmutableArray<TypeNode> fieldTypes,
             ImmutableArray<string> fieldNames,
             Type source)
-            : base(fieldTypes, fieldNames, source)
-        { }
+            : base(source)
+        {
+            Fields = fieldTypes;
+            Names = fieldNames;
+
+            hashCode = 0;
+            foreach (var type in fieldTypes)
+                hashCode ^= type.GetHashCode();
+        }
+
+        /// <summary>
+        /// Constructs a new object type.
+        /// </summary>
+        /// <param name="baseType">The underlying base class.</param>
+        /// <param name="fieldTypes">The field types.</param>
+        /// <param name="fieldNames">The field names.</param>
+        /// <param name="source">The original source type (or null).</param>
+        internal StructureType(
+            StructureType baseType,
+            ImmutableArray<TypeNode> fieldTypes,
+            ImmutableArray<string> fieldNames,
+            Type source)
+            : this(fieldTypes, fieldNames, source)
+        {
+            Debug.Assert(baseType != null, "Invalid base class");
+            BaseType = baseType;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns true if this is the base object class.
+        /// </summary>
+        public bool IsObject => BaseType == null;
+
+        /// <summary>
+        /// Returns the underlying parent base class.
+        /// </summary>
+        public StructureType BaseType { get; }
+
+        /// <summary>
+        /// Returns the associated fields.
+        /// </summary>
+        public ImmutableArray<TypeNode> Fields { get; }
+
+        /// <summary>
+        /// Returns the number of associated fields.
+        /// </summary>
+        public int NumFields => Fields.Length;
+
+        /// <summary>
+        /// Returns the associated name information.
+        /// </summary>
+        internal ImmutableArray<string> Names { get; }
 
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns the name of the specified child.
+        /// </summary>
+        /// <param name="childIndex">The child index.</param>
+        /// <returns>The name of the specified child.</returns>
+        public string GetName(int childIndex)
+        {
+            if (childIndex < 0 || childIndex >= Fields.Length)
+                throw new ArgumentOutOfRangeException(nameof(childIndex));
+            if (childIndex < Names.Length)
+                return Names[childIndex];
+            return string.Empty;
+        }
+
+        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
+        public override bool TryResolveManagedType(out Type type)
+        {
+            type = Source;
+            return type != null;
+        }
 
         /// <summary>
         /// Resolves the number of scalar fields.
@@ -436,12 +526,51 @@ namespace ILGPU.IR.Types
         protected override string ToPrefixString() => "Struct";
 
         /// <summary cref="TypeNode.GetHashCode"/>
-        public override int GetHashCode() =>
-            base.GetHashCode() ^ 0x491C11CB;
+        public override int GetHashCode() => hashCode;
 
         /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object obj) =>
-            obj is StructureType && base.Equals(obj);
+        public override bool Equals(object obj)
+        {
+            if (!(obj is StructureType structureType) ||
+                structureType.BaseType != BaseType ||
+                structureType.NumFields != NumFields)
+                return false;
+            for (int i = 0, e = Fields.Length; i < e; ++i)
+            {
+                if (Fields[i] != structureType.Fields[i])
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary cref="TypeNode.ToString()"/>
+        public override string ToString()
+        {
+            if (Source != null)
+                return Source.GetStringRepresentation();
+
+            var result = new StringBuilder();
+            result.Append(ToPrefixString());
+            result.Append('<');
+
+            if (Fields.Length > 0)
+            {
+                for (int i = 0, e = Fields.Length; i < e; ++i)
+                {
+                    result.Append(Fields[i].ToString());
+                    var name = GetName(i);
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        result.Append(' ');
+                        result.Append(name);
+                    }
+                    if (i + 1 < e)
+                        result.Append(", ");
+                }
+            }
+            result.Append('>');
+            return result.ToString();
+        }
 
         #endregion
     }

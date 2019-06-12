@@ -120,6 +120,26 @@ namespace ILGPU.IR.Values
         /// </summary>
         public ValueReference ArrayLength => this[0];
 
+        /// <summary>
+        /// Returns true if this allocation is an array allocation.
+        /// </summary>
+        public bool IsArrayAllocation
+        {
+            get
+            {
+                var length = ArrayLength.Resolve();
+                return
+                    length is PrimitiveValue primitiveValue &&
+                    primitiveValue.Int32Value != 1;
+            }
+        }
+
+        /// <summary>
+        /// Returns true if this allocation is a dynamic allocation.
+        /// </summary>
+        public bool IsDynamicAllocation =>
+            ArrayLength.ResolveAs<PrimitiveValue>() == null;
+
         #endregion
 
         #region Methods

@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
@@ -43,6 +44,11 @@ namespace ILGPU.IR.Types
         /// </summary>
         internal static readonly BasicValueType ViewIndexType = BasicValueType.Int32;
 
+        /// <summary>
+        /// Represents a generic array view type.
+        /// </summary>
+        private static readonly Type GenericArrayViewType = typeof(ArrayView<,>);
+
         #endregion
 
         #region Instance
@@ -51,6 +57,9 @@ namespace ILGPU.IR.Types
             LockRecursionPolicy.SupportsRecursion);
         private readonly Dictionary<TypeNode, TypeNode> unifiedTypes =
             new Dictionary<TypeNode, TypeNode>();
+        private readonly Dictionary<Type, TypeNode> typeMapping =
+            new Dictionary<Type, TypeNode>();
+        private readonly StructureType[] indexTypes;
         private readonly PrimitiveType[] basicValueTypes;
 
         /// <summary>
@@ -63,6 +72,7 @@ namespace ILGPU.IR.Types
 
             VoidType = CreateType(new VoidType());
             StringType = CreateType(new StringType());
+            HandleType = CreateType(new HandleType());
 
             basicValueTypes = new PrimitiveType[BasicValueTypes.Length + 1];
             foreach (var type in BasicValueTypes)
@@ -78,11 +88,22 @@ namespace ILGPU.IR.Types
                         (int)BasicValueType.Float32];
             }
 
-            IndexType = CreateType(new StructureType(
-                ImmutableArray.Create<TypeNode>(
-                    GetPrimitiveType(BasicValueType.Int32)),
-                ImmutableArray<string>.Empty,
-                typeof(Index)));
+            // Populate type mapping
+            typeMapping.Add(typeof(void), VoidType);
+            typeMapping.Add(typeof(string), StringType);
+            typeMapping.Add(typeof(Array), StructureType.Root);
+
+            typeMapping.Add(typeof(RuntimeFieldHandle), HandleType);
+            typeMapping.Add(typeof(RuntimeMethodHandle), HandleType);
+            typeMapping.Add(typeof(RuntimeTypeHandle), HandleType);
+
+            // Setup index types
+            indexTypes = new StructureType[]
+            {
+                CreateType(typeof(Index)) as StructureType,
+                CreateType(typeof(Index2)) as StructureType,
+                CreateType(typeof(Index3)) as StructureType,
+            };
         }
 
         #endregion
@@ -97,17 +118,22 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the void type.
         /// </summary>
-        public VoidType VoidType { get; private set; }
+        public VoidType VoidType { get; }
 
         /// <summary>
         /// Returns the memory type.
         /// </summary>
-        public StringType StringType { get; private set; }
+        public StringType StringType { get; }
+
+        /// <summary>
+        /// Returns the managed handle type.
+        /// </summary>
+        public HandleType HandleType { get; }
 
         /// <summary>
         /// Returns the main index type.
         /// </summary>
-        public StructureType IndexType { get; private set; }
+        public StructureType IndexType => indexTypes[0];
 
         #endregion
 
@@ -120,6 +146,19 @@ namespace ILGPU.IR.Types
         /// <returns>The created primitive type.</returns>
         public PrimitiveType GetPrimitiveType(BasicValueType basicValueType) =>
             basicValueTypes[(int)basicValueType];
+
+        /// <summary>
+        /// Creates an intrinsic index type.
+        /// </summary>
+        /// <param name="dimension">The dimension of the index type.</param>
+        /// <returns>The created index type.</returns>
+        public StructureType GetIndexType(int dimension)
+        {
+            Debug.Assert(
+                dimension >= 0 && dimension < indexTypes.Length,
+                "Invalid index dimension");
+            return indexTypes[dimension];
+        }
 
         /// <summary>
         /// Creates a pointer type.
@@ -154,44 +193,143 @@ namespace ILGPU.IR.Types
         }
 
         /// <summary>
-        /// Creates a new structure type.
+        /// Creates a new object type.
         /// </summary>
-        /// <param name="fieldTypes">The structure field types.</param>
-        /// <returns>The created structure type.</returns>
-        public StructureType CreateStructureType(ImmutableArray<TypeNode> fieldTypes) =>
-            CreateStructureType(fieldTypes, ImmutableArray<string>.Empty, null);
+        /// <param name="baseType">The base type.</param>
+        /// <param name="fieldTypes">The object field types.</param>
+        /// <returns>The created object type.</returns>
+        public StructureType CreateStructureType(
+            StructureType baseType,
+            ImmutableArray<TypeNode> fieldTypes) =>
+            CreateStructureType(
+                baseType,
+                fieldTypes,
+                ImmutableArray<string>.Empty,
+                null);
 
         /// <summary>
-        /// Creates a new structure type.
+        /// Creates a new object type.
         /// </summary>
-        /// <param name="fieldTypes">The structure field types.</param>
-        /// <param name="fieldNames">The structure field names.</param>
-        /// <param name="sourceType">The source structure type.</param>
-        /// <returns>The created structure type.</returns>
+        /// <param name="baseType">The base type.</param>
+        /// <param name="fieldTypes">The object field types.</param>
+        /// <param name="fieldNames">The object field names.</param>
+        /// <param name="sourceType">The source object type.</param>
+        /// <returns>The created object type.</returns>
         public StructureType CreateStructureType(
+            StructureType baseType,
             ImmutableArray<TypeNode> fieldTypes,
             ImmutableArray<string> fieldNames,
             Type sourceType)
         {
             return CreateType(new StructureType(
+                baseType,
                 fieldTypes,
                 fieldNames,
                 sourceType));
         }
 
         /// <summary>
-        /// Creates a new structure type.
+        /// Creates a new objact type.
         /// </summary>
-        /// <param name="fieldTypes">The structure field types.</param>
-        /// <param name="sourceType">The source structure type.</param>
-        /// <returns>The created structure type.</returns>
+        /// <param name="fieldTypes">The objact field types.</param>
+        /// <param name="sourceType">The source objact type.</param>
+        /// <returns>The created objact type.</returns>
         public StructureType CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes,
             StructureType sourceType)
         {
             Debug.Assert(sourceType != null, "Invalid source type");
-            Debug.Assert(sourceType.NumChildren == fieldTypes.Length, "Incompatible field types");
-            return CreateStructureType(fieldTypes, sourceType.Names, sourceType.Source);
+            Debug.Assert(sourceType.NumFields == fieldTypes.Length, "Incompatible field types");
+            return CreateStructureType(
+                sourceType.BaseType,
+                fieldTypes,
+                sourceType.Names,
+                sourceType.Source);
+        }
+
+        /// <summary>
+        /// Creates a new generic view type that relies on an n-dimension index.
+        /// </summary>
+        /// <param name="elementType">The element type.</param>
+        /// <param name="indexType">The index type.</param>
+        /// <param name="addressSpace">The address space.</param>
+        /// <returns>The created view type.</returns>
+        public StructureType CreateGenericViewType(
+            TypeNode elementType,
+            StructureType indexType,
+            MemoryAddressSpace addressSpace)
+        {
+            // Try to resolve the managed type
+            Type managedType = null;
+            if (elementType.TryResolveManagedType(out Type managedElementType) &&
+                indexType.TryResolveManagedType(out Type managedIndexType))
+                managedType = GenericArrayViewType.MakeGenericType(managedElementType, managedIndexType);
+
+            // Create the actual type
+            var viewType = CreateViewType(elementType, addressSpace);
+            return CreateStructureType(
+                StructureType.Root,
+                ImmutableArray.Create<TypeNode>(viewType, indexType),
+                ImmutableArray<string>.Empty,
+                managedType);
+        }
+
+        /// <summary>
+        /// Creates a new array type.
+        /// </summary>
+        /// <param name="elementType">The element type.</param>
+        /// <param name="length">The array length.</param>
+        /// <returns>The created array type.</returns>
+        public ArrayType CreateArrayType(TypeNode elementType, int length)
+        {
+            Debug.Assert(length > 0, "Invalid array length");
+
+            // Try to resolve the managed type
+            Type managedType = null;
+            if (elementType.TryResolveManagedType(out Type managedElementType))
+                managedType = managedElementType.MakeArrayType();
+
+            // Create the actual type
+            return CreateType(
+                new ArrayType(
+                    elementType,
+                    length,
+                    managedType));
+        }
+
+        /// <summary>
+        /// Creates a new structure type that implements array functionality.
+        /// </summary>
+        /// <param name="elementType">The element type.</param>
+        /// <param name="dimension">The array dimension.</param>
+        /// <returns>The created implementation structure type.</returns>
+        public StructureType CreateArrayImplementationType(
+            TypeNode elementType,
+            int dimension)
+        {
+            Debug.Assert(dimension > 0, "Invalid array dimension");
+            if (!elementType.IsStructureType && !elementType.IsPrimitiveType)
+            {
+                throw new NotSupportedException(
+                    string.Format(
+                        ErrorMessages.NotSupportedArrayElementType,
+                        elementType));
+            }
+
+            // Try to resolve the managed type
+            Type managedType = null;
+            if (elementType.TryResolveManagedType(out Type managedElementType))
+                managedType = managedElementType.MakeArrayType(dimension);
+
+            var viewType = CreateViewType(elementType, MemoryAddressSpace.Local);
+            var dimensionType = CreateArrayType(
+                GetPrimitiveType(BasicValueType.Int32),
+                dimension);
+            return CreateStructureType(
+                StructureType.Root,
+                ImmutableArray.Create<TypeNode>(viewType, dimensionType),
+                ImmutableArray.Create("View", "Extent"),
+                managedType);
         }
 
         /// <summary>
@@ -212,21 +350,23 @@ namespace ILGPU.IR.Types
         {
             Debug.Assert(type != null, "Invalid type");
 
-            Debug.Assert(!type.IsArray, "Invalid array type");
-
             var basicValueType = type.GetBasicValueType();
             if (basicValueType != BasicValueType.None)
                 return GetPrimitiveType(basicValueType);
             else if (type.IsEnum)
                 return CreateType(type.GetEnumUnderlyingType(), addressSpace);
-            else if (type == typeof(void))
-                return VoidType;
-            else if (type == typeof(string))
-                return StringType;
+            else if (type.IsArray)
+            {
+                var arrayElementType = CreateType(type.GetElementType(), addressSpace);
+                var dimension = type.GetArrayRank();
+                return CreateArrayImplementationType(arrayElementType, dimension);
+            }
             else if (type.IsArrayViewType(out Type elementType))
                 return CreateViewType(CreateType(elementType, addressSpace), addressSpace);
             else if (type.IsVoidPtr())
                 return CreatePointerType(VoidType, addressSpace);
+            else if (typeMapping.TryGetValue(type, out TypeNode typeNode))
+                return typeNode;
             else if (type.IsByRef || type.IsPointer)
             {
                 return CreatePointerType(
@@ -235,8 +375,19 @@ namespace ILGPU.IR.Types
             }
             else
             {
-                // Struct type
-                Debug.Assert(type.IsValueType, "Invalid struct type");
+                // Container (structure or class) type
+
+                // FIXME: Disable classes for now
+                if (type.IsClass)
+                {
+                    throw new NotSupportedException(
+                        string.Format(
+                            ErrorMessages.NotSupportedClassType,
+                            type));
+                }
+
+                Debug.Assert(type.IsValueType, "Invalid structure type");
+
                 var typeInfo = GetTypeInfo(type);
                 var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(typeInfo.NumFields);
                 var fieldNames = ImmutableArray.CreateBuilder<string>(typeInfo.NumFields);
@@ -245,9 +396,17 @@ namespace ILGPU.IR.Types
                     fieldTypes.Add(CreateType(fieldInfo.FieldType, addressSpace));
                     fieldNames.Add(fieldInfo.Name);
                 }
+
+                var fieldTypesArray = fieldTypes.MoveToImmutable();
+                var fieldNamesArray = fieldNames.MoveToImmutable();
+
+                var baseType = type.IsClass ?
+                    CreateType(type.BaseType, addressSpace) as StructureType :
+                    StructureType.Root;
                 return CreateStructureType(
-                    fieldTypes.MoveToImmutable(),
-                    fieldNames.MoveToImmutable(),
+                    baseType,
+                    fieldTypesArray,
+                    fieldNamesArray,
                     type);
             }
         }

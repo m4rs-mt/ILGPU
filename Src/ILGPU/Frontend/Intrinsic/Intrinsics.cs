@@ -9,6 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.IR;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
@@ -17,6 +19,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ILGPU.Frontend.Intrinsic
 {
@@ -68,6 +71,7 @@ namespace ILGPU.Frontend.Intrinsic
         {
             FunctionHandlers.Add(typeof(Activator), HandleActivator);
             FunctionHandlers.Add(typeof(Debug), HandleDebug);
+            FunctionHandlers.Add(typeof(RuntimeHelpers), HandleRuntimeHelper);
         }
 
         #endregion
@@ -124,11 +128,21 @@ namespace ILGPU.Frontend.Intrinsic
                 }
             }
 
-            if (FunctionHandlers.TryGetValue(method.DeclaringType, out DeviceFunctionHandler handler))
+            if (IsIntrinsicArrayType(method.DeclaringType))
+                result = HandleArrays(context);
+            else if (FunctionHandlers.TryGetValue(method.DeclaringType, out DeviceFunctionHandler handler))
                 result = handler(context);
 
             return result.IsValid;
         }
+
+        /// <summary>
+        /// Determines whether the given type is an intrinsic array type.
+        /// </summary>
+        /// <param name="type">The type to test.</param>
+        /// <returns>True, if the given type is an intrinsic array type.</returns>
+        internal static bool IsIntrinsicArrayType(Type type) =>
+            type == typeof(Array) || type.IsArray;
 
         #endregion
 
@@ -184,6 +198,137 @@ namespace ILGPU.Frontend.Intrinsic
                 default:
                     throw context.GetNotSupportedException(
                         ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
+            }
+        }
+
+        /// <summary>
+        /// Handles runtime operations.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        /// <returns>The resulting value.</returns>
+        private static ValueReference HandleRuntimeHelper(in InvocationContext context)
+        {
+            switch (context.Method.Name)
+            {
+                case nameof(RuntimeHelpers.InitializeArray):
+                    InitializeArray(context);
+                    return context.Builder.CreateUndefinedVoid();
+                default:
+                    throw context.GetNotSupportedException(
+                        ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
+            }
+        }
+
+        /// <summary>
+        /// Initializes arrays.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        private static unsafe void InitializeArray(in InvocationContext context)
+        {
+            // Resolve the array data
+            var handle = context[1].ResolveAs<HandleValue>();
+            var value = handle.GetHandle<FieldInfo>().GetValue(null);
+            int valueSize = Marshal.SizeOf(value);
+
+            // Load the associated array data
+            byte* data = stackalloc byte[valueSize];
+            Marshal.StructureToPtr(value, new IntPtr(data), true);
+
+            // Convert unsafe data into target chunks and emit
+            // appropriate store instructions
+            Value target = context[0];
+            var targetType = target.Type as StructureType;
+            var targetViewType = targetType.Fields[0] as ViewType;
+            if (!targetViewType.ElementType.TryResolveManagedType(out Type elementType))
+            {
+                throw context.GetNotSupportedException(
+                        ErrorMessages.NotSupportedIntrinsic,
+                        context.Method.Name);
+            }
+            int elementSize = Marshal.SizeOf(Activator.CreateInstance(elementType));
+
+            // Load array instance
+            var builder = context.Builder;
+            var view = builder.CreateGetArrayImplementationView(target);
+
+            // Convert values to IR values
+            for (int i = 0, e = valueSize / elementSize; i < e; ++i)
+            {
+                byte* address = data + elementSize * i;
+                var instance = Marshal.PtrToStructure(new IntPtr(address), elementType);
+
+                // Convert element to IR value
+                var irValue = builder.CreateValue(instance, elementType);
+                var targetAddress = builder.CreateLoadElementAddress(
+                    view,
+                    builder.CreatePrimitiveValue(i));
+                builder.CreateStore(targetAddress, irValue);
+            }
+        }
+
+        /// <summary>
+        /// Handles array operations.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        /// <returns>The resulting value.</returns>
+        private static ValueReference HandleArrays(in InvocationContext context)
+        {
+            var builder = context.Builder;
+            if (context.Method is ConstructorInfo)
+            {
+                var newExtent = builder.CreateArrayImplementationExtent(
+                    context.Arguments,
+                    1);
+                var newElementType = builder.CreateType(
+                    context.Method.DeclaringType.GetElementType());
+                var newArray = context.CodeGenerator.CreateArray(
+                    context.Builder,
+                    newExtent,
+                    newElementType);
+                return builder.CreateStore(context[0], newArray);
+
+            }
+            else
+            {
+                switch (context.Method.Name)
+                {
+                    case "Get":
+                        var getAddress = builder.CreateLoadArrayImplementationElementAddress(
+                            context[0],
+                            context.Arguments,
+                            1,
+                            context.NumArguments - 1);
+                        return builder.CreateLoad(getAddress);
+                    case "Set":
+                        var setAddress = builder.CreateLoadArrayImplementationElementAddress(
+                            context[0],
+                            context.Arguments,
+                            1,
+                            context.NumArguments - 2);
+                        return builder.CreateStore(setAddress, context[context.NumArguments - 1]);
+                    case "get_Length":
+                        return builder.CreateGetLinearArrayImplementationLength(context[0]);
+                    case "get_LongLength":
+                        return builder.CreateConvert(
+                            builder.CreateGetLinearArrayImplementationLength(context[0]),
+                            builder.GetPrimitiveType(BasicValueType.Int64));
+                    case nameof(Array.GetLowerBound):
+                        return builder.CreatePrimitiveValue(0);
+                    case nameof(Array.GetUpperBound):
+                        return builder.CreateArithmetic(
+                            builder.CreateGetArrayImplementationLength(context[0], context[1]),
+                            builder.CreatePrimitiveValue(1),
+                            BinaryArithmeticKind.Sub);
+                    case nameof(Array.GetLength):
+                        return builder.CreateGetArrayImplementationLength(context[0], context[1]);
+                    case nameof(Array.GetLongLength):
+                        return builder.CreateConvert(
+                            builder.CreateGetArrayImplementationLength(context[0], context[1]),
+                            builder.GetPrimitiveType(BasicValueType.Int64));
+                    default:
+                        throw context.GetNotSupportedException(
+                            ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
+                }
             }
         }
 

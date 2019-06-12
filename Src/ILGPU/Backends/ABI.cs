@@ -291,15 +291,31 @@ namespace ILGPU.Backends
             if (typeInformation.TryGetValue(type, out ABITypeInfo info))
                 return info;
 
-            var containerType = type as ContainerType;
-            Debug.Assert(containerType != null, "Not supported type");
-            if (containerType.NumChildren < 1)
+            if (type is ArrayType arrayType)
             {
-                // This is an empty struct -> requires special handling
-                info = new ABITypeInfo(ImmutableArray<int>.Empty, 1, 1);
+                // Compute array information
+                GetAlignmentAndSizeOf(
+                    arrayType.ElementType,
+                    out int arrayElementSize,
+                    out int arrayElementAlignment);
+                info = new ABITypeInfo(
+                    ImmutableArray<int>.Empty,
+                    arrayElementAlignment,
+                    arrayElementSize * arrayType.Length);
             }
             else
-                info = ResolveABIInfo(containerType);
+            {
+                // This must be a structure type
+                var structureType = type as StructureType;
+                Debug.Assert(structureType != null, "Not supported type");
+                if (structureType.NumFields < 1)
+                {
+                    // This is an empty struct -> requires special handling
+                    info = new ABITypeInfo(ImmutableArray<int>.Empty, 1, 1);
+                }
+                else
+                    info = ResolveABIInfo(structureType);
+            }
             typeInformation.Add(type, info);
 
             return info;
@@ -308,16 +324,16 @@ namespace ILGPU.Backends
         /// <summary>
         /// Resolves ABI info for the given type information.
         /// </summary>
-        /// <param name="containerType">The type information.</param>
+        /// <param name="structureType">The type information.</param>
         /// <returns>The resolved ABI information.</returns>
-        private ABITypeInfo ResolveABIInfo(ContainerType containerType)
+        private ABITypeInfo ResolveABIInfo(StructureType structureType)
         {
-            var offsets = ImmutableArray.CreateBuilder<int>(containerType.NumChildren);
+            var offsets = ImmutableArray.CreateBuilder<int>(structureType.NumFields);
             int alignment = 0;
             int offset = 0;
-            for (int i = 0, e = containerType.NumChildren; i < e; ++i)
+            for (int i = 0, e = structureType.NumFields; i < e; ++i)
             {
-                var fieldType = containerType.Children[i];
+                var fieldType = structureType.Fields[i];
                 var fieldSize = GetSizeOf(fieldType);
                 var fieldAlignment = GetAlignmentOf(fieldType);
 

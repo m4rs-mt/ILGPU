@@ -9,6 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using System;
+
 namespace ILGPU.IR.Types
 {
     /// <summary>
@@ -59,19 +61,19 @@ namespace ILGPU.IR.Types
         public bool IsViewType => this is ViewType;
 
         /// <summary>
+        /// Returns true if the current type is an <see cref="ObjectType"/>.
+        /// </summary>
+        public bool IsObjectType => this is ObjectType;
+
+        /// <summary>
         /// Returns true if the current type is a <see cref="StructureType"/>.
         /// </summary>
         public bool IsStructureType => this is StructureType;
 
         /// <summary>
-        /// Returns true if this node is a value type.
+        /// Returns true if the current type is a <see cref="ArrayType"/>.
         /// </summary>
-        public bool IsValueType => !IsStringType;
-
-        /// <summary>
-        /// Returns true if this node is a reference type.
-        /// </summary>
-        public bool IsReferenceType => !IsValueType;
+        public bool IsArrayType => this is ArrayType;
 
         /// <summary>
         /// Returns the basic value type.
@@ -97,6 +99,13 @@ namespace ILGPU.IR.Types
         /// <param name="visitor">The visitor.</param>
         public abstract void Accept<T>(T visitor)
             where T : ITypeNodeVisitor;
+
+        /// <summary>
+        /// Tries to resolve the managed type that represents this IR type.
+        /// </summary>
+        /// <param name="type">The resolved managed type that represents this IR type.</param>
+        /// <returns>True, if the managed type could be resolved.</returns>
+        public abstract bool TryResolveManagedType(out Type type);
 
         #endregion
 

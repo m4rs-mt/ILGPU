@@ -9,6 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using System;
+
 namespace ILGPU.IR.Types
 {
     /// <summary>
@@ -93,6 +95,15 @@ namespace ILGPU.IR.Types
         /// <summary cref="TypeNode.Accept{T}(T)"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
+        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
+        public override bool TryResolveManagedType(out Type type)
+        {
+            if (!ElementType.TryResolveManagedType(out type))
+                return false;
+            type = type.MakePointerType();
+            return true;
+        }
+
         #endregion
 
         #region Object
@@ -135,6 +146,15 @@ namespace ILGPU.IR.Types
 
         /// <summary cref="TypeNode.Accept{T}(T)"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
+        public override bool TryResolveManagedType(out Type type)
+        {
+            if (!ElementType.TryResolveManagedType(out type))
+                return false;
+            type = typeof(ArrayView<>).MakeGenericType(type);
+            return true;
+        }
 
         #endregion
 

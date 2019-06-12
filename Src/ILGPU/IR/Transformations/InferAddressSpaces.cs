@@ -78,7 +78,7 @@ namespace ILGPU.IR.Transformations
                     case SetField setField:
                         // We are not allowed to remove field stores to tuples
                         // with different field types
-                        if (setField.StructureType.Children[setField.FieldIndex] != cast.SourceType)
+                        if (setField.StructureType.Fields[setField.FieldIndex] != cast.SourceType)
                             return false;
                         break;
                 }

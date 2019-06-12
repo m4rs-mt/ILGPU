@@ -13,6 +13,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using static ILGPU.IR.Types.StructureType;
 
@@ -59,6 +60,7 @@ namespace ILGPU.IR.Transformations
                         case Alloca alloca:
                             if (allocas.Contains(alloca))
                             {
+                                Debug.Assert(!alloca.IsArrayAllocation, "Unsupported dynamic allocation");
                                 ssaBuilder.SetValue(
                                     block,
                                     alloca,
@@ -132,6 +134,7 @@ namespace ILGPU.IR.Transformations
             foreach (Value value in scope.Values)
             {
                 if (value is Alloca alloca &&
+                    !alloca.IsArrayAllocation &&
                     alloca.AddressSpace == MemoryAddressSpace.Local &&
                     !RequiresAddress(alloca))
                     result.Add(alloca);

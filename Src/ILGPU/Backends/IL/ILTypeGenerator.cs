@@ -14,7 +14,6 @@ using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Reflection;
 
 namespace ILGPU.Backends.IL
@@ -56,23 +55,42 @@ namespace ILGPU.Backends.IL
                 Parent.AddType(type, ViewImplementation.GetImplementationType(
                     Parent.GenerateType(type.ElementType)));
 
+            /// <summary cref="ITypeNodeVisitor.Visit(ArrayType)"/>
+            public void Visit(ArrayType type)
+            {
+                var elementType = Parent.GenerateType(type.ElementType);
+                Parent.AddType(type, elementType.MakeArrayType());
+            }
+
             /// <summary cref="ITypeNodeVisitor.Visit(StructureType)"/>
             public void Visit(StructureType type)
             {
                 var builder = Parent.Context.DefineRuntimeStruct();
 
-                var fieldInfos = ImmutableArray.CreateBuilder<FieldInfo>(type.NumChildren);
-                foreach (var fieldType in type.Children)
+                // Check base type
+                if (type.BaseType != StructureType.Root)
                 {
-                    var field = builder.DefineField(
-                        "Field_" + fieldInfos.Count,
+                    var baseType = Parent.GenerateType(type.BaseType);
+                    builder.DefineField(
+                        "Base",
+                        baseType,
+                        FieldAttributes.Public);
+                }
+
+                int fieldCounter = 0;
+                foreach (var fieldType in type.Fields)
+                {
+                    builder.DefineField(
+                        "Field_" + fieldCounter++,
                         Parent.GenerateType(fieldType),
                         FieldAttributes.Public);
-                    fieldInfos.Add(field);
                 }
 
                 Parent.AddType(type, builder.CreateTypeInfo().AsType());
             }
+
+            /// <summary cref="ITypeNodeVisitor.Visit(HandleType)"/>
+            public void Visit(HandleType type) { }
         }
 
         #endregion

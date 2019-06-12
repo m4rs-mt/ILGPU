@@ -336,6 +336,10 @@ namespace ILGPU.Frontend
         /// <summary>SizeOf</summary>
         ///
         SizeOf,
+        ///
+        /// <summary>LoadToken</summary>
+        ///
+        LdToken,
     }
 
     /// <summary>

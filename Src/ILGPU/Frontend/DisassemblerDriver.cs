@@ -670,6 +670,11 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.SizeOf, 0, 1, ReadTypeArg());
                     return true;
 
+                // Token
+                case ILOpCode.Ldtoken:
+                    AppendInstruction(ILInstructionType.LdToken, 0, 1, AssociatedModule.ResolveMember(ReadIntArg()));
+                    return true;
+
                 default:
                     return false;
             }

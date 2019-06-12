@@ -15,6 +15,7 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
+using System.Diagnostics;
 
 namespace ILGPU.Frontend
 {
@@ -77,6 +78,16 @@ namespace ILGPU.Frontend
                     return builder.CreateAddressSpaceCast(
                         value,
                         otherType.AddressSpace);
+            }
+            else if (
+                targetType is PointerType targetPointerType &&
+                targetPointerType.ElementType == StructureType.Root)
+            {
+                // Must be a reflection array call
+                // FIXME: note that we have to update this spot once
+                // we add support for class types
+                Debug.Assert(value.Type is StructureType);
+                return value;
             }
             return builder.CreateConvert(value, targetType, flags);
         }

@@ -28,7 +28,7 @@ namespace ILGPU.Frontend
         private void MakeBox(Block block, IRBuilder builder)
         {
             var value = block.Pop();
-            if (!value.Type.IsValueType)
+            if (!value.Type.IsObjectType)
                 throw this.GetInvalidILCodeException();
             var alloca = CreateTempAlloca(value.Type);
             CreateStore(builder, alloca, value);
@@ -48,7 +48,7 @@ namespace ILGPU.Frontend
             if (type == null || !type.IsValueType)
                 throw this.GetInvalidILCodeException();
             var address = block.Pop();
-            var typeNode = block.Builder.CreateType(type);
+            var typeNode = builder.CreateType(type);
             block.Push(CreateLoad(
                 builder,
                 address,
@@ -132,7 +132,7 @@ namespace ILGPU.Frontend
             Type type)
         {
             var address = block.Pop();
-            var targetElementType = block.Builder.CreateType(type);
+            var targetElementType = builder.CreateType(type);
             block.Push(CreateLoad(
                 builder,
                 address,
@@ -151,7 +151,7 @@ namespace ILGPU.Frontend
             IRBuilder builder,
             Type type)
         {
-            var typeNode = block.Builder.CreateType(type);
+            var typeNode = builder.CreateType(type);
             var value = block.Pop(typeNode, ConvertFlags.None);
             var address = block.Pop();
             CreateStore(builder, address, value);

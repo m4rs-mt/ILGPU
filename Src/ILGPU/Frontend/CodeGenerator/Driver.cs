@@ -41,6 +41,9 @@ namespace ILGPU.Frontend
                 case ILInstructionType.Break:
                     MakeTrap();
                     return true;
+                case ILInstructionType.LdToken:
+                    MakeLoadToken(block, builder, instruction.Argument);
+                    return true;
 
                 case ILInstructionType.Ldarg:
                     LoadVariable(block, builder, new VariableRef(instruction.GetArgumentAs<int>(), VariableRefType.Argument));
@@ -228,6 +231,22 @@ namespace ILGPU.Frontend
                 case ILInstructionType.Stobj:
                 case ILInstructionType.Stind:
                     MakeStoreObject(block, builder, instruction.GetArgumentAs<Type>());
+                    return true;
+
+                case ILInstructionType.Newarr:
+                    MakeNewArray(block, builder, instruction.GetArgumentAs<Type>());
+                    return true;
+                case ILInstructionType.Ldelem:
+                    MakeLoadElement(block, builder, instruction.GetArgumentAs<Type>());
+                    return true;
+                case ILInstructionType.Ldelema:
+                    MakeLoadElementAddress(block, builder, instruction.GetArgumentAs<Type>());
+                    return true;
+                case ILInstructionType.Stelem:
+                    MakeStoreElement(block, builder, instruction.GetArgumentAs<Type>());
+                    return true;
+                case ILInstructionType.Ldlen:
+                    MakeLoadArrayLength(block, builder);
                     return true;
 
                 default:
