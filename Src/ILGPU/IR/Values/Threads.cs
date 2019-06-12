@@ -82,10 +82,15 @@ namespace ILGPU.IR.Values
         /// Computes a predicate barrier node type.
         /// </summary>
         /// <param name="context">The parent IR context.</param>
+        /// <param name="kind">The barrier kind.</param>
         /// <returns>The resolved type node.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context) =>
-            context.GetPrimitiveType(BasicValueType.Int32);
+        private static TypeNode ComputeType(IRContext context, PredicateBarrierKind kind)
+        {
+            if (kind == PredicateBarrierKind.PopCount)
+                return context.GetPrimitiveType(BasicValueType.Int32);
+            return context.GetPrimitiveType(BasicValueType.Int1);
+        }
 
         #endregion
 
@@ -106,7 +111,7 @@ namespace ILGPU.IR.Values
             : base(
                   basicBlock,
                   ImmutableArray.Create(predicate),
-                  ComputeType(context))
+                  ComputeType(context, kind))
         {
             Debug.Assert(
                 predicate.BasicValueType == BasicValueType.Int1,
@@ -134,7 +139,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
         protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context);
+            ComputeType(context, Kind);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>

@@ -726,8 +726,7 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(PredicateBarrier)"/>
         public void Visit(PredicateBarrier barrier)
         {
-            var description = ResolveRegisterDescription(BasicValueType.Int32);
-            var targetRegister = Allocate(barrier, description);
+            var targetRegister = AllocatePrimitive(barrier);
             var sourcePredicate = LoadPrimitive(barrier.Predicate);
             switch (barrier.Kind)
             {
