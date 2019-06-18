@@ -97,6 +97,7 @@ namespace ILGPU.Tests.Integration
             }
         }
 
+
         /// <summary>
         /// Explicitly grouped kernels receive an index type (first parameter) of type:
         /// <see cref="GroupedIndex"/>, <see cref="GroupedIndex2"/> or <see cref="GroupedIndex3"/>.
@@ -105,7 +106,8 @@ namespace ILGPU.Tests.Integration
         /// </summary>
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
-        static void SharedMemoryVariableKernel(
+        /// <param name="outputView">The view pointing to our memory buffer.</param>
+        private static void SharedMemoryVariableKernel(
             GroupedIndex index,               // The grouped thread index (1D in this case)
             ArrayView<int> dataView,          // A view to a chunk of memory (1D in this case)
             ArrayView<int> outputView)        // A view to a chunk of memory (1D in this case)
@@ -114,7 +116,7 @@ namespace ILGPU.Tests.Integration
             var globalIndex = index.ComputeGlobalIndex();
 
             // 'Allocate' a single shared memory variable of type int (= 4 bytes)
-            ref int sharedVariable = ref ILGPU.SharedMemory.Allocate<int>();
+            ref var sharedVariable = ref ILGPU.SharedMemory.Allocate<int>();
 
             // Initialize shared memory
             if (index.GroupIdx.IsFirst)
@@ -139,8 +141,7 @@ namespace ILGPU.Tests.Integration
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="outputView">The view pointing to our memory buffer.</param>
-        /// <param name="sharedArray">Implicit shared-memory parameter that is handled by the runtime.</param>
-        static void SharedMemoryArrayKernel(
+        private static void SharedMemoryArrayKernel(
             GroupedIndex index,          // The grouped thread index (1D in this case)
             ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
             ArrayView<int> outputView)   // A view to a chunk of memory (1D in this case)
@@ -152,7 +153,7 @@ namespace ILGPU.Tests.Integration
             // of shared memory per group
             // Note that an allocation of an array view (currently) requires a compile-time known
             // constant array size.
-            ArrayView<int> sharedArray = ILGPU.SharedMemory.Allocate<int>(128);
+            var sharedArray = ILGPU.SharedMemory.Allocate<int>(128);
 
             // Load the element into shared memory
             var value = globalIndex < dataView.Length ?
@@ -164,7 +165,7 @@ namespace ILGPU.Tests.Integration
             Group.Barrier();
 
             // Compute the sum over all elements in the group
-            int sum = 0;
+            var sum = 0;
             for (int i = 0, e = Group.Dimension.X; i < e; ++i)
                 sum += sharedArray[i];
 
