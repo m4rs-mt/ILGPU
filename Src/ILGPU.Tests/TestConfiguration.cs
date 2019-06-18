@@ -1,4 +1,5 @@
 using ILGPU.Runtime;
+using Xunit.Abstractions;
 
 namespace ILGPU.Tests
 {
@@ -22,10 +23,12 @@ namespace ILGPU.Tests
         {
             return new Context(ContextFlags);
         }
-
-        public Accelerator CreateAccelerator(Context context)
+        
+        public Accelerator CreateAccelerator(Context context, ITestOutputHelper outputHelper = null)
         {
-            return Accelerator.Create(context, AcceleratorId);
+            var accelerator = Accelerator.Create(context, AcceleratorId);
+            outputHelper?.WriteLine($"Performing operations on {accelerator}");
+            return accelerator;
         }
 
         public override string ToString()
