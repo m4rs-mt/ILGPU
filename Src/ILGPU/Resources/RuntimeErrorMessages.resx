@@ -166,6 +166,6 @@
     <value>Not supported target accelerator</value>
   </data>
   <data name="NotSupportedTotalGroupSize" xml:space="preserve">
-    <value>Not supported total group size. The total group size must be &lt;= the number of available threads ({0}}</value>
+    <value>Not supported total group size. The total group size must be &lt;= the number of available threads ({0})</value>
   </data>
 </root>
