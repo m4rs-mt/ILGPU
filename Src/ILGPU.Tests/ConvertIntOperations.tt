@@ -1,0 +1,68 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Generic/ConfigurationBase.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+using System.Linq;
+using Xunit;
+using Xunit.Abstractions;
+
+#pragma warning disable xUnit1025 // InlineData should be unique within the Theory it belongs to
+
+<#
+var types = IntTypes.Concat(FloatTypes.Select(t => (t.Item1, t.Item2)));
+#>
+namespace ILGPU.Tests
+{
+    public abstract class ConvertIntOperations : TestBase
+	{
+        public ConvertIntOperations(
+            ITestOutputHelper output,
+            ContextProvider contextProvider)
+            : base(output, contextProvider)
+        { }
+
+<# foreach (var (typeName, type) in IntTypes) { #>
+<#      foreach (var (targetTypeName, targetType) in types) { #>
+<#         var baseName = "_" + type.Name + "_" + targetType.Name; #>
+<#         var testName = "ConvertOperation" + baseName; #>
+<#         var kernelName = "ConvertOperationKernel" + baseName; #>
+        internal static void <#= kernelName #>(
+            Index index,
+            ArrayView<<#= typeName #>> a,
+            ArrayView<<#= targetTypeName #>> b)
+        {
+            b[index] = (<#= targetTypeName #>)a[index];
+        }
+
+        [Theory]
+        [InlineData(<#= typeName #>.MaxValue)]
+        [InlineData(<#= typeName #>.MinValue)]
+        [InlineData(<#= typeName #>.MinValue + 1)]
+        [InlineData((<#= typeName #>)0)]
+        [InlineData((<#= typeName #>)1)]
+        [InlineData((<#= typeName #>)31)]
+        [KernelMethod(nameof(<#= kernelName #>))]
+        public void <#= testName #>(<#= typeName #> value)
+        {
+            const int length = 32;
+            using (var a = Accelerator.Allocate<<#= typeName #>>(length))
+            {
+                using (var b = Accelerator.Allocate<<#= targetTypeName #>>(length))
+                {
+                    Initialize(a, value);
+                    Execute(length, a.View, b.View);
+
+                    var result = (<#= targetTypeName #>)value;
+                    var reference = Enumerable.Repeat(result, length).ToArray();
+                    Verify(b, reference);
+                }
+            }
+        }
+
+<#      } #>
+<# } #>
+	}
+}
+
+#pragma warning restore xUnit1025 // InlineData should be unique within the Theory it belongs to

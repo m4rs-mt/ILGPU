@@ -1,0 +1,65 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Generic/ConfigurationBase.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+using System.Linq;
+using Xunit;
+using Xunit.Abstractions;
+
+<#
+var types = IntTypes.Concat(FloatTypes.Select(t => (t.Item1, t.Item2)));
+#>
+namespace ILGPU.Tests
+{
+    public abstract class ConvertFloatOperations : TestBase
+	{
+        public ConvertFloatOperations(
+            ITestOutputHelper output,
+            ContextProvider contextProvider)
+            : base(output, contextProvider)
+        { }
+
+<# foreach (var (typeName, type, suffix) in FloatTypes) { #>
+<#      foreach (var (targetTypeName, targetType) in types) { #>
+<#         var floatRanges = GetFloatRanges(typeName, suffix, true); #>
+<#         var baseName = "_" + type.Name + "_" + targetType.Name; #>
+<#         var testName = "ConvertOperation" + baseName; #>
+<#         var kernelName = "ConvertOperationKernel" + baseName; #>
+        internal static void <#= kernelName #>(
+            Index index,
+            ArrayView<<#= typeName #>> a,
+            ArrayView<<#= targetTypeName #>> b)
+        {
+            b[index] = (<#= targetTypeName #>)a[index];
+        }
+
+        [Theory]
+        [InlineData(0.0f)]
+        [InlineData(1.0f)]
+        [InlineData(XMath.PI)]
+        [InlineData((float)float.Epsilon)]
+        [InlineData(2.0f * XMath.PI)]
+        [InlineData(0.5f * XMath.PI)]
+        [KernelMethod(nameof(<#= kernelName #>))]
+        public void <#= testName #>(<#= typeName #> value)
+        {
+            const int length = 32;
+            using (var a = Accelerator.Allocate<<#= typeName #>>(length))
+            {
+                using (var b = Accelerator.Allocate<<#= targetTypeName #>>(length))
+                {
+                    Initialize(a, value);
+                    Execute(length, a.View, b.View);
+
+                    var result = (<#= targetTypeName #>)value;
+                    var reference = Enumerable.Repeat(result, length).ToArray();
+                    Verify(b, reference);
+                }
+            }
+        }
+
+<#      } #>
+<# } #>
+	}
+}

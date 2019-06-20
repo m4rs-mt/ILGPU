@@ -1,0 +1,86 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Generic/ConfigurationBase.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+using Xunit;
+using Xunit.Abstractions;
+
+<#
+var atomicTypes = DefaultIntTypes.Concat(FloatTypes.Select(t => (t.Item1, t.Item2))).ToArray();
+#>
+namespace ILGPU.Tests
+{
+    public abstract class AtomicCASOperations : TestBase
+	{
+        public AtomicCASOperations(
+            ITestOutputHelper output,
+            ContextProvider contextProvider)
+            : base(output, contextProvider)
+        { }
+
+<# foreach (var (typeName, type) in atomicTypes) { #>
+<#      var baseName = "_" + type.Name; #>
+<#      var casTestName = "AtomicOperationCAS" + baseName; #>
+<#      var casKernelName = "AtomicOperationKernelCAS" + baseName; #>
+        internal static void <#= casKernelName #>(
+            Index index,
+            ArrayView<<#= typeName #>> a,
+            ArrayView<<#= typeName #>> b,
+            ArrayView<<#= typeName #>> c,
+            ArrayView<<#= typeName #>> d)
+        {
+            d[index] = Atomic.CompareExchange(
+                ref a[0],
+                b[index],
+                c[index]);
+        }
+
+        [Theory]
+        [InlineData((<#= typeName #>)0, (<#= typeName #>)1)]
+        [InlineData((<#= typeName #>)1, (<#= typeName #>)0)]
+        [InlineData(<#= typeName #>.MaxValue, <#= typeName #>.MinValue)]
+        [InlineData(<#= typeName #>.MinValue, <#= typeName #>.MaxValue)]
+        [KernelMethod(nameof(<#= casKernelName #>))]
+        public void <#= casTestName #>(
+            <#= typeName #> first,
+            <#= typeName #> second)
+        {
+            const int length = 1024;
+            using (var a = Accelerator.Allocate<<#= typeName #>>(1))
+            {
+                using (var b = Accelerator.Allocate<<#= typeName #>>(length))
+                {
+                    using (var c = Accelerator.Allocate<<#= typeName #>>(length))
+                    {
+                        using (var d = Accelerator.Allocate<<#= typeName #>>(length))
+                        {
+                            Initialize(a, first);
+                            Initialize(b, first);
+                            Initialize(c, second);
+                            Execute(length, a.View, b.View, c.View, d.View);
+
+                            var reference = new <#= typeName #>[] { second };
+                            Verify(a, reference);
+
+                            var data = d.GetAsArray(Accelerator.DefaultStream);
+                            bool found = false;
+                            for (int i = 0, e = data.Length; i < e; ++i)
+                            {
+                                if (data[i] == first)
+                                {
+                                    Assert.False(found, "Multiple reference values found");
+                                    found = true;
+                                }
+                                else
+                                    Assert.Equal(data[i], second);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+<# } #>
+	}
+}

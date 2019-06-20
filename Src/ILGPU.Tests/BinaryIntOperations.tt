@@ -1,0 +1,94 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Generic/ConfigurationBase.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+using System.Linq;
+using Xunit;
+using Xunit.Abstractions;
+
+#pragma warning disable xUnit1025 // InlineData should be unique within the Theory it belongs to
+
+<#
+var operationConfigurations = new (string, string, string, string)[]
+    {
+        ("Add", "", "+", ""),
+        ("Sub", "", "-", ""),
+        ("Mul", "", "*", ""),
+        ("Div", "", "/", ""),
+        ("Rem", "", "%", ""),
+
+        ("And", "", "&", ""),
+        ( "Or", "", "|", ""),
+        ("Xor", "", "^", ""),
+        ("Shl", "", "<< (int)", ""),
+        ("Shr", "", ">> (int)", ""),
+
+        ("Min", "XMath.Min(", ", ", ")"),
+        ("Max", "XMath.Max(", ", ", ")"),
+    };
+#>
+namespace ILGPU.Tests
+{
+    public abstract class BinaryIntOperations : TestBase
+	{
+        public BinaryIntOperations(
+            ITestOutputHelper output,
+            ContextProvider contextProvider)
+            : base(output, contextProvider)
+        { }
+
+<# foreach (var (operationName, prefix, infix, postfix) in operationConfigurations) { #>
+<#      foreach (var (typeName, type) in IntTypes) { #>
+<#         var baseName = "_" + operationName + "_" + type.Name; #>
+<#         var testName = "BinaryOperation" + baseName; #>
+<#         var kernelName = "BinaryOperationKernel" + testName; #>
+        internal static void <#= kernelName #>(
+            Index index,
+            ArrayView<<#= typeName #>> a,
+            ArrayView<<#= typeName #>> b,
+            ArrayView<<#= typeName #>> c)
+        {
+            var result = <#= prefix #>a[index] <#= infix #> b[index]<#= postfix #>;
+            c[index] = (<#= typeName #>)result;
+        }
+
+        [Theory]
+        [InlineData(<#= typeName #>.MaxValue, (<#= typeName #>)1)]
+        [InlineData(<#= typeName #>.MinValue, <#= typeName #>.MaxValue)]
+        [InlineData(<#= typeName #>.MinValue + 1, <#= typeName #>.MaxValue)]
+        [InlineData((<#= typeName #>)0, <#= typeName #>.MaxValue)]
+        [InlineData((<#= typeName #>)0, <#= typeName #>.MaxValue - 1)]
+        [InlineData((<#= typeName #>)1, (<#= typeName #>)1)]
+        [InlineData((<#= typeName #>)6, (<#= typeName #>)2)]
+        [InlineData((<#= typeName #>)5, (<#= typeName #>)19)]
+        [KernelMethod(nameof(<#= kernelName #>))]
+        public void <#= testName #>(
+            <#= typeName #> first,
+            <#= typeName #> second)
+        {
+            const int length = 32;
+            using (var a = Accelerator.Allocate<<#= typeName #>>(length))
+            {
+                using (var b = Accelerator.Allocate<<#= typeName #>>(length))
+                {
+                    using (var c = Accelerator.Allocate<<#= typeName #>>(length))
+                    {
+                        Initialize(a, first);
+                        Initialize(b, second);
+                        Execute(length, a.View, b.View, c.View);
+
+                        var result = <#= prefix #>first <#= infix #> second<#= postfix #>;
+                        var reference = Enumerable.Repeat((<#= typeName #>)result, length).ToArray();
+                        Verify(c, reference);
+                    }
+                }
+            }
+        }
+
+<#      } #>
+<# } #>
+	}
+}
+
+#pragma warning restore xUnit1025 // InlineData should be unique within the Theory it belongs to

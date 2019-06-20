@@ -1,0 +1,126 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Generic/ConfigurationBase.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+using Xunit;
+using Xunit.Abstractions;
+
+<#
+var atomicTypes = DefaultIntTypes.Concat(FloatTypes.Select(t => (t.Item1, t.Item2))).ToArray();
+var operationConfigurations = new (string, bool)[]
+    {
+        ("Add",      true),
+        ("Min",      true),
+        ("Max",      true),
+        ("And",      false),
+        ("Or",       false),
+        ("Xor",      false),
+        ("Exchange", false),
+    };
+#>
+namespace ILGPU.Tests
+{
+    public abstract class AtomicOperations : TestBase
+	{
+        public AtomicOperations(
+            ITestOutputHelper output,
+            ContextProvider contextProvider)
+            : base(output, contextProvider)
+        { }
+
+<# foreach (var (operationName, floatSupport) in operationConfigurations) { #>
+<#      foreach (var (typeName, type) in (floatSupport ? atomicTypes : DefaultIntTypes)) { #>
+<#         var baseName = "_" + operationName + "_" + type.Name; #>
+<#         var testName = "AtomicOperation" + baseName; #>
+<#         var kernelName = "AtomicOperationKernel" + testName; #>
+<#         var redTestName = "AtomicOperationRed" + baseName; #>
+<#         var redKernelName = "AtomicOperationKernelRed" + testName; #>
+        internal static void <#= kernelName #>(
+            Index index,
+            ArrayView<<#= typeName #>> a,
+            ArrayView<<#= typeName #>> b,
+            ArrayView<<#= typeName #>> c)
+        {
+            c[index] = Atomic.<#= operationName #>(ref a[0], b[index]);
+        }
+
+        [Theory]
+        [InlineData((<#= typeName #>)0, (<#= typeName #>)0)]
+        [InlineData((<#= typeName #>)0, (<#= typeName #>)1)]
+        [InlineData((<#= typeName #>)1, (<#= typeName #>)0)]
+        [InlineData((<#= typeName #>)1, (<#= typeName #>)1)]
+        [InlineData((<#= typeName #>)7, (<#= typeName #>)617)]
+        [InlineData((<#= typeName #>)1337, (<#= typeName #>)7)]
+        [InlineData((<#= typeName #>)4224, (<#= typeName #>)14)]
+        [KernelMethod(nameof(<#= kernelName #>))]
+        public void <#= testName #>(
+            <#= typeName #> first,
+            <#= typeName #> second)
+        {
+            const int length = 1024;
+            using (var a = Accelerator.Allocate<<#= typeName #>>(1))
+            {
+                using (var b = Accelerator.Allocate<<#= typeName #>>(length))
+                {
+                    using (var c = Accelerator.Allocate<<#= typeName #>>(length))
+                    {
+                        Initialize(a, first);
+                        Initialize(b, second);
+                        Execute(length, a.View, b.View, c.View);
+
+                        <#= typeName #> result = first;
+                        for (int i = 0; i < length; ++i)
+                            Atomic.<#= operationName #>(ref result, second);
+
+                        var reference = new <#= typeName #>[] { result };
+                        Verify(a, reference);
+                    }
+                }
+            }
+        }
+
+        internal static void <#= redKernelName #>(
+            Index index,
+            ArrayView<<#= typeName #>> a,
+            ArrayView<<#= typeName #>> b)
+        {
+            Atomic.<#= operationName #>(ref a[0], b[index]);
+        }
+
+        [Theory]
+        [InlineData((<#= typeName #>)0, (<#= typeName #>)0)]
+        [InlineData((<#= typeName #>)0, (<#= typeName #>)1)]
+        [InlineData((<#= typeName #>)1, (<#= typeName #>)0)]
+        [InlineData((<#= typeName #>)1, (<#= typeName #>)1)]
+        [InlineData((<#= typeName #>)7, (<#= typeName #>)617)]
+        [InlineData((<#= typeName #>)1337, (<#= typeName #>)7)]
+        [InlineData((<#= typeName #>)4224, (<#= typeName #>)14)]
+        [KernelMethod(nameof(<#= redKernelName #>))]
+        public void <#= redTestName #>(
+            <#= typeName #> first,
+            <#= typeName #> second)
+        {
+            const int length = 1024;
+            using (var a = Accelerator.Allocate<<#= typeName #>>(1))
+            {
+                using (var b = Accelerator.Allocate<<#= typeName #>>(length))
+                {
+                    Initialize(a, first);
+                    Initialize(b, second);
+                    Execute(length, a.View, b.View);
+
+                    <#= typeName #> result = first;
+                    for (int i = 0; i < length; ++i)
+                        Atomic.<#= operationName #>(ref result, second);
+
+                    var reference = new <#= typeName #>[] { result };
+                    Verify(a, reference);
+                }
+            }
+        }
+
+<#      } #>
+<# } #>
+	}
+}

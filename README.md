@@ -19,9 +19,9 @@ Alternatively, you can open and save any text template in Visual Studio.
 
 # Tests
 
-Tests can be found in the ILGPU.Tests repository on github, which is connected via a Git submodule.
-Fetch/update all submodules to download/update all ILGPU tests.
-They are automatically integrated into the ILGPU solution.
+Sometimes the XUnit test runner stops execution when all tests are run in parallel.
+This is not a problem related to the internal tests, but a known XUnit/Visual Studio problem.
+If the tests stop unexpectedly, you can simply run the remaining tests again to continue working.
 
 Note: You can unload ILGPU.Tests.Cuda (for example) if you do not have a Cuda-capable device to
 execute the Cuda test cases.

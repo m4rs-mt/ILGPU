@@ -1,0 +1,156 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+
+    <ApplicationIcon />
+
+    <OutputType>WinExe</OutputType>
+
+    <StartupObject />
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Generic\Verifier.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
+    <PackageReference Include="xunit" Version="2.4.0" />
+    <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="AtomicCASOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AtomicCASOperations.tt</DependentUpon>
+    </None>
+    <None Include="CompareFloatOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CompareFloatOperations.tt</DependentUpon>
+    </None>
+    <None Include="CompareIntOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CompareIntOperations.tt</DependentUpon>
+    </None>
+    <None Include="ConvertFloatOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConvertFloatOperations.tt</DependentUpon>
+    </None>
+    <None Include="Generic\ConfigurationBase.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConfigurationBase.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="AtomicCASOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AtomicCASOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="AtomicOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AtomicOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="BinaryIntOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>BinaryIntOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="CompareFloatOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CompareFloatOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="CompareIntOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CompareIntOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="ConvertFloatOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConvertFloatOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="ConvertIntOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConvertIntOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Generic\ConfigurationBase.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConfigurationBase.tt</DependentUpon>
+    </Compile>
+    <Compile Update="UnaryIntOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>UnaryIntOperations.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="AtomicCASOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AtomicCASOperations.cs</LastGenOutput>
+    </None>
+    <None Update="AtomicOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AtomicOperations.cs</LastGenOutput>
+    </None>
+    <None Update="BinaryIntOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>BinaryIntOperations.cs</LastGenOutput>
+    </None>
+    <None Update="CompareFloatOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CompareFloatOperations.cs</LastGenOutput>
+    </None>
+    <None Update="CompareIntOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CompareIntOperations.cs</LastGenOutput>
+    </None>
+    <None Update="ConvertFloatOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ConvertFloatOperations.cs</LastGenOutput>
+    </None>
+    <None Update="ConvertIntOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ConvertIntOperations.cs</LastGenOutput>
+    </None>
+    <None Update="Generic\ConfigurationBase.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ConfigurationBase.cs</LastGenOutput>
+    </None>
+    <None Update="UnaryIntOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>UnaryIntOperations.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,26 @@
+﻿ArrayViews: Debug, Release
+SizeOfValues: Debug, Release
+EntryPoints: Debug, Release
+SharedMemory: Debug, Release
+
+BinaryIntOperations: Debug, Release
+UnaryIntOperations: Debug, Release
+
+CompareIntOperations: Debug, Release
+CompareFloatOperations: Debug, Release
+
+AtomicOperations: Debug, Release
+AtomicCASOperations: Debug, Release
+
+GroupOperations: Debug, Release
+GridOperations: Debug, Release
+WarpOperations: Debug, Release
+MemoryFenceOperations: Debug, Release
+
+ConvertFloatOperations: Debug, Release
+ConvertIntOperations: Debug, Release
+ReinterpretCasts: Debug, Release
+
+BasicIfs: Debug, Release
+BasicLoops: Debug, Release
+BasicSwitches: Debug, Release
