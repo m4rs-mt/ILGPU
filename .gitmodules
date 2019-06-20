@@ -1,0 +1,3 @@
+[submodule "Tests"]
+	path = Tests
+	url = https://github.com/m4rs-mt/ILGPU.Tests.git

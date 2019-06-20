@@ -6,7 +6,7 @@ It offers the flexibility and the convenience of C++ AMP on the one hand and the
 Functions in the scope of kernels do not have to be annotated (default C# functions) and are allowed to work on value types.
 All kernels (including all hardware features like shared memory and atomics) can be executed and debugged on the CPU using the integrated multi-threaded CPU accelerator.
 
-# Build instructions
+# Build Instructions
 
 ILGPU requires Visual Studio 2017 (Community edition or higher).
 
@@ -16,6 +16,15 @@ in the desired configurations (Debug/Release).
 Note: T4 (*.tt) text templates must be converted manually depending on the Visual Studio version.
 To transform them, right-click a text template and select `Run Custom Tool`.
 Alternatively, you can open and save any text template in Visual Studio.
+
+# Tests
+
+Tests can be found in the ILGPU.Tests repository on github, which is connected via a Git submodule.
+Fetch/update all submodules to download/update all ILGPU tests.
+They are automatically integrated into the ILGPU solution.
+
+Note: You can unload ILGPU.Tests.Cuda (for example) if you do not have a Cuda-capable device to
+execute the Cuda test cases.
 
 # General Contribution Guidelines
 
