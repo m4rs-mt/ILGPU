@@ -203,7 +203,7 @@ namespace ILGPU.Backends.PTX
         /// <returns>The resolved register description.</returns>
         protected RegisterDescription ResolveParameterRegisterDescription(TypeNode type)
         {
-            if (type.IsPointerType)
+            if (type.IsPointerType || type.IsStringType)
                 return ResolveRegisterDescription(ABI.PointerBasicValueType);
             // A return call cannot handle some types -> we have to
             // perform a PTX-specific type remapping
@@ -214,7 +214,7 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="RegisterAllocator{TKind}.ResolveRegisterDescription(TypeNode)"/>
         protected sealed override RegisterDescription ResolveRegisterDescription(TypeNode type)
         {
-            if (type.IsPointerType)
+            if (type.IsPointerType || type.IsStringType)
                 return ResolveRegisterDescription(ABI.PointerBasicValueType);
             return ResolveRegisterDescription(type.BasicValueType);
         }
