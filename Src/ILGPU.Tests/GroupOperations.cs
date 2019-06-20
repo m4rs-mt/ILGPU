@@ -214,7 +214,7 @@ namespace ILGPU.Tests
 
         [Fact]
         [KernelMethod(nameof(EmptyKernel))]
-        public void BigGroupSize()
+        public void ExceedGroupSize()
         {
             var groupSize = Accelerator.MaxNumThreadsPerGroup + 1;
             var extent = new GroupedIndex(2, groupSize);
