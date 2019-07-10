@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Linq;
+using FluentAssertions;
+using ILGPU.Runtime.Cuda;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -205,6 +207,23 @@ namespace ILGPU.Tests
                     Verify(buffer, expected);
                 }
             }
+        }
+
+        static void EmptyKernel(GroupedIndex index, int c)
+        { }
+
+        [Fact]
+        [KernelMethod(nameof(EmptyKernel))]
+        public void ExceedGroupSize()
+        {
+            var groupSize = Accelerator.MaxNumThreadsPerGroup + 1;
+            var extent = new GroupedIndex(2, groupSize);
+            
+            Action act = () => Execute(extent, 0);
+
+            act.Should().Throw<Exception>()
+                .Which.GetBaseException()
+                .Should().Match(x => x is CudaException || x is NotSupportedException);
         }
     }
 }
