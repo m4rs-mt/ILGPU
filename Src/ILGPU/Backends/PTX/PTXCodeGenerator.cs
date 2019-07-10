@@ -32,7 +32,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// The supported PTX version.
         /// </summary>
-        public const string PTXVersion = "6.0";
+        public const string PTXVersion = "6.4";
 
         #endregion
 
