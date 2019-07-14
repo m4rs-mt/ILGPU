@@ -13,12 +13,12 @@
         <Copyright>Copyright © 2016-2019 Marcel Koester</Copyright>
         <Company />
         <Authors>Marcel Koester</Authors>
-        <Version>0.5.1</Version>
+        <Version>0.6.0</Version>
         <Description>ILGPU Just-In-Time Compiler</Description>
         <PackageProjectUrl>www.ilgpu.net</PackageProjectUrl>
         <NeutralLanguage>en-US</NeutralLanguage>
         <LangVersion>7.3</LangVersion>
-        <AssemblyVersion>0.5.1.0</AssemblyVersion>
+        <AssemblyVersion>0.6.0.0</AssemblyVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVerification|AnyCPU'">

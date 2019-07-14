@@ -33,7 +33,7 @@ execute the Cuda test cases.
 
 # References
 
-* Parallel Thread Execution ISA 6.3
+* Parallel Thread Execution ISA 6.4
     - NVIDIA
 * A Graph-Based Higher-Order Intermediate Representation
     - Roland Leissa, Marcel Koester, and Sebastian Hack
