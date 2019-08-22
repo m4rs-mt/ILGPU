@@ -93,7 +93,8 @@ namespace ILGPU.Runtime
         public ArrayView<T> Allocate<T>(Index numElements)
             where T : struct
         {
-            Debug.Assert(numElements > 0, "Invalid allocation of 0 bytes");
+            if (numElements < Index.One)
+                return default;
             if (numElements > GetCacheSize<T>())
             {
                 cache?.Dispose();
