@@ -57,11 +57,35 @@ namespace ILGPU
         public static int SizeOf<T>(T structure) => SizeOf<T>();
 
         /// <summary>
-        /// Computes the unsigned offset of the given field in bytes.
+        /// Computes number of elements of type <typeparamref name="TFirst"/>
+        /// that are required to store a type <typeparamref name="TSecond"/> in
+        /// unmanaged memory.
         /// </summary>
-        /// <typeparam name="T">The target type.</typeparam>
-        /// <param name="fieldName">The name of the target field.</param>
-        [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter", Justification = "The type is required for the computation of the field offset")]
+        /// <typeparam name="TFirst">The type that should represent type <typeparamref name="TSecond"/>.</typeparam>
+        /// <typeparam name="TSecond">The base type that should be represented with <typeparamref name="TFirst"/>.</typeparam>
+        /// <returns>
+        /// The number of required <typeparamref name="TFirst"/> instances to store on instance of type <typeparamref name="TSecond"/>.
+        /// </returns>
+        [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter",
+            Justification = "The type is required for the computation of the field offset")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ComputeRelativeSizeOf<TFirst, TSecond>()
+        {
+            var firstSize = SizeOf<TFirst>();
+            var secondSize = SizeOf<TSecond>();
+
+            int count = 1;
+            if (firstSize < secondSize)
+                count = XMath.DivRoundUp(secondSize, firstSize);
+            return count;
+        }
+
+    /// <summary>
+    /// Computes the unsigned offset of the given field in bytes.
+    /// </summary>
+    /// <typeparam name="T">The target type.</typeparam>
+    /// <param name="fieldName">The name of the target field.</param>
+    [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter", Justification = "The type is required for the computation of the field offset")]
         [InteropIntrinsic(InteropIntrinsicKind.OffsetOf)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int OffsetOf<T>(string fieldName) => Marshal.OffsetOf<T>(fieldName).ToInt32();
