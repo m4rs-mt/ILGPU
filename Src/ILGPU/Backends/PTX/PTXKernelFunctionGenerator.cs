@@ -149,8 +149,7 @@ namespace ILGPU.Backends.PTX
 
             // Build memory allocations
             PrepareCodeGeneration();
-            var allocations = SetupLocalAllocations(allocas);
-            SetupSharedAllocations(sharedAllocations, allocations);
+            var allocations = SetupAllocations(allocas);
             var registerOffset = Builder.Length;
 
             // Build param bindings and local memory variables
@@ -165,41 +164,6 @@ namespace ILGPU.Backends.PTX
                 parameterLogic.LengthRegister);
 
             GenerateCode(registerOffset, ref constantOffset);
-        }
-
-        /// <summary>
-        /// Setups shared-memory allocations.
-        /// </summary>
-        /// <param name="allocas">The allocations to setup.</param>
-        /// <param name="result">A list of pairs associating alloca nodes with thei local variable names.</param>
-        private void SetupSharedAllocations(
-            in AllocaKindInformation allocas,
-            List<(Alloca, string)> result)
-        {
-            var offset = 0;
-            foreach (var allocaInfo in allocas)
-            {
-                Builder.Append('\t');
-                Builder.Append(".shared ");
-                var elementType = allocaInfo.ElementType;
-                ABI.GetAlignmentAndSizeOf(
-                    elementType,
-                    out int elementSize,
-                    out int elementAlignment);
-
-                Builder.Append(".align ");
-                Builder.Append(elementAlignment);
-                Builder.Append(" .b8 ");
-
-                var name = "__shared_alloca" + offset++;
-                Builder.Append(name);
-                Builder.Append('[');
-                Builder.Append(allocaInfo.ArraySize * elementSize);
-                Builder.AppendLine("];");
-
-                result.Add((allocaInfo.Alloca, name));
-            }
-            Builder.AppendLine();
         }
 
         /// <summary>

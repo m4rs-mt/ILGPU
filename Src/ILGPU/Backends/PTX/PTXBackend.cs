@@ -235,7 +235,7 @@ namespace ILGPU.Backends.PTX
                     ref constantOffset);
             }
 
-            // Genrate kernel method
+            // Generate kernel method
             PTXKernelFunctionGenerator.Generate(
                 args,
                 backendContext.KernelScope,

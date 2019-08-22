@@ -109,7 +109,7 @@ namespace ILGPU.Backends.PTX
             var parameters = GenerateHeader();
             Builder.AppendLine("{");
 
-            var allocations = SetupLocalAllocations(allocas);
+            var allocations = SetupAllocations(allocas);
             var registerOffset = Builder.Length;
 
             // Build param bindings and local memory variables

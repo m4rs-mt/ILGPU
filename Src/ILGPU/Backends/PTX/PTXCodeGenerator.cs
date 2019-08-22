@@ -434,19 +434,23 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Setups local allocations.
+        /// Setups local or shared allocations.
         /// </summary>
         /// <param name="allocas">The allocations to setup.</param>
-        /// <returns>A list of pairs associating alloca nodes with thei local variable names.</returns>
-        protected List<(Alloca, string)> SetupLocalAllocations(Allocas allocas)
+        /// <param name="addressSpacePrefix">The source address-space prefix (like .local).</param>
+        /// <param name="namePrefix">The name prefix.</param>
+        /// <param name="result">The resulting list of allocations.</param>
+        private void SetupAllocations(
+            AllocaKindInformation allocas,
+            string addressSpacePrefix,
+            string namePrefix,
+            List<(Alloca, string)> result)
         {
-            var result = new List<(Alloca, string)>();
-
             var offset = 0;
-            foreach (var allocaInfo in allocas.LocalAllocations)
+            foreach (var allocaInfo in allocas)
             {
                 Builder.Append('\t');
-                Builder.Append(".local ");
+                Builder.Append(addressSpacePrefix);
                 var elementType = allocaInfo.ElementType;
                 ABI.GetAlignmentAndSizeOf(
                     elementType,
@@ -457,7 +461,7 @@ namespace ILGPU.Backends.PTX
                 Builder.Append(elementAlignment);
                 Builder.Append(" .b8 ");
 
-                var name = "__local_depot" + offset++;
+                var name = namePrefix + offset++;
                 Builder.Append(name);
                 Builder.Append('[');
                 Builder.Append(allocaInfo.ArraySize * elementSize);
@@ -466,7 +470,18 @@ namespace ILGPU.Backends.PTX
                 result.Add((allocaInfo.Alloca, name));
             }
             Builder.AppendLine();
+        }
 
+        /// <summary>
+        /// Setups local allocations.
+        /// </summary>
+        /// <param name="allocas">The allocations to setup.</param>
+        /// <returns>A list of pairs associating alloca nodes with thei local variable names.</returns>
+        internal List<(Alloca, string)> SetupAllocations(Allocas allocas)
+        {
+            var result = new List<(Alloca, string)>();
+            SetupAllocations(allocas.LocalAllocations, ".local ", "__local_depot", result);
+            SetupAllocations(allocas.SharedAllocations, ".shared ", "__shared_alloca", result);
             return result;
         }
 
