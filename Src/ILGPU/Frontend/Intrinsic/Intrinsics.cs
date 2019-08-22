@@ -34,6 +34,7 @@ namespace ILGPU.Frontend.Intrinsic
         SharedMemory,
         View,
         Warp,
+        Utility,
     }
 
     /// <summary>
@@ -124,6 +125,9 @@ namespace ILGPU.Frontend.Intrinsic
                         break;
                     case IntrinsicType.Warp:
                         result = HandleWarpOperation(context, intrinsic as WarpIntrinsicAttribute);
+                        break;
+                    case IntrinsicType.Utility:
+                        result = HandleUtilityOperation(context, intrinsic as UtilityIntrinsicAttribute);
                         break;
                 }
             }

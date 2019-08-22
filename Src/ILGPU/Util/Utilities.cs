@@ -9,6 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using System.Runtime.CompilerServices;
+
 namespace ILGPU.Util
 {
     /// <summary>
@@ -37,6 +39,7 @@ namespace ILGPU.Util
         /// <param name="first">The first value to swap with the second one.</param>
         /// <param name="second">The second value to swap with the first one.</param>
         /// <returns>True, iff the values were swapped.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Swap<T>(bool performSwap, ref T first, ref T second)
         {
             if (!performSwap)
@@ -44,5 +47,20 @@ namespace ILGPU.Util
             Swap(ref first, ref second);
             return true;
         }
+
+        /// <summary>
+        /// Selects between the two given values.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        /// <param name="takeFirst">True, if the <paramref name="first"/> value should be taken.</param>
+        /// <param name="first">The first value.</param>
+        /// <param name="second">The second value.</param>
+        /// <returns>The selected value.</returns>
+        /// <remarks>
+        /// Note that this function will be mapped to the ILGPU IR.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T Select<T>(bool takeFirst, T first, T second) =>
+            takeFirst ? first : second;
     }
 }
