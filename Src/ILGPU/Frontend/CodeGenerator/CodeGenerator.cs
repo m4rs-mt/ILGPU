@@ -98,9 +98,11 @@ namespace ILGPU.Frontend
                 declaringType = builder.CreatePointerType(
                     declaringType,
                     MemoryAddressSpace.Generic);
+                var paramRef = new VariableRef(0, VariableRefType.Argument);
                 EntryBlock.SetValue(
-                    new VariableRef(0, VariableRefType.Argument),
+                    paramRef,
                     Builder.InsertParameter(declaringType, "this"));
+                variableTypes[paramRef] = (declaringType, ConvertFlags.None);
             }
 
             var methodParameters = Method.GetParameters();
@@ -366,6 +368,36 @@ namespace ILGPU.Frontend
         private static void MakeTrap() { }
 
         /// <summary>
+        /// Converts the given value (already loaded) into its corresponding
+        /// evaluation-stack representation.
+        /// </summary>
+        /// <param name="builder">The current builder.</param>
+        /// <param name="value">The source value to load (already loaded).</param>
+        /// <param name="flags">The conversion flags.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Value LoadOntoEvaluationStack(
+            IRBuilder builder,
+            Value value,
+            ConvertFlags flags)
+        {
+            Debug.Assert(value != null, "Invalid value to load");
+
+            // Extent small basic types
+            switch (value.BasicValueType)
+            {
+                case BasicValueType.Int8:
+                case BasicValueType.Int16:
+                    return CreateConversion(
+                        builder,
+                        value,
+                        builder.GetPrimitiveType(BasicValueType.Int32),
+                        flags.ToSourceUnsignedFlags());
+                default:
+                    return value;
+            }
+        }
+
+        /// <summary>
         /// Realizes an indirect load instruction.
         /// </summary>
         /// <param name="builder">The current builder.</param>
@@ -389,23 +421,8 @@ namespace ILGPU.Frontend
                     type,
                     MemoryAddressSpace.Generic),
                 ConvertFlags.None);
-            var load = builder.CreateLoad(address);
-
-            // Extent small basic types
-            switch (type.BasicValueType)
-            {
-                case BasicValueType.Int8:
-                case BasicValueType.Int16:
-                    load = CreateConversion(
-                        builder,
-                        load,
-                        builder.GetPrimitiveType(BasicValueType.Int32),
-                        flags.ToSourceUnsignedFlags());
-                    break;
-                default:
-                    break;
-            }
-            return load;
+            var value = builder.CreateLoad(address);
+            return LoadOntoEvaluationStack(builder, value, flags);
         }
 
         /// <summary>

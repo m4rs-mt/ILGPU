@@ -31,9 +31,9 @@ namespace ILGPU.Frontend
                 var.RefType == VariableRefType.Argument ||
                 var.RefType == VariableRefType.Local);
             var addressOrValue = block.GetValue(var);
+            var type = variableTypes[var];
             if (variables.Contains(var))
             {
-                var type = variableTypes[var];
                 block.Push(CreateLoad(
                     builder,
                     addressOrValue,
@@ -41,7 +41,12 @@ namespace ILGPU.Frontend
                     type.Item2));
             }
             else
-                block.Push(addressOrValue);
+            {
+                block.Push(LoadOntoEvaluationStack(
+                    builder,
+                    addressOrValue,
+                    type.Item2));
+            }
         }
 
         /// <summary>
