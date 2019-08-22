@@ -205,6 +205,14 @@ namespace ILGPU.Runtime
         public int MaxNumThreads => NumMultiprocessors * MaxNumThreadsPerMultiprocessor;
 
         /// <summary>
+        /// Returns a kernel extent (a grouped index) with the maximum number of groups using the
+        /// maximum number of threads per group to launch common grid-stride loop kernels.
+        /// </summary>
+        public GroupedIndex MaxNumGroupsExtent => new GroupedIndex(
+            NumMultiprocessors * (MaxNumThreadsPerMultiprocessor / MaxNumThreadsPerGroup),
+            MaxNumThreadsPerGroup);
+
+        /// <summary>
         /// Returns the primary backend of this accelerator.
         /// </summary>
         public Backend Backend { get; protected set; }
