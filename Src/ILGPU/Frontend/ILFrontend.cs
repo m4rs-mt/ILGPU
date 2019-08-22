@@ -176,8 +176,7 @@ namespace ILGPU.Frontend
                         Monitor.PulseAll(processingSyncObject);
                     else
                     {
-                        if (activeThreads == 0 && processing.Count < 1 &&
-                            codeGenerationPhase.IsFinished)
+                        if (activeThreads == 0 && processing.Count < 1)
                             driverNotifier.Set();
                     }
                 }
@@ -194,6 +193,7 @@ namespace ILGPU.Frontend
             var result = new CodeGenerationResult(method);
             lock (processingSyncObject)
             {
+                driverNotifier.Reset();
                 processing.Push(new ProcessingEntry(method, result));
                 Monitor.Pulse(processingSyncObject);
             }
