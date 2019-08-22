@@ -27,14 +27,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new generic barrier operation.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="values">Additional values.</param>
         /// <param name="initialType">The initial node type.</param>
         internal BarrierOperation(
+            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> values,
             TypeNode initialType)
-            : base(basicBlock, values, initialType)
+            : base(kind, basicBlock, values, initialType)
         { }
 
         #endregion
@@ -109,6 +111,7 @@ namespace ILGPU.IR.Values
             ValueReference predicate,
             PredicateBarrierKind kind)
             : base(
+                  ValueKind.PredicateBarrier,
                   basicBlock,
                   ImmutableArray.Create(predicate),
                   ComputeType(context, kind))
@@ -210,6 +213,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             BarrierKind barrierKind)
             : base(
+                  ValueKind.Barrier,
                   basicBlock,
                   ImmutableArray<ValueReference>.Empty,
                   ComputeType(context))
@@ -293,19 +297,22 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new shuffle operation.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="values">The values.</param>
-        /// <param name="kind">The operation kind.</param>
+        /// <param name="shuffleKind">The operation kind.</param>
         internal ShuffleOperation(
+            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> values,
-            ShuffleKind kind)
+            ShuffleKind shuffleKind)
             : base(
+                  kind,
                   basicBlock,
                   values,
                   ComputeType(values[0].Type))
         {
-            Kind = kind;
+            Kind = shuffleKind;
         }
 
         #endregion
@@ -365,6 +372,7 @@ namespace ILGPU.IR.Values
             ValueReference origin,
             ShuffleKind kind)
             : base(
+                  ValueKind.WarpShuffle,
                   basicBlock,
                   ImmutableArray.Create(variable, origin),
                   kind)
@@ -416,6 +424,7 @@ namespace ILGPU.IR.Values
             ValueReference width,
             ShuffleKind kind)
             : base(
+                  ValueKind.SubWarpShuffle,
                   basicBlock,
                   ImmutableArray.Create(variable, origin, width),
                   kind)

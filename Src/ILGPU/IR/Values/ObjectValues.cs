@@ -27,10 +27,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract object operation.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
-        internal ObjectOperationValue(BasicBlock basicBlock, TypeNode initialType)
-            : base(basicBlock, initialType)
+        internal ObjectOperationValue(
+            ValueKind kind,
+            BasicBlock basicBlock,
+            TypeNode initialType)
+            : base(kind, basicBlock, initialType)
         { }
 
         #endregion
@@ -62,14 +66,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract structure operation.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
         /// <param name="fieldIndex">The structure field index.</param>
         internal StructureOperationValue(
+            ValueKind kind,
             BasicBlock basicBlock,
             TypeNode initialType,
             int fieldIndex)
-            : base(basicBlock, initialType)
+            : base(kind, basicBlock, initialType)
         {
             FieldIndex = fieldIndex;
         }
@@ -137,6 +143,7 @@ namespace ILGPU.IR.Values
             ValueReference structValue,
             int fieldIndex)
             : base(
+                  ValueKind.GetField,
                   basicBlock,
                   ComputeType(structValue, fieldIndex),
                   fieldIndex)
@@ -204,6 +211,7 @@ namespace ILGPU.IR.Values
             int fieldIndex,
             ValueReference value)
             : base(
+                  ValueKind.SetField,
                   basicBlock,
                   ComputeType(structValue),
                   fieldIndex)
@@ -266,10 +274,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract structure operation.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
-        internal ArrayOperationValue(BasicBlock basicBlock, TypeNode initialType)
-            : base(basicBlock, initialType)
+        internal ArrayOperationValue(
+            ValueKind kind,
+            BasicBlock basicBlock,
+            TypeNode initialType)
+            : base(kind, basicBlock, initialType)
         { }
 
         #endregion
@@ -353,7 +365,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference arrayValue,
             ValueReference arrayIndex)
-            : base(basicBlock, ComputeType(arrayValue))
+            : base(ValueKind.GetElement, basicBlock, ComputeType(arrayValue))
         {
             Debug.Assert(
                 arrayIndex.BasicValueType == BasicValueType.Int32,
@@ -420,7 +432,7 @@ namespace ILGPU.IR.Values
             ValueReference arrayValue,
             ValueReference arrayIndex,
             ValueReference value)
-            : base(basicBlock, ComputeType(arrayValue))
+            : base(ValueKind.SetElement, basicBlock, ComputeType(arrayValue))
         {
             Debug.Assert(
                 arrayIndex.BasicValueType == BasicValueType.Int32,

@@ -32,7 +32,7 @@ namespace ILGPU.IR.Values
             BasicBlock block,
             TypeNode handleType,
             object handle)
-            : base(block, handleType)
+            : base(ValueKind.Handle, block, handleType)
         {
             Debug.Assert(handle != null, "Invalid managed handle");
             Handle = handle;

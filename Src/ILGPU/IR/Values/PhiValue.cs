@@ -17,7 +17,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace ILGPU.IR.Values
 {
@@ -132,7 +131,7 @@ namespace ILGPU.IR.Values
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="type">The phi type.</param>
         internal PhiValue(BasicBlock basicBlock, TypeNode type)
-            : base(basicBlock, type)
+            : base(ValueKind.Phi, basicBlock, type)
         {
             Debug.Assert(type != null, "Invalid type");
             Debug.Assert(!type.IsVoidType, "Invalid void type");

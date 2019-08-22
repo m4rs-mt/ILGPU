@@ -31,14 +31,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new terminator value that is marked.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="targets">The associated targets.</param>
         /// <param name="initialType">The initial node type.</param>
         protected TerminatorValue(
+            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<BasicBlock> targets,
             TypeNode initialType)
-            : base(basicBlock, initialType)
+            : base(kind, basicBlock, initialType)
         {
             Targets = targets;
         }
@@ -89,6 +91,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference returnValue)
             : base(
+                  ValueKind.Return,
                   basicBlock,
                   ImmutableArray<BasicBlock>.Empty,
                   ComputeType(returnValue.Type))
@@ -158,22 +161,24 @@ namespace ILGPU.IR.Values
 
         #endregion
 
-
         #region Instance
 
         /// <summary>
         /// Constructs a new branch terminator.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="context">The parent IR context.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="targets">The jump targets.</param>
         /// <param name="arguments">The branch arguments.</param>
         internal Branch(
+            ValueKind kind,
             IRContext context,
             BasicBlock basicBlock,
             ImmutableArray<BasicBlock> targets,
             ImmutableArray<ValueReference> arguments)
             : base(
+                  kind,
                   basicBlock,
                   targets,
                   ComputeType(context))
@@ -210,6 +215,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             BasicBlock target)
             : base(
+                  ValueKind.UnconditionalBranch,
                   context,
                   basicBlock,
                   ImmutableArray.Create(target),
@@ -272,6 +278,7 @@ namespace ILGPU.IR.Values
             BasicBlock trueTarget,
             BasicBlock falseTarget)
             : base(
+                  ValueKind.ConditionalBranch,
                   context,
                   basicBlock,
                   ImmutableArray.Create(trueTarget, falseTarget),
@@ -350,6 +357,7 @@ namespace ILGPU.IR.Values
             ValueReference value,
             ImmutableArray<BasicBlock> targets)
             : base(
+                  ValueKind.SwitchBranch,
                   context,
                   basicBlock,
                   targets,
@@ -457,6 +465,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ImmutableArray<BasicBlock> targets)
             : base(
+                  ValueKind.BuilderTerminator,
                   context,
                   basicBlock,
                   targets,

@@ -48,7 +48,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             Method target,
             ImmutableArray<ValueReference> arguments)
-            : base(basicBlock, ComputeType(target))
+            : base(ValueKind.MethodCall, basicBlock, ComputeType(target))
         {
             Target = target;
             Seal(arguments);

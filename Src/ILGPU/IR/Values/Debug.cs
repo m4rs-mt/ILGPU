@@ -11,11 +11,10 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using ILGPU.IR.Values;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
-namespace ILGPU.IR
+namespace ILGPU.IR.Values
 {
     /// <summary>
     /// Represents a generic debug operation.
@@ -40,14 +39,17 @@ namespace ILGPU.IR
         /// <summary>
         /// Constructs a new debug operation.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="context">The parent IR context.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="values">All child values.</param>
         protected DebugOperation(
+            ValueKind kind,
             IRContext context,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> values)
             : base(
+                  kind,
                   basicBlock,
                   values,
                   ComputeType(context))
@@ -82,6 +84,7 @@ namespace ILGPU.IR
             BasicBlock basicBlock,
             ValueReference message)
             : base(
+                  ValueKind.DebugAssertFailed,
                   context,
                   basicBlock,
                   ImmutableArray.Create(message))
@@ -139,6 +142,7 @@ namespace ILGPU.IR
             BasicBlock basicBlock,
             ValueReference message)
             : base(
+                  ValueKind.DebugTrace,
                   context,
                   basicBlock,
                   ImmutableArray.Create(message))

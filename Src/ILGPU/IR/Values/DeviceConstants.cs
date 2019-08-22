@@ -24,10 +24,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="constantType">The constant type node.</param>
-        internal DeviceConstantValue(BasicBlock basicBlock, TypeNode constantType)
-            : base(basicBlock, constantType)
+        internal DeviceConstantValue(
+            ValueKind kind,
+            BasicBlock basicBlock,
+            TypeNode constantType)
+            : base(kind, basicBlock, constantType)
         { }
 
         #endregion
@@ -64,14 +68,17 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="context">The current IR context.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="dimension">The device constant dimension.</param>
         internal DeviceConstantDimensionValue(
+            ValueKind kind,
             IRContext context,
             BasicBlock basicBlock,
             DeviceConstantDimension3D dimension)
             : base(
+                  kind,
                   basicBlock,
                   context.GetPrimitiveType(BasicValueType.Int32))
         {
@@ -114,7 +121,11 @@ namespace ILGPU.IR.Values
             IRContext context,
             BasicBlock basicBlock,
             DeviceConstantDimension3D dimension)
-            : base(context, basicBlock, dimension)
+            : base(
+                  ValueKind.GridDimension,
+                  context,
+                  basicBlock,
+                  dimension)
         { }
 
         #endregion
@@ -155,7 +166,11 @@ namespace ILGPU.IR.Values
             IRContext context,
             BasicBlock basicBlock,
             DeviceConstantDimension3D dimension)
-            : base(context, basicBlock, dimension)
+            : base(
+                  ValueKind.GroupDimension,
+                  context,
+                  basicBlock,
+                  dimension)
         { }
 
         #endregion
@@ -195,6 +210,7 @@ namespace ILGPU.IR.Values
             IRContext context,
             BasicBlock basicBlock)
             : base(
+                  ValueKind.WarpSize,
                   basicBlock,
                   context.GetPrimitiveType(BasicValueType.Int32))
         { }
@@ -236,6 +252,7 @@ namespace ILGPU.IR.Values
             IRContext context,
             BasicBlock basicBlock)
             : base(
+                  ValueKind.LaneIdx,
                   basicBlock,
                   context.GetPrimitiveType(BasicValueType.Int32))
         { }

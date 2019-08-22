@@ -29,10 +29,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new constant value.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="constantType">The type of the constant node.</param>
-        internal ConstantNode(BasicBlock basicBlock, TypeNode constantType)
-            : base(basicBlock, constantType)
+        internal ConstantNode(
+            ValueKind kind,
+            BasicBlock basicBlock,
+            TypeNode constantType)
+            : base(kind, basicBlock, constantType)
         {
             ConstantType = constantType;
             Seal(ImmutableArray<ValueReference>.Empty);
@@ -70,7 +74,7 @@ namespace ILGPU.IR.Values
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="type">The object type.</param>
         internal NullValue(BasicBlock basicBlock, TypeNode type)
-            : base(basicBlock, type)
+            : base(ValueKind.Null, basicBlock, type)
         { }
 
         #endregion
@@ -120,6 +124,7 @@ namespace ILGPU.IR.Values
             BasicValueType basicValueType,
             long value)
             : base(
+                  ValueKind.Primitive,
                   basicBlock,
                   context.GetPrimitiveType(basicValueType))
         {
@@ -294,7 +299,7 @@ namespace ILGPU.IR.Values
             IRContext context,
             BasicBlock basicBlock,
             string value)
-            : base(basicBlock, context.StringType)
+            : base(ValueKind.String, basicBlock, context.StringType)
         {
             String = value;
         }
@@ -355,6 +360,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             TypeNode targetType)
             : base(
+                  ValueKind.SizeOf,
                   basicBlock,
                   context.GetPrimitiveType(BasicValueType.Int32))
         {

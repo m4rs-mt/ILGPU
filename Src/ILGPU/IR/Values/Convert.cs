@@ -93,7 +93,7 @@ namespace ILGPU.IR.Values
             ValueReference value,
             TypeNode targetType,
             ConvertFlags flags)
-            : base(basicBlock, ComputeType(targetType))
+            : base(ValueKind.Convert, basicBlock, ComputeType(targetType))
         {
             ConvertType = targetType;
             Flags = flags;

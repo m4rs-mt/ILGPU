@@ -27,14 +27,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The value to convert.</param>
         /// <param name="targetType">The target type to convert the value to.</param>
         internal CastValue(
+            ValueKind kind,
             BasicBlock basicBlock,
             ValueReference value,
             TypeNode targetType)
-            : base(basicBlock, targetType)
+            : base(kind, basicBlock, targetType)
         {
             Seal(ImmutableArray.Create(value));
         }
@@ -72,14 +74,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The value to convert.</param>
         /// <param name="targetType">The target type to convert the value to.</param>
         internal BaseAddressSpaceCast(
+            ValueKind kind,
             BasicBlock basicBlock,
             ValueReference value,
             AddressSpaceType targetType)
-            : base(basicBlock, value, targetType)
+            : base(kind, basicBlock, value, targetType)
         { }
 
         #endregion
@@ -138,6 +142,7 @@ namespace ILGPU.IR.Values
             ValueReference value,
             TypeNode targetElementType)
             : base(
+                  ValueKind.PointerCast,
                   basicBlock,
                   value,
                   ComputeType(context, value.Type, targetElementType))
@@ -242,6 +247,7 @@ namespace ILGPU.IR.Values
             ValueReference value,
             MemoryAddressSpace targetAddressSpace)
             : base(
+                  ValueKind.AddressSpaceCast,
                   basicBlock,
                   value,
                   ComputeType(context, value.Type, targetAddressSpace))
@@ -345,6 +351,7 @@ namespace ILGPU.IR.Values
             ValueReference sourceView,
             TypeNode targetElementType)
             : base(
+                  ValueKind.ViewCast,
                   basicBlock,
                   sourceView,
                   ComputeType(context, sourceView.Type, targetElementType))
@@ -407,14 +414,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="source">The view to cast.</param>
         /// <param name="targetType">The primitive target type.</param>
         internal BitCast(
+            ValueKind kind,
             BasicBlock basicBlock,
             ValueReference source,
             PrimitiveType targetType)
-            : base(basicBlock, source, targetType)
+            : base(kind, basicBlock, source, targetType)
         {
             Debug.Assert(source.Type.IsPrimitiveType, "Invalid primitive type");
             TargetPrimitiveType = targetType;
@@ -473,7 +482,11 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference source,
             PrimitiveType targetType)
-            : base(basicBlock, source, targetType)
+            : base(
+                  ValueKind.FloatAsIntCast,
+                  basicBlock,
+                  source,
+                  targetType)
         {
             var basicValueType = source.Type.BasicValueType;
             Debug.Assert(
@@ -523,7 +536,11 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference source,
             PrimitiveType targetType)
-            : base(basicBlock, source, targetType)
+            : base(
+                  ValueKind.IntAsFloatCast,
+                  basicBlock,
+                  source,
+                  targetType)
         {
             var basicValueType = source.Type.BasicValueType;
             Debug.Assert(

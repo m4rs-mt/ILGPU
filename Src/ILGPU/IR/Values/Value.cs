@@ -28,6 +28,11 @@ namespace ILGPU.IR
     public interface IValue : INode
     {
         /// <summary>
+        /// Returns the current value kind.
+        /// </summary>
+        ValueKind ValueKind { get; }
+
+        /// <summary>
         /// Returns the associated type information.
         /// </summary>
         TypeNode Type { get; }
@@ -93,10 +98,8 @@ namespace ILGPU.IR
         /// <param name="value">The value to test.</param>
         /// <returns>True, iff the given value is a primitive value.</returns>
         public static bool IsPrimitive<T>(this T value)
-            where T : IValue
-        {
-            return value.Resolve() is PrimitiveValue;
-        }
+            where T : IValue =>
+            value.Resolve() is PrimitiveValue;
 
         /// <summary>
         /// Returns true iff the given value is an instantiated constant value.
@@ -105,10 +108,8 @@ namespace ILGPU.IR
         /// <param name="value">The value to test.</param>
         /// <returns>True, iff the given value is an instantiated constant value.</returns>
         public static bool IsInstantiatedConstant<T>(this T value)
-            where T : IValue
-        {
-            return value.Resolve() is ConstantNode;
-        }
+            where T : IValue =>
+            value.Resolve() is ConstantNode;
 
         /// <summary>
         /// Returns true iff the given value is a device constant value.
@@ -117,10 +118,8 @@ namespace ILGPU.IR
         /// <param name="value">The value to test.</param>
         /// <returns>True, iff the given value is a device constant value.</returns>
         public static bool IsDeviceConstant<T>(this T value)
-            where T : IValue
-        {
-            return value.Resolve() is DeviceConstantValue;
-        }
+            where T : IValue =>
+            value.Resolve() is DeviceConstantValue;
     }
 
     /// <summary>
@@ -196,22 +195,29 @@ namespace ILGPU.IR
         /// <summary>
         /// Constructs a new value that is marked as replacable.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
-        protected Value(BasicBlock basicBlock, TypeNode initialType)
-            : this(basicBlock, initialType, true)
+        protected Value(ValueKind kind, BasicBlock basicBlock, TypeNode initialType)
+            : this(kind, basicBlock, initialType, true)
         { }
 
         /// <summary>
         /// Constructs a new value.
         /// </summary>
+        /// <param name="valueKind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
         /// <param name="canBeReplaced">True, iff this value can be replaced.</param>
-        protected Value(BasicBlock basicBlock, TypeNode initialType, bool canBeReplaced)
+        protected Value(
+            ValueKind valueKind,
+            BasicBlock basicBlock,
+            TypeNode initialType,
+            bool canBeReplaced)
         {
             Debug.Assert(initialType != null, "Invalid initialType");
 
+            ValueKind = valueKind;
             BasicBlock = basicBlock;
             Method = basicBlock?.Method;
             type = initialType;
@@ -224,6 +230,11 @@ namespace ILGPU.IR
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the current value kind.
+        /// </summary>
+        public ValueKind ValueKind { get; }
 
         /// <summary>
         /// Returns the parent method.

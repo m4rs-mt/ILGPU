@@ -27,7 +27,7 @@ namespace ILGPU.IR.Values
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="type">The phi type.</param>
         internal UndefinedValue(BasicBlock basicBlock, TypeNode type)
-            : base(basicBlock, type)
+            : base(ValueKind.Undefined, basicBlock, type)
         { }
 
         #endregion

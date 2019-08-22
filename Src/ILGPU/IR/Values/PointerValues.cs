@@ -27,10 +27,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new pointer value.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
-        internal PointerValue(BasicBlock basicBlock, TypeNode initialType)
-            : base(basicBlock, initialType)
+        internal PointerValue(
+            ValueKind kind,
+            BasicBlock basicBlock,
+            TypeNode initialType)
+            : base(kind, basicBlock, initialType)
         { }
 
         #endregion
@@ -78,6 +82,7 @@ namespace ILGPU.IR.Values
             ValueReference offset,
             ValueReference length)
             : base(
+                  ValueKind.SubView,
                   basicBlock,
                   ComputeType(source))
         {
@@ -172,6 +177,7 @@ namespace ILGPU.IR.Values
             ValueReference sourceView,
             ValueReference elementIndex)
             : base(
+                  ValueKind.LoadElementAddress,
                   basicBlock,
                   ComputeType(context, sourceView))
         {
@@ -281,6 +287,7 @@ namespace ILGPU.IR.Values
             ValueReference source,
             int fieldIndex)
             : base(
+                  ValueKind.LoadFieldAddress,
                   basicBlock,
                   ComputeType(context, source, fieldIndex))
         {

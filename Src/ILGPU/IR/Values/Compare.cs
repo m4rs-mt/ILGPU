@@ -154,7 +154,7 @@ namespace ILGPU.IR.Values
             ValueReference right,
             CompareKind kind,
             CompareFlags flags)
-            : base(basicBlock, ComputeType(context))
+            : base(ValueKind.Compare, basicBlock, ComputeType(context))
         {
             Kind = kind;
             Flags = flags;

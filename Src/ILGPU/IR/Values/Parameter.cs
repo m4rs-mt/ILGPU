@@ -33,7 +33,7 @@ namespace ILGPU.IR.Values
             Method method,
             TypeNode type,
             string name)
-            : base(null, type, false)
+            : base(ValueKind.Parameter, null, type, false)
         {
             Method = method;
             ParameterType = type;

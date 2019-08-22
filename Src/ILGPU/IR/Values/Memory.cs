@@ -27,14 +27,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new memory value.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
         /// <param name="values">All child values.</param>
         internal MemoryValue(
+            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> values,
             TypeNode initialType)
-            : base(basicBlock, initialType)
+            : base(kind, basicBlock, initialType)
         {
             Seal(values);
         }
@@ -86,6 +88,7 @@ namespace ILGPU.IR.Values
             TypeNode allocaType,
             MemoryAddressSpace addressSpace)
             : base(
+                  ValueKind.Alloca,
                   basicBlock,
                   ImmutableArray.Create(arrayLength),
                   ComputeType(context, allocaType, addressSpace))
@@ -225,6 +228,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             MemoryBarrierKind kind)
             : base(
+                  ValueKind.MemoryBarrier,
                   basicBlock,
                   ImmutableArray<ValueReference>.Empty,
                   ComputeType(context))
@@ -290,7 +294,6 @@ namespace ILGPU.IR.Values
 
         #endregion
 
-
         #region Instance
 
         /// <summary>
@@ -304,6 +307,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference source)
             : base(
+                  ValueKind.Load,
                   basicBlock,
                   ImmutableArray.Create(source),
                   ComputeType(context, source.Type))
@@ -382,6 +386,7 @@ namespace ILGPU.IR.Values
             ValueReference target,
             ValueReference value)
             : base(
+                  ValueKind.Store,
                   basicBlock,
                   ImmutableArray.Create(target, value),
                   ComputeType(context))

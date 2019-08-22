@@ -45,6 +45,11 @@ namespace ILGPU.IR.Values
         #region Properties
 
         /// <summary>
+        /// Returns the current value kind.
+        /// </summary>
+        public ValueKind ValueKind => Resolve().ValueKind;
+
+        /// <summary>
         /// Returns the node that is directly stored in the reference struct
         /// without using any replacement information.
         /// </summary>

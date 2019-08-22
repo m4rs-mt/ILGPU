@@ -270,16 +270,18 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new arithmetic value.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="operands">The operands.</param>
         /// <param name="flags">The operation flags.</param>
         /// <param name="initialType">The initial node type.</param>
         internal ArithmeticValue(
+            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> operands,
             ArithmeticFlags flags,
             TypeNode initialType)
-            : base(basicBlock, initialType)
+            : base(kind, basicBlock, initialType)
         {
             Flags = flags;
 
@@ -381,6 +383,7 @@ namespace ILGPU.IR.Values
             UnaryArithmeticKind kind,
             ArithmeticFlags flags)
             : base(
+                  ValueKind.UnaryArithmetic,
                   basicBlock,
                   ImmutableArray.Create(value),
                   flags,
@@ -469,6 +472,7 @@ namespace ILGPU.IR.Values
             BinaryArithmeticKind kind,
             ArithmeticFlags flags)
             : base(
+                  ValueKind.BinaryArithmetic,
                   basicBlock,
                   ImmutableArray.Create(left, right),
                   flags,
@@ -604,6 +608,7 @@ namespace ILGPU.IR.Values
             TernaryArithmeticKind kind,
             ArithmeticFlags flags)
             : base(
+                  ValueKind.TernaryArithmetic,
                   basicBlock,
                   ImmutableArray.Create(first, second, third),
                   flags,

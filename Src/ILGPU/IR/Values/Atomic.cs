@@ -59,18 +59,21 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract atomic value.
         /// </summary>
+        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="target">The target.</param>
         /// <param name="value">The value to store.</param>
         /// <param name="arguments">Additional arguments.</param>
         /// <param name="flags">The operation flags.</param>
         internal AtomicValue(
+            ValueKind kind,
             BasicBlock basicBlock,
             ValueReference target,
             ValueReference value,
             ImmutableArray<ValueReference> arguments,
             AtomicFlags flags)
             : base(
+                  kind,
                   basicBlock,
                   ImmutableArray.Create(target, value).AddRange(arguments),
                   ComputeType(value))
@@ -184,6 +187,7 @@ namespace ILGPU.IR.Values
             AtomicKind kind,
             AtomicFlags flags)
             : base(
+                  ValueKind.GenericAtomic,
                   basicBlock,
                   target,
                   value,
@@ -254,6 +258,7 @@ namespace ILGPU.IR.Values
             ValueReference compareValue,
             AtomicFlags flags)
             : base(
+                  ValueKind.AtomicCAS,
                   basicBlock,
                   target,
                   value,
