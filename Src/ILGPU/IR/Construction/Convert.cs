@@ -56,14 +56,27 @@ namespace ILGPU.IR.Construction
                     targetType));
 
             bool isSourceUnsigned = (flags & ConvertFlags.SourceUnsigned) == ConvertFlags.SourceUnsigned;
+            bool isTargetUnsigned = (flags & ConvertFlags.TargetUnsigned) == ConvertFlags.TargetUnsigned;
 
             // Match nested conversions
             if (node is ConvertValue convert)
             {
-                var basicValueType = targetPrimitiveType.BasicValueType;
-                if (basicValueType.IsInt() &&
-                    convert.SourceType == basicValueType.GetArithmeticBasicValueType(isSourceUnsigned))
+                var targetBasicType = targetPrimitiveType.BasicValueType;
+                if (targetBasicType.IsInt() &&
+                    convert.SourceType == targetBasicType.GetArithmeticBasicValueType(isTargetUnsigned))
                     return convert.Value;
+
+                var sourceBasicType = convert.BasicValueType;
+                if (sourceBasicType.IsInt() && convert.Value.BasicValueType < sourceBasicType)
+                {
+                    ConvertFlags newFlags =
+                        (convert.Flags & ~ConvertFlags.TargetUnsigned) |
+                        flags & ~(ConvertFlags.SourceUnsigned | ConvertFlags.OverflowSourceUnsigned);
+                    return CreateConvert(
+                        convert.Value,
+                        targetType,
+                        newFlags);
+                }
             }
 
             // Match X to bool
@@ -83,10 +96,10 @@ namespace ILGPU.IR.Construction
                     CreatePrimitiveValue(targetPrimitiveType.BasicValueType, 0));
             }
 
+
             // Match primitive types
             if (UseConstantPropagation && node is PrimitiveValue value)
             {
-                bool isTargetUnsigned = (flags & ConvertFlags.TargetUnsigned) == ConvertFlags.TargetUnsigned;
                 var targetBasicValueType = targetType.BasicValueType;
 
                 switch (value.BasicValueType)
