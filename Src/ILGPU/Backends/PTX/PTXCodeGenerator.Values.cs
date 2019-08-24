@@ -831,6 +831,9 @@ namespace ILGPU.Backends.PTX
             }
         }
 
+        /// <summary cref="IValueVisitor.Visit(Broadcast)"/>
+        public void Visit(Broadcast broadcast) => throw new InvalidCodeGenerationException();
+
         /// <summary>
         /// Emits warp masks of <see cref="WarpShuffle"/> operations.
         /// </summary>

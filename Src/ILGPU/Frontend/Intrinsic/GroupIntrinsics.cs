@@ -21,6 +21,8 @@ namespace ILGPU.Frontend.Intrinsic
         BarrierOr = PredicateBarrierKind.Or,
 
         Barrier,
+
+        Broadcast,
     }
 
     /// <summary>
@@ -55,11 +57,20 @@ namespace ILGPU.Frontend.Intrinsic
             GroupIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
-            if (attribute.IntrinsicKind == GroupIntrinsicKind.Barrier)
-                return builder.CreateBarrier(BarrierKind.GroupLevel);
-            return builder.CreateBarrier(
-                context[0],
-                (PredicateBarrierKind)attribute.IntrinsicKind);
+            switch (attribute.IntrinsicKind)
+            {
+                case GroupIntrinsicKind.Barrier:
+                    return builder.CreateBarrier(BarrierKind.GroupLevel);
+                case GroupIntrinsicKind.Broadcast:
+                    return builder.CreateBroadcast(
+                        context[0],
+                        context[1],
+                        BroadcastKind.GroupLevel);
+                default:
+                    return builder.CreateBarrier(
+                        context[0],
+                        (PredicateBarrierKind)attribute.IntrinsicKind);
+            }
         }
     }
 }

@@ -114,11 +114,6 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
         </Compile>
-        <Compile Update="ShuffleOperations.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>ShuffleOperations.tt</DependentUpon>
-        </Compile>
     </ItemGroup>
     <ItemGroup>
         <None Update="ArrayViews.tt">

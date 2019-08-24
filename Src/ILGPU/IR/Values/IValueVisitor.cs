@@ -267,6 +267,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Visits the node.
         /// </summary>
+        /// <param name="broadcast">The node.</param>
+        void Visit(Broadcast broadcast);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
         /// <param name="shuffle">The node.</param>
         void Visit(WarpShuffle shuffle);
 

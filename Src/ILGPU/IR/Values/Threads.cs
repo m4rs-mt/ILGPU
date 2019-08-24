@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
+using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -249,6 +250,119 @@ namespace ILGPU.IR.Values
     }
 
     /// <summary>
+    /// Represents the kind of a broadcast operation.
+    /// </summary>
+    public enum BroadcastKind
+    {
+        /// <summary>
+        /// A broadcast operation that operates on warp level.
+        /// </summary>
+        WarpLevel,
+
+        /// <summary>
+        /// A broadcast operation that operates on group level.
+        /// </summary>
+        GroupLevel
+    }
+
+    /// <summary>
+    /// Represents a broadcast operation.
+    /// </summary>
+    public sealed class Broadcast : MemoryValue
+    {
+        #region Static
+
+        /// <summary>
+        /// Computes a broadcast node type.
+        /// </summary>
+        /// <param name="variableType">The broadcast variable type.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(
+            TypeNode variableType) => variableType;
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new broadcast operation.
+        /// </summary>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="value">The value to broadcast.</param>
+        /// <param name="origin">The source thread index within the group or warp..</param>
+        /// <param name="broadcastKind">The operation kind.</param>
+        internal Broadcast(
+            BasicBlock basicBlock,
+            ValueReference value,
+            ValueReference origin,
+            BroadcastKind broadcastKind)
+            : base(
+                  ValueKind.Broadcast,
+                  basicBlock,
+                  ImmutableArray.Create(value, origin),
+                  ComputeType(value.Type))
+        {
+            Kind = broadcastKind;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the variable reference.
+        /// </summary>
+        public ValueReference Variable => this[0];
+
+        /// <summary>
+        /// Returns the thread index origin (group or lane index).
+        /// </summary>
+        public ValueReference Origin => this[1];
+
+        /// <summary>
+        /// Returns the kind of the broadcast operation.
+        /// </summary>
+        public BroadcastKind Kind { get; }
+
+        /// <summary>
+        /// Returns true if this broadcast operation works
+        /// on intrinsic primitive types.
+        /// </summary>
+        public bool IsBuiltIn => LowerThreadIntrinsics.IsBuiltInType(BasicValueType);
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected sealed override TypeNode UpdateType(IRContext context) =>
+            ComputeType(Variable.Type);
+
+        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+            builder.CreateBroadcast(
+                rebuilder.Rebuild(Variable),
+                rebuilder.Rebuild(Origin),
+                Kind);
+
+        /// <summary cref="Value.Accept" />
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region Object
+
+        /// <summary cref="Node.ToPrefixString"/>
+        protected override string ToPrefixString() => "broadcast" + Kind.ToString();
+
+        /// <summary cref="Value.ToArgString"/>
+        protected override string ToArgString() => $"{Variable}, {Origin}";
+
+        #endregion
+    }
+
+    /// <summary>
     /// Represents the kind of a shuffle operation.
     /// </summary>
     public enum ShuffleKind
@@ -333,6 +447,12 @@ namespace ILGPU.IR.Values
         /// Returns the kind of the shuffle operation.
         /// </summary>
         public ShuffleKind Kind { get; }
+
+        /// <summary>
+        /// Returns true if this shuffle operation works
+        /// on intrinsic primitive types.
+        /// </summary>
+        public bool IsBuiltIn => LowerThreadIntrinsics.IsBuiltInType(BasicValueType);
 
         #endregion
 

@@ -60,6 +60,42 @@ namespace ILGPU.IR.Construction
             CreateNull(structureType);
 
         /// <summary>
+        /// Creates a new structure instance value.
+        /// </summary>
+        /// <param name="values">The structure instance values.</param>
+        /// <returns>The created structure instance value.</returns>
+        public ValueReference CreateStructure(params ValueReference[] values)
+        {
+            Debug.Assert(values == null && values.Length > 0, "Invalid values");
+
+            // Construct structure type
+            var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(values.Length);
+            foreach (var value in values)
+                fieldTypes.Add(value.Type);
+            var structureType = CreateStructureType(StructureType.Root, fieldTypes.MoveToImmutable());
+            return CreateStructure(structureType, values);
+        }
+
+        /// <summary>
+        /// Creates a new structure instance value.
+        /// </summary>
+        /// <param name="structureType">The structure type.</param>
+        /// <param name="values">The structure instance values.</param>
+        /// <returns>The created structure instance value.</returns>
+        private ValueReference CreateStructure(StructureType structureType, params ValueReference[] values)
+        {
+            Debug.Assert(structureType != null, "Invalid structure type");
+            Debug.Assert(values != null && values.Length > 0, "Invalid values");
+            Debug.Assert(values.Length == structureType.NumFields, "Invalid values or structure type");
+
+            // Create structure instance
+            var instance = CreateStructure(structureType);
+            for (int i = 0, e = values.Length; i < e; ++i)
+                instance = CreateSetField(instance, i, values[i]);
+            return instance;
+        }
+
+        /// <summary>
         /// Creates a load operation of an object field.
         /// </summary>
         /// <param name="objectValue">The object value.</param>

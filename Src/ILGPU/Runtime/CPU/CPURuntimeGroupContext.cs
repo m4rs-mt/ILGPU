@@ -60,6 +60,11 @@ namespace ILGPU.Runtime.CPU
         private Barrier groupBarrier;
 
         /// <summary>
+        /// A temporary location for broadcast values.
+        /// </summary>
+        private MemoryBuffer<byte> broadcastBuffer;
+
+        /// <summary>
         /// The current shared memory offset for allocation.
         /// </summary>
         private volatile int sharedMemoryOffset = 0;
@@ -88,6 +93,7 @@ namespace ILGPU.Runtime.CPU
             Debug.Assert(accelerator != null, "Invalid accelerator");
             groupBarrier = new Barrier(0);
             sharedMemoryBuffer = new MemoryBufferCache(accelerator);
+            broadcastBuffer = accelerator.Allocate<byte>(8 * 1024);
         }
 
         #endregion
@@ -104,8 +110,10 @@ namespace ILGPU.Runtime.CPU
         #region Methods
 
         /// <summary>
-        /// Executes a thread barrier.
+        /// Performs a shared-memory allocation.
         /// </summary>
+        /// <param name="length">The length in bytes to allocate.</param>
+        /// <returns>The resolved shared-memory array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T> AllocateSharedMemory<T>(int length)
             where T : struct
@@ -137,6 +145,29 @@ namespace ILGPU.Runtime.CPU
         {
             Interlocked.Exchange(ref sharedMemoryOffset, 0);
             Barrier();
+        }
+
+        /// <summary>
+        /// Executes a broadcast operation.
+        /// </summary>
+        /// <param name="value">The desired group index.</param>
+        /// <param name="groupIndex">The source thread index within the group.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T Broadcast<T>(T value, int groupIndex)
+            where T : struct
+        {
+            var view = broadcastBuffer.View.Cast<T>();
+            if (Group.LinearIndex == groupIndex)
+            {
+                Debug.Assert(
+                    Interop.SizeOf<T>() < broadcastBuffer.Length,
+                    "Structure to large for broadcast operation");
+                view[0] = value;
+            }
+            Barrier();
+            var result = view[0];
+            groupBarrier.SignalAndWait();
+            return result;
         }
 
         /// <summary>
@@ -239,6 +270,7 @@ namespace ILGPU.Runtime.CPU
 
             Dispose(ref groupBarrier);
             Dispose(ref sharedMemoryBuffer);
+            Dispose(ref broadcastBuffer);
         }
 
         #endregion

@@ -225,5 +225,33 @@ namespace ILGPU.Tests
                 .Which.GetBaseException()
                 .Should().Match(x => x is CudaException || x is NotSupportedException);
         }
+
+        internal static void GroupBroadcastKernel(
+            GroupedIndex index,
+            ArrayView<int> data)
+        {
+            var idx = index.GridIdx * Group.DimensionX + index.GroupIdx;
+            data[idx] = Group.Broadcast(index.GroupIdx.X, Group.DimensionX - 1);
+        }
+
+        [Theory]
+        [InlineData(32)]
+        [InlineData(256)]
+        [InlineData(1024)]
+        [KernelMethod(nameof(GroupBroadcastKernel))]
+        public void GroupBroadcast(int length)
+        {
+            for (int i = 2; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
+            {
+                using (var buffer = Accelerator.Allocate<int>(length * i))
+                {
+                    var extent = new GroupedIndex(length, i);
+                    Execute(extent, buffer.View);
+
+                    var expected = Enumerable.Repeat(i - 1, buffer.Length).ToArray();
+                    Verify(buffer, expected);
+                }
+            }
+        }
     }
 }

@@ -30,6 +30,8 @@ namespace ILGPU.Frontend.Intrinsic
         Barrier,
         WarpSize,
         LaneIdx,
+
+        Broadcast,
     }
 
     /// <summary>
@@ -89,6 +91,11 @@ namespace ILGPU.Frontend.Intrinsic
                     return builder.CreateWarpSizeValue();
                 case WarpIntrinsicKind.LaneIdx:
                     return builder.CreateLaneIdxValue();
+                case WarpIntrinsicKind.Broadcast:
+                    return builder.CreateBroadcast(
+                        context[0],
+                        context[1],
+                        BroadcastKind.WarpLevel);
                 default:
                     throw context.GetNotSupportedException(
                         ErrorMessages.NotSupportedWarpIntrinsic,

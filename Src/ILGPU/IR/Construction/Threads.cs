@@ -51,6 +51,28 @@ namespace ILGPU.IR.Construction
                 kind));
 
         /// <summary>
+        /// Creates a new broadcast operation.
+        /// </summary>
+        /// <param name="variable">The variable.</param>
+        /// <param name="origin">The broadcast origin (thread index within a group or a warp).</param>
+        /// <param name="kind">The operation kind.</param>
+        /// <returns>A node that represents the broadcast operation.</returns>
+        public ValueReference CreateBroadcast(
+            Value variable,
+            Value origin,
+            BroadcastKind kind)
+        {
+            Debug.Assert(variable != null, "Invalid variable value");
+            Debug.Assert(origin != null, "Invalid origin value");
+
+            return Append(new Broadcast(
+                BasicBlock,
+                variable,
+                origin,
+                kind));
+        }
+
+        /// <summary>
         /// Creates a new shuffle operation.
         /// </summary>
         /// <param name="variable">The variable.</param>

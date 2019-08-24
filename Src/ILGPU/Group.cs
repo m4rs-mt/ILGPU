@@ -12,6 +12,7 @@
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.CPU;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU
 {
@@ -98,6 +99,11 @@ namespace ILGPU
         /// <returns>The thread dimension for a single group.</returns>
         public static Index3 Dimension => new Index3(DimensionX, DimensionY, DimensionZ);
 
+        /// <summary>
+        /// Returns the linear thread index of the current thread within the current thread group.
+        /// </summary>
+        public static int LinearIndex => Index.ComputeLinearIndex(Dimension);
+
         #endregion
 
         #region Barriers
@@ -138,6 +144,24 @@ namespace ILGPU
         [GroupIntrinsic(GroupIntrinsicKind.BarrierOr)]
         public static bool BarrierOr(bool predicate) =>
             CPURuntimeGroupContext.Current.BarrierOr(predicate);
+
+        #endregion
+
+        #region Broadcast
+
+        /// <summary>
+        /// Performs a broadcast operation that broadcasts the given value
+        /// from the specified thread to all other threads in the group.
+        /// </summary>
+        /// <param name="value">The value to broadcast.</param>
+        /// <param name="groupIndex">The source thread index within the group.</param>
+        /// <remarks>
+        /// Note that the group index must be the same for all threads in the group.</remarks>
+        [GroupIntrinsic(GroupIntrinsicKind.Broadcast)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T Broadcast<T>(T value, int groupIndex)
+            where T : struct =>
+            CPURuntimeGroupContext.Current.Broadcast(value, groupIndex);
 
         #endregion
     }

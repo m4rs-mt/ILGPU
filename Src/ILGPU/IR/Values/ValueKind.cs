@@ -267,6 +267,11 @@ namespace ILGPU.IR
         Barrier,
 
         /// <summary>
+        /// A <see cref="Values.Broadcast"/> value.
+        /// </summary>
+        Broadcast,
+
+        /// <summary>
         /// A <see cref="Values.WarpShuffle"/> value.
         /// </summary>
         WarpShuffle,

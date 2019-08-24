@@ -26,7 +26,7 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         public DeadCodeElimination() { }
 
-        /// <summary cref="OrderedTransformation.PerformTransformation{TScopeProvider}(Method.Builder, Landscape, Landscape{object}.Entry, TScopeProvider)"/>
+        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
         protected override bool PerformTransformation(Method.Builder builder)
         {
             var scope = builder.CreateScope();
