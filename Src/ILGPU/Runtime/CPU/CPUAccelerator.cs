@@ -271,7 +271,7 @@ namespace ILGPU.Runtime.CPU
             for (int i = 0; i < numRuntimeGroups; ++i)
             {
                 var context = groupContexts[i];
-                context.Initialize(task.GridDim, task.GroupDim, task.SharedMemSize);
+                context.Initialize(task.GroupDim, task.SharedMemSize);
             }
 
             Interlocked.MemoryBarrier();
@@ -331,6 +331,9 @@ namespace ILGPU.Runtime.CPU
                     var chunkSize = (runtimeDimension + numRuntimeGroups - 1) / numRuntimeGroups;
                     chunkSize = ((chunkSize + groupThreadSize - 1) / groupThreadSize) * groupThreadSize;
                     var chunkOffset = chunkSize * runtimeGroupIdx;
+
+                    // Setup current indices
+                    CPURuntimeThreadContext.SetupDimensions(task.GridDim, task.GroupDim);
 
                     // Prepare execution
                     groupContext.WaitForNextThreadIndex();

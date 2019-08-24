@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -39,8 +40,7 @@ namespace ILGPU.Runtime.CPU
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                if (currentContext == null)
-                    throw new InvalidKernelOperationException();
+                Debug.Assert(currentContext != null, ErrorMessages.InvalidKernelOperation);
                 return currentContext;
             }
         }
@@ -48,42 +48,6 @@ namespace ILGPU.Runtime.CPU
         #endregion
 
         #region Instance
-
-        /// <summary>
-        /// The X dimension of the scheduled thread grid
-        /// of the debug CPU accelerator.
-        /// </summary>
-        private volatile int gridDimensionXValue;
-
-        /// <summary>
-        /// The Y dimension of the scheduled thread grid
-        /// of the debug CPU accelerator.
-        /// </summary>
-        private volatile int gridDimensionYValue;
-
-        /// <summary>
-        /// The Z dimension of the scheduled thread grid
-        /// of the debug CPU accelerator.
-        /// </summary>
-        private volatile int gridDimensionZValue;
-
-        /// <summary>
-        /// The X dimension of the scheduled thread group
-        /// of the debug CPU accelerator.
-        /// </summary>
-        private volatile int groupDimensionXValue;
-
-        /// <summary>
-        /// The Y dimension of the scheduled thread group
-        /// of the debug CPU accelerator.
-        /// </summary>
-        private volatile int groupDimensionYValue;
-
-        /// <summary>
-        /// The Z dimension of the scheduled thread group
-        /// of the debug CPU accelerator.
-        /// </summary>
-        private volatile int groupDimensionZValue;
 
         /// <summary>
         /// A counter for the computation of interlocked group counters.
@@ -129,44 +93,6 @@ namespace ILGPU.Runtime.CPU
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Returns the X dimension of the scheduled thread grid.
-        /// </summary>
-        public int GridDimensionX => gridDimensionXValue;
-
-        /// <summary>
-        /// Returns the X dimension of the scheduled thread grid.
-        /// </summary>
-        public int GridDimensionY => gridDimensionYValue;
-
-        /// <summary>
-        /// Returns the X dimension of the scheduled thread grid.
-        /// </summary>
-        public int GridDimensionZ => gridDimensionZValue;
-
-        /// <summary>
-        /// Returns X the dimension of the number of threads per group per grid element
-        /// in the scheduled thread grid.
-        /// </summary>
-        public int GroupDimensionX => groupDimensionXValue;
-
-        /// <summary>
-        /// Returns Y the dimension of the number of threads per group per grid element
-        /// in the scheduled thread grid.
-        /// </summary>
-        public int GroupDimensionY => groupDimensionYValue;
-
-        /// <summary>
-        /// Returns Z the dimension of the number of threads per group per grid element
-        /// in the scheduled thread grid.
-        /// </summary>
-        public int GroupDimensionZ => groupDimensionZValue;
-
-        /// <summary>
-        /// Returns the current total group size in number of threads.
-        /// </summary>
-        public int GroupSize => groupDimensionXValue * groupDimensionYValue * groupDimensionZValue;
 
         /// <summary>
         /// Returns the associated shared memory.
@@ -269,28 +195,20 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Initializes this context.
         /// </summary>
-        /// <param name="gridDim">The grid dimension.</param>
-        /// <param name="groupDim">The group dimension.</param>
+        /// <param name="groupDimension">The group dimension.</param>
         /// <param name="sharedMemSize">The required shared-memory size in bytes used by this group.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Initialize(in Index3 gridDim, in Index3 groupDim, int sharedMemSize)
+        internal void Initialize(Index3 groupDimension, int sharedMemSize)
         {
-            gridDimensionXValue = gridDim.X;
-            gridDimensionYValue = gridDim.Y;
-            gridDimensionZValue = gridDim.Z;
-
-            groupDimensionXValue = groupDim.X;
-            groupDimensionYValue = groupDim.Y;
-            groupDimensionZValue = groupDim.Z;
-
             sharedMemoryOffset = 0;
             sharedMemoryLock = 0;
 
+            var groupSize = groupDimension.Size;
             var currentBarrierCount = groupBarrier.ParticipantCount;
-            if (currentBarrierCount > GroupSize)
-                groupBarrier.RemoveParticipants(currentBarrierCount - GroupSize);
-            else if (currentBarrierCount < GroupSize)
-                groupBarrier.AddParticipants(GroupSize - currentBarrierCount);
+            if (currentBarrierCount > groupSize)
+                groupBarrier.RemoveParticipants(currentBarrierCount - groupSize);
+            else if (currentBarrierCount < groupSize)
+                groupBarrier.AddParticipants(groupSize - currentBarrierCount);
 
             if (sharedMemSize > 0)
                 SharedMemory = sharedMemoryBuffer.Allocate<byte>(sharedMemSize);

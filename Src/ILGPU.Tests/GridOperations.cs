@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -18,6 +19,18 @@ namespace ILGPU.Tests
             data[0] = Grid.DimensionX;
             data[1] = Grid.DimensionY;
             data[2] = Grid.DimensionZ;
+
+            Debug.Assert(Grid.IndexX < Grid.DimensionX);
+            Debug.Assert(Grid.IndexY < Grid.DimensionY);
+            Debug.Assert(Grid.IndexZ < Grid.DimensionZ);
+
+            Debug.Assert(index.GridIdx.X == Grid.IndexX);
+            Debug.Assert(index.GridIdx.Y == Grid.IndexY);
+            Debug.Assert(index.GridIdx.Z == Grid.IndexZ);
+
+            Debug.Assert(index.GroupIdx.X == Group.IndexX);
+            Debug.Assert(index.GroupIdx.Y == Group.IndexY);
+            Debug.Assert(index.GroupIdx.Z == Group.IndexZ);
         }
 
         [Theory]

@@ -105,6 +105,96 @@ namespace ILGPU.IR.Values
     }
 
     /// <summary>
+    /// Represents the <see cref="Grid.Index"/> property.
+    /// </summary>
+    public sealed class GridIndexValue : DeviceConstantDimensionValue
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new value.
+        /// </summary>
+        /// <param name="context">The current IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="dimension">The constant dimension.</param>
+        internal GridIndexValue(
+            IRContext context,
+            BasicBlock basicBlock,
+            DeviceConstantDimension3D dimension)
+            : base(
+                  ValueKind.GridIndex,
+                  context,
+                  basicBlock,
+                  dimension)
+        { }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+            builder.CreateGridIndexValue(Dimension);
+
+        /// <summary cref="Value.Accept" />
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region Object
+
+        /// <summary cref="Node.ToPrefixString"/>
+        protected override string ToPrefixString() => "gridIdx";
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents the <see cref="Group.Index"/> property.
+    /// </summary>
+    public sealed class GroupIndexValue : DeviceConstantDimensionValue
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new value.
+        /// </summary>
+        /// <param name="context">The current IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="dimension">The constant dimension.</param>
+        internal GroupIndexValue(
+            IRContext context,
+            BasicBlock basicBlock,
+            DeviceConstantDimension3D dimension)
+            : base(
+                  ValueKind.GroupIndex,
+                  context,
+                  basicBlock,
+                  dimension)
+        { }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+            builder.CreateGroupIndexValue(Dimension);
+
+        /// <summary cref="Value.Accept" />
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region Object
+
+        /// <summary cref="Node.ToPrefixString"/>
+        protected override string ToPrefixString() => "groupIdx";
+
+        #endregion
+    }
+
+    /// <summary>
     /// Represents the <see cref="Grid.Dimension"/> property.
     /// </summary>
     public sealed class GridDimensionValue : DeviceConstantDimensionValue

@@ -16,6 +16,9 @@ namespace ILGPU.Frontend.Intrinsic
 {
     enum GridIntrinsicKind
     {
+        GetGridIndex,
+        GetGroupIndex,
+
         GetGridDimension,
         GetGroupDimension,
     }
@@ -36,6 +39,9 @@ namespace ILGPU.Frontend.Intrinsic
 
         public override IntrinsicType Type => IntrinsicType.Grid;
 
+        /// <summary>
+        /// The associated constant dimension.
+        /// </summary>
         public DeviceConstantDimension3D Dimension { get; }
 
         /// <summary>
@@ -57,10 +63,17 @@ namespace ILGPU.Frontend.Intrinsic
             GridIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
-            if (attribute.IntrinsicKind == GridIntrinsicKind.GetGridDimension)
-                return builder.CreateGridDimensionValue(attribute.Dimension);
-            return builder.CreateGroupDimensionValue(attribute.Dimension);
+            switch (attribute.IntrinsicKind)
+            {
+                case GridIntrinsicKind.GetGridIndex:
+                    return builder.CreateGridIndexValue(attribute.Dimension);
+                case GridIntrinsicKind.GetGroupIndex:
+                    return builder.CreateGroupIndexValue(attribute.Dimension);
+                case GridIntrinsicKind.GetGridDimension:
+                    return builder.CreateGridDimensionValue(attribute.Dimension);
+                default:
+                    return builder.CreateGroupDimensionValue(attribute.Dimension);
+            }
         }
-
     }
 }

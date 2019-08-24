@@ -101,6 +101,16 @@ namespace ILGPU.IR
         // Device Constants
 
         /// <summary>
+        /// A <see cref="Values.GridIndexValue"/> value.
+        /// </summary>
+        GridIndex,
+
+        /// <summary>
+        /// A <see cref="Values.GroupIndexValue"/> value.
+        /// </summary>
+        GroupIndex,
+
+        /// <summary>
         /// A <see cref="Values.GridDimensionValue"/> value.
         /// </summary>
         GridDimension,

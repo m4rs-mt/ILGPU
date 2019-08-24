@@ -103,6 +103,38 @@ namespace ILGPU.IR.Construction
             Append(new LaneIdxValue(Context, BasicBlock));
 
         /// <summary>
+        /// Creates a node that represents a <see cref="Grid.Index"/> property.
+        /// </summary>
+        /// <param name="dimension">The constant dimension.</param>
+        /// <returns>A reference to the requested value.</returns>
+        public ValueReference CreateGridIndexValue(DeviceConstantDimension3D dimension)
+        {
+            Debug.Assert(
+                dimension >= DeviceConstantDimension3D.X && dimension <= DeviceConstantDimension3D.Z,
+                "Invalid dimension value");
+            return Append(new GridIndexValue(
+                Context,
+                BasicBlock,
+                dimension));
+        }
+
+        /// <summary>
+        /// Creates a node that represents a <see cref="Group.Index"/> property.
+        /// </summary>
+        /// <param name="dimension">The constant dimension.</param>
+        /// <returns>A reference to the requested value.</returns>
+        public ValueReference CreateGroupIndexValue(DeviceConstantDimension3D dimension)
+        {
+            Debug.Assert(
+                dimension >= DeviceConstantDimension3D.X && dimension <= DeviceConstantDimension3D.Z,
+                "Invalid dimension value");
+            return Append(new GroupIndexValue(
+                Context,
+                BasicBlock,
+                dimension));
+        }
+
+        /// <summary>
         /// Creates a node that represents a <see cref="Grid.Dimension"/> property.
         /// </summary>
         /// <param name="dimension">The constant dimension.</param>

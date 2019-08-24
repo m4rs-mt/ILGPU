@@ -23,13 +23,49 @@ namespace ILGPU
         #region Properties
 
         /// <summary>
+        /// Returns the X index withing the scheduled thread grid.
+        /// </summary>
+        /// <returns>The X grid dimension.</returns>
+        public static int IndexX
+        {
+            [GridIntrinsic(GridIntrinsicKind.GetGridIndex, DeviceConstantDimension3D.X)]
+            get => CPURuntimeThreadContext.GridIndex.X;
+        }
+
+        /// <summary>
+        /// Returns the Y index withing the scheduled thread grid.
+        /// </summary>
+        /// <returns>The Y grid dimension.</returns>
+        public static int IndexY
+        {
+            [GridIntrinsic(GridIntrinsicKind.GetGridIndex, DeviceConstantDimension3D.Y)]
+            get => CPURuntimeThreadContext.GridIndex.Y;
+        }
+
+        /// <summary>
+        /// Returns the Z index withing the scheduled thread grid.
+        /// </summary>
+        /// <returns>The Z grid dimension.</returns>
+        public static int IndexZ
+        {
+            [GridIntrinsic(GridIntrinsicKind.GetGridIndex, DeviceConstantDimension3D.Z)]
+            get => CPURuntimeThreadContext.GridIndex.Z;
+        }
+
+        /// <summary>
+        /// Returns the index within the scheduled thread grid.
+        /// </summary>
+        /// <returns>The grid index.</returns>
+        public static Index3 Index => new Index3(IndexX, IndexY, IndexZ);
+
+        /// <summary>
         /// Returns the X dimension of the scheduled thread grid.
         /// </summary>
         /// <returns>The X grid dimension.</returns>
         public static int DimensionX
         {
             [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.X)]
-            get => CPURuntimeGroupContext.Current.GridDimensionX;
+            get => CPURuntimeThreadContext.GridDimension.X;
         }
 
         /// <summary>
@@ -39,7 +75,7 @@ namespace ILGPU
         public static int DimensionY
         {
             [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.Y)]
-            get => CPURuntimeGroupContext.Current.GridDimensionY;
+            get => CPURuntimeThreadContext.GridDimension.Y;
         }
 
         /// <summary>
@@ -49,7 +85,7 @@ namespace ILGPU
         public static int DimensionZ
         {
             [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.Z)]
-            get => CPURuntimeGroupContext.Current.GridDimensionZ;
+            get => CPURuntimeThreadContext.GridDimension.Y;
         }
 
         /// <summary>
@@ -67,30 +103,24 @@ namespace ILGPU
         /// </summary>
         /// <param name="index">The grouped index.</param>
         /// <returns>The computes global index.</returns>
-        public static Index ComputeGlobalIndex(GroupedIndex index)
-        {
-            return ComputeGlobalIndex(index.GridIdx, index.GroupIdx);
-        }
+        public static Index ComputeGlobalIndex(GroupedIndex index) =>
+            ComputeGlobalIndex(index.GridIdx, index.GroupIdx);
 
         /// <summary>
         /// Computes the global index of a grouped index (gridIdx, groupIdx).
         /// </summary>
         /// <param name="index">The grouped index.</param>
         /// <returns>The computes global index.</returns>
-        public static Index2 ComputeGlobalIndex(GroupedIndex2 index)
-        {
-            return ComputeGlobalIndex(index.GridIdx, index.GroupIdx);
-        }
+        public static Index2 ComputeGlobalIndex(GroupedIndex2 index) =>
+            ComputeGlobalIndex(index.GridIdx, index.GroupIdx);
 
         /// <summary>
         /// Computes the global index of a grouped index (gridIdx, groupIdx).
         /// </summary>
         /// <param name="index">The grouped index.</param>
         /// <returns>The computes global index.</returns>
-        public static Index3 ComputeGlobalIndex(GroupedIndex3 index)
-        {
-            return ComputeGlobalIndex(index.GridIdx, index.GroupIdx);
-        }
+        public static Index3 ComputeGlobalIndex(GroupedIndex3 index) =>
+            ComputeGlobalIndex(index.GridIdx, index.GroupIdx);
 
         /// <summary>
         /// Computes the global index of a given gridIdx and a groupIdx.
@@ -98,10 +128,8 @@ namespace ILGPU
         /// <param name="gridIdx">The grid index.</param>
         /// <param name="groupIdx">The group index.</param>
         /// <returns>The computes global index.</returns>
-        public static Index ComputeGlobalIndex(Index gridIdx, Index groupIdx)
-        {
-            return groupIdx + gridIdx * Group.Dimension.X;
-        }
+        public static Index ComputeGlobalIndex(Index gridIdx, Index groupIdx) =>
+            groupIdx + gridIdx * Group.Dimension.X;
 
         /// <summary>
         /// Computes the global index of a given gridIdx and a groupIdx.

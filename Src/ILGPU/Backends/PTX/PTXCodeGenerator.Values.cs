@@ -700,6 +700,20 @@ namespace ILGPU.Backends.PTX
             MakeCompoundRegisterStore(value, index, value.Value);
         }
 
+        /// <summary cref="IValueVisitor.Visit(GridIndexValue)"/>
+        public void Visit(GridIndexValue value) =>
+            MoveFromIntrinsicRegister(
+                value,
+                PTXRegisterKind.Ctaid,
+                (int)value.Dimension);
+
+        /// <summary cref="IValueVisitor.Visit(GroupIndexValue)"/>
+        public void Visit(GroupIndexValue value) =>
+            MoveFromIntrinsicRegister(
+                value,
+                PTXRegisterKind.Tid,
+                (int)value.Dimension);
+
         /// <summary cref="IValueVisitor.Visit(GridDimensionValue)"/>
         public void Visit(GridDimensionValue value) =>
             MoveFromIntrinsicRegister(

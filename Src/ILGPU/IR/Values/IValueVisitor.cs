@@ -220,6 +220,18 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="value">The node.</param>
+        void Visit(GridIndexValue value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
+        void Visit(GroupIndexValue value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
         void Visit(GridDimensionValue value);
 
         /// <summary>
