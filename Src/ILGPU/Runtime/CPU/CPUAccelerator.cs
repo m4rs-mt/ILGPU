@@ -112,7 +112,7 @@ namespace ILGPU.Runtime.CPU
             MemorySize = long.MaxValue;
             MaxGridSize = new Index3(int.MaxValue, int.MaxValue, int.MaxValue);
             MaxNumThreadsPerGroup = NumThreads;
-            MaxSharedMemoryPerGroup = int.MaxValue;
+            MaxSharedMemoryPerGroup = CPURuntimeGroupContext.SharedMemorySize;
             MaxConstantMemory = int.MaxValue;
             NumMultiprocessors = 1;
             MaxNumThreadsPerMultiprocessor = NumThreads;
@@ -286,6 +286,10 @@ namespace ILGPU.Runtime.CPU
 
             // Wait for the result
             finishedEvent.SignalAndWait();
+
+            // Reset all groups
+            for (int i = 0; i < numRuntimeGroups; ++i)
+                groupContexts[i].TearDown();
 
             // Reset task
             lock (taskSynchronizationObject)

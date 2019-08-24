@@ -93,7 +93,7 @@ namespace ILGPU.Runtime
     /// Creates a new view pointer wrapper that wraps a pointer reference
     /// inside an array view.
     /// </summary>
-    public sealed class ViewPointerWrapper : ArrayViewSource
+    public class ViewPointerWrapper : ArrayViewSource
     {
         /// <summary>
         /// Creates a new pointer wrapper.
@@ -116,7 +116,11 @@ namespace ILGPU.Runtime
         public static unsafe ViewPointerWrapper Create(IntPtr value) =>
             new ViewPointerWrapper(value);
 
-        private ViewPointerWrapper(IntPtr ptr)
+        /// <summary>
+        /// Creates a new pointer wrapper.
+        /// </summary>
+        /// <param name="ptr">The native value pointer.</param>
+        protected ViewPointerWrapper(IntPtr ptr)
         {
             NativePtr = ptr;
         }
@@ -136,7 +140,45 @@ namespace ILGPU.Runtime
     }
 
     /// <summary>
-    /// Creates a new view array wrapper.
+    /// Represents a view source that allocates native memory in the CPU address space.
+    /// </summary>
+    internal sealed class UnmanagedMemoryViewSource : ViewPointerWrapper
+    {
+        /// <summary>
+        /// Creates a new unmanaged memory view source.
+        /// </summary>
+        /// <param name="sizeInBytes">The size in bytes to allocate..</param>
+        /// <returns>An unsafe array view source.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe UnmanagedMemoryViewSource Create(int sizeInBytes) =>
+            new UnmanagedMemoryViewSource(sizeInBytes);
+
+        private UnmanagedMemoryViewSource(int sizeInBytes)
+            : base(Marshal.AllocHGlobal(sizeInBytes))
+        { }
+
+        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index, Index)"/>
+        protected internal override ArraySegment<byte> GetAsRawArray(
+            AcceleratorStream stream,
+            Index byteOffset,
+            Index byteExtent) => throw new InvalidOperationException();
+
+        #region IDispoable
+
+        /// <summary cref="DisposeBase.Dispose(bool)"/>
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            Marshal.FreeHGlobal(NativePtr);
+        }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a view array wrapper that wraps a <see cref="GCHandle"/>
+    /// instance. Note that this instance will not be freed automatically during
+    /// the <see cref="IDisposable.Dispose"/> operation.
     /// </summary>
     public sealed class ViewArrayWrapper : ArrayViewSource
     {
@@ -176,5 +218,4 @@ namespace ILGPU.Runtime
 
         #endregion
     }
-
 }

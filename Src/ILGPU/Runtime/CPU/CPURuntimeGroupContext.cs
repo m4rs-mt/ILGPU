@@ -12,6 +12,7 @@
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -24,6 +25,25 @@ namespace ILGPU.Runtime.CPU
     /// </summary>
     public sealed class CPURuntimeGroupContext : DisposeBase
     {
+        #region Constants
+
+        /// <summary>
+        /// The maximum shared-memory size for a single group.
+        /// </summary>
+        internal const int SharedMemorySize = int.MaxValue;
+
+        /// <summary>
+        /// The chunk size of shared-memory to allocate in a row.
+        /// </summary>
+        internal const int SharedMemoryChunkSize = 8 * 1024 * 1024;
+
+        /// <summary>
+        /// The maximum broadcast buffer size for a single object.
+        /// </summary>
+        private const int BroadcastBufferSize = 8 * 1024;
+
+        #endregion
+
         #region Thread Static
 
         /// <summary>
@@ -84,6 +104,25 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         private MemoryBufferCache sharedMemoryBuffer;
 
+        // TODO: remove advancedSharedMemoryBuffer by adjusting
+        // the IL-code in debug builds
+
+        /// <summary>
+        /// A temporary cache for additional shared memory requirements.
+        /// </summary>
+        /// <remarks>
+        /// Note that this buffer is only required for debug CPU builds. In
+        /// these cases, we cannot move nested <see cref="SharedMemory.Allocate{T}(int)"/>
+        /// instructions out of nested loops to provide the best debugging experience.
+        /// </remarks>
+        private readonly List<MemoryBuffer<byte>> advancedSharedMemoryBuffer =
+            new List<MemoryBuffer<byte>>();
+
+        /// <summary>
+        /// Represents the next advanced shared-memory buffer index to use.
+        /// </summary>
+        private volatile int advancedSharedMemoryBufferIndex = -1;
+
         /// <summary>
         /// Constructs a new CPU-based runtime context for parallel processing.
         /// </summary>
@@ -91,14 +130,20 @@ namespace ILGPU.Runtime.CPU
         public CPURuntimeGroupContext(CPUAccelerator accelerator)
         {
             Debug.Assert(accelerator != null, "Invalid accelerator");
+            Accelerator = accelerator;
             groupBarrier = new Barrier(0);
             sharedMemoryBuffer = new MemoryBufferCache(accelerator);
-            broadcastBuffer = accelerator.Allocate<byte>(8 * 1024);
+            broadcastBuffer = accelerator.Allocate<byte>(BroadcastBufferSize);
         }
 
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the associated accelerator.
+        /// </summary>
+        public CPUAccelerator Accelerator { get; }
 
         /// <summary>
         /// Returns the associated shared memory.
@@ -110,28 +155,66 @@ namespace ILGPU.Runtime.CPU
         #region Methods
 
         /// <summary>
+        /// Performs an internal shared-memory allocation.
+        /// </summary>
+        /// <param name="extent">The number of elements to allocate.</param>
+        private void AllocateSharedMemoryInternal<T>(int extent)
+            where T : struct
+        {
+            int sizeInBytes = extent * Interop.SizeOf<T>();
+            if (advancedSharedMemoryBufferIndex < 0)
+            {
+                // We can allocate the required memory
+                if (sharedMemoryOffset + sizeInBytes <= SharedMemory.Length)
+                {
+                    currentSharedMemoryView = SharedMemory.GetSubView(sharedMemoryOffset, sizeInBytes);
+                    sharedMemoryOffset += sizeInBytes;
+                    return;
+                }
+
+                // We have to perform an advanced buffer allocation
+                // -> ...
+            }
+            else
+            {
+                // Use the advanced buffer
+                var buffer = advancedSharedMemoryBuffer[advancedSharedMemoryBufferIndex];
+                if (sharedMemoryOffset + sizeInBytes <= buffer.Length)
+                {
+                    currentSharedMemoryView = buffer.View.GetSubView(sharedMemoryOffset, sizeInBytes);
+                    sharedMemoryOffset += sizeInBytes;
+                    return;
+                }
+                // We have to perform a new buffer allocation
+            }
+
+            // We need a new dynamically-chunk of shared memory
+            var tempBuffer = Accelerator.Allocate<byte>(IntrinsicMath.Max(sizeInBytes, SharedMemoryChunkSize));
+            advancedSharedMemoryBuffer.Add(tempBuffer);
+            currentSharedMemoryView = tempBuffer.View.GetSubView(0, sizeInBytes);
+
+            sharedMemoryOffset = sizeInBytes;
+            ++advancedSharedMemoryBufferIndex;
+        }
+
+        /// <summary>
         /// Performs a shared-memory allocation.
         /// </summary>
-        /// <param name="length">The length in bytes to allocate.</param>
+        /// <param name="extent">The number of elements.</param>
         /// <returns>The resolved shared-memory array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> AllocateSharedMemory<T>(int length)
+        public ArrayView<T> AllocateSharedMemory<T>(int extent)
             where T : struct
         {
             var isMainThread = Interlocked.CompareExchange(ref sharedMemoryLock, 1, 0) == 0;
             if (isMainThread)
-            {
-                var sizeInBytes = length * Interop.SizeOf<T>();
-                // We can allocate the required memory
-                currentSharedMemoryView = SharedMemory.GetSubView(sharedMemoryOffset, sizeInBytes);
-                sharedMemoryOffset += sizeInBytes;
-            }
+                AllocateSharedMemoryInternal<T>(extent);
             Barrier();
             var result = currentSharedMemoryView;
             if (isMainThread)
                 Interlocked.Exchange(ref sharedMemoryLock, 0);
             Barrier();
-            Debug.Assert(result.Length >= length * Interop.SizeOf<T>(), "Invalid shared memory allocation");
+            Debug.Assert(result.Length >= extent * Interop.SizeOf<T>(), "Invalid shared memory allocation");
             return result.Cast<T>();
         }
 
@@ -143,6 +226,8 @@ namespace ILGPU.Runtime.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WaitForNextThreadIndex()
         {
+            Barrier();
+            Interlocked.Exchange(ref advancedSharedMemoryBufferIndex, -1);
             Interlocked.Exchange(ref sharedMemoryOffset, 0);
             Barrier();
         }
@@ -233,6 +318,7 @@ namespace ILGPU.Runtime.CPU
         {
             sharedMemoryOffset = 0;
             sharedMemoryLock = 0;
+            advancedSharedMemoryBufferIndex = -1;
 
             var groupSize = groupDimension.Size;
             var currentBarrierCount = groupBarrier.ParticipantCount;
@@ -245,7 +331,22 @@ namespace ILGPU.Runtime.CPU
                 SharedMemory = sharedMemoryBuffer.Allocate<byte>(sharedMemSize);
             else
                 SharedMemory = new ArrayView<byte>();
+            if (sharedMemSize > SharedMemorySize)
+                throw new InvalidKernelOperationException();
             currentSharedMemoryView = default;
+        }
+
+        /// <summary>
+        /// Performs cleanup operations with respect to the previously allocated
+        /// shared memory
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void TearDown()
+        {
+            Interlocked.Exchange(ref advancedSharedMemoryBufferIndex, -1);
+            foreach (var entry in advancedSharedMemoryBuffer)
+                entry.Dispose();
+            advancedSharedMemoryBuffer.Clear();
         }
 
         /// <summary>
