@@ -79,8 +79,7 @@ namespace ILGPU.Backends
             {
                 #region Instance
 
-                private UnsafeMethodCollection<MethodCollections.AllMethods>.Enumerator enumerator;
-                private readonly CachedScopeProvider scopeProvider;
+                private CachedScopeProvider.Enumerator enumerator;
                 private readonly Dictionary<Method, Allocas> allocaMapping;
 
                 /// <summary>
@@ -90,8 +89,7 @@ namespace ILGPU.Backends
                 internal Enumerator(in BackendContext context)
                 {
                     KernelMethod = context.KernelMethod;
-                    enumerator = context.Context.UnsafeMethods.GetEnumerator();
-                    scopeProvider = context.ScopeProvider;
+                    enumerator = context.ScopeProvider.GetEnumerator();
                     allocaMapping = context.allocaMapping;
                 }
 
@@ -111,8 +109,8 @@ namespace ILGPU.Backends
                 {
                     get
                     {
-                        var method = enumerator.Current;
-                        return (method, scopeProvider[method], allocaMapping[method]);
+                        var (method, scope) = enumerator.Current;
+                        return (method, scope, allocaMapping[method]);
                     }
                 }
 
@@ -131,7 +129,7 @@ namespace ILGPU.Backends
                 {
                     while (enumerator.MoveNext())
                     {
-                        if (enumerator.Current == KernelMethod)
+                        if (enumerator.Current.Item1 == KernelMethod)
                             continue;
                         return true;
                     }
@@ -167,17 +165,32 @@ namespace ILGPU.Backends
                 ScopeProvider = new CachedScopeProvider();
                 allocaMapping = new Dictionary<Method, Allocas>();
 
+                var toProcess = new Stack<Scope>();
+                var currentScope = ScopeProvider[kernelMethod];
+
                 var sharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
                 var sharedMemorySize = 0;
-                foreach (var method in kernelContext.UnsafeMethods)
+
+                for (; ;)
                 {
-                    var scope = ScopeProvider[method];
-                    var allocas = Allocas.Create(scope, abi);
-                    allocaMapping.Add(method, allocas);
+                    var allocas = Allocas.Create(currentScope, abi);
+                    allocaMapping.Add(currentScope.Method, allocas);
 
                     sharedAllocations.AddRange(allocas.SharedAllocations.Allocas);
                     sharedMemorySize += allocas.SharedMemorySize;
+
+                    foreach (Value value in currentScope.Values)
+                    {
+                        if (value is MethodCall call &&
+                            ScopeProvider.Resolve(call.Target, out var targetScope))
+                            toProcess.Push(targetScope);
+                    }
+
+                    if (toProcess.Count < 1)
+                        break;
+                    currentScope = toProcess.Pop();
                 }
+
                 SharedAllocations = new AllocaKindInformation(
                     sharedAllocations.ToImmutable(),
                     sharedMemorySize);

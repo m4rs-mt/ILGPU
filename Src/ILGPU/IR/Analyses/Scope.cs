@@ -603,6 +603,59 @@ namespace ILGPU.IR.Analyses
     /// </summary>
     public sealed class CachedScopeProvider : IScopeProvider
     {
+        #region Nested Types
+
+        /// <summary>
+        /// An enumerator to iterate over all cached elements.
+        /// </summary>
+        public struct Enumerator : IEnumerator<(Method, Scope)>
+        {
+            #region Instance
+
+            private Dictionary<Method, Scope>.Enumerator enumerator;
+
+            internal Enumerator(CachedScopeProvider provider)
+            {
+                enumerator = provider.scopes.GetEnumerator();
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the current scope.
+            /// </summary>
+            public (Method, Scope) Current
+            {
+                get
+                {
+                    var entry = enumerator.Current;
+                    return (entry.Key, entry.Value);
+                }
+            }
+
+            /// <summary cref="IEnumerator.Current"/>
+            object IEnumerator.Current => Current;
+
+            #endregion
+
+            #region Methods
+
+            /// <summary cref="IDisposable.Dispose"/>
+            public void Dispose() => enumerator.Dispose();
+
+            /// <summary cref="IEnumerator.MoveNext"/>
+            public bool MoveNext() => enumerator.MoveNext();
+
+            /// <summary cref="IEnumerator.Reset"/>
+            void IEnumerator.Reset() => throw new InvalidOperationException();
+
+            #endregion
+        }
+
+        #endregion
+
         #region Instance
 
         private readonly Dictionary<Method, Scope> scopes =
@@ -626,14 +679,43 @@ namespace ILGPU.IR.Analyses
         {
             get
             {
-                if (!scopes.TryGetValue(method, out Scope scope))
-                {
-                    scope = method.CreateScope();
-                    scopes.Add(method, scope);
-                }
+                Resolve(method, out Scope scope);
                 return scope;
             }
         }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Resolves the scope for the given method and returns true
+        /// if the scope was not cached before.
+        /// </summary>
+        /// <param name="method">The method.</param>
+        /// <param name="scope">The resolved scope.</param>
+        /// <returns>True, if the scope was not registered before.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Resolve(Method method, out Scope scope)
+        {
+            if (!scopes.TryGetValue(method, out scope))
+            {
+                scope = method.CreateScope();
+                scopes.Add(method, scope);
+                return true;
+            }
+            return false;
+        }
+
+        #endregion
+
+        #region IEnumerable
+
+        /// <summary>
+        /// Resolves an enumerator to iterate over all cached elements.
+        /// </summary>
+        /// <returns>The resolved enumerator.</returns>
+        public Enumerator GetEnumerator() => new Enumerator(this);
 
         #endregion
     }
