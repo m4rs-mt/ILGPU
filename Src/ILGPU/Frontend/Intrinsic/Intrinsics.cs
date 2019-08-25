@@ -185,7 +185,7 @@ namespace ILGPU.Frontend.Intrinsic
                     switch (context.NumArguments)
                     {
                         case 1:
-                            return builder.CreateDebugTrace(context[0]);
+                            return builder.CreateDebug(DebugKind.Trace, context[0]);
                         default:
                             throw context.GetNotSupportedException(
                                 ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
@@ -194,7 +194,7 @@ namespace ILGPU.Frontend.Intrinsic
                     switch (context.NumArguments)
                     {
                         case 1:
-                            return builder.CreateDebugAssertFailed(context[0]);
+                            return builder.CreateDebug(DebugKind.AssertFailed, context[0]);
                         default:
                             throw context.GetNotSupportedException(
                                 ErrorMessages.NotSupportedIntrinsic, context.Method.Name);

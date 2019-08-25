@@ -976,16 +976,10 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(HandleValue)"/>
         public void Visit(HandleValue handle) => throw new InvalidCodeGenerationException();
 
-        /// <summary cref="IValueVisitor.Visit(DebugAssertFailed)"/>
-        public void Visit(DebugAssertFailed assert)
+        /// <summary cref="IValueVisitor.Visit(DebugOperation)"/>
+        public void Visit(DebugOperation debug)
         {
-            Debug.Assert(false, "Invalid assert node -> should have been removed");
-        }
-
-        /// <summary cref="IValueVisitor.Visit(DebugTrace)"/>
-        public void Visit(DebugTrace trace)
-        {
-            Debug.Assert(false, "Invalid trace node -> should have been removed");
+            Debug.Assert(false, "Invalid debug node -> should have been removed");
         }
     }
 }

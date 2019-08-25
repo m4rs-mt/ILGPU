@@ -19,32 +19,19 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a new failed debug assertion.
         /// </summary>
+        /// <param name="kind">The operation kind.</param>
         /// <param name="message">The assertion message.</param>
         /// <returns>A node that represents the debug assertion.</returns>
-        public ValueReference CreateDebugAssertFailed(
+        public ValueReference CreateDebug(
+            DebugKind kind,
             Value message)
         {
             Debug.Assert(message != null, "Invalid message value");
 
-            return Append(new DebugAssertFailed(
+            return Append(new DebugOperation(
                 Context,
                 BasicBlock,
-                message));
-        }
-
-        /// <summary>
-        /// Creates a new debug trace.
-        /// </summary>
-        /// <param name="message">The assertion message.</param>
-        /// <returns>A node that represents the debug trace event.</returns>
-        public ValueReference CreateDebugTrace(
-            Value message)
-        {
-            Debug.Assert(message != null, "Invalid message value");
-
-            return Append(new DebugTrace(
-                Context,
-                BasicBlock,
+                kind,
                 message));
         }
     }

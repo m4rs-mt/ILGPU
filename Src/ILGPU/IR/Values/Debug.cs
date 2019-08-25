@@ -17,9 +17,25 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.IR.Values
 {
     /// <summary>
+    /// Represents the kind of a debug operation.
+    /// </summary>
+    public enum DebugKind
+    {
+        /// <summary>
+        /// A failed assertion.
+        /// </summary>
+        AssertFailed,
+
+        /// <summary>
+        /// A trace operation.
+        /// </summary>
+        Trace
+    }
+
+    /// <summary>
     /// Represents a generic debug operation.
     /// </summary>
-    public abstract class DebugOperation : MemoryValue
+    public sealed class DebugOperation : MemoryValue
     {
         #region Static
 
@@ -39,21 +55,35 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new debug operation.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="context">The parent IR context.</param>
         /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="values">All child values.</param>
-        protected DebugOperation(
-            ValueKind kind,
+        /// <param name="kind">The operation kind.</param>
+        /// <param name="message">The debug message.</param>
+        internal DebugOperation(
             IRContext context,
             BasicBlock basicBlock,
-            ImmutableArray<ValueReference> values)
+            DebugKind kind,
+            ValueReference message)
             : base(
-                  kind,
+                  ValueKind.Debug,
                   basicBlock,
-                  values,
+                  ImmutableArray.Create(message),
                   ComputeType(context))
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The debug operation kind.
+        /// </summary>
+        public DebugKind Kind { get; }
+
+        /// <summary>
+        /// Returns the message.
+        /// </summary>
+        public ValueReference Message => this[0];
 
         #endregion
 
@@ -63,49 +93,10 @@ namespace ILGPU.IR.Values
         protected sealed override TypeNode UpdateType(IRContext context) =>
             ComputeType(context);
 
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents a failed debug assertion.
-    /// </summary>
-    public sealed class DebugAssertFailed : DebugOperation
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a failed debug assertion.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="message">The assertion message.</param>
-        internal DebugAssertFailed(
-            IRContext context,
-            BasicBlock basicBlock,
-            ValueReference message)
-            : base(
-                  ValueKind.DebugAssertFailed,
-                  context,
-                  basicBlock,
-                  ImmutableArray.Create(message))
-        { }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the message.
-        /// </summary>
-        public ValueReference Message => this[0];
-
-        #endregion
-
-        #region Methods
-
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateDebugAssertFailed(
+            builder.CreateDebug(
+                Kind,
                 rebuilder.Rebuild(Message));
 
         /// <summary cref="Value.Accept" />
@@ -116,65 +107,8 @@ namespace ILGPU.IR.Values
         #region Object
 
         /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "debug.fail";
-
-        /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => Message.ToString();
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Represents a debug trace event.
-    /// </summary>
-    public sealed class DebugTrace : DebugOperation
-    {
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new debug trace.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="message">The assertion message.</param>
-        internal DebugTrace(
-            IRContext context,
-            BasicBlock basicBlock,
-            ValueReference message)
-            : base(
-                  ValueKind.DebugTrace,
-                  context,
-                  basicBlock,
-                  ImmutableArray.Create(message))
-        { }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the message.
-        /// </summary>
-        public ValueReference Message => this[0];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateDebugTrace(
-                rebuilder.Rebuild(Message));
-
-        /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        #endregion
-
-        #region Object
-
-        /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "debug.trace";
+        protected override string ToPrefixString() =>
+            "debug." + Kind.ToString().ToLower();
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() => Message.ToString();

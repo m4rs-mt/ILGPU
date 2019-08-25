@@ -294,19 +294,13 @@ namespace ILGPU.IR.Values
         /// <param name="handle">The node.</param>
         void Visit(HandleValue handle);
 
-        // Debug assert
+        // Debug operations
 
         /// <summary>
         /// Visits the node.
         /// </summary>
-        /// <param name="assert">The node.</param>
-        void Visit(DebugAssertFailed assert);
-
-        /// <summary>
-        /// Visits the node.
-        /// </summary>
-        /// <param name="trace">The node.</param>
-        void Visit(DebugTrace trace);
+        /// <param name="debug">The node.</param>
+        void Visit(DebugOperation debug);
 
         // Terminators
 

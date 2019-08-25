@@ -284,14 +284,9 @@ namespace ILGPU.IR
         // Debugging
 
         /// <summary>
-        /// A <see cref="Values.DebugAssertFailed"/> value.
+        /// A <see cref="Values.DebugOperation"/> value.
         /// </summary>
-        DebugAssertFailed,
-
-        /// <summary>
-        /// A <see cref="Values.DebugTrace"/> value.
-        /// </summary>
-        DebugTrace,
+        Debug,
 
         // Internal use
 
