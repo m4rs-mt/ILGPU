@@ -9,6 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using System;
+
 namespace ILGPU.IR
 {
     /// <summary>
@@ -90,7 +92,6 @@ namespace ILGPU.IR
         /// <summary>
         /// A <see cref="Values.StringValue"/> value.
         /// </summary>
-
         String,
 
         /// <summary>
@@ -304,5 +305,16 @@ namespace ILGPU.IR
         /// A <see cref="Values.HandleValue"/> managed handle value.
         /// </summary>
         Handle,
+    }
+
+    /// <summary>
+    /// Utility methods for <see cref="ValueKind"/> enumeration values.
+    /// </summary>
+    public static class ValueKinds
+    {
+        /// <summary>
+        /// The number of different value kinds.
+        /// </summary>
+        public const int NumValueKinds = (int)ValueKind.Handle + 1;
     }
 }

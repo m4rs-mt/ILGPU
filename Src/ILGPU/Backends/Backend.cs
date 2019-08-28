@@ -11,7 +11,9 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Transformations;
+using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPU.Util;
@@ -19,6 +21,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -41,6 +44,39 @@ namespace ILGPU.Backends
     }
 
     /// <summary>
+    /// Represents the general type of a backend.
+    /// </summary>
+    public enum BackendType
+    {
+        /// <summary>
+        /// An IL backend.
+        /// </summary>
+        IL,
+
+        /// <summary>
+        /// A PTX backend.
+        /// </summary>
+        PTX
+    }
+
+    /// <summary>
+    /// Represents general backend-specific code-generation flags.
+    /// </summary>
+    [Flags]
+    public enum BackendFlags : int
+    {
+        /// <summary>
+        /// The default flags (none).
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// Requires all intrinsic functions to be implemented.
+        /// </summary>
+        RequiresIntrinsicImplementations = 1 << 0,
+    }
+
+    /// <summary>
     /// Represents a general ILGPU backend.
     /// </summary>
     public abstract class Backend : DisposeBase, ICache
@@ -48,19 +84,19 @@ namespace ILGPU.Backends
         #region Nested Types
 
         /// <summary>
-        /// No backend handler.
+        /// No backend hook.
         /// </summary>
-        private readonly struct NoHandler : IBackendHandler
+        private readonly struct NoHook : IBackendHook
         {
-            /// <summary cref="IBackendHandler.FinishedCodeGeneration(IRContext, Method)"/>
+            /// <summary cref="IBackendHook.FinishedCodeGeneration(IRContext, Method)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void FinishedCodeGeneration(IRContext context, Method entryPoint) { }
 
-            /// <summary cref="IBackendHandler.InitializedKernelContext(IRContext, Method)"/>
+            /// <summary cref="IBackendHook.InitializedKernelContext(IRContext, Method)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void InitializedKernelContext(IRContext kernelContext, Method kernelMethod) { }
 
-            /// <summary cref="IBackendHandler.OptimizedKernelContext(IRContext, Method)"/>
+            /// <summary cref="IBackendHook.OptimizedKernelContext(IRContext, Method)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void OptimizedKernelContext(IRContext kernelContext, Method kernelMethod) { }
         }
@@ -151,11 +187,13 @@ namespace ILGPU.Backends
             /// <summary>
             /// Constructs a new backend context.
             /// </summary>
+            /// <param name="flags">The current backend flags.</param>
             /// <param name="kernelContext">The current kernel context.</param>
             /// <param name="kernelMethod">The kernel function.</param>
             /// <param name="abi">The current ABI.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal BackendContext(
+                BackendFlags flags,
                 IRContext kernelContext,
                 Method kernelMethod,
                 ABI abi)
@@ -171,8 +209,18 @@ namespace ILGPU.Backends
                 var sharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
                 var sharedMemorySize = 0;
 
+                bool requiresIntrinsics = (flags & BackendFlags.RequiresIntrinsicImplementations) != BackendFlags.None;
+
                 for (; ;)
                 {
+                    // Check for an unsupported intrinsic function
+                    if (requiresIntrinsics && currentScope.Method.HasFlags(MethodFlags.Intrinsic))
+                    {
+                        throw new NotSupportedException(string.Format(
+                            ErrorMessages.NotSupportedIntrinsicImplementation,
+                            currentScope.Method.Name));
+                    }
+
                     var allocas = Allocas.Create(currentScope, abi);
                     allocaMapping.Add(currentScope.Method, allocas);
 
@@ -323,42 +371,22 @@ namespace ILGPU.Backends
         /// Constructs a new generic backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
+        /// <param name="backendType">The backend type.</param>
+        /// <param name="backendFlags">The backend flags.</param>
         /// <param name="abi">The current ABI.</param>
         /// <param name="argumentMapper">The argument mapper.</param>
         protected Backend(
             Context context,
+            BackendType backendType,
+            BackendFlags backendFlags,
             ABI abi,
             ArgumentMapper argumentMapper)
-            : this(
-                  context,
-                  abi,
-                  argumentMapper,
-                  (_c, _abi, builder) => { })
-        { }
-
-        /// <summary>
-        /// Constructs a new generic backend.
-        /// </summary>
-        /// <param name="context">The context to use.</param>
-        /// <param name="abi">The current ABI.</param>
-        /// <param name="argumentMapper">The argument mapper.</param>
-        /// <param name="createKernelTransformers">Creates target kernel transformers (if any).</param>
-        protected Backend(
-            Context context,
-            ABI abi,
-            ArgumentMapper argumentMapper,
-            CreateTransformersHandler createKernelTransformers)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
+            BackendType = backendType;
+            BackendFlags = backendFlags;
             ABI = abi ?? throw new ArgumentNullException(nameof(abi));
             ArgumentMapper = argumentMapper;
-
-            if (createKernelTransformers != null)
-            {
-                var builder = ImmutableArray.CreateBuilder<Transformer>();
-                createKernelTransformers(context, abi, builder);
-                KernelTransformers = builder.ToImmutable();
-            }
         }
 
         #endregion
@@ -369,6 +397,16 @@ namespace ILGPU.Backends
         /// Returns the assigned context.
         /// </summary>
         public Context Context { get; }
+
+        /// <summary>
+        /// Returns the associated backend type.
+        /// </summary>
+        public BackendType BackendType { get; }
+
+        /// <summary>
+        /// Returns the associated backend flags.
+        /// </summary>
+        public BackendFlags BackendFlags { get; }
 
         /// <summary>
         /// Returns the target platform.
@@ -388,12 +426,24 @@ namespace ILGPU.Backends
         /// <summary>
         /// Returns the transformer that is applied before the final compilation step.
         /// </summary>
-        protected ImmutableArray<Transformer> KernelTransformers { get; } =
+        protected ImmutableArray<Transformer> KernelTransformers { get; private set; } =
             ImmutableArray<Transformer>.Empty;
 
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Initializes the associated kernel transformers.
+        /// </summary>
+        /// <param name="createTransformers">The target handler.</param>
+        protected void InitializeKernelTransformers(Action<ImmutableArray<Transformer>.Builder> createTransformers)
+        {
+            Debug.Assert(createTransformers != null, "Invalid transformers");
+            var builder = ImmutableArray.CreateBuilder<Transformer>();
+            createTransformers(builder);
+            KernelTransformers = builder.ToImmutable();
+        }
 
         /// <summary>
         /// Compiles a given compile unit with the specified entry point using
@@ -405,22 +455,22 @@ namespace ILGPU.Backends
         public CompiledKernel Compile(
             MethodInfo entry,
             in KernelSpecialization specialization) =>
-            Compile(entry, specialization, new NoHandler());
+            Compile(entry, specialization, new NoHook());
 
         /// <summary>
         /// Compiles a given compile unit with the specified entry point using
         /// the given kernel specialization.
         /// </summary>
-        /// <typeparam name="TBackendHandler">The backend handler type.</typeparam>
+        /// <typeparam name="TBackendHook">The backend hook type.</typeparam>
         /// <param name="entry">The desired entry point.</param>
         /// <param name="specialization">The kernel specialization.</param>
-        /// <param name="backendHandler">The backend handler.</param>
+        /// <param name="backendHook">The backend hook.</param>
         /// <returns>The compiled kernel that represents the compilation result.</returns>
-        public virtual CompiledKernel Compile<TBackendHandler>(
+        public virtual CompiledKernel Compile<TBackendHook>(
             MethodInfo entry,
             in KernelSpecialization specialization,
-            TBackendHandler backendHandler)
-            where TBackendHandler : IBackendHandler
+            TBackendHook backendHook)
+            where TBackendHook : IBackendHook
         {
             using (var kernelContext = new IRContext(Context))
             {
@@ -437,21 +487,21 @@ namespace ILGPU.Backends
                     generatedKernelMethod = generationResult.Result;
                     codeGenerationPhase.Optimize();
 
-                    backendHandler.FinishedCodeGeneration(mainContext, generatedKernelMethod);
+                    backendHook.FinishedCodeGeneration(mainContext, generatedKernelMethod);
                 }
 
                 // Import the all kernel functions into our context
                 var scopeProvider = new CachedScopeProvider();
                 var kernelMethod = kernelContext.Import(generatedKernelMethod, scopeProvider);
-                backendHandler.InitializedKernelContext(kernelContext, kernelMethod);
+                backendHook.InitializedKernelContext(kernelContext, kernelMethod);
 
                 // Apply backend optimizations
                 foreach (var transformer in KernelTransformers)
                     kernelContext.Transform(transformer);
-                backendHandler.OptimizedKernelContext(kernelContext, kernelMethod);
+                backendHook.OptimizedKernelContext(kernelContext, kernelMethod);
 
                 // Compile kernel
-                var backendContext = new BackendContext(kernelContext, kernelMethod, ABI);
+                var backendContext = new BackendContext(BackendFlags, kernelContext, kernelMethod, ABI);
                 var entryPoint = new EntryPoint(
                     kernelMethod.Source as MethodInfo,
                     backendContext.SharedAllocations.TotalSize,
@@ -478,7 +528,7 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="mode">The clear mode.</param>
         /// <remarks>This method is not thread-safe.</remarks>
-        public void ClearCache(ClearCacheMode mode)
+        public virtual void ClearCache(ClearCacheMode mode)
         {
             ArgumentMapper?.ClearCache(mode);
         }
@@ -489,6 +539,109 @@ namespace ILGPU.Backends
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing) { }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a general ILGPU backend.
+    /// </summary>
+    /// <typeparam name="TDelegate">The intrinsic delegate type for backend implementations.</typeparam>
+    public abstract class Backend<TDelegate> : Backend
+        where TDelegate : Delegate
+    {
+        #region Instance
+
+        private IntrinsicImplementationProvider<TDelegate> intrinsicProvider;
+
+        /// <summary>
+        /// Constructs a new generic backend.
+        /// </summary>
+        /// <param name="context">The context to use.</param>
+        /// <param name="backendType">The backend type.</param>
+        /// <param name="backendFlags">The backend flags.</param>
+        /// <param name="abi">The current ABI.</param>
+        /// <param name="argumentMapper">The argument mapper.</param>
+        protected Backend(
+            Context context,
+            BackendType backendType,
+            BackendFlags backendFlags,
+            ABI abi,
+            ArgumentMapper argumentMapper)
+            : base(context, backendType, backendFlags, abi, argumentMapper)
+        {
+            intrinsicProvider = context.IntrinsicManager.CreateProvider<TDelegate>(this);
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the current intrinsic provider.
+        /// </summary>
+        public IntrinsicImplementationProvider<TDelegate> IntrinsicProvider => intrinsicProvider;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Initializes the associated kernel transformers.
+        /// </summary>
+        /// <typeparam name="TConfiguration">The configuration type.</typeparam>
+        /// <param name="configuration">The specializer configuration.</param>
+        /// <param name="createTransformers">The target handler.</param>
+        protected void InitializeKernelTransformers<TConfiguration>(
+            TConfiguration configuration,
+            Action<ImmutableArray<Transformer>.Builder> createTransformers)
+            where TConfiguration : IIntrinsicSpecializerConfiguration
+        {
+            InitializeKernelTransformers(builder =>
+            {
+                // Specialize intrinsic functions
+                var resolver = new IntrinsicResolver<TDelegate>(IntrinsicProvider);
+                var specializer = new IntrinsicSpecializer<TConfiguration, TDelegate>(
+                    configuration,
+                    IntrinsicProvider);
+                var lowerThreadIntrinsics = new LowerThreadIntrinsics();
+
+                // Perform two general passes to specialize ILGPU-specific intrinsic
+                // functions that are invoked by other specialized functions.
+                // TODO: determine the number of passes automatically
+                const int NumPasses = 2;
+                for (int i = 0; i < NumPasses; ++i)
+                {
+                    builder.Add(Transformer.Create(
+                            TransformerConfiguration.Transformed,
+                            lowerThreadIntrinsics, resolver, specializer));
+                }
+
+                createTransformers(builder);
+            });
+        }
+
+        /// <summary>
+        /// Clears all internal caches.
+        /// </summary>
+        /// <param name="mode">The clear mode.</param>
+        /// <remarks>This method is not thread-safe.</remarks>
+        public override void ClearCache(ClearCacheMode mode)
+        {
+            base.ClearCache(mode);
+            intrinsicProvider.ClearCache(mode);
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary cref="DisposeBase.Dispose(bool)"/>
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            Dispose(ref intrinsicProvider);
+        }
 
         #endregion
     }

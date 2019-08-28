@@ -12,7 +12,6 @@
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -202,7 +201,7 @@ namespace ILGPU.Backends.PTX
             var bReg = MoveFromIntrinsicRegister(PTXRegisterKind.NtId, dimension);
             var cReg = MoveFromIntrinsicRegister(PTXRegisterKind.Tid, dimension);
 
-            using (var command = BeginCommand(Instructions.IndexFMAOperationLo))
+            using (var command = BeginCommand(PTXInstructions.IndexFMAOperationLo))
             {
                 command.AppendArgument(targetRegister);
                 command.AppendArgument(aReg);
@@ -217,7 +216,7 @@ namespace ILGPU.Backends.PTX
             using (var predicateScope = new PredicateScope(this))
             {
                 using (var command = BeginCommand(
-                    Instructions.GetCompareOperation(
+                    PTXInstructions.GetCompareOperation(
                         CompareKind.GreaterEqual,
                         ArithmeticBasicValueType.Int32)))
                 {
@@ -227,7 +226,7 @@ namespace ILGPU.Backends.PTX
                 }
 
                 Command(
-                    Instructions.ReturnOperation,
+                    PTXInstructions.ReturnOperation,
                     predicateScope.GetConfiguration(true));
             }
         }

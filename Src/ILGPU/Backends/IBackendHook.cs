@@ -3,7 +3,7 @@
 //                     Copyright (c) 2016-2019 Marcel Koester
 //                                www.ilgpu.net
 //
-// File: IBackendHandler.cs
+// File: IBackendHook.cs
 //
 // This file is part of ILGPU and is distributed under the University of
 // Illinois Open Source License. See LICENSE.txt for details
@@ -14,9 +14,9 @@ using ILGPU.IR;
 namespace ILGPU.Backends
 {
     /// <summary>
-    /// Represents a custom backend event handler.
+    /// Represents a custom backend hook.
     /// </summary>
-    public interface IBackendHandler
+    public interface IBackendHook
     {
         /// <summary>
         /// Completed all frontend operations.

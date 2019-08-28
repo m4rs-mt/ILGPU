@@ -85,7 +85,7 @@ namespace ILGPU
         public static int DimensionZ
         {
             [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.Z)]
-            get => CPURuntimeThreadContext.GridDimension.Y;
+            get => CPURuntimeThreadContext.GridDimension.Z;
         }
 
         /// <summary>

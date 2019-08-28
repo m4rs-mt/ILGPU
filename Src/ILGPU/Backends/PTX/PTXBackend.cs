@@ -12,7 +12,6 @@
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.Runtime;
-using System.Collections.Immutable;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -20,7 +19,7 @@ namespace ILGPU.Backends.PTX
     /// <summary>
     /// Represents a PTX (Cuda) backend.
     /// </summary>
-    public sealed class PTXBackend : Backend
+    public sealed class PTXBackend : Backend<PTXIntrinsic.Handler>
     {
         #region Constants
 
@@ -36,22 +35,15 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// The kernel specializer configuration.
         /// </summary>
-        private readonly struct SpecializerConfiguration : IIntrinsicSpecializerConfiguration
+        private readonly struct IntrinsicSpecializerConfiguration : IIntrinsicSpecializerConfiguration
         {
             /// <summary>
             /// Constructs a new specializer configuration.
             /// </summary>
             /// <param name="flags">The associated context flags.</param>
-            /// <param name="abi">The ABI specification.</param>
-            /// <param name="contextData">The global PTX context data.</param>
-            public SpecializerConfiguration(
-                ContextFlags flags,
-                ABI abi,
-                PTXContextData contextData)
+            public IntrinsicSpecializerConfiguration(ContextFlags flags)
             {
                 ContextFlags = flags;
-                ABI = abi;
-                ImplementationResolver = contextData.ImplementationResolver;
             }
 
             /// <summary>
@@ -61,8 +53,23 @@ namespace ILGPU.Backends.PTX
 
             /// <summary cref="IIntrinsicSpecializerConfiguration.EnableAssertions"/>
             public bool EnableAssertions => ContextFlags.HasFlags(ContextFlags.EnableAssertions);
+        }
 
-            /// <summary cref="IIntrinsicSpecializerConfiguration.WarpSize"/>
+        /// <summary>
+        /// The kernel specializer configuration.
+        /// </summary>
+        private readonly struct AcceleratorSpecializerConfiguration : IAcceleratorSpecializerConfiguration
+        {
+            /// <summary>
+            /// Constructs a new specializer configuration.
+            /// </summary>
+            /// <param name="abi">The ABI specification.</param>
+            public AcceleratorSpecializerConfiguration(ABI abi)
+            {
+                ABI = abi;
+            }
+
+            /// <summary cref="IAcceleratorSpecializerConfiguration.WarpSize"/>
             public int WarpSize => PTXBackend.WarpSize;
 
             /// <summary>
@@ -70,53 +77,12 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             public ABI ABI { get; }
 
-            /// <summary cref="IIntrinsicSpecializerConfiguration.ImplementationResolver"/>
-            public IntrinsicImplementationResolver ImplementationResolver { get; }
-
-            /// <summary cref="IIntrinsicSpecializerConfiguration.TryGetSizeOf(TypeNode, out int)"/>
+            /// <summary cref="IAcceleratorSpecializerConfiguration.TryGetSizeOf(TypeNode, out int)"/>
             public bool TryGetSizeOf(TypeNode type, out int size)
             {
                 size = ABI.GetSizeOf(type);
                 return true;
             }
-        }
-
-        #endregion
-
-        #region Static
-
-        /// <summary>
-        /// Creates the final kernel transformer for PTX kernels.
-        /// </summary>
-        /// <param name="context">The current context.</param>
-        /// <param name="abi">The current ABI.</param>
-        /// <param name="builder">The target builder.</param>
-        private static void CreateKernelTransformers(
-            Context context,
-            ABI abi,
-            ImmutableArray<Transformer>.Builder builder)
-        {
-            var specializerConfiguration = new SpecializerConfiguration(
-                context.Flags,
-                abi,
-                context.PTXContextData);
-            builder.Add(Transformer.Create(
-                TransformerConfiguration.Empty,
-                new IntrinsicSpecializer<SpecializerConfiguration>(
-                    specializerConfiguration)));
-
-            // Append further backend specific transformations in release mode
-            var transformerBuilder = Transformer.CreateBuilder(TransformerConfiguration.Empty);
-
-            if (!context.HasFlags(ContextFlags.NoInlining))
-                transformerBuilder.Add(new Inliner());
-
-            if (context.OptimizationLevel == OptimizationLevel.Release)
-                transformerBuilder.Add(new SimplifyControlFlow());
-
-            var transformations = transformerBuilder.ToTransformer();
-            if (transformations.Length > 0)
-                builder.Add(transformerBuilder.ToTransformer());
         }
 
         #endregion
@@ -135,11 +101,38 @@ namespace ILGPU.Backends.PTX
             TargetPlatform platform)
             : base(
                   context,
+                  BackendType.PTX,
+                  BackendFlags.RequiresIntrinsicImplementations,
                   new PTXABI(context.TypeContext, platform),
-                  new PTXArgumentMapper(context),
-                  CreateKernelTransformers)
+                  new PTXArgumentMapper(context))
         {
             Architecture = architecture;
+
+            InitializeKernelTransformers(
+                new IntrinsicSpecializerConfiguration(context.Flags),
+                builder =>
+            {
+                // Append further backend specific transformations in release mode
+                var transformerBuilder = Transformer.CreateBuilder(TransformerConfiguration.Empty);
+
+                if (context.OptimizationLevel == OptimizationLevel.Release)
+                {
+                    var acceleratorConfiguration = new AcceleratorSpecializerConfiguration(ABI);
+                    transformerBuilder.Add(
+                        new AcceleratorSpecializer<AcceleratorSpecializerConfiguration>(
+                            acceleratorConfiguration));
+                }
+
+                if (!context.HasFlags(ContextFlags.NoInlining))
+                    transformerBuilder.Add(new Inliner());
+
+                if (context.OptimizationLevel == OptimizationLevel.Release)
+                    transformerBuilder.Add(new SimplifyControlFlow());
+
+                var transformer = transformerBuilder.ToTransformer();
+                if (transformer.Length > 0)
+                    builder.Add(transformer);
+            });
         }
 
         #endregion
@@ -154,8 +147,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns the associated <see cref="ArgumentMapper"/>.
         /// </summary>
-        public new PTXArgumentMapper ArgumentMapper =>
-            base.ArgumentMapper as PTXArgumentMapper;
+        public new PTXArgumentMapper ArgumentMapper => base.ArgumentMapper as PTXArgumentMapper;
 
         #endregion
 
@@ -214,11 +206,10 @@ namespace ILGPU.Backends.PTX
             }
 
             var args = new PTXCodeGenerator.GeneratorArgs(
+                this,
                 entryPoint,
                 debugInfoGenerator,
                 builder,
-                Architecture,
-                ABI,
                 Context.Flags);
 
             // Declare all methods

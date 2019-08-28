@@ -14,20 +14,21 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Frontend.Intrinsic
 {
     /// <summary>
     /// Contains default remapped ILGPU intrinsics.
     /// </summary>
-    static class RemappedIntrinsics
+    public static partial class RemappedIntrinsics
     {
         #region Static Handler
 
         /// <summary>
         /// Represents a basic remapper for compiler-specific device functions.
         /// </summary>
-        private delegate InvocationContext? DeviceFunctionRemapper(in InvocationContext context);
+        public delegate InvocationContext? DeviceFunctionRemapper(in InvocationContext context);
 
         /// <summary>
         /// Stores function remappers.
@@ -152,7 +153,7 @@ namespace ILGPU.Frontend.Intrinsic
                 paramTypes,
                 null);
             Debug.Assert(gpuMathFunc != null, "Invalid target function");
-            FunctionRemappers.Add(
+            RegisterRemapping(
                 mathFunc,
                 (in InvocationContext context) => context.Remap(gpuMathFunc, context.Arguments));
         }
@@ -185,7 +186,7 @@ namespace ILGPU.Frontend.Intrinsic
                 null,
                 parameters,
                 null);
-            FunctionRemappers.Add(debugMethod,
+            RegisterRemapping(debugMethod,
                 (in InvocationContext context) => context.Remap(targetMethod, context.Arguments));
         }
 
@@ -194,9 +195,28 @@ namespace ILGPU.Frontend.Intrinsic
         #region Methods
 
         /// <summary>
+        /// Registers a global remapping for the given method object.
+        /// </summary>
+        /// <param name="methodInfo">The method to remap.</param>
+        /// <param name="remapper">The remapping method.</param>
+        /// <remarks>
+        /// This method is not thread safe.
+        /// </remarks>
+        public static void RegisterRemapping(MethodInfo methodInfo, DeviceFunctionRemapper remapper)
+        {
+            if (methodInfo == null)
+                throw new ArgumentNullException(nameof(methodInfo));
+            if (remapper == null)
+                throw new ArgumentNullException(nameof(remapper));
+
+            FunctionRemappers[methodInfo] = remapper;
+        }
+
+        /// <summary>
         /// Tries to remap the given invocation context.
         /// </summary>
         /// <param name="context">The invocation context.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void RemapIntrinsic(ref InvocationContext context)
         {
             if (FunctionRemappers.TryGetValue(context.Method, out DeviceFunctionRemapper remapper))

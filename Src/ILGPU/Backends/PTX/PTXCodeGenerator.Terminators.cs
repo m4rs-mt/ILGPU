@@ -21,15 +21,15 @@ namespace ILGPU.Backends.PTX
             if (!returnTerminator.IsVoidReturn)
             {
                 var resultRegister = Load(returnTerminator.ReturnValue);
-                EmitStoreParam(returnParamName, resultRegister);
+                EmitStoreParam(ReturnParamName, resultRegister);
             }
-            Command(Instructions.ReturnOperation);
+            Command(PTXInstructions.ReturnOperation);
         }
 
         /// <summary cref="IValueVisitor.Visit(UnconditionalBranch)"/>
         public void Visit(UnconditionalBranch branch)
         {
-            using (var command = BeginCommand(Instructions.BranchOperation))
+            using (var command = BeginCommand(PTXInstructions.BranchOperation))
             {
                 var targetLabel = blockLookup[branch.Target];
                 command.AppendLabel(targetLabel);
@@ -41,7 +41,7 @@ namespace ILGPU.Backends.PTX
         {
             var condition = LoadPrimitive(branch.Condition);
             using (var command = BeginCommand(
-                Instructions.BranchOperation,
+                PTXInstructions.BranchOperation,
                 new PredicateConfiguration(condition, true)))
             {
                 var trueLabel = blockLookup[branch.TrueTarget];
@@ -49,7 +49,7 @@ namespace ILGPU.Backends.PTX
             }
 
             // Jump to false target in the else case
-            using (var command = BeginCommand(Instructions.BranchOperation))
+            using (var command = BeginCommand(PTXInstructions.BranchOperation))
             {
                 var targetLabel = blockLookup[branch.FalseTarget];
                 command.AppendLabel(targetLabel);
@@ -63,7 +63,7 @@ namespace ILGPU.Backends.PTX
             using (var lowerBoundsScope = new PredicateScope(this))
             {
                 // Emit less than
-                var lessThanCommand = Instructions.GetCompareOperation(
+                var lessThanCommand = PTXInstructions.GetCompareOperation(
                     CompareKind.LessThan,
                     ArithmeticBasicValueType.Int32);
                 using (var command = BeginCommand(
@@ -77,7 +77,7 @@ namespace ILGPU.Backends.PTX
                 using (var upperBoundsScope = new PredicateScope(this))
                 {
                     using (var command = BeginCommand(
-                        Instructions.BranchIndexRangeComparison))
+                        PTXInstructions.BranchIndexRangeComparison))
                     {
                         command.AppendArgument(upperBoundsScope.PredicateRegister);
                         command.AppendArgument(idx);
@@ -85,7 +85,7 @@ namespace ILGPU.Backends.PTX
                         command.AppendArgument(lowerBoundsScope.PredicateRegister);
                     }
                     using (var command = BeginCommand(
-                        Instructions.BranchOperation,
+                        PTXInstructions.BranchOperation,
                         new PredicateConfiguration(upperBoundsScope.PredicateRegister, true)))
                     {
                         var defaultTarget = blockLookup[branch.DefaultBlock];
@@ -97,7 +97,7 @@ namespace ILGPU.Backends.PTX
             var targetLabel = DeclareLabel();
             MarkLabel(targetLabel);
             Builder.Append('\t');
-            Builder.Append(Instructions.BranchTargetsDeclaration);
+            Builder.Append(PTXInstructions.BranchTargetsDeclaration);
             Builder.Append(' ');
             for (int i = 0, e = branch.NumCasesWithoutDefault; i < e; ++i)
             {
@@ -110,7 +110,7 @@ namespace ILGPU.Backends.PTX
             Builder.AppendLine(";");
 
             using (var command = BeginCommand(
-                Instructions.BranchIndexOperation))
+                PTXInstructions.BranchIndexOperation))
             {
                 command.AppendArgument(idx);
                 command.AppendLabel(targetLabel);

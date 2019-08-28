@@ -1,0 +1,230 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2019 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: IntrinsicMatchers.tt/IntrinsicMatchers.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#
+var matchers = new (string, string, string)[]
+    {
+        ("Debug", "DebugOperation", "DebugKind"),
+    };
+var typedMatchers = new (string, string, string)[]
+    {
+        ("Broadcast", "Broadcast", "BroadcastKind"),
+        ("WarpShuffle", "WarpShuffle", "ShuffleKind"),
+        ("SubWarpShuffle", "SubWarpShuffle", "ShuffleKind"),
+        ("UnaryArithmetic", "UnaryArithmeticValue", "UnaryArithmeticKind"),
+        ("BinaryArithmetic", "BinaryArithmeticValue", "BinaryArithmeticKind"),
+        ("TernaryArithmetic", "TernaryArithmeticValue", "TernaryArithmeticKind"),
+        ("GenericAtomic", "GenericAtomic", "AtomicKind")
+    };
+var allMatchers = matchers.Concat(typedMatchers);
+#>
+
+using System;
+using ILGPU.IR.Values;
+using System.Diagnostics;
+
+namespace ILGPU.IR.Intrinsics
+{
+    partial class IntrinsicMatcher
+    {
+        /// <summary>
+        /// Represents a matcher kind.
+        /// </summary>
+        internal enum MatcherKind
+        {
+            Method,
+<# foreach (var (name, _, _) in allMatchers) { #>
+            <#= name #>,
+<# } #>
+        }
+
+        /// <summary>
+        /// Creates a new set of intrinsic matchers.
+        /// </summary>
+        /// <typeparam name="T">The matcher value type.</typeparam>
+        internal static IntrinsicMatcher<T>[] CreateMatchers<T>()
+            where T : class, IIntrinsicImplementation
+        {
+            return new IntrinsicMatcher<T>[]
+            {
+                new IntrinsicMethodMatcher<T>(),
+<# foreach (var (name, matcher, kind) in allMatchers) { #>
+                new <#= name #>Matcher<T>(),
+<# } #>
+            };
+        }
+    }
+
+    partial class IntrinsicImplementationManager
+    {
+<# foreach (var (name, matcher, kind) in matchers) { #>
+        /// <summary>
+        /// Registers the given intrinsic implementation.
+        /// </summary>
+        /// <param name="kind">The kind.</param>
+        /// <param name="implementation">The intrinisc implementation.</param>
+        public void Register<#= name #>(
+            <#= kind #> kind,
+            IntrinsicImplementation implementation)
+        {
+            var matcher = ResolveMatcher<<#= name #>Matcher<ImplementationEntry>>(
+                IntrinsicMatcher.MatcherKind.<#= name #>,
+                implementation);
+            if (!matcher.TryGetImplementation(kind, out var entry))
+            {
+                entry = new ImplementationEntry();
+                matcher.Register(kind, entry);
+            }
+            entry.Register(implementation);
+        }
+
+<# } #>
+
+<# foreach (var (name, matcher, kind) in typedMatchers) { #>
+        /// <summary>
+        /// Registers the given intrinsic implementation.
+        /// </summary>
+        /// <param name="kind">The kind.</param>
+        /// <param name="implementation">The intrinisc implementation.</param>
+        public void Register<#= name #>(
+            <#= kind #> kind,
+            IntrinsicImplementation implementation)
+        {
+            for (int i = 0, e = (int)BasicValueType.Float64; i <= e; ++i)
+                Register<#= name #>(kind, (BasicValueType)i, implementation);
+        }
+
+        /// <summary>
+        /// Registers the given intrinsic implementation.
+        /// </summary>
+        /// <param name="kind">The kind.</param>
+        /// <param name="basicValueType">The basic value type.</param>
+        /// <param name="implementation">The intrinisc implementation.</param>
+        public void Register<#= name #>(
+            <#= kind #> kind,
+            BasicValueType basicValueType,
+            IntrinsicImplementation implementation)
+        {
+            var matcher = ResolveMatcher<<#= name #>Matcher<ImplementationEntry>>(
+                IntrinsicMatcher.MatcherKind.<#= name #>,
+                implementation);
+            if (!matcher.TryGetImplementation(kind, basicValueType, out var entry))
+            {
+                entry = new ImplementationEntry();
+                matcher.Register(kind, basicValueType, entry);
+            }
+            entry.Register(implementation);
+        }
+
+<# } #>
+    }
+
+<# foreach (var (name, matcher, kind) in matchers) { #>
+    /// <summary>
+    /// Matches <#= name #> values.
+    /// </summary>
+    /// <typeparam name="T">The matcher value type.</typeparam>
+    sealed class <#= name #>Matcher<T> : IntrinsicValueMatcher<T, <#= kind #>>
+        where T : class, IIntrinsicImplementation
+    {
+        /// <summary>
+        /// Constructs a new matcher.
+        /// </summary>
+        internal <#= name #>Matcher()
+            : base(ValueKind.<#= name #>)
+        { }
+
+        /// <summary>
+        /// Registers the given implementation with the current matcher.
+        /// </summary>
+        /// <param name="kind">The value kind.</param>
+        /// <param name="implementation">The intrinsic implementation to register.</param>
+        public void Register(<#= kind #> kind, T implementation)
+        {
+            this[(int)kind] = implementation ?? throw new ArgumentNullException(nameof(implementation));
+        }
+
+        /// <summary>
+        /// Tries to resolve an intrinsic implementation.
+        /// </summary>
+        /// <param name="kind">The value kind.</param>
+        /// <param name="implementation">The resolved implementation (if any).</param>
+        /// <returns>True, if an implementation could be resolved.</returns>
+        public bool TryGetImplementation(<#= kind #> kind, out T implementation)
+        {
+            implementation = this[(int)kind];
+            return implementation != null;
+        }
+
+        /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(TMatchedValue, out T)"/>
+        public override bool TryGetImplementation(Value value, out T implementation)
+        {
+            var targetValue = value as <#= matcher #>;
+            Debug.Assert(targetValue != null, "Invalid target value");
+            return TryGetImplementation(targetValue.Kind, out implementation);
+        }
+    }
+<# } #>
+
+<# foreach (var (name, matcher, kind) in typedMatchers) { #>
+    /// <summary>
+    /// Matches typed <#= name #> values.
+    /// </summary>
+    sealed class <#= name #>Matcher<T> : TypedIntrinsicValueMatcher<T, <#= kind #>>
+        where T : class, IIntrinsicImplementation
+    {
+        public <#= name #>Matcher()
+            : base(ValueKind.<#= name #>)
+        { }
+
+        /// <summary>
+        /// Registers the given implementation with the current matcher.
+        /// </summary>
+        /// <param name="kind">The value kind.</param>
+        /// <param name="basicValueType">The basic value type.</param>
+        /// <param name="implementation">The intrinsic implementation to register.</param>
+        public void Register(
+            <#= kind #> kind,
+            BasicValueType basicValueType,
+            T implementation)
+        {
+            this[(int)kind, basicValueType] = implementation ?? throw new ArgumentNullException(nameof(implementation));
+        }
+
+        /// <summary>
+        /// Tries to resolve an intrinsic implementation.
+        /// </summary>
+        /// <param name="kind">The value kind.</param>
+        /// <param name="basicValueType">The basic value type.</param>
+        /// <param name="implementation">The resolved implementation (if any).</param>
+        /// <returns>True, if an implementation could be resolved.</returns>
+        public bool TryGetImplementation(<#= kind #> kind, BasicValueType basicValueType, out T implementation)
+        {
+            implementation = this[(int)kind, basicValueType];
+            return implementation != null;
+        }
+
+        /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(TMatchedValue, out T)"/>
+        public override bool TryGetImplementation(Value value, out T implementation)
+        {
+            var targetValue = value as <#= matcher #>;
+            Debug.Assert(targetValue != null, "Invalid target value");
+            return TryGetImplementation(targetValue.Kind, targetValue.BasicValueType, out implementation);
+        }
+    }
+
+<# } #>
+}

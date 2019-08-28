@@ -27,7 +27,7 @@ namespace ILGPU.Backends.IL
         /// </summary>
         /// <param name="context">The context to use.</param>
         protected internal DefaultILBackend(Context context)
-            : base(context, 1, null)
+            : base(context, BackendFlags.None, 1, null)
         { }
 
         #endregion

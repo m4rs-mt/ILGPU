@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -214,6 +213,7 @@ namespace ILGPU
         /// <param name="mask">The mask to xor to the current lane.</param>
         /// <returns>The value of the variable in the scope of the desired lane.</returns>
         /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        [WarpIntrinsic(WarpIntrinsicKind.ShuffleXor)]
         public static T ShuffleXor<T>(T variable, int mask)
             where T : struct => variable;
 

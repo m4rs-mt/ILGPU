@@ -74,7 +74,7 @@ namespace ILGPU.Backends.PTX
             var lengthTimesSourceElementSize = AllocateRegister(length.Description);
             var newLength = AllocateRegister(length.Description);
             using (var command = BeginCommand(
-                Instructions.GetArithmeticOperation(
+                PTXInstructions.GetArithmeticOperation(
                     BinaryArithmeticKind.Mul,
                     ArithmeticBasicValueType.Int32,
                     FastMath)))
@@ -85,7 +85,7 @@ namespace ILGPU.Backends.PTX
             }
 
             using (var command = BeginCommand(
-                Instructions.GetArithmeticOperation(
+                PTXInstructions.GetArithmeticOperation(
                     BinaryArithmeticKind.Mul,
                     ArithmeticBasicValueType.Int32,
                     FastMath)))
@@ -164,7 +164,7 @@ namespace ILGPU.Backends.PTX
             var elementSize = ABI.GetSizeOf(sourceType.ElementType);
             var offsetRegister = AllocatePlatformRegister(out RegisterDescription _);
             using (var command = BeginCommand(
-                Instructions.GetLEAMulOperation(ABI.PointerArithmeticType)))
+                PTXInstructions.GetLEAMulOperation(ABI.PointerArithmeticType)))
             {
                 command.AppendArgument(offsetRegister);
                 command.AppendArgument(elementIndex);
@@ -172,7 +172,7 @@ namespace ILGPU.Backends.PTX
             }
 
             using (var command = BeginCommand(
-                Instructions.GetArithmeticOperation(
+                PTXInstructions.GetArithmeticOperation(
                     BinaryArithmeticKind.Add,
                     ABI.PointerArithmeticType,
                     false)))
@@ -208,8 +208,8 @@ namespace ILGPU.Backends.PTX
             }
 
             var toGeneric = value.TargetAddressSpace == MemoryAddressSpace.Generic;
-            var addressSpaceOperation = Instructions.GetAddressSpaceCast(toGeneric);
-            var addressSpaceOperationSuffix = Instructions.GetAddressSpaceCastSuffix(ABI);
+            var addressSpaceOperation = PTXInstructions.GetAddressSpaceCast(toGeneric);
+            var addressSpaceOperationSuffix = PTXInstructions.GetAddressSpaceCastSuffix(ABI);
 
             using (var command = BeginCommand(addressSpaceOperation))
             {

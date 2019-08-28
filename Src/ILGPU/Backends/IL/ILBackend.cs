@@ -99,14 +99,18 @@ namespace ILGPU.Backends.IL
         /// Constructs a new IL backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
+        /// <param name="backendFlags">The backend flags.</param>
         /// <param name="warpSize">The current warp size.</param>
         /// <param name="argumentMapper">The argument mapper.</param>
         internal ILBackend(
             Context context,
+            BackendFlags backendFlags,
             int warpSize,
             ArgumentMapper argumentMapper)
             : base(
                   context,
+                  BackendType.IL,
+                  backendFlags,
                   new ILABI(context.TypeContext, RuntimePlatform),
                   argumentMapper)
         {

@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
@@ -45,6 +46,11 @@ namespace ILGPU.IR
         /// An external method declaration (without an implementation).
         /// </summary>
         External = 1 << 1,
+
+        /// <summary>
+        /// An intrinisc method that requires a backend-specific implementation.
+        /// </summary>
+        Intrinsic = 1 << 2,
     }
 
     /// <summary>
@@ -289,6 +295,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="methodBase">The method base.</param>
         /// <returns>The resolved method flags.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static MethodFlags ResolveMethodFlags(MethodBase methodBase)
         {
             Debug.Assert(methodBase != null, "Invalid method base");
@@ -297,8 +304,13 @@ namespace ILGPU.IR
             if ((methodBase.MethodImplementationFlags & MethodImplAttributes.InternalCall) ==
                 MethodImplAttributes.InternalCall)
                 return MethodFlags.External;
-            else
-                return MethodFlags.None;
+
+            // Check for custom intrinsic implementations
+            if (methodBase.IsDefined(typeof(IntrinsicImplementationAttribute)))
+                return MethodFlags.Intrinsic;
+
+            // No custom method flags.
+            return MethodFlags.None;
         }
 
         #endregion
@@ -389,9 +401,9 @@ namespace ILGPU.IR
         public bool IsVoid => ReturnType.IsVoidType;
 
         /// <summary>
-        /// Returns true if this method is an external method.
+        /// Returns true if this method has an implementation (no intrinsic or external method).
         /// </summary>
-        public bool IsExternal => Declaration.IsExternal;
+        public bool HasImplementation => !HasFlags(MethodFlags.Intrinsic | MethodFlags.External);
 
         /// <summary>
         /// Returns the current transformation flags.

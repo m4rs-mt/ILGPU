@@ -18,9 +18,12 @@ namespace ILGPU.Backends.PointerViews
     /// as native view representation.
     /// </summary>
     /// <typeparam name="TKind">The register kind.</typeparam>
-    abstract class ViewRegisterAllocator<TKind> : RegisterAllocator<TKind>
+    public abstract class ViewRegisterAllocator<TKind> : RegisterAllocator<TKind>
         where TKind : struct
     {
+        /// <summary>
+        /// Implements a view register.
+        /// </summary>
         public sealed class ViewImplementationRegister : ViewRegister
         {
             internal ViewImplementationRegister(
@@ -66,11 +69,11 @@ namespace ILGPU.Backends.PointerViews
         }
 
         /// <summary cref="RegisterAllocator{TKind}.FreeViewRegister(RegisterAllocator{TKind}.ViewRegister)"/>
-        public override void FreeViewRegister(ViewRegister register)
+        public override void FreeViewRegister(ViewRegister viewRegister)
         {
-            var viewRegister = register as ViewImplementationRegister;
-            FreeRegister(viewRegister.Pointer);
-            FreeRegister(viewRegister.Length);
+            var implRegister = viewRegister as ViewImplementationRegister;
+            FreeRegister(implRegister.Pointer);
+            FreeRegister(implRegister.Length);
         }
     }
 }

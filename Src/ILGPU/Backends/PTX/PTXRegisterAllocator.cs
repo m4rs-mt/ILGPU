@@ -22,30 +22,68 @@ namespace ILGPU.Backends.PTX
     /// <summary>
     /// Represents the register kind of a PTX register.
     /// </summary>
-    enum PTXRegisterKind
+    public enum PTXRegisterKind
     {
+        /// <summary>
+        /// A predicate register.
+        /// </summary>
         Predicate,
 
+        /// <summary>
+        /// An int16 register.
+        /// </summary>
         Int16,
+
+        /// <summary>
+        /// An int32 register.
+        /// </summary>
         Int32,
+
+        /// <summary>
+        /// An int64 register.
+        /// </summary>
         Int64,
 
+        /// <summary>
+        /// A float32 register.
+        /// </summary>
         Float32,
+
+        /// <summary>
+        /// A float64 register.
+        /// </summary>
         Float64,
 
+        /// <summary>
+        /// The Ctaid register.
+        /// </summary>
         Ctaid,
+
+        /// <summary>
+        /// The Tid register.
+        /// </summary>
         Tid,
 
+        /// <summary>
+        /// The NctaId register.
+        /// </summary>
         NctaId,
+
+        /// <summary>
+        /// The NtId register.
+        /// </summary>
         NtId,
 
+        /// <summary>
+        /// The LaneId register.
+        /// </summary>
         LaneId,
     }
 
     /// <summary>
     /// Represents a specialized PTX register allocator.
     /// </summary>
-    class PTXRegisterAllocator : ViewRegisterAllocator<PTXRegisterKind>
+    public class PTXRegisterAllocator : ViewRegisterAllocator<PTXRegisterKind>
     {
         #region Constants
 
@@ -220,10 +258,10 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary cref="RegisterAllocator{TKind}.FreeRegister(RegisterAllocator{TKind}.PrimitiveRegister)"/>
-        public sealed override void FreeRegister(PrimitiveRegister register)
+        public sealed override void FreeRegister(PrimitiveRegister primitiveRegister)
         {
-            var freeRegs = freeRegisters[(int)register.Kind];
-            freeRegs.Push(register.RegisterValue);
+            var freeRegs = freeRegisters[(int)primitiveRegister.Kind];
+            freeRegs.Push(primitiveRegister.RegisterValue);
         }
 
         /// <summary>
@@ -280,7 +318,7 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="prefix">The prefix to add.</param>
         /// <returns>Register allocation information.</returns>
-        public string GenerateRegisterInformation(string prefix)
+        internal string GenerateRegisterInformation(string prefix)
         {
             var builder = new StringBuilder();
 

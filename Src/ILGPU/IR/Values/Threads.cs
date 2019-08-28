@@ -329,7 +329,7 @@ namespace ILGPU.IR.Values
         /// Returns true if this broadcast operation works
         /// on intrinsic primitive types.
         /// </summary>
-        public bool IsBuiltIn => LowerThreadIntrinsics.IsBuiltInType(BasicValueType);
+        public bool IsBuiltIn => LowerThreadIntrinsics.IsBuiltinType(BasicValueType);
 
         #endregion
 
@@ -452,7 +452,7 @@ namespace ILGPU.IR.Values
         /// Returns true if this shuffle operation works
         /// on intrinsic primitive types.
         /// </summary>
-        public bool IsBuiltIn => LowerThreadIntrinsics.IsBuiltInType(BasicValueType);
+        public bool IsBuiltIn => LowerThreadIntrinsics.IsBuiltinType(BasicValueType);
 
         #endregion
 

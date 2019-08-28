@@ -107,4 +107,15 @@ public static readonly AtomicTypeInformation[] AtomicFloatTypes =
     };
 
 public static readonly AtomicTypeInformation[] AtomicNumericTypes = AtomicIntTypes.Concat(AtomicFloatTypes).ToArray();
+
+// Shuffle operations
+
+public static readonly (string, string)[] ShuffleOperations =
+    {
+        ("Shuffle", "Generic"),
+        ("ShuffleDown", "Down"),
+        ("ShuffleUp", "Up"),
+        ("ShuffleXor", "Xor"),
+    };
+
 #>

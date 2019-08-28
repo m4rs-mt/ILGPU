@@ -22,7 +22,7 @@ namespace ILGPU.Backends.PTX
     /// <summary>
     /// A general debug info generator for PTX kernels.
     /// </summary>
-    abstract class PTXDebugInfoGenerator
+    public abstract class PTXDebugInfoGenerator
     {
         #region Instance
 

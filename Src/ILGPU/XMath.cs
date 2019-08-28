@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Backends.PTX;
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
 using System;
@@ -165,7 +164,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>True, iff the given value is NaN.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.IsNaNF)]
         public static bool IsNaN(double value)
         {
@@ -177,7 +175,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>True, iff the given value is NaN.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.IsNaNF)]
         public static bool IsNaN(float value)
         {
@@ -189,7 +186,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>True, iff the given value is infinity.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.IsInfF)]
         public static bool IsInfinity(double value)
         {
@@ -201,7 +197,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>True, iff the given value is infinity.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.IsInfF)]
         public static bool IsInfinity(float value)
         {
@@ -249,7 +244,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>1.0 / value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.RcpF)]
         public static double Rcp(double value)
         {
@@ -261,7 +255,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>1.0f / value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.RcpF)]
         public static float Rcp(float value)
         {
@@ -277,7 +270,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>sqrt(value).</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.SqrtF)]
         public static double Sqrt(double value)
         {
@@ -289,7 +281,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>sqrt(value).</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.SqrtF)]
         public static float Sqrt(float value)
         {
@@ -301,7 +292,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>1/sqrt(value).</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.RsqrtF)]
         public static double Rsqrt(double value)
         {
@@ -313,7 +303,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>1/sqrt(value).</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.RsqrtF)]
         public static float Rsqrt(float value)
         {
@@ -340,7 +329,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value in radians.</param>
         /// <returns>sin(value).</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.SinF)]
         public static float Sin(float value)
         {
@@ -385,7 +373,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value in radians.</param>
         /// <returns>cos(value).</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.CosF)]
         public static float Cos(float value)
         {
@@ -558,7 +545,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>2^value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Exp2F)]
         public static float Exp2(float value)
         {
@@ -701,7 +687,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>log2(value).</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Log2F)]
         public static float Log2(float value)
         {
@@ -717,7 +702,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>|value|.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Abs)]
         public static double Abs(double value)
         {
@@ -729,7 +713,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>|value|.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Abs)]
         public static float Abs(float value)
         {
@@ -762,7 +745,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>|value|.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Abs)]
         public static int Abs(int value)
         {
@@ -774,7 +756,6 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>|value|.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Abs)]
         public static long Abs(long value)
         {
@@ -791,7 +772,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Min)]
         public static double Min(double first, double second)
         {
@@ -804,7 +784,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Min)]
         public static float Min(float first, float second)
         {
@@ -840,7 +819,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Min)]
         public static int Min(int first, int second)
         {
@@ -853,7 +831,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Min)]
         public static long Min(long first, long second)
         {
@@ -890,7 +867,6 @@ namespace ILGPU
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
         [CLSCompliant(false)]
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Min, ArithmeticFlags.Unsigned)]
         public static uint Min(uint first, uint second)
         {
@@ -904,7 +880,6 @@ namespace ILGPU
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
         [CLSCompliant(false)]
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Min, ArithmeticFlags.Unsigned)]
         public static ulong Min(ulong first, ulong second)
         {
@@ -917,7 +892,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Max)]
         public static double Max(double first, double second)
         {
@@ -930,7 +904,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Max)]
         public static float Max(float first, float second)
         {
@@ -966,7 +939,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Max)]
         public static int Max(int first, int second)
         {
@@ -979,7 +951,6 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Max)]
         public static long Max(long first, long second)
         {
@@ -1016,7 +987,6 @@ namespace ILGPU
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
         [CLSCompliant(false)]
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Max, ArithmeticFlags.Unsigned)]
         public static uint Max(uint first, uint second)
         {
@@ -1030,7 +1000,6 @@ namespace ILGPU
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
         [CLSCompliant(false)]
-        [PTXMathIntrinsic]
         [MathIntrinsic(MathIntrinsicKind.Max, ArithmeticFlags.Unsigned)]
         public static ulong Max(ulong first, ulong second)
         {

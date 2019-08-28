@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR;
-using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
 using System.Diagnostics;
@@ -26,7 +25,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Represents a general PTX command emitter.
         /// </summary>
-        protected struct CommandEmitter : IDisposable
+        public struct CommandEmitter : IDisposable
         {
             #region Instance
 
@@ -194,6 +193,7 @@ namespace ILGPU.Backends.PTX
             /// Appends a constant.
             /// </summary>
             /// <param name="value">The constant to append.</param>
+            [CLSCompliant(false)]
             public void AppendConstant(ulong value)
             {
                 AppendArgument();
@@ -315,7 +315,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Represents a predicate-register configuration.
         /// </summary>
-        protected readonly struct PredicateConfiguration
+        public readonly struct PredicateConfiguration
         {
             /// <summary>
             /// Constructs a new predicate configuration.
@@ -347,9 +347,13 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Represents a scoped predicate-register allocation.
         /// </summary>
-        protected readonly struct PredicateScope : IDisposable
+        public readonly struct PredicateScope : IDisposable
         {
-            public PredicateScope(PTXRegisterAllocator registerAllocator)
+            /// <summary>
+            /// Constructs a new predicate scope.
+            /// </summary>
+            /// <param name="registerAllocator">The parent register allocator.</param>
+            internal PredicateScope(PTXRegisterAllocator registerAllocator)
             {
                 Debug.Assert(registerAllocator != null, "Invalid register allocator");
 
@@ -360,6 +364,10 @@ namespace ILGPU.Backends.PTX
                         PTXRegisterKind.Predicate));
             }
 
+            /// <summary>
+            /// Constructs a new predicate register.
+            /// </summary>
+            /// <param name="predicateRegister">The underlying predicate register.</param>
             public PredicateScope(PrimitiveRegister predicateRegister)
             {
                 Debug.Assert(predicateRegister != null, "Invalid register allocator");
@@ -412,7 +420,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Enapsulates a complex command emission process.
         /// </summary>
-        protected interface IComplexCommandEmitter
+        public interface IComplexCommandEmitter
         {
             /// <summary>
             /// Emits a nested primitive command in the scope of a complex command chain.
@@ -425,19 +433,19 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Enapsulates a complex command emission process.
         /// </summary>
-        protected interface IComplexCommandEmitterWithOffsets
+        public interface IComplexCommandEmitterWithOffsets
         {
             /// <summary>
             /// Emits a nested primitive command in the scope of a complex command chain.
             /// </summary>
             /// <param name="codeGenerator">The code generator.</param>
             /// <param name="command">The current command to emit.</param>
-            /// <param name="register">The involved primitive register.</param>
+            /// <param name="primitiveRegister">The involved primitive register.</param>
             /// <param name="offset">The offset in bytes.</param>
             void Emit(
                 PTXCodeGenerator codeGenerator,
                 string command,
-                PrimitiveRegister register,
+                PrimitiveRegister primitiveRegister,
                 int offset);
         }
 
@@ -445,7 +453,7 @@ namespace ILGPU.Backends.PTX
         /// Emits a sequence of IO instructions.
         /// </summary>
         /// <typeparam name="T">The user state type.</typeparam>
-        protected interface IIOEmitter<T>
+        public interface IIOEmitter<T>
             where T : struct
         {
             /// <summary>
@@ -453,12 +461,12 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             /// <param name="codeGenerator">The code generator.</param>
             /// <param name="command">The current command to emit.</param>
-            /// <param name="register">The involved primitive register.</param>
+            /// <param name="primitiveRegister">The involved primitive register.</param>
             /// <param name="userState">The current user state.</param>
             void Emit(
                 PTXCodeGenerator codeGenerator,
                 string command,
-                PrimitiveRegister register,
+                PrimitiveRegister primitiveRegister,
                 T userState);
         }
 
@@ -474,7 +482,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="emitter">The current emitter.</param>
         /// <param name="registers">All involved registers.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void EmitComplexCommand<TEmitter>(
+        public void EmitComplexCommand<TEmitter>(
             string command,
             in TEmitter emitter,
             params Register[] registers)
@@ -530,7 +538,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="register">The involved register.</param>
         /// <param name="offset">The current offset in bytes.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void EmitComplexCommandWithOffsets<TEmitter>(
+        public void EmitComplexCommandWithOffsets<TEmitter>(
             string command,
             in TEmitter emitter,
             Register register,
@@ -591,7 +599,7 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="register">The register to convert.</param>
         /// <returns>The created predicate scope.</returns>
-        protected PredicateScope ConvertToPredicateScope(PrimitiveRegister register)
+        public PredicateScope ConvertToPredicateScope(PrimitiveRegister register)
         {
             if (register.Kind == PTXRegisterKind.Predicate)
                 return new PredicateScope(register);
@@ -610,7 +618,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="register">The source register.</param>
         /// <param name="targetRegister">The target register to write to.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void ConvertPredicateToValue(
+        public void ConvertPredicateToValue(
             PrimitiveRegister register,
             PrimitiveRegister targetRegister)
         {
@@ -621,7 +629,7 @@ namespace ILGPU.Backends.PTX
                 targetRegister.Kind == PTXRegisterKind.Int32,
                 "Invalid target register");
             using (var command = BeginCommand(
-                Instructions.GetSelectValueOperation(BasicValueType.Int32)))
+                PTXInstructions.GetSelectValueOperation(BasicValueType.Int32)))
             {
                 command.AppendArgument(targetRegister);
                 command.AppendConstant(1);
@@ -636,7 +644,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="register">The register to convert.</param>
         /// <returns>The created predicate scope.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected PrimitiveRegister ConvertValueToPredicate(PrimitiveRegister register)
+        public PrimitiveRegister ConvertValueToPredicate(PrimitiveRegister register)
         {
             if (register.Kind == PTXRegisterKind.Predicate)
                 return register;
@@ -659,7 +667,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="register">The register to convert.</param>
         /// <param name="targetRegister">The target register.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void ConvertValueToPredicate(
+        public void ConvertValueToPredicate(
             PrimitiveRegister register,
             PrimitiveRegister targetRegister)
         {
@@ -672,7 +680,7 @@ namespace ILGPU.Backends.PTX
 
             // Convert to predicate value
             using (var command = BeginCommand(
-                Instructions.GetCompareOperation(
+                PTXInstructions.GetCompareOperation(
                     CompareKind.NotEqual,
                     ArithmeticBasicValueType.UInt32)))
             {
@@ -692,7 +700,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="register">The register for emission.</param>
         /// <param name="userState">The user state.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void EmitIOLoad<TIOEmitter, T>(
+        public void EmitIOLoad<TIOEmitter, T>(
             TIOEmitter emitter,
             string command,
             PrimitiveRegister register,
@@ -733,7 +741,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="register">THe register for emission.</param>
         /// <param name="userState">The user state.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void EmitIOStore<TIOEmitter, T>(
+        public void EmitIOStore<TIOEmitter, T>(
             TIOEmitter emitter,
             string command,
             PrimitiveRegister register,
@@ -767,11 +775,11 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Begins a new command.
         /// </summary>
-        /// <param name="command">The command to begin.</param>
+        /// <param name="commandString">The command to begin.</param>
         /// <param name="predicate">The predicate under which to execute the command.</param>
         /// <returns>The created command emitter.</returns>
-        protected CommandEmitter BeginCommand(
-            string command,
+        public CommandEmitter BeginCommand(
+            string commandString,
             PredicateConfiguration? predicate = null)
         {
             Builder.Append('\t');
@@ -785,20 +793,20 @@ namespace ILGPU.Backends.PTX
                 Builder.Append(GetStringRepresentation(predicateValue.PredicateRegister));
                 Builder.Append(' ');
             }
-            Builder.Append(command);
+            Builder.Append(commandString);
             return new CommandEmitter(Builder);
         }
 
         /// <summary>
         /// Emits the given commmand.
         /// </summary>
-        /// <param name="command">The command to emit.</param>
+        /// <param name="commandString">The command to emit.</param>
         /// <param name="predicate">The predicate under which to execute the command.</param>
-        protected void Command(
-            string command,
+        public void Command(
+            string commandString,
             PredicateConfiguration? predicate = null)
         {
-            using (BeginCommand(command, predicate)) { }
+            using (BeginCommand(commandString, predicate)) { }
         }
 
         /// <summary>
@@ -807,7 +815,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="source">The source register.</param>
         /// <param name="target">The target register.</param>
         /// <param name="predicate">The predicate under which to execute the command.</param>
-        protected void Move(
+        public void Move(
             PrimitiveRegister source,
             PrimitiveRegister target,
             PredicateConfiguration? predicate = null)
@@ -829,10 +837,10 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="predicate">The predicate under which to execute the command.</param>
         /// <returns>The created command emitter.</returns>
-        protected CommandEmitter BeginMove(
+        public CommandEmitter BeginMove(
             PredicateConfiguration? predicate = null) =>
             BeginCommand(
-                Instructions.MoveOperation,
+                PTXInstructions.MoveOperation,
                 predicate);
 
         /// <summary>
@@ -841,7 +849,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="targetRegister">The target register.</param>
         /// <param name="registerKind">The intrinsic register kind.</param>
         /// <param name="dimension">The register dimension (if any).</param>
-        protected void MoveFromIntrinsicRegister(
+        public void MoveFromIntrinsicRegister(
             PrimitiveRegister targetRegister,
             PTXRegisterKind registerKind,
             int dimension = 0)
@@ -860,7 +868,7 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="registerKind">The intrinsic register kind.</param>
         /// <param name="dimension">The register dimension (if any).</param>
-        protected PrimitiveRegister MoveFromIntrinsicRegister(
+        public PrimitiveRegister MoveFromIntrinsicRegister(
             PTXRegisterKind registerKind,
             int dimension = 0)
         {
@@ -877,7 +885,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="value">The value.</param>
         /// <param name="registerKind">The intrinsic register kind.</param>
         /// <param name="dimension">The register dimension (if any).</param>
-        protected PrimitiveRegister MoveFromIntrinsicRegister(
+        public PrimitiveRegister MoveFromIntrinsicRegister(
             Value value,
             PTXRegisterKind registerKind,
             int dimension = 0)

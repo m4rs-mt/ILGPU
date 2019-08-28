@@ -412,6 +412,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The function &apos;{0}&apos; does not have an intrinsic implementation for this backend. &apos;EnableAlgorithms&apos; from the Algorithms library not invoked?.
+        /// </summary>
+        internal static string NotSupportedIntrinsicImplementation {
+            get {
+                return ResourceManager.GetString("NotSupportedIntrinsicImplementation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to IsInstance is currently not supported.
         /// </summary>
         internal static string NotSupportedIsInstance {

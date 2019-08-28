@@ -3,32 +3,89 @@
 //                     Copyright (c) 2016-2019 Marcel Koester
 //                                www.ilgpu.net
 //
-// File: Instructions.Data.cs
+// File: PTXInstructions.Data.cs
 //
 // This file is part of ILGPU and is distributed under the University of
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using System;
 using System.Collections.Generic;
 
 namespace ILGPU.Backends.PTX
 {
-    partial class Instructions
+    partial class PTXInstructions
     {
+        /// <summary>
+        /// A return operation.
+        /// </summary>
         public const string ReturnOperation = "ret";
+
+        /// <summary>
+        /// A general move operation.
+        /// </summary>
         public const string MoveOperation = "mov";
+
+        /// <summary>
+        /// A general load operation.
+        /// </summary>
         public const string LoadOperation = "ld";
+
+        /// <summary>
+        /// A general load operation that loads parameter values.
+        /// </summary>
         public const string LoadParamOperation = "ld.param";
+
+        /// <summary>
+        /// A general load operation that loads local values.
+        /// </summary>
         public const string LoadLocalOperation = "ld.local";
+
+        /// <summary>
+        /// A general store operation.
+        /// </summary>
         public const string StoreOperation = "st";
+
+        /// <summary>
+        /// A general store operation that stores parameter values.
+        /// </summary>
         public const string StoreParamOperation = "st.param";
+
+        /// <summary>
+        /// A branch operation.
+        /// </summary>
         public const string BranchOperation = "bra";
+
+        /// <summary>
+        /// An indexed branch operation.
+        /// </summary>
         public const string BranchIndexOperation = "brx.idx";
+
+        /// <summary>
+        /// An indexed branch range comparison.
+        /// </summary>
         public const string BranchIndexRangeComparison = "setp.ge.or.s32";
+
+        /// <summary>
+        /// A branch targets declaration prefix.
+        /// </summary>
         public const string BranchTargetsDeclaration = ".branchtargets";
+
+        /// <summary>
+        /// An index FMA operation.
+        /// </summary>
         public const string IndexFMAOperationLo = "mad.lo.s32";
+
+        /// <summary>
+        /// An atomic CAS operation.
+        /// </summary>
         public const string AtomicCASOperation = "atom.cas";
+
+        /// <summary>
+        /// A warp member mask that considers all threads in a warp.
+        /// </summary>
+        [CLSCompliant(false)]
         public const uint AllThreadsInAWarpMemberMask = 0xffffffff;
 
         private static readonly Dictionary<ArithmeticBasicValueType, string> LEAMulOperations =

@@ -20,12 +20,12 @@ namespace ILGPU.Backends.PTX
     partial class PTXCodeGenerator
     {
         /// <summary cref="IValueVisitor.Visit(MethodCall)"/>
-        public void Visit(MethodCall call)
+        public void Visit(MethodCall methodCall)
         {
             const string ReturnValueName = "callRetVal";
             const string CallParamName = "callParam";
 
-            var target = call.Target;
+            var target = methodCall.Target;
 
             // Create call sequence
             Builder.AppendLine();
@@ -33,9 +33,9 @@ namespace ILGPU.Backends.PTX
 
             Builder.AppendLine("\t.reg .b32 temp_param_reg;");
 
-            for (int i = 0, e = call.NumArguments; i < e; ++i)
+            for (int i = 0, e = methodCall.NumArguments; i < e; ++i)
             {
-                var argument = call.Nodes[i];
+                var argument = methodCall.Nodes[i];
                 var paramName = CallParamName + i;
                 Builder.Append("\t");
                 AppendParamDeclaration(argument.Type, paramName);
@@ -64,7 +64,7 @@ namespace ILGPU.Backends.PTX
             }
             Builder.Append(GetMethodName(target));
             Builder.AppendLine(", (");
-            for (int i = 0, e = call.NumArguments; i < e; ++i)
+            for (int i = 0, e = methodCall.NumArguments; i < e; ++i)
             {
                 Builder.Append("\t\t");
                 Builder.Append(CallParamName);
@@ -79,7 +79,7 @@ namespace ILGPU.Backends.PTX
             if (!returnType.IsVoidType)
             {
                 // Allocate target register for the return type and load the data
-                var returnRegister = Allocate(call);
+                var returnRegister = Allocate(methodCall);
                 EmitLoadParam(ReturnValueName, returnRegister);
             }
             Builder.AppendLine("\t}");
@@ -111,7 +111,7 @@ namespace ILGPU.Backends.PTX
             var targetRegister = AllocatePrimitive(value);
 
             using (var command = BeginCommand(
-                Instructions.GetArithmeticOperation(
+                PTXInstructions.GetArithmeticOperation(
                     value.Kind,
                     value.ArithmeticBasicValueType,
                     FastMath)))
@@ -129,7 +129,7 @@ namespace ILGPU.Backends.PTX
 
             var targetRegister = Allocate(value, left.Description);
             using (var command = BeginCommand(
-                Instructions.GetArithmeticOperation(
+                PTXInstructions.GetArithmeticOperation(
                     value.Kind,
                     value.ArithmeticBasicValueType,
                     FastMath)))
@@ -150,7 +150,7 @@ namespace ILGPU.Backends.PTX
 
             var targetRegister = Allocate(value, first.Description);
             using (var command = BeginCommand(
-                Instructions.GetArithmeticOperation(
+                PTXInstructions.GetArithmeticOperation(
                     value.Kind,
                     value.ArithmeticBasicValueType)))
             {
@@ -172,7 +172,7 @@ namespace ILGPU.Backends.PTX
             {
                 // Predicate registers require a special treatment
                 using (var command = BeginCommand(
-                    Instructions.GetArithmeticOperation(
+                    PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Xor,
                         ArithmeticBasicValueType.UInt1,
                         false)))
@@ -185,7 +185,7 @@ namespace ILGPU.Backends.PTX
                 if (value.Kind == CompareKind.Equal)
                 {
                     using (var command = BeginCommand(
-                        Instructions.GetArithmeticOperation(
+                        PTXInstructions.GetArithmeticOperation(
                             UnaryArithmeticKind.Not,
                             ArithmeticBasicValueType.UInt1,
                             false)))
@@ -198,7 +198,7 @@ namespace ILGPU.Backends.PTX
             else
             {
                 using (var command = BeginCommand(
-                    Instructions.GetCompareOperation(
+                    PTXInstructions.GetCompareOperation(
                         value.Kind,
                         value.CompareType)))
                 {
@@ -214,7 +214,7 @@ namespace ILGPU.Backends.PTX
         {
             var sourceValue = LoadPrimitive(value.Value);
 
-            var convertOperation = Instructions.GetConvertOperation(
+            var convertOperation = PTXInstructions.GetConvertOperation(
                 value.SourceType,
                 value.TargetType);
 
@@ -298,7 +298,7 @@ namespace ILGPU.Backends.PTX
 
             var targetRegister = Allocate(predicate);
             EmitComplexCommand(
-                Instructions.GetSelectValueOperation(predicate.BasicValueType),
+                PTXInstructions.GetSelectValueOperation(predicate.BasicValueType),
                 new PredicateEmitter(condition),
                 targetRegister,
                 trueValue,
@@ -312,10 +312,10 @@ namespace ILGPU.Backends.PTX
             var value = LoadPrimitive(atomic.Value);
 
             var requiresResult = atomic.Uses.HasAny || atomic.Kind == AtomicKind.Exchange;
-            var atomicOperation = Instructions.GetAtomicOperation(
+            var atomicOperation = PTXInstructions.GetAtomicOperation(
                 atomic.Kind,
                 requiresResult);
-            var suffix = Instructions.GetAtomicOperationSuffix(
+            var suffix = PTXInstructions.GetAtomicOperationSuffix(
                 atomic.Kind,
                 atomic.ArithmeticBasicValueType);
 
@@ -341,7 +341,7 @@ namespace ILGPU.Backends.PTX
 
             var targetRegister = AllocatePrimitive(atomicCAS);
 
-            using (var command = BeginCommand(Instructions.AtomicCASOperation))
+            using (var command = BeginCommand(PTXInstructions.AtomicCASOperation))
             {
                 command.AppendNonLocalAddressSpace(
                     (atomicCAS.Target.Type as AddressSpaceType).AddressSpace);
@@ -362,7 +362,7 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IValueVisitor.Visit(MemoryBarrier)"/>
         public void Visit(MemoryBarrier barrier)
         {
-            var command = Instructions.GetMemoryBarrier(barrier.Kind);
+            var command = PTXInstructions.GetMemoryBarrier(barrier.Kind);
             Command(command);
         }
 
@@ -439,7 +439,7 @@ namespace ILGPU.Backends.PTX
             var targetRegister = Allocate(load);
 
             EmitComplexCommandWithOffsets(
-                Instructions.LoadOperation,
+                PTXInstructions.LoadOperation,
                 new LoadEmitter(sourceType, address),
                 targetRegister);
         }
@@ -517,7 +517,7 @@ namespace ILGPU.Backends.PTX
             var value = Load(store.Value);
 
             EmitComplexCommandWithOffsets(
-                Instructions.StoreOperation,
+                PTXInstructions.StoreOperation,
                 new StoreEmitter(targetType, address),
                 value);
         }
@@ -532,7 +532,7 @@ namespace ILGPU.Backends.PTX
             {
                 var targetRegister = AllocatePlatformRegister(value, out RegisterDescription _);
                 using (var command = BeginCommand(
-                    Instructions.GetArithmeticOperation(
+                    PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Add,
                         ABI.PointerArithmeticType,
                         false)))
@@ -636,7 +636,7 @@ namespace ILGPU.Backends.PTX
                 default:
                     var targetRegister = Allocate(value);
                     EmitComplexCommand(
-                        Instructions.MoveOperation,
+                        PTXInstructions.MoveOperation,
                         new NullEmitter(),
                         targetRegister);
                     break;
@@ -644,7 +644,17 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary cref="IValueVisitor.Visit(SizeOfValue)"/>
-        public void Visit(SizeOfValue value) => throw new InvalidCodeGenerationException();
+        public void Visit(SizeOfValue value)
+        {
+            var register = AllocatePrimitive(value);
+            var size = ABI.GetSizeOf(value.TargetType);
+            using (var command = BeginMove())
+            {
+                command.AppendSuffix(BasicValueType.Int32);
+                command.AppendArgument(register);
+                command.AppendConstant(size);
+            }
+        }
 
         /// <summary>
         /// Emits a new compound-register load operation.
@@ -729,7 +739,16 @@ namespace ILGPU.Backends.PTX
                 (int)value.Dimension);
 
         /// <summary cref="IValueVisitor.Visit(WarpSizeValue)"/>
-        public void Visit(WarpSizeValue value) => throw new InvalidCodeGenerationException();
+        public void Visit(WarpSizeValue value)
+        {
+            var register = AllocatePrimitive(value);
+            using (var command = BeginMove())
+            {
+                command.AppendSuffix(BasicValueType.Int32);
+                command.AppendArgument(register);
+                command.AppendConstant(PTXBackend.WarpSize);
+            }
+        }
 
         /// <summary cref="IValueVisitor.Visit(LaneIdxValue)"/>
         public void Visit(LaneIdxValue value) =>
@@ -747,7 +766,7 @@ namespace ILGPU.Backends.PTX
                 case PredicateBarrierKind.And:
                 case PredicateBarrierKind.Or:
                     using (var command = BeginCommand(
-                        Instructions.GetPredicateBarrier(barrier.Kind)))
+                        PTXInstructions.GetPredicateBarrier(barrier.Kind)))
                     {
                         command.AppendArgument(targetRegister);
                         command.AppendConstant(0);
@@ -756,7 +775,7 @@ namespace ILGPU.Backends.PTX
                     break;
                 case PredicateBarrierKind.PopCount:
                     using (var command = BeginCommand(
-                        Instructions.GetPredicateBarrier(barrier.Kind)))
+                        PTXInstructions.GetPredicateBarrier(barrier.Kind)))
                     {
                         command.AppendArgument(targetRegister);
                         command.AppendConstant(0);
@@ -772,12 +791,12 @@ namespace ILGPU.Backends.PTX
         public void Visit(Barrier barrier)
         {
             using (var command = BeginCommand(
-                Instructions.GetBarrier(barrier.Kind)))
+                PTXInstructions.GetBarrier(barrier.Kind)))
             {
                 switch (barrier.Kind)
                 {
                     case BarrierKind.WarpLevel:
-                        command.AppendConstant(Instructions.AllThreadsInAWarpMemberMask);
+                        command.AppendConstant(PTXInstructions.AllThreadsInAWarpMemberMask);
                         break;
                     case BarrierKind.GroupLevel:
                         command.AppendConstant(0);
@@ -817,7 +836,7 @@ namespace ILGPU.Backends.PTX
 
             var targetRegister = Allocate(shuffle, variable.Description);
 
-            var shuffleOperation = Instructions.GetShuffleOperation(shuffle.Kind);
+            var shuffleOperation = PTXInstructions.GetShuffleOperation(shuffle.Kind);
             using (var command = BeginCommand(shuffleOperation))
             {
                 command.AppendArgument(targetRegister);
@@ -827,7 +846,7 @@ namespace ILGPU.Backends.PTX
                 // Invoke the shuffle emitter
                 shuffleEmitter.EmitWarpMask(command);
 
-                command.AppendConstant(Instructions.AllThreadsInAWarpMemberMask);
+                command.AppendConstant(PTXInstructions.AllThreadsInAWarpMemberMask);
             }
         }
 
@@ -921,7 +940,7 @@ namespace ILGPU.Backends.PTX
             // Create basic mask
             var baseRegister = AllocateRegister(width.Description);
             using (var command = BeginCommand(
-                Instructions.GetArithmeticOperation(
+                PTXInstructions.GetArithmeticOperation(
                     BinaryArithmeticKind.Sub,
                     ArithmeticBasicValueType.UInt32,
                     false)))
@@ -934,7 +953,7 @@ namespace ILGPU.Backends.PTX
             // Shift mask
             var maskRegister = AllocateRegister(width.Description);
             using (var command = BeginCommand(
-                Instructions.GetArithmeticOperation(
+                PTXInstructions.GetArithmeticOperation(
                     BinaryArithmeticKind.Shl,
                     ArithmeticBasicValueType.UInt32,
                     false)))
@@ -950,7 +969,7 @@ namespace ILGPU.Backends.PTX
             {
                 var adjustedMaskRegister = AllocateRegister(width.Description);
                 using (var command = BeginCommand(
-                    Instructions.GetArithmeticOperation(
+                    PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Or,
                         ArithmeticBasicValueType.UInt32,
                         false)))

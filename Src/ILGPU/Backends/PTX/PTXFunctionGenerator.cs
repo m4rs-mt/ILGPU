@@ -84,7 +84,7 @@ namespace ILGPU.Backends.PTX
             if (!returnType.IsVoidType)
             {
                 Builder.Append("(");
-                AppendParamDeclaration(returnType, returnParamName);
+                AppendParamDeclaration(returnType, ReturnParamName);
                 Builder.Append(") ");
             }
             Builder.Append(GetMethodName(Method));

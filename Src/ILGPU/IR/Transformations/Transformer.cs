@@ -197,6 +197,7 @@ namespace ILGPU.IR.Transformations
 
             /// <summary cref="IMethodCollectionPredicate.Match(Method)"/>
             public bool Match(Method method) =>
+                method.HasImplementation &&
                 (method.TransformationFlags & Flags) == MethodTransformationFlags.None;
         }
 

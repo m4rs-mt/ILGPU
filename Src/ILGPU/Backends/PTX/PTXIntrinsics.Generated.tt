@@ -1,0 +1,105 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2019 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: PTXIntrinsics.Generated.tt/PTXIntrinsics.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../TypeInformation.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+using ILGPU.IR.Intrinsics;
+using ILGPU.IR.Values;
+using System.Runtime.CompilerServices;
+
+namespace ILGPU.Backends.PTX
+{
+    partial class PTXIntrinsics
+    {
+        #region Warp Shuffles
+
+        /// <summary>
+        /// Registers all PTX warp intrinsics with the given manager.
+        /// </summary>
+        /// <param name="manager">The target implementation manager.</param>
+        private static void RegisterWarpShuffles(IntrinsicImplementationManager manager)
+        {
+<# foreach (var (operation, kind) in ShuffleOperations) { #>
+            manager.RegisterWarpShuffle(
+                ShuffleKind.<#= kind #>,
+                BasicValueType.Int64,
+                CreateIntrinsic(nameof(Warp<#= operation #>Int64), IntrinsicImplementationMode.Redirect));
+            manager.RegisterWarpShuffle(
+                ShuffleKind.<#= kind #>,
+                BasicValueType.Float64,
+                CreateIntrinsic(nameof(Warp<#= operation #>Float64), IntrinsicImplementationMode.Redirect));
+
+            manager.RegisterSubWarpShuffle(
+                ShuffleKind.<#= kind #>,
+                BasicValueType.Int64,
+                CreateIntrinsic(nameof(Warp<#= operation #>Int64), IntrinsicImplementationMode.Redirect));
+            manager.RegisterSubWarpShuffle(
+                ShuffleKind.<#= kind #>,
+                BasicValueType.Float64,
+                CreateIntrinsic(nameof(Warp<#= operation #>Float64), IntrinsicImplementationMode.Redirect));
+
+<# } #>
+        }
+
+<# foreach (var (operation, _) in ShuffleOperations) { #>
+        /// <summary>
+        /// Wraps a single warp-shuffle operation.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ulong Warp<#= operation #>Int64(ulong value, int idx)
+        {
+            var (lower, upper) = IntrinsicMath.Decompose(value);
+            lower = Warp.<#= operation #>(lower, idx);
+            upper = Warp.<#= operation #>(upper, idx);
+            return IntrinsicMath.ComposeULong(lower, upper);
+        }
+
+        /// <summary>
+        /// Wraps a single warp-shuffle operation.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double Warp<#= operation #>Float64(double value, int idx)
+        {
+            var shuffled = Warp<#= operation #>Int64(Interop.FloatAsInt(value), idx);
+            return Interop.IntAsFloat(shuffled);
+        }
+
+        /// <summary>
+        /// Wraps a single sub-warp-shuffle operation.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ulong SubWarp<#= operation #>Int64(ulong value, int idx, int width)
+        {
+            var (lower, upper) = IntrinsicMath.Decompose(value);
+            lower = Warp.<#= operation #>(lower, idx, width);
+            upper = Warp.<#= operation #>(upper, idx, width);
+            return IntrinsicMath.ComposeULong(lower, upper);
+        }
+
+        /// <summary>
+        /// Wraps a single sub-warp-shuffle operation.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double SubWarp<#= operation #>Float64(double value, int idx, int width)
+        {
+            var shuffled = SubWarp<#= operation #>Int64(Interop.FloatAsInt(value), idx, width);
+            return Interop.IntAsFloat(shuffled);
+        }
+
+<# } #>
+
+        #endregion
+    }
+}

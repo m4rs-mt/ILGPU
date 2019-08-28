@@ -82,8 +82,6 @@ namespace ILGPU.Frontend
         private readonly object processingSyncObject = new object();
         private readonly Stack<ProcessingEntry> processing =
             new Stack<ProcessingEntry>(1 << 6);
-        private readonly List<IIntrinsicHandler> intrinsicHandlers =
-            new List<IIntrinsicHandler>();
 
         private volatile CodeGenerationPhase codeGenerationPhase;
 
@@ -233,55 +231,6 @@ namespace ILGPU.Frontend
 
             if (Interlocked.CompareExchange(ref codeGenerationPhase, null, phase) != phase)
                 throw new InvalidOperationException();
-        }
-
-        /// <summary>
-        /// Registers a new intrinsic handler.
-        /// </summary>
-        /// <typeparam name="THandler">The handler type.</typeparam>
-        /// <param name="handler">The handler to add.</param>
-        /// <remarks>This function is not thread safe.</remarks>
-        public void RegisterIntrinsicHandler<THandler>(THandler handler)
-            where THandler : class, IIntrinsicHandler
-        {
-            if (handler == null)
-                throw new ArgumentNullException(nameof(handler));
-            intrinsicHandlers.Add(handler);
-        }
-
-        /// <summary>
-        /// Tries to remap a method invocation to another invocation.
-        /// </summary>
-        /// <param name="context">The invocation context.</param>
-        /// <returns>True, iff the method was handled successfully.</returns>
-        /// <remarks>This function is not thread safe.</remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool RemapIntrinsic(ref InvocationContext context)
-        {
-            foreach (var handler in intrinsicHandlers)
-            {
-                if (handler.Remap(ref context))
-                    return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Tries to handle a method invocation in a custom device-function handler.
-        /// </summary>
-        /// <param name="context">The invocation context.</param>
-        /// <param name="result">The resulting stack value.</param>
-        /// <returns>True, iff the method was handled successfully.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool HandleIntrinsic(in InvocationContext context, out ValueReference result)
-        {
-            result = default;
-            foreach (var handler in intrinsicHandlers)
-            {
-                if (handler.Handle(context, ref result))
-                    return true;
-            }
-            return false;
         }
 
         #endregion

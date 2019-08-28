@@ -332,7 +332,7 @@ namespace ILGPU.IR
         /// <param name="flags">The flags to check.</param>
         /// <returns>True, if this declaration has the given method flags.</returns>
         public bool HasFlags(MethodFlags flags) =>
-            (Flags & flags) == flags;
+            (Flags & flags) != 0;
 
         /// <summary>
         /// Adds the given flags to this declaration.

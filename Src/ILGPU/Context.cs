@@ -14,6 +14,7 @@ using ILGPU.Backends.PTX;
 using ILGPU.Frontend;
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
+using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.Resources;
@@ -127,8 +128,6 @@ namespace ILGPU
         private IRContext mainContext;
         private ILBackend defaultILBackend;
 
-        private PTXContextData ptxContextData;
-
         private readonly object assemblyLock = new object();
         private int assemblyVersion = 0;
         private AssemblyBuilder assemblyBuilder;
@@ -197,9 +196,12 @@ namespace ILGPU
                 TransformerConfiguration.Transformed,
                 Flags);
 
+            // Intrinsics
+            IntrinsicManager = new IntrinsicImplementationManager();
+            InitIntrinsics();
+
             // Initialize assembly builder and context data
             ReloadAssemblyBuilder();
-            ReloadContextData();
         }
 
         #endregion
@@ -247,13 +249,21 @@ namespace ILGPU
         public Transformer ContextTransformer { get; }
 
         /// <summary>
-        /// Returns internal PTX context data for PTX backends.
+        /// Returns the underlying intrinsic manager.
         /// </summary>
-        internal PTXContextData PTXContextData => ptxContextData;
+        public IntrinsicImplementationManager IntrinsicManager { get; }
 
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Initializes all intrinsics.
+        /// </summary>
+        private void InitIntrinsics()
+        {
+            PTXIntrinsics.Register(IntrinsicManager);
+        }
 
         /// <summary>
         /// Reloads the assembly builder.
@@ -268,16 +278,6 @@ namespace ILGPU
                 assemblyName,
                 AssemblyBuilderAccess.RunAndCollect);
             moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
-        }
-
-        /// <summary>
-        /// Reloads context-dependent information.
-        /// </summary>
-        private void ReloadContextData()
-        {
-            Dispose(ref ptxContextData);
-
-            ptxContextData = new PTXContextData(this);
         }
 
         /// <summary>
@@ -310,17 +310,6 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal long CreateFunctionHandle() =>
             Interlocked.Add(ref functionHandleCounter, 1);
-
-        /// <summary>
-        /// Registers a new intrinsic handler.
-        /// </summary>
-        /// <typeparam name="THandler">The handler type.</typeparam>
-        /// <param name="handler">The handler to add.</param>
-        public void RegisterIntrinsicHandler<THandler>(THandler handler)
-            where THandler : class, IIntrinsicHandler
-        {
-            ilFrontend.RegisterIntrinsicHandler(handler);
-        }
 
         /// <summary>
         /// Releases the internal code-generation lock.
@@ -384,7 +373,6 @@ namespace ILGPU
             defaultILBackend.ClearCache(mode);
 
             ReloadAssemblyBuilder();
-            ReloadContextData();
         }
 
         #endregion
@@ -469,7 +457,6 @@ namespace ILGPU
         [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "defaultILBackend", Justification = "Dispose method will be invoked by a helper method")]
         [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "debugInformationManager", Justification = "Dispose method will be invoked by a helper method")]
         [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "typeContext", Justification = "Dispose method will be invoked by a helper method")]
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "ptxContextData", Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
             Dispose(ref codeGenerationSemaphore);
@@ -481,8 +468,6 @@ namespace ILGPU
 
             Dispose(ref debugInformationManager);
             Dispose(ref typeContext);
-
-            Dispose(ref ptxContextData);
         }
 
         #endregion

@@ -246,17 +246,19 @@ ModelManifest.xml
 .doxygen
 
 # Ignore specific template outputs
-Src/ILGPU/AtomicFunctions.cs
 Src/ILGPU/ArrayViews.cs
+Src/ILGPU/AtomicFunctions.cs
+Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
 Src/ILGPU/GroupedIndices.cs
-Src/ILGPU/ReductionOperations.cs
-Src/ILGPU/ShuffleOperations.cs
-Src/ILGPU/TypeInformation.cs
-Src/ILGPU/Runtime/MemoryBuffers.cs
-Src/ILGPU/Runtime/KernelLoaders.cs
-Src/ILGPU/Runtime/SharedMemoryKernelLoaders.cs
 Src/ILGPU/IR/Construction/ArithmeticOperations.cs
 Src/ILGPU/IR/Construction/CompareOperations.cs
+Src/ILGPU/IR/Intrinsics/IntrinsicMatchers.cs
+Src/ILGPU/ReductionOperations.cs
+Src/ILGPU/Runtime/KernelLoaders.cs
+Src/ILGPU/Runtime/MemoryBuffers.cs
+Src/ILGPU/Runtime/SharedMemoryKernelLoaders.cs
+Src/ILGPU/ShuffleOperations.cs
+Src/ILGPU/TypeInformation.cs
 
 # Generated test source files
 Src/ILGPU.Tests/Generic/ConfigurationBase.cs

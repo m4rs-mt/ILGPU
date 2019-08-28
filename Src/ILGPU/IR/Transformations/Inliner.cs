@@ -41,7 +41,7 @@ namespace ILGPU.IR.Transformations
             DisassembledMethod disassembledMethod)
         {
             // Check whether we are allowed to inline this method
-            if (context.HasFlags(ContextFlags.NoInlining))
+            if (context.HasFlags(ContextFlags.NoInlining) || !method.HasImplementation)
                 return;
 
             if (method.HasSource)

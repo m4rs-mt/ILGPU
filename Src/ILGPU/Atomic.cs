@@ -110,7 +110,6 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.None)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Exchange(ref float target, float value)
         {
@@ -126,7 +125,6 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
-        [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.None)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Exchange(ref double target, double value)
         {

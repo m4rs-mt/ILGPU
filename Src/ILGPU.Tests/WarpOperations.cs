@@ -75,6 +75,34 @@ namespace ILGPU.Tests
             }
         }
 
+        internal static void WarpBroadcastKernel(
+            GroupedIndex index,
+            ArrayView<int> data)
+        {
+            var idx = index.GridIdx * Group.DimensionX + index.GroupIdx;
+            data[idx] = Warp.Broadcast(index.GroupIdx.X, Warp.WarpSize - 1);
+        }
+
+        [Theory]
+        [InlineData(32)]
+        [InlineData(256)]
+        [InlineData(1024)]
+        [KernelMethod(nameof(WarpBroadcastKernel))]
+        public void WarpBroadcast(int length)
+        {
+            var warpSize = Accelerator.WarpSize;
+            using (var buffer = Accelerator.Allocate<int>(length * warpSize))
+            {
+                var extent = new GroupedIndex(
+                    length,
+                    warpSize);
+                Execute(extent, buffer.View);
+
+                var expected = Enumerable.Repeat(warpSize - 1, length * warpSize).ToArray();
+                Verify(buffer, expected);
+            }
+        }
+
         internal static void WarpShuffleKernel(
             Index index,
             ArrayView<int> data)

@@ -36,16 +36,14 @@ namespace ILGPU.Frontend
         {
             var intrinsicContext = new InvocationContext(this, block, Method, method, arguments);
 
-            // Check for remapping first
+            // Check for internal remappings first
             RemappedIntrinsics.RemapIntrinsic(ref intrinsicContext);
-            Frontend.RemapIntrinsic(ref intrinsicContext);
 
             // Early rejection for runtime-dependent methods
             VerifyNotRuntimeMethod(intrinsicContext.Method);
 
             // Handle device functions
-            if (!Intrinsics.HandleIntrinsic(intrinsicContext, out ValueReference result) &&
-                !Frontend.HandleIntrinsic(intrinsicContext, out result))
+            if (!Intrinsics.HandleIntrinsic(intrinsicContext, out ValueReference result))
             {
                 var targetFunction = DeclareMethod(intrinsicContext.Method);
 

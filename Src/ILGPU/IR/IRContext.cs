@@ -319,7 +319,7 @@ namespace ILGPU.IR
                         methods.Register(handle, function);
 
                         // Check for external function
-                        if (declaration.HasFlags(MethodFlags.External))
+                        if (declaration.HasFlags(MethodFlags.External | MethodFlags.Intrinsic))
                         {
                             using (var builder = function.CreateBuilder())
                             {

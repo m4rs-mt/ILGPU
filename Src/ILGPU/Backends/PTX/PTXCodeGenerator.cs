@@ -11,6 +11,7 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
@@ -25,7 +26,7 @@ namespace ILGPU.Backends.PTX
     /// Generates PTX code out of IR values.
     /// </summary>
     /// <remarks>The code needs to be prepared for this code generator.</remarks>
-    partial class PTXCodeGenerator : PTXRegisterAllocator, IValueVisitor
+    public partial class PTXCodeGenerator : PTXRegisterAllocator, IValueVisitor
     {
         #region Constants
 
@@ -41,41 +42,52 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Generation arguments for code-generator construction.
         /// </summary>
-        public readonly ref struct GeneratorArgs
+        internal readonly ref struct GeneratorArgs
         {
             public GeneratorArgs(
+                PTXBackend backend,
                 EntryPoint entryPoint,
                 PTXDebugInfoGenerator debugInfoGenerator,
                 StringBuilder stringBuilder,
-                PTXArchitecture architecture,
-                ABI abi,
                 ContextFlags contextFlags)
             {
+                Backend = backend;
                 EntryPoint = entryPoint;
                 DebugInfoGenerator = debugInfoGenerator;
                 StringBuilder = stringBuilder;
-                Architecture = architecture;
-                ABI = abi;
                 ContextFlags = contextFlags;
             }
 
+            /// <summary>
+            /// Returns the underlying backend.
+            /// </summary>
+            public PTXBackend Backend { get; }
+
+            /// <summary>
+            /// Returns the current backend.
+            /// </summary>
             public EntryPoint EntryPoint { get; }
 
+            /// <summary>
+            /// Returns the current string builder.
+            /// </summary>
             public StringBuilder StringBuilder { get; }
 
-            public PTXArchitecture Architecture { get; }
-
-            public ABI ABI { get; }
-
+            /// <summary>
+            /// Returns the current context flags.
+            /// </summary>
             public ContextFlags ContextFlags { get; }
 
+            /// <summary>
+            /// Returns the debug-information code generator.
+            /// </summary>
             public PTXDebugInfoGenerator DebugInfoGenerator { get; }
         }
 
         /// <summary>
         /// Represents a parameter that is mapped to PTX.
         /// </summary>
-        protected readonly struct MappedParameter
+        protected internal readonly struct MappedParameter
         {
             #region Instance
 
@@ -120,7 +132,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Represents a setup logic for function parameters.
         /// </summary>
-        protected interface IParameterSetupLogic
+        internal interface IParameterSetupLogic
         {
             /// <summary>
             /// Handles an intrinsic parameter and returns the
@@ -227,31 +239,37 @@ namespace ILGPU.Backends.PTX
         private readonly Dictionary<string, string> stringConstants =
             new Dictionary<string, string>();
         private readonly string labelPrefix;
-        protected readonly string returnParamName;
 
         /// <summary>
         /// Constructs a new PTX generator.
         /// </summary>
         /// <param name="args">The generator arguments.</param>
         /// <param name="scope">The current scope.</param>
-        protected PTXCodeGenerator(in GeneratorArgs args, Scope scope)
-            : base(args.ABI)
+        internal PTXCodeGenerator(in GeneratorArgs args, Scope scope)
+            : base(args.Backend.ABI)
         {
+            Backend = args.Backend;
             Builder = args.StringBuilder;
             Scope = scope;
             DebugInfoGenerator = args.DebugInfoGenerator;
+            ImplementationProvider = Backend.IntrinsicProvider;
 
-            Architecture = args.Architecture;
+            Architecture = args.Backend.Architecture;
             FastMath = args.ContextFlags.HasFlags(ContextFlags.FastMath);
             EnableAssertions = args.ContextFlags.HasFlags(ContextFlags.EnableAssertions);
 
             labelPrefix = "L_" + Method.Id.ToString();
-            returnParamName = "retval_" + Method.Id;
+            ReturnParamName = "retval_" + Method.Id;
         }
 
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the associated backend.
+        /// </summary>
+        public PTXBackend Backend { get; }
 
         /// <summary>
         /// Returns the associated top-level function.
@@ -274,6 +292,11 @@ namespace ILGPU.Backends.PTX
         public PTXDebugInfoGenerator DebugInfoGenerator { get; }
 
         /// <summary>
+        /// Returns the current intrinsic provider for code-generation purposes.
+        /// </summary>
+        public IntrinsicImplementationProvider<PTXIntrinsic.Handler> ImplementationProvider { get; }
+
+        /// <summary>
         /// Returns true if fast math is active.
         /// </summary>
         public bool FastMath { get; }
@@ -287,6 +310,11 @@ namespace ILGPU.Backends.PTX
         /// Returns the associated string builder.
         /// </summary>
         public StringBuilder Builder { get; }
+
+        /// <summary>
+        /// Returns the name of the return parameter.
+        /// </summary>
+        protected string ReturnParamName { get; }
 
         #endregion
 
@@ -395,8 +423,19 @@ namespace ILGPU.Backends.PTX
                     // Emit debug information
                     DebugInfoGenerator.GenerateDebugInfo(Builder, value);
 
-                    // Emit value
-                    value.Accept(this);
+                    // Check for intrinsic implementation
+                    if (ImplementationProvider.TryGetCodeGenerator(
+                        value,
+                        out var intrinsicCodeGenerator))
+                    {
+                        // Generate specialized code for this intrinsic node
+                        intrinsicCodeGenerator(Backend, this, value);
+                    }
+                    else
+                    {
+                        // Emit value
+                        value.Accept(this);
+                    }
                 }
 
                 DebugInfoGenerator.ResetSequencePoints();
@@ -411,7 +450,7 @@ namespace ILGPU.Backends.PTX
 
                         // Prepare move
                         EmitComplexCommand(
-                            Instructions.MoveOperation,
+                            PTXInstructions.MoveOperation,
                             new PhiMoveEmitter(),
                             phiTargetRegister,
                             sourceRegister);
@@ -492,7 +531,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="logic">The current logic.</param>
         /// <param name="paramOffset">The intrinsic parameter offset.</param>
         /// <returns>A list of mapped parameters.</returns>
-        protected List<MappedParameter> SetupParameters<TSetupLogic>(ref TSetupLogic logic, int paramOffset)
+        internal List<MappedParameter> SetupParameters<TSetupLogic>(ref TSetupLogic logic, int paramOffset)
             where TSetupLogic : IParameterSetupLogic
         {
             var parameters = new List<MappedParameter>(Method.NumParameters - paramOffset);
@@ -558,13 +597,13 @@ namespace ILGPU.Backends.PTX
                 public void Emit(
                     PTXCodeGenerator codeGenerator,
                     string command,
-                    PrimitiveRegister register,
+                    PrimitiveRegister primitiveRegister,
                     int offset)
                 {
                     using (var commandEmitter = codeGenerator.BeginCommand(command))
                     {
-                        commandEmitter.AppendSuffix(register.BasicValueType);
-                        commandEmitter.AppendArgument(register);
+                        commandEmitter.AppendSuffix(primitiveRegister.BasicValueType);
+                        commandEmitter.AppendArgument(primitiveRegister);
                         commandEmitter.AppendRawValue(ParamName, offset);
                     }
                 }
@@ -584,9 +623,9 @@ namespace ILGPU.Backends.PTX
             public void Emit(
                 PTXCodeGenerator codeGenerator,
                 string command,
-                PrimitiveRegister register,
+                PrimitiveRegister primitiveRegister,
                 int offset) =>
-                codeGenerator.EmitIOLoad(Emitter, command, register, offset);
+                codeGenerator.EmitIOLoad(Emitter, command, primitiveRegister, offset);
         }
 
         /// <summary>
@@ -599,7 +638,7 @@ namespace ILGPU.Backends.PTX
         protected void EmitLoadParam(string paramName, Register register)
         {
             EmitComplexCommandWithOffsets(
-                Instructions.LoadParamOperation,
+                PTXInstructions.LoadParamOperation,
                 new LoadParamEmitter(paramName),
                 register,
                 0);
@@ -629,14 +668,14 @@ namespace ILGPU.Backends.PTX
                 public void Emit(
                     PTXCodeGenerator codeGenerator,
                     string command,
-                    PrimitiveRegister register,
+                    PrimitiveRegister primitiveRegister,
                     int offset)
                 {
                     using (var commandEmitter = codeGenerator.BeginCommand(command))
                     {
-                        commandEmitter.AppendSuffix(register.BasicValueType);
+                        commandEmitter.AppendSuffix(primitiveRegister.BasicValueType);
                         commandEmitter.AppendRawValue(ParamName, offset);
-                        commandEmitter.AppendArgument(register);
+                        commandEmitter.AppendArgument(primitiveRegister);
                     }
                 }
             }
@@ -670,7 +709,7 @@ namespace ILGPU.Backends.PTX
         protected void EmitStoreParam(string paramName, Register register)
         {
             EmitComplexCommandWithOffsets(
-                Instructions.StoreParamOperation,
+                PTXInstructions.StoreParamOperation,
                 new StoreParamEmitter(paramName),
                 register,
                 0);
@@ -680,7 +719,7 @@ namespace ILGPU.Backends.PTX
         /// Binds the given mapped parameters.
         /// </summary>
         /// <param name="parameters">A list with mapped parameters.</param>
-        protected void BindParameters(List<MappedParameter> parameters)
+        internal void BindParameters(List<MappedParameter> parameters)
         {
             foreach (var mappedParameter in parameters)
                 EmitLoadParam(mappedParameter.PTXName, mappedParameter.Register);
@@ -690,7 +729,7 @@ namespace ILGPU.Backends.PTX
         /// Binds the given list of allocations.
         /// </summary>
         /// <param name="allocations">A list associating alloca nodes with thei local names.</param>
-        protected void BindAllocations(List<(Alloca, string)> allocations)
+        internal void BindAllocations(List<(Alloca, string)> allocations)
         {
             foreach (var allocaEntry in allocations)
             {

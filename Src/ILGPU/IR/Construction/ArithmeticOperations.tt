@@ -79,14 +79,11 @@ var binaryOperations = new []
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.IR.Construction
 {
     partial class IRBuilder
     {
-        [SuppressMessage("Microsoft.Maintainability", "CA1505:AvoidUnmaintainableCode")]
-        [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
         private ValueReference UnaryArithmeticFoldConstants(
             PrimitiveValue value,
             UnaryArithmeticKind kind)
@@ -95,95 +92,113 @@ namespace ILGPU.IR.Construction
             {
 <#    foreach (var operation in unaryOperations) { #>
                 case UnaryArithmeticKind.<#= operation.Name #>:
-                    {
-                        switch (value.BasicValueType)
-                        {
-<#          if (operation.Floats) { #>
-                            case BasicValueType.Float32:
-                                return CreatePrimitiveValue(<#= operation.Prefix #>value.Float32Value<#= operation.Suffix #>);
-                            case BasicValueType.Float64:
-                                return CreatePrimitiveValue(<#= operation.Prefix #>value.Float64Value<#= operation.Suffix #>);
-<#          } if (operation.Ints) { #>
-<#              if (!string.IsNullOrEmpty(operation.BoolPrefix)) { #>
-                            case BasicValueType.Int1:
-                                return CreatePrimitiveValue(<#= operation.BoolPrefix #>value.Int1Value<#= operation.Suffix #>);
-<#              } #>
-                            case BasicValueType.Int8:
-                                return CreatePrimitiveValue((sbyte)<#= operation.Prefix #>value.Int8Value<#= operation.Suffix #>);
-                            case BasicValueType.Int16:
-                                return CreatePrimitiveValue((short)<#= operation.Prefix #>value.Int16Value<#= operation.Suffix #>);
-                            case BasicValueType.Int32:
-                                return CreatePrimitiveValue(<#= operation.Prefix #>value.Int32Value<#= operation.Suffix #>);
-                            case BasicValueType.Int64:
-                                return CreatePrimitiveValue(<#= operation.Prefix #>value.Int64Value<#= operation.Suffix #>);
-<#          } #>
-                        }
-                        throw new NotSupportedException(string.Format(
-                            ErrorMessages.NotSupportedArithmeticArgumentType,
-                            value.BasicValueType));
-                    }
+                    return UnaryArithmeticFoldConstants_<#= operation.Name #>(value, kind);
 <#    } #>
                 default:
                     throw new ArgumentOutOfRangeException(nameof(kind));
             }
         }
 
-        [SuppressMessage("Microsoft.Maintainability", "CA1505:AvoidUnmaintainableCode")]
-        [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
+<#    foreach (var operation in unaryOperations) { #>
+        private ValueReference UnaryArithmeticFoldConstants_<#= operation.Name #>(
+            PrimitiveValue value,
+            UnaryArithmeticKind kind)
+        {
+            switch (value.BasicValueType)
+            {
+<#          if (operation.Floats) { #>
+                case BasicValueType.Float32:
+                    return CreatePrimitiveValue(<#= operation.Prefix #>value.Float32Value<#= operation.Suffix #>);
+                case BasicValueType.Float64:
+                    return CreatePrimitiveValue(<#= operation.Prefix #>value.Float64Value<#= operation.Suffix #>);
+<#          } if (operation.Ints) { #>
+<#              if (!string.IsNullOrEmpty(operation.BoolPrefix)) { #>
+                case BasicValueType.Int1:
+                    return CreatePrimitiveValue(<#= operation.BoolPrefix #>value.Int1Value<#= operation.Suffix #>);
+<#              } #>
+                case BasicValueType.Int8:
+                    return CreatePrimitiveValue((sbyte)<#= operation.Prefix #>value.Int8Value<#= operation.Suffix #>);
+                case BasicValueType.Int16:
+                    return CreatePrimitiveValue((short)<#= operation.Prefix #>value.Int16Value<#= operation.Suffix #>);
+                case BasicValueType.Int32:
+                    return CreatePrimitiveValue(<#= operation.Prefix #>value.Int32Value<#= operation.Suffix #>);
+                case BasicValueType.Int64:
+                    return CreatePrimitiveValue(<#= operation.Prefix #>value.Int64Value<#= operation.Suffix #>);
+<#          } #>
+            }
+            throw new NotSupportedException(string.Format(
+                ErrorMessages.NotSupportedArithmeticArgumentType,
+                value.BasicValueType));
+        }
+
+<#    } #>
+
         private ValueReference BinaryArithmeticFoldConstants(
             PrimitiveValue left,
             PrimitiveValue right,
             BinaryArithmeticKind kind,
             ArithmeticFlags flags)
         {
-            var isUnsigned = (flags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
             switch (kind)
             {
 <#    foreach (var operation in binaryOperations) { #>
                 case BinaryArithmeticKind.<#= operation.Name #>:
-                    {
-                        switch (left.BasicValueType)
-                        {
-<#          if (operation.Floats) { #>
-                            case BasicValueType.Float32:
-                                return CreatePrimitiveValue(<#= operation.Prefix #>left.Float32Value<#= operation.Operation #>right.Float32Value<#= operation.Suffix #>);
-                            case BasicValueType.Float64:
-                                return CreatePrimitiveValue(<#= operation.Prefix #>left.Float64Value<#= operation.Operation #>right.Float64Value<#= operation.Suffix #>);
-<#          } if (operation.Ints) { #>
-<#              if (operation.BoolSupport) { #>
-                            case BasicValueType.Int1:
-                                return CreatePrimitiveValue(<#= operation.Prefix #>left.Int1Value<#= operation.Operation #>right.Int1Value<#= operation.Suffix #>);
-<#              } #>
-                            case BasicValueType.Int8:
-                                if (isUnsigned)
-                                    return CreatePrimitiveValue((byte)(<#= operation.Prefix #>left.UInt8Value<#= operation.Operation #>right.UInt8Value<#= operation.Suffix #>));
-                                else
-                                    return CreatePrimitiveValue((sbyte)(<#= operation.Prefix #>left.Int8Value<#= operation.Operation #>right.Int8Value<#= operation.Suffix #>));
-                            case BasicValueType.Int16:
-                                if (isUnsigned)
-                                    return CreatePrimitiveValue((ushort)(<#= operation.Prefix #>left.UInt16Value<#= operation.Operation #>right.UInt16Value<#= operation.Suffix #>));
-                                else
-                                    return CreatePrimitiveValue((short)(<#= operation.Prefix #>left.Int16Value<#= operation.Operation #>right.Int16Value<#= operation.Suffix #>));
-                            case BasicValueType.Int32:
-                                if (isUnsigned)
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt32Value<#= operation.Operation #>right.UInt32Value<#= operation.Suffix #>);
-                                else
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Int32Value<#= operation.Operation #>right.Int32Value<#= operation.Suffix #>);
-                            case BasicValueType.Int64:
-                                if (isUnsigned)
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt64Value<#= operation.Operation #>right.UInt64Value<#= operation.Suffix #>);
-                                else
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Int64Value<#= operation.Operation #>right.Int64Value<#= operation.Suffix #>);
-<#          } #>
-                        }
-                        throw new NotSupportedException(string.Format(
-                            ErrorMessages.NotSupportedArithmeticArgumentType,
-                            left.BasicValueType));
-                    }
+                    return BinaryArithmeticFoldConstants_<#= operation.Name #>(left, right, kind, flags);
 <#    } #>
                 default:
                     throw new ArgumentOutOfRangeException(nameof(kind));
             }
         }
+
+<#    foreach (var operation in binaryOperations) { #>
+        private ValueReference BinaryArithmeticFoldConstants_<#= operation.Name #>(
+            PrimitiveValue left,
+            PrimitiveValue right,
+            BinaryArithmeticKind kind,
+            ArithmeticFlags flags)
+        {
+<#          if (operation.Ints) { #>
+            var isUnsigned = (flags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
+<#          } #>
+            switch (left.BasicValueType)
+            {
+<#          if (operation.Floats) { #>
+                case BasicValueType.Float32:
+                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Float32Value<#= operation.Operation #>right.Float32Value<#= operation.Suffix #>);
+                case BasicValueType.Float64:
+                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Float64Value<#= operation.Operation #>right.Float64Value<#= operation.Suffix #>);
+<#          } if (operation.Ints) { #>
+<#              if (operation.BoolSupport) { #>
+                case BasicValueType.Int1:
+                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Int1Value<#= operation.Operation #>right.Int1Value<#= operation.Suffix #>);
+<#              } #>
+                case BasicValueType.Int8:
+                    if (isUnsigned)
+                        return CreatePrimitiveValue((byte)(<#= operation.Prefix #>left.UInt8Value<#= operation.Operation #>right.UInt8Value<#= operation.Suffix #>));
+                    else
+                        return CreatePrimitiveValue((sbyte)(<#= operation.Prefix #>left.Int8Value<#= operation.Operation #>right.Int8Value<#= operation.Suffix #>));
+                case BasicValueType.Int16:
+                    if (isUnsigned)
+                        return CreatePrimitiveValue((ushort)(<#= operation.Prefix #>left.UInt16Value<#= operation.Operation #>right.UInt16Value<#= operation.Suffix #>));
+                    else
+                        return CreatePrimitiveValue((short)(<#= operation.Prefix #>left.Int16Value<#= operation.Operation #>right.Int16Value<#= operation.Suffix #>));
+                case BasicValueType.Int32:
+                    if (isUnsigned)
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt32Value<#= operation.Operation #>right.UInt32Value<#= operation.Suffix #>);
+                    else
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.Int32Value<#= operation.Operation #>right.Int32Value<#= operation.Suffix #>);
+                case BasicValueType.Int64:
+                    if (isUnsigned)
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt64Value<#= operation.Operation #>right.UInt64Value<#= operation.Suffix #>);
+                    else
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.Int64Value<#= operation.Operation #>right.Int64Value<#= operation.Suffix #>);
+<#          } #>
+            }
+            throw new NotSupportedException(string.Format(
+                ErrorMessages.NotSupportedArithmeticArgumentType,
+                left.BasicValueType));
+        }
+
+<#    } #>
     }
 }

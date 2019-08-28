@@ -202,7 +202,7 @@ namespace ILGPU.Frontend
         {
             Debug.Assert(methodBase != null, "Invalid function to declare");
             var result = Builder.DeclareMethod(methodBase, out bool created);
-            if (created)
+            if (created && result.HasImplementation)
                 DetectedMethods.Add(methodBase);
             return result;
         }

@@ -288,4 +288,7 @@
   <data name="NotSupportedDynamicAllocation" xml:space="preserve">
     <value>The allocation size of type '{0}' must be statically known and not a dynamic value '{1}'</value>
   </data>
+  <data name="NotSupportedIntrinsicImplementation" xml:space="preserve">
+    <value>The function '{0}' does not have an intrinsic implementation for this backend. 'EnableAlgorithms' from the Algorithms library not invoked?</value>
+  </data>
 </root>

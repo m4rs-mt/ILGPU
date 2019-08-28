@@ -35,59 +35,67 @@ namespace ILGPU.IR.Construction
 {
     partial class IRBuilder
     {
-        [SuppressMessage("Microsoft.Maintainability", "CA1505:AvoidUnmaintainableCode")]
-        [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
         private ValueReference CompareFoldConstants(
             PrimitiveValue left,
             PrimitiveValue right,
             CompareKind kind,
             CompareFlags flags)
         {
-            var isUnsigned = (flags & CompareFlags.UnsignedOrUnordered) == CompareFlags.UnsignedOrUnordered;
             switch (kind)
             {
 <#    foreach (var operation in operations) { #>
                 case CompareKind.<#= operation.Name #>:
-                    {
-                        switch (left.BasicValueType)
-                        {
-                            case BasicValueType.Float32:
-                                return CreatePrimitiveValue(<#= operation.Prefix #>left.Float32Value<#= operation.Operation #>right.Float32Value<#= operation.Suffix #>);
-                            case BasicValueType.Float64:
-                                return CreatePrimitiveValue(<#= operation.Prefix #>left.Float64Value<#= operation.Operation #>right.Float64Value<#= operation.Suffix #>);
-<#          if (operation.BoolSupport) { #>
-                            case BasicValueType.Int1:
-                                return CreatePrimitiveValue(<#= operation.Prefix #>left.Int1Value<#= operation.Operation #>right.Int1Value<#= operation.Suffix #>);
-<#          } #>
-                            case BasicValueType.Int8:
-                                if (isUnsigned)
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt8Value<#= operation.Operation #>right.UInt8Value<#= operation.Suffix #>);
-                                else
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Int8Value<#= operation.Operation #>right.Int8Value<#= operation.Suffix #>);
-                            case BasicValueType.Int16:
-                                if (isUnsigned)
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt16Value<#= operation.Operation #>right.UInt16Value<#= operation.Suffix #>);
-                                else
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Int16Value<#= operation.Operation #>right.Int16Value<#= operation.Suffix #>);
-                            case BasicValueType.Int32:
-                                if (isUnsigned)
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt32Value<#= operation.Operation #>right.UInt32Value<#= operation.Suffix #>);
-                                else
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Int32Value<#= operation.Operation #>right.Int32Value<#= operation.Suffix #>);
-                            case BasicValueType.Int64:
-                                if (isUnsigned)
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt64Value<#= operation.Operation #>right.UInt64Value<#= operation.Suffix #>);
-                                else
-                                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Int64Value<#= operation.Operation #>right.Int64Value<#= operation.Suffix #>);
-                        }
-                        throw new NotSupportedException(string.Format(
-                            ErrorMessages.NotSupportedCompareArgumentType,
-                            left.BasicValueType));
-                    }
+                    return CompareFoldConstants_<#= operation.Name #>(left, right, kind, flags);
 <#    } #>
                 default:
                     throw new ArgumentOutOfRangeException(nameof(kind));
             }
         }
+
+<#    foreach (var operation in operations) { #>
+        private ValueReference CompareFoldConstants_<#= operation.Name #>(
+            PrimitiveValue left,
+            PrimitiveValue right,
+            CompareKind kind,
+            CompareFlags flags)
+        {
+            var isUnsigned = (flags & CompareFlags.UnsignedOrUnordered) == CompareFlags.UnsignedOrUnordered;
+            switch (left.BasicValueType)
+            {
+                case BasicValueType.Float32:
+                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Float32Value<#= operation.Operation #>right.Float32Value<#= operation.Suffix #>);
+                case BasicValueType.Float64:
+                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Float64Value<#= operation.Operation #>right.Float64Value<#= operation.Suffix #>);
+<#          if (operation.BoolSupport) { #>
+                case BasicValueType.Int1:
+                    return CreatePrimitiveValue(<#= operation.Prefix #>left.Int1Value<#= operation.Operation #>right.Int1Value<#= operation.Suffix #>);
+<#          } #>
+                case BasicValueType.Int8:
+                    if (isUnsigned)
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt8Value<#= operation.Operation #>right.UInt8Value<#= operation.Suffix #>);
+                    else
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.Int8Value<#= operation.Operation #>right.Int8Value<#= operation.Suffix #>);
+                case BasicValueType.Int16:
+                    if (isUnsigned)
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt16Value<#= operation.Operation #>right.UInt16Value<#= operation.Suffix #>);
+                    else
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.Int16Value<#= operation.Operation #>right.Int16Value<#= operation.Suffix #>);
+                case BasicValueType.Int32:
+                    if (isUnsigned)
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt32Value<#= operation.Operation #>right.UInt32Value<#= operation.Suffix #>);
+                    else
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.Int32Value<#= operation.Operation #>right.Int32Value<#= operation.Suffix #>);
+                case BasicValueType.Int64:
+                    if (isUnsigned)
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.UInt64Value<#= operation.Operation #>right.UInt64Value<#= operation.Suffix #>);
+                    else
+                        return CreatePrimitiveValue(<#= operation.Prefix #>left.Int64Value<#= operation.Operation #>right.Int64Value<#= operation.Suffix #>);
+            }
+            throw new NotSupportedException(string.Format(
+                ErrorMessages.NotSupportedCompareArgumentType,
+                left.BasicValueType));
+        }
+
+<#    } #>
     }
 }

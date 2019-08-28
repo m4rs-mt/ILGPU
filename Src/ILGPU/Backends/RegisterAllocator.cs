@@ -23,7 +23,7 @@ namespace ILGPU.Backends
     /// </summary>
     /// <typeparam name="TKind">The register kind.</typeparam>
     /// <remarks>The members of this class are not thread safe.</remarks>
-    abstract class RegisterAllocator<TKind>
+    public abstract class RegisterAllocator<TKind>
         where TKind : struct
     {
         #region Nested Types
@@ -114,6 +114,10 @@ namespace ILGPU.Backends
             /// </summary>
             public TKind Kind => Description.Kind;
 
+            /// <summary>
+            /// Returns the string representation of the current register.
+            /// </summary>
+            /// <returns>The string representation of the current register.</returns>
             public override string ToString() =>
                 $"Register {Kind}, {RegisterValue}";
         }
@@ -317,7 +321,7 @@ namespace ILGPU.Backends
         /// Constructs a new register allocator.
         /// </summary>
         /// <param name="abi">The underlying ABI.</param>
-        public RegisterAllocator(ABI abi)
+        protected RegisterAllocator(ABI abi)
         {
             Debug.Assert(abi != null, "Invalid ABI");
             ABI = abi;
@@ -353,8 +357,8 @@ namespace ILGPU.Backends
         /// <summary>
         /// Frees the given register.
         /// </summary>
-        /// <param name="register">The register to free.</param>
-        public abstract void FreeRegister(PrimitiveRegister register);
+        /// <param name="primitiveRegister">The register to free.</param>
+        public abstract void FreeRegister(PrimitiveRegister primitiveRegister);
 
         /// <summary>
         /// Allocates a new register of a view type.
@@ -379,8 +383,8 @@ namespace ILGPU.Backends
         /// <summary>
         /// Frees the given view register.
         /// </summary>
-        /// <param name="register">The view register to free.</param>
-        public abstract void FreeViewRegister(ViewRegister register);
+        /// <param name="viewRegister">The view register to free.</param>
+        public abstract void FreeViewRegister(ViewRegister viewRegister);
 
         /// <summary>
         /// Allocates a specific register kind for the given node.
@@ -482,14 +486,14 @@ namespace ILGPU.Backends
         /// Regisers a register alias.
         /// </summary>
         /// <param name="node">The node.</param>
-        /// <param name="alias">The alias node.</param>
-        public void Alias(Value node, Value alias)
+        /// <param name="aliasNode">The alias node.</param>
+        public void Alias(Value node, Value aliasNode)
         {
             Debug.Assert(node != null, "Invalid node");
-            Debug.Assert(alias != null, "Invalid alias");
-            if (aliases.TryGetValue(alias, out Value otherAlias))
-                alias = otherAlias;
-            aliases[node] = alias;
+            Debug.Assert(aliasNode != null, "Invalid alias");
+            if (aliases.TryGetValue(aliasNode, out Value otherAlias))
+                aliasNode = otherAlias;
+            aliases[node] = aliasNode;
         }
 
         /// <summary>

@@ -3,17 +3,17 @@
 //                     Copyright (c) 2016-2019 Marcel Koester
 //                                www.ilgpu.net
 //
-// File IntrinsicSpecializer.cs
+// File: IntrinsicSpecializer.cs
 //
 // This file is part of ILGPU and is distributed under the University of
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
-using ILGPU.IR.Types;
+using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Transformations
 {
@@ -26,24 +26,6 @@ namespace ILGPU.IR.Transformations
         /// Returns true if assertions are enabled.
         /// </summary>
         bool EnableAssertions { get; }
-
-        /// <summary>
-        /// Returns the current warp size.
-        /// </summary>
-        int WarpSize { get; }
-
-        /// <summary>
-        /// Tries to resolve the native size in bytes of the given type.
-        /// </summary>
-        /// <param name="type">The type.</param>
-        /// <param name="size">The native size in bytes.</param>
-        /// <returns>True, if the size could be resolved.</returns>
-        bool TryGetSizeOf(TypeNode type, out int size);
-
-        /// <summary>
-        /// Returns the associated math implementation resolver.
-        /// </summary>
-        IntrinsicImplementationResolver ImplementationResolver { get; }
     }
 
     /// <summary>
@@ -51,19 +33,25 @@ namespace ILGPU.IR.Transformations
     /// </summary>
     /// <remarks>
     /// Note that this class does not perform recursive specialization operations.
-    /// See <see cref="Backends.PTX.PTXContextData"/> for additional remarks.
     /// </remarks>
-    public sealed class IntrinsicSpecializer<TConfiguration> : UnorderedTransformation<CachedScopeProvider>
+    /// <typeparam name="TConfiguration">The actual configuration type.</typeparam>
+    /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
+    public sealed class IntrinsicSpecializer<TConfiguration, TDelegate> : UnorderedTransformation<CachedScopeProvider>
         where TConfiguration : IIntrinsicSpecializerConfiguration
+        where TDelegate : Delegate
     {
-        private TConfiguration configuration;
+        private readonly TConfiguration configuration;
+        private readonly IntrinsicImplementationProvider<TDelegate> provider;
 
         /// <summary>
         /// Constructs a new intrinsic specializer.
         /// </summary>
-        public IntrinsicSpecializer(in TConfiguration specializerConfiguration)
+        public IntrinsicSpecializer(
+            in TConfiguration specializerConfiguration,
+            IntrinsicImplementationProvider<TDelegate> implementationProvider)
         {
             configuration = specializerConfiguration;
+            provider = implementationProvider;
         }
 
         /// <summary cref="UnorderedTransformation{TIntermediate}.CreateIntermediate"/>
@@ -75,6 +63,7 @@ namespace ILGPU.IR.Transformations
         /// <summary cref="UnorderedTransformation{TIntermediate}.PerformTransformation(Method.Builder, TIntermediate)"/>
         protected override bool PerformTransformation(Method.Builder builder, CachedScopeProvider scopeProvider)
         {
+            // Check whether we are currently processing an intrinsic method
             var scope = builder.CreateScope();
 
             var dependencies = FindDependencies(builder, scope, out bool applied);
@@ -107,8 +96,6 @@ namespace ILGPU.IR.Transformations
             out bool applied)
         {
             var intrinsicFunctions = new List<(Value, Method)>(scope.Count >> 2);
-            var implementationResolver = configuration.ImplementationResolver;
-            Debug.Assert(implementationResolver != null, "Invalid implementation resolver");
             applied = false;
 
             // Analyze intrinsic nodes
@@ -118,58 +105,21 @@ namespace ILGPU.IR.Transformations
 
                 switch (value)
                 {
-                    case DebugTrace debugTrace:
-                        // Ignore trace events in kernels for now
-                        blockBuilder.Remove(debugTrace);
+                    case DebugOperation debug:
+                        // Check whether we are using debug functionality
+                        if (configuration.EnableAssertions &&
+                            provider.TryGetImplementation(debug, out var debugImplementation))
+                            intrinsicFunctions.Add((debug, debugImplementation));
+                        else
+                            blockBuilder.Remove(debug);
                         applied = true;
                         break;
-                    case DebugAssertFailed debugAssert:
-                        // Check whether assertions are enabled
-                        if (configuration.EnableAssertions &&
-                            implementationResolver.TryGetDebugImplementation(
-                                out Method debugFunction))
+                    default:
+                        // Check intrinsic value
+                        if (provider.TryGetImplementation(value, out var implementation))
                         {
-                            intrinsicFunctions.Add((debugAssert, debugFunction));
-                        }
-                        else
-                        {
-                            blockBuilder.Remove(debugAssert);
+                            intrinsicFunctions.Add((value, implementation));
                             applied = true;
-                        }
-                        break;
-                    case WarpSizeValue warpSizeValue:
-                        {
-                            var nativeWarpSize = configuration.WarpSize;
-                            Debug.Assert(nativeWarpSize > 0, "Invalid native warp size");
-                            var primitiveSize = blockBuilder.CreatePrimitiveValue(nativeWarpSize);
-                            warpSizeValue.Replace(primitiveSize);
-                            applied = true;
-                        }
-                        break;
-                    case SizeOfValue sizeOfValue:
-                        if (configuration.TryGetSizeOf(sizeOfValue.TargetType, out int size))
-                        {
-                            var primitiveSize = blockBuilder.CreatePrimitiveValue(size);
-                            sizeOfValue.Replace(primitiveSize);
-                            applied = true;
-                        }
-                        break;
-                    case UnaryArithmeticValue unary:
-                        if (implementationResolver.TryGetMathImplementation(
-                            unary.Kind,
-                            unary.ArithmeticBasicValueType,
-                            out Method unaryMethod))
-                        {
-                            intrinsicFunctions.Add((unary, unaryMethod));
-                        }
-                        break;
-                    case BinaryArithmeticValue binary:
-                        if (implementationResolver.TryGetMathImplementation(
-                            binary.Kind,
-                            binary.ArithmeticBasicValueType,
-                            out Method binaryMethod))
-                        {
-                            intrinsicFunctions.Add((binary, binaryMethod));
                         }
                         break;
                 }

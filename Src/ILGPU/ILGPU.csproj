@@ -56,10 +56,20 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Include="Backends\PTX\PTXIntrinsics.Generated.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
+      </None>
       <None Include="IR\Construction\CompareOperations.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>CompareOperations.tt</DependentUpon>
+      </None>
+      <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
       </None>
     </ItemGroup>
 
@@ -73,6 +83,16 @@
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
             <DependentUpon>AtomicFunctions.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Backends\PTX\PTXIntrinsics.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
+        </Compile>
+        <Compile Update="IR\Intrinsics\IntrinsicMatchers.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
         </Compile>
         <Compile Update="Runtime\KernelLoaders.cs">
           <DesignTime>True</DesignTime>
@@ -124,6 +144,10 @@
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>AtomicFunctions.cs</LastGenOutput>
         </None>
+        <None Update="Backends\PTX\PTXIntrinsics.Generated.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>PTXIntrinsics.Generated.cs</LastGenOutput>
+        </None>
         <None Update="GroupedIndices.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>GroupedIndices.cs</LastGenOutput>
@@ -139,6 +163,10 @@
         <None Update="IR\Construction\ArithmeticOperations.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>ArithmeticOperations.cs</LastGenOutput>
+        </None>
+        <None Update="IR\Intrinsics\IntrinsicMatchers.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>IntrinsicMatchers.cs</LastGenOutput>
         </None>
         <None Update="Runtime\KernelLoaders.tt">
           <Generator>TextTemplatingFileGenerator</Generator>

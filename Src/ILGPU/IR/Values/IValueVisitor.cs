@@ -21,8 +21,8 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Visits the node.
         /// </summary>
-        /// <param name="functionCall">The node.</param>
-        void Visit(MethodCall functionCall);
+        /// <param name="methodCall">The node.</param>
+        void Visit(MethodCall methodCall);
 
         /// <summary>
         /// Visits the node.
@@ -307,26 +307,26 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Visits the node.
         /// </summary>
-        /// <param name="node">The node.</param>
-        void Visit(ReturnTerminator node);
+        /// <param name="returnTerminator">The node.</param>
+        void Visit(ReturnTerminator returnTerminator);
 
         /// <summary>
         /// Visits the node.
         /// </summary>
-        /// <param name="node">The node.</param>
-        void Visit(UnconditionalBranch node);
+        /// <param name="branch">The node.</param>
+        void Visit(UnconditionalBranch branch);
 
         /// <summary>
         /// Visits the node.
         /// </summary>
-        /// <param name="node">The node.</param>
-        void Visit(ConditionalBranch node);
+        /// <param name="branch">The node.</param>
+        void Visit(ConditionalBranch branch);
 
         /// <summary>
         /// Visits the node.
         /// </summary>
-        /// <param name="node">The node.</param>
-        void Visit(SwitchBranch node);
+        /// <param name="branch">The node.</param>
+        void Visit(SwitchBranch branch);
     }
 
     /// <summary>
