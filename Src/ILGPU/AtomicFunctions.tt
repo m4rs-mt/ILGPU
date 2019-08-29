@@ -46,10 +46,8 @@ namespace ILGPU
             /// <param name="compare">The expected comparison value.</param>
             /// <param name="value">The target value.</param>
             /// <returns>The old value.</returns>
-            public <#= type.Type #> CompareExchange(ref <#= type.Type #> target, <#= type.Type #> compare, <#= type.Type #> value)
-            {
-                return Atomic.CompareExchange(ref target, compare, value);
-            }
+            public <#= type.Type #> CompareExchange(ref <#= type.Type #> target, <#= type.Type #> compare, <#= type.Type #> value) =>
+                Atomic.CompareExchange(ref target, compare, value);
         }
 
 <#      } #>
@@ -69,20 +67,16 @@ namespace ILGPU
         /// <returns>The old value that was stored at the target location.</returns>
         [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.None)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value)
-        {
-            return Interlocked.Add(ref target, value) - value;
-        }
+        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value) =>
+            Interlocked.Add(ref target, value) - value;
 
 <#      } #>
 
 <#      foreach (var type in atomicUnsignedIntAndFloatTypes) { #>
         struct Add<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
-            {
-                return current + value;
-            }
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+                current + value;
         }
 
 <#      } #>
@@ -98,10 +92,8 @@ namespace ILGPU
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.Unsigned)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value)
-        {
-            return MakeAtomic(ref target, value, new Add<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
-        }
+        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value) =>
+            MakeAtomic(ref target, value, new Add<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -118,10 +110,8 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.None)]
 <#          } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value)
-        {
-            return MakeAtomic(ref target, value, new Add<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
-        }
+        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value) =>
+            MakeAtomic(ref target, value, new Add<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -132,10 +122,8 @@ namespace ILGPU
 <#      foreach (var type in AtomicNumericTypes) { #>
         struct Max<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
-            {
-                return XMath.Max(current, value);
-            }
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+                IntrinsicMath.Max(current, value);
         }
 
         /// <summary>
@@ -152,10 +140,8 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Max, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Max(ref <#= type.Type #> target, <#= type.Type #> value)
-        {
-            return MakeAtomic(ref target, value, new Max<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
-        }
+        public static <#= type.Type #> Max(ref <#= type.Type #> target, <#= type.Type #> value) =>
+            MakeAtomic(ref target, value, new Max<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -166,10 +152,8 @@ namespace ILGPU
 <#      foreach (var type in AtomicNumericTypes) { #>
         struct Min<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
-            {
-                return XMath.Min(current, value);
-            }
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+                IntrinsicMath.Min(current, value);
         }
 
         /// <summary>
@@ -186,10 +170,8 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Min, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Min(ref <#= type.Type #> target, <#= type.Type #> value)
-        {
-            return MakeAtomic(ref target, value, new Min<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
-        }
+        public static <#= type.Type #> Min(ref <#= type.Type #> target, <#= type.Type #> value) =>
+            MakeAtomic(ref target, value, new Min<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -200,10 +182,8 @@ namespace ILGPU
 <#      foreach (var type in AtomicIntTypes) { #>
         struct And<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
-            {
-                return current & value;
-            }
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+                current & value;
         }
 
         /// <summary>
@@ -220,10 +200,8 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.And, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> And(ref <#= type.Type #> target, <#= type.Type #> value)
-        {
-            return MakeAtomic(ref target, value, new And<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
-        }
+        public static <#= type.Type #> And(ref <#= type.Type #> target, <#= type.Type #> value) =>
+            MakeAtomic(ref target, value, new And<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -234,10 +212,8 @@ namespace ILGPU
 <#      foreach (var type in AtomicIntTypes) { #>
         struct Or<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
-            {
-                return current | value;
-            }
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+                current | value;
         }
 
         /// <summary>
@@ -254,10 +230,8 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Or, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Or(ref <#= type.Type #> target, <#= type.Type #> value)
-        {
-            return MakeAtomic(ref target, value, new Or<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
-        }
+        public static <#= type.Type #> Or(ref <#= type.Type #> target, <#= type.Type #> value) =>
+            MakeAtomic(ref target, value, new Or<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -268,10 +242,8 @@ namespace ILGPU
 <#      foreach (var type in AtomicIntTypes) { #>
         struct Xor<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value)
-            {
-                return current ^ value;
-            }
+            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+                current ^ value;
         }
 
         /// <summary>
@@ -288,10 +260,8 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Xor, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Xor(ref <#= type.Type #> target, <#= type.Type #> value)
-        {
-            return MakeAtomic(ref target, value, new Xor<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
-        }
+        public static <#= type.Type #> Xor(ref <#= type.Type #> target, <#= type.Type #> value) =>
+            MakeAtomic(ref target, value, new Xor<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -313,10 +283,8 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Exchange(ref <#= type.Type #> target, <#= type.Type #> value)
-        {
-            return Interlocked.Exchange(ref target, value);
-        }
+        public static <#= type.Type #> Exchange(ref <#= type.Type #> target, <#= type.Type #> value) =>
+            Interlocked.Exchange(ref target, value);
 
 <#      } #>
 
@@ -334,10 +302,8 @@ namespace ILGPU
         /// <returns>The old value.</returns>
         [AtomicIntrinsic(AtomicIntrinsicKind.CompareExchange, AtomicFlags.None)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> CompareExchange(ref <#= type.Type #> target, <#= type.Type #> compare, <#= type.Type #> value)
-        {
-            return Interlocked.CompareExchange(ref target, value, compare);
-        }
+        public static <#= type.Type #> CompareExchange(ref <#= type.Type #> target, <#= type.Type #> compare, <#= type.Type #> value) =>
+            Interlocked.CompareExchange(ref target, value, compare);
 
 <#      } #>
 

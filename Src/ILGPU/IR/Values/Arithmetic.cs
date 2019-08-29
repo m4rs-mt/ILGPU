@@ -148,6 +148,11 @@ namespace ILGPU.IR.Values
         Exp2F,
 
         /// <summary>
+        /// Computes sign(x);
+        /// </summary>
+        SignF,
+
+        /// <summary>
         /// Computes floor(x).
         /// </summary>
         FloorF,

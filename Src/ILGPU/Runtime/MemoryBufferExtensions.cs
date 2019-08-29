@@ -236,7 +236,7 @@ namespace ILGPU.Runtime
                     continue;
 
                 // Skip entries that are out of bounds
-                for (int j = 0, e = XMath.Min(subData.Length, extent.Y); j < e; ++j)
+                for (int j = 0, e = IntrinsicMath.Min(subData.Length, extent.Y); j < e; ++j)
                 {
                     var targetIdx = new Index2(i, j).ComputeLinearIndex(extent);
                     tempBuffer[targetIdx] = subData[j + sourceOffset.Y];
@@ -612,7 +612,7 @@ namespace ILGPU.Runtime
                         continue;
 
                     // Skip entries that are out of bounds
-                    for (int k = 0, e = XMath.Min(subSubData.Length, extent.Z); k < e; ++k)
+                    for (int k = 0, e = IntrinsicMath.Min(subSubData.Length, extent.Z); k < e; ++k)
                     {
                         var targetIdx = new Index3(i, j, k).ComputeLinearIndex(extent);
                         tempBuffer[targetIdx] = subSubData[k + sourceOffset.Z];

@@ -1,0 +1,99 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2019 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: RemappedIntrinsics.Generated.tt/RemappedIntrinsics.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../TypeInformation.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#
+var unaryMathFunctions = new (string, TypeInformation, TypeInformation, string)[]
+    {
+        ("Abs",     null,          SignedIntTypes[0], "MathType"),
+        ("Abs",     null,          SignedIntTypes[1], "MathType"),
+        ("Abs",     null,          SignedIntTypes[2], "MathType"),
+        ("Abs",     null,          SignedIntTypes[3], "MathType"),
+        ("Abs",     FloatTypes[0], FloatTypes[0],     "MathType"),
+        ("Abs",     null,          FloatTypes[1],     "MathType"),
+        ("Sqrt",    FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Sin",     FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Sinh",    FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Asin",    FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Cos",     FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Cosh",    FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Acos",    FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Tan",     FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Tanh",    FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Atan",    FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Exp",     FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Floor",   FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Ceiling", FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Log",     FloatTypes[0], FloatTypes[1],     "CPUMathType"),
+        ("Log10",   FloatTypes[0], FloatTypes[1],     "CPUMathType")
+    };
+
+var binaryMathFunctions = new (string, TypeInformation, TypeInformation, string)[]
+    {
+        ("Min",   null,          SignedIntTypes[0],   "MathType"),
+        ("Min",   null,          SignedIntTypes[1],   "MathType"),
+        ("Min",   null,          SignedIntTypes[2],   "MathType"),
+        ("Min",   null,          SignedIntTypes[3],   "MathType"),
+        ("Min",   null,          UnsignedIntTypes[0], "MathType"),
+        ("Min",   null,          UnsignedIntTypes[1], "MathType"),
+        ("Min",   null,          UnsignedIntTypes[2], "MathType"),
+        ("Min",   null,          UnsignedIntTypes[3], "MathType"),
+        ("Min",   FloatTypes[0], FloatTypes[0],       "MathType"),
+        ("Min",   null,          FloatTypes[1],       "MathType"),
+        ("Max",   null,          SignedIntTypes[0],   "MathType"),
+        ("Max",   null,          SignedIntTypes[1],   "MathType"),
+        ("Max",   null,          SignedIntTypes[2],   "MathType"),
+        ("Max",   null,          SignedIntTypes[3],   "MathType"),
+        ("Max",   null,          UnsignedIntTypes[0], "MathType"),
+        ("Max",   null,          UnsignedIntTypes[1], "MathType"),
+        ("Max",   null,          UnsignedIntTypes[2], "MathType"),
+        ("Max",   null,          UnsignedIntTypes[3], "MathType"),
+        ("Max",   FloatTypes[0], FloatTypes[0],       "MathType"),
+        ("Max",   null,          FloatTypes[1],       "MathType"),
+        ("Atan2", FloatTypes[0], FloatTypes[1],       "CPUMathType"),
+        ("Pow",   FloatTypes[0], FloatTypes[1],       "CPUMathType"),
+        ("Log",   FloatTypes[0], FloatTypes[1],       "CPUMathType")
+    };
+#>
+using System;
+
+namespace ILGPU.Frontend.Intrinsic
+{
+    partial class RemappedIntrinsics
+    {
+        private static void RegisterMathRemappings()
+        {
+            var systemMathType = typeof(Math);
+
+<# foreach (var (method, _, type, className) in unaryMathFunctions) { #>
+            AddRemapping(systemMathType, <#= className #>, "<#= method #>", typeof(<#= type.Type #>));
+<# } #>
+<# foreach (var (method, _, type, className) in binaryMathFunctions) { #>
+            AddRemapping(systemMathType, <#= className #>, "<#= method #>", typeof(<#= type.Type #>), typeof(<#= type.Type #>));
+<# } #>
+#if NETCORE
+            var systemMathFType = typeof(MathF);
+
+<# foreach (var (method, type, _, className) in unaryMathFunctions.Where(t => t.Item2 != null)) { #>
+            AddRemapping(systemMathFType, <#= className #>, "<#= method #>", typeof(<#= type.Type #>));
+<# } #>
+<# foreach (var (method, type, _, className) in binaryMathFunctions.Where(t => t.Item2 != null)) { #>
+            AddRemapping(systemMathFType, <#= className #>, "<#= method #>", typeof(<#= type.Type #>), typeof(<#= type.Type #>));
+<# } #>
+#endif
+        }
+    }
+}

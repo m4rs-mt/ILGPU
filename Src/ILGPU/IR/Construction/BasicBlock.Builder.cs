@@ -208,7 +208,7 @@ namespace ILGPU.IR
                 if (toRemove.Count < 1)
                     return;
                 var newValues = new List<ValueReference>(
-                    XMath.Max(Count - toRemove.Count, 0));
+                    IntrinsicMath.Max(Count - toRemove.Count, 0));
                 PerformRemoval(newValues);
                 Values = newValues;
             }

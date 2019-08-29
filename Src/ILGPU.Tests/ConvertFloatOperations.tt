@@ -3,6 +3,7 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
 <#@ output extension=".cs" #>
+using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -37,10 +38,10 @@ namespace ILGPU.Tests
         [Theory]
         [InlineData(0.0f)]
         [InlineData(1.0f)]
-        [InlineData(XMath.PI)]
+        [InlineData((float)Math.PI)]
         [InlineData((float)float.Epsilon)]
-        [InlineData(2.0f * XMath.PI)]
-        [InlineData(0.5f * XMath.PI)]
+        [InlineData(2.0f * (float)Math.PI)]
+        [InlineData(0.5f * (float)Math.PI)]
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>(<#= typeName #> value)
         {

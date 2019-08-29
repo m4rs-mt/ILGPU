@@ -12,7 +12,7 @@ var operationConfigurations = new (string, string, string, bool)[]
     {
         ("Neg", "~", "", true),
 
-        ("Abs", "XMath.Abs(", ")", false),
+        ("Abs", "IntrinsicMath.Abs(", ")", false),
     };
 #>
 namespace ILGPU.Tests

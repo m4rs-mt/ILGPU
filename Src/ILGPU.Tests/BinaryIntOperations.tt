@@ -24,8 +24,8 @@ var operationConfigurations = new (string, string, string, string)[]
         ("Shl", "", "<< (int)", ""),
         ("Shr", "", ">> (int)", ""),
 
-        ("Min", "XMath.Min(", ", ", ")"),
-        ("Max", "XMath.Max(", ", ", ")"),
+        ("Min", "IntrinsicMath.Min(", ", ", ")"),
+        ("Max", "IntrinsicMath.Max(", ", ", ")"),
     };
 #>
 namespace ILGPU.Tests

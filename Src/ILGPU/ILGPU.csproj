@@ -25,6 +25,10 @@
       <DefineConstants>DEBUG;TRACE;VERIFICATION</DefineConstants>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(TargetFramework)'!='net47'">
+        <DefineConstants>NETCORE</DefineConstants>
+    </PropertyGroup>
+
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net47|AnyCPU'">
         <DebugType>full</DebugType>
         <DebugSymbols>true</DebugSymbols>
@@ -61,6 +65,11 @@
         <AutoGen>True</AutoGen>
         <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
       </None>
+      <None Include="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
+      </None>
       <None Include="IR\Construction\CompareOperations.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
@@ -88,6 +97,11 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
         </Compile>
         <Compile Update="IR\Intrinsics\IntrinsicMatchers.cs">
           <DesignTime>True</DesignTime>
@@ -147,6 +161,10 @@
         <None Update="Backends\PTX\PTXIntrinsics.Generated.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>PTXIntrinsics.Generated.cs</LastGenOutput>
+        </None>
+        <None Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>RemappedIntrinsics.Generated.cs</LastGenOutput>
         </None>
         <None Update="GroupedIndices.tt">
             <Generator>TextTemplatingFileGenerator</Generator>

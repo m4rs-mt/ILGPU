@@ -54,7 +54,7 @@ namespace ILGPU.IR.Values
                         if (!usesPerType.TryGetValue(type, out ValueTuple<int, int> entry))
                             entry = (0, 0);
                         usesPerType[type] =
-                            (XMath.Max(value.AllNumUses, entry.Item1),
+                            (IntrinsicMath.Max(value.AllNumUses, entry.Item1),
                             entry.Item2 + 1);
                     }
                 }

@@ -57,10 +57,8 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        public static Index Min(Index first, Index second)
-        {
-            return new Index(XMath.Min(first.X, second.X));
-        }
+        public static Index Min(Index first, Index second) =>
+            new Index(IntrinsicMath.Min(first.X, second.X));
 
         /// <summary>
         /// Computes max(first, second).
@@ -68,10 +66,8 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        public static Index Max(Index first, Index second)
-        {
-            return new Index(XMath.Max(first.X, second.X));
-        }
+        public static Index Max(Index first, Index second) =>
+            new Index(IntrinsicMath.Max(first.X, second.X));
 
         /// <summary>
         /// Clamps the given index value according to Max(Min(clamp, max), min).
@@ -80,10 +76,8 @@ namespace ILGPU
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        public static Index Clamp(Index value, Index min, Index max)
-        {
-            return new Index(XMath.Clamp(value.X, min.X, max.X));
-        }
+        public static Index Clamp(Index value, Index min, Index max) =>
+            new Index(IntrinsicMath.Clamp(value.X, min.X, max.X));
 
         #endregion
 

@@ -77,12 +77,10 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        public static Index2 Min(Index2 first, Index2 second)
-        {
-            return new Index2(
-                XMath.Min(first.X, second.X),
-                XMath.Min(first.Y, second.Y));
-        }
+        public static Index2 Min(Index2 first, Index2 second) =>
+            new Index2(
+                IntrinsicMath.Min(first.X, second.X),
+                IntrinsicMath.Min(first.Y, second.Y));
 
         /// <summary>
         /// Computes max(first, second).
@@ -90,12 +88,10 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        public static Index2 Max(Index2 first, Index2 second)
-        {
-            return new Index2(
-                XMath.Max(first.X, second.X),
-                XMath.Max(first.Y, second.Y));
-        }
+        public static Index2 Max(Index2 first, Index2 second) =>
+            new Index2(
+                IntrinsicMath.Max(first.X, second.X),
+                IntrinsicMath.Max(first.Y, second.Y));
 
         /// <summary>
         /// Clamps the given index value according to Max(Min(clamp, max), min).
@@ -104,12 +100,10 @@ namespace ILGPU
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        public static Index2 Clamp(Index2 value, Index2 min, Index2 max)
-        {
-            return new Index2(
-                XMath.Clamp(value.X, min.X, max.X),
-                XMath.Clamp(value.Y, min.Y, max.Y));
-        }
+        public static Index2 Clamp(Index2 value, Index2 min, Index2 max) =>
+            new Index2(
+                IntrinsicMath.Clamp(value.X, min.X, max.X),
+                IntrinsicMath.Clamp(value.Y, min.Y, max.Y));
 
         #endregion
 

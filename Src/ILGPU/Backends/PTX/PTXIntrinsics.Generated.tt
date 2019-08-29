@@ -60,10 +60,10 @@ namespace ILGPU.Backends.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ulong Warp<#= operation #>Int64(ulong value, int idx)
         {
-            var (lower, upper) = IntrinsicMath.Decompose(value);
-            lower = Warp.<#= operation #>(lower, idx);
-            upper = Warp.<#= operation #>(upper, idx);
-            return IntrinsicMath.ComposeULong(lower, upper);
+            var parts = IntrinsicMath.Decompose(value);
+            parts.Lower = Warp.<#= operation #>(parts.Lower, idx);
+            parts.Upper = Warp.<#= operation #>(parts.Upper, idx);
+            return parts.ToULong();
         }
 
         /// <summary>
@@ -82,10 +82,10 @@ namespace ILGPU.Backends.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ulong SubWarp<#= operation #>Int64(ulong value, int idx, int width)
         {
-            var (lower, upper) = IntrinsicMath.Decompose(value);
-            lower = Warp.<#= operation #>(lower, idx, width);
-            upper = Warp.<#= operation #>(upper, idx, width);
-            return IntrinsicMath.ComposeULong(lower, upper);
+            var parts = IntrinsicMath.Decompose(value);
+            parts.Lower = Warp.<#= operation #>(parts.Lower, idx, width);
+            parts.Upper = Warp.<#= operation #>(parts.Upper, idx, width);
+            return parts.ToULong();
         }
 
         /// <summary>

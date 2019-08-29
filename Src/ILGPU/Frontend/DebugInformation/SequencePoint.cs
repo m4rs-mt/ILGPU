@@ -51,11 +51,11 @@ namespace ILGPU.Frontend.DebugInformation
 
             return new SequencePoint(
                 second.FileName,
-                XMath.Min(first.Offset, second.Offset),
-                XMath.Min(first.StartColumn, second.StartColumn),
-                XMath.Max(first.EndColumn, second.EndColumn),
-                XMath.Min(first.StartLine, second.StartLine),
-                XMath.Max(first.EndLine, second.EndLine));
+                IntrinsicMath.Min(first.Offset, second.Offset),
+                IntrinsicMath.Min(first.StartColumn, second.StartColumn),
+                IntrinsicMath.Max(first.EndColumn, second.EndColumn),
+                IntrinsicMath.Min(first.StartLine, second.StartLine),
+                IntrinsicMath.Max(first.EndLine, second.EndLine));
         }
 
         #endregion

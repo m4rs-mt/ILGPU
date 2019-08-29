@@ -39,7 +39,7 @@ public static IEnumerable<string> GetFloatRanges(
     bool useMultiplesOfPi = true)
 {
     var isFloat = suffix != string.Empty;
-    var pi = isFloat ? "XMath.PI" : "XMath.PID";
+    var pi = isFloat ? "(float)Math.PI" : "Math.PI";
     IEnumerable<string> result = new string[]
         {
             "-1.0" + suffix,

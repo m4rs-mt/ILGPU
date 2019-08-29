@@ -72,13 +72,11 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The minimum of first and second value.</returns>
-        public static Index3 Min(Index3 first, Index3 second)
-        {
-            return new Index3(
-                XMath.Min(first.X, second.X),
-                XMath.Min(first.Y, second.Y),
-                XMath.Min(first.Z, second.Z));
-        }
+        public static Index3 Min(Index3 first, Index3 second) =>
+            new Index3(
+                IntrinsicMath.Min(first.X, second.X),
+                IntrinsicMath.Min(first.Y, second.Y),
+                IntrinsicMath.Min(first.Z, second.Z));
 
         /// <summary>
         /// Computes max(first, second).
@@ -86,13 +84,11 @@ namespace ILGPU
         /// <param name="first">The first argument.</param>
         /// <param name="second">The second argument.</param>
         /// <returns>The maximum of first and second value.</returns>
-        public static Index3 Max(Index3 first, Index3 second)
-        {
-            return new Index3(
-                XMath.Max(first.X, second.X),
-                XMath.Max(first.Y, second.Y),
-                XMath.Max(first.Z, second.Z));
-        }
+        public static Index3 Max(Index3 first, Index3 second) =>
+            new Index3(
+                IntrinsicMath.Max(first.X, second.X),
+                IntrinsicMath.Max(first.Y, second.Y),
+                IntrinsicMath.Max(first.Z, second.Z));
 
         /// <summary>
         /// Clamps the given index value according to Max(Min(clamp, max), min).
@@ -101,13 +97,11 @@ namespace ILGPU
         /// <param name="min">The first argument.</param>
         /// <param name="max">The second argument.</param>
         /// <returns>The clamped value in the interval [min, max].</returns>
-        public static Index3 Clamp(Index3 value, Index3 min, Index3 max)
-        {
-            return new Index3(
-                XMath.Clamp(value.X, min.X, max.X),
-                XMath.Clamp(value.Y, min.Y, max.Y),
-                XMath.Clamp(value.Z, min.Z, max.Z));
-        }
+        public static Index3 Clamp(Index3 value, Index3 min, Index3 max) =>
+            new Index3(
+                IntrinsicMath.Clamp(value.X, min.X, max.X),
+                IntrinsicMath.Clamp(value.Y, min.Y, max.Y),
+                IntrinsicMath.Clamp(value.Z, min.Z, max.Z));
 
         #endregion
 

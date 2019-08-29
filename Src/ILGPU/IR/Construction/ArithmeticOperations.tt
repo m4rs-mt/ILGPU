@@ -19,37 +19,37 @@ var unaryOperations = new []
     {
         new { Name = "Not", BoolPrefix = "!", Prefix = "~", Suffix = "", Ints = true, Floats = false },
         new { Name = "Neg", BoolPrefix = "", Prefix = "-", Suffix = "", Ints = true, Floats = false },
-        new { Name = "Abs", BoolPrefix = "", Prefix = "XMath.Abs(", Suffix = ")", Ints = true, Floats = true },
-        new { Name = "RcpF", BoolPrefix = "", Prefix = "XMath.Rcp(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "Abs", BoolPrefix = "", Prefix = "IntrinsicMath.Abs(", Suffix = ")", Ints = true, Floats = true },
+        new { Name = "RcpF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Rcp(", Suffix = ")", Ints = false, Floats = true },
 
-        new { Name = "IsNaNF", BoolPrefix = "", Prefix = "XMath.IsNaN(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "IsInfF", BoolPrefix = "", Prefix = "XMath.IsInfinity(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "IsNaNF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.IsNaN(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "IsInfF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.IsInfinity(", Suffix = ")", Ints = false, Floats = true },
 
-        new { Name = "SqrtF", BoolPrefix = "", Prefix = "XMath.Sqrt(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "RsqrtF", BoolPrefix = "", Prefix = "XMath.Rsqrt(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "SqrtF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Sqrt(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "RsqrtF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Rsqrt(", Suffix = ")", Ints = false, Floats = true },
 
-        // new { Name = "AsinF", BoolPrefix = "", Prefix = "XMath.Asin(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "SinF", BoolPrefix = "", Prefix = "XMath.Sin(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "SinHF", BoolPrefix = "", Prefix = "XMath.Sinh(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "SinF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Sin(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "SinHF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Sinh(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "AsinF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Asin(", Suffix = ")", Ints = false, Floats = true },
 
-        // new { Name = "AcosF", BoolPrefix = "", Prefix = "XMath.Acos(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "CosF", BoolPrefix = "", Prefix = "XMath.Cos(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "CosHF", BoolPrefix = "", Prefix = "XMath.Cosh(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "CosF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Cos(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "CosHF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Cosh(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "AcosF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Acos(", Suffix = ")", Ints = false, Floats = true },
 
-        new { Name = "TanF", BoolPrefix = "", Prefix = "XMath.Tan(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "TanHF", BoolPrefix = "", Prefix = "XMath.Tanh(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "TanF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Tan(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "TanHF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Tanh(", Suffix = ")", Ints = false, Floats = true },
 
-        // new { Name = "AtanF", BoolPrefix = "", Prefix = "XMath.Atan(", Suffix = ")", Ints = false, Floats  = true },
+        new { Name = "AtanF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Atan(", Suffix = ")", Ints = false, Floats = true },
 
-        new { Name = "ExpF", BoolPrefix = "", Prefix = "XMath.Exp(", Suffix = ")", Ints = false, Floats  = true },
-        new { Name = "Exp2F", BoolPrefix = "", Prefix = "XMath.Exp2(", Suffix = ")", Ints = false, Floats  = true },
+        new { Name = "ExpF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Exp(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "Exp2F", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Exp2(", Suffix = ")", Ints = false, Floats = true },
 
-        new { Name = "FloorF", BoolPrefix = "", Prefix = "XMath.Floor(", Suffix = ")", Ints = false, Floats  = true },
-        new { Name = "CeilingF", BoolPrefix = "", Prefix = "XMath.Ceiling(", Suffix = ")", Ints = false, Floats  = true },
+        new { Name = "FloorF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Floor(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "CeilingF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Ceiling(", Suffix = ")", Ints = false, Floats = true },
 
-        new { Name = "LogF", BoolPrefix = "", Prefix = "XMath.Log(", Suffix = ")", Ints = false, Floats  = true },
-        new { Name = "Log2F", BoolPrefix = "", Prefix = "XMath.Log2(", Suffix = ")", Ints = false, Floats  = true },
-        new { Name = "Log10F", BoolPrefix = "", Prefix = "XMath.Log10(", Suffix = ")", Ints = false, Floats  = true },
+        new { Name = "LogF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Log(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "Log2F", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Log2(", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "Log10F", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Log10(", Suffix = ")", Ints = false, Floats = true },
 
     };
 
@@ -68,11 +68,11 @@ var binaryOperations = new []
         new { Name = "Shl", BoolSupport = false, Prefix = "", Operation = " << (int)", Suffix = "", Ints = true, Floats = false },
         new { Name = "Shr", BoolSupport = false, Prefix = "", Operation = " >> (int)", Suffix = "", Ints = true, Floats  = false },
 
-        new { Name = "Min", BoolSupport = false, Prefix = "XMath.Min(", Operation = ", ", Suffix = ")", Ints = true, Floats = true },
-        new { Name = "Max", BoolSupport = false, Prefix = "XMath.Max(", Operation = ", ", Suffix = ")", Ints  = true, Floats = true },
+        new { Name = "Min", BoolSupport = false, Prefix = "IntrinsicMath.Min(", Operation = ", ", Suffix = ")", Ints = true, Floats = true },
+        new { Name = "Max", BoolSupport = false, Prefix = "IntrinsicMath.Max(", Operation = ", ", Suffix = ")", Ints  = true, Floats = true },
 
-        // new { Name = "Atan2F", BoolSupport = false, Prefix = "XMath.Atan2(", Operation = ", ", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "PowF", BoolSupport = false, Prefix = "XMath.Pow(", Operation = ", ", Suffix = ")", Ints = false, Floats  = true },
+        new { Name = "Atan2F", BoolSupport = false, Prefix = "IntrinsicMath.CPUOnly.Atan2(", Operation = ", ", Suffix = ")", Ints = false, Floats = true },
+        new { Name = "PowF", BoolSupport = false, Prefix = "IntrinsicMath.CPUOnly.Pow(", Operation = ", ", Suffix = ")", Ints = false, Floats  = true },
     };
 #>
 

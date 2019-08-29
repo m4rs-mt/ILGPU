@@ -76,7 +76,7 @@ namespace ILGPU
 
             int count = 1;
             if (firstSize < secondSize)
-                count = XMath.DivRoundUp(secondSize, firstSize);
+                count = IntrinsicMath.DivRoundUp(secondSize, firstSize);
             return count;
         }
 
