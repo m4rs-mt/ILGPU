@@ -1,0 +1,95 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                  Copyright (c) 2019 ILGPU Algorithms Project
+//                Copyright(c) 2016-2018 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: RadixSortOperations.tt/RadixSortOperations.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="TypeInformation.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+var reductionTypes = SignedIntTypes.Concat(UnsignedIntTypes);
+#>
+using System;
+using System.Runtime.CompilerServices;
+
+#pragma warning disable IDE0004 // Cast is redundant
+
+namespace ILGPU.Algorithms.RadixSortOperations
+{
+<#  foreach (var type in reductionTypes) { #>
+    /// <summary>
+    /// Represents an ascending radix sort operation of type <#= type.Type #>.
+    /// </summary>
+<#      if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
+    [CLSCompliant(false)]
+<#      } #>
+    public readonly struct Ascending<#=type.Name #> : IRadixSortOperation<<#= type.Type #>>
+    {
+        /// <summary>
+        /// Returns the number of bits to sort.
+        /// </summary>
+        public int NumBits => sizeof(<#= type.Type #>) * 8;
+
+        /// <summary>
+        /// The default element value.
+        /// </summary>
+        public <#= type.Type #> DefaultValue => 0;
+
+        /// <summary>
+        /// Converts the given value to a radix-sort compatible value.
+        /// </summary>
+        /// <param name="value">The value to map.</param>
+        /// <param name="shift">The shift amount in bits.</param>
+        /// <param name="bitMask">The lower bit mask bit use.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ExtractRadixBits(<#= type.Type #> value, int shift, int bitMask) =>
+            (int)(value >> shift) & bitMask;
+    }
+
+    /// <summary>
+    /// Represents a descending radix sort operation of type <#= type.Type #>.
+    /// </summary>
+<#      if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
+    [CLSCompliant(false)]
+<#      } #>
+    public readonly struct Descending<#= type.Name #> : IRadixSortOperation<<#= type.Type #>>
+    {
+        /// <summary>
+        /// Returns the number of bits to sort.
+        /// </summary>
+        public int NumBits => sizeof(<#= type.Type #>) * 8;
+
+        /// <summary>
+        /// The default element value.
+        /// </summary>
+        public <#= type.Type #> DefaultValue => 0;
+
+        /// <summary>
+        /// Converts the given value to a radix-sort compatible value.
+        /// </summary>
+        /// <param name="value">The value to map.</param>
+        /// <param name="shift">The shift amount in bits.</param>
+        /// <param name="bitMask">The lower bit mask bit use.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ExtractRadixBits(<#= type.Type #> value, int shift, int bitMask)
+        {
+            Ascending<#= type.Name #> operation = default;
+            return (~operation.ExtractRadixBits(value, shift, bitMask)) & bitMask;
+        }
+    }
+
+<#  } #>
+}
+
+#pragma warning restore IDE0004

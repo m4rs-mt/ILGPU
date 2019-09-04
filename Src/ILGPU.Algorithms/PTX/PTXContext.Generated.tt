@@ -1,0 +1,94 @@
+﻿// -----------------------------------------------------------------------------
+//                             ILGPU.Algorithms
+//                  Copyright (c) 2019 ILGPU Algorithms Project
+//                                www.ilgpu.net
+//
+// File: PTXContext.Generated.tt/PTXContext.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../TypeInformation.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+var hardwareMathFunctions = new ValueTuple<string, Type, string, string>[]
+    {
+        UnaryMathFunctions[10], // IsInfinity
+        UnaryMathFunctions[11], // IsInfinity
+        UnaryMathFunctions[12], // IsNaN
+        UnaryMathFunctions[13], // IsNaN
+
+        UnaryMathFunctions[18], // Rcp
+        UnaryMathFunctions[19], // Rcp
+
+        UnaryMathFunctions[20], // Sqrt
+
+        UnaryMathFunctions[24], // Sin
+        UnaryMathFunctions[30], // Cos
+
+        UnaryMathFunctions[16], // Exp2
+
+        UnaryMathFunctions[8], // Log2
+    };
+var unaryMathFunctions = UnaryMathFunctions.Where(t =>
+    !hardwareMathFunctions.Any(
+        t2 => t.Item1 == t2.Item1 && t.Item2 == t2.Item2));
+var binaryMathFunctions = BinaryMathFunctions;
+#>
+using ILGPU.IR.Intrinsics;
+using ILGPU.IR.Values;
+
+namespace ILGPU.Algorithms.PTX
+{
+    partial class PTXContext
+    {
+        public static void EnablePTXAlgorithms(IntrinsicImplementationManager manager)
+        {
+            // Register math intrinsics
+<# foreach (var (name, type, kind, basicType) in unaryMathFunctions) { #>
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                GetMathIntrinsic("<#= name #>", typeof(<#= type #>)));
+<# } #>
+
+<# foreach (var (name, type, kind, basicType) in binaryMathFunctions) { #>
+            manager.RegisterBinaryArithmetic(
+                BinaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                GetMathIntrinsic("<#= name #>", typeof(<#= type #>), typeof(<#= type #>)));
+<# } #>
+
+<# foreach (var (name, type, kind, basicType) in hardwareMathFunctions) { #>
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                MathCodeGeneratorIntrinsic);
+<# } #>
+
+            // Register group intrinsics
+<# foreach (var name in GroupFunctions) { #>
+            RegisterIntrinsicMapping(
+                manager,
+                AlgorithmContext.GroupExtensionsType,
+                PTXGroupExtensionsType,
+                "<#= name #>");
+<# } #>
+
+            // Register warp intrinsics
+<# foreach (var name in WarpFunctions) { #>
+            RegisterIntrinsicMapping(
+                manager,
+                AlgorithmContext.WarpExtensionsType,
+                PTXWarpExtensionsType,
+                "<#= name #>");
+<# } #>
+        }
+    }
+}

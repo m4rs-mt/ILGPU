@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup>
+        <Reference Include="ILGPU.Algorithms" Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp'">
+            <HintPath>$(MSBuildThisFileDirectory)../lib/netcoreapp2.0/$(Configuration)/ILGPU.Algorithms.dll</HintPath>
+        </Reference>
+        <Reference Include="ILGPU.Algorithms" Condition="'$(TargetFrameworkIdentifier)' != '.NETCoreApp'">
+            <HintPath>$(MSBuildThisFileDirectory)../lib/net47/$(Configuration)/ILGPU.Algorithms.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+</Project>

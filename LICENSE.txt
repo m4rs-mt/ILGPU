@@ -1,13 +1,21 @@
 ********************************************************************************
-                             ILGPU.Lightning License
+                            ILGPU.Algorithms License
 ********************************************************************************
 University of Illinois/NCSA Open Source License
-Copyright (c) 2016-2018 ILGPU.Lightning Team
+Copyright (c) 2019 ILGPU Algorithms Project
+Copyright (c) 2016-2018 ILGPU Lightning Project
 All rights reserved.
 
-Developed by:           Marcel Koester (m4rs@m4rs.net)
+Developed 2019 by:      German Research Center for Artificial Intelligence (DFKI)
+                        Marcel Koester (marcel.koester@dfki.de)
+                        Julian Gross (julian.gross@dfki.de)
+
+                        www.dfki.de
+
+Developed 2016-2018 by: Marcel Koester (m4rs@m4rs.net)
                         Denis Mueller (lightningdevx@gmail.com)
                         Christian Hauck (Christian_Hauck@yahoo.com)
+
                         www.ilgpu.net
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -24,9 +32,10 @@ subject to the following conditions:
       this list of conditions and the following disclaimers in the documentation
       and/or other materials provided with the distribution.
 
-    * Neither the names of ILGPU, ILGPU.Lightning, nor the names of its
-      contributors may be used to endorse or promote products derived from this
-      Software without specific prior written permission.
+    * Neither the names of ILGPU, ILGPU.Lightning, ILGPU.Algorithms, DFKI,
+      or German Research Center for Artificial Intelligence nor the names of
+      its contributors may be used to endorse or promote products derived from
+      this Software without specific prior written permission.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS

@@ -243,8 +243,10 @@ ModelManifest.xml
 .fake/
 
 # Ignore specific template outputs
-Src/ILGPU.Lightning/Basic.cs
-Src/ILGPU.Lightning/ReductionOperations.cs
-Src/ILGPU.Lightning/ScanOperations.cs
-Src/ILGPU.Lightning/Sequencers.cs
-Src/ILGPU.Lightning/TypeInformation.cs
+Src/ILGPU.Algorithms/AlgorithmContextMappings.cs
+Src/ILGPU.Algorithms/IL/ILContext.Generated.cs
+Src/ILGPU.Algorithms/PTX/PTXContext.Generated.cs
+Src/ILGPU.Algorithms/RadixSortOperations.cs
+Src/ILGPU.Algorithms/ScanReduceOperations.cs
+Src/ILGPU.Algorithms/Sequencers.cs
+Src/ILGPU.Algorithms/TypeInformation.cs

@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2026
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{A374B733-93D0-4BD7-97DA-7A677D5C68E0}"
+	ProjectSection(SolutionItems) = preProject
+		..\.nuget\ILGPU.Algorithms.nuspec = ..\.nuget\ILGPU.Algorithms.nuspec
+		..\.nuget\ILGPU.Algorithms.targets = ..\.nuget\ILGPU.Algorithms.targets
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Algorithms", "ILGPU.Algorithms\ILGPU.Algorithms.csproj", "{89B89E70-2720-4069-B0FD-50E6A2AE30E3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E123F77E-B3AF-4C32-A183-E63F8DEF5BA7}
+	EndGlobalSection
+EndGlobal

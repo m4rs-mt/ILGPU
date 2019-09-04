@@ -1,27 +1,24 @@
-# ILGPU.Lightning
+# ILGPU.Algorithms
 
 Real-world applications typically require a standard library and a set of standard algorithms that "simply work".
-The ILGPU Lightning library meets these requirements by offering a set of auxiliary functions and high-level algorithms (e.g. sorting or prefix sum).
+The ILGPU Algorithms library meets these requirements by offering a set of auxiliary functions and high-level algorithms (e.g. sorting or prefix sum).
 All algorithms can be run on all supported accelerator types.
 The CPU accelerator support is especially useful for kernel debugging.
 
 # Build instructions
 
-ILGPU.Lightning requires Visual Studio 2017.
+ILGPU.Algorithms requires Visual Studio 2017 or higher.
 
-# Build ILGPU.Lightning
-
-Use the provided Visual Studio solution to build the ILGPU.Lightning libs
-in the desired configurations (Debug/Release).
-
-Note: ILGPU.Lightning uses the build configuration "Any CPU" (which simplifies
-an integration into other projects).
+Note: T4 (*.tt) text templates must be converted manually depending on the Visual Studio version.
+To transform them, right-click a text template and select Run Custom Tool. Alternatively, you can open and save any text template in Visual Studio or choose
+"Build->Transform all T4 Templates".
 
 # License information
 
 ILGPU.Lightning is licensed under the University of Illinois/NCSA Open Source License.
 Detailed license information can be found in LICENSE.txt.
 
+Copyright (c) 2019 ILGPU Algorithms Project. All rights reserved.
 Copyright (c) 2016-2018 ILGPU Lightning Project. All rights reserved.
 
 ## License information of required dependencies
@@ -32,3 +29,9 @@ Different parts of ILGPU.Lightning require different third-party libraries.
 
 Detailed copyright and license information of these dependencies can be found in
 LICENSE-3RD-PARTY.txt.
+
+# Credits
+
+This work was supported by the [Deutsches Forschungszentrum für Künstliche Intelligenz GmbH](https://www.dfki.de/) (DFKI; German Research Center for Artificial Intelligence).
+<p><img src="https://www.dfki.de/fileadmin/user_upload/DFKI/Medien/Logos/Logos_DFKI/DFKI_Logo.png" alt="DFKI Logo" width="250"></p>
+

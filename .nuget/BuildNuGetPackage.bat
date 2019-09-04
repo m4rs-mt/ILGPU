@@ -1,5 +1,5 @@
 pushd ..\Src
-msbuild ILGPU.Lightning.sln /p:Configuration=Debug
-msbuild ILGPU.Lightning.sln /p:Configuration=Release
+msbuild ILGPU.Algorithms.sln /p:Configuration=Debug
+msbuild ILGPU.Algorithms.sln /p:Configuration=Release
 popd
-nuget pack ILGPU.Lightning.nuspec
+nuget pack ILGPU.Algorithms.nuspec

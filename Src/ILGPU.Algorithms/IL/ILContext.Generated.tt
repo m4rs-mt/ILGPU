@@ -1,0 +1,46 @@
+﻿// -----------------------------------------------------------------------------
+//                             ILGPU.Algorithms
+//                  Copyright (c) 2019 ILGPU Algorithms Project
+//                                www.ilgpu.net
+//
+// File: ILContext.Generated.tt/ILContext.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../TypeInformation.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ILGPU.IR.Intrinsics;
+
+namespace ILGPU.Algorithms.IL
+{
+    partial class ILContext
+    {
+        public static void EnableILAlgorithms(IntrinsicImplementationManager manager)
+        {
+            // Register group intrinsics
+<# foreach (var name in GroupFunctions) { #>
+            RegisterIntrinsicMapping(
+                manager,
+                AlgorithmContext.GroupExtensionsType,
+                CPUGroupExtensionsType,
+                "<#= name #>");
+<# } #>
+
+            // Register warp intrinsics
+<# foreach (var name in WarpFunctions) { #>
+            RegisterIntrinsicMapping(
+                manager,
+                AlgorithmContext.WarpExtensionsType,
+                CPUWarpExtensionsType,
+                "<#= name #>");
+<# } #>
+        }
+    }
+}

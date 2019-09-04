@@ -1,0 +1,118 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net47;netcoreapp2.0</TargetFrameworks>
+    <Version>0.7.0</Version>
+    <Platforms>AnyCPU</Platforms>
+    <Copyright>Copyright © 2019 ILGPU Algorithms Project, Copyright © 2017-2018 ILGPU Lightning Project</Copyright>
+    <AssemblyVersion>0.7.0.0</AssemblyVersion>
+    <FileVersion>0.7.0.0</FileVersion>
+    <LangVersion>7.2</LangVersion>
+    <Authors>ILGPU Algorithms Project</Authors>
+    <Description>ILGPU Algorithms library for high-level GPU programming.</Description>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>..\..\Bin\Release\ILGPU.Algorithms.xml</DocumentationFile>
+    <OutputPath>..\..\Bin\Release\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>..\..\Bin\Debug\ILGPU.Algorithms.xml</DocumentationFile>
+    <OutputPath>..\..\Bin\Debug\</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="AlgorithmContextMappings.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AlgorithmContextMappings.tt</DependentUpon>
+    </None>
+    <None Include="RadixSortOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RadixSortOperations.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILGPU" Version="0.7.0" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="AlgorithmContextMappings.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AlgorithmContextMappings.cs</LastGenOutput>
+    </None>
+    <None Update="IL\ILContext.Generated.tt">
+      <LastGenOutput>ILContext.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PTX\PTXContext.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PTXContext.Generated.cs</LastGenOutput>
+    </None>
+    <None Update="RadixSortOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
+    </None>
+    <None Update="ScanReduceOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ScanReduceOperations.cs</LastGenOutput>
+    </None>
+    <None Update="Sequencers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Sequencers.cs</LastGenOutput>
+    </None>
+    <None Update="TypeInformation.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TypeInformation.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="AlgorithmContextMappings.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AlgorithmContextMappings.tt</DependentUpon>
+    </Compile>
+    <Compile Update="IL\ILContext.Generated.cs">
+      <DependentUpon>ILContext.Generated.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="PTX\PTXContext.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PTXContext.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="RadixSortOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>RadixSortOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="ScanReduceOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ScanReduceOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Sequencers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Sequencers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="TypeInformation.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>TypeInformation.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,46 @@
+﻿// -----------------------------------------------------------------------------
+//                             ILGPU.Algorithms
+//                  Copyright (c) 2019 ILGPU Algorithms Project
+//                Copyright(c) 2016-2018 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: Sequencers.tt/Sequencers.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="TypeInformation.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+#pragma warning disable IDE0001 // Simplify Names
+#pragma warning disable IDE0004 // Cast is redundant
+
+using System;
+
+namespace ILGPU.Algorithms.Sequencers
+{
+<# foreach (var type in IntTypes) { #>
+    // Helpers for <#= type.Name #>
+
+    /// <summary>
+    /// Represents an identity implementation of a sequencer.
+    /// </summary>
+<#      if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
+    [CLSCompliant(false)]
+<#      } #>
+    public readonly struct <#= type.Name #>Sequencer : ISequencer<<#= type.Type #>>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index)" />
+        public <#= type.Type #> ComputeSequenceElement(Index sequenceIndex) => (<#= type.Type #>)sequenceIndex.X;
+    }
+
+<# } #>
+}
+
+#pragma warning restore IDE0001
+#pragma warning restore IDE0004
