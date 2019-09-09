@@ -240,6 +240,33 @@ namespace ILGPU.Tests
                 }
             }
         }
+
+        internal static void IfAndOrKernel(
+            Index index,
+            ArrayView<int> data)
+        {
+            int value;
+
+            if ((index.X == 0 || index.X == 1) && index.X <= 2)
+                value = 42;
+            else
+                value = 0;
+
+            data[index] = value;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(IfAndOrKernel))]
+        public void IfAndOr()
+        {
+            using (var buffer = Accelerator.Allocate<int>(Length))
+            {
+                Execute(buffer.Length, buffer.View);
+
+                var expected = Enumerable.Repeat(42, 2).Concat(Enumerable.Repeat(0, Length - 2)).ToArray();
+                Verify(buffer, expected);
+            }
+        }
     }
 }
 
