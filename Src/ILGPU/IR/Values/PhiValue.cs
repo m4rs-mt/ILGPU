@@ -37,6 +37,7 @@ namespace ILGPU.IR.Values
             #region Instance
 
             private readonly ImmutableArray<ValueReference>.Builder arguments;
+            private readonly ImmutableArray<NodeId>.Builder argumentBlockIds;
 
             /// <summary>
             /// Constructs a new phi builder.
@@ -48,6 +49,7 @@ namespace ILGPU.IR.Values
                 PhiValue = phiValue;
 
                 arguments = ImmutableArray.CreateBuilder<ValueReference>();
+                argumentBlockIds = ImmutableArray.CreateBuilder<NodeId>();
             }
 
             #endregion
@@ -88,14 +90,16 @@ namespace ILGPU.IR.Values
             /// <summary>
             /// Adds the given argument.
             /// </summary>
+            /// <param name="blockId">The input block associated with the argument value.</param>
             /// <param name="value">The argument value to add.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void AddArgument(Value value)
+            public void AddArgument(NodeId blockId, Value value)
             {
                 Debug.Assert(value != null, "Invalid phi argument");
                 Debug.Assert(value.Type == Type, "Incompatible phi argument");
 
                 arguments.Add(value);
+                argumentBlockIds.Add(blockId);
             }
 
             /// <summary>
@@ -104,7 +108,7 @@ namespace ILGPU.IR.Values
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public PhiValue Seal()
             {
-                PhiValue.Seal(arguments.ToImmutable());
+                PhiValue.SealPhiArguments(argumentBlockIds.ToImmutable(), arguments.ToImmutable());
                 return PhiValue;
             }
 
@@ -148,6 +152,12 @@ namespace ILGPU.IR.Values
         /// </summary>
         public TypeNode PhiType { get; }
 
+        /// <summary>
+        /// Returns all associated block ids.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+        public ImmutableArray<NodeId> NodeBlockIds { get; private set; }
+
         #endregion
 
         #region Methods
@@ -164,6 +174,20 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        /// <summary>
+        /// Seals the given phi arguments.
+        /// </summary>
+        /// <param name="blockIds">The associated block ids</param>
+        /// <param name="arguments">The phi arguments</param>
+        internal void SealPhiArguments(
+            ImmutableArray<NodeId> blockIds,
+            ImmutableArray<ValueReference> arguments)
+        {
+            Debug.Assert(arguments.Length == blockIds.Length);
+            Seal(arguments);
+            NodeBlockIds = blockIds;
+        }
 
         #endregion
 

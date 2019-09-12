@@ -234,6 +234,38 @@ namespace ILGPU.IR
             }
 
             /// <summary>
+            /// Updates the phi values in the supplied blocks to expect the new block id
+            /// </summary>
+            /// <param name="successors">The blocks containing phi values to be updated</param>
+            /// <param name="oldBlockId">The previous block id</param>
+            /// <param name="newBlockId">The replacement block id</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private void RemapPhiArguments(IEnumerable<BasicBlock> successors, NodeId oldBlockId, NodeId newBlockId)
+            {
+                foreach (var successor in successors)
+                {
+                    foreach (Value value in successor)
+                    {
+                        if (value is PhiValue phiValue)
+                        {
+                            var replacementPhiValue = new PhiValue(successor, value.Type);
+                            MethodBuilder.Create(replacementPhiValue);
+                            var phiBuilder = new PhiValue.Builder(replacementPhiValue);
+
+                            for (int i = 0, e = phiValue.Nodes.Length; i < e; ++i)
+                            {
+                                var replacementBlockId = phiValue.NodeBlockIds[i];
+                                if (replacementBlockId == oldBlockId)
+                                    replacementBlockId = newBlockId;
+                                phiBuilder.AddArgument(replacementBlockId, phiValue.Nodes[i]);
+                            }
+                            phiValue.Replace(phiBuilder.Seal());
+                        }
+                    }
+                }
+            }
+
+            /// <summary>
             /// Specializes a function call.
             /// </summary>
             /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
@@ -284,8 +316,8 @@ namespace ILGPU.IR
                     {
                         // We require a custom phi parameter
                         var phiBuilder = tempBlock.CreatePhi(callTarget.ReturnType);
-                        foreach (var (_, returnValue) in exitBlocks)
-                            phiBuilder.AddArgument(returnValue);
+                        foreach (var (returnBuilder, returnValue) in exitBlocks)
+                            phiBuilder.AddArgument(returnBuilder.BasicBlock.Id, returnValue);
                         call.Replace(phiBuilder.PhiValue);
                         phiBuilder.Seal();
                     }
@@ -339,6 +371,9 @@ namespace ILGPU.IR
                 Terminator = null;
                 CreateUnconditionalBranch(tempBlock.BasicBlock);
 
+                // Update phi blocks
+                RemapPhiArguments(tempBlock.BasicBlock.Successors, BasicBlock.Id, tempBlock.BasicBlock.Id);
+
                 return tempBlock;
             }
 
@@ -369,6 +404,9 @@ namespace ILGPU.IR
 
                 // Wire terminators
                 Terminator = other.Terminator;
+
+                // Update phi blocks
+                RemapPhiArguments(other.Successors, other.Id, BasicBlock.Id);
             }
 
             /// <summary>

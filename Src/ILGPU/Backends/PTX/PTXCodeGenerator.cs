@@ -395,9 +395,14 @@ namespace ILGPU.Backends.PTX
 
                     // Map all phi arguments
                     Debug.Assert(cfgNode.NumPredecessors == phi.Nodes.Length, "Invalid phi value");
+                    var predecessorMapping = new Dictionary<NodeId, int>(capacity: cfgNode.NumPredecessors);
                     for (int i = 0, e = cfgNode.NumPredecessors; i < e; ++i)
+                        predecessorMapping.Add(cfgNode.Predecessors[i].Block.Id, i);
+
+                    for (int i = 0, e = phi.Nodes.Length; i < e; ++i)
                     {
-                        BasicBlock argumentBlock = cfgNode.Predecessors[i].Block;
+                        var predecessorIdx = predecessorMapping[phi.NodeBlockIds[i]];
+                        var argumentBlock = cfgNode.Predecessors[predecessorIdx].Block;
                         if (!phiMapping.TryGetValue(argumentBlock, out List<(Value, PhiValue)> arguments))
                         {
                             arguments = new List<(Value, PhiValue)>();

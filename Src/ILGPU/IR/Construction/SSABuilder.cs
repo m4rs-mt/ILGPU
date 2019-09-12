@@ -387,7 +387,7 @@ namespace ILGPU.IR.Construction
                     }
 
                     // Set argument value
-                    phiBuilder.AddArgument(value);
+                    phiBuilder.AddArgument(predecessor.Block.Id, value);
                 }
                 Debug.Assert(phiBuilder.Count == Node.Predecessors.Count, "Invalid phi configuration");
                 var phiValue = phiBuilder.Seal();
