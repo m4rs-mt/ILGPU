@@ -507,11 +507,36 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="destinationDevice">The destination in device memory.</param>
         /// <param name="value">The value to set.</param>
         /// <param name="length">The length in bytes.</param>
+        /// <param name="stream">The accelerator stream for async processing.</param>
+        /// <returns>The error status.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public CudaError Memset(
+            IntPtr destinationDevice,
+            byte value,
+            IntPtr length,
+            AcceleratorStream stream)
+        {
+            var cudaStream = stream as CudaStream;
+            return Memset(
+                destinationDevice,
+                value,
+                length,
+                cudaStream?.StreamPtr ?? IntPtr.Zero);
+        }
+
+        /// <summary>
+        /// Performs a memory-set operation.
+        /// </summary>
+        /// <param name="destinationDevice">The destination in device memory.</param>
+        /// <param name="value">The value to set.</param>
+        /// <param name="length">The length in bytes.</param>
+        /// <param name="stream">The accelerator stream for async processing.</param>
         /// <returns>The error status.</returns>
         public abstract CudaError Memset(
             IntPtr destinationDevice,
             byte value,
-            IntPtr length);
+            IntPtr length,
+            IntPtr stream);
 
         /// <summary>
         /// Resolves a pointer-attribute value.

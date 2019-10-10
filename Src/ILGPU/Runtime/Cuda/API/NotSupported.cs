@@ -206,7 +206,7 @@ namespace ILGPU.Runtime.Cuda.API
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
         }
 
-        /// <summary cref="CudaAPI.Memset(IntPtr, byte, IntPtr)"/>
+        /// <summary cref="CudaAPI.Memcpy(IntPtr, IntPtr, IntPtr)"/>
         public override CudaError Memcpy(
             IntPtr destination,
             IntPtr source,
@@ -245,11 +245,12 @@ namespace ILGPU.Runtime.Cuda.API
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
         }
 
-        /// <summary cref="CudaAPI.Memset(IntPtr, byte, IntPtr)"/>
+        /// <summary cref="CudaAPI.Memset(IntPtr, byte, IntPtr, IntPtr)"/>
         public override CudaError Memset(
             IntPtr destinationDevice,
             byte value,
-            IntPtr length)
+            IntPtr length,
+            IntPtr stream)
         {
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
         }
