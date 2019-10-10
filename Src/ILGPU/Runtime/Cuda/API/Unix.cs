@@ -174,10 +174,11 @@ namespace ILGPU.Runtime.Cuda.API
             [In] IntPtr stream);
 
         [DllImport(LibName)]
-        private static extern CudaError cuMemsetD8_v2(
+        private static extern CudaError cuMemsetD8Async(
             [In] IntPtr destinationDevice,
             [In] byte value,
-            [In] IntPtr length);
+            [In] IntPtr length,
+            [In] IntPtr stream);
 
         [DllImport(LibName)]
         private static extern CudaError cuStreamCreate(
@@ -454,7 +455,7 @@ namespace ILGPU.Runtime.Cuda.API
             return cuMemFree_v2(devicePtr);
         }
 
-        /// <summary cref="CudaAPI.Memset(IntPtr, byte, IntPtr)"/>
+        /// <summary cref="CudaAPI.Memcpy(IntPtr, IntPtr, IntPtr)"/>
         public override CudaError Memcpy(
             IntPtr destination,
             IntPtr source,
@@ -505,13 +506,14 @@ namespace ILGPU.Runtime.Cuda.API
                 stream);
         }
 
-        /// <summary cref="CudaAPI.Memset(IntPtr, byte, IntPtr)"/>
+        /// <summary cref="CudaAPI.Memset(IntPtr, byte, IntPtr, IntPtr)"/>
         public override CudaError Memset(
             IntPtr destinationDevice,
             byte value,
-            IntPtr length)
+            IntPtr length,
+            IntPtr stream)
         {
-            return cuMemsetD8_v2(destinationDevice, value, length);
+            return cuMemsetD8Async(destinationDevice, value, length, stream);
         }
 
         /// <summary cref="CudaAPI.GetPointerAttribute(IntPtr, PointerAttribute, IntPtr)"/>

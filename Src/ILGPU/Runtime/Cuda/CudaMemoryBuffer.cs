@@ -118,7 +118,7 @@ namespace ILGPU.Runtime.Cuda
         {
             var binding = Accelerator.BindScoped();
 
-            CudaAPI.Current.Memset(NativePtr, 0, new IntPtr(LengthInBytes));
+            CudaAPI.Current.Memset(NativePtr, 0, new IntPtr(LengthInBytes), stream);
 
             binding.Recover();
         }
