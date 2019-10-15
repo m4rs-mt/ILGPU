@@ -58,7 +58,7 @@ namespace ILGPU
             Justification = "Internal initialization check that should never fail")]
         static Context()
         {
-            var versionString = Assembly.GetCallingAssembly().
+            var versionString = Assembly.GetExecutingAssembly().
                 GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
             int offset = 0;
             for (int i = 0; i < 3; ++i)
