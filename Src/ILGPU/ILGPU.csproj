@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net47;netcoreapp2.0</TargetFrameworks>
+        <TargetFrameworks>net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
         <OutputPath>../../Bin/$(Configuration)/</OutputPath>
         <DocumentationFile>../../Bin/$(Configuration)/ILGPU.xml</DocumentationFile>
         <Configurations>Debug;Release;DebugVerification</Configurations>

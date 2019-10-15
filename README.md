@@ -8,7 +8,7 @@ All kernels (including all hardware features like shared memory and atomics) can
 
 # Build Instructions
 
-ILGPU requires Visual Studio 2017 (Community edition or higher).
+ILGPU requires Visual Studio 2019 (Community edition or higher).
 
 Use the provided Visual Studio solution to build the ILGPU libs
 in the desired configurations (Debug/Release).
