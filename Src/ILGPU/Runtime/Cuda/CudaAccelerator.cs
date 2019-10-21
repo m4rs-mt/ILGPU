@@ -264,18 +264,34 @@ namespace ILGPU.Runtime.Cuda
             Architecture = PTXArchitectureUtils.GetArchitecture(major, minor);
 
             CudaException.ThrowIfFailed(
-                CurrentAPI.GetDriverVersion(out var installedDriverVersion));
-            var minDriverVersion = CudaDriverVersionUtils.GetMinimumDriverVersion(Architecture);
-            if (installedDriverVersion < minDriverVersion)
+                CurrentAPI.GetDriverVersion(out var driverVersion));
+            InstructionSet = GetInstructionSet(Architecture, driverVersion);
+            base.Backend = new PTXBackend(Context, Architecture, InstructionSet, Backends.Backend.OSPlatform);
+        }
+
+        /// <summary>
+        /// Returns the PTX instruction set to use, based on the PTX architecture and installed CUDA drivers.
+        /// </summary>
+        /// <param name="architecture">The PTX architecture</param>
+        /// <param name="installedDriverVersion">The CUDA driver version</param>
+        /// <returns>The PTX instruction set</returns>
+        private static PTXInstructionSet GetInstructionSet(PTXArchitecture architecture, CudaDriverVersion installedDriverVersion)
+        {
+            var architectureMinDriverVersion = CudaDriverVersionUtils.GetMinimumDriverVersion(architecture);
+            var minDriverVersion = architectureMinDriverVersion;
+            foreach (var instructionSet in PTXCodeGenerator.SupportedInstructionSets)
             {
-                throw new NotSupportedException(
-                    string.Format(
-                        RuntimeErrorMessages.NotSupportedDriverVersion,
-                        installedDriverVersion,
-                        minDriverVersion));
+                var instructionSetMinDriverVersion = CudaDriverVersionUtils.GetMinimumDriverVersion(instructionSet);
+                minDriverVersion = architectureMinDriverVersion >= instructionSetMinDriverVersion ? architectureMinDriverVersion : instructionSetMinDriverVersion;
+                if (installedDriverVersion >= minDriverVersion)
+                    return instructionSet;
             }
 
-            base.Backend = new PTXBackend(Context, Architecture, Backends.Backend.OSPlatform);
+            throw new NotSupportedException(
+                string.Format(
+                    RuntimeErrorMessages.NotSupportedDriverVersion,
+                    installedDriverVersion,
+                    minDriverVersion));
         }
 
         #endregion
@@ -296,6 +312,11 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the PTX architecture.
         /// </summary>
         public PTXArchitecture Architecture { get; private set; }
+
+        /// <summary>
+        /// Returns the PTX instruction set.
+        /// </summary>
+        public PTXInstructionSet InstructionSet { get; private set; }
 
         /// <summary>
         /// Returns the max group size.

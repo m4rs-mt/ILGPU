@@ -205,6 +205,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Not supported PTX instruction set.
+        /// </summary>
+        internal static string NotSupportedPTXInstructionSet {
+            get {
+                return ResourceManager.GetString("NotSupportedPTXInstructionSet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported target accelerator.
         /// </summary>
         internal static string NotSupportedTargetAccelerator {

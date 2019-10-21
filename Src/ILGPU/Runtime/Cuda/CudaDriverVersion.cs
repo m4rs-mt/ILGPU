@@ -238,6 +238,30 @@ namespace ILGPU.Runtime.Cuda
         };
 
         /// <summary>
+        /// Maps PTX ISA to their corresponding minimum CUDA driver version.
+        /// </summary>
+        private static readonly Dictionary<PTXInstructionSet, CudaDriverVersion> InstructionSetLookup =
+            new Dictionary<PTXInstructionSet, CudaDriverVersion>
+        {
+            { PTXInstructionSet.ISA_30, CudaDriverVersion.FromMajorMinor(4, 1) },
+            { PTXInstructionSet.ISA_31, CudaDriverVersion.FromMajorMinor(5, 0) },
+            { PTXInstructionSet.ISA_32, CudaDriverVersion.FromMajorMinor(5, 5) },
+
+            { PTXInstructionSet.ISA_40, CudaDriverVersion.FromMajorMinor(6, 0) },
+            { PTXInstructionSet.ISA_41, CudaDriverVersion.FromMajorMinor(6, 5) },
+            { PTXInstructionSet.ISA_42, CudaDriverVersion.FromMajorMinor(7, 0) },
+            { PTXInstructionSet.ISA_43, CudaDriverVersion.FromMajorMinor(7, 5) },
+
+            { PTXInstructionSet.ISA_50, CudaDriverVersion.FromMajorMinor(8, 0) },
+
+            { PTXInstructionSet.ISA_60, CudaDriverVersion.FromMajorMinor(9, 0) },
+            { PTXInstructionSet.ISA_61, CudaDriverVersion.FromMajorMinor(9, 1) },
+            { PTXInstructionSet.ISA_62, CudaDriverVersion.FromMajorMinor(9, 2) },
+            { PTXInstructionSet.ISA_63, CudaDriverVersion.FromMajorMinor(10, 0) },
+            { PTXInstructionSet.ISA_64, CudaDriverVersion.FromMajorMinor(10, 1) },
+        };
+
+        /// <summary>
         /// Resolves the minimum CUDA driver version for the PTX architecture
         /// </summary>
         /// <param name="architecture">The PTX architecture</param>
@@ -246,6 +270,18 @@ namespace ILGPU.Runtime.Cuda
         {
             if (!ArchitectureLookup.TryGetValue(architecture, out var result))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedPTXArchitecture);
+            return result;
+        }
+
+        /// <summary>
+        /// Resolves the minimum CUDA driver version for the PTX instruction set
+        /// </summary>
+        /// <param name="instructionSet">The PTX instruction set</param>
+        /// <returns>The minimum driver version</returns>
+        public static CudaDriverVersion GetMinimumDriverVersion(PTXInstructionSet instructionSet)
+        {
+            if (!InstructionSetLookup.TryGetValue(instructionSet, out var result))
+                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedPTXInstructionSet);
             return result;
         }
 

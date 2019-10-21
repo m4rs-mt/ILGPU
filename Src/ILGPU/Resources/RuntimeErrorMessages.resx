@@ -165,6 +165,9 @@
   <data name="NotSupportedPTXArchitecture" xml:space="preserve">
     <value>Not supported PTX architecture</value>
   </data>
+  <data name="NotSupportedPTXInstructionSet" xml:space="preserve">
+    <value>Not supported PTX instruction set</value>
+  </data>
   <data name="NotSupportedTargetAccelerator" xml:space="preserve">
     <value>Not supported target accelerator</value>
   </data>
