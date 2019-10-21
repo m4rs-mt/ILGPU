@@ -262,6 +262,19 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetDeviceComputeCapability(out int major, out int minor, DeviceId));
             Architecture = PTXArchitectureUtils.GetArchitecture(major, minor);
+
+            CudaException.ThrowIfFailed(
+                CurrentAPI.GetDriverVersion(out var installedDriverVersion));
+            var minDriverVersion = CudaDriverVersionUtils.GetMinimumDriverVersion(Architecture);
+            if (installedDriverVersion < minDriverVersion)
+            {
+                throw new NotSupportedException(
+                    string.Format(
+                        RuntimeErrorMessages.NotSupportedDriverVersion,
+                        installedDriverVersion,
+                        minDriverVersion));
+            }
+
             base.Backend = new PTXBackend(Context, Architecture, Backends.Backend.OSPlatform);
         }
 

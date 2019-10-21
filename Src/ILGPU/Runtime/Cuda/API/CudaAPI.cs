@@ -89,7 +89,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         /// <param name="driverVersion">The resolved driver version.</param>
         /// <returns>The error status.</returns>
-        public abstract CudaError GetDriverVersion(out int driverVersion);
+        public abstract CudaError GetDriverVersion(out CudaDriverVersion driverVersion);
 
         /// <summary>
         /// Resolves the error string for the given error status.

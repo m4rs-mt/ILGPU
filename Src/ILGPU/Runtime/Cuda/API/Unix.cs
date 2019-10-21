@@ -269,10 +269,17 @@ namespace ILGPU.Runtime.Cuda.API
             return cuInit(0);
         }
 
-        /// <summary cref="CudaAPI.GetDriverVersion(out int)"/>
-        public override CudaError GetDriverVersion(out int driverVersion)
+        /// <summary cref="CudaAPI.GetDriverVersion(out CudaDriverVersion)"/>
+        public override CudaError GetDriverVersion(out CudaDriverVersion driverVersion)
         {
-            return cuDriverGetVersion(out driverVersion);
+            var error = cuDriverGetVersion(out var driverVersionValue);
+            if (error != CudaError.CUDA_SUCCESS)
+            {
+                driverVersion = default;
+                return error;
+            }
+            driverVersion = CudaDriverVersion.FromValue(driverVersionValue);
+            return CudaError.CUDA_SUCCESS;
         }
 
         /// <summary cref="CudaAPI.GetErrorString(CudaError, out IntPtr)"/>
