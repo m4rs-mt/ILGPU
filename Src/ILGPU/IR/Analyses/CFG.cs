@@ -286,11 +286,6 @@ namespace ILGPU.IR.Analyses
             public int NodeIndex { get; }
 
             /// <summary>
-            /// Returns the associated RPO number within the parent CFG.
-            /// </summary>
-            public int RPONumber { get; internal set; }
-
-            /// <summary>
             /// Returns the predecessors of this node.
             /// </summary>
             public NodeCollection Predecessors => new NodeCollection(predecessors);

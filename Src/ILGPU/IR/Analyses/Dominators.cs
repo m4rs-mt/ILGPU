@@ -65,16 +65,16 @@ namespace ILGPU.IR.Analyses
                 {
                     enumerator.MoveNext();
                     var node = enumerator.Current;
-                    nodesInRPO[node.RPONumber] = node;
+                    nodesInRPO[node.NodeIndex] = node;
 
                     while (enumerator.MoveNext())
                     {
                         node = enumerator.Current;
-                        nodesInRPO[node.RPONumber] = node;
+                        nodesInRPO[node.NodeIndex] = node;
                         int currentIdom = -1;
                         foreach (var pred in node.Predecessors)
                         {
-                            var predRPO = pred.RPONumber;
+                            var predRPO = pred.NodeIndex;
                             if (idomsInRPO[predRPO] != -1)
                             {
                                 currentIdom = predRPO;
@@ -85,12 +85,12 @@ namespace ILGPU.IR.Analyses
                         Debug.Assert(currentIdom != -1, "Invalid idom");
                         foreach (var pred in node.Predecessors)
                         {
-                            var predRPO = pred.RPONumber;
+                            var predRPO = pred.NodeIndex;
                             if (idomsInRPO[predRPO] != -1)
                                 currentIdom = Intersect(currentIdom, predRPO);
                         }
 
-                        var rpoNumber = node.RPONumber;
+                        var rpoNumber = node.NodeIndex;
                         if (idomsInRPO[rpoNumber] != currentIdom)
                         {
                             idomsInRPO[rpoNumber] = currentIdom;
@@ -149,8 +149,8 @@ namespace ILGPU.IR.Analyses
             Debug.Assert(cfgNode != null, "Invalid CFG node");
             Debug.Assert(dominator != null, "Invalid dominator");
 
-            var left = cfgNode.RPONumber;
-            var right = dominator.RPONumber;
+            var left = cfgNode.NodeIndex;
+            var right = dominator.NodeIndex;
             return Intersect(left, right) == right;
         }
 
@@ -174,7 +174,7 @@ namespace ILGPU.IR.Analyses
         public CFG.Node GetImmediateDominator(CFG.Node cfgNode)
         {
             Debug.Assert(cfgNode != null, "Invalid CFG node");
-            var rpoNumber = idomsInRPO[cfgNode.RPONumber];
+            var rpoNumber = idomsInRPO[cfgNode.NodeIndex];
             return nodesInRPO[rpoNumber];
         }
 
@@ -194,8 +194,8 @@ namespace ILGPU.IR.Analyses
             if (first == second)
                 return first;
 
-            var left = first.RPONumber;
-            var right = second.RPONumber;
+            var left = first.NodeIndex;
+            var right = second.NodeIndex;
             var idom = Intersect(left, right);
             return nodesInRPO[idom];
         }
