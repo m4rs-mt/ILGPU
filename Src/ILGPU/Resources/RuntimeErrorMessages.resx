@@ -144,6 +144,9 @@
   <data name="InvalidSharedMemorySize" xml:space="preserve">
     <value>Shared-memory size cannot be &lt; 0</value>
   </data>
+  <data name="NotSupportedDriverVersion" xml:space="preserve">
+    <value>Not supported driver version '{0}' (&gt;= {1} required)</value>
+  </data>
   <data name="NotSupportedExplicitlyGroupedKernel" xml:space="preserve">
     <value>Not supported explicitly-grouped kernel</value>
   </data>

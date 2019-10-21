@@ -3,7 +3,7 @@
 //                     Copyright (c) 2016-2019 Marcel Koester
 //                                www.ilgpu.net
 //
-// File: PTXBackend.cs
+// File: PTXArchitecture.cs
 //
 // This file is part of ILGPU and is distributed under the University of
 // Illinois Open Source License. See LICENSE.txt for details
@@ -24,6 +24,11 @@ namespace ILGPU.Backends
         /// The 3.0 architecture.
         /// </summary>
         SM_30,
+
+        /// <summary>
+        /// The 3.2 architecture.
+        /// </summary>
+        SM_32,
 
         /// <summary>
         /// The 3.5 architecture.
@@ -66,11 +71,6 @@ namespace ILGPU.Backends
         SM_62,
 
         /// <summary>
-        /// The 6.3 architecture.
-        /// </summary>
-        SM_63,
-
-        /// <summary>
         /// The 7.0 architecture.
         /// </summary>
         SM_70,
@@ -100,6 +100,7 @@ namespace ILGPU.Backends
             new Dictionary<long, PTXArchitecture>
         {
             { (3L << 32) | 0L, PTXArchitecture.SM_30 },
+            { (3L << 32) | 2L, PTXArchitecture.SM_32 },
             { (3L << 32) | 5L, PTXArchitecture.SM_35 },
             { (3L << 32) | 7L, PTXArchitecture.SM_37 },
 
@@ -110,7 +111,6 @@ namespace ILGPU.Backends
             { (6L << 32) | 0L, PTXArchitecture.SM_60 },
             { (6L << 32) | 1L, PTXArchitecture.SM_61 },
             { (6L << 32) | 2L, PTXArchitecture.SM_62 },
-            { (6L << 32) | 3L, PTXArchitecture.SM_63 },
 
             { (7L << 32) | 0L, PTXArchitecture.SM_70 },
             { (7L << 32) | 2L, PTXArchitecture.SM_72 },

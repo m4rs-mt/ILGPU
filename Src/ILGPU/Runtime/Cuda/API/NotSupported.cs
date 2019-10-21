@@ -27,10 +27,10 @@ namespace ILGPU.Runtime.Cuda.API
             return CudaError.CUDA_ERROR_NOT_INITIALIZED;
         }
 
-        /// <summary cref="CudaAPI.GetDriverVersion(out int)"/>
-        public override CudaError GetDriverVersion(out int driverVersion)
+        /// <summary cref="CudaAPI.GetDriverVersion(out CudaDriverVersion)"/>
+        public override CudaError GetDriverVersion(out CudaDriverVersion driverVersion)
         {
-            driverVersion = 0;
+            driverVersion = default;
             return CudaError.CUDA_ERROR_NOT_INITIALIZED;
         }
 

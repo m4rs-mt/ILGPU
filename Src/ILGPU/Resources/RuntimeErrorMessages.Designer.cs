@@ -142,6 +142,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Not supported driver version &apos;{0}&apos; (&gt;= {1} required).
+        /// </summary>
+        internal static string NotSupportedDriverVersion {
+            get {
+                return ResourceManager.GetString("NotSupportedDriverVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported explicitly-grouped kernel.
         /// </summary>
         internal static string NotSupportedExplicitlyGroupedKernel {
@@ -205,7 +214,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported total group size. The total group size must be &lt;= the number of available threads ({0}}.
+        ///   Looks up a localized string similar to Not supported total group size. The total group size must be &lt;= the number of available threads ({0}).
         /// </summary>
         internal static string NotSupportedTotalGroupSize {
             get {
