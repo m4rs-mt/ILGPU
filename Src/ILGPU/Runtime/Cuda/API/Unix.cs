@@ -66,12 +66,6 @@ namespace ILGPU.Runtime.Cuda.API
             [In] int device);
 
         [DllImport(LibName)]
-        private static extern CudaError cuDeviceComputeCapability(
-            [Out] out int major,
-            [Out] out int minor,
-            [In] int device);
-
-        [DllImport(LibName)]
         private static extern CudaError cuCtxCreate_v2(
             [Out] out IntPtr context,
             [In] CudaAcceleratorFlags flags,
@@ -330,7 +324,13 @@ namespace ILGPU.Runtime.Cuda.API
             out int minor,
             int device)
         {
-            return cuDeviceComputeCapability(out major, out minor, device);
+            var error = cuDeviceGetAttribute(out major, DeviceAttribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device);
+            if (error != CudaError.CUDA_SUCCESS)
+            {
+                minor = default;
+                return error;
+            }
+            return cuDeviceGetAttribute(out minor, DeviceAttribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device);
         }
 
         #endregion
