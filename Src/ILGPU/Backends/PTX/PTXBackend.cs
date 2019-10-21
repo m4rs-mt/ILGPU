@@ -94,10 +94,12 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="context">The context to use.</param>
         /// <param name="architecture">The target gpu architecture.</param>
+        /// <param name="instructionSet">The target gpu instruction set.</param>
         /// <param name="platform">The target platform.</param>
         public PTXBackend(
             Context context,
             PTXArchitecture architecture,
+            PTXInstructionSet instructionSet,
             TargetPlatform platform)
             : base(
                   context,
@@ -107,6 +109,7 @@ namespace ILGPU.Backends.PTX
                   new PTXArgumentMapper(context))
         {
             Architecture = architecture;
+            InstructionSet = instructionSet;
 
             InitializeKernelTransformers(
                 new IntrinsicSpecializerConfiguration(context.Flags),
@@ -145,6 +148,11 @@ namespace ILGPU.Backends.PTX
         public PTXArchitecture Architecture { get; }
 
         /// <summary>
+        /// Returns the current instruction set.
+        /// </summary>
+        public PTXInstructionSet InstructionSet { get; }
+
+        /// <summary>
         /// Returns the associated <see cref="ArgumentMapper"/>.
         /// </summary>
         public new PTXArgumentMapper ArgumentMapper => base.ArgumentMapper as PTXArgumentMapper;
@@ -172,7 +180,7 @@ namespace ILGPU.Backends.PTX
             builder.AppendLine();
 
             builder.Append(".version ");
-            builder.AppendLine(PTXCodeGenerator.PTXVersion);
+            builder.AppendLine(InstructionSet.ToString());
             builder.Append(".target ");
             builder.Append(Architecture.ToString().ToLower());
             if (useDebugInfo)

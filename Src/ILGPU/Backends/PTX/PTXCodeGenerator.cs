@@ -17,6 +17,7 @@ using ILGPU.IR.Values;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -31,9 +32,16 @@ namespace ILGPU.Backends.PTX
         #region Constants
 
         /// <summary>
-        /// The supported PTX version.
+        /// The supported PTX instruction sets (in descending order).
         /// </summary>
-        public const string PTXVersion = "6.4";
+        [SuppressMessage("Microsoft.Security", "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes", Justification = "The collection is immutable")]
+        public static readonly IEnumerable<PTXInstructionSet> SupportedInstructionSets = ImmutableSortedSet.Create(
+            Comparer<PTXInstructionSet>.Create((first, second) => second.CompareTo(first)),
+            PTXInstructionSet.ISA_64,
+            PTXInstructionSet.ISA_63,
+            PTXInstructionSet.ISA_62,
+            PTXInstructionSet.ISA_61,
+            PTXInstructionSet.ISA_60);
 
         #endregion
 
