@@ -497,6 +497,12 @@ namespace ILGPU.IR.Analyses
         #region Methods
 
         /// <summary>
+        /// Creates a new SCC analysis.
+        /// </summary>
+        /// <returns>The created SCC analysis.</returns>
+        public SCCs CreateSCCs() => SCCs.Create(this);
+
+        /// <summary>
         /// Creates a new node mapping to associated with the current graph.
         /// </summary>
         /// <typeparam name="T">The target mapping type.</typeparam>

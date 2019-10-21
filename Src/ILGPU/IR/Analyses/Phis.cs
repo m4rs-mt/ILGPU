@@ -83,6 +83,27 @@ namespace ILGPU.IR.Analyses
             return new Phis(phiValues);
         }
 
+        /// <summary>
+        /// Resolves all phi values using the given enumerator.
+        /// </summary>
+        /// <param name="enumerator">The enumerator.</param>
+        /// <returns>The resolved phis.</returns>
+        public static Phis Create<TEnumerator>(TEnumerator enumerator)
+            where TEnumerator : IEnumerator<Value>
+        {
+            var result = new List<PhiValue>();
+            var collected = new HashSet<PhiValue>();
+
+            while (enumerator.MoveNext())
+            {
+                if (enumerator.Current is PhiValue phiValue &&
+                    collected.Add(phiValue))
+                    result.Add(phiValue);
+            }
+
+            return new Phis(result);
+        }
+
         #endregion
 
         #region Instance
