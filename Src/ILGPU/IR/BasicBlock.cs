@@ -218,6 +218,21 @@ namespace ILGPU.IR
         #region Methods
 
         /// <summary>
+        /// Checks whether this block has side effects.
+        /// </summary>
+        /// <returns>True, if this block has side effects.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasSideEffects()
+        {
+            foreach (Value value in this)
+            {
+                if (value is MemoryValue)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Resolves the current builder or creates a new one.
         /// </summary>
         /// <param name="functionBuilder">The current function builder.</param>
