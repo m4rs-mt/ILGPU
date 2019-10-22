@@ -386,8 +386,6 @@ namespace ILGPU.IR
             {
                 Debug.Assert(other != null, "Invalid other block");
                 Debug.Assert(other != BasicBlock, "Invalid block association");
-                Debug.Assert(BasicBlock.Successors.Length == 1, "Invalid number of successors");
-                Debug.Assert(BasicBlock.Successors[0] == other, "Invalid successors to merge");
 
                 var otherBuilder = MethodBuilder[other];
 
