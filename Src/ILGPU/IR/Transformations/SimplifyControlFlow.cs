@@ -39,7 +39,7 @@ namespace ILGPU.IR.Transformations
                 if (mergedNodes.Contains(cfgNode))
                     continue;
 
-                result |= MergeChain(builder, cfgNode, cfg, mergedNodes);
+                result |= MergeChain(builder, cfgNode, mergedNodes);
             }
 
             return result;
@@ -50,14 +50,12 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         /// <param name="builder">The current method builder.</param>
         /// <param name="rootNode">The block where to start merging.</param>
-        /// <param name="cfg">The current CFG.</param>
         /// <param name="mergedNodes">The collection of merged nodes.</param>
         /// <returns>True, if something could be merged.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool MergeChain(
             Method.Builder builder,
             CFG.Node rootNode,
-            CFG cfg,
             HashSet<CFG.Node> mergedNodes)
         {
             if (rootNode.NumSuccessors != 1)
