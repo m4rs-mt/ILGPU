@@ -233,6 +233,19 @@ namespace ILGPU.IR
         }
 
         /// <summary>
+        /// Returns the terminator converted to the given type.
+        /// </summary>
+        /// <typeparam name="T">The target terminator type.</typeparam>
+        /// <returns>The converted terminator value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T GetTerminatorAs<T>()
+            where T : TerminatorValue
+        {
+            Debug.Assert(Terminator is T, "Invalid terminator conversion");
+            return Terminator as T;
+        }
+
+        /// <summary>
         /// Resolves the current builder or creates a new one.
         /// </summary>
         /// <param name="functionBuilder">The current function builder.</param>
