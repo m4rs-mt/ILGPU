@@ -106,7 +106,7 @@ namespace ILGPU.Backends.PTX
                   BackendType.PTX,
                   BackendFlags.RequiresIntrinsicImplementations,
                   new PTXABI(context.TypeContext, platform),
-                  new PTXArgumentMapper(context))
+                  _ => new PTXArgumentMapper(context))
         {
             Architecture = architecture;
             InstructionSet = instructionSet;

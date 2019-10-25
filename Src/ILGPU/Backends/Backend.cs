@@ -388,19 +388,19 @@ namespace ILGPU.Backends
         /// <param name="backendType">The backend type.</param>
         /// <param name="backendFlags">The backend flags.</param>
         /// <param name="abi">The current ABI.</param>
-        /// <param name="argumentMapper">The argument mapper.</param>
+        /// <param name="argumentMapperProvider">The provider for argument mappers.</param>
         protected Backend(
             Context context,
             BackendType backendType,
             BackendFlags backendFlags,
             ABI abi,
-            ArgumentMapper argumentMapper)
+            Func<ABI, ArgumentMapper> argumentMapperProvider)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             BackendType = backendType;
             BackendFlags = backendFlags;
             ABI = abi ?? throw new ArgumentNullException(nameof(abi));
-            ArgumentMapper = argumentMapper;
+            ArgumentMapper = argumentMapperProvider(abi);
         }
 
         #endregion
@@ -575,14 +575,14 @@ namespace ILGPU.Backends
         /// <param name="backendType">The backend type.</param>
         /// <param name="backendFlags">The backend flags.</param>
         /// <param name="abi">The current ABI.</param>
-        /// <param name="argumentMapper">The argument mapper.</param>
+        /// <param name="argumentMapperProvider">The provider for argument mappers.</param>
         protected Backend(
             Context context,
             BackendType backendType,
             BackendFlags backendFlags,
             ABI abi,
-            ArgumentMapper argumentMapper)
-            : base(context, backendType, backendFlags, abi, argumentMapper)
+            Func<ABI, ArgumentMapper> argumentMapperProvider)
+            : base(context, backendType, backendFlags, abi, argumentMapperProvider)
         {
             intrinsicProvider = context.IntrinsicManager.CreateProvider<TDelegate>(this);
         }
