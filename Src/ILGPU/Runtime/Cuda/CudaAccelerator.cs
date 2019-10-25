@@ -28,7 +28,7 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Represents a Cuda accelerator.
     /// </summary>
-    public sealed class CudaAccelerator : Accelerator
+    public sealed class CudaAccelerator : KernelAccelerator<PTXCompiledKernel, CudaKernel>
     {
         #region Static
 
@@ -67,19 +67,19 @@ namespace ILGPU.Runtime.Cuda
             Justification = "Complex initialization logic is required in this case")]
         static CudaAccelerator()
         {
-            CudaAccelerators = ImmutableArray<AcceleratorId>.Empty;
+            CudaAccelerators = ImmutableArray<CudaAcceleratorId>.Empty;
 
             // Resolve all devices
             if (CurrentAPI.GetDeviceCount(out int numDevices) != CudaError.CUDA_SUCCESS ||
                 numDevices < 1)
                 return;
 
-            var accelerators = ImmutableArray.CreateBuilder<AcceleratorId>(numDevices);
+            var accelerators = ImmutableArray.CreateBuilder<CudaAcceleratorId>(numDevices);
             for (int i = 0; i < numDevices; ++i)
             {
                 if (CurrentAPI.GetDevice(out int device, i) != CudaError.CUDA_SUCCESS)
                     continue;
-                accelerators.Add(new AcceleratorId(AcceleratorType.Cuda, device));
+                accelerators.Add(new CudaAcceleratorId(device));
             }
             CudaAccelerators = accelerators.ToImmutable();
         }
@@ -92,7 +92,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Represents the list of available Cuda accelerators.
         /// </summary>
-        public static ImmutableArray<AcceleratorId> CudaAccelerators { get; }
+        public static ImmutableArray<CudaAcceleratorId> CudaAccelerators { get; }
 
         /// <summary>
         /// Resolves the memory type of the given device pointer.
@@ -129,6 +129,15 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="context">The ILGPU context.</param>
         public CudaAccelerator(Context context)
             : this(context, 0)
+        { }
+
+        /// <summary>
+        /// Constructs a new Cuda accelerator.
+        /// </summary>
+        /// <param name="context">The ILGPU context.</param>
+        /// <param name="acceleratorId">The accelerator id.</param>
+        public CudaAccelerator(Context context, CudaAcceleratorId acceleratorId)
+            : this(context, acceleratorId.DeviceId)
         { }
 
         /// <summary>
@@ -374,95 +383,39 @@ namespace ILGPU.Runtime.Cuda
         #region Methods
 
         /// <summary cref="Accelerator.CreateExtension{TExtension, TExtensionProvider}(TExtensionProvider)"/>
-        public override TExtension CreateExtension<TExtension, TExtensionProvider>(TExtensionProvider provider)
-        {
-            return provider.CreateCudaExtension(this);
-        }
+        public override TExtension CreateExtension<TExtension, TExtensionProvider>(TExtensionProvider provider) =>
+            provider.CreateCudaExtension(this);
 
         /// <summary cref="Accelerator.Allocate{T, TIndex}(TIndex)"/>
-        protected override MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(TIndex extent)
-        {
-            return new CudaMemoryBuffer<T, TIndex>(this, extent);
-        }
+        protected override MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(TIndex extent) =>
+            new CudaMemoryBuffer<T, TIndex>(this, extent);
 
-        /// <summary cref="Accelerator.LoadKernelInternal(CompiledKernel)"/>
-        protected override Kernel LoadKernelInternal(CompiledKernel kernel)
-        {
-            if (kernel == null)
-                throw new ArgumentNullException(nameof(kernel));
-            if (!(kernel is PTXCompiledKernel ptxKernel))
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
-            return new CudaKernel(
-                this,
-                ptxKernel,
-                GenerateKernelLauncherMethod(ptxKernel, 0));
-        }
+        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(TCompiledKernel)"/>
+        protected override CudaKernel CreateKernel(PTXCompiledKernel compiledKernel) =>
+            new CudaKernel(this, compiledKernel, null);
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(CompiledKernel, int)"/>
-        protected override Kernel LoadImplicitlyGroupedKernelInternal(
-            CompiledKernel kernel,
-            int customGroupSize)
-        {
-            if (kernel == null)
-                throw new ArgumentNullException(nameof(kernel));
-            if (customGroupSize < 0 || customGroupSize > MaxNumThreadsPerGroup)
-                throw new ArgumentOutOfRangeException(nameof(customGroupSize));
-            if (!(kernel is PTXCompiledKernel ptxKernel))
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
-            if (kernel.EntryPoint.IsGroupedIndexEntry)
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
-            return new CudaKernel(
-                this,
-                ptxKernel,
-                GenerateKernelLauncherMethod(ptxKernel, customGroupSize));
-        }
-
-        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
-        [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope",
-            Justification = "The object must not be disposed here")]
-        protected override Kernel LoadAutoGroupedKernelInternal(
-            CompiledKernel kernel,
-            out int groupSize,
-            out int minGridSize)
-        {
-            if (kernel == null)
-                throw new ArgumentNullException(nameof(kernel));
-            if (!(kernel is PTXCompiledKernel ptxKernel))
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
-            if (kernel.EntryPoint.IsGroupedIndexEntry)
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
-
-            var result = new CudaKernel(this, ptxKernel, null);
-            groupSize = EstimateGroupSizeInternal(result, 0, 0, out minGridSize);
-            result.Launcher = GenerateKernelLauncherMethod(ptxKernel, groupSize);
-            return result;
-        }
+        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(TCompiledKernel, MethodInfo)"/>
+        protected override CudaKernel CreateKernel(PTXCompiledKernel compiledKernel, MethodInfo launcher) =>
+            new CudaKernel(this, compiledKernel, launcher);
 
         /// <summary cref="Accelerator.CreateStream"/>
-        protected override AcceleratorStream CreateStreamInternal()
-        {
-            return new CudaStream(this);
-        }
+        protected override AcceleratorStream CreateStreamInternal() =>
+            new CudaStream(this);
 
         /// <summary cref="Accelerator.Synchronize"/>
-        protected override void SynchronizeInternal()
-        {
-            CudaException.ThrowIfFailed(CurrentAPI.SynchronizeContext());
-        }
+        protected override void SynchronizeInternal() =>
+            CudaException.ThrowIfFailed(
+                CurrentAPI.SynchronizeContext());
 
         /// <summary cref="Accelerator.OnBind"/>
-        protected override void OnBind()
-        {
+        protected override void OnBind() =>
             CudaException.ThrowIfFailed(
                 CurrentAPI.SetCurrentContext(contextPtr));
-        }
 
         /// <summary cref="Accelerator.OnUnbind"/>
-        protected override void OnUnbind()
-        {
+        protected override void OnUnbind() =>
             CudaException.ThrowIfFailed(
                 CurrentAPI.SetCurrentContext(IntPtr.Zero));
-        }
 
         /// <summary>
         /// Queries the amount of free memory.
@@ -526,16 +479,8 @@ namespace ILGPU.Runtime.Cuda
 
         #region General Launch Methods
 
-        /// <summary>
-        /// Generates a dynamic kernel-launcher method that will be just-in-time compiled
-        /// during the first invocation. Using the generated launcher lowers the overhead
-        /// for kernel launching dramatically, since unnecessary operations (like boxing)
-        /// can be avoided.
-        /// </summary>
-        /// <param name="kernel">The kernel to generate a launcher for.</param>
-        /// <param name="customGroupSize">The custom group size used for automatic blocking.</param>
-        /// <returns>The generated launcher method.</returns>
-        private MethodInfo GenerateKernelLauncherMethod(PTXCompiledKernel kernel, int customGroupSize)
+        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.GenerateKernelLauncherMethod(TCompiledKernel, int)"/>
+        protected override MethodInfo GenerateKernelLauncherMethod(PTXCompiledKernel kernel, int customGroupSize)
         {
             var entryPoint = kernel.EntryPoint;
             AdjustAndVerifyKernelGroupSize(ref customGroupSize, entryPoint);
@@ -680,7 +625,8 @@ namespace ILGPU.Runtime.Cuda
         {
             base.Dispose(disposing);
 
-            CudaException.ThrowIfFailed(CurrentAPI.DestroyContext(contextPtr));
+            CudaException.ThrowIfFailed(
+                CurrentAPI.DestroyContext(contextPtr));
             contextPtr = IntPtr.Zero;
         }
 

@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
 namespace ILGPU.Runtime
@@ -18,7 +19,7 @@ namespace ILGPU.Runtime
     /// Represents an abstract kernel stream for async processing.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
+    [SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
     public abstract class AcceleratorStream : AcceleratorObject
     {
         #region Instance

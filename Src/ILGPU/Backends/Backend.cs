@@ -56,7 +56,12 @@ namespace ILGPU.Backends
         /// <summary>
         /// A PTX backend.
         /// </summary>
-        PTX
+        PTX,
+
+        /// <summary>
+        /// An OpenCL source backend.
+        /// </summary>
+        OpenCL
     }
 
     /// <summary>
@@ -211,7 +216,7 @@ namespace ILGPU.Backends
 
                 bool requiresIntrinsics = (flags & BackendFlags.RequiresIntrinsicImplementations) != BackendFlags.None;
 
-                for (; ;)
+                for (; ; )
                 {
                     // Check for an unsupported intrinsic function
                     if (requiresIntrinsics && currentScope.Method.HasFlags(MethodFlags.Intrinsic))
@@ -290,6 +295,15 @@ namespace ILGPU.Backends
 
             #endregion
         }
+
+        /// <summary>
+        /// Represents a function to create backend-specific argument mappers.
+        /// </summary>
+        /// <param name="context">The current context.</param>
+        /// <param name="abi">The current ABI.</param>
+        protected delegate ArgumentMapper CreateArgumentMapper(
+            Context context,
+            ABI abi);
 
         /// <summary>
         /// Represents a function to create backend-specific transformers.

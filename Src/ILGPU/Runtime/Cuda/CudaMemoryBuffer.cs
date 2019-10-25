@@ -28,7 +28,7 @@ namespace ILGPU.Runtime.Cuda
         #region Instance
 
         /// <summary>
-        /// Constructs a new cuda buffer.
+        /// Constructs a new Cuda buffer.
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="extent">The extent.</param>

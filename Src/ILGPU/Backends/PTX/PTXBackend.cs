@@ -153,7 +153,7 @@ namespace ILGPU.Backends.PTX
         public PTXInstructionSet InstructionSet { get; }
 
         /// <summary>
-        /// Returns the associated <see cref="ArgumentMapper"/>.
+        /// Returns the associated <see cref="Backend.ArgumentMapper"/>.
         /// </summary>
         public new PTXArgumentMapper ArgumentMapper => base.ArgumentMapper as PTXArgumentMapper;
 

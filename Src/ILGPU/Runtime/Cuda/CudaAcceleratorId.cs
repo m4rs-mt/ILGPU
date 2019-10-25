@@ -3,7 +3,7 @@
 //                     Copyright (c) 2016-2019 Marcel Koester
 //                                www.ilgpu.net
 //
-// File: AcceleratorId.cs
+// File: CudaAcceleratorId.cs
 //
 // This file is part of ILGPU and is distributed under the University of
 // Illinois Open Source License. See LICENSE.txt for details
@@ -12,23 +12,26 @@
 using ILGPU.Util;
 using System;
 
-namespace ILGPU.Runtime
+namespace ILGPU.Runtime.Cuda
 {
     /// <summary>
-    /// Represents a single accelerator reference.
+    /// Represents a single Cuda accelerator reference.
     /// </summary>
-    [Serializable]
-    public abstract class AcceleratorId : DisposeBase
+    public sealed class CudaAcceleratorId : AcceleratorId
     {
         #region Instance
 
         /// <summary>
-        /// Constructs a new accelerator id.
+        /// Constructs a new Cuda accelerator reference.
         /// </summary>
-        /// <param name="type">The accelerator type.</param>
-        protected AcceleratorId(AcceleratorType type)
+        /// <param name="deviceId">The Cuda device id.</param>
+        public CudaAcceleratorId(int deviceId)
+            : base(AcceleratorType.Cuda)
         {
-            AcceleratorType = type;
+            if (deviceId < 0)
+                throw new ArgumentOutOfRangeException(nameof(deviceId));
+
+            DeviceId = deviceId;
         }
 
         #endregion
@@ -36,9 +39,9 @@ namespace ILGPU.Runtime
         #region Properties
 
         /// <summary>
-        /// Retunrs the type of the associated accelerator.
+        /// Returns the Cuda device id.
         /// </summary>
-        public AcceleratorType AcceleratorType { get; }
+        public int DeviceId { get; }
 
         #endregion
 
@@ -50,21 +53,29 @@ namespace ILGPU.Runtime
         /// <param name="obj">The other object.</param>
         /// <returns>True, iff the given object is equal to the current accelerator id.</returns>
         public override bool Equals(object obj) =>
-            obj is AcceleratorId acceleratorId &&
-            acceleratorId.AcceleratorType == AcceleratorType;
+            obj is CudaAcceleratorId acceleratorId &&
+            acceleratorId.DeviceId == DeviceId;
 
         /// <summary>
         /// Returns the hash code of this accelerator id.
         /// </summary>
         /// <returns>The hash code of this accelerator id.</returns>
-        public override int GetHashCode() => (int)AcceleratorType;
+        public override int GetHashCode() =>
+            DeviceId ^ base.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this accelerator id.
         /// </summary>
         /// <returns>The string representation of this accelerator id.</returns>
         public override string ToString() =>
-            $"Type: {AcceleratorType}";
+            $"Device {DeviceId}, {base.ToString()}";
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary cref="DisposeBase.Dispose(bool)"/>
+        protected override void Dispose(bool disposing) { }
 
         #endregion
     }

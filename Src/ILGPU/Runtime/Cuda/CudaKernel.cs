@@ -14,6 +14,7 @@ using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace ILGPU.Runtime.Cuda
@@ -43,7 +44,8 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="kernel">The source kernel.</param>
         /// <param name="launcher">The launcher method for the given kernel.</param>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods", MessageId = "0", Justification = "Will be verified in the constructor of the base class")]
+        [SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods",
+            MessageId = "0", Justification = "Will be verified in the constructor of the base class")]
         internal CudaKernel(
             CudaAccelerator accelerator,
             PTXCompiledKernel kernel,

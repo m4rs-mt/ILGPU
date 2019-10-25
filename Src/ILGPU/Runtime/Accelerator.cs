@@ -72,12 +72,12 @@ namespace ILGPU.Runtime
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
 
-            switch (acceleratorId.AcceleratorType)
+            switch (acceleratorId)
             {
-                case AcceleratorType.CPU:
+                case CPU.CPUAcceleratorId cpuId:
                     return new CPU.CPUAccelerator(context);
-                case AcceleratorType.Cuda:
-                    return new Cuda.CudaAccelerator(context, acceleratorId.DeviceId);
+                case Cuda.CudaAcceleratorId cudaId:
+                    return new Cuda.CudaAccelerator(context, cudaId.DeviceId);
                 default:
                     throw new ArgumentException(RuntimeErrorMessages.NotSupportedTargetAccelerator, nameof(acceleratorId));
             }

@@ -33,13 +33,12 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Represents the main CPU accelerator.
         /// </summary>
-        public static AcceleratorId CPUAcceleratorId =>
-            new AcceleratorId(AcceleratorType.CPU, 0);
+        public static CPUAcceleratorId CPUAcceleratorId => CPUAcceleratorId.Instance;
 
         /// <summary>
         /// Represents all available CPU accelerators.
         /// </summary>
-        public static ImmutableArray<AcceleratorId> CPUAccelerators { get; } =
+        public static ImmutableArray<CPUAcceleratorId> CPUAccelerators { get; } =
             ImmutableArray.Create(CPUAcceleratorId);
 
         #endregion
@@ -305,7 +304,7 @@ namespace ILGPU.Runtime.CPU
             var relativeThreadIdx = (int)arg;
 
             CPUAcceleratorTask task = null;
-            for (;;)
+            for (; ; )
             {
                 lock (taskSynchronizationObject)
                 {
