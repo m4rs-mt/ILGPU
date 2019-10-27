@@ -132,6 +132,8 @@ namespace ILGPU.IR
         /// Returns the hash code of this handle.
         /// </summary>
         /// <returns>The hash code of this handle.</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1307:Specify StringComparison",
+            Justification = "string.GetHashCode(StringComparison) not available in net47")]
         public override int GetHashCode() => Id.GetHashCode() ^ Name?.GetHashCode() ?? 0;
 
         /// <summary>

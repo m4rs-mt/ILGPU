@@ -81,6 +81,8 @@ namespace ILGPU.Frontend.DebugInformation
         /// Returns the hash code of this index.
         /// </summary>
         /// <returns>The hash code of this index.</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1307:Specify StringComparison",
+            Justification = "string.GetHashCode(StringComparison) not available in net47")]
         public override int GetHashCode()
         {
             return Index.GetHashCode() ^ Name.GetHashCode();
