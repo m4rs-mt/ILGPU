@@ -11,6 +11,7 @@
 
 using ILGPU.Resources;
 using System;
+using System.Runtime.Serialization;
 
 namespace ILGPU
 {
@@ -27,6 +28,10 @@ namespace ILGPU
         /// </summary>
         public InvalidKernelOperationException()
             : base(ErrorMessages.InvalidKernelOperation)
+        { }
+
+        private InvalidKernelOperationException(SerializationInfo serializationInfo, StreamingContext streamingContext)
+            : base(serializationInfo, streamingContext)
         { }
     }
 }
