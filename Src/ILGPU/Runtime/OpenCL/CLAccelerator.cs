@@ -266,6 +266,8 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Initializes major vendor features.
         /// </summary>
+        [SuppressMessage("Globalization", "CA1307:Specify StringComparison",
+            Justification = "string.Contains(string, StringComparison) not available in net47 and netcoreapp2.0")]
         private void InitVendorFeatures()
         {
             // Check major vendor features

@@ -373,6 +373,8 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="type">The type to convert to a string.</param>
         /// <returns>The string represenation of the given type.</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1307:Specify StringComparison",
+            Justification = "string.IndexOf(char, StringComparison) not available in net47")]
         public static string GetStringRepresentation(this Type type)
         {
             var result = new StringBuilder();
