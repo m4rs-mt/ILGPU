@@ -43,6 +43,14 @@ namespace ILGPU.Runtime.OpenCL.API
             [Out] out int numPlatforms);
 
         [DllImport(LibName)]
+        private static extern CLError clGetPlatformInfo(
+            [In] IntPtr platform,
+            [In] CLPlatformInfoType platformInfoType,
+            [In] IntPtr maxSize,
+            [Out] void* value,
+            [Out] IntPtr size);
+
+        [DllImport(LibName)]
         private static extern CLError clGetDeviceIDs(
             [In] IntPtr platform,
             [In] CLDeviceType deviceType,
@@ -79,6 +87,13 @@ namespace ILGPU.Runtime.OpenCL.API
         [DllImport(LibName)]
         private static extern CLError clReleaseContext(
             [In] IntPtr context);
+
+        [DllImport(LibName)]
+        private static extern IntPtr clCreateCommandQueue(
+            [In] IntPtr context,
+            [In] IntPtr device,
+            [In] IntPtr properties,
+            [Out] out CLError errorCode);
 
         [DllImport(LibName)]
         private static extern IntPtr clCreateCommandQueueWithProperties(
@@ -149,6 +164,15 @@ namespace ILGPU.Runtime.OpenCL.API
             IntPtr* localWorkSizes,
             int numEvents,
             IntPtr* events);
+
+        [DllImport(LibName)]
+        private static extern CLError clGetKernelWorkGroupInfo(
+            [In] IntPtr kernel,
+            [In] IntPtr device,
+            [In] CLKernelWorkGroupInfoType workGroupInfoType,
+            [In] IntPtr maxSize,
+            [Out] void* paramValue,
+            [Out] IntPtr size);
 
         // Buffers
 
@@ -250,6 +274,50 @@ namespace ILGPU.Runtime.OpenCL.API
             clGetPlatformIDs(numPlatforms, platforms, out numPlatforms);
 
         /// <summary>
+        /// Resolves platform information as string value.
+        /// </summary>
+        /// <param name="platform">The platform.</param>
+        /// <param name="type">The information type.</param>
+        /// <returns>The resolved string value.</returns>
+        public static string GetPlatformInfo(IntPtr platform, CLPlatformInfoType type)
+        {
+            const int MaxStringLength = 1024;
+            var stringValue = stackalloc sbyte[MaxStringLength];
+            var size = IntPtr.Zero;
+
+            CLException.ThrowIfFailed(clGetPlatformInfo(
+                platform,
+                type,
+                new IntPtr(MaxStringLength),
+                stringValue,
+                new IntPtr(&size)));
+            int intSize = size.ToInt32();
+            if (intSize > 0 && intSize < MaxStringLength)
+                return new string(stringValue, 0, intSize - 1);
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Resolves platform information as typed structure value of type <typeparamref name="T"/>
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <param name="platform">The platform.</param>
+        /// <param name="type">The information type.</param>
+        /// <returns>The resolved value.</returns>
+        public static T GetPlatformInfo<T>(IntPtr platform, CLPlatformInfoType type)
+            where T : struct
+        {
+            T value = default;
+            CLException.ThrowIfFailed(clGetPlatformInfo(
+                platform,
+                type,
+                new IntPtr(Interop.SizeOf<T>()),
+                Unsafe.AsPointer(ref value),
+                IntPtr.Zero));
+            return value;
+        }
+
+        /// <summary>
         /// Resolves the number of available platforms.
         /// </summary>
         /// <returns>The error code.</returns>
@@ -313,6 +381,47 @@ namespace ILGPU.Runtime.OpenCL.API
             clReleaseDevice(device);
 
         /// <summary>
+        /// Resolves device information as string value.
+        /// </summary>
+        /// <param name="device">The device.</param>
+        /// <param name="type">The information type.</param>
+        /// <returns>The resolved string value.</returns>
+        public static string GetDeviceInfo(IntPtr device, CLDeviceInfoType type)
+        {
+            const int MaxStringLength = 8192;
+            var stringValue = stackalloc sbyte[MaxStringLength];
+            var size = IntPtr.Zero;
+
+            CLException.ThrowIfFailed(clGetDeviceInfo(
+                device,
+                type,
+                new IntPtr(MaxStringLength),
+                stringValue,
+                new IntPtr(&size)));
+            int intSize = size.ToInt32();
+            if (intSize > 0 && intSize < MaxStringLength)
+                return new string(stringValue, 0, intSize - 1);
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Resolves device information as typed structure value of type <typeparamref name="T"/>
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <param name="device">The device.</param>
+        /// <param name="type">The information type.</param>
+        /// <returns>The resolved value.</returns>
+        public static T GetDeviceInfo<T>(IntPtr device, CLDeviceInfoType type)
+            where T : struct
+        {
+            CLException.ThrowIfFailed(GetDeviceInfo(
+                device,
+                type,
+                out T value));
+            return value;
+        }
+
+        /// <summary>
         /// Resolves device information as typed structure value of type <typeparamref name="T"/>
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
@@ -330,6 +439,33 @@ namespace ILGPU.Runtime.OpenCL.API
                 new IntPtr(Interop.SizeOf<T>()),
                 Unsafe.AsPointer(ref value),
                 IntPtr.Zero);
+        }
+
+        /// <summary>
+        /// Resolves device information as array of typed structure values of type <typeparamref name="T"/>
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <param name="device">The device.</param>
+        /// <param name="type">The information type.</param>
+        /// <param name="elements">The elements to fill.</param>
+        /// <returns>The resolved value.</returns>
+        public static void GetDeviceInfo<T>(IntPtr device, CLDeviceInfoType type, T[] elements)
+            where T : struct
+        {
+            var handle = GCHandle.Alloc(elements, GCHandleType.Pinned);
+            try
+            {
+                CLException.ThrowIfFailed(clGetDeviceInfo(
+                    device,
+                    type,
+                    new IntPtr(Interop.SizeOf<T>() * elements.Length),
+                    handle.AddrOfPinnedObject().ToPointer(),
+                    IntPtr.Zero));
+            }
+            finally
+            {
+                handle.Free();
+            }
         }
 
         /// <summary>
@@ -594,6 +730,53 @@ namespace ILGPU.Runtime.OpenCL.API
                 value);
 
         /// <summary>
+        /// Launches the given kernel function.
+        /// </summary>
+        /// <param name="stream">The current stream.</param>
+        /// <param name="kernel">The current kernel.</param>
+        /// <param name="gridDimX">The grid dimension in X dimension.</param>
+        /// <param name="gridDimY">The grid dimension in Y dimension.</param>
+        /// <param name="gridDimZ">The grid dimension in Z dimension.</param>
+        /// <param name="blockDimX">The block dimension in X dimension.</param>
+        /// <param name="blockDimY">The block dimension in Y dimension.</param>
+        /// <param name="blockDimZ">The block dimension in Z dimension.</param>
+        /// <returns>The error status.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe CLError LaunchKernelWithStreamBinding(
+            CLStream stream,
+            CLKernel kernel,
+            int gridDimX,
+            int gridDimY,
+            int gridDimZ,
+            int blockDimX,
+            int blockDimY,
+            int blockDimZ)
+        {
+            var binding = stream.BindScoped();
+
+            IntPtr* globalWorkSizes = stackalloc IntPtr[3];
+            globalWorkSizes[0] = new IntPtr(gridDimX);
+            globalWorkSizes[1] = new IntPtr(gridDimY);
+            globalWorkSizes[2] = new IntPtr(gridDimZ);
+
+            IntPtr* localWorkSizes = stackalloc IntPtr[3];
+            localWorkSizes[0] = new IntPtr(blockDimX);
+            localWorkSizes[1] = new IntPtr(blockDimY);
+            localWorkSizes[2] = new IntPtr(blockDimZ);
+
+            var result = LaunchKernelUnsafe(
+                stream.CommandQueue,
+                kernel.KernelPtr,
+                3,
+                null,
+                globalWorkSizes,
+                localWorkSizes);
+
+            binding.Recover();
+            return result;
+        }
+
+        /// <summary>
         /// Launches a kernel.
         /// </summary>
         /// <param name="queue">The queue.</param>
@@ -654,6 +837,63 @@ namespace ILGPU.Runtime.OpenCL.API
                     localWorkSizesPtr);
             }
 
+        }
+
+        /// <summary>
+        /// Resolves kernel work-group information as typed structure value of type <typeparamref name="T"/>
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <param name="kernel">The kernel.</param>
+        /// <param name="device">The device.</param>
+        /// <param name="type">The information type.</param>
+        /// <returns>The resolved value.</returns>
+        public static T GetKernelWorkGroupInfo<T>(
+            IntPtr kernel,
+            IntPtr device,
+            CLKernelWorkGroupInfoType type)
+            where T : struct
+        {
+            T value = default;
+            CLException.ThrowIfFailed(clGetKernelWorkGroupInfo(
+                kernel,
+                device,
+                type,
+                new IntPtr(Interop.SizeOf<T>()),
+                Unsafe.AsPointer(ref value),
+                IntPtr.Zero));
+            return value;
+        }
+
+        /// <summary>
+        /// Resolves kernel work-group information as typed array of values of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <param name="kernel">The kernel.</param>
+        /// <param name="device">The device.</param>
+        /// <param name="type">The information type.</param>
+        /// <param name="elements">The desired elements.</param>
+        public static void GetKernelWorkGroupInfo<T>(
+            IntPtr kernel,
+            IntPtr device,
+            CLKernelWorkGroupInfoType type,
+            T[] elements)
+            where T : struct
+        {
+            var handle = GCHandle.Alloc(elements, GCHandleType.Pinned);
+            try
+            {
+                CLException.ThrowIfFailed(clGetKernelWorkGroupInfo(
+                    kernel,
+                    device,
+                    type,
+                    new IntPtr(Interop.SizeOf<T>() * elements.Length),
+                    handle.AddrOfPinnedObject().ToPointer(),
+                    IntPtr.Zero));
+            }
+            finally
+            {
+                handle.Free();
+            }
         }
 
         #endregion

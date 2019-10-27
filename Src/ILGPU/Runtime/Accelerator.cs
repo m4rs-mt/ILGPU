@@ -32,7 +32,12 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Represents a Cuda accelerator.
         /// </summary>
-        Cuda
+        Cuda,
+
+        /// <summary>
+        /// Represents an OpenCL accelerator (CPU/GPU via OpenCL).
+        /// </summary>
+        OpenCL,
     }
 
     /// <summary>
@@ -50,9 +55,10 @@ namespace ILGPU.Runtime
             Justification = "Complex initialization logic is required in this case")]
         static Accelerator()
         {
-            var accelerators = ImmutableArray.CreateBuilder<AcceleratorId>(2);
+            var accelerators = ImmutableArray.CreateBuilder<AcceleratorId>(4);
             accelerators.AddRange(CPU.CPUAccelerator.CPUAccelerators);
             accelerators.AddRange(Cuda.CudaAccelerator.CudaAccelerators);
+            accelerators.AddRange(OpenCL.CLAccelerator.CLAccelerators);
             Accelerators = accelerators.ToImmutable();
         }
 
@@ -78,6 +84,8 @@ namespace ILGPU.Runtime
                     return new CPU.CPUAccelerator(context);
                 case Cuda.CudaAcceleratorId cudaId:
                     return new Cuda.CudaAccelerator(context, cudaId.DeviceId);
+                case OpenCL.CLAcceleratorId clId:
+                    return new OpenCL.CLAccelerator(context, clId);
                 default:
                     throw new ArgumentException(RuntimeErrorMessages.NotSupportedTargetAccelerator, nameof(acceleratorId));
             }

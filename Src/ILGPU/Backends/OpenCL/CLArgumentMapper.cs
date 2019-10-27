@@ -11,6 +11,7 @@
 
 using ILGPU.Backends.IL;
 using ILGPU.Backends.PointerViews;
+using ILGPU.Runtime.OpenCL;
 using ILGPU.Runtime.OpenCL.API;
 using System;
 using System.Diagnostics;
@@ -168,6 +169,10 @@ namespace ILGPU.Backends.OpenCL
 
             var mappingHandler = new MappingHandler(this, kernel, resultLocal);
             Map(emitter, mappingHandler, entryPoint.Parameters);
+
+            // Check mapping result
+            emitter.Emit(LocalOperation.Load, resultLocal);
+            emitter.EmitCall(CLAccelerator.ThrowIfFailedMethod);
         }
 
         #endregion
