@@ -24,7 +24,7 @@ namespace ILGPU.Tests
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1724:TypeNamesShouldNotMatchNamespaces",
         Justification = "Only used for testing")]
     public abstract class AtomicOperations : TestBase
-	{
+    {
         public AtomicOperations(
             ITestOutputHelper output,
             ContextProvider contextProvider)
@@ -124,5 +124,5 @@ namespace ILGPU.Tests
 
 <#      } #>
 <# } #>
-	}
+    }
 }

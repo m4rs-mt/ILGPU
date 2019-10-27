@@ -119,7 +119,7 @@ namespace ILGPU.Frontend
         /// Returns the generic arguments of the used method.
         /// </summary>
         /// <returns>The generic arguments of the used method.</returns>
-        public Type[] GetTypeGenericArguments() => 
+        public Type[] GetTypeGenericArguments() =>
             Method.DeclaringType.GetGenericArguments();
 
         /// <summary cref="ICodeGenerationContext.GetException{TException}(string, object[])"/>

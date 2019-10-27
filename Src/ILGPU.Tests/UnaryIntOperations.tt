@@ -18,7 +18,7 @@ var operationConfigurations = new (string, string, string, bool)[]
 namespace ILGPU.Tests
 {
     public abstract class UnaryIntOperations : TestBase
-	{
+    {
         public UnaryIntOperations(
             ITestOutputHelper output,
             ContextProvider contextProvider)
@@ -68,5 +68,5 @@ namespace ILGPU.Tests
 
 <#      } #>
 <# } #>
-	}
+    }
 }

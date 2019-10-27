@@ -118,7 +118,8 @@ namespace ILGPU.Backends.PTX
         protected override void GenerateDebugInfo(
             StringBuilder builder,
             Node node,
-            in SequencePoint sequencePoint) { }
+            in SequencePoint sequencePoint)
+        { }
 
         /// <summary cref="PTXDebugInfoGenerator.GenerateDebugSections(StringBuilder)"/>
         public override void GenerateDebugSections(StringBuilder builder) { }

@@ -86,7 +86,7 @@ namespace ILGPU.Frontend.DebugInformation
             var sequencePointsCollection = debugInformation.GetSequencePoints();
             var sequencePointEnumerator = sequencePointsCollection.GetEnumerator();
             int numSequencePoints = 0;
-            for (numSequencePoints = 0; sequencePointEnumerator.MoveNext(); )
+            for (numSequencePoints = 0; sequencePointEnumerator.MoveNext();)
             {
                 var sequencePoint = sequencePointEnumerator.Current;
                 if (sequencePoint.IsHidden || sequencePoint.Document.IsNil)

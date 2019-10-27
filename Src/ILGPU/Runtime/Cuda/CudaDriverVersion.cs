@@ -9,11 +9,11 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends;
+using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using ILGPU.Backends;
-using ILGPU.Resources;
 
 namespace ILGPU.Runtime.Cuda
 {

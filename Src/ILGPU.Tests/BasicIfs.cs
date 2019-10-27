@@ -191,7 +191,7 @@ namespace ILGPU.Tests
                     data[index] = 42;
                     data2[index] = 1;
                 }
-                else 
+                else
                 {
                     data[index] = 43;
                     data2[index] = 2;

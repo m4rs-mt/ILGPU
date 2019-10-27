@@ -621,7 +621,7 @@ namespace ILGPU.IR.Analyses
                 return false;
 
             // Determine the step value
-            int stepValueIndex = updateValue.Left.Resolve() == Init ?  1 : 1;
+            int stepValueIndex = updateValue.Left.Resolve() == Init ? 1 : 1;
             var resolvedStepValue = updateValue[stepValueIndex].Resolve();
 
             // Resolve the update operation
@@ -647,7 +647,7 @@ namespace ILGPU.IR.Analyses
                 !compareValue.BasicValueType.IsInt())
                 return false;
 
-            int endValueIndex = compareValue.Left.Resolve() == Phi ?  1 : 0;
+            int endValueIndex = compareValue.Left.Resolve() == Phi ? 1 : 0;
             var resolvedEndValue = compareValue[endValueIndex].Resolve();
 
             // Resolve the break operation

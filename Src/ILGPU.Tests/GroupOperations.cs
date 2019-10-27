@@ -1,7 +1,7 @@
-﻿using System;
-using System.Linq;
-using FluentAssertions;
+﻿using FluentAssertions;
 using ILGPU.Runtime.Cuda;
+using System;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -218,7 +218,7 @@ namespace ILGPU.Tests
         {
             var groupSize = Accelerator.MaxNumThreadsPerGroup + 1;
             var extent = new GroupedIndex(2, groupSize);
-            
+
             Action act = () => Execute(extent, 0);
 
             act.Should().Throw<Exception>()
