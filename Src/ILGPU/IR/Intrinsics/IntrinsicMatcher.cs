@@ -343,6 +343,7 @@ namespace ILGPU.IR.Intrinsics
         /// Constructs a new abstract intrinsic value matcher.
         /// </summary>
         /// <param name="valueKind">The value kind.</param>
+        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
         protected TypedIntrinsicValueMatcher(ValueKind valueKind)
             : base(valueKind)
         {
