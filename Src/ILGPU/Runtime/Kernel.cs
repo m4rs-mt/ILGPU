@@ -84,10 +84,8 @@ namespace ILGPU.Runtime
         /// <remarks>Note that the first argument is the accelerator stream.</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TDelegate CreateLauncherDelegate<TDelegate>()
-            where TDelegate : class
-        {
-            return (Launcher.CreateDelegate(typeof(TDelegate), this) as object) as TDelegate;
-        }
+            where TDelegate : Delegate =>
+            (Launcher.CreateDelegate(typeof(TDelegate), this) as object) as TDelegate;
 
         /// <summary>
         /// Invokes the associated launcher via reflection.
@@ -124,10 +122,8 @@ namespace ILGPU.Runtime
         /// <param name="args">The kernel arguments.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Launch<TIndex>(AcceleratorStream stream, TIndex dimension, params object[] args)
-            where TIndex : struct, IIndex
-        {
+            where TIndex : struct, IIndex =>
             InvokeLauncher(dimension, stream, args);
-        }
 
         /// <summary>
         /// Launches the current kernel with the given arguments.
@@ -136,11 +132,41 @@ namespace ILGPU.Runtime
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="args">The kernel arguments.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Launch(AcceleratorStream stream, int dimension, params object[] args)
-        {
+        public void Launch(AcceleratorStream stream, int dimension, params object[] args) =>
             InvokeLauncher(new Index(dimension), stream, args);
-        }
 
         #endregion
+    }
+
+    /// <summary>
+    /// Contains utility methods to work with kernel objects.
+    /// </summary>
+    public static class KernelUtil
+    {
+        /// <summary>
+        /// Tries to resolve a kernel object from a previously created kernel delegate.
+        /// </summary>
+        /// <typeparam name="TDelegate">The kernel-delegate type.</typeparam>
+        /// <param name="kernelDelegate">The kernel-delegate instance.</param>
+        /// <param name="kernel">The resolved kernel object (if any).</param>
+        /// <returns>True, if a kernel object could be resolved.</returns>
+        public static bool TryGetKernel<TDelegate>(this TDelegate kernelDelegate, out Kernel kernel)
+            where TDelegate : Delegate =>
+            (kernel = kernelDelegate.Target as Kernel) != null;
+
+        /// <summary>
+        /// Resolves a kernel object from a previously created kernel delegate.
+        /// If this is not possible, the method will throw an <see cref="InvalidOperationException"/>.
+        /// </summary>
+        /// <typeparam name="TDelegate">The kernel-delegate type.</typeparam>
+        /// <param name="kernelDelegate">The kernel-delegate instance.</param>
+        /// <returns>The resolved kernel object.</returns>
+        public static Kernel GetKernel<TDelegate>(this TDelegate kernelDelegate)
+            where TDelegate : Delegate
+        {
+            if (!TryGetKernel(kernelDelegate, out var kernel))
+                throw new InvalidOperationException();
+            return kernel;
+        }
     }
 }

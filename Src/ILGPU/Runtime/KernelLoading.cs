@@ -266,7 +266,7 @@ namespace ILGPU.Runtime
             MethodInfo method,
             KernelSpecialization specialization,
             ref TKernelLoader kernelLoader)
-            where TDelegate : class
+            where TDelegate : Delegate
             where TKernelLoader : struct, IKernelLoader
         {
             var kernel = LoadGenericKernel(method, specialization, ref kernelLoader);
@@ -360,7 +360,7 @@ namespace ILGPU.Runtime
         /// of the current warp size of the accelerator.
         /// </remarks>
         public TDelegate LoadKernel<TDelegate>(MethodInfo method)
-            where TDelegate : class
+            where TDelegate : Delegate
         {
             return LoadKernel<TDelegate>(method, KernelSpecialization.Empty);
         }
@@ -378,7 +378,7 @@ namespace ILGPU.Runtime
         /// of the current warp size of the accelerator.
         /// </remarks>
         public TDelegate LoadKernel<TDelegate>(MethodInfo method, KernelSpecialization specialization)
-            where TDelegate : class
+            where TDelegate : Delegate
         {
             var loader = DefaultKernelLoader.Default;
             return LoadGenericKernel<TDelegate, DefaultKernelLoader>(
@@ -399,7 +399,7 @@ namespace ILGPU.Runtime
         /// group size.
         /// </remarks>
         public TDelegate LoadImplicitlyGroupedKernel<TDelegate>(MethodInfo method, int customGroupSize)
-            where TDelegate : class
+            where TDelegate : Delegate
         {
             var loader = new GroupedKernelLoader(customGroupSize);
             return LoadGenericKernel<TDelegate, GroupedKernelLoader>(
@@ -420,7 +420,7 @@ namespace ILGPU.Runtime
             MethodInfo method,
             out int groupSize,
             out int minGridSize)
-            where TDelegate : class
+            where TDelegate : Delegate
         {
             var loader = AutoKernelLoader.Default;
             var result = LoadGenericKernel<TDelegate, AutoKernelLoader>(
@@ -439,7 +439,7 @@ namespace ILGPU.Runtime
         /// <param name="method">The method to compile into a kernel.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         public TDelegate LoadAutoGroupedKernel<TDelegate>(MethodInfo method)
-            where TDelegate : class
+            where TDelegate : Delegate
         {
             var loader = AutoKernelLoader.Default;
             return LoadGenericKernel<TDelegate, AutoKernelLoader>(
