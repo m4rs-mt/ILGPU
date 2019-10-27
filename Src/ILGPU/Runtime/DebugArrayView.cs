@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -59,7 +60,7 @@ namespace ILGPU.Runtime
                             data = LoadDeviceData();
                     }
                     else
-                        data = new T[0];
+                        data = Array.Empty<T>();
                 }
                 return data;
             }
