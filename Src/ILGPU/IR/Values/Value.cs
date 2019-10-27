@@ -513,6 +513,21 @@ namespace ILGPU.IR
             return ToReferenceString() + ": " + argString;
         }
 
+        /// <summary>
+        /// Returns true iff the given object is equal to the current value.
+        /// </summary>
+        /// <param name="obj">The other object.</param>
+        /// <returns>True, iff the given object is equal to the current value.</returns>
+        public override bool Equals(object obj) =>
+            base.Equals(obj);
+
+        /// <summary>
+        /// Returns the hash code of this value.
+        /// </summary>
+        /// <returns>The hash code of this value.</returns>
+        public override int GetHashCode() =>
+            base.GetHashCode();
+
         #endregion
     }
 }
