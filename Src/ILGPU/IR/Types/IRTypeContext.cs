@@ -42,7 +42,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Represents the index type of a view.
         /// </summary>
-        internal static readonly BasicValueType ViewIndexType = BasicValueType.Int32;
+        internal const BasicValueType ViewIndexType = BasicValueType.Int32;
 
         /// <summary>
         /// Represents a generic array view type.
