@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using System;
 using System.Runtime.Serialization;
 
@@ -24,7 +25,7 @@ namespace ILGPU.Backends
         /// Constructs a new code generation exception.
         /// </summary>
         public InvalidCodeGenerationException()
-            : base("Invalid code generation operation")
+            : base(RuntimeErrorMessages.InvalidCodeGenerationOperation0)
         { }
 
         /// <summary>
@@ -32,7 +33,7 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="message">The detailed error message.</param>
         public InvalidCodeGenerationException(string message)
-            : base("Invalid code generation operation:\n" + message)
+            : base(string.Format(RuntimeErrorMessages.InvalidCodeGenerationOperation1, message))
         { }
 
         /// <summary>

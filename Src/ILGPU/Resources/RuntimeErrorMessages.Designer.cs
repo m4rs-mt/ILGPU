@@ -88,6 +88,24 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid code generation operation.
+        /// </summary>
+        internal static string InvalidCodeGenerationOperation0 {
+            get {
+                return ResourceManager.GetString("InvalidCodeGenerationOperation0", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid code generation operation:\n{0}.
+        /// </summary>
+        internal static string InvalidCodeGenerationOperation1 {
+            get {
+                return ResourceManager.GetString("InvalidCodeGenerationOperation1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invalid custom group size &gt; 0 in a grouped-index scenario.
         /// </summary>
         internal static string InvalidCustomGroupSize {
