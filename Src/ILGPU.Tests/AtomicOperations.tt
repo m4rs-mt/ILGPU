@@ -21,6 +21,8 @@ var operationConfigurations = new (string, bool)[]
 #>
 namespace ILGPU.Tests
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1724:TypeNamesShouldNotMatchNamespaces",
+        Justification = "Only used for testing")]
     public abstract class AtomicOperations : TestBase
 	{
         public AtomicOperations(
