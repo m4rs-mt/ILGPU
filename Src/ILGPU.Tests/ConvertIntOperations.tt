@@ -15,7 +15,7 @@ var types = IntTypes.Concat(FloatTypes.Select(t => (t.Item1, t.Item2)));
 namespace ILGPU.Tests
 {
     public abstract class ConvertIntOperations : TestBase
-	{
+    {
         public ConvertIntOperations(
             ITestOutputHelper output,
             ContextProvider contextProvider)
@@ -62,7 +62,7 @@ namespace ILGPU.Tests
 
 <#      } #>
 <# } #>
-	}
+    }
 }
 
 #pragma warning restore xUnit1025 // InlineData should be unique within the Theory it belongs to

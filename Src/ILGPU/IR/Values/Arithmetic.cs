@@ -136,7 +136,7 @@ namespace ILGPU.IR.Values
         /// Computes atan(x).
         /// </summary>
         AtanF,
-        
+
         /// <summary>
         /// Computes exp(x).
         /// </summary>
@@ -499,7 +499,7 @@ namespace ILGPU.IR.Values
         /// Returns the operation kind.
         /// </summary>
         public BinaryArithmeticKind Kind { get; }
-        
+
         /// <summary>
         /// Returns the left operand.
         /// </summary>

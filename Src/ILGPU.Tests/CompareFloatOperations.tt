@@ -22,7 +22,7 @@ var operationConfigurations = new (string, string)[]
 namespace ILGPU.Tests
 {
     public abstract class CompareFloatOperations : TestBase
-	{
+    {
         public CompareFloatOperations(
             ITestOutputHelper output,
             ContextProvider contextProvider)
@@ -77,5 +77,5 @@ namespace ILGPU.Tests
 
 <#      } #>
 <# } #>
-	}
+    }
 }

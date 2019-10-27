@@ -12,14 +12,12 @@
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
 using ILGPU.IR.Transformations;
-using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace ILGPU.Frontend
@@ -137,7 +135,7 @@ namespace ILGPU.Frontend
         private void DoWork()
         {
             var detectedMethods = new HashSet<MethodBase>();
-            for (; ;)
+            for (; ; )
             {
                 ProcessingEntry current;
                 lock (processingSyncObject)

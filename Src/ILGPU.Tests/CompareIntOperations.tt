@@ -23,7 +23,7 @@ var operationConfigurations = new (string, string)[]
 namespace ILGPU.Tests
 {
     public abstract class CompareIntOperations : TestBase
-	{
+    {
         public CompareIntOperations(
             ITestOutputHelper output,
             ContextProvider contextProvider)
@@ -80,7 +80,7 @@ namespace ILGPU.Tests
 
 <#      } #>
 <# } #>
-	}
+    }
 }
 
 #pragma warning restore xUnit1025 // InlineData should be unique within the Theory it belongs to

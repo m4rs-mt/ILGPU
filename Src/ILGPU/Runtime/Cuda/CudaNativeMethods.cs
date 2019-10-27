@@ -185,7 +185,7 @@ namespace ILGPU.Runtime.Cuda
         CUDA_ERROR_NOT_SUPPORTED = 801,
         CUDA_ERROR_UNKNOWN = 999
     }
-    
+
     enum PointerAttribute
     {
         CU_POINTER_ATTRIBUTE_CONTEXT = 1,

@@ -177,7 +177,7 @@ namespace ILGPU
 
             // Create frontend
             DebugInformationManager frontendDebugInformationManager =
-                HasFlags(ContextFlags.EnableDebugInformation) ?  DebugInformationManager : null;
+                HasFlags(ContextFlags.EnableDebugInformation) ? DebugInformationManager : null;
 
             if (HasFlags(ContextFlags.EnableParallelCodeGenerationInFrontend))
                 ilFrontend = new ILFrontend(frontendDebugInformationManager);

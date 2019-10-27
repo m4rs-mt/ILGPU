@@ -14,7 +14,7 @@ var types = IntTypes.Concat(FloatTypes.Select(t => (t.Item1, t.Item2)));
 namespace ILGPU.Tests
 {
     public abstract class ConvertFloatOperations : TestBase
-	{
+    {
         public ConvertFloatOperations(
             ITestOutputHelper output,
             ContextProvider contextProvider)
@@ -62,5 +62,5 @@ namespace ILGPU.Tests
 
 <#      } #>
 <# } #>
-	}
+    }
 }

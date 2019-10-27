@@ -315,7 +315,7 @@ namespace ILGPU.IR.Construction
                 {
                     var valueContainer = Parent[predecessor];
                     Value result;
-                    if ((result = valueContainer.PeekValue(var, marker))!= null)
+                    if ((result = valueContainer.PeekValue(var, marker)) != null)
                         return result;
                 }
                 return null;

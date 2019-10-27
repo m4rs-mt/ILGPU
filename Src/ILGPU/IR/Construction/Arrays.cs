@@ -57,7 +57,7 @@ namespace ILGPU.IR.Construction
 
             // Try to combine different get and set operations on the same value
             var current = arrayValue;
-            for (; ;)
+            for (; ; )
             {
                 switch (current)
                 {

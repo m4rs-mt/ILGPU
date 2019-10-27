@@ -684,7 +684,7 @@ namespace ILGPU.Runtime
             var rawExtent = ABI.Align(offset, ElementSize);
 
             var result = new byte[rawExtent];
-            fixed (byte *ptr = &result[0])
+            fixed (byte* ptr = &result[0])
             {
                 using (var wrapper = ViewPointerWrapper.Create(new IntPtr(ptr)))
                 {

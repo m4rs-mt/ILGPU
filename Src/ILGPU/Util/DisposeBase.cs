@@ -30,9 +30,9 @@ namespace ILGPU.Util
             GC.SuppressFinalize(this);
         }
 
-       /// <summary>
-       /// The custom finalizer for dispose-base objects.
-       /// </summary>
+        /// <summary>
+        /// The custom finalizer for dispose-base objects.
+        /// </summary>
         ~DisposeBase()
         {
             DisposeDriver(false);

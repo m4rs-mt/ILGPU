@@ -80,12 +80,12 @@ namespace ILGPU
             return count;
         }
 
-    /// <summary>
-    /// Computes the unsigned offset of the given field in bytes.
-    /// </summary>
-    /// <typeparam name="T">The target type.</typeparam>
-    /// <param name="fieldName">The name of the target field.</param>
-    [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter", Justification = "The type is required for the computation of the field offset")]
+        /// <summary>
+        /// Computes the unsigned offset of the given field in bytes.
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <param name="fieldName">The name of the target field.</param>
+        [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter", Justification = "The type is required for the computation of the field offset")]
         [InteropIntrinsic(InteropIntrinsicKind.OffsetOf)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int OffsetOf<T>(string fieldName) => Marshal.OffsetOf<T>(fieldName).ToInt32();

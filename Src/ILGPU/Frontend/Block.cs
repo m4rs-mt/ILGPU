@@ -16,7 +16,6 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
-using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;

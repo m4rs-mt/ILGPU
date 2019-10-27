@@ -12,7 +12,7 @@ var atomicTypes = DefaultIntTypes.Concat(FloatTypes.Select(t => (t.Item1, t.Item
 namespace ILGPU.Tests
 {
     public abstract class AtomicCASOperations : TestBase
-	{
+    {
         public AtomicCASOperations(
             ITestOutputHelper output,
             ContextProvider contextProvider)
@@ -82,5 +82,5 @@ namespace ILGPU.Tests
         }
 
 <# } #>
-	}
+    }
 }

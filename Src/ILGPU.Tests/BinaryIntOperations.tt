@@ -31,7 +31,7 @@ var operationConfigurations = new (string, string, string, string)[]
 namespace ILGPU.Tests
 {
     public abstract class BinaryIntOperations : TestBase
-	{
+    {
         public BinaryIntOperations(
             ITestOutputHelper output,
             ContextProvider contextProvider)
@@ -88,7 +88,7 @@ namespace ILGPU.Tests
 
 <#      } #>
 <# } #>
-	}
+    }
 }
 
 #pragma warning restore xUnit1025 // InlineData should be unique within the Theory it belongs to

@@ -368,7 +368,7 @@ namespace ILGPU.Frontend
         /// Returns the number of targets
         /// </summary>
         public int Count => targetOffsets.Length;
-        
+
         /// <summary>
         /// Returns the target offset at the given index.
         /// </summary>
