@@ -126,6 +126,12 @@
   <data name="CudaNotSupported" xml:space="preserve">
     <value>Cuda is not supported on this platform</value>
   </data>
+  <data name="InvalidCodeGenerationOperation0" xml:space="preserve">
+    <value>Invalid code generation operation</value>
+  </data>
+  <data name="InvalidCodeGenerationOperation1" xml:space="preserve">
+    <value>Invalid code generation operation:\n{0}</value>
+  </data>
   <data name="InvalidCustomGroupSize" xml:space="preserve">
     <value>Invalid custom group size &gt; 0 in a grouped-index scenario</value>
   </data>
