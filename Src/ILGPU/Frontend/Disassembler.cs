@@ -85,7 +85,7 @@ namespace ILGPU.Frontend
             if (MethodBase is MethodInfo)
                 MethodGenericArguments = MethodBase.GetGenericArguments();
             else
-                MethodGenericArguments = new Type[0];
+                MethodGenericArguments = Array.Empty<Type>();
             TypeGenericArguments = MethodBase.DeclaringType.GetGenericArguments();
             MethodBody = MethodBase.GetMethodBody();
             if (MethodBody == null)
