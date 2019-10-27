@@ -135,6 +135,15 @@ namespace ILGPU.IR
             first.Value < second.Value;
 
         /// <summary>
+        /// Returns true iff the first id is smaller than or equal to the second one.
+        /// </summary>
+        /// <param name="first">The first id.</param>
+        /// <param name="second">The second id.</param>
+        /// <returns>True, iff the first id is smaller than or equal to the second one.</returns>
+        public static bool operator <=(NodeId first, NodeId second) =>
+            first.Value <= second.Value;
+
+        /// <summary>
         /// Returns true iff the first id is greater than the second one.
         /// </summary>
         /// <param name="first">The first id.</param>
@@ -142,6 +151,15 @@ namespace ILGPU.IR
         /// <returns>True, iff the first id is greater than the second one.</returns>
         public static bool operator >(NodeId first, NodeId second) =>
             first.Value > second.Value;
+
+        /// <summary>
+        /// Returns true iff the first id is greater than or equal to the second one.
+        /// </summary>
+        /// <param name="first">The first id.</param>
+        /// <param name="second">The second id.</param>
+        /// <returns>True, iff the first id is greater than or equal to the second one.</returns>
+        public static bool operator >=(NodeId first, NodeId second) =>
+            first.Value >= second.Value;
 
         #endregion
     }
