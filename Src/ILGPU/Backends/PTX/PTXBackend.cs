@@ -9,6 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.IR;
+using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.Runtime;
@@ -19,7 +21,7 @@ namespace ILGPU.Backends.PTX
     /// <summary>
     /// Represents a PTX (Cuda) backend.
     /// </summary>
-    public sealed class PTXBackend : Backend<PTXIntrinsic.Handler>
+    public sealed class PTXBackend : CodeGeneratorBackend<PTXIntrinsic.Handler, PTXCodeGenerator.GeneratorArgs, PTXCodeGenerator, StringBuilder>
     {
         #region Constants
 
@@ -161,16 +163,22 @@ namespace ILGPU.Backends.PTX
 
         #region Methods
 
-        /// <summary>
-        /// Initializes a PTX kernel and returns the created <see cref="StringBuilder"/>.
-        /// </summary>
-        /// <param name="useDebugInfo">True, if this kernel uses debug information.</param>
-        /// <param name="constantOffset">The offset for constants.</param>
-        /// <returns>The created string builder.</returns>
-        private StringBuilder CreatePTXBuilder(
-            bool useDebugInfo,
-            out int constantOffset)
+        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernelBuilder(EntryPoint, in BackendContext, in KernelSpecialization, out T)"/>
+        protected override StringBuilder CreateKernelBuilder(
+            EntryPoint entryPoint,
+            in BackendContext backendContext,
+            in KernelSpecialization specialization,
+            out PTXCodeGenerator.GeneratorArgs data)
         {
+            bool useDebugInfo = Context.HasFlags(ContextFlags.EnableDebugInformation);
+            PTXDebugInfoGenerator debugInfoGenerator = PTXNoDebugInfoGenerator.Empty;
+            if (useDebugInfo)
+            {
+                debugInfoGenerator = Context.HasFlags(ContextFlags.EnableInlineSourceAnnotations) ?
+                    new PTXDebugSourceLineInfoGenerator() :
+                    new PTXDebugLineInfoGenerator();
+            }
+
             var builder = new StringBuilder();
 
             builder.AppendLine("//");
@@ -191,59 +199,39 @@ namespace ILGPU.Backends.PTX
             builder.AppendLine((ABI.PointerSize * 8).ToString());
             builder.AppendLine();
 
-            constantOffset = builder.Length;
+            data = new PTXCodeGenerator.GeneratorArgs(
+                this,
+                entryPoint,
+                debugInfoGenerator,
+                Context.Flags);
 
             return builder;
         }
 
-        /// <summary cref="Backend.Compile(EntryPoint, in BackendContext, in KernelSpecialization)"/>
-        protected override CompiledKernel Compile(
+        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateFunctionCodeGenerator(Method, Scope, Allocas, T)"/>
+        protected override PTXCodeGenerator CreateFunctionCodeGenerator(
+            Method method,
+            Scope scope,
+            Allocas allocas,
+            PTXCodeGenerator.GeneratorArgs data) =>
+            new PTXFunctionGenerator(data, scope, allocas);
+
+        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernelCodeGenerator(in AllocaKindInformation, Method, Scope, Allocas, T)"/>
+        protected override PTXCodeGenerator CreateKernelCodeGenerator(
+            in AllocaKindInformation sharedAllocations,
+            Method method,
+            Scope scope,
+            Allocas allocas,
+            PTXCodeGenerator.GeneratorArgs data) =>
+            new PTXKernelFunctionGenerator(data, scope, allocas);
+
+        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernel(EntryPoint, TKernelBuilder, T)"/>
+        protected override CompiledKernel CreateKernel(
             EntryPoint entryPoint,
-            in BackendContext backendContext,
-            in KernelSpecialization specialization)
+            StringBuilder builder,
+            PTXCodeGenerator.GeneratorArgs data)
         {
-            bool useDebugInfo = Context.HasFlags(ContextFlags.EnableDebugInformation);
-
-            var builder = CreatePTXBuilder(useDebugInfo, out int constantOffset);
-            PTXDebugInfoGenerator debugInfoGenerator = PTXNoDebugInfoGenerator.Empty;
-            if (useDebugInfo)
-            {
-                debugInfoGenerator = Context.HasFlags(ContextFlags.EnableInlineSourceAnnotations) ?
-                    new PTXDebugSourceLineInfoGenerator() :
-                    new PTXDebugLineInfoGenerator();
-            }
-
-            var args = new PTXCodeGenerator.GeneratorArgs(
-                this,
-                entryPoint,
-                debugInfoGenerator,
-                builder,
-                Context.Flags);
-
-            // Declare all methods
-            foreach (var (_, scope, _) in backendContext)
-                PTXFunctionGenerator.GenerateHeader(args, scope);
-
-            // Emit methods
-            foreach (var (_, scope, allocas) in backendContext)
-            {
-                PTXFunctionGenerator.Generate(
-                    args,
-                    scope,
-                    allocas,
-                    ref constantOffset);
-            }
-
-            // Generate kernel method
-            PTXKernelFunctionGenerator.Generate(
-                args,
-                backendContext.KernelScope,
-                backendContext.KernelAllocas,
-                backendContext.SharedAllocations,
-                ref constantOffset);
-
-            // Append final debug information
-            debugInfoGenerator.GenerateDebugSections(builder);
+            data.DebugInfoGenerator.GenerateDebugSections(builder);
 
             var ptxAssembly = builder.ToString();
             return new PTXCompiledKernel(Context, entryPoint, ptxAssembly);

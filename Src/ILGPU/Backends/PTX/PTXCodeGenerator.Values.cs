@@ -38,7 +38,7 @@ namespace ILGPU.Backends.PTX
                 var argument = methodCall.Nodes[i];
                 var paramName = CallParamName + i;
                 Builder.Append("\t");
-                AppendParamDeclaration(argument.Type, paramName);
+                AppendParamDeclaration(Builder, argument.Type, paramName);
                 Builder.AppendLine(";");
 
                 // Emit store param command
@@ -51,7 +51,7 @@ namespace ILGPU.Backends.PTX
             if (!returnType.IsVoidType)
             {
                 Builder.Append("\t");
-                AppendParamDeclaration(returnType, ReturnValueName);
+                AppendParamDeclaration(Builder, returnType, ReturnValueName);
                 Builder.AppendLine(";");
                 Builder.Append("\tcall ");
                 Builder.Append("(");

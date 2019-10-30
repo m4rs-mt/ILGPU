@@ -283,6 +283,17 @@ namespace ILGPU.Backends
             /// </summary>
             public AllocaKindInformation SharedAllocations { get; }
 
+            /// <summary>
+            /// Returns the number of all functions.
+            /// </summary>
+            public int Count => ScopeProvider.Count;
+
+            /// <summary>
+            /// Returns the number of all secondary functions
+            /// excluding the primary kernel function.
+            /// </summary>
+            public int NumFunctions => ScopeProvider.Count;
+
             #endregion
 
             #region Methods

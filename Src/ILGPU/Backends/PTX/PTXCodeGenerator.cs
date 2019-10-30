@@ -27,7 +27,10 @@ namespace ILGPU.Backends.PTX
     /// Generates PTX code out of IR values.
     /// </summary>
     /// <remarks>The code needs to be prepared for this code generator.</remarks>
-    public partial class PTXCodeGenerator : PTXRegisterAllocator, IValueVisitor
+    public abstract partial class PTXCodeGenerator :
+        PTXRegisterAllocator,
+        IValueVisitor,
+        IBackendCodeGenerator<StringBuilder>
     {
         #region Constants
 
@@ -50,19 +53,17 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Generation arguments for code-generator construction.
         /// </summary>
-        internal readonly ref struct GeneratorArgs
+        public readonly struct GeneratorArgs
         {
-            public GeneratorArgs(
+            internal GeneratorArgs(
                 PTXBackend backend,
                 EntryPoint entryPoint,
                 PTXDebugInfoGenerator debugInfoGenerator,
-                StringBuilder stringBuilder,
                 ContextFlags contextFlags)
             {
                 Backend = backend;
                 EntryPoint = entryPoint;
                 DebugInfoGenerator = debugInfoGenerator;
-                StringBuilder = stringBuilder;
                 ContextFlags = contextFlags;
             }
 
@@ -75,11 +76,6 @@ namespace ILGPU.Backends.PTX
             /// Returns the current backend.
             /// </summary>
             public EntryPoint EntryPoint { get; }
-
-            /// <summary>
-            /// Returns the current string builder.
-            /// </summary>
-            public StringBuilder StringBuilder { get; }
 
             /// <summary>
             /// Returns the current context flags.
@@ -253,14 +249,15 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="args">The generator arguments.</param>
         /// <param name="scope">The current scope.</param>
-        internal PTXCodeGenerator(in GeneratorArgs args, Scope scope)
+        /// <param name="allocas">All local allocas.</param>
+        internal PTXCodeGenerator(in GeneratorArgs args, Scope scope, Allocas allocas)
             : base(args.Backend.ABI)
         {
             Backend = args.Backend;
-            Builder = args.StringBuilder;
             Scope = scope;
             DebugInfoGenerator = args.DebugInfoGenerator;
             ImplementationProvider = Backend.IntrinsicProvider;
+            Allocas = allocas;
 
             Architecture = args.Backend.Architecture;
             FastMath = args.ContextFlags.HasFlags(ContextFlags.FastMath);
@@ -268,6 +265,8 @@ namespace ILGPU.Backends.PTX
 
             labelPrefix = "L_" + Method.Id.ToString();
             ReturnParamName = "retval_" + Method.Id;
+
+            Builder = new StringBuilder();
         }
 
         #endregion
@@ -288,6 +287,11 @@ namespace ILGPU.Backends.PTX
         /// Returns the current function scope.
         /// </summary>
         public Scope Scope { get; }
+
+        /// <summary>
+        /// Returns all local allocas.
+        /// </summary>
+        public Allocas Allocas { get; }
 
         /// <summary>
         /// Returns the currently used PTX architecture.
@@ -323,6 +327,35 @@ namespace ILGPU.Backends.PTX
         /// Returns the name of the return parameter.
         /// </summary>
         protected string ReturnParamName { get; }
+
+        #endregion
+
+        #region IBackendCodeGenerator
+
+        /// <summary>
+        /// Generates a function declaration in PTX code.
+        /// </summary>
+        public abstract void GenerateHeader(StringBuilder builder);
+
+        /// <summary>
+        /// Generates PTX code.
+        /// </summary>
+        public abstract void GenerateCode();
+
+        /// <summary>
+        /// Generates PTX constant declarations.
+        /// </summary>
+        /// <param name="builder">The target builder.</param>
+        public void GenerateConstants(StringBuilder builder)
+        {
+            builder.Append(GenerateConstantDeclarations());
+        }
+
+        /// <summary cref="IBackendCodeGenerator{TKernelBuilder}.Merge(TKernelBuilder)"/>
+        public void Merge(StringBuilder builder)
+        {
+            builder.Append(Builder.ToString());
+        }
 
         #endregion
 
@@ -374,15 +407,8 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Generates code for all basic blocks.
         /// </summary>
-        /// <param name="registerOffset">
-        /// The offset in chars to append general register information.
-        /// </param>
-        /// <param name="constantOffset">
-        /// The constant offset (in chars) to append global constant information.
-        /// </param>
-        protected void GenerateCode(
-            int registerOffset,
-            ref int constantOffset)
+        /// <param name="registerOffset">The internal register offset.</param>
+        protected void GenerateCodeInternal(int registerOffset)
         {
             // Build branch targets
             foreach (var block in Scope)
@@ -475,14 +501,9 @@ namespace ILGPU.Backends.PTX
                 Builder.AppendLine();
             }
 
-            // Finish kernel and append register information
+            // Finish function and append register information
             Builder.AppendLine("}");
-
-            var registerInfo = GenerateRegisterInformation("\t");
-            Builder.Insert(registerOffset, registerInfo);
-            var constantDeclarations = GenerateConstantDeclarations();
-            Builder.Insert(constantOffset, constantDeclarations);
-            constantOffset += constantDeclarations.Length;
+            Builder.Insert(registerOffset, GenerateRegisterInformation("\t"));
         }
 
         /// <summary>
@@ -527,13 +548,12 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Setups local allocations.
         /// </summary>
-        /// <param name="allocas">The allocations to setup.</param>
         /// <returns>A list of pairs associating alloca nodes with thei local variable names.</returns>
-        internal List<(Alloca, string)> SetupAllocations(Allocas allocas)
+        internal List<(Alloca, string)> SetupAllocations()
         {
             var result = new List<(Alloca, string)>();
-            SetupAllocations(allocas.LocalAllocations, ".local ", "__local_depot", result);
-            SetupAllocations(allocas.SharedAllocations, ".shared ", "__shared_alloca", result);
+            SetupAllocations(Allocas.LocalAllocations, ".local ", "__local_depot", result);
+            SetupAllocations(Allocas.SharedAllocations, ".shared ", "__shared_alloca", result);
             return result;
         }
 
@@ -541,10 +561,14 @@ namespace ILGPU.Backends.PTX
         /// Setups all method parameters.
         /// </summary>
         /// <typeparam name="TSetupLogic">The specific setup logic.</typeparam>
+        /// <param name="targetBuilder">The target builder to append the information to.</param>
         /// <param name="logic">The current logic.</param>
         /// <param name="paramOffset">The intrinsic parameter offset.</param>
         /// <returns>A list of mapped parameters.</returns>
-        internal List<MappedParameter> SetupParameters<TSetupLogic>(ref TSetupLogic logic, int paramOffset)
+        internal List<MappedParameter> SetupParameters<TSetupLogic>(
+            StringBuilder targetBuilder,
+            ref TSetupLogic logic,
+            int paramOffset)
             where TSetupLogic : IParameterSetupLogic
         {
             var parameters = new List<MappedParameter>(Method.NumParameters - paramOffset);
@@ -567,13 +591,13 @@ namespace ILGPU.Backends.PTX
 
                 if (attachComma)
                 {
-                    Builder.Append(',');
-                    Builder.AppendLine();
+                    targetBuilder.Append(',');
+                    targetBuilder.AppendLine();
                 }
 
-                Builder.Append('\t');
+                targetBuilder.Append('\t');
                 var paramName = GetParameterName(param);
-                AppendParamDeclaration(param.Type, paramName);
+                AppendParamDeclaration(targetBuilder, param.Type, paramName);
 
                 parameters.Add(new MappedParameter(
                     register,
@@ -786,33 +810,37 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Appends parameter information.
         /// </summary>
+        /// <param name="targetBuilder">The target builder to append the information to.</param>
         /// <param name="paramType">The param type.</param>
         /// <param name="paramName">The name of the param argument.</param>
-        protected void AppendParamDeclaration(TypeNode paramType, string paramName)
+        protected void AppendParamDeclaration(
+            StringBuilder targetBuilder,
+            TypeNode paramType,
+            string paramName)
         {
-            Builder.Append(".param .");
+            targetBuilder.Append(".param .");
             switch (paramType)
             {
                 case PrimitiveType _:
                 case StringType _:
                 case PointerType _:
                     var registerDescription = ResolveParameterRegisterDescription(paramType);
-                    Builder.Append(GetBasicSuffix(registerDescription.BasicValueType));
-                    Builder.Append(' ');
-                    Builder.Append(paramName);
+                    targetBuilder.Append(GetBasicSuffix(registerDescription.BasicValueType));
+                    targetBuilder.Append(' ');
+                    targetBuilder.Append(paramName);
                     break;
                 default:
                     ABI.GetAlignmentAndSizeOf(
                         paramType,
                         out int paramSize,
                         out int paramAlignment);
-                    Builder.Append("align ");
-                    Builder.Append(paramAlignment);
-                    Builder.Append(" .b8 ");
-                    Builder.Append(paramName);
-                    Builder.Append('[');
-                    Builder.Append(paramSize);
-                    Builder.Append(']');
+                    targetBuilder.Append("align ");
+                    targetBuilder.Append(paramAlignment);
+                    targetBuilder.Append(" .b8 ");
+                    targetBuilder.Append(paramName);
+                    targetBuilder.Append('[');
+                    targetBuilder.Append(paramSize);
+                    targetBuilder.Append(']');
                     break;
             }
         }

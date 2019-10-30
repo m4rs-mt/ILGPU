@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using System.Collections.Generic;
+using System.Text;
 
 namespace ILGPU.Backends.PTX
 {
@@ -20,41 +21,6 @@ namespace ILGPU.Backends.PTX
     /// </summary>
     sealed class PTXFunctionGenerator : PTXCodeGenerator
     {
-        #region Static
-
-        /// <summary>
-        /// Uses this function generator to emit PTX header code.
-        /// </summary>
-        /// <param name="args">The generation arguments.</param>
-        /// <param name="scope">The current scope.</param>
-        public static void GenerateHeader(
-            in GeneratorArgs args,
-            Scope scope)
-        {
-            var generator = new PTXFunctionGenerator(args, scope);
-            generator.GenerateHeader();
-            args.StringBuilder.AppendLine(";");
-        }
-
-        /// <summary>
-        /// Uses this function generator to emit PTX code.
-        /// </summary>
-        /// <param name="args">The generation arguments.</param>
-        /// <param name="scope">The current scope.</param>
-        /// <param name="allocas">Alloca information about the given scope.</param>
-        /// <param name="constantOffset">The constant offset inside in the PTX code.</param>
-        public static void Generate(
-            in GeneratorArgs args,
-            Scope scope,
-            Allocas allocas,
-            ref int constantOffset)
-        {
-            var generator = new PTXFunctionGenerator(args, scope);
-            generator.GenerateCode(allocas, ref constantOffset);
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
@@ -62,54 +28,71 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="args">The generation arguments.</param>
         /// <param name="scope">The current scope.</param>
-        private PTXFunctionGenerator(in GeneratorArgs args, Scope scope)
-            : base(args, scope)
+        /// <param name="allocas">All local allocas.</param>
+        public PTXFunctionGenerator(
+            in GeneratorArgs args,
+            Scope scope,
+            Allocas allocas)
+            : base(args, scope, allocas)
         { }
 
         #endregion
 
         #region Methods
 
-        private List<MappedParameter> GenerateHeader()
+        /// <summary>
+        /// Generates a PTX compatible list of mapped parameters.
+        /// </summary>
+        /// <param name="targetBuilder">The target builder to append the information to.</param>
+        private List<MappedParameter> GenerateHeaderDeclaration(StringBuilder targetBuilder)
         {
             var isExternal = Method.HasFlags(MethodFlags.External);
 
-            Builder.AppendLine();
+            targetBuilder.AppendLine();
             if (isExternal)
-                Builder.Append(".extern ");
+                targetBuilder.Append(".extern ");
             else
-                Builder.Append(".visible ");
-            Builder.Append(".func ");
+                targetBuilder.Append(".visible ");
+            targetBuilder.Append(".func ");
             var returnType = Method.ReturnType;
             if (!returnType.IsVoidType)
             {
-                Builder.Append("(");
-                AppendParamDeclaration(returnType, ReturnParamName);
-                Builder.Append(") ");
+                targetBuilder.Append("(");
+                AppendParamDeclaration(targetBuilder, returnType, ReturnParamName);
+                targetBuilder.Append(") ");
             }
-            Builder.Append(GetMethodName(Method));
-            Builder.AppendLine("(");
+            targetBuilder.Append(GetMethodName(Method));
+            targetBuilder.AppendLine("(");
 
             var setupLogic = new EmptyParameterSetupLogic();
-            var parameters = SetupParameters(ref setupLogic, 0);
-            Builder.AppendLine();
-            Builder.AppendLine(")");
+            var parameters = SetupParameters(targetBuilder, ref setupLogic, 0);
+            targetBuilder.AppendLine();
+            targetBuilder.AppendLine(")");
 
             return parameters;
         }
 
         /// <summary>
+        /// Generates a function declaration in PTX code.
+        /// </summary>
+        public override void GenerateHeader(StringBuilder builder)
+        {
+            GenerateHeaderDeclaration(builder);
+            builder.AppendLine(";");
+        }
+
+        /// <summary>
         /// Generates PTX code.
         /// </summary>
-        private void GenerateCode(Allocas allocas, ref int constantOffset)
+        public override void GenerateCode()
         {
             if (Method.HasFlags(MethodFlags.External))
                 return;
 
-            var parameters = GenerateHeader();
+            var parameters = GenerateHeaderDeclaration(Builder);
             Builder.AppendLine("{");
 
-            var allocations = SetupAllocations(allocas);
+            var allocations = SetupAllocations();
             var registerOffset = Builder.Length;
 
             // Build param bindings and local memory variables
@@ -117,7 +100,7 @@ namespace ILGPU.Backends.PTX
             BindAllocations(allocations);
             BindParameters(parameters);
 
-            GenerateCode(registerOffset, ref constantOffset);
+            GenerateCodeInternal(registerOffset);
         }
 
         #endregion

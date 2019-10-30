@@ -671,6 +671,11 @@ namespace ILGPU.IR.Analyses
         #region Properties
 
         /// <summary>
+        /// Returns the number of cached scopes.
+        /// </summary>
+        public int Count => scopes.Count;
+
+        /// <summary>
         /// Resolves the scope that belongs to the given method.
         /// </summary>
         /// <param name="method">The method to resolve.</param>

@@ -14,6 +14,7 @@ using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace ILGPU.Backends.PTX
 {
@@ -33,7 +34,6 @@ namespace ILGPU.Backends.PTX
                 EntryPoint = entryPoint;
                 Parent = parent;
 
-                IndexParameter = null;
                 IndexRegister = null;
                 LengthRegister = null;
             }
@@ -42,11 +42,6 @@ namespace ILGPU.Backends.PTX
             /// Returns the associated entry point.
             /// </summary>
             public EntryPoint EntryPoint { get; }
-
-            /// <summary>
-            /// Returns an the main index parameter.
-            /// </summary>
-            public Parameter IndexParameter { get; private set; }
 
             /// <summary>
             /// Returns the main index register.
@@ -68,7 +63,6 @@ namespace ILGPU.Backends.PTX
             public Register HandleIntrinsicParameter(int parameterOffset, Parameter parameter)
             {
                 IndexRegister = Parent.Allocate(parameter) as StructureRegister;
-                IndexParameter = parameter;
 
                 if (!EntryPoint.IsGroupedIndexEntry)
                 {
@@ -83,33 +77,6 @@ namespace ILGPU.Backends.PTX
 
         #endregion
 
-        #region Static
-
-        /// <summary>
-        /// Uses this function generator to emit PTX code.
-        /// </summary>
-        /// <param name="args">The generation arguments.</param>
-        /// <param name="scope">The current scope.</param>
-        /// <param name="sharedAllocations">Alloa information about shared memory.</param>
-        /// <param name="allocas">Alloca information about the given scope.</param>
-        /// <param name="constantOffset">The constant offset inside in the PTX code.</param>
-        public static void Generate(
-            in GeneratorArgs args,
-            Scope scope,
-            Allocas allocas,
-            in AllocaKindInformation sharedAllocations,
-            ref int constantOffset)
-        {
-            var generator = new PTXKernelFunctionGenerator(args, scope);
-            generator.GenerateCode(
-                args.EntryPoint,
-                allocas,
-                sharedAllocations,
-                ref constantOffset);
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
@@ -117,38 +84,57 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="args">The generation arguments.</param>
         /// <param name="scope">The current scope.</param>
-        private PTXKernelFunctionGenerator(in GeneratorArgs args, Scope scope)
-            : base(args, scope)
-        { }
+        /// <param name="allocas">All local allocas.</param>
+        public PTXKernelFunctionGenerator(
+            in GeneratorArgs args,
+            Scope scope,
+            Allocas allocas)
+            : base(args, scope, allocas)
+        {
+            EntryPoint = args.EntryPoint;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the associated entry point.
+        /// </summary>
+        public EntryPoint EntryPoint { get; }
 
         #endregion
 
         #region Methods
 
         /// <summary>
+        /// Generates a function declaration in PTX code.
+        /// </summary>
+        public override void GenerateHeader(StringBuilder builder)
+        {
+            // We do not need to generate a header for a kernel function.
+        }
+
+        /// <summary>
         /// Generates PTX code.
         /// </summary>
-        private void GenerateCode(
-            EntryPoint entryPoint,
-            Allocas allocas,
-            in AllocaKindInformation sharedAllocations,
-            ref int constantOffset)
+        public override void GenerateCode()
         {
             Builder.AppendLine();
             Builder.Append(".visible .entry ");
             Builder.Append(PTXCompiledKernel.EntryName);
             Builder.AppendLine("(");
 
-            var parameterLogic = new KernelParameterSetupLogic(entryPoint, this);
-            var parameters = SetupParameters(ref parameterLogic, 1);
+            var parameterLogic = new KernelParameterSetupLogic(EntryPoint, this);
+            var parameters = SetupParameters(Builder, ref parameterLogic, 1);
             Builder.AppendLine();
             Builder.AppendLine(")");
-            SetupKernelSpecialization(entryPoint.Specialization);
+            SetupKernelSpecialization(EntryPoint.Specialization);
             Builder.AppendLine("{");
 
             // Build memory allocations
             PrepareCodeGeneration();
-            var allocations = SetupAllocations(allocas);
+            var allocations = SetupAllocations();
             var registerOffset = Builder.Length;
 
             // Build param bindings and local memory variables
@@ -157,12 +143,10 @@ namespace ILGPU.Backends.PTX
 
             // Setup kernel indices
             SetupKernelIndex(
-                entryPoint,
-                parameterLogic.IndexParameter,
                 parameterLogic.IndexRegister,
                 parameterLogic.LengthRegister);
 
-            GenerateCode(registerOffset, ref constantOffset);
+            GenerateCodeInternal(registerOffset);
         }
 
         /// <summary>
@@ -249,22 +233,18 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Setups the current kernel indices.
         /// </summary>
-        /// <param name="entryPoint">The current entry point.</param>
-        /// <param name="indexParameter">The main kernel index parameter.</param>
         /// <param name="indexRegister">The main kernel index register.</param>
         /// <param name="lengthRegister">The length register of implicitly grouped kernels.</param>
         private void SetupKernelIndex(
-            EntryPoint entryPoint,
-            Parameter indexParameter,
             StructureRegister indexRegister,
             StructureRegister lengthRegister)
         {
-            if (entryPoint.IsGroupedIndexEntry)
+            if (EntryPoint.IsGroupedIndexEntry)
             {
                 var gridRegisters = indexRegister.Children[0] as StructureRegister;
                 var groupRegisters = indexRegister.Children[1] as StructureRegister;
 
-                for (int i = 0, e = (int)entryPoint.IndexType - (int)IndexType.Index3D; i < e; ++i)
+                for (int i = 0, e = (int)EntryPoint.IndexType - (int)IndexType.Index3D; i < e; ++i)
                 {
                     EmitExplicitKernelIndex(
                         gridRegisters.Children[i] as PrimitiveRegister,
@@ -274,7 +254,7 @@ namespace ILGPU.Backends.PTX
             }
             else
             {
-                for (int i = 0, e = (int)entryPoint.IndexType; i < e; ++i)
+                for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
                 {
                     EmitImplicitKernelIndex(
                         i,
