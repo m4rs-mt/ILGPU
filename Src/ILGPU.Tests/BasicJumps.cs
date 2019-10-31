@@ -12,6 +12,7 @@ namespace ILGPU.Tests
             : base(output, contextProvider)
         { }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "Testing unconditional jump")]
         internal static void BasicJumpKernel(
             Index index,
             ArrayView<int> data,

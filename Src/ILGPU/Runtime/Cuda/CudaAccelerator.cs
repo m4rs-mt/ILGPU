@@ -427,7 +427,7 @@ namespace ILGPU.Runtime.Cuda
         {
             Bind();
             CudaException.ThrowIfFailed(
-                CurrentAPI.GetMemoryInfo(out long free, out long total));
+                CurrentAPI.GetMemoryInfo(out long free, out long _));
             return free;
         }
 
