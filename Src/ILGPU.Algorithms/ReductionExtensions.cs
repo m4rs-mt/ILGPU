@@ -67,22 +67,6 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Verifies reduction arguments.
-        /// </summary>
-        /// <typeparam name="T">The underlying type of the reduction.</typeparam>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void VerifyAtomicReductionArguments<T>(
-            ArrayView<T> input,
-            ArrayView<T> output)
-            where T : struct
-        {
-            if (!input.IsValid)
-                throw new ArgumentNullException(nameof(input));
-            if (!output.IsValid)
-                throw new ArgumentNullException(nameof(output));
-        }
-
-        /// <summary>
         /// The actual reduction implementation.
         /// </summary>
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
