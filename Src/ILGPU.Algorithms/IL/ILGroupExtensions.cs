@@ -77,7 +77,7 @@ namespace ILGPU.Algorithms.IL
             int groupIdx = Group.IndexX;
             var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(groupIdx, value);
             boundaries = new ScanBoundaries<T>(sharedMemory[0], sharedMemory[Group.DimensionX - 1]);
-            return groupIdx < 1 ? default: sharedMemory[groupIdx - 1];
+            return groupIdx < 1 ? default : sharedMemory[groupIdx - 1];
         }
 
         /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>

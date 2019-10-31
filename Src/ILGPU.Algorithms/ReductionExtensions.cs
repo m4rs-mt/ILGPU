@@ -13,7 +13,6 @@
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Runtime;
 using System;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace ILGPU.Algorithms
