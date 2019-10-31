@@ -28,7 +28,7 @@ namespace ILGPU
         /// <summary>
         /// The default intrinsic binding flags.
         /// </summary>
-        internal static readonly BindingFlags IntrinsicBindingFlags =
+        internal const BindingFlags IntrinsicBindingFlags =
             BindingFlags.Public | BindingFlags.Static;
 
         /// <summary>
