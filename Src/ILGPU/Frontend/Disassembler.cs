@@ -72,7 +72,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Represents the associated sequence-point enumerator.
         /// </summary>
-        private SequencePointEnumerator debugInformationEnumerator;
+        private readonly SequencePointEnumerator debugInformationEnumerator;
 
         /// <summary>
         /// Constructs a new disassembler.
