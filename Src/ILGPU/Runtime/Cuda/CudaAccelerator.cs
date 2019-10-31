@@ -438,8 +438,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="Accelerator.CanAccessPeerInternal(Accelerator)"/>
         protected override bool CanAccessPeerInternal(Accelerator otherAccelerator)
         {
-            var cudaAccelerator = otherAccelerator as CudaAccelerator;
-            if (cudaAccelerator == null)
+            if (!(otherAccelerator is CudaAccelerator cudaAccelerator))
                 return false;
 
             CudaException.ThrowIfFailed(
@@ -453,8 +452,7 @@ namespace ILGPU.Runtime.Cuda
             if (HasPeerAccess(otherAccelerator))
                 return;
 
-            var cudaAccelerator = otherAccelerator as CudaAccelerator;
-            if (cudaAccelerator == null)
+            if (!(otherAccelerator is CudaAccelerator cudaAccelerator))
                 throw new InvalidOperationException(
                     RuntimeErrorMessages.CannotEnablePeerAccessToDifferentAcceleratorKind);
 
@@ -554,8 +552,7 @@ namespace ILGPU.Runtime.Cuda
             int groupSize,
             int dynamicSharedMemorySizeInBytes)
         {
-            var cudaKernel = kernel as CudaKernel;
-            if (cudaKernel == null)
+            if (!(kernel is CudaKernel cudaKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
             CudaException.ThrowIfFailed(
@@ -574,8 +571,7 @@ namespace ILGPU.Runtime.Cuda
             int maxGroupSize,
             out int minGridSize)
         {
-            var cudaKernel = kernel as CudaKernel;
-            if (cudaKernel == null)
+            if (!(kernel is CudaKernel cudaKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
             Backends.Backend.EnsureRunningOnNativePlatform();
@@ -599,8 +595,7 @@ namespace ILGPU.Runtime.Cuda
             int maxGroupSize,
             out int minGridSize)
         {
-            var cudaKernel = kernel as CudaKernel;
-            if (cudaKernel == null)
+            if (!(kernel is CudaKernel cudaKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
             Backends.Backend.EnsureRunningOnNativePlatform();
