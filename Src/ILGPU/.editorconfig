@@ -3,6 +3,9 @@
 # CA1000: Do not declare static members on generic types
 dotnet_diagnostic.CA1000.severity = none
 
+# CA1001: Types that own disposable fields should be disposable
+dotnet_diagnostic.CA1001.severity = silent
+
 # CA1034: Nested types should not be visible
 dotnet_diagnostic.CA1034.severity = none
 
@@ -35,3 +38,15 @@ dotnet_diagnostic.CA1801.severity = none
 
 # CA1815: Override equals and operator equals on value types
 dotnet_diagnostic.CA1815.severity = none
+
+# CA2000: Dispose objects before losing scope
+dotnet_diagnostic.CA2000.severity = silent
+
+# CA2213: Disposable fields should be disposed
+dotnet_diagnostic.CA2213.severity = silent
+
+# IDE0067: Dispose objects before losing scope
+dotnet_diagnostic.IDE0067.severity = silent
+
+# IDE0069: Disposable fields should be disposed
+dotnet_diagnostic.IDE0069.severity = silent
