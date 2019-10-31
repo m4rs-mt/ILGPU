@@ -46,14 +46,12 @@ namespace ILGPU.Tests
                 nameof(SizeOfKernel),
                 BindingFlags.NonPublic | BindingFlags.Static);
             var specializedMethod = method.MakeGenericMethod(type);
-            using (var buffer = Accelerator.Allocate<int>(1))
-            {
-                Execute<Index>(specializedMethod, buffer.Length, buffer.View);
+            using var buffer = Accelerator.Allocate<int>(1);
+            Execute<Index>(specializedMethod, buffer.Length, buffer.View);
 
-                var size = Marshal.SizeOf(type);
-                var expected = new int[] { size };
-                Verify(buffer, expected);
-            }
+            var size = Marshal.SizeOf(type);
+            var expected = new int[] { size };
+            Verify(buffer, expected);
         }
     }
 }

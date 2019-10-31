@@ -41,18 +41,14 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ReinterpretFloatsKernel))]
         public void ReinterpretFloats(float value, double value2)
         {
-            using (var buffer = Accelerator.Allocate<float>(1))
-            {
-                using (var buffer2 = Accelerator.Allocate<double>(1))
-                {
-                    Execute(buffer.Length, buffer.View, buffer2.View, value, value2);
+            using var buffer = Accelerator.Allocate<float>(1);
+            using var buffer2 = Accelerator.Allocate<double>(1);
+            Execute(buffer.Length, buffer.View, buffer2.View, value, value2);
 
-                    var expected = new float[] { Math.Abs(value) };
-                    var expected2 = new double[] { Math.Abs(value2) };
-                    Verify(buffer, expected);
-                    Verify(buffer2, expected2);
-                }
-            }
+            var expected = new float[] { Math.Abs(value) };
+            var expected2 = new double[] { Math.Abs(value2) };
+            Verify(buffer, expected);
+            Verify(buffer2, expected2);
         }
     }
 }

@@ -23,13 +23,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(Index1EntryPointKernel))]
         public void Index1EntryPoint(int length)
         {
-            using (var buffer = Accelerator.Allocate<int>(length))
-            {
-                Execute(buffer.Length, buffer.View);
+            using var buffer = Accelerator.Allocate<int>(length);
+            Execute(buffer.Length, buffer.View);
 
-                var expected = Enumerable.Range(0, length).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Range(0, length).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void Index2EntryPointKernel(
@@ -49,13 +47,11 @@ namespace ILGPU.Tests
         public void Index2EntryPoint(int length)
         {
             var extent = new Index2(length, length);
-            using (var buffer = Accelerator.Allocate<int>(extent.Size))
-            {
-                Execute(extent, buffer.View, extent);
+            using var buffer = Accelerator.Allocate<int>(extent.Size);
+            Execute(extent, buffer.View, extent);
 
-                var expected = Enumerable.Range(0, extent.Size).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Range(0, extent.Size).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void Index3EntryPointKernel(
@@ -75,13 +71,11 @@ namespace ILGPU.Tests
         public void Index3EntryPoint(int length)
         {
             var extent = new Index3(length, length, length);
-            using (var buffer = Accelerator.Allocate<int>(extent.Size))
-            {
-                Execute(extent, buffer.View, extent);
+            using var buffer = Accelerator.Allocate<int>(extent.Size);
+            Execute(extent, buffer.View, extent);
 
-                var expected = Enumerable.Range(0, extent.Size).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Range(0, extent.Size).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void GroupedIndex1EntryPointKernel(
@@ -101,22 +95,20 @@ namespace ILGPU.Tests
             for (int i = 1; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 var extent = new GroupedIndex(length, i);
-                using (var buffer = Accelerator.Allocate<int>(extent.Size))
+                using var buffer = Accelerator.Allocate<int>(extent.Size);
+                Execute(extent, buffer.View, i);
+
+                var expected = new int[extent.Size];
+                for (int j = 0; j < length; ++j)
                 {
-                    Execute(extent, buffer.View, i);
-
-                    var expected = new int[extent.Size];
-                    for (int j = 0; j < length; ++j)
+                    for (int k = 0; k < i; ++k)
                     {
-                        for (int k = 0; k < i; ++k)
-                        {
-                            var idx = j * i + k;
-                            expected[idx] = idx;
-                        }
+                        var idx = j * i + k;
+                        expected[idx] = idx;
                     }
-
-                    Verify(buffer, expected);
                 }
+
+                Verify(buffer, expected);
             }
         }
 
@@ -143,25 +135,23 @@ namespace ILGPU.Tests
                 var extent = new GroupedIndex2(
                     new Index2(length, length),
                     stride);
-                using (var buffer = Accelerator.Allocate<int>(extent.Size))
+                using var buffer = Accelerator.Allocate<int>(extent.Size);
+                buffer.MemSetToZero(Accelerator.DefaultStream);
+                Execute(extent, buffer.View, stride, extent.GridIdx);
+
+                var expected = new int[extent.Size];
+                for (int j = 0; j < length * length; ++j)
                 {
-                    buffer.MemSetToZero(Accelerator.DefaultStream);
-                    Execute(extent, buffer.View, stride, extent.GridIdx);
-
-                    var expected = new int[extent.Size];
-                    for (int j = 0; j < length * length; ++j)
+                    var gridIdx = Index2.ReconstructIndex(j, extent.GridIdx);
+                    for (int k = 0; k < i * i; ++k)
                     {
-                        var gridIdx = Index2.ReconstructIndex(j, extent.GridIdx);
-                        for (int k = 0; k < i * i; ++k)
-                        {
-                            var groupIdx = Index2.ReconstructIndex(k, extent.GroupIdx);
-                            var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridIdx);
-                            expected[idx] = idx;
-                        }
+                        var groupIdx = Index2.ReconstructIndex(k, extent.GroupIdx);
+                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridIdx);
+                        expected[idx] = idx;
                     }
-
-                    Verify(buffer, expected);
                 }
+
+                Verify(buffer, expected);
             }
         }
 
@@ -187,25 +177,23 @@ namespace ILGPU.Tests
                 var extent = new GroupedIndex3(
                     new Index3(length, length, length),
                     stride);
-                using (var buffer = Accelerator.Allocate<int>(extent.Size))
+                using var buffer = Accelerator.Allocate<int>(extent.Size);
+                buffer.MemSetToZero(Accelerator.DefaultStream);
+                Execute(extent, buffer.View, stride, extent.GridIdx);
+
+                var expected = new int[extent.Size];
+                for (int j = 0; j < length * length * length; ++j)
                 {
-                    buffer.MemSetToZero(Accelerator.DefaultStream);
-                    Execute(extent, buffer.View, stride, extent.GridIdx);
-
-                    var expected = new int[extent.Size];
-                    for (int j = 0; j < length * length * length; ++j)
+                    var gridIdx = Index3.ReconstructIndex(j, extent.GridIdx);
+                    for (int k = 0; k < i * i * i; ++k)
                     {
-                        var gridIdx = Index3.ReconstructIndex(j, extent.GridIdx);
-                        for (int k = 0; k < i * i * i; ++k)
-                        {
-                            var groupIdx = Index3.ReconstructIndex(k, extent.GroupIdx);
-                            var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridIdx);
-                            expected[idx] = idx;
-                        }
+                        var groupIdx = Index3.ReconstructIndex(k, extent.GroupIdx);
+                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridIdx);
+                        expected[idx] = idx;
                     }
-
-                    Verify(buffer, expected);
                 }
+
+                Verify(buffer, expected);
             }
         }
     }

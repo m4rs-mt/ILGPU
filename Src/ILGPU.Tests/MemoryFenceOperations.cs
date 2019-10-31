@@ -29,13 +29,11 @@ namespace ILGPU.Tests
             for (int i = 1; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 var extent = new GroupedIndex(Length, i);
-                using (var buffer = Accelerator.Allocate<int>(extent.Size))
-                {
-                    Execute(extent, buffer.View);
+                using var buffer = Accelerator.Allocate<int>(extent.Size);
+                Execute(extent, buffer.View);
 
-                    var expected = Enumerable.Range(0, extent.Size).ToArray();
-                    Verify(buffer, expected);
-                }
+                var expected = Enumerable.Range(0, extent.Size).ToArray();
+                Verify(buffer, expected);
             }
         }
 
@@ -52,13 +50,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(MemoryFenceDeviceLevelKernel))]
         public void MemoryFenceDeviceLevel()
         {
-            using (var buffer = Accelerator.Allocate<int>(Length))
-            {
-                Execute(Length, buffer.View);
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(Length, buffer.View);
 
-                var expected = Enumerable.Range(0, Length).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Range(0, Length).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void MemoryFenceSystemLevelKernel(
@@ -74,13 +70,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(MemoryFenceSystemLevelKernel))]
         public void MemoryFenceSystemLevel()
         {
-            using (var buffer = Accelerator.Allocate<int>(Length))
-            {
-                Execute(Length, buffer.View);
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(Length, buffer.View);
 
-                var expected = Enumerable.Range(0, Length).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Range(0, Length).ToArray();
+            Verify(buffer, expected);
         }
     }
 }
