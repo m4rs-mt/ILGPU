@@ -14,24 +14,13 @@ namespace ILGPU.Tests
             ArrayView<int> data,
             ArrayView<int> source)
         {
-            var value = source[index];
-
-            switch (value)
+            var value = source[index] switch
             {
-                case 0:
-                    value = 7;
-                    break;
-                case 1:
-                    value = 42;
-                    break;
-                case 2:
-                    value = 1337;
-                    break;
-                default:
-                    value = -1;
-                    break;
-            }
-
+                0 => 7,
+                1 => 42,
+                2 => 1337,
+                _ => -1,
+            };
             data[index] = value;
         }
 
@@ -56,22 +45,13 @@ namespace ILGPU.Tests
             var expected = new int[length];
             for (int i = 0; i < length; ++i)
             {
-                int value;
-                switch (sourceData[i])
+                var value = sourceData[i] switch
                 {
-                    case 0:
-                        value = 7;
-                        break;
-                    case 1:
-                        value = 42;
-                        break;
-                    case 2:
-                        value = 1337;
-                        break;
-                    default:
-                        value = -1;
-                        break;
-                }
+                    0 => 7,
+                    1 => 42,
+                    2 => 1337,
+                    _ => -1,
+                };
                 expected[i] = value;
             }
 
@@ -86,22 +66,13 @@ namespace ILGPU.Tests
         {
             var value = source[index];
 
-            switch (value)
+            data[index] = value switch
             {
-                case 0:
-                    data[index] = 7;
-                    break;
-                case 1:
-                    data[index] = 42;
-                    break;
-                case 2:
-                    data[index] = 1337;
-                    break;
-                default:
-                    data[index] = -1;
-                    break;
-            }
-
+                0 => 7,
+                1 => 42,
+                2 => 1337,
+                _ => -1,
+            };
             data2[index] = value + 1;
         }
 
@@ -128,22 +99,13 @@ namespace ILGPU.Tests
             var expected2 = new int[length];
             for (int i = 0; i < length; ++i)
             {
-                int value;
-                switch (sourceData[i])
+                var value = sourceData[i] switch
                 {
-                    case 0:
-                        value = 7;
-                        break;
-                    case 1:
-                        value = 42;
-                        break;
-                    case 2:
-                        value = 1337;
-                        break;
-                    default:
-                        value = -1;
-                        break;
-                }
+                    0 => 7,
+                    1 => 42,
+                    2 => 1337,
+                    _ => -1,
+                };
                 expected[i] = value;
                 expected2[i] = sourceData[i] + 1;
             }
