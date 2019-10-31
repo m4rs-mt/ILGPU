@@ -50,7 +50,7 @@ namespace ILGPU.Frontend.DebugInformation
                 LocalVariables = localVariables;
                 MetadataReader = metadataReader;
                 enumerator = LocalVariables.GetEnumerator();
-                Current = default(LocalVariable);
+                Current = default;
             }
 
             #endregion
