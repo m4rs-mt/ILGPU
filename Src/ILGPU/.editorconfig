@@ -48,6 +48,9 @@ dotnet_diagnostic.CA2213.severity = silent
 # CA2225: Operator overloads have named alternates
 dotnet_diagnostic.CA2225.severity = silent
 
+# IDE0060: Remove unused parameter
+dotnet_code_quality_unused_parameters = all:silent
+
 # IDE0067: Dispose objects before losing scope
 dotnet_diagnostic.IDE0067.severity = silent
 
