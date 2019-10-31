@@ -21,11 +21,11 @@ namespace ILGPU.Tests
             double value2)
         {
             var floatVal = Interop.FloatAsInt(value);
-            floatVal = floatVal & ~SignBitFloat;
+            floatVal &= ~SignBitFloat;
             data[index] = Interop.IntAsFloat(floatVal);
 
             var doubleVal = Interop.FloatAsInt(value2);
-            doubleVal = doubleVal & ~SignBitDouble;
+            doubleVal &= ~SignBitDouble;
             data2[index] = Interop.IntAsFloat(doubleVal);
         }
 
