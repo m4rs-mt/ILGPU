@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+#pragma warning disable CA1060
 #pragma warning disable IDE1006 // Naming Styles
 
 using System;
@@ -1055,3 +1056,4 @@ namespace ILGPU.Runtime.OpenCL.API
 }
 
 #pragma warning restore IDE1006 // Naming Styles
+#pragma warning restore CA1060
