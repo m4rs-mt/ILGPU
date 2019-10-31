@@ -213,7 +213,7 @@ namespace ILGPU.Tests
             for (int laneMask = Warp.WarpSize / 2; laneMask > 0; laneMask >>= 1)
             {
                 var shuffled = Warp.ShuffleXor(value, laneMask);
-                value = value + shuffled;
+                value += shuffled;
             }
             data[index] = value;
         }
