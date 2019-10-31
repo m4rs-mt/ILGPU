@@ -349,7 +349,7 @@ namespace ILGPU.Frontend
     {
         #region Instance
 
-        private int[] targetOffsets;
+        private readonly int[] targetOffsets;
 
         /// <summary>
         /// Constructs a new container for branch targets.
