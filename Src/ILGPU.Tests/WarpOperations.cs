@@ -28,22 +28,18 @@ namespace ILGPU.Tests
         public void WarpDimension(int warpMultiplier)
         {
             var length = Accelerator.WarpSize * warpMultiplier;
-            using (var lengthBuffer = Accelerator.Allocate<int>(length))
-            {
-                using (var idxBuffer = Accelerator.Allocate<int>(length))
-                {
-                    Execute(length, lengthBuffer.View, idxBuffer.View);
+            using var lengthBuffer = Accelerator.Allocate<int>(length);
+            using var idxBuffer = Accelerator.Allocate<int>(length);
+            Execute(length, lengthBuffer.View, idxBuffer.View);
 
-                    var expectedLength = Enumerable.Repeat(
-                        Accelerator.WarpSize, length).ToArray();
-                    Verify(lengthBuffer, expectedLength);
+            var expectedLength = Enumerable.Repeat(
+                Accelerator.WarpSize, length).ToArray();
+            Verify(lengthBuffer, expectedLength);
 
-                    var expectedIndices = new int[length];
-                    for (int i = 0; i < length; ++i)
-                        expectedIndices[i] = i % Accelerator.WarpSize;
-                    Verify(idxBuffer, expectedIndices);
-                }
-            }
+            var expectedIndices = new int[length];
+            for (int i = 0; i < length; ++i)
+                expectedIndices[i] = i % Accelerator.WarpSize;
+            Verify(idxBuffer, expectedIndices);
         }
 
         internal static void WarpBarrierKernel(
@@ -63,16 +59,14 @@ namespace ILGPU.Tests
         public void WarpBarrier(int length)
         {
             var warpSize = Accelerator.WarpSize;
-            using (var buffer = Accelerator.Allocate<int>(length * warpSize))
-            {
-                var extent = new GroupedIndex(
-                    length,
-                    warpSize);
-                Execute(extent, buffer.View);
+            using var buffer = Accelerator.Allocate<int>(length * warpSize);
+            var extent = new GroupedIndex(
+                length,
+                warpSize);
+            Execute(extent, buffer.View);
 
-                var expected = Enumerable.Range(0, length * warpSize).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Range(0, length * warpSize).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void WarpBroadcastKernel(
@@ -91,16 +85,14 @@ namespace ILGPU.Tests
         public void WarpBroadcast(int length)
         {
             var warpSize = Accelerator.WarpSize;
-            using (var buffer = Accelerator.Allocate<int>(length * warpSize))
-            {
-                var extent = new GroupedIndex(
-                    length,
-                    warpSize);
-                Execute(extent, buffer.View);
+            using var buffer = Accelerator.Allocate<int>(length * warpSize);
+            var extent = new GroupedIndex(
+                length,
+                warpSize);
+            Execute(extent, buffer.View);
 
-                var expected = Enumerable.Repeat(warpSize - 1, length * warpSize).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Repeat(warpSize - 1, length * warpSize).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void WarpShuffleKernel(
@@ -119,14 +111,12 @@ namespace ILGPU.Tests
         public void WarpShuffle(int warpMultiplier)
         {
             var length = Accelerator.WarpSize * warpMultiplier;
-            using (var dataBuffer = Accelerator.Allocate<int>(length))
-            {
-                Execute(length, dataBuffer.View);
+            using var dataBuffer = Accelerator.Allocate<int>(length);
+            Execute(length, dataBuffer.View);
 
-                var expected = Enumerable.Repeat(
-                    Accelerator.WarpSize - 1, length).ToArray();
-                Verify(dataBuffer, expected);
-            }
+            var expected = Enumerable.Repeat(
+                Accelerator.WarpSize - 1, length).ToArray();
+            Verify(dataBuffer, expected);
         }
 
         internal static void WarpShuffleDownKernel(
@@ -147,23 +137,21 @@ namespace ILGPU.Tests
             for (int shiftAmount = 0; shiftAmount < Math.Min(4, Accelerator.WarpSize); ++shiftAmount)
             {
                 var length = Accelerator.WarpSize * warpMultiplier;
-                using (var dataBuffer = Accelerator.Allocate<int>(length))
+                using var dataBuffer = Accelerator.Allocate<int>(length);
+                Execute(length, dataBuffer.View, shiftAmount);
+
+                var expected = new int[length];
+                for (int i = 0; i < warpMultiplier; ++i)
                 {
-                    Execute(length, dataBuffer.View, shiftAmount);
+                    var baseIdx = i * Accelerator.WarpSize;
+                    for (int j = 0; j < Accelerator.WarpSize - shiftAmount; ++j)
+                        expected[baseIdx + j] = j + shiftAmount;
 
-                    var expected = new int[length];
-                    for (int i = 0; i < warpMultiplier; ++i)
-                    {
-                        var baseIdx = i * Accelerator.WarpSize;
-                        for (int j = 0; j < Accelerator.WarpSize - shiftAmount; ++j)
-                            expected[baseIdx + j] = j + shiftAmount;
-
-                        for (int j = Accelerator.WarpSize - shiftAmount; j < Accelerator.WarpSize; ++j)
-                            expected[baseIdx + j] = j;
-                    }
-
-                    Verify(dataBuffer, expected);
+                    for (int j = Accelerator.WarpSize - shiftAmount; j < Accelerator.WarpSize; ++j)
+                        expected[baseIdx + j] = j;
                 }
+
+                Verify(dataBuffer, expected);
             }
         }
 
@@ -185,23 +173,21 @@ namespace ILGPU.Tests
             for (int shiftAmount = 0; shiftAmount < Math.Min(4, Accelerator.WarpSize); ++shiftAmount)
             {
                 var length = Accelerator.WarpSize * warpMultiplier;
-                using (var dataBuffer = Accelerator.Allocate<int>(length))
+                using var dataBuffer = Accelerator.Allocate<int>(length);
+                Execute(length, dataBuffer.View, shiftAmount);
+
+                var expected = new int[length];
+                for (int i = 0; i < warpMultiplier; ++i)
                 {
-                    Execute(length, dataBuffer.View, shiftAmount);
+                    var baseIdx = i * Accelerator.WarpSize;
+                    for (int j = shiftAmount; j < Accelerator.WarpSize; ++j)
+                        expected[baseIdx + j] = j - shiftAmount;
 
-                    var expected = new int[length];
-                    for (int i = 0; i < warpMultiplier; ++i)
-                    {
-                        var baseIdx = i * Accelerator.WarpSize;
-                        for (int j = shiftAmount; j < Accelerator.WarpSize; ++j)
-                            expected[baseIdx + j] = j - shiftAmount;
-
-                        for (int j = 0; j < shiftAmount; ++j)
-                            expected[baseIdx + j] = j;
-                    }
-
-                    Verify(dataBuffer, expected);
+                    for (int j = 0; j < shiftAmount; ++j)
+                        expected[baseIdx + j] = j;
                 }
+
+                Verify(dataBuffer, expected);
             }
         }
 
@@ -226,16 +212,14 @@ namespace ILGPU.Tests
         public void WarpShuffleXor(int warpMultiplier)
         {
             var length = Accelerator.WarpSize * warpMultiplier;
-            using (var dataBuffer = Accelerator.Allocate<int>(length))
-            {
-                Execute(length, dataBuffer.View);
+            using var dataBuffer = Accelerator.Allocate<int>(length);
+            Execute(length, dataBuffer.View);
 
-                var expected = Enumerable.Repeat(
-                    (Accelerator.WarpSize * (Accelerator.WarpSize - 1)) / 2,
-                    length).ToArray();
+            var expected = Enumerable.Repeat(
+                (Accelerator.WarpSize * (Accelerator.WarpSize - 1)) / 2,
+                length).ToArray();
 
-                Verify(dataBuffer, expected);
-            }
+            Verify(dataBuffer, expected);
         }
     }
 }

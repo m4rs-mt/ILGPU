@@ -52,18 +52,14 @@ namespace ILGPU.Tests
             int length,
             <#= typeName #> value)
         {
-            using (var a = Accelerator.Allocate<<#= typeName #>>(length))
-            {
-                using (var b = Accelerator.Allocate<<#= typeName #>>(length))
-                {
-                    Initialize(a, value);
-                    Execute(length, a.View, b.View);
+            using var a = Accelerator.Allocate<<#= typeName #>>(length);
+            using var b = Accelerator.Allocate<<#= typeName #>>(length);
+            Initialize(a, value);
+            Execute(length, a.View, b.View);
 
-                    var result = <#= prefix #>value<#= postfix #>;
-                    var reference = Enumerable.Repeat((<#= typeName #>)result, length).ToArray();
-                    Verify(b, reference);
-                }
-            }
+            var result = <#= prefix #>value<#= postfix #>;
+            var reference = Enumerable.Repeat((<#= typeName #>)result, length).ToArray();
+            Verify(b, reference);
         }
 
 <#      } #>

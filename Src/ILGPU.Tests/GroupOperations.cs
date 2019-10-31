@@ -32,25 +32,23 @@ namespace ILGPU.Tests
         {
             for (int i = 2; i <= Math.Min(8, Accelerator.MaxNumThreadsPerGroup); i <<= 1)
             {
-                using (var buffer = Accelerator.Allocate<int>(3))
+                using var buffer = Accelerator.Allocate<int>(3);
+                var extent = new GroupedIndex3(
+                    new Index3(1, 1, 1),
+                    new Index3(
+                        Math.Max(i * xMask, 1),
+                        Math.Max(i * yMask, 1),
+                        Math.Max(i * zMask, 1)));
+
+                Execute(extent, buffer.View);
+
+                var expected = new int[]
                 {
-                    var extent = new GroupedIndex3(
-                        new Index3(1, 1, 1),
-                        new Index3(
-                            Math.Max(i * xMask, 1),
-                            Math.Max(i * yMask, 1),
-                            Math.Max(i * zMask, 1)));
-
-                    Execute(extent, buffer.View);
-
-                    var expected = new int[]
-                    {
-                        extent.GroupIdx.X,
-                        extent.GroupIdx.Y,
-                        extent.GroupIdx.Z,
-                    };
-                    Verify(buffer, expected);
-                }
+                    extent.GroupIdx.X,
+                    extent.GroupIdx.Y,
+                    extent.GroupIdx.Z,
+                };
+                Verify(buffer, expected);
             }
         }
 
@@ -64,24 +62,22 @@ namespace ILGPU.Tests
             var end = (int)Math.Sqrt(Accelerator.MaxNumThreadsPerGroup);
             for (int i = 2; i <= end; i <<= 1)
             {
-                using (var buffer = Accelerator.Allocate<int>(3))
-                {
-                    var extent = new GroupedIndex3(
-                        new Index3(1, 1, 1),
-                        new Index3(
-                            Math.Max(i * xMask, 1),
-                            Math.Max(i * yMask, 1),
-                            Math.Max(i * zMask, 1)));
-                    Execute(extent, buffer.View);
+                using var buffer = Accelerator.Allocate<int>(3);
+                var extent = new GroupedIndex3(
+                    new Index3(1, 1, 1),
+                    new Index3(
+                        Math.Max(i * xMask, 1),
+                        Math.Max(i * yMask, 1),
+                        Math.Max(i * zMask, 1)));
+                Execute(extent, buffer.View);
 
-                    var expected = new int[]
-                    {
-                        extent.GroupIdx.X,
-                        extent.GroupIdx.Y,
-                        extent.GroupIdx.Z,
-                    };
-                    Verify(buffer, expected);
-                }
+                var expected = new int[]
+                {
+                    extent.GroupIdx.X,
+                    extent.GroupIdx.Y,
+                    extent.GroupIdx.Z,
+                };
+                Verify(buffer, expected);
             }
         }
 
@@ -92,21 +88,19 @@ namespace ILGPU.Tests
             var end = (int)Math.Pow(Accelerator.MaxNumThreadsPerGroup, 1.0 / 3.0);
             for (int i = 1; i <= end; i <<= 1)
             {
-                using (var buffer = Accelerator.Allocate<int>(3))
-                {
-                    var extent = new GroupedIndex3(
-                        new Index3(1, 1, 1),
-                        new Index3(i, i, i));
-                    Execute(extent, buffer.View);
+                using var buffer = Accelerator.Allocate<int>(3);
+                var extent = new GroupedIndex3(
+                    new Index3(1, 1, 1),
+                    new Index3(i, i, i));
+                Execute(extent, buffer.View);
 
-                    var expected = new int[]
-                    {
-                        extent.GroupIdx.X,
-                        extent.GroupIdx.Y,
-                        extent.GroupIdx.Z,
-                    };
-                    Verify(buffer, expected);
-                }
+                var expected = new int[]
+                {
+                    extent.GroupIdx.X,
+                    extent.GroupIdx.Y,
+                    extent.GroupIdx.Z,
+                };
+                Verify(buffer, expected);
             }
         }
 
@@ -128,16 +122,14 @@ namespace ILGPU.Tests
         {
             for (int i = 1; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
-                using (var buffer = Accelerator.Allocate<int>(length * i))
-                {
-                    var extent = new GroupedIndex(
-                        length,
-                        i);
-                    Execute(extent, buffer.View);
+                using var buffer = Accelerator.Allocate<int>(length * i);
+                var extent = new GroupedIndex(
+                    length,
+                    i);
+                Execute(extent, buffer.View);
 
-                    var expected = Enumerable.Range(0, length * i).ToArray();
-                    Verify(buffer, expected);
-                }
+                var expected = Enumerable.Range(0, length * i).ToArray();
+                Verify(buffer, expected);
             }
         }
 
@@ -159,19 +151,17 @@ namespace ILGPU.Tests
         {
             for (int i = 2; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
-                using (var buffer = Accelerator.Allocate<int>(length * i))
-                {
-                    var extent = new GroupedIndex(length, i);
-                    Execute(extent, buffer.View, new Index(i));
+                using var buffer = Accelerator.Allocate<int>(length * i);
+                var extent = new GroupedIndex(length, i);
+                Execute(extent, buffer.View, new Index(i));
 
-                    var expected = Enumerable.Repeat(1, buffer.Length).ToArray();
-                    Verify(buffer, expected);
+                var expected = Enumerable.Repeat(1, buffer.Length).ToArray();
+                Verify(buffer, expected);
 
-                    Execute(extent, buffer.View, new Index(i - 1));
+                Execute(extent, buffer.View, new Index(i - 1));
 
-                    expected = Enumerable.Repeat(0, buffer.Length).ToArray();
-                    Verify(buffer, expected);
-                }
+                expected = Enumerable.Repeat(0, buffer.Length).ToArray();
+                Verify(buffer, expected);
             }
         }
 
@@ -193,19 +183,17 @@ namespace ILGPU.Tests
         {
             for (int i = 2; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
-                using (var buffer = Accelerator.Allocate<int>(length * i))
-                {
-                    var extent = new GroupedIndex(length, i);
-                    Execute(extent, buffer.View, new Index(1));
+                using var buffer = Accelerator.Allocate<int>(length * i);
+                var extent = new GroupedIndex(length, i);
+                Execute(extent, buffer.View, new Index(1));
 
-                    var expected = Enumerable.Repeat(1, buffer.Length).ToArray();
-                    Verify(buffer, expected);
+                var expected = Enumerable.Repeat(1, buffer.Length).ToArray();
+                Verify(buffer, expected);
 
-                    Execute(extent, buffer.View, new Index(0));
+                Execute(extent, buffer.View, new Index(0));
 
-                    expected = Enumerable.Repeat(0, buffer.Length).ToArray();
-                    Verify(buffer, expected);
-                }
+                expected = Enumerable.Repeat(0, buffer.Length).ToArray();
+                Verify(buffer, expected);
             }
         }
 
@@ -243,14 +231,12 @@ namespace ILGPU.Tests
         {
             for (int i = 2; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
-                using (var buffer = Accelerator.Allocate<int>(length * i))
-                {
-                    var extent = new GroupedIndex(length, i);
-                    Execute(extent, buffer.View);
+                using var buffer = Accelerator.Allocate<int>(length * i);
+                var extent = new GroupedIndex(length, i);
+                Execute(extent, buffer.View);
 
-                    var expected = Enumerable.Repeat(i - 1, buffer.Length).ToArray();
-                    Verify(buffer, expected);
-                }
+                var expected = Enumerable.Repeat(i - 1, buffer.Length).ToArray();
+                Verify(buffer, expected);
             }
         }
     }

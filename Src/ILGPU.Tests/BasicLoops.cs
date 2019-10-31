@@ -28,13 +28,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(WhileFalseKernel))]
         public void WhileFalse()
         {
-            using (var buffer = Accelerator.Allocate<int>(Length))
-            {
-                Execute(buffer.Length, buffer.View);
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View);
 
-                var expected = Enumerable.Repeat(42, Length).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Repeat(42, Length).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void ForCounterKernel(
@@ -56,13 +54,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ForCounterKernel))]
         public void ForCounter(int counter)
         {
-            using (var buffer = Accelerator.Allocate<int>(Length))
-            {
-                Execute(buffer.Length, buffer.View, counter);
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View, counter);
 
-                var expected = Enumerable.Repeat(42 + counter, Length).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Repeat(42 + counter, Length).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void ForCounterDataKernel(
@@ -85,17 +81,13 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ForCounterDataKernel))]
         public void ForCounterData(int counter)
         {
-            using (var buffer = Accelerator.Allocate<int>(Length))
-            {
-                using (var source = Accelerator.Allocate<int>(Length))
-                {
-                    Initialize(source, counter);
-                    Execute(buffer.Length, buffer.View, source.View);
+            using var buffer = Accelerator.Allocate<int>(Length);
+            using var source = Accelerator.Allocate<int>(Length);
+            Initialize(source, counter);
+            Execute(buffer.Length, buffer.View, source.View);
 
-                    var expected = Enumerable.Repeat(42 + counter, Length).ToArray();
-                    Verify(buffer, expected);
-                }
-            }
+            var expected = Enumerable.Repeat(42 + counter, Length).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void NestedForCounterKernel(
@@ -122,13 +114,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(NestedForCounterKernel))]
         public void NestedForCounter(int counter1, int counter2)
         {
-            using (var buffer = Accelerator.Allocate<int>(Length))
-            {
-                Execute(buffer.Length, buffer.View, counter1, counter2);
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View, counter1, counter2);
 
-                var expected = Enumerable.Repeat(2 * counter1 * counter2, Length).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Repeat(2 * counter1 * counter2, Length).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void DoWhileKernel(
@@ -149,13 +139,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(DoWhileKernel))]
         public void DoWhile()
         {
-            using (var buffer = Accelerator.Allocate<int>(Length))
-            {
-                Execute(buffer.Length, buffer.View, 38);
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View, 38);
 
-                var expected = Enumerable.Repeat(42, Length).ToArray();
-                Verify(buffer, expected);
-            }
+            var expected = Enumerable.Repeat(42, Length).ToArray();
+            Verify(buffer, expected);
         }
     }
 }

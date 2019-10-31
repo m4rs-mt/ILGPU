@@ -118,15 +118,14 @@ namespace ILGPU.Tests
 
             // Load the compiled kernel
             Output.WriteLine($"Loading '{kernel.Name}'");
-            using (var acceleratorKernel = Accelerator.LoadKernel(compiled))
-            {
-                // Launch the kernel
-                Output.WriteLine($"Launching '{kernel.Name}'");
-                acceleratorKernel.Launch(Accelerator.DefaultStream, dimension, arguments);
+            using var acceleratorKernel = Accelerator.LoadKernel(compiled);
 
-                Accelerator.DefaultStream.Synchronize();
-                Accelerator.Synchronize();
-            }
+            // Launch the kernel
+            Output.WriteLine($"Launching '{kernel.Name}'");
+            acceleratorKernel.Launch(Accelerator.DefaultStream, dimension, arguments);
+
+            Accelerator.DefaultStream.Synchronize();
+            Accelerator.Synchronize();
         }
 
         /// <summary>

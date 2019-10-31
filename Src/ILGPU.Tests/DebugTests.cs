@@ -26,12 +26,10 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(DebugAssertKernel))]
         public void DebugAssert(int length)
         {
-            using (var buffer = Accelerator.Allocate<int>(length))
-            {
-                var expected = Enumerable.Repeat(2, length).ToArray();
-                buffer.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, expected.Length);
-                Execute(length, buffer.View);
-            }
+            using var buffer = Accelerator.Allocate<int>(length);
+            var expected = Enumerable.Repeat(2, length).ToArray();
+            buffer.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, expected.Length);
+            Execute(length, buffer.View);
         }
 
         internal static void DebugAssertMessageKernel(
@@ -49,12 +47,10 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(DebugAssertMessageKernel))]
         public void DebugAssertMessage(int length)
         {
-            using (var buffer = Accelerator.Allocate<int>(length))
-            {
-                var expected = Enumerable.Repeat(2, length).ToArray();
-                buffer.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, expected.Length);
-                Execute(length, buffer.View);
-            }
+            using var buffer = Accelerator.Allocate<int>(length);
+            var expected = Enumerable.Repeat(2, length).ToArray();
+            buffer.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, expected.Length);
+            Execute(length, buffer.View);
         }
 
         internal static void DebugFailedKernel(
@@ -73,12 +69,10 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(DebugFailedKernel))]
         public void DebugFailed(int length)
         {
-            using (var buffer = Accelerator.Allocate<int>(length))
-            {
-                var expected = Enumerable.Repeat(2, length).ToArray();
-                buffer.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, expected.Length);
-                Execute(length, buffer.View);
-            }
+            using var buffer = Accelerator.Allocate<int>(length);
+            var expected = Enumerable.Repeat(2, length).ToArray();
+            buffer.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, expected.Length);
+            Execute(length, buffer.View);
         }
     }
 }

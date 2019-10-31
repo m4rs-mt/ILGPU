@@ -34,19 +34,15 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(BasicJumpKernel))]
         public void BasicJump(int length)
         {
-            using (var buffer = Accelerator.Allocate<int>(length))
-            {
-                using (var source = Accelerator.Allocate<int>(length))
-                {
-                    var sourceData = Enumerable.Repeat(42, buffer.Length).ToArray();
-                    source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, buffer.Length);
+            using var buffer = Accelerator.Allocate<int>(length);
+            using var source = Accelerator.Allocate<int>(length);
+            var sourceData = Enumerable.Repeat(42, buffer.Length).ToArray();
+            source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, buffer.Length);
 
-                    Execute(buffer.Length, buffer.View, source.View);
+            Execute(buffer.Length, buffer.View, source.View);
 
-                    var expected = Enumerable.Repeat(23, buffer.Length).ToArray();
-                    Verify(buffer, expected);
-                }
-            }
+            var expected = Enumerable.Repeat(23, buffer.Length).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void BasicIfJumpKernel(
@@ -71,22 +67,18 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(BasicIfJumpKernel))]
         public void BasicIfJump(int length)
         {
-            using (var buffer = Accelerator.Allocate<int>(length))
-            {
-                using (var source = Accelerator.Allocate<int>(length))
-                {
-                    var partLength = source.Length / 3;
-                    var sourceData = Enumerable.Repeat(13, partLength).Concat(
-                        Enumerable.Repeat(42, source.Length - partLength)).ToArray();
-                    source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
+            using var buffer = Accelerator.Allocate<int>(length);
+            using var source = Accelerator.Allocate<int>(length);
+            var partLength = source.Length / 3;
+            var sourceData = Enumerable.Repeat(13, partLength).Concat(
+                Enumerable.Repeat(42, source.Length - partLength)).ToArray();
+            source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
 
-                    Execute(buffer.Length, buffer.View, source.View);
+            Execute(buffer.Length, buffer.View, source.View);
 
-                    var expected = Enumerable.Repeat(23, partLength).Concat(
-                        Enumerable.Repeat(42, length - partLength)).ToArray();
-                    Verify(buffer, expected);
-                }
-            }
+            var expected = Enumerable.Repeat(23, partLength).Concat(
+                Enumerable.Repeat(42, length - partLength)).ToArray();
+            Verify(buffer, expected);
         }
 
         internal static void BasicLoopJumpKernel(
@@ -113,20 +105,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(BasicLoopJumpKernel))]
         public void BasicLoopJump(int length)
         {
-            using (var buffer = Accelerator.Allocate<int>(length))
-            {
-                using (var source = Accelerator.Allocate<int>(64))
-                {
-                    var sourceData = Enumerable.Range(0, source.Length).ToArray();
-                    sourceData[57] = 23;
-                    source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
+            using var buffer = Accelerator.Allocate<int>(length);
+            using var source = Accelerator.Allocate<int>(64);
+            var sourceData = Enumerable.Range(0, source.Length).ToArray();
+            sourceData[57] = 23;
+            source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
 
-                    Execute(buffer.Length, buffer.View, source.View);
+            Execute(buffer.Length, buffer.View, source.View);
 
-                    var expected = Enumerable.Repeat(23, length).ToArray();
-                    Verify(buffer, expected);
-                }
-            }
+            var expected = Enumerable.Repeat(23, length).ToArray();
+            Verify(buffer, expected);
         }
     }
 }

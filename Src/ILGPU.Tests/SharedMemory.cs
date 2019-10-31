@@ -35,14 +35,12 @@ namespace ILGPU.Tests
         {
             for (int i = 1; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
-                using (var buffer = Accelerator.Allocate<int>(i * groupMultiplier))
-                {
-                    var index = new GroupedIndex(groupMultiplier, i);
-                    Execute(index, buffer.View);
+                using var buffer = Accelerator.Allocate<int>(i * groupMultiplier);
+                var index = new GroupedIndex(groupMultiplier, i);
+                Execute(index, buffer.View);
 
-                    var expected = Enumerable.Repeat(i, buffer.Length).ToArray();
-                    Verify(buffer, expected);
-                }
+                var expected = Enumerable.Repeat(i, buffer.Length).ToArray();
+                Verify(buffer, expected);
             }
         }
 
@@ -65,20 +63,18 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(SharedMemoryArrayKernel))]
         public void SharedMemoryArray(int groupMultiplier)
         {
-            using (var buffer = Accelerator.Allocate<int>(2 * groupMultiplier))
+            using var buffer = Accelerator.Allocate<int>(2 * groupMultiplier);
+            var index = new GroupedIndex(groupMultiplier, 2);
+            Execute(index, buffer.View);
+
+            var expected = new int[buffer.Length];
+            for (int i = 0; i < buffer.Length; i += 2)
             {
-                var index = new GroupedIndex(groupMultiplier, 2);
-                Execute(index, buffer.View);
-
-                var expected = new int[buffer.Length];
-                for (int i = 0; i < buffer.Length; i += 2)
-                {
-                    expected[i] = 1;
-                    expected[i + 1] = 0;
-                }
-
-                Verify(buffer, expected);
+                expected[i] = 1;
+                expected[i + 1] = 0;
             }
+
+            Verify(buffer, expected);
         }
     }
 }
