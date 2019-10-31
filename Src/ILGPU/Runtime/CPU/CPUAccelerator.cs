@@ -155,8 +155,7 @@ namespace ILGPU.Runtime.CPU
         {
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
-            var ilKernel = kernel as ILCompiledKernel;
-            if (ilKernel == null)
+            if (!(kernel is ILCompiledKernel ilKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
             var launcherMethod = GenerateKernelLauncherMethod(ilKernel, customGroupSize);
