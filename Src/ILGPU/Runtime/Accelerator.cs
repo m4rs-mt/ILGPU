@@ -80,7 +80,7 @@ namespace ILGPU.Runtime
 
             switch (acceleratorId)
             {
-                case CPU.CPUAcceleratorId cpuId:
+                case CPU.CPUAcceleratorId _:
                     return new CPU.CPUAccelerator(context);
                 case Cuda.CudaAcceleratorId cudaId:
                     return new Cuda.CudaAccelerator(context, cudaId.DeviceId);
@@ -513,7 +513,7 @@ namespace ILGPU.Runtime
         /// <returns>An estimated group size to gain maximum occupancy on this device.</returns>
         public int EstimateGroupSize(Kernel kernel)
         {
-            return EstimateGroupSize(kernel, 0, 0, out int minGridSize);
+            return EstimateGroupSize(kernel, 0, 0, out var _);
         }
 
         /// <summary>

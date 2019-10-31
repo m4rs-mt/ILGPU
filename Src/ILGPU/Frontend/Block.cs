@@ -339,7 +339,7 @@ namespace ILGPU.Frontend
             right = PopCompareOrArithmeticValue(flags);
             left = PopCompareOrArithmeticValue(flags);
 
-            Value result = null;
+            Value result;
             bool swapped = Utilities.Swap(
                 left.BasicValueType < right.BasicValueType,
                 ref left,

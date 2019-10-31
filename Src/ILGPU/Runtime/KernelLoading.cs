@@ -126,7 +126,7 @@ namespace ILGPU.Runtime
         /// </remarks>
         public Kernel LoadAutoGroupedKernel(CompiledKernel kernel)
         {
-            return LoadAutoGroupedKernel(kernel, out int groupSize, out int minGridSize);
+            return LoadAutoGroupedKernel(kernel, out var _, out var _);
         }
 
         /// <summary>
