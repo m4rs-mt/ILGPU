@@ -58,6 +58,7 @@ namespace ILGPU.Tests
         /// <summary>
         /// Returns the associated context provider.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Code Quality", "IDE0052:Remove unread private members", Justification = "Used in T4 templates")]
         private ContextProvider ContextProvider { get; }
 
         /// <summary>
