@@ -370,7 +370,7 @@ namespace IndexImplementation
         /// <summary>
         /// Demonstrates the use of a custom index type to work with indexed memory.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             using (var context = new Context())
             {

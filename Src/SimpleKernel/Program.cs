@@ -12,7 +12,6 @@
 using ILGPU;
 using ILGPU.Runtime;
 using System;
-using System.Reflection;
 
 namespace SimpleKernel
 {
@@ -43,7 +42,7 @@ namespace SimpleKernel
         /// <summary>
         /// Launches a simple 1D kernel.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())

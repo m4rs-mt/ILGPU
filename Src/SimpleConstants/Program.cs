@@ -13,7 +13,6 @@ using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
-using System.Reflection;
 
 namespace SimpleConstants
 {
@@ -27,6 +26,7 @@ namespace SimpleConstants
         /// <summary>
         /// A readonly field.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1802:Use literals where appropriate", Justification = "Testing readonly value")]
         static readonly int ReadOnlyValue = 2;
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace SimpleConstants
         /// <summary>
         /// Demonstates different use cases of constants and static fields.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // All kernels reject read accesses to write-enabled static fields by default.
             // However, you can disable this restriction via:

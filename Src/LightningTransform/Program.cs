@@ -53,7 +53,7 @@ namespace LightningTransform
 
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             using (var context = new Context())
             {

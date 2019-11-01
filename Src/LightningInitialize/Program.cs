@@ -32,12 +32,12 @@ namespace LightningInitialize
 
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             using (var context = new Context())
             {
                 // For each available accelerator...
-                foreach(var acceleratorId in Accelerator.Accelerators)
+                foreach (var acceleratorId in Accelerator.Accelerators)
                 {
                     // A lightning context encapsulates an ILGPU accelerator
                     using (var accelerator = Accelerator.Create(context, acceleratorId))

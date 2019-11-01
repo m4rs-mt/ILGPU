@@ -52,7 +52,7 @@ namespace SimpleAtomics
         /// <summary>
         /// Launches a simple 1D kernel.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())

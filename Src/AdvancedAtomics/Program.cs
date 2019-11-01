@@ -130,7 +130,7 @@ namespace AdvancedAtomics
         /// This sample demonstates the use of the Atomic.MakeAtomic
         /// functionality to user defined atomics.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())

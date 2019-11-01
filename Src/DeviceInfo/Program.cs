@@ -39,13 +39,13 @@ namespace DeviceInfo
         /// Detects all available accelerators and prints device information about each
         /// of them on the command line.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())
             {
                 // For each available accelerator...
-                foreach(var acceleratorId in Accelerator.Accelerators)
+                foreach (var acceleratorId in Accelerator.Accelerators)
                 {
                     // Create default accelerator for the given accelerator id.
                     // Note that all accelerators have to be disposed before the global context is disposed

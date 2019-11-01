@@ -175,7 +175,7 @@ namespace SimpleAlloc
         /// which is that bool, char, and class types are not allowed).
         /// Furthermore, all buffers have to be disposed before their associated accelerator is disposed!
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())

@@ -12,7 +12,6 @@
 using ILGPU;
 using ILGPU.Runtime;
 using System;
-using System.Reflection;
 
 namespace SimpleMath
 {
@@ -45,7 +44,7 @@ namespace SimpleMath
         /// <summary>
         /// Launches a simple math kernel.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())

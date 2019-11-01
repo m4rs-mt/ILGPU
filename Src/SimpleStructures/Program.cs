@@ -56,7 +56,7 @@ namespace SimpleStructures
         /// <summary>
         /// Demonstrates the correct use of custom internal structure types.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             using (var context = new Context())
             {
