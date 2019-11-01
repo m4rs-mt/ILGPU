@@ -7,7 +7,7 @@ The CPU accelerator support is especially useful for kernel debugging.
 
 # Build instructions
 
-ILGPU.Algorithms requires Visual Studio 2017 or higher.
+ILGPU.Algorithms requires Visual Studio 2019 or higher.
 
 Note: T4 (*.tt) text templates must be converted manually depending on the Visual Studio version.
 To transform them, right-click a text template and select Run Custom Tool. Alternatively, you can open and save any text template in Visual Studio or choose
