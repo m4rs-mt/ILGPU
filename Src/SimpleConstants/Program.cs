@@ -13,7 +13,6 @@ using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
-using System.Reflection;
 
 namespace SimpleConstants
 {

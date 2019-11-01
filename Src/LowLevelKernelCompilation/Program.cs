@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU;
-using ILGPU.Backends.PTX;
 using ILGPU.Runtime;
 using System;
 using System.Reflection;

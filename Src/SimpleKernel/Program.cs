@@ -12,7 +12,6 @@
 using ILGPU;
 using ILGPU.Runtime;
 using System;
-using System.Reflection;
 
 namespace SimpleKernel
 {

@@ -34,7 +34,7 @@ namespace Mandelbrot
                 if (data[i] == iterations)
                     bmp.SetPixel(x, y, color);
                 else
-                    bmp.SetPixel(x, y, Color.FromArgb((int)(4000000000 / ((data[i] < 1) ? 1 : data[i])) ));
+                    bmp.SetPixel(x, y, Color.FromArgb((int)(4000000000 / ((data[i] < 1) ? 1 : data[i]))));
             }
             pictureBox1.Image = bmp;
         }

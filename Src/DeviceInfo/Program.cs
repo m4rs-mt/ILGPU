@@ -45,7 +45,7 @@ namespace DeviceInfo
             using (var context = new Context())
             {
                 // For each available accelerator...
-                foreach(var acceleratorId in Accelerator.Accelerators)
+                foreach (var acceleratorId in Accelerator.Accelerators)
                 {
                     // Create default accelerator for the given accelerator id.
                     // Note that all accelerators have to be disposed before the global context is disposed
