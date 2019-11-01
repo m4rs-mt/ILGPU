@@ -29,6 +29,12 @@
 
     <file src="ILGPU.Algorithms.targets" target="build\ILGPU.Algorithms.targets" />
 
+    <file src="..\Bin\Debug\netstandard2.1\ILGPU.Algorithms.dll" target="lib\netstandard2.1\Debug\ILGPU.Algorithms.dll" />
+    <file src="..\Bin\Debug\netstandard2.1\ILGPU.Algorithms.xml" target="lib\netstandard2.1\Debug\ILGPU.Algorithms.xml" />
+
+    <file src="..\Bin\Release\netstandard2.1\ILGPU.Algorithms.dll" target="lib\netstandard2.1\Release\ILGPU.Algorithms.dll" />
+    <file src="..\Bin\Release\netstandard2.1\ILGPU.Algorithms.xml" target="lib\netstandard2.1\Release\ILGPU.Algorithms.xml" />
+
     <file src="..\Bin\Debug\netcoreapp2.0\ILGPU.Algorithms.dll" target="lib\netcoreapp2.0\Debug\ILGPU.Algorithms.dll" />
     <file src="..\Bin\Debug\netcoreapp2.0\ILGPU.Algorithms.xml" target="lib\netcoreapp2.0\Debug\ILGPU.Algorithms.xml" />
 
