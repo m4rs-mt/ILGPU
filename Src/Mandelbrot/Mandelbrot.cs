@@ -52,7 +52,7 @@ namespace Mandelbrot
                 float xtemp = x * x - y * y + x0;
                 y = 2 * x * y + y0;
                 x = xtemp;
-                iteration = iteration + 1;
+                iteration += 1;
             }
             output[index] = iteration;
         }
@@ -143,7 +143,7 @@ namespace Mandelbrot
                         float xtemp = x * x - y * y + x0;
                         y = 2 * x * y + y0;
                         x = xtemp;
-                        iteration = iteration + 1;
+                        iteration += 1;
                     }
                     buffer[index] = iteration;
                 }
