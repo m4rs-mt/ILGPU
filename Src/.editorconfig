@@ -56,3 +56,6 @@ dotnet_naming_style.camel_case.capitalization = camel_case
 
 # CA1303: Do not pass literals as localized parameters
 dotnet_diagnostic.CA1303.severity = none
+
+# CA1814: Prefer jagged arrays over multidimensional
+dotnet_diagnostic.CA1814.severity = none
