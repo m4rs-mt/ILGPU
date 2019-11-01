@@ -26,7 +26,6 @@ namespace Mandelbrot
 
         private void Draw(int[] data, int width, int height, int iterations, Color color)
         {
-            Pen pen = new Pen(Color.Red);
             var bmp = new Bitmap(width, height);
             for (int i = 0; i < width * height; i++)
             {
