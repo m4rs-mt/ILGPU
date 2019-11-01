@@ -27,6 +27,7 @@ namespace SimpleConstants
         /// <summary>
         /// A readonly field.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1802:Use literals where appropriate", Justification = "Testing readonly value")]
         static readonly int ReadOnlyValue = 2;
 
         /// <summary>

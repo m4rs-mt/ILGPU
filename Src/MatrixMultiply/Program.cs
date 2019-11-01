@@ -262,7 +262,7 @@ namespace MatrixMultiply
         /// <summary>
         /// Size of the tile (NxN).
         /// </summary>
-        static readonly int TILE_SIZE = 2;
+        const int TILE_SIZE = 2;
 
         /// <summary>
         /// Multiplies two dense matrices and returns the resultant matrix (using tiling).
