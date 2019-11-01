@@ -218,7 +218,7 @@ namespace LowLevelKernelCompilation
         /// Launches a simple 1D kernel using implicit and auto-grouping functionality.
         /// This sample demonstates the creation of launcher delegates in order to avoid boxing.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())

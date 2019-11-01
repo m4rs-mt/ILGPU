@@ -88,7 +88,7 @@ namespace SimpleViews
         /// Demonstrates the use of array views. Operations on array views are
         /// supported on all accelerators.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())

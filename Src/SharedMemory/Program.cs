@@ -97,7 +97,7 @@ namespace SharedMemory
         /// <summary>
         /// Launches a simple 1D kernel using shared memory.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())

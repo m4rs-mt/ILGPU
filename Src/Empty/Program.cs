@@ -18,7 +18,7 @@ namespace Empty
         /// <summary>
         /// Initializes an ILGPU context.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Every application needs an instantiated global ILGPU context
             using (var context = new Context())

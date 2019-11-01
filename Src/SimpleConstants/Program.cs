@@ -122,7 +122,7 @@ namespace SimpleConstants
         /// <summary>
         /// Demonstates different use cases of constants and static fields.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // All kernels reject read accesses to write-enabled static fields by default.
             // However, you can disable this restriction via:

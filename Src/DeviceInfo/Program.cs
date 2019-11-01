@@ -39,7 +39,7 @@ namespace DeviceInfo
         /// Detects all available accelerators and prints device information about each
         /// of them on the command line.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())
