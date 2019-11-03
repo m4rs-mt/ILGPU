@@ -29,7 +29,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Contains all basic value types.
         /// </summary>
-        private static readonly ImmutableArray<BasicValueType> BasicValueTypes =
+        public static readonly ImmutableArray<BasicValueType> BasicValueTypes =
             ImmutableArray.Create(
                 BasicValueType.Int1,
                 BasicValueType.Int8,
