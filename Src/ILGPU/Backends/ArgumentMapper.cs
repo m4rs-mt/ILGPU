@@ -473,7 +473,7 @@ namespace ILGPU.Backends
                 source.EmitLoadSource(emitter);
                 emitter.Emit(OpCodes.Cpobj, target.TargetType);
             }
-            else if (sourceType.IsArrayViewType(out Type elementType))
+            else if (sourceType.IsArrayViewType(out Type _))
                 MapViewInstance(emitter, source, target);
             else
                 MapStructInstance(emitter, source, target);

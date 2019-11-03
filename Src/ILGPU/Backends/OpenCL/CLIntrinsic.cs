@@ -68,13 +68,8 @@ namespace ILGPU.Backends.OpenCL
         #region Methods
 
         /// <summary cref="IntrinsicImplementation.CanHandleBackend(Backend)"/>
-        protected internal override bool CanHandleBackend(Backend backend)
-        {
-            if (!(backend is CLBackend clBackend))
-                return false;
-
-            return true;
-        }
+        protected internal override bool CanHandleBackend(Backend backend) =>
+            backend is CLBackend;
 
         #endregion
     }
