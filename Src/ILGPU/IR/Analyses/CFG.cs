@@ -198,7 +198,6 @@ namespace ILGPU.IR.Analyses
             {
                 #region Instance
 
-                private readonly List<Node> values;
                 private List<Node>.Enumerator enumerator;
 
                 /// <summary>
@@ -207,7 +206,6 @@ namespace ILGPU.IR.Analyses
                 /// <param name="valueSet">The nodes to iterate over.</param>
                 internal Enumerator(List<Node> valueSet)
                 {
-                    values = valueSet;
                     enumerator = valueSet.GetEnumerator();
                 }
 

@@ -53,7 +53,6 @@ namespace ILGPU.IR.Intrinsics
             /// </summary>
             public struct Enumerator : IEnumerator<IntrinsicImplementation>
             {
-                private readonly HashSet<IntrinsicImplementation> implementations;
                 private HashSet<IntrinsicImplementation>.Enumerator enumerator;
 
                 /// <summary>
@@ -62,7 +61,6 @@ namespace ILGPU.IR.Intrinsics
                 /// <param name="implementationSet">The implementations.</param>
                 internal Enumerator(HashSet<IntrinsicImplementation> implementationSet)
                 {
-                    implementations = implementationSet;
                     enumerator = implementationSet.GetEnumerator();
                 }
 

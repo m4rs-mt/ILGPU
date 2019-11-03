@@ -168,7 +168,6 @@ namespace ILGPU.IR.Values
         /// </summary>
         public struct Enumerator : IEnumerator<Use>
         {
-            private readonly HashSet<Use> uses;
             private HashSet<Use>.Enumerator enumerator;
 
             /// <summary>
@@ -180,7 +179,6 @@ namespace ILGPU.IR.Values
             internal Enumerator(Value node, HashSet<Use> useSet)
             {
                 Node = node;
-                uses = useSet;
                 enumerator = useSet.GetEnumerator();
                 Current = default;
             }
