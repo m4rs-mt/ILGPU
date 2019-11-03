@@ -86,7 +86,7 @@ namespace ILGPU.Backends.PTX
 
             using (var command = BeginCommand(
                 PTXInstructions.GetArithmeticOperation(
-                    BinaryArithmeticKind.Mul,
+                    BinaryArithmeticKind.Div,
                     ArithmeticBasicValueType.Int32,
                     FastMath)))
             {
