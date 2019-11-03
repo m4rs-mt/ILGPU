@@ -19,9 +19,7 @@ namespace ILGPU.Tests
 {
     public abstract class UnaryIntOperations : TestBase
     {
-        public UnaryIntOperations(
-            ITestOutputHelper output,
-            ContextProvider contextProvider)
+        protected UnaryIntOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

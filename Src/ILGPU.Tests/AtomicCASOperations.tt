@@ -13,9 +13,7 @@ namespace ILGPU.Tests
 {
     public abstract class AtomicCASOperations : TestBase
     {
-        public AtomicCASOperations(
-            ITestOutputHelper output,
-            ContextProvider contextProvider)
+        protected AtomicCASOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

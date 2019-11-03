@@ -32,9 +32,7 @@ namespace ILGPU.Tests
 {
     public abstract class BinaryIntOperations : TestBase
     {
-        public BinaryIntOperations(
-            ITestOutputHelper output,
-            ContextProvider contextProvider)
+        protected BinaryIntOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

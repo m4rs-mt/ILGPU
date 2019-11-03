@@ -40,7 +40,7 @@ namespace ILGPU.Tests
         /// </summary>
         /// <param name="output">The associated output module.</param>
         /// <param name="contextProvider">The context provider to use.</param>
-        public TestBase(ITestOutputHelper output, ContextProvider contextProvider)
+        protected TestBase(ITestOutputHelper output, ContextProvider contextProvider)
         {
             Output = output;
             ContextProvider = contextProvider;

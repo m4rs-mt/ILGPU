@@ -23,9 +23,7 @@ namespace ILGPU.Tests
 {
     public abstract class CompareFloatOperations : TestBase
     {
-        public CompareFloatOperations(
-            ITestOutputHelper output,
-            ContextProvider contextProvider)
+        protected CompareFloatOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

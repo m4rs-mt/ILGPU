@@ -15,9 +15,7 @@ namespace ILGPU.Tests
 {
     public abstract class ConvertFloatOperations : TestBase
     {
-        public ConvertFloatOperations(
-            ITestOutputHelper output,
-            ContextProvider contextProvider)
+        protected ConvertFloatOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

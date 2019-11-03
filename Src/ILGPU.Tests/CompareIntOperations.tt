@@ -24,9 +24,7 @@ namespace ILGPU.Tests
 {
     public abstract class CompareIntOperations : TestBase
     {
-        public CompareIntOperations(
-            ITestOutputHelper output,
-            ContextProvider contextProvider)
+        protected CompareIntOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

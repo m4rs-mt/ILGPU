@@ -6,7 +6,7 @@ namespace ILGPU.Tests
 {
     public abstract class ArrayViews : TestBase
     {
-        public ArrayViews(ITestOutputHelper output, ContextProvider contextProvider)
+        protected ArrayViews(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

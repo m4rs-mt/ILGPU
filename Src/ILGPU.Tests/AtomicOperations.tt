@@ -25,9 +25,7 @@ namespace ILGPU.Tests
         Justification = "Only used for testing")]
     public abstract class AtomicOperations : TestBase
     {
-        public AtomicOperations(
-            ITestOutputHelper output,
-            ContextProvider contextProvider)
+        protected AtomicOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

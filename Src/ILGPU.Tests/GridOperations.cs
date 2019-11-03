@@ -8,7 +8,7 @@ namespace ILGPU.Tests
     [Collection("DimensionOperations")]
     public abstract class GridOperations : TestBase
     {
-        public GridOperations(ITestOutputHelper output, ContextProvider contextProvider)
+        protected GridOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

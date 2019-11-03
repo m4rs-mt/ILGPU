@@ -5,7 +5,7 @@ namespace ILGPU.Tests
 {
     public abstract class BasicSwitches : TestBase
     {
-        public BasicSwitches(ITestOutputHelper output, ContextProvider contextProvider)
+        protected BasicSwitches(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

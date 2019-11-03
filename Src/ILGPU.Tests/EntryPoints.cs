@@ -7,7 +7,7 @@ namespace ILGPU.Tests
 {
     public abstract class EntryPoints : TestBase
     {
-        public EntryPoints(ITestOutputHelper output, ContextProvider contextProvider)
+        protected EntryPoints(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

@@ -10,7 +10,7 @@ namespace ILGPU.Tests
     {
         private const int Length = 128;
 
-        public BasicLoops(ITestOutputHelper output, ContextProvider contextProvider)
+        protected BasicLoops(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

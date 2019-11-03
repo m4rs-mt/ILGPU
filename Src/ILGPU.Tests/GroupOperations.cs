@@ -10,7 +10,7 @@ namespace ILGPU.Tests
     [Collection("DimensionOperations")]
     public abstract class GroupOperations : TestBase
     {
-        public GroupOperations(ITestOutputHelper output, ContextProvider contextProvider)
+        protected GroupOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

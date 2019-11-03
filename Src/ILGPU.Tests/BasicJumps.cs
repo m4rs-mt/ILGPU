@@ -8,7 +8,7 @@ namespace ILGPU.Tests
 {
     public abstract class BasicJumps : TestBase
     {
-        public BasicJumps(ITestOutputHelper output, ContextProvider contextProvider)
+        protected BasicJumps(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

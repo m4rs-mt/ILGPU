@@ -6,7 +6,7 @@ namespace ILGPU.Tests
 {
     public abstract class SharedMemory : TestBase
     {
-        public SharedMemory(ITestOutputHelper output, ContextProvider contextProvider)
+        protected SharedMemory(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

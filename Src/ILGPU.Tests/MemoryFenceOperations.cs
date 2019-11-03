@@ -8,7 +8,7 @@ namespace ILGPU.Tests
     {
         private const int Length = 1024;
 
-        public MemoryFenceOperations(ITestOutputHelper output, ContextProvider contextProvider)
+        protected MemoryFenceOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

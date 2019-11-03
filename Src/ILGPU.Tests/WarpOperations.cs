@@ -7,7 +7,7 @@ namespace ILGPU.Tests
 {
     public abstract class WarpOperations : TestBase
     {
-        public WarpOperations(ITestOutputHelper output, ContextProvider contextProvider)
+        protected WarpOperations(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

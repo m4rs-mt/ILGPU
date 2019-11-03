@@ -12,7 +12,7 @@ namespace ILGPU.Tests
         /// Constructs a new context provider.
         /// </summary>
         /// <param name="optimizationLevel">The optimization level to use.</param>
-        public ContextProvider(OptimizationLevel optimizationLevel)
+        protected ContextProvider(OptimizationLevel optimizationLevel)
         {
             OptimizationLevel = optimizationLevel;
         }

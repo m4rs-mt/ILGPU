@@ -10,7 +10,7 @@ namespace ILGPU.Tests
     {
         private const int Length = 32;
 
-        public BasicIfs(ITestOutputHelper output, ContextProvider contextProvider)
+        protected BasicIfs(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

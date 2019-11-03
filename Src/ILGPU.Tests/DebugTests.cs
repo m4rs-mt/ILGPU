@@ -7,7 +7,7 @@ namespace ILGPU.Tests
 {
     public abstract class DebugTests : TestBase
     {
-        public DebugTests(ITestOutputHelper output, ContextProvider contextProvider)
+        protected DebugTests(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 
