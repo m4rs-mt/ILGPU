@@ -213,7 +213,7 @@ namespace ILGPU.Backends.PTX
                 {
                     var part = (intRef >> 24) & 0xff;
                     stringBuilder.Append(part.ToString("X2"));
-                    intRef = intRef << 8;
+                    intRef <<= 8;
                 }
             }
 
@@ -230,7 +230,7 @@ namespace ILGPU.Backends.PTX
                 {
                     var part = (longRef >> 56) & 0xff;
                     stringBuilder.Append(part.ToString("X2"));
-                    longRef = longRef << 8;
+                    longRef <<= 8;
                 }
             }
 
