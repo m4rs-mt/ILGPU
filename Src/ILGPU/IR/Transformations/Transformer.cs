@@ -125,7 +125,7 @@ namespace ILGPU.IR.Transformations
         {
             #region Instance
 
-            private ImmutableArray<Transformation>.Builder builder;
+            private readonly ImmutableArray<Transformation>.Builder builder;
 
             /// <summary>
             /// Constructs a new builder.

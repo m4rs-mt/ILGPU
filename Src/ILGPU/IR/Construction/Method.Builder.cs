@@ -32,7 +32,7 @@ namespace ILGPU.IR
         {
             #region Instance
 
-            private ImmutableArray<Parameter>.Builder parameters;
+            private readonly ImmutableArray<Parameter>.Builder parameters;
 
             /// <summary>
             /// All created basic block builders.
