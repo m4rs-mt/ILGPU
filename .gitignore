@@ -274,3 +274,4 @@ Src/ILGPU.Tests/UnaryIntOperations.cs
 
 Src/ILGPU.Tests.CPU/Configurations.cs
 Src/ILGPU.Tests.Cuda/Configurations.cs
+Src/ILGPU.Tests.OpenCL/Configurations.cs
