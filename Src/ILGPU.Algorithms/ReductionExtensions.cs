@@ -13,7 +13,6 @@
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Runtime;
 using System;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace ILGPU.Algorithms
@@ -64,22 +63,6 @@ namespace ILGPU.Algorithms
             var groupSize = ComputeReductionGroupSize(accelerator);
             var gridSize = Math.Min((dataLength + groupSize - 1) / groupSize, groupSize);
             return new GroupedIndex(gridSize, groupSize);
-        }
-
-        /// <summary>
-        /// Verifies reduction arguments.
-        /// </summary>
-        /// <typeparam name="T">The underlying type of the reduction.</typeparam>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void VerifyAtomicReductionArguments<T>(
-            ArrayView<T> input,
-            ArrayView<T> output)
-            where T : struct
-        {
-            if (!input.IsValid)
-                throw new ArgumentNullException(nameof(input));
-            if (!output.IsValid)
-                throw new ArgumentNullException(nameof(output));
         }
 
         /// <summary>
