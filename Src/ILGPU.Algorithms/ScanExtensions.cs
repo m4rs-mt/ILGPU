@@ -75,7 +75,7 @@ namespace ILGPU.Algorithms
     {
         #region Instance
 
-        private MemoryBufferCache bufferCache;
+        private readonly MemoryBufferCache bufferCache;
 
         internal ScanProvider(Accelerator accelerator)
             : base(accelerator)
@@ -150,7 +150,9 @@ namespace ILGPU.Algorithms
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            Dispose(ref bufferCache);
+            if (disposing)
+                bufferCache.Dispose();
+            base.Dispose(disposing);
         }
 
         #endregion
