@@ -168,8 +168,11 @@ namespace ILGPU.Runtime
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            base.Dispose(disposing);
-            Marshal.FreeHGlobal(NativePtr);
+            if (NativePtr != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(NativePtr);
+                NativePtr = IntPtr.Zero;
+            }
         }
 
         #endregion

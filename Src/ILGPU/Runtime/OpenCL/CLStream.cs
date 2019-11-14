@@ -64,9 +64,11 @@ namespace ILGPU.Runtime.OpenCL
         protected override void Dispose(bool disposing)
         {
             if (queuePtr != IntPtr.Zero)
+            {
                 CLException.ThrowIfFailed(
                     CLAPI.ReleaseCommandQueue(queuePtr));
-            queuePtr = IntPtr.Zero;
+                queuePtr = IntPtr.Zero;
+            }
         }
 
         #endregion

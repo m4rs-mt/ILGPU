@@ -128,12 +128,18 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            CLException.ThrowIfFailed(
-                CLAPI.ReleaseKernel(kernelPtr) |
-                CLAPI.ReleaseProgram(programPtr));
-
-            programPtr = IntPtr.Zero;
-            kernelPtr = IntPtr.Zero;
+            if (kernelPtr != IntPtr.Zero)
+            {
+                CLException.ThrowIfFailed(
+                    CLAPI.ReleaseKernel(kernelPtr));
+                kernelPtr = IntPtr.Zero;
+            }
+            if (programPtr != IntPtr.Zero)
+            {
+                CLException.ThrowIfFailed(
+                    CLAPI.ReleaseProgram(programPtr));
+                programPtr = IntPtr.Zero;
+            }
         }
 
         #endregion

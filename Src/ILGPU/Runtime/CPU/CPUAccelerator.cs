@@ -499,21 +499,23 @@ namespace ILGPU.Runtime.CPU
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            base.Dispose(disposing);
-
-            lock (taskSynchronizationObject)
+            if (disposing)
             {
-                running = false;
-                currentTask = null;
-                Monitor.PulseAll(taskSynchronizationObject);
+                lock (taskSynchronizationObject)
+                {
+                    running = false;
+                    currentTask = null;
+                    Monitor.PulseAll(taskSynchronizationObject);
+                }
+                foreach (var thread in threads)
+                    thread.Join();
+                threads = null;
+                foreach (var group in groupContexts)
+                    group.Dispose();
+                groupContexts = null;
+                finishedEvent.Dispose();
             }
-            foreach (var thread in threads)
-                thread.Join();
-            threads = null;
-            foreach (var group in groupContexts)
-                group.Dispose();
-            groupContexts = null;
-            finishedEvent.Dispose();
+            base.Dispose(disposing);
         }
 
         #endregion

@@ -100,9 +100,13 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            CudaException.ThrowIfFailed(CudaAPI.Current.DestroyModule(modulePtr));
-            functionPtr = IntPtr.Zero;
-            modulePtr = IntPtr.Zero;
+            if (modulePtr != IntPtr.Zero)
+            {
+                CudaException.ThrowIfFailed(
+                    CudaAPI.Current.DestroyModule(modulePtr));
+                functionPtr = IntPtr.Zero;
+                modulePtr = IntPtr.Zero;
+            }
         }
 
         #endregion

@@ -16,7 +16,6 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading;
 
@@ -75,7 +74,7 @@ namespace ILGPU.Frontend
 
         private volatile bool running = true;
         private readonly Thread[] threads;
-        private ManualResetEventSlim driverNotifier;
+        private readonly ManualResetEventSlim driverNotifier;
         private volatile int activeThreads = 0;
         private readonly object processingSyncObject = new object();
         private readonly Stack<ProcessingEntry> processing =
@@ -201,9 +200,6 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="context">The target IR context.</param>
         /// <returns>The created code-generation phase.</returns>
-        [SuppressMessage("Microsoft.Reliability", "CA2000: DisposeObjectsBeforeLosingScope",
-            Target = "newPhase",
-            Justification = "The user will dispose the object in order to finish the generation process")]
         public CodeGenerationPhase BeginCodeGeneration(IRContext context)
         {
             if (context == null)
@@ -236,17 +232,17 @@ namespace ILGPU.Frontend
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed",
-            Target = "driverNotifier",
-            Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
-            running = false;
-            lock (processingSyncObject)
-                Monitor.PulseAll(processingSyncObject);
-            foreach (var thread in threads)
-                thread.Join();
-            Dispose(ref driverNotifier);
+            if (disposing)
+            {
+                running = false;
+                lock (processingSyncObject)
+                    Monitor.PulseAll(processingSyncObject);
+                foreach (var thread in threads)
+                    thread.Join();
+                driverNotifier.Dispose();
+            }
         }
 
         #endregion
@@ -425,8 +421,11 @@ namespace ILGPU.Frontend
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            isFinished = true;
-            Frontend.FinishCodeGeneration(this);
+            if (disposing)
+            {
+                isFinished = true;
+                Frontend.FinishCodeGeneration(this);
+            }
         }
 
         #endregion

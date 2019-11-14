@@ -130,8 +130,11 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            CudaException.ThrowIfFailed(CudaAPI.Current.FreeMemory(NativePtr));
-            NativePtr = IntPtr.Zero;
+            if (NativePtr != IntPtr.Zero)
+            {
+                CudaException.ThrowIfFailed(CudaAPI.Current.FreeMemory(NativePtr));
+                NativePtr = IntPtr.Zero;
+            }
         }
 
         #endregion

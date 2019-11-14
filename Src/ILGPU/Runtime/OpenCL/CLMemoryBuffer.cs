@@ -138,9 +138,12 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            CLException.ThrowIfFailed(
-                CLAPI.ReleaseBuffer(NativePtr));
-            NativePtr = IntPtr.Zero;
+            if (NativePtr != IntPtr.Zero)
+            {
+                CLException.ThrowIfFailed(
+                    CLAPI.ReleaseBuffer(NativePtr));
+                NativePtr = IntPtr.Zero;
+            }
         }
 
         #endregion

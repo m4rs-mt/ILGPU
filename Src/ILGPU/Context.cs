@@ -119,15 +119,7 @@ namespace ILGPU
         private long functionHandleCounter = 0;
         private long nodeMarker = 0L;
 
-        private SemaphoreSlim codeGenerationSemaphore = new SemaphoreSlim(1);
-        private ILFrontend ilFrontend;
-
-        private DebugInformationManager debugInformationManager = new DebugInformationManager();
-
-        private IRTypeContext typeContext;
-        private IRContext mainContext;
-        private ILBackend defaultILBackend;
-
+        private readonly SemaphoreSlim codeGenerationSemaphore = new SemaphoreSlim(1);
         private readonly object assemblyLock = new object();
         private int assemblyVersion = 0;
         private AssemblyBuilder assemblyBuilder;
@@ -172,23 +164,23 @@ namespace ILGPU
             Flags = flags.Prepare();
 
             // Initialize main contexts
-            typeContext = new IRTypeContext(this);
-            mainContext = new IRContext(this);
+            TypeContext = new IRTypeContext(this);
+            IRContext = new IRContext(this);
 
             // Create frontend
             DebugInformationManager frontendDebugInformationManager =
                 HasFlags(ContextFlags.EnableDebugInformation) ? DebugInformationManager : null;
 
             if (HasFlags(ContextFlags.EnableParallelCodeGenerationInFrontend))
-                ilFrontend = new ILFrontend(frontendDebugInformationManager);
+                ILFrontend = new ILFrontend(frontendDebugInformationManager);
             else
-                ilFrontend = new ILFrontend(frontendDebugInformationManager, 1);
+                ILFrontend = new ILFrontend(frontendDebugInformationManager, 1);
 
             // Create default IL backend
             if (flags.HasFlags(ContextFlags.SkipCPUCodeGeneration))
-                defaultILBackend = new SkipCodeGenerationDefaultILBackend(this);
+                DefautltILBackend = new SkipCodeGenerationDefaultILBackend(this);
             else
-                defaultILBackend = new DefaultILBackend(this);
+                DefautltILBackend = new DefaultILBackend(this);
 
             // Initialize default transformer
             ContextTransformer = Optimizer.CreateTransformer(
@@ -211,7 +203,7 @@ namespace ILGPU
         /// <summary>
         /// Returns the main IR context.
         /// </summary>
-        public IRContext IRContext => mainContext;
+        public IRContext IRContext { get; }
 
         /// <summary>
         /// Returns the associated context flags.
@@ -221,12 +213,12 @@ namespace ILGPU
         /// <summary>
         /// Returns the associated IL frontend.
         /// </summary>
-        internal ILFrontend ILFrontend => ilFrontend;
+        internal ILFrontend ILFrontend { get; }
 
         /// <summary>
         /// Returns the associated default IL backend.
         /// </summary>
-        internal ILBackend DefautltILBackend => defaultILBackend;
+        internal ILBackend DefautltILBackend { get; }
 
         /// <summary>
         /// Returns the optimization level.
@@ -236,12 +228,12 @@ namespace ILGPU
         /// <summary>
         /// Returns the main debug-information manager.
         /// </summary>
-        public DebugInformationManager DebugInformationManager => debugInformationManager;
+        public DebugInformationManager DebugInformationManager { get; } = new DebugInformationManager();
 
         /// <summary>
         /// Returns the main type context.
         /// </summary>
-        public IRTypeContext TypeContext => typeContext;
+        public IRTypeContext TypeContext { get; }
 
         /// <summary>
         /// Returns the default context transformer.
@@ -367,10 +359,10 @@ namespace ILGPU
         /// </remarks>
         public void ClearCache(ClearCacheMode mode)
         {
-            mainContext.ClearCache(mode);
-            typeContext.ClearCache(mode);
-            debugInformationManager.ClearCache(mode);
-            defaultILBackend.ClearCache(mode);
+            IRContext.ClearCache(mode);
+            TypeContext.ClearCache(mode);
+            DebugInformationManager.ClearCache(mode);
+            DefautltILBackend.ClearCache(mode);
 
             ReloadAssemblyBuilder();
         }
@@ -451,23 +443,19 @@ namespace ILGPU
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "codeGenerationSemaphore", Justification = "Dispose method will be invoked by a helper method")]
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "mainContext", Justification = "Dispose method will be invoked by a helper method")]
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "ilFrontend", Justification = "Dispose method will be invoked by a helper method")]
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "defaultILBackend", Justification = "Dispose method will be invoked by a helper method")]
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "debugInformationManager", Justification = "Dispose method will be invoked by a helper method")]
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "typeContext", Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
-            Dispose(ref codeGenerationSemaphore);
+            if (disposing)
+            {
+                codeGenerationSemaphore.Dispose();
+                IRContext.Dispose();
 
-            Dispose(ref mainContext);
+                ILFrontend.Dispose();
+                DefautltILBackend.Dispose();
 
-            Dispose(ref ilFrontend);
-            Dispose(ref defaultILBackend);
-
-            Dispose(ref debugInformationManager);
-            Dispose(ref typeContext);
+                DebugInformationManager.Dispose();
+                TypeContext.Dispose();
+            }
         }
 
         #endregion
@@ -532,7 +520,8 @@ namespace ILGPU
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            Context.ReleaseCodeGenerationLock();
+            if (disposing)
+                Context.ReleaseCodeGenerationLock();
         }
 
         #endregion

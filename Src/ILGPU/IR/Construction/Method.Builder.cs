@@ -355,16 +355,19 @@ namespace ILGPU.IR
             /// <summary cref="DisposeBase.Dispose(bool)"/>
             protected override void Dispose(bool disposing)
             {
-                // Assign parameters and adjust their indices
-                var @params = parameters.ToImmutable();
-                for (int i = 0, e = @params.Length; i < e; ++i)
-                    @params[i].Index = i;
-                Method.parameters = @params;
+                if (disposing)
+                {
+                    // Assign parameters and adjust their indices
+                    var @params = parameters.ToImmutable();
+                    for (int i = 0, e = @params.Length; i < e; ++i)
+                        @params[i].Index = i;
+                    Method.parameters = @params;
 
-                // Dispose all basic block builders
-                foreach (var builder in basicBlockBuilders)
-                    builder.Dispose();
-                Method.ReleaseBuilder(this);
+                    // Dispose all basic block builders
+                    foreach (var builder in basicBlockBuilders)
+                        builder.Dispose();
+                    Method.ReleaseBuilder(this);
+                }
             }
 
             #endregion

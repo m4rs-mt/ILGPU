@@ -577,8 +577,6 @@ namespace ILGPU.Backends
     {
         #region Instance
 
-        private IntrinsicImplementationProvider<TDelegate> intrinsicProvider;
-
         /// <summary>
         /// Constructs a new generic backend.
         /// </summary>
@@ -595,7 +593,7 @@ namespace ILGPU.Backends
             Func<ABI, ArgumentMapper> argumentMapperProvider)
             : base(context, backendType, backendFlags, abi, argumentMapperProvider)
         {
-            intrinsicProvider = context.IntrinsicManager.CreateProvider<TDelegate>(this);
+            IntrinsicProvider = context.IntrinsicManager.CreateProvider<TDelegate>(this);
         }
 
         #endregion
@@ -605,7 +603,7 @@ namespace ILGPU.Backends
         /// <summary>
         /// Returns the current intrinsic provider.
         /// </summary>
-        public IntrinsicImplementationProvider<TDelegate> IntrinsicProvider => intrinsicProvider;
+        public IntrinsicImplementationProvider<TDelegate> IntrinsicProvider { get; }
 
         #endregion
 
@@ -654,7 +652,7 @@ namespace ILGPU.Backends
         public override void ClearCache(ClearCacheMode mode)
         {
             base.ClearCache(mode);
-            intrinsicProvider.ClearCache(mode);
+            IntrinsicProvider.ClearCache(mode);
         }
 
         #endregion
@@ -664,8 +662,9 @@ namespace ILGPU.Backends
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
+            if (disposing)
+                IntrinsicProvider.Dispose();
             base.Dispose(disposing);
-            Dispose(ref intrinsicProvider);
         }
 
         #endregion

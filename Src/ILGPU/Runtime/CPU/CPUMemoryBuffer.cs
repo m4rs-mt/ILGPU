@@ -121,8 +121,11 @@ namespace ILGPU.Runtime.CPU
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            Marshal.FreeHGlobal(NativePtr);
-            NativePtr = IntPtr.Zero;
+            if (NativePtr != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(NativePtr);
+                NativePtr = IntPtr.Zero;
+            }
         }
 
         #endregion

@@ -22,6 +22,8 @@ using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR
 {
+    [SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable",
+        Justification = "Handled in Method.Builder.Dispose(bool)")]
     partial class BasicBlock
     {
         /// <summary>
@@ -492,8 +494,11 @@ namespace ILGPU.IR
             /// <summary cref="DisposeBase.Dispose(bool)"/>
             protected override void Dispose(bool disposing)
             {
-                PerformRemoval();
-                BasicBlock.ReleaseBuilder(this);
+                if (disposing)
+                {
+                    PerformRemoval();
+                    BasicBlock.ReleaseBuilder(this);
+                }
             }
 
             #endregion

@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -24,11 +23,10 @@ namespace ILGPU.Frontend.DebugInformation
     /// <summary>
     /// Represents assembly debug information.
     /// </summary>
-    public sealed class AssemblyDebugInformation : DisposeBase
+    public sealed class AssemblyDebugInformation
     {
         #region Instance
 
-        private MetadataReaderProvider metadataReaderProvider;
         private readonly Dictionary<MethodBase, MethodDebugInformation> debugInformation =
             new Dictionary<MethodBase, MethodDebugInformation>();
 
@@ -52,10 +50,8 @@ namespace ILGPU.Frontend.DebugInformation
             Assembly = assembly;
             Modules = ImmutableArray.Create(assembly.GetModules());
 
-            metadataReaderProvider = MetadataReaderProvider.FromPortablePdbStream(
-                pdbStream,
-                MetadataStreamOptions.PrefetchMetadata);
-            MetadataReader = metadataReaderProvider.GetMetadataReader();
+            using (var metadataReaderProvider = MetadataReaderProvider.FromPortablePdbStream(pdbStream, MetadataStreamOptions.PrefetchMetadata))
+                MetadataReader = metadataReaderProvider.GetMetadataReader();
 
             var methodDebugInformationEnumerator = MetadataReader.MethodDebugInformation.GetEnumerator();
             while (methodDebugInformationEnumerator.MoveNext())
@@ -135,16 +131,6 @@ namespace ILGPU.Frontend.DebugInformation
                 return false;
             methodDebugInformation.LoadSequencePoints();
             return true;
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
-        {
-            Dispose(ref metadataReaderProvider);
         }
 
         #endregion

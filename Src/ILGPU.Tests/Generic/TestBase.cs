@@ -32,9 +32,6 @@ namespace ILGPU.Tests
 
         #endregion
 
-        private Context context;
-        private Accelerator accelerator;
-
         /// <summary>
         /// Constructs a new test base.
         /// </summary>
@@ -45,10 +42,10 @@ namespace ILGPU.Tests
             Output = output;
             ContextProvider = contextProvider;
 
-            context = contextProvider.CreateContext();
-            Assert.True(context != null, "Invalid context");
-            accelerator = contextProvider.CreateAccelerator(context);
-            Assert.True(accelerator != null, "Accelerator not supported");
+            Context = contextProvider.CreateContext();
+            Assert.True(Context != null, "Invalid context");
+            Accelerator = contextProvider.CreateAccelerator(Context);
+            Assert.True(Accelerator != null, "Accelerator not supported");
 
             TestType = GetType();
         }
@@ -69,12 +66,12 @@ namespace ILGPU.Tests
         /// <summary>
         /// Returns the associated context.
         /// </summary>
-        public Context Context => context;
+        public Context Context { get; }
 
         /// <summary>
         /// Returns the associated accelerator.
         /// </summary>
-        public Accelerator Accelerator => accelerator;
+        public Accelerator Accelerator { get; }
 
         /// <summary>
         /// Returns the associated test type.
@@ -203,8 +200,11 @@ namespace ILGPU.Tests
         /// <summary cref="IDisposable.Dispose"/>
         protected override void Dispose(bool disposing)
         {
-            Dispose(ref accelerator);
-            Dispose(ref context);
+            if (disposing)
+            {
+                Accelerator.Dispose();
+                Context.Dispose();
+            }
         }
 
         #endregion

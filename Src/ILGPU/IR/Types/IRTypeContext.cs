@@ -530,8 +530,9 @@ namespace ILGPU.IR.Types
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
+            if (disposing)
+                typeLock.Dispose();
             base.Dispose(disposing);
-            typeLock.Dispose();
         }
 
         #endregion
