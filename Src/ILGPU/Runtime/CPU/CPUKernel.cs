@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends;
-using ILGPU.Util;
 using System;
 using System.Reflection;
 
@@ -53,14 +52,6 @@ namespace ILGPU.Runtime.CPU
         /// Returns the associated kernel-execution delegate.
         /// </summary>
         internal CPUKernelExecutionHandler KernelExecutionDelegate { get; }
-
-        #endregion
-
-        #region IDisposable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
-        { }
 
         #endregion
     }

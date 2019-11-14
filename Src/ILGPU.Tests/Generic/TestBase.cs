@@ -205,6 +205,7 @@ namespace ILGPU.Tests
                 Accelerator.Dispose();
                 Context.Dispose();
             }
+            base.Dispose(disposing);
         }
 
         #endregion

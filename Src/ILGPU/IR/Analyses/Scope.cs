@@ -594,6 +594,7 @@ namespace ILGPU.IR.Analyses
         {
             if (disposing)
                 cacheLock.Dispose();
+            base.Dispose(disposing);
         }
 
         #endregion

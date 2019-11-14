@@ -456,6 +456,7 @@ namespace ILGPU
                 DebugInformationManager.Dispose();
                 TypeContext.Dispose();
             }
+            base.Dispose(disposing);
         }
 
         #endregion
@@ -522,6 +523,7 @@ namespace ILGPU
         {
             if (disposing)
                 Context.ReleaseCodeGenerationLock();
+            base.Dispose(disposing);
         }
 
         #endregion

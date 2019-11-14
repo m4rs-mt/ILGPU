@@ -130,13 +130,6 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             Index byteOffset,
             Index byteExtent) => throw new InvalidOperationException();
-
-        #region IDispoable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing) { }
-
-        #endregion
     }
 
     /// <summary>
@@ -173,6 +166,7 @@ namespace ILGPU.Runtime
                 Marshal.FreeHGlobal(NativePtr);
                 NativePtr = IntPtr.Zero;
             }
+            base.Dispose(disposing);
         }
 
         #endregion
@@ -213,12 +207,5 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             Index byteOffset,
             Index byteExtent) => throw new InvalidOperationException();
-
-        #region IDispoable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing) { }
-
-        #endregion
     }
 }

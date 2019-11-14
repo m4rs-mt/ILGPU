@@ -59,6 +59,6 @@ namespace ILGPU.Util
         /// Frees allocated resources.
         /// </summary>
         /// <param name="disposing">True, iff the method is not called by the finalizer.</param>
-        protected abstract void Dispose(bool disposing);
+        protected virtual void Dispose(bool disposing) { }
     }
 }

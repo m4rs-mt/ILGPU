@@ -140,6 +140,7 @@ namespace ILGPU.Runtime.OpenCL
                     CLAPI.ReleaseProgram(programPtr));
                 programPtr = IntPtr.Zero;
             }
+            base.Dispose(disposing);
         }
 
         #endregion

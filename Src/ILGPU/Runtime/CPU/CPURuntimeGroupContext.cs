@@ -369,6 +369,7 @@ namespace ILGPU.Runtime.CPU
                 sharedMemoryBuffer.Dispose();
                 broadcastBuffer.Dispose();
             }
+            base.Dispose(disposing);
         }
 
         #endregion

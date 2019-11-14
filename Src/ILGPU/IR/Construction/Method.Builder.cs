@@ -368,6 +368,7 @@ namespace ILGPU.IR
                         builder.Dispose();
                     Method.ReleaseBuilder(this);
                 }
+                base.Dispose(disposing);
             }
 
             #endregion

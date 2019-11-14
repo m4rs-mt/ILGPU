@@ -499,6 +499,7 @@ namespace ILGPU.IR
                     PerformRemoval();
                     BasicBlock.ReleaseBuilder(this);
                 }
+                base.Dispose(disposing);
             }
 
             #endregion

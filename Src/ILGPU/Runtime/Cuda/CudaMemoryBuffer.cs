@@ -135,6 +135,7 @@ namespace ILGPU.Runtime.Cuda
                 CudaException.ThrowIfFailed(CudaAPI.Current.FreeMemory(NativePtr));
                 NativePtr = IntPtr.Zero;
             }
+            base.Dispose(disposing);
         }
 
         #endregion

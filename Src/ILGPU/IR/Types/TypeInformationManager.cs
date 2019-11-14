@@ -345,6 +345,7 @@ namespace ILGPU.IR.Types
         {
             if (disposing)
                 cachingLock.Dispose();
+            base.Dispose(disposing);
         }
 
         #endregion

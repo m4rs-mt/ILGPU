@@ -474,6 +474,7 @@ namespace ILGPU.Frontend.DebugInformation
         {
             if (disposing)
                 cacheLock.Dispose();
+            base.Dispose(disposing);
         }
 
         #endregion

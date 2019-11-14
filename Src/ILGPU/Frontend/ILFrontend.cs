@@ -243,6 +243,7 @@ namespace ILGPU.Frontend
                     thread.Join();
                 driverNotifier.Dispose();
             }
+            base.Dispose(disposing);
         }
 
         #endregion
@@ -426,6 +427,7 @@ namespace ILGPU.Frontend
                 isFinished = true;
                 Frontend.FinishCodeGeneration(this);
             }
+            base.Dispose(disposing);
         }
 
         #endregion

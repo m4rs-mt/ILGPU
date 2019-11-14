@@ -588,6 +588,7 @@ namespace ILGPU.IR
         {
             if (disposing)
                 irLock.Dispose();
+            base.Dispose(disposing);
         }
 
         #endregion

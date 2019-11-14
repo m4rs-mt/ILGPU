@@ -144,6 +144,7 @@ namespace ILGPU.Runtime.OpenCL
                     CLAPI.ReleaseBuffer(NativePtr));
                 NativePtr = IntPtr.Zero;
             }
+            base.Dispose(disposing);
         }
 
         #endregion

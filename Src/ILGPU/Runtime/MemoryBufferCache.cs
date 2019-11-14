@@ -159,6 +159,7 @@ namespace ILGPU.Runtime
         {
             if (disposing)
                 cache?.Dispose();
+            base.Dispose(disposing);
         }
 
         #endregion
