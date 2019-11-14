@@ -48,7 +48,7 @@ namespace ILGPU.Runtime
         #region Instance
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MemoryBuffer<T, <#= indexType #>> buffer;
+        private readonly MemoryBuffer<T, <#= indexType #>> buffer;
 
         /// <summary>
         /// Initializes this memory buffer.
@@ -600,7 +600,8 @@ namespace ILGPU.Runtime
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            Dispose(ref buffer);
+            if (disposing)
+                buffer.Dispose();
         }
 
         #endregion

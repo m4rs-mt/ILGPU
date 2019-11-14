@@ -146,7 +146,8 @@ namespace ILGPU.Runtime
         /// <param name="mode">The clear mode.</param>
         public void ClearCache(ClearCacheMode mode)
         {
-            Dispose(ref cache);
+            cache?.Dispose();
+            cache = null;
         }
 
         #endregion
@@ -156,7 +157,8 @@ namespace ILGPU.Runtime
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            ClearCache(ClearCacheMode.Everything);
+            if (disposing)
+                cache?.Dispose();
         }
 
         #endregion

@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace ILGPU.Util
@@ -24,15 +25,20 @@ namespace ILGPU.Util
         /// <summary>
         /// Triggers the 'dispose' functionality of this object.
         /// </summary>
+        [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly",
+            Justification = "Using DisposeDriver(bool) as thread-safe alternative to Dispose(bool)")]
         public void Dispose()
         {
             DisposeDriver(true);
             GC.SuppressFinalize(this);
         }
 
+
         /// <summary>
         /// The custom finalizer for dispose-base objects.
         /// </summary>
+        [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly",
+            Justification = "Using DisposeDriver(bool) as thread-safe alternative to Dispose(bool)")]
         ~DisposeBase()
         {
             DisposeDriver(false);
@@ -54,17 +60,5 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="disposing">True, iff the method is not called by the finalizer.</param>
         protected abstract void Dispose(bool disposing);
-
-        /// <summary>
-        /// Disposes the given object and sets its object reference to null.
-        /// </summary>
-        /// <typeparam name="T">The type of the object to dispose.</typeparam>
-        /// <param name="object">The object to dispose.</param>
-        public static void Dispose<T>(ref T @object)
-            where T : class, IDisposable
-        {
-            @object?.Dispose();
-            @object = null;
-        }
     }
 }

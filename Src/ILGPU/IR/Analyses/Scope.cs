@@ -592,7 +592,8 @@ namespace ILGPU.IR.Analyses
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            cacheLock.Dispose();
+            if (disposing)
+                cacheLock.Dispose();
         }
 
         #endregion

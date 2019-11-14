@@ -246,7 +246,7 @@ namespace ILGPU.Backends.OpenCL
         private static readonly Dictionary<(BinaryArithmeticKind, bool), (string, bool)> BinaryArithmeticOperations =
             new Dictionary<(BinaryArithmeticKind, bool), (string, bool)>()
             {
-                
+
                 { (BinaryArithmeticKind.Add, false), ("+", false) },
                 { (BinaryArithmeticKind.Add, true), ("+", false) },
 

@@ -115,7 +115,7 @@ namespace ILGPU.Runtime
         /// temporary memory.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MemoryBufferCache memoryCache;
+        private readonly MemoryBufferCache memoryCache;
 
         /// <summary>
         /// Constructs a new accelerator.
@@ -656,22 +656,22 @@ namespace ILGPU.Runtime
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "memoryCache",
-            Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
-            Disposed?.Invoke(this, EventArgs.Empty);
-
-            if (disposing && currentAccelerator == this)
+            if (disposing)
             {
-                OnUnbind();
-                currentAccelerator = null;
+                Disposed?.Invoke(this, EventArgs.Empty);
+                if (currentAccelerator == this)
+                {
+                    OnUnbind();
+                    currentAccelerator = null;
+                }
+
+                memoryCache.Dispose();
+
+                DisposeChildObjects();
+                DisposeGC();
             }
-
-            Dispose(ref memoryCache);
-
-            DisposeChildObjects();
-            DisposeGC();
         }
 
         #endregion

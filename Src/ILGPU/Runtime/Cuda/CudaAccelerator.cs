@@ -618,11 +618,13 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
+            if (contextPtr != IntPtr.Zero)
+            {
+                CudaException.ThrowIfFailed(
+                    CurrentAPI.DestroyContext(contextPtr));
+                contextPtr = IntPtr.Zero;
+            }
             base.Dispose(disposing);
-
-            CudaException.ThrowIfFailed(
-                CurrentAPI.DestroyContext(contextPtr));
-            contextPtr = IntPtr.Zero;
         }
 
         #endregion

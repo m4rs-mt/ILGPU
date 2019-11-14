@@ -18,7 +18,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -539,8 +538,6 @@ namespace ILGPU.IR
         /// Creates a new builder for this method.
         /// </summary>
         /// <returns>The created builder.</returns>
-        [SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope",
-            Justification = "The created builder will be stored inside the object")]
         public Builder CreateBuilder()
         {
             var newBuilder = new Builder(this);

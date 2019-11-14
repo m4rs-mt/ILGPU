@@ -13,7 +13,6 @@ using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
-using System;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL

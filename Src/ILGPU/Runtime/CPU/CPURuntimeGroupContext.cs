@@ -14,7 +14,6 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -77,12 +76,12 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// The general group barrier.
         /// </summary>
-        private Barrier groupBarrier;
+        private readonly Barrier groupBarrier;
 
         /// <summary>
         /// A temporary location for broadcast values.
         /// </summary>
-        private MemoryBuffer<byte> broadcastBuffer;
+        private readonly MemoryBuffer<byte> broadcastBuffer;
 
         /// <summary>
         /// The current shared memory offset for allocation.
@@ -102,7 +101,7 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// The actual shared-memory buffer.
         /// </summary>
-        private MemoryBufferCache sharedMemoryBuffer;
+        private readonly MemoryBufferCache sharedMemoryBuffer;
 
         // TODO: remove advancedSharedMemoryBuffer by adjusting
         // the IL-code in debug builds
@@ -362,16 +361,14 @@ namespace ILGPU.Runtime.CPU
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "groupBarrier", Justification = "Dispose method will be invoked by a helper method")]
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "sharedMemoryBuffer", Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
-            if (groupBarrier == null)
-                return;
-
-            Dispose(ref groupBarrier);
-            Dispose(ref sharedMemoryBuffer);
-            Dispose(ref broadcastBuffer);
+            if (disposing)
+            {
+                groupBarrier.Dispose();
+                sharedMemoryBuffer.Dispose();
+                broadcastBuffer.Dispose();
+            }
         }
 
         #endregion

@@ -146,8 +146,8 @@ namespace ILGPU.IR.Intrinsics
 
             private readonly Dictionary<MethodInfo, MappingEntry> mappings;
 
-            private ContextCodeGenerationPhase contextCodeGenerationPhase;
-            private CodeGenerationPhase codeGenerationPhase;
+            private readonly ContextCodeGenerationPhase contextCodeGenerationPhase;
+            private readonly CodeGenerationPhase codeGenerationPhase;
 
             internal IRSpecializationPhase(
                 IntrinsicImplementationProvider<TDelegate> provider,
@@ -235,9 +235,9 @@ namespace ILGPU.IR.Intrinsics
             /// </summary>
             public void Dispose()
             {
-                DisposeBase.Dispose(ref codeGenerationPhase);
+                codeGenerationPhase.Dispose();
                 contextCodeGenerationPhase.Optimize();
-                DisposeBase.Dispose(ref contextCodeGenerationPhase);
+                contextCodeGenerationPhase.Dispose();
 
                 foreach (var mappingEntry in mappings.Values)
                     mappingEntry.Apply();
@@ -304,7 +304,7 @@ namespace ILGPU.IR.Intrinsics
 
         private readonly IntrinsicMethodMatcher<IntrinsicMapping<TDelegate>> methodMatcher;
         private readonly BaseIntrinsicValueMatcher<IntrinsicMapping<TDelegate>>[] valueMatchers;
-        private IRContext intrinsicContext;
+        private readonly IRContext intrinsicContext;
 
         /// <summary>
         /// Constructs a new intrinsic implementation mapping.
@@ -481,8 +481,11 @@ namespace ILGPU.IR.Intrinsics
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing) =>
-            Dispose(ref intrinsicContext);
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                intrinsicContext.Dispose();
+        }
 
         #endregion
     }

@@ -391,7 +391,7 @@ namespace ILGPU.Frontend.DebugInformation
             methodDebugInformation = null;
             if (!TryLoadSymbols(
                 methodBase.Module.Assembly,
-                out AssemblyDebugInformation assemblyDebugInformation))
+                out var assemblyDebugInformation))
                 return false;
             return assemblyDebugInformation.TryLoadDebugInformation(
                 methodBase,
@@ -443,8 +443,6 @@ namespace ILGPU.Frontend.DebugInformation
             {
                 if (mode == ClearCacheMode.Everything)
                 {
-                    foreach (var debugInformation in assemblies.Values)
-                        debugInformation.Dispose();
                     assemblies.Clear();
                 }
                 else
@@ -458,10 +456,7 @@ namespace ILGPU.Frontend.DebugInformation
                         assembliesToRemove.Add(assembly);
                     }
                     foreach (var assemblyToRemove in assembliesToRemove)
-                    {
-                        assemblies[assemblyToRemove].Dispose();
                         assemblies.Remove(assemblyToRemove);
-                    }
                 }
             }
             finally
@@ -475,12 +470,10 @@ namespace ILGPU.Frontend.DebugInformation
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
-        [SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "cacheLock",
-            Justification = "Dispose method will be invoked by a helper method")]
         protected override void Dispose(bool disposing)
         {
-            ClearCache(ClearCacheMode.Everything);
-            cacheLock.Dispose();
+            if (disposing)
+                cacheLock.Dispose();
         }
 
         #endregion

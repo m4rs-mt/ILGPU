@@ -12,7 +12,6 @@
 using ILGPU.Backends;
 using ILGPU.Resources;
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace ILGPU.Runtime
@@ -72,8 +71,6 @@ namespace ILGPU.Runtime
         }
 
         /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
-        [SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope",
-            Justification = "The object must not be disposed here")]
         protected sealed override Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
             out int groupSize,

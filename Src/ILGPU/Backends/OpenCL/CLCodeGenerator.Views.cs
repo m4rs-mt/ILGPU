@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 

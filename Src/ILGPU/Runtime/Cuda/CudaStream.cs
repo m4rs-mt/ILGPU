@@ -79,9 +79,11 @@ namespace ILGPU.Runtime.Cuda
         protected override void Dispose(bool disposing)
         {
             if (streamPtr != IntPtr.Zero)
+            {
                 CudaException.ThrowIfFailed(
                     CudaAPI.Current.DestroyStream(streamPtr));
-            streamPtr = IntPtr.Zero;
+                streamPtr = IntPtr.Zero;
+            }
         }
 
         #endregion

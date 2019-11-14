@@ -586,7 +586,8 @@ namespace ILGPU.IR
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            irLock.Dispose();
+            if (disposing)
+                irLock.Dispose();
         }
 
         #endregion

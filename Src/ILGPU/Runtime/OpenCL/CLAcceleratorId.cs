@@ -243,8 +243,11 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            CLAPI.ReleaseDevice(DeviceId);
-            DeviceId = IntPtr.Zero;
+            if (DeviceId != IntPtr.Zero)
+            {
+                CLAPI.ReleaseDevice(DeviceId);
+                DeviceId = IntPtr.Zero;
+            }
         }
 
         #endregion
