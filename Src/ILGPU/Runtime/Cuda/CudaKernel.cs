@@ -107,6 +107,7 @@ namespace ILGPU.Runtime.Cuda
                 functionPtr = IntPtr.Zero;
                 modulePtr = IntPtr.Zero;
             }
+            base.Dispose(disposing);
         }
 
         #endregion

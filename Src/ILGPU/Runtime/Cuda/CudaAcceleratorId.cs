@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Util;
 using System;
 
 namespace ILGPU.Runtime.Cuda
@@ -69,13 +68,6 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The string representation of this accelerator id.</returns>
         public override string ToString() =>
             $"Device {DeviceId}, {base.ToString()}";
-
-        #endregion
-
-        #region IDisposable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing) { }
 
         #endregion
     }

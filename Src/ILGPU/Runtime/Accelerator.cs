@@ -672,6 +672,7 @@ namespace ILGPU.Runtime
                 DisposeChildObjects();
                 DisposeGC();
             }
+            base.Dispose(disposing);
         }
 
         #endregion

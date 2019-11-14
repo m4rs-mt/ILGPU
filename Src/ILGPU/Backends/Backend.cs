@@ -559,13 +559,6 @@ namespace ILGPU.Backends
         }
 
         #endregion
-
-        #region IDisposable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing) { }
-
-        #endregion
     }
 
     /// <summary>

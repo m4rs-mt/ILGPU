@@ -602,6 +602,7 @@ namespace ILGPU.Runtime
         {
             if (disposing)
                 buffer.Dispose();
+            base.Dispose(disposing);
         }
 
         #endregion

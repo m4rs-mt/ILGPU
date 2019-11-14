@@ -9,8 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Util;
-
 namespace ILGPU.Runtime.CPU
 {
     /// <summary>
@@ -34,14 +32,6 @@ namespace ILGPU.Runtime.CPU
 
         /// <summary cref="AcceleratorStream.Synchronize"/>
         public override void Synchronize()
-        { }
-
-        #endregion
-
-        #region IDisposable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
         { }
 
         #endregion

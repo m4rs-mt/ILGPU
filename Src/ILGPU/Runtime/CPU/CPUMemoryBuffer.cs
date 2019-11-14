@@ -126,6 +126,7 @@ namespace ILGPU.Runtime.CPU
                 Marshal.FreeHGlobal(NativePtr);
                 NativePtr = IntPtr.Zero;
             }
+            base.Dispose(disposing);
         }
 
         #endregion

@@ -248,6 +248,7 @@ namespace ILGPU.Runtime.OpenCL
                 CLAPI.ReleaseDevice(DeviceId);
                 DeviceId = IntPtr.Zero;
             }
+            base.Dispose(disposing);
         }
 
         #endregion

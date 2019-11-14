@@ -69,6 +69,7 @@ namespace ILGPU.Runtime.OpenCL
                     CLAPI.ReleaseCommandQueue(queuePtr));
                 queuePtr = IntPtr.Zero;
             }
+            base.Dispose(disposing);
         }
 
         #endregion

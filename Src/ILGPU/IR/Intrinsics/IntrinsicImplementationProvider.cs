@@ -485,6 +485,7 @@ namespace ILGPU.IR.Intrinsics
         {
             if (disposing)
                 intrinsicContext.Dispose();
+            base.Dispose(disposing);
         }
 
         #endregion
