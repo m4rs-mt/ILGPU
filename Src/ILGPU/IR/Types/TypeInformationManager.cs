@@ -38,19 +38,24 @@ namespace ILGPU.IR.Types
             /// <summary>
             /// Constructs a new type information.
             /// </summary>
+            /// <param name="parent">The parent type manager.</param>
             /// <param name="type">The .Net type.</param>
             /// <param name="fields">All managed fields.</param>
             /// <param name="fieldTypes">All managed field types.</param>
             /// <param name="fieldIndices">Maps fields to their indices.</param>
             /// <param name="isBlittable">True, if this type is blittable.</param>
             internal TypeInformation(
+                TypeInformationManager parent,
                 Type type,
                 ImmutableArray<FieldInfo> fields,
                 ImmutableArray<Type> fieldTypes,
                 ImmutableDictionary<FieldInfo, int> fieldIndices,
                 bool isBlittable)
             {
+                Debug.Assert(parent != null, "Invalid parent");
                 Debug.Assert(type != null, "Invalid type");
+
+                Parent = parent;
                 ManagedType = type;
                 Fields = fields;
                 FieldTypes = fieldTypes;
@@ -61,6 +66,11 @@ namespace ILGPU.IR.Types
             #endregion
 
             #region Properties
+
+            /// <summary>
+            /// Returns the parent information manager.
+            /// </summary>
+            public TypeInformationManager Parent { get; }
 
             /// <summary>
             /// Returns the .Net type.
@@ -102,6 +112,14 @@ namespace ILGPU.IR.Types
             #endregion
 
             #region Methods
+
+            /// <summary>
+            /// Gets nested field type information.
+            /// </summary>
+            /// <param name="index">The field index.</param>
+            /// <returns>The resulting type information.</returns>
+            public TypeInformation GetFieldTypeInfo(int index) =>
+                Parent.GetTypeInfo(FieldTypes[index]);
 
             /// <summary>
             /// Tries to resolve the field of the given field.
@@ -242,6 +260,7 @@ namespace ILGPU.IR.Types
         private TypeInformation AddTypeInfo(Type type, bool isBlittable)
         {
             var result = new TypeInformation(
+                this,
                 type,
                 ImmutableArray<FieldInfo>.Empty,
                 ImmutableArray<Type>.Empty,
@@ -311,6 +330,7 @@ namespace ILGPU.IR.Types
             var fieldTypes = fieldTypesBuilder.MoveToImmutable();
 
             return new TypeInformation(
+                this,
                 type,
                 fields,
                 fieldTypes,
