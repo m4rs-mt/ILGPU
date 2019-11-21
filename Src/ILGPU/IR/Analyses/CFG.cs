@@ -445,6 +445,8 @@ namespace ILGPU.IR.Analyses
                 foreach (var successor in entry.Key.Successors)
                     node.AddSuccessor(this[successor]);
             }
+
+            EntryNode = this[Scope.EntryBlock];
         }
 
         #endregion
