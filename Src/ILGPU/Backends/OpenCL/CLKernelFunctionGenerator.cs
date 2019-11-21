@@ -9,7 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.EntryPoints;
 using ILGPU.IR.Analyses;
+using System.Collections.Generic;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -19,6 +21,15 @@ namespace ILGPU.Backends.OpenCL
     /// </summary>
     sealed class CLKernelFunctionGenerator : CLCodeGenerator
     {
+        #region Constants
+
+        /// <summary>
+        /// The string format of a kernel-view parameter name.
+        /// </summary>
+        public const string KernelViewNameFormat = "view_{0}";
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -32,7 +43,18 @@ namespace ILGPU.Backends.OpenCL
             Scope scope,
             Allocas allocas)
             : base(args, scope, allocas)
-        { }
+        {
+            EntryPoint = args.EntryPoint;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the associated entry point.
+        /// </summary>
+        public SeparateViewEntryPoint EntryPoint { get; }
 
         #endregion
 
@@ -51,8 +73,50 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         public override void GenerateCode()
         {
-            // TODO: declare kernel and parameters
+            // Emit kernel declaration and parameter definitions
+            Builder.Append("__global void ");
+            Builder.Append(CLCompiledKernel.EntryName);
+            Builder.AppendLine("(");
+
+            // Note that we have to emit custom parameters for every view argument
+            // since views have to be mapped by the driver to kernel arguments.
+            var viewParameters = EntryPoint.ViewParameters;
+            bool hasDefaultParameters = EntryPoint.Parameters.NumParameters > 0;
+            for (int i = 0, e = viewParameters.Length; i < e; ++i)
+            {
+                // Emit a specialized pointer type
+                var elementType = viewParameters[i].ElementType;
+                Builder.Append("\t __global ");
+                Builder.Append(TypeGenerator[elementType]);
+                Builder.Append(" *");
+                Builder.AppendFormat(KernelViewNameFormat, i.ToString());
+
+                if (hasDefaultParameters || i + 1 < e)
+                    Builder.AppendLine(",");
+            }
+
+            // Emit all parameter declarations
+            var parameters = new List<MappedParameter>(Method.NumParameters);
+            GenerateParameters(Builder, 1, parameters);
+            Builder.AppendLine(")");
+
+            // Emit code that moves view arguments into their appropriate targets
+            Builder.AppendLine("{");
+            GenerateViewWiring(parameters);
+
+            // Generate code
             GenerateCodeInternal();
+            Builder.AppendLine("}");
+        }
+
+        private void GenerateViewWiring(List<MappedParameter> parameters)
+        {
+            foreach (var viewParam in EntryPoint.ViewParameters)
+            {
+                var param = parameters[viewParam.ParameterIndex];
+                using var statement = BeginStatement(param.Variable);
+                statement.AppendField()
+            }
         }
 
         #endregion

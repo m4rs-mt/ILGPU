@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.IL;
 using ILGPU.Backends.PointerViews;
 using ILGPU.Runtime.OpenCL;
@@ -46,12 +47,149 @@ namespace ILGPU.Backends.OpenCL
         private readonly struct MappingHandler : IMappingHandler
         {
             /// <summary>
+            /// A source mapper.
+            /// </summary>
+            /// <typeparam name="TSource">The internal source type.</typeparam>
+            private readonly struct MapperSource<TSource> : ISource
+                where TSource : ISource
+            {
+                /// <summary>
+                /// Constructs a new source mapper.
+                /// </summary>
+                /// <param name="source">The underlying source.</param>
+                public MapperSource(TSource source)
+                {
+                    Source = source;
+                }
+
+                /// <summary>
+                /// Returns the associated source.
+                /// </summary>
+                public TSource Source { get; }
+
+                /// <summary cref="ArgumentMapper.ISource.SourceType"/>
+                public Type SourceType => Source.SourceType;
+
+                /// <summary cref="ArgumentMapper.ISource.EmitLoadSource{TILEmitter}(in TILEmitter)"/>
+                public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
+                    where TILEmitter : IILEmitter =>
+                    Source.EmitLoadSource(emitter);
+            }
+
+            /// <summary>
             /// Constructs a new mapping handler.
             /// </summary>
             /// <param name="parent">The parent mapper.</param>
             /// <param name="kernelLocal">The local variable holding the associated kernel reference.</param>
             /// <param name="resultLocal">The local variable holding the result API status.</param>
+            /// <param name="startIndex">The start argument index.</param>
             public MappingHandler(
+                CLArgumentMapper parent,
+                ILLocal kernelLocal,
+                ILLocal resultLocal,
+                int startIndex)
+            {
+                Parent = parent;
+                KernelLocal = kernelLocal;
+                ResultLocal = resultLocal;
+                StartIndex = startIndex;
+            }
+
+            /// <summary>
+            /// Returns the underlying ABI.
+            /// </summary>
+            public CLArgumentMapper Parent { get; }
+
+            /// <summary>
+            /// Returns the associated kernel local.
+            /// </summary>
+            public ILLocal KernelLocal { get; }
+
+            /// <summary>
+            /// Returns the associated result variable which is
+            /// used to accumulate all intermediate method return values.
+            /// </summary>
+            public ILLocal ResultLocal { get; }
+
+            /// <summary>
+            /// Returns the start argument index.
+            /// </summary>
+            public int StartIndex { get; }
+
+            /// <summary cref="ArgumentMapper.IMappingHandler.MapArgument{TILEmitter, TSource}(in TILEmitter, TSource, int)"/>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void MapArgument<TILEmitter, TSource>(
+                in TILEmitter emitter,
+                TSource source,
+                int argumentIndex)
+                where TILEmitter : IILEmitter
+                where TSource : ISource =>
+                Parent.SetKernelArgument(
+                    emitter,
+                    KernelLocal,
+                    ResultLocal,
+                    StartIndex + argumentIndex,
+                    new MapperSource<TSource>(source));
+        }
+
+        /// <summary>
+        /// Implements the actual argument mapping.
+        /// </summary>
+        private readonly struct ViewMappingHandler : ISeparateViewMappingHandler
+        {
+            /// <summary>
+            /// A source mapper.
+            /// </summary>
+            /// <typeparam name="TSource">The internal source type.</typeparam>
+            private readonly struct MapperSource<TSource> : ISource
+                where TSource : ISource
+            {
+                /// <summary>
+                /// Constructs a new source mapper.
+                /// </summary>
+                /// <param name="source">The underlying source.</param>
+                /// <param name="viewParameter">The view parameter.</param>
+                public MapperSource(
+                    TSource source,
+                    in SeparateViewEntryPoint.ViewParameter viewParameter)
+                {
+                    Source = source;
+                    Parameter = viewParameter;
+                }
+
+                /// <summary>
+                /// Returns the associated source.
+                /// </summary>
+                public TSource Source { get; }
+
+                /// <summary cref="ArgumentMapper.ISource.SourceType"/>
+                public Type SourceType => typeof(IntPtr);
+
+                /// <summary>
+                /// The associated parameter.
+                /// </summary>
+                public SeparateViewEntryPoint.ViewParameter Parameter { get; }
+
+                /// <summary cref="ArgumentMapper.ISource.EmitLoadSource{TILEmitter}(in TILEmitter)"/>
+                public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
+                    where TILEmitter : IILEmitter
+                {
+                    // Load source
+                    Source.EmitLoadSource(emitter);
+
+                    // Extract native pointer
+                    emitter.EmitCall(
+                        ViewImplementation.GetNativePtrMethod(Parameter.ElementType));
+                }
+            }
+
+            /// <summary>
+            /// Constructs a new mapping handler.
+            /// </summary>
+            /// <param name="parent">The parent mapper.</param>
+            /// <param name="kernelLocal">The local variable holding the associated kernel reference.</param>
+            /// <param name="resultLocal">The local variable holding the result API status.</param>
+            public ViewMappingHandler(
                 CLArgumentMapper parent,
                 ILLocal kernelLocal,
                 ILLocal resultLocal)
@@ -77,37 +215,21 @@ namespace ILGPU.Backends.OpenCL
             /// </summary>
             public ILLocal ResultLocal { get; }
 
-            /// <summary cref="ArgumentMapper.IMappingHandler.MapArgument{TILEmitter, TSource}(in TILEmitter, TSource, int)"/>
+            /// <summary cref="ArgumentMapper.ISeparateViewMappingHandler.MapViewArgument{TILEmitter, TSource}(in TILEmitter, in TSource, in SeparateViewEntryPoint.ViewParameter, int)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void MapArgument<TILEmitter, TSource>(
+            public void MapViewArgument<TILEmitter, TSource>(
                 in TILEmitter emitter,
-                TSource source,
-                int argumentIndex)
+                in TSource source,
+                in SeparateViewEntryPoint.ViewParameter viewParameter,
+                int viewArgumentIndex)
                 where TILEmitter : IILEmitter
-
-                where TSource : ISource
-            {
-                // Load kernel reference
-                emitter.Emit(LocalOperation.Load, KernelLocal);
-
-                // Load target argument index
-                emitter.EmitConstant(argumentIndex);
-
-                // Load size of the argument value
-                var size = Parent.GetSizeOf(source.SourceType);
-                emitter.EmitConstant(size);
-
-                // Load source address
-                source.EmitLoadSource(emitter);
-
-                // Set argument
-                emitter.EmitCall(SetKernelArgumentMethod);
-
-                // Merge API results
-                emitter.Emit(LocalOperation.Load, ResultLocal);
-                emitter.Emit(OpCodes.Or);
-                emitter.Emit(LocalOperation.Store, ResultLocal);
-            }
+                where TSource : ISource =>
+                Parent.SetKernelArgument(
+                    emitter,
+                    KernelLocal,
+                    ResultLocal,
+                    viewArgumentIndex,
+                    new MapperSource<TSource>(source, viewParameter));
         }
 
         #endregion
@@ -150,6 +272,48 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary>
+        /// Emits code that sets an OpenCL kernel argument.
+        /// </summary>
+        /// <typeparam name="TILEmitter">The emitter type.</typeparam>
+        /// <typeparam name="TSource">The value source type.</typeparam>
+        /// <param name="emitter">The current emitter.</param>
+        /// <param name="kernelLocal">The local variable holding the associated kernel reference.</param>
+        /// <param name="resultLocal">The local variable holding the result API status.</param>
+        /// <param name="argumentIndex">The argument index.</param>
+        /// <param name="source">The value source.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SetKernelArgument<TILEmitter, TSource>(
+            in TILEmitter emitter,
+            ILLocal kernelLocal,
+            ILLocal resultLocal,
+            int argumentIndex,
+            in TSource source)
+            where TILEmitter : IILEmitter
+            where TSource : struct, ISource
+        {
+            // Load kernel reference
+            emitter.Emit(LocalOperation.Load, kernelLocal);
+
+            // Load target argument index
+            emitter.EmitConstant(argumentIndex);
+
+            // Load size of the argument value
+            var size = GetSizeOf(source.SourceType);
+            emitter.EmitConstant(size);
+
+            // Load source address
+            source.EmitLoadSource(emitter);
+
+            // Set argument
+            emitter.EmitCall(SetKernelArgumentMethod);
+
+            // Merge API results
+            emitter.Emit(LocalOperation.Load, resultLocal);
+            emitter.Emit(OpCodes.Or);
+            emitter.Emit(LocalOperation.Store, resultLocal);
+        }
+
+        /// <summary>
         /// Creates code that maps all parameters of the given entry point using
         /// OpenCL API calls.
         /// </summary>
@@ -157,7 +321,10 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="emitter">The target emitter to write to.</param>
         /// <param name="kernel">A local that holds the kernel driver reference.</param>
         /// <param name="entryPoint">The entry point.</param>
-        public void Map<TILEmitter>(in TILEmitter emitter, ILLocal kernel, EntryPoint entryPoint)
+        public void Map<TILEmitter>(
+            in TILEmitter emitter,
+            ILLocal kernel,
+            SeparateViewEntryPoint entryPoint)
             where TILEmitter : IILEmitter
         {
             Debug.Assert(entryPoint != null, "Invalid entry point");
@@ -167,7 +334,19 @@ namespace ILGPU.Backends.OpenCL
             emitter.Emit(OpCodes.Ldc_I4_0);
             emitter.Emit(LocalOperation.Store, resultLocal);
 
-            var mappingHandler = new MappingHandler(this, kernel, resultLocal);
+            // Map all views
+            var viewMappingHandler = new ViewMappingHandler(
+                this,
+                kernel,
+                resultLocal);
+            MapViews(emitter, viewMappingHandler, entryPoint);
+
+            // Map all remaining arguments
+            var mappingHandler = new MappingHandler(
+                this,
+                kernel,
+                resultLocal,
+                entryPoint.NumViewParameters);
             Map(emitter, mappingHandler, entryPoint.Parameters);
 
             // Check mapping result

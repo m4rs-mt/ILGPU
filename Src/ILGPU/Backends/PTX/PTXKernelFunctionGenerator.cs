@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.EntryPoints;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;

@@ -1,6 +1,6 @@
 ﻿ArrayViews: Debug, Release
 SizeOfValues: Debug, Release
-EntryPoints: Debug, Release
+KernelEntryPoints: Debug, Release
 SharedMemory: Debug, Release
 
 BinaryIntOperations: Debug, Release

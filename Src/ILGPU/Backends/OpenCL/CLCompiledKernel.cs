@@ -9,6 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.EntryPoints;
+
 namespace ILGPU.Backends.OpenCL
 {
     /// <summary>
@@ -33,9 +35,9 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="context">The associated context.</param>
         /// <param name="entryPoint">The entry point.</param>
         /// <param name="source">The source code.</param>
-        internal CLCompiledKernel(
+        public CLCompiledKernel(
             Context context,
-            EntryPoint entryPoint,
+            SeparateViewEntryPoint entryPoint,
             string source)
             : base(context, entryPoint)
         {
@@ -50,6 +52,12 @@ namespace ILGPU.Backends.OpenCL
         /// Returns the OpenCL source code.
         /// </summary>
         public string Source { get; }
+
+        /// <summary>
+        /// Returns the internally used entry point.
+        /// </summary>
+        internal new SeparateViewEntryPoint EntryPoint =>
+            base.EntryPoint as SeparateViewEntryPoint;
 
         #endregion
     }

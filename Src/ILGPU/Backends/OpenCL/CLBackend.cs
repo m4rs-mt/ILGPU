@@ -9,10 +9,12 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
+using System.Reflection;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -62,6 +64,17 @@ namespace ILGPU.Backends.OpenCL
 
         #region Methods
 
+        /// <summary cref="Backend.CreateEntryPoint(MethodInfo, in BackendContext, in KernelSpecialization)"/>
+        protected override EntryPoint CreateEntryPoint(
+            MethodInfo method,
+            in BackendContext backendContext,
+            in KernelSpecialization specialization) =>
+            new SeparateViewEntryPoint(
+                method,
+                backendContext.SharedAllocations.TotalSize,
+                specialization,
+                Context.TypeContext);
+
         /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernelBuilder(EntryPoint, in BackendContext, in KernelSpecialization, out T)"/>
         protected override StringBuilder CreateKernelBuilder(
             EntryPoint entryPoint,
@@ -78,7 +91,7 @@ namespace ILGPU.Backends.OpenCL
             data = new CLCodeGenerator.GeneratorArgs(
                 this,
                 typeGenerator,
-                entryPoint,
+                entryPoint as SeparateViewEntryPoint,
                 ABI);
             return builder;
         }
@@ -107,7 +120,10 @@ namespace ILGPU.Backends.OpenCL
             CLCodeGenerator.GeneratorArgs data)
         {
             var clSource = builder.ToString();
-            return new CLCompiledKernel(Context, entryPoint, clSource);
+            return new CLCompiledKernel(
+                Context,
+                entryPoint as SeparateViewEntryPoint,
+                clSource);
         }
 
         #endregion

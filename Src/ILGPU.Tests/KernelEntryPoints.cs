@@ -5,9 +5,9 @@ using Xunit.Abstractions;
 
 namespace ILGPU.Tests
 {
-    public abstract class EntryPoints : TestBase
+    public abstract class KernelEntryPoints : TestBase
     {
-        protected EntryPoints(ITestOutputHelper output, ContextProvider contextProvider)
+        protected KernelEntryPoints(ITestOutputHelper output, ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 

@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
@@ -527,13 +528,29 @@ namespace ILGPU.Backends
 
                 // Compile kernel
                 var backendContext = new BackendContext(BackendFlags, kernelContext, kernelMethod, ABI);
-                var entryPoint = new EntryPoint(
+                var entryPoint = CreateEntryPoint(
                     kernelMethod.Source as MethodInfo,
-                    backendContext.SharedAllocations.TotalSize,
+                    backendContext,
                     specialization);
                 return Compile(entryPoint, backendContext, specialization);
             }
         }
+
+        /// <summary>
+        /// Creates a new entry point that is compatible with the current backend.
+        /// </summary>
+        /// <param name="method">The entry point method.</param>
+        /// <param name="backendContext">The current kernel context containing all required functions.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <returns>The created entry point.</returns>
+        protected virtual EntryPoint CreateEntryPoint(
+            MethodInfo method,
+            in BackendContext backendContext,
+            in KernelSpecialization specialization) =>
+            new EntryPoint(
+                method,
+                backendContext.SharedAllocations.TotalSize,
+                specialization);
 
         /// <summary>
         /// Compiles a given compile unit with the specified entry point using

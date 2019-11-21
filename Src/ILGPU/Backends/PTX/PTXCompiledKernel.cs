@@ -9,6 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.EntryPoints;
+
 namespace ILGPU.Backends.PTX
 {
     /// <summary>

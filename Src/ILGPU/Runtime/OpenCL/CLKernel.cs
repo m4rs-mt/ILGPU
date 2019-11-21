@@ -94,7 +94,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="launcher">The launcher method for the given kernel.</param>
         [SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods",
             MessageId = "0", Justification = "Will be verified in the constructor of the base class")]
-        internal CLKernel(
+        public CLKernel(
             CLAccelerator accelerator,
             CLCompiledKernel kernel,
             MethodInfo launcher)

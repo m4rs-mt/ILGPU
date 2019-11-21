@@ -9,11 +9,13 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -37,7 +39,7 @@ namespace ILGPU.Backends.OpenCL
             internal GeneratorArgs(
                 CLBackend backend,
                 CLTypeGenerator typeGenerator,
-                EntryPoint entryPoint,
+                SeparateViewEntryPoint entryPoint,
                 ABI abi)
             {
                 Backend = backend;
@@ -57,14 +59,59 @@ namespace ILGPU.Backends.OpenCL
             public CLTypeGenerator TypeGenerator { get; }
 
             /// <summary>
-            /// Returns the current backend.
+            /// Returns the current entry point.
             /// </summary>
-            public EntryPoint EntryPoint { get; }
+            public SeparateViewEntryPoint EntryPoint { get; }
 
             /// <summary>
             /// Returns the associated ABI.
             /// </summary>
             public ABI ABI { get; }
+        }
+
+        /// <summary>
+        /// Represents a parameter that is mapped to OpenCL.
+        /// </summary>
+        protected internal readonly struct MappedParameter
+        {
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new mapped parameter.
+            /// </summary>
+            /// <param name="variable">The OpenCL variable.</param>
+            /// <param name="clName">The name of the parameter in OpenCL code.</param>
+            /// <param name="parameter">The source parameter.</param>
+            public MappedParameter(
+                IntrinsicVariable variable,
+                string clName,
+                Parameter parameter)
+            {
+                Variable = variable;
+                CLName = clName;
+                Parameter = parameter;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the associated OpenCL variable.
+            /// </summary>
+            public IntrinsicVariable Variable { get; }
+
+            /// <summary>
+            /// Returns the name of the parameter in OpenCL code.
+            /// </summary>
+            public string CLName { get; }
+
+            /// <summary>
+            /// Returns the source parameter.
+            /// </summary>
+            public Parameter Parameter { get; }
+
+            #endregion
         }
 
         #endregion
@@ -83,6 +130,14 @@ namespace ILGPU.Backends.OpenCL
                 return handleName;
             return handleName + "_" + method.Id;
         }
+
+        /// <summary>
+        /// Returns the OpenCL parameter name for the given parameter.
+        /// </summary>
+        /// <param name="parameter">The parameter.</param>
+        /// <returns>The resolved OpenCL parameter name.</returns>
+        protected static string GetParameterName(Parameter parameter) =>
+            "_" + parameter.Name + "_" + parameter.Id.ToString();
 
         #endregion
 
@@ -177,6 +232,38 @@ namespace ILGPU.Backends.OpenCL
         #endregion
 
         #region General Code Generation
+
+        /// <summary>
+        /// Generates parameter declarations by writing them to the
+        /// target builder provided.
+        /// </summary>
+        /// <param name="target">The target builder to use.</param>
+        /// <param name="paramOffset">The intrinsic parameter offset.</param>
+        protected List<MappedParameter> GenerateParameters(StringBuilder target, int paramOffset)
+        {
+            var parameters = new List<MappedParameter>(Method.NumParameters - paramOffset);
+
+            for (int i = paramOffset, e = Method.NumParameters; i < e; ++i)
+            {
+                var param = Method.Parameters[i];
+                Builder.Append('\t');
+                Builder.Append(TypeGenerator[param.Type]);
+                Builder.Append(' ');
+                var paramName = GetParameterName(param);
+                Builder.Append(paramName);
+
+                if (i + 1 < e)
+                    Builder.AppendLine(",");
+
+                var variable = Allocate(param);
+                parameters.Add(new MappedParameter(
+                    variable,
+                    paramName,
+                    param));
+            }
+
+            return parameters;
+        }
 
         /// <summary>
         /// Generates code for all basic blocks.

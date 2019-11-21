@@ -74,5 +74,31 @@ namespace ILGPU.Backends.PointerViews
         /// <returns>The resolved field.</returns>
         public static FieldInfo GetLengthField(Type implType) =>
             implType.GetField(nameof(ViewImplementation<int>.Length));
+
+        /// <summary>
+        /// The method handle of the <see cref="GetNativePtrMethod(Type)"/> method.
+        /// </summary>
+        private static readonly MethodInfo GetNativePtrMethodInfo =
+            typeof(ViewImplementation).GetMethod(
+                nameof(GetNativePtr),
+                BindingFlags.NonPublic | BindingFlags.Static);
+
+        /// <summary>
+        /// Gets the associated native pointer that is stored inside the given view.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view type.</param>
+        /// <returns>The underlying native pointer.</returns>
+        private static IntPtr GetNativePtr<T>(in ArrayView<T> view)
+            where T : struct =>
+            view.Source.NativePtr;
+
+        /// <summary>
+        /// Gets the native-pointer method for the given element type.
+        /// </summary>
+        /// <param name="elementType">The element type.</param>
+        /// <returns>The instantiated native method.</returns>
+        public static MethodInfo GetNativePtrMethod(Type elementType) =>
+            GetNativePtrMethodInfo.MakeGenericMethod(elementType);
     }
 }

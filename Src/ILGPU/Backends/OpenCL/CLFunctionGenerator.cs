@@ -11,6 +11,7 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using System.Collections.Generic;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -40,11 +41,30 @@ namespace ILGPU.Backends.OpenCL
         #region Methods
 
         /// <summary>
+        /// Generates a header stub for the current method.
+        /// </summary>
+        /// <param name="builder">The target builder to use.</param>
+        /// <returns>The list of mapped parameters.</returns>
+        private List<MappedParameter> GenerateHeaderStub(StringBuilder builder)
+        {
+            Builder.Append(TypeGenerator[Method.ReturnType]);
+            Builder.Append(' ');
+            Builder.Append(GetMethodName(Method));
+            Builder.AppendLine("(");
+            var parameters = GenerateParameters(Builder, 0);
+            Builder.AppendLine(")");
+            return parameters;
+        }
+
+        /// <summary>
         /// Generates a function declaration in OpenCL code.
         /// </summary>
         public override void GenerateHeader(StringBuilder builder)
         {
-            // TODO: declare function and parameters
+            if (Method.HasFlags(MethodFlags.External))
+                return;
+
+            GenerateHeaderStub(builder);
             builder.AppendLine(";");
         }
 
@@ -56,8 +76,13 @@ namespace ILGPU.Backends.OpenCL
             if (Method.HasFlags(MethodFlags.External))
                 return;
 
-            // TODO: declare function and parameters
+            // Declare function and parameters
+            var parameters = GenerateHeaderStub(Builder);
+
+            // Generate code
+            Builder.AppendLine("{");
             GenerateCodeInternal();
+            Builder.AppendLine("}");
         }
 
         #endregion

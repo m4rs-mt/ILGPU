@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
+using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -71,7 +72,7 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="structureLikeType">The structure-like type.</param>
             private void BeginStruct(TypeNode structureLikeType)
             {
-                Builder.Append("typedef struct ");
+                Builder.Append("struct ");
                 Builder.AppendLine(TypeGenerator[structureLikeType]);
                 Builder.AppendLine("{");
             }
@@ -104,7 +105,7 @@ namespace ILGPU.Backends.OpenCL
                 Builder.Append(CLInstructions.GetAddressSpacePrefix(type.AddressSpace));
                 Builder.Append(' ');
                 Builder.Append(TypeGenerator[type.ElementType]);
-                Builder.AppendLine("* ptr;");
+                Builder.AppendLine(" *ptr;");
                 Builder.AppendLine("\tint length;");
                 EndStruct();
             }
@@ -113,7 +114,7 @@ namespace ILGPU.Backends.OpenCL
             public void Visit(ArrayType type)
             {
                 // Array types are currently not supported in OpenCL kernels
-                throw new NotSupportedException();
+                throw new NotSupportedException(ErrorMessages.NotSupportedArrayElementType);
             }
 
             /// <summary cref="ITypeNodeVisitor.Visit(StructureType)"/>
@@ -227,6 +228,7 @@ namespace ILGPU.Backends.OpenCL
             StringBuilder target)
         {
             Builder = target;
+            TypeContext = typeContext;
 
             // Declare primitive types
             mapping[typeContext.VoidType] = "void";
@@ -239,8 +241,15 @@ namespace ILGPU.Backends.OpenCL
             }
 
             // Generate all type declarations
-            foreach (var (_, scope) in scopeProvider)
+            foreach (var (method, scope) in scopeProvider)
             {
+                // Check all parameter types
+                foreach (var param in method.Parameters)
+                {
+                    if (!mapping.ContainsKey(param.Type))
+                        DeclareType(param.Type);
+                }
+
                 // Check all node types
                 foreach (Value value in scope.Values)
                 {
@@ -264,6 +273,11 @@ namespace ILGPU.Backends.OpenCL
         #region Properties
 
         /// <summary>
+        /// Returns the underlying type context.
+        /// </summary>
+        public IRTypeContext TypeContext { get; }
+
+        /// <summary>
         /// Returns the associated string builder.
         /// </summary>
         private StringBuilder Builder { get; }
@@ -274,6 +288,13 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="typeNode">The internal IR type node.</param>
         /// <returns>The resolved OpenCL type name.</returns>
         public string this[TypeNode typeNode] => mapping[typeNode];
+
+        /// <summary>
+        /// Returns the associated OpenCL type name.
+        /// </summary>
+        /// <param name="type">The managed type to use.</param>
+        /// <returns>The resolved OpenCL type name.</returns>
+        public string this[Type type] => this[TypeContext.CreateType(type)];
 
         #endregion
 
@@ -299,7 +320,6 @@ namespace ILGPU.Backends.OpenCL
                 // AMD drivers sometimes complain about missing struct prefixes
                 clName = "struct " + clName;
 
-                Builder.Append("typedef ");
                 Builder.Append(clName);
                 Builder.AppendLine(";");
             }
@@ -321,7 +341,7 @@ namespace ILGPU.Backends.OpenCL
             Builder.Append(CLInstructions.GetAddressSpacePrefix(pointerType.AddressSpace));
             Builder.Append(' ');
             Builder.Append(this[pointerType.ElementType]);
-            Builder.Append("* ");
+            Builder.Append(" *");
             Builder.Append(this[pointerType]);
             Builder.AppendLine(";");
         }

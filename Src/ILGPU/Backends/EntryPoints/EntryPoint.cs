@@ -17,12 +17,12 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
 
-namespace ILGPU.Backends
+namespace ILGPU.Backends.EntryPoints
 {
     /// <summary>
     /// Represents a kernel entry point.
     /// </summary>
-    public sealed class EntryPoint
+    public class EntryPoint
     {
         #region Nested Types
 
@@ -87,10 +87,8 @@ namespace ILGPU.Backends
             /// </summary>
             /// <param name="target">The target array.</param>
             /// <param name="offset">The target offset to copy to.</param>
-            public void CopyTo(Type[] target, int offset)
-            {
+            public void CopyTo(Type[] target, int offset) =>
                 ParameterTypes.CopyTo(target, offset);
-            }
 
             #endregion
         }
@@ -105,7 +103,7 @@ namespace ILGPU.Backends
         /// <param name="methodSource">The source method.</param>
         /// <param name="sharedMemorySize">The size of the shared memory in bytes.</param>
         /// <param name="specialization">The kernel specialization.</param>
-        internal EntryPoint(
+        public EntryPoint(
             MethodInfo methodSource,
             int sharedMemorySize,
             in KernelSpecialization specialization)
