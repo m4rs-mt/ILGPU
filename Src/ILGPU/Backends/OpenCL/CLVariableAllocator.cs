@@ -9,6 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.PointerViews;
+using ILGPU.IR;
+using ILGPU.IR.Types;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -17,7 +20,7 @@ namespace ILGPU.Backends.OpenCL
     /// <summary>
     /// Represents a specialized OpenCL variable allocator.
     /// </summary>
-    public class CLVariableAllocator : VariableAllocator
+    public class CLVariableAllocator : ViewVariableAllocator
     {
         #region Instance
 
@@ -42,6 +45,18 @@ namespace ILGPU.Backends.OpenCL
         #endregion
 
         #region Methods
+
+        /// <summary cref="VariableAllocator.AllocateViewVariable(int, TypeNode, MemoryAddressSpace)"/>
+        protected override ViewVariable AllocateViewVariable(
+            int variableId,
+            TypeNode elementType,
+            MemoryAddressSpace addressSpace) =>
+            new ViewImplementationVariable(
+                variableId,
+                elementType,
+                addressSpace,
+                CLTypeGenerator.ViewPointerFieldIndex,
+                CLTypeGenerator.ViewLengthFieldIndex);
 
         /// <summary>
         /// Resolves the type name of the given variable.

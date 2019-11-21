@@ -25,22 +25,18 @@ namespace ILGPU.Backends
         #region Nested Types
 
         /// <summary>
-        /// Represents an abstract variable.
+        /// A variable that can be accessed and allocated.
         /// </summary>
-        public abstract class Variable { }
-
-        /// <summary>
-        /// An intrinsic variable that can be accessed and allocated.
-        /// </summary>
-        public abstract class IntrinsicVariable : Variable
+        public abstract class Variable
         {
             /// <summary>
-            /// Constructs a new intrinsic variable.
+            /// Constructs a new variable.
             /// </summary>
             /// <param name="id">The current variable id.</param>
-            internal IntrinsicVariable(int id)
+            internal Variable(int id)
             {
                 Id = id;
+                VariableName = "var" + id.ToString();
             }
 
             /// <summary>
@@ -49,17 +45,21 @@ namespace ILGPU.Backends
             public int Id { get; }
 
             /// <summary>
+            /// Returns the associated variable name.
+            /// </summary>
+            public string VariableName { get; }
+
+            /// <summary>
             /// Returns the string representation of this variable.
             /// </summary>
             /// <returns>The string representation of this variable.</returns>
-            public override string ToString() =>
-                "var" + Id;
+            public override string ToString() => VariableName;
         }
 
         /// <summary>
         /// A primitive variable.
         /// </summary>
-        public sealed class PrimitiveVariable : IntrinsicVariable
+        public sealed class PrimitiveVariable : Variable
         {
             /// <summary>
             /// Constructs a new primitive variable.
@@ -81,7 +81,7 @@ namespace ILGPU.Backends
         /// <summary>
         /// A pointer variable.
         /// </summary>
-        public sealed class PointerVariable : IntrinsicVariable
+        public sealed class PointerVariable : Variable
         {
             /// <summary>
             /// Constructs a new pointer variable.
@@ -113,7 +113,7 @@ namespace ILGPU.Backends
         /// <summary>
         /// An object variable.
         /// </summary>
-        public sealed class ObjectVariable : IntrinsicVariable
+        public sealed class ObjectVariable : Variable
         {
             /// <summary>
             /// Constructs a new object variable.
@@ -135,38 +135,33 @@ namespace ILGPU.Backends
         /// <summary>
         /// A virtual view variable.
         /// </summary>
-        public sealed class ViewVariable : Variable
+        public abstract class ViewVariable : Variable
         {
             /// <summary>
             /// Constructs a new view variable.
             /// </summary>
-            /// <param name="viewType">The view type.</param>
-            /// <param name="pointer">The pointer variable.</param>
-            /// <param name="length">The length variable.</param>
-            internal ViewVariable(
-                ViewType viewType,
-                PointerVariable pointer,
-                PrimitiveVariable length)
+            /// <param name="id">The current variable id.</param>
+            /// <param name="elementType">The pointer element type.</param>
+            /// <param name="addressSpace">The associated address space.</param>
+            protected ViewVariable(
+                int id,
+                TypeNode elementType,
+                MemoryAddressSpace addressSpace)
+                : base(id)
             {
-                Type = viewType;
-                Pointer = pointer;
-                Length = length;
+                ElementType = elementType;
+                AddressSpace = addressSpace;
             }
 
             /// <summary>
-            /// Returns the represented IR type.
+            /// Returns the represented IR element type.
             /// </summary>
-            public TypeNode Type { get; }
+            public TypeNode ElementType { get; }
 
             /// <summary>
-            /// Returns the associated pointer variable.
+            /// Returns the associated address space.
             /// </summary>
-            public PointerVariable Pointer { get; }
-
-            /// <summary>
-            /// Returns the associated length variable.
-            /// </summary>
-            public PrimitiveVariable Length { get; }
+            public MemoryAddressSpace AddressSpace { get; }
         }
 
         #endregion
@@ -201,17 +196,13 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
-        /// Allocates a new intrinsic variable.
+        /// Allocates a new variable as type <typeparamref name="T"/>.
         /// </summary>
         /// <param name="value">The value to allocate.</param>
-        /// <returns>The allocated intrinsic variable.</returns>
-        public IntrinsicVariable AllocateIntrinsic(Value value)
-        {
-            var variable = Allocate(value);
-            if (variable is IntrinsicVariable intrinsicVariable)
-                return intrinsicVariable;
-            throw new NotSupportedException();
-        }
+        /// <returns>The allocated variable.</returns>
+        public T AllocateAs<T>(Value value)
+            where T : Variable =>
+            Allocate(value) as T;
 
         /// <summary>
         /// Allocates the given type.
@@ -233,6 +224,29 @@ namespace ILGPU.Backends
             new PointerVariable(idCounter++, elementType, addressSpace);
 
         /// <summary>
+        /// Allocates a view type.
+        /// </summary>
+        /// <param name="elementType">The pointer element type to allocate.</param>
+        /// <param name="addressSpace">The associated address space.</param>
+        /// <returns>The allocated variable.</returns>
+        public ViewVariable AllocateViewType(
+            TypeNode elementType,
+            MemoryAddressSpace addressSpace) =>
+            AllocateViewVariable(idCounter++, elementType, addressSpace);
+
+        /// <summary>
+        /// Allocates a new view variable.
+        /// </summary>
+        /// <param name="variableId">The variable id.</param>
+        /// <param name="elementType">The pointer element type to allocate.</param>
+        /// <param name="addressSpace">The associated address space.</param>
+        /// <returns>The allocated variable.</returns>
+        protected abstract ViewVariable AllocateViewVariable(
+            int variableId,
+            TypeNode elementType,
+            MemoryAddressSpace addressSpace);
+
+        /// <summary>
         /// Allocates the given type.
         /// </summary>
         /// <param name="typeNode">The type to allocate.</param>
@@ -246,10 +260,7 @@ namespace ILGPU.Backends
                 case PointerType pointerType:
                     return AllocatePointerType(pointerType.ElementType, pointerType.AddressSpace);
                 case ViewType viewType:
-                    return new ViewVariable(
-                        viewType,
-                        new PointerVariable(idCounter++, viewType.ElementType, viewType.AddressSpace),
-                        new PrimitiveVariable(idCounter++, BasicValueType.Int32));
+                    return AllocateViewType(viewType.ElementType, viewType.AddressSpace);
                 case ObjectType objectType:
                     return new ObjectVariable(idCounter++, objectType);
                 default:
@@ -279,14 +290,6 @@ namespace ILGPU.Backends
                 return result;
             throw new InvalidCodeGenerationException();
         }
-
-        /// <summary>
-        /// Loads the given value as variable type <see cref="IntrinsicVariable"/>.
-        /// </summary>
-        /// <param name="value">The value to load.</param>
-        /// <returns>The loaded variable.</returns>
-        public IntrinsicVariable LoadIntrinsic(Value value) =>
-            LoadAs<IntrinsicVariable>(value);
 
         /// <summary>
         /// Binds the given value to the target variable.

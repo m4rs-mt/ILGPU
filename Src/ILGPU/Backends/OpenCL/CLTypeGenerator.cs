@@ -37,6 +37,28 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         public const string FieldNameFormat = "field_{0}";
 
+        /// <summary>
+        /// The field index of the pointer field inside a view.
+        /// </summary>
+        public const int ViewPointerFieldIndex = 0;
+
+        /// <summary>
+        /// The field index of the length field inside a view.
+        /// </summary>
+        public const int ViewLengthFieldIndex = 1;
+
+        /// <summary>
+        /// The name of the pointer field inside a view.
+        /// </summary>
+        public static readonly string ViewPointerName =
+            string.Format(TypeNameFormat, ViewPointerFieldIndex.ToString());
+
+        /// <summary>
+        /// The name of the length field inside a view.
+        /// </summary>
+        public static readonly string ViewLengthName =
+            string.Format(TypeNameFormat, ViewLengthFieldIndex.ToString());
+
         #endregion
 
         #region Nested Types
@@ -105,8 +127,12 @@ namespace ILGPU.Backends.OpenCL
                 Builder.Append(CLInstructions.GetAddressSpacePrefix(type.AddressSpace));
                 Builder.Append(' ');
                 Builder.Append(TypeGenerator[type.ElementType]);
-                Builder.AppendLine(" *ptr;");
-                Builder.AppendLine("\tint length;");
+                Builder.Append(" *");
+                Builder.Append(ViewPointerName);
+                Builder.AppendLine(";");
+                Builder.Append("\tint ");
+                Builder.AppendLine(ViewLengthName);
+                Builder.AppendLine(";");
                 EndStruct();
             }
 
@@ -341,7 +367,8 @@ namespace ILGPU.Backends.OpenCL
             Builder.Append(CLInstructions.GetAddressSpacePrefix(pointerType.AddressSpace));
             Builder.Append(' ');
             Builder.Append(this[pointerType.ElementType]);
-            Builder.Append(" *");
+            Builder.Append(' ');
+            Builder.Append(CLInstructions.DereferenceOperation);
             Builder.Append(this[pointerType]);
             Builder.AppendLine(";");
         }
