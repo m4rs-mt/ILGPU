@@ -430,6 +430,30 @@ namespace ILGPU.IR.Analyses
         #region Methods
 
         /// <summary>
+        /// Tries to resolve the given node to an associated loop-info instance.
+        /// </summary>
+        /// <param name="node">The node to map to a loop-info instance.</param>
+        /// <param name="loopInfo">The resulting loop info (if any).</param>
+        /// <returns>True, if the node could be resolved.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetLoopInfo(CFG.Node node, out LoopInfo loopInfo) =>
+            TryGetLoopInfo(node.Block, out loopInfo);
+
+        /// <summary>
+        /// Tries to resolve the given block to an associated loop-info instance.
+        /// </summary>
+        /// <param name="block">The block to map to a loop-info instance.</param>
+        /// <param name="loopInfo">The resulting loop info (if any).</param>
+        /// <returns>True, if the node could be resolved.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetLoopInfo(BasicBlock block, out LoopInfo loopInfo)
+        {
+            loopInfo = default;
+            return SCCs.TryGetSCC(block, out var scc) &&
+                TryGetLoopInfo(scc, out loopInfo);
+        }
+
+        /// <summary>
         /// Tries to resolve the given SCC to a loop-info instance.
         /// </summary>
         /// <param name="scc">The SCC to lookup.</param>

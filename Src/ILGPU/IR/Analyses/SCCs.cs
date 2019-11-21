@@ -632,7 +632,7 @@ namespace ILGPU.IR.Analyses
         }
 
         /// <summary>
-        /// Tries to resolve te given block to an associated SCC.
+        /// Tries to resolve the given block to an associated SCC.
         /// </summary>
         /// <param name="block">The block to map to an SCC.</param>
         /// <param name="scc">The resulting SCC.</param>
