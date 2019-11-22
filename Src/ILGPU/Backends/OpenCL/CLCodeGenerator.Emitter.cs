@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
 
@@ -69,7 +70,7 @@ namespace ILGPU.Backends.OpenCL
             /// Starts a target assignment.
             /// </summary>
             /// <param name="target">The target.</param>
-            private void BeginAppendTarget(IntrinsicVariable target)
+            private void BeginAppendTarget(Variable target)
             {
                 var variableType = CodeGenerator.GetVariableType(target);
                 stringBuilder.Append(variableType);
@@ -81,7 +82,7 @@ namespace ILGPU.Backends.OpenCL
             /// Appends a target.
             /// </summary>
             /// <param name="target">The target.</param>
-            internal void AppendTarget(IntrinsicVariable target)
+            internal void AppendTarget(Variable target)
             {
                 BeginAppendTarget(target);
                 stringBuilder.Append(" = ");
@@ -92,7 +93,7 @@ namespace ILGPU.Backends.OpenCL
             /// </summary>
             /// <param name="target">The target.</param>
             /// <param name="indexer">The indexer variable.</param>
-            internal void AppendIndexedTarget(IntrinsicVariable target, IntrinsicVariable indexer)
+            internal void AppendIndexedTarget(Variable target, Variable indexer)
             {
                 BeginAppendTarget(target);
                 AppendIndexer(indexer);
@@ -104,7 +105,7 @@ namespace ILGPU.Backends.OpenCL
             /// </summary>
             /// <param name="target">The target.</param>
             /// <param name="fieldIndex">The field index.</param>
-            internal void AppendFieldTarget(IntrinsicVariable target, int fieldIndex)
+            internal void AppendFieldTarget(Variable target, int fieldIndex)
             {
                 BeginAppendTarget(target);
                 AppendField(fieldIndex);
@@ -112,15 +113,35 @@ namespace ILGPU.Backends.OpenCL
             }
 
             /// <summary>
+            /// Appends a field target via an access chain.
+            /// </summary>
+            /// <param name="target">The target.</param>
+            /// <param name="accessChain">The field access chain.</param>
+            internal void AppendFieldTarget(Variable target, ImmutableArray<int> accessChain)
+            {
+                BeginAppendTarget(target);
+                foreach (var fieldIndex in accessChain)
+                    AppendField(fieldIndex);
+                stringBuilder.Append(" = ");
+            }
+
+            /// <summary>
             /// Appends an indexer.
             /// </summary>
             /// <param name="indexer">The indexer variable.</param>
-            public void AppendIndexer(IntrinsicVariable indexer)
+            public void AppendIndexer(Variable indexer)
             {
                 stringBuilder.Append('[');
                 stringBuilder.Append(indexer.ToString());
                 stringBuilder.Append(']');
             }
+
+            /// <summary>
+            /// Appends an unsafe pointer cast expression.
+            /// </summary>
+            /// <param name="typeExpression">The type expression.</param>
+            public void AppendPointerCast(string typeExpression) =>
+                AppendCast(typeExpression + CLInstructions.DereferenceOperation);
 
             /// <summary>
             /// Appends an unsafe cast expression.
@@ -187,12 +208,32 @@ namespace ILGPU.Backends.OpenCL
             }
 
             /// <summary>
+            /// Tries to append a pointer-field accessor (if possible).
+            /// </summary>
+            /// <param name="variable">The variable.</param>
+            public void TryAppendViewPointerField(Variable variable)
+            {
+                // Test for a view variable
+                if (variable is ViewImplementationVariable viewVariable)
+                {
+                    // Add the field suffix
+                    AppendField(viewVariable.PointerFieldIndex);
+                }
+                else
+                {
+                    // Do not append a field access in this case
+                }
+            }
+
+            /// <summary>
             /// Appends the referenced field accessor.
             /// </summary>
             /// <param name="fieldIndex">The field index.</param>
             public void AppendField(int fieldIndex)
             {
-                var fieldName = string.Format(CLTypeGenerator.FieldNameFormat, fieldIndex.ToString());
+                var fieldName = string.Format(
+                    CLTypeGenerator.FieldNameFormat,
+                    fieldIndex.ToString());
                 stringBuilder.Append('.');
                 stringBuilder.Append(fieldName);
             }
@@ -246,7 +287,7 @@ namespace ILGPU.Backends.OpenCL
             /// Appends the given variable directly.
             /// </summary>
             /// <param name="variable">The variable to append.</param>
-            public void Append(IntrinsicVariable variable)
+            public void Append(Variable variable)
             {
                 stringBuilder.Append(variable.ToString());
             }
@@ -255,7 +296,7 @@ namespace ILGPU.Backends.OpenCL
             /// Appends the given register argument.
             /// </summary>
             /// <param name="argument">The argument to append.</param>
-            public void AppendArgument(IntrinsicVariable argument)
+            public void AppendArgument(Variable argument)
             {
                 AppendArgument();
                 Append(argument);
@@ -360,7 +401,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="target">The target variable to assign to.</param>
         /// <returns>The created statement emitter.</returns>
-        public StatementEmitter BeginStatement(IntrinsicVariable target)
+        public StatementEmitter BeginStatement(Variable target)
         {
             var emitter = new StatementEmitter(this, Indent);
             emitter.AppendTarget(target);
@@ -373,7 +414,7 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="target">The target variable to assign to.</param>
         /// <param name="fieldIndex">The field index to use.</param>
         /// <returns>The created statement emitter.</returns>
-        public StatementEmitter BeginStatement(IntrinsicVariable target, int fieldIndex)
+        public StatementEmitter BeginStatement(Variable target, int fieldIndex)
         {
             var emitter = new StatementEmitter(this, Indent);
             emitter.AppendFieldTarget(target, fieldIndex);
@@ -384,9 +425,22 @@ namespace ILGPU.Backends.OpenCL
         /// Begins a new statement.
         /// </summary>
         /// <param name="target">The target variable to assign to.</param>
+        /// <param name="fieldIndices">The field indices to use.</param>
+        /// <returns>The created statement emitter.</returns>
+        public StatementEmitter BeginStatement(Variable target, ImmutableArray<int> fieldIndices)
+        {
+            var emitter = new StatementEmitter(this, Indent);
+            emitter.AppendFieldTarget(target, fieldIndices);
+            return emitter;
+        }
+
+        /// <summary>
+        /// Begins a new statement.
+        /// </summary>
+        /// <param name="target">The target variable to assign to.</param>
         /// <param name="indexer">The indexer variable to use.</param>
         /// <returns>The created statement emitter.</returns>
-        public StatementEmitter BeginStatement(IntrinsicVariable target, IntrinsicVariable indexer)
+        public StatementEmitter BeginStatement(Variable target, Variable indexer)
         {
             var emitter = new StatementEmitter(this, Indent);
             emitter.AppendIndexedTarget(target, indexer);
@@ -399,7 +453,7 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="target">The target variable to assign to.</param>
         /// <param name="command">The initial command to emit.</param>
         /// <returns>The created statement emitter.</returns>
-        public StatementEmitter BeginStatement(IntrinsicVariable target, string command)
+        public StatementEmitter BeginStatement(Variable target, string command)
         {
             var emitter = BeginStatement(target);
             emitter.AppendCommand(command);

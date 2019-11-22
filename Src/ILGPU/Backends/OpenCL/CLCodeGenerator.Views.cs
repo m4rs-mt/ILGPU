@@ -19,57 +19,68 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(NewView)"/>
         public void Visit(NewView value)
         {
+            var target = AllocateView(value);
             var pointer = LoadAs<PointerVariable>(value.Pointer);
             var length = LoadAs<PrimitiveVariable>(value.Length);
 
-            var viewValue = new ViewVariable(
-                value.Type as ViewType,
-                pointer,
-                length);
-            Bind(value, viewValue);
+            // Assign pointer
+            using (var statement = BeginStatement(target, target.PointerFieldIndex))
+                statement.Append(pointer);
+
+            // Assign length
+            using (var statement = BeginStatement(target, target.VariableName))
+                statement.Append(length);
         }
 
         /// <summary cref="IValueVisitor.Visit(GetViewLength)"/>
         public void Visit(GetViewLength value)
         {
-            var viewSource = LoadAs<ViewVariable>(value.View);
-            Bind(value, viewSource.Length);
+            var target = Allocate(value);
+            var viewSource = LoadView(value.View);
+            using (var statement = BeginStatement(target))
+            {
+                statement.Append(viewSource);
+                statement.AppendField(viewSource.LengthFieldIndex);
+            }
         }
 
         /// <summary>
         /// Creates a new empty view.
         /// </summary>
         /// <param name="value">The source value.</param>
-        /// <param name="viewType">The view type.</param>
-        private void MakeNullView(NullValue value, ViewType viewType)
+        private void MakeNullView(NullValue value)
         {
-            var viewVariable = AllocateType(viewType) as ViewVariable;
-            using (var statement = BeginStatement(viewVariable.Pointer))
+            var target = AllocateView(value);
 
-                statement.AppendConstant(0);
-            using (var statement = BeginStatement(viewVariable.Length))
+            using (var statement = BeginStatement(target, target.PointerFieldIndex))
                 statement.AppendConstant(0);
 
-            Bind(value, viewVariable);
+            using (var statement = BeginStatement(target, target.LengthFieldIndex))
+                statement.AppendConstant(0);
         }
 
         /// <summary cref="IValueVisitor.Visit(ViewCast)"/>
         public void Visit(ViewCast value)
         {
-            var source = LoadAs<ViewVariable>(value.Value);
-            var pointer = source.Pointer;
-            var length = source.Length;
+            var target = AllocateView(value);
+            var source = LoadView(value.Value);
+
+            using (var statement = BeginStatement(target, target.PointerFieldIndex))
+            {
+                statement.AppendPointerCast(TypeGenerator[target.ElementType]);
+                statement.Append(source);
+                statement.AppendField(source.PointerFieldIndex);
+            }
 
             var sourceElementSize = ABI.GetSizeOf(value.SourceElementType);
             var targetElementSize = ABI.GetSizeOf(value.TargetElementType);
 
             // var newLength = length * sourceElementSize / targetElementSize;
-            var newLength = AllocateType(BasicValueType.Int32) as PrimitiveVariable;
-
-            using (var statement = BeginStatement(newLength))
+            using (var statement = BeginStatement(target, target.LengthFieldIndex))
             {
                 statement.OpenParen();
-                statement.Append(length);
+                statement.Append(source);
+                statement.AppendField(source.LengthFieldIndex);
                 statement.AppendOperation(
                     CLInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Mul,
@@ -84,33 +95,28 @@ namespace ILGPU.Backends.OpenCL
                         out bool _));
                 statement.AppendConstant(targetElementSize);
             }
-
-            var newView = new ViewVariable(
-                value.Type as ViewType,
-                pointer,
-                newLength);
-            Bind(value, newView);
         }
 
         /// <summary cref="IValueVisitor.Visit(SubViewValue)"/>
         public void Visit(SubViewValue value)
         {
-            var viewType = value.Type as ViewType;
-            var source = LoadAs<ViewVariable>(value.Source);
+            var source = LoadView(value.Source);
             var offset = LoadAs<PrimitiveVariable>(value.Offset);
             var length = LoadAs<PrimitiveVariable>(value.Length);
+            var target = AllocateView(value);
 
-            var target = AllocatePointerType(viewType.ElementType, viewType.AddressSpace);
-            MakeLoadElementAddress(
-                offset,
-                target,
-                source.Pointer);
+            // Assign pointer
+            using (var statement = BeginStatement(target, target.PointerFieldIndex))
+            {
+                statement.AppendCommand(CLInstructions.AddressOfOperation);
+                statement.Append(source);
+                statement.TryAppendViewPointerField(source);
+                statement.AppendIndexer(offset);
+            }
 
-            var newSubView = new ViewVariable(
-                viewType,
-                target,
-                length);
-            Bind(value, newSubView);
+            // Assign length
+            using (var statement = BeginStatement(target, target.VariableName))
+                statement.Append(length);
         }
 
         /// <summary cref="IValueVisitor.Visit(LoadElementAddress)"/>
@@ -118,21 +124,16 @@ namespace ILGPU.Backends.OpenCL
         {
             var pointerType = value.Type as PointerType;
             var elementIndex = LoadAs<PrimitiveVariable>(value.ElementIndex);
+            var source = Load(value.Source);
             var target = AllocatePointerType(pointerType.ElementType, pointerType.AddressSpace);
 
-            PointerVariable address;
-            if (value.IsPointerAccess)
-                address = LoadAs<PointerVariable>(value.Source);
-            else
+            using (var statement = BeginStatement(target))
             {
-                var viewSource = LoadAs<ViewVariable>(value.Source);
-                address = viewSource.Pointer;
+                statement.AppendCommand(CLInstructions.AddressOfOperation);
+                statement.Append(source);
+                statement.TryAppendViewPointerField(source);
+                statement.AppendIndexer(elementIndex);
             }
-
-            MakeLoadElementAddress(
-                elementIndex,
-                target,
-                address);
 
             Bind(value, target);
         }
@@ -140,69 +141,46 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Creates a set of operations to realize a generic lea operation.
         /// </summary>
+        /// <param name="statement">The statement emitter.</param>
         /// <param name="elementIndex">The current element index (the offset).</param>
-        /// <param name="target">The allocated target variable to write to.</param>
         /// <param name="address">The source address.</param>
-        private void MakeLoadElementAddress(
+        private static void MakeLoadElementAddress(
+            ref StatementEmitter statement,
             PrimitiveVariable elementIndex,
-            PointerVariable target,
             PointerVariable address)
         {
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCommand(CLInstructions.AddressOfOperation);
-                statement.Append(address);
-                statement.AppendIndexer(elementIndex);
-            }
+            statement.AppendCommand(CLInstructions.AddressOfOperation);
+            statement.Append(address);
+            statement.AppendIndexer(elementIndex);
         }
 
         /// <summary cref="IValueVisitor.Visit(AddressSpaceCast)"/>
         public void Visit(AddressSpaceCast value)
         {
             var targetType = value.TargetType as AddressSpaceType;
-            var target = AllocatePointerType(targetType.ElementType, value.TargetAddressSpace);
+            var source = Load(value.Value);
+            var target = Allocate(value);
 
-            PointerVariable address;
-            if (value.IsPointerCast)
+            using (var statement = BeginStatement(target))
             {
-                address = LoadAs<PointerVariable>(value.Value);
-                Bind(value, target);
-            }
-            else
-            {
-                var viewSource = LoadAs<ViewVariable>(value.Value);
-                address = viewSource.Pointer;
-
-                var viewTarget = new ViewVariable(
-                    value.Type as ViewType,
-                    target,
-                    viewSource.Length);
-                Bind(value, viewTarget);
-            }
-
-            if (CLInstructions.TryGetAddressSpaceCast(
-                value.TargetAddressSpace,
-                out string operation))
-            {
-                // There is a specific cast operation
-                using (var statement = BeginStatement(target))
+                bool isOperation;
+                if (isOperation = CLInstructions.TryGetAddressSpaceCast(
+                    value.TargetAddressSpace,
+                    out string operation))
                 {
+                    // There is a specific cast operation
                     statement.AppendCommand(operation);
                     statement.BeginArguments();
-                    statement.AppendArgument(address);
-                    statement.EndArguments();
+                    statement.Append(source);
                 }
-            }
-            else
-            {
-                // Use an unspecific generic pointer cast
-                using (var statement = BeginStatement(target))
+                else
                 {
-                    statement.AppendCast(
-                        TypeGenerator[targetType.ElementType] +
-                        CLInstructions.DereferenceOperation);
-                    statement.Append(address);
+                    statement.AppendPointerCast(TypeGenerator[targetType.ElementType]);
                 }
+                statement.TryAppendViewPointerField(source);
+
+                if (isOperation)
+                    statement.EndArguments();
             }
         }
     }

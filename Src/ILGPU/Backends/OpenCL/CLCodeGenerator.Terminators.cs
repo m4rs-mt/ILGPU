@@ -23,7 +23,7 @@ namespace ILGPU.Backends.OpenCL
             {
                 if (!returnTerminator.IsVoidReturn)
                 {
-                    var resultRegister = LoadIntrinsic(returnTerminator.ReturnValue);
+                    var resultRegister = Load(returnTerminator.ReturnValue);
                     statement.AppendArgument(resultRegister);
                 }
             }

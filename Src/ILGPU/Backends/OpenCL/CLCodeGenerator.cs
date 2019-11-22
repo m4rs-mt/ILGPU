@@ -15,7 +15,6 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -83,7 +82,7 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="clName">The name of the parameter in OpenCL code.</param>
             /// <param name="parameter">The source parameter.</param>
             public MappedParameter(
-                IntrinsicVariable variable,
+                Variable variable,
                 string clName,
                 Parameter parameter)
             {
@@ -99,7 +98,7 @@ namespace ILGPU.Backends.OpenCL
             /// <summary>
             /// Returns the associated OpenCL variable.
             /// </summary>
-            public IntrinsicVariable Variable { get; }
+            public Variable Variable { get; }
 
             /// <summary>
             /// Returns the name of the parameter in OpenCL code.
@@ -239,30 +238,20 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="target">The target builder to use.</param>
         /// <param name="paramOffset">The intrinsic parameter offset.</param>
-        protected List<MappedParameter> GenerateParameters(StringBuilder target, int paramOffset)
+        protected void GenerateParameters(StringBuilder target, int paramOffset)
         {
-            var parameters = new List<MappedParameter>(Method.NumParameters - paramOffset);
-
             for (int i = paramOffset, e = Method.NumParameters; i < e; ++i)
             {
                 var param = Method.Parameters[i];
                 Builder.Append('\t');
                 Builder.Append(TypeGenerator[param.Type]);
                 Builder.Append(' ');
-                var paramName = GetParameterName(param);
-                Builder.Append(paramName);
+                var variable = Allocate(param);
+                Builder.Append(variable.VariableName);
 
                 if (i + 1 < e)
                     Builder.AppendLine(",");
-
-                var variable = Allocate(param);
-                parameters.Add(new MappedParameter(
-                    variable,
-                    paramName,
-                    param));
             }
-
-            return parameters;
         }
 
         /// <summary>

@@ -11,7 +11,6 @@
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR.Analyses;
-using System.Collections.Generic;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -74,7 +73,7 @@ namespace ILGPU.Backends.OpenCL
         public override void GenerateCode()
         {
             // Emit kernel declaration and parameter definitions
-            Builder.Append("__global void ");
+            Builder.Append("__kernel void ");
             Builder.Append(CLCompiledKernel.EntryName);
             Builder.AppendLine("(");
 
@@ -88,7 +87,8 @@ namespace ILGPU.Backends.OpenCL
                 var elementType = viewParameters[i].ElementType;
                 Builder.Append("\t __global ");
                 Builder.Append(TypeGenerator[elementType]);
-                Builder.Append(" *");
+                Builder.Append(' ');
+                Builder.Append(CLInstructions.DereferenceOperation);
                 Builder.AppendFormat(KernelViewNameFormat, i.ToString());
 
                 if (hasDefaultParameters || i + 1 < e)
@@ -96,26 +96,40 @@ namespace ILGPU.Backends.OpenCL
             }
 
             // Emit all parameter declarations
-            var parameters = new List<MappedParameter>(Method.NumParameters);
-            GenerateParameters(Builder, 1, parameters);
+            GenerateParameters(Builder, 1);
             Builder.AppendLine(")");
 
             // Emit code that moves view arguments into their appropriate targets
             Builder.AppendLine("{");
-            GenerateViewWiring(parameters);
+            GenerateViewWiring();
 
             // Generate code
             GenerateCodeInternal();
             Builder.AppendLine("}");
         }
 
-        private void GenerateViewWiring(List<MappedParameter> parameters)
+        /// <summary>
+        /// Generates code that wires custom view parameters and all other data structures
+        /// that are passed to a kernel.
+        /// </summary>
+        private void GenerateViewWiring()
         {
-            foreach (var viewParam in EntryPoint.ViewParameters)
+            var viewParams = EntryPoint.ViewParameters;
+            for (int i = 0, e = viewParams.Length; i < e; ++i)
             {
-                var param = parameters[viewParam.ParameterIndex];
-                using var statement = BeginStatement(param.Variable);
-                statement.AppendField()
+                var viewParam = viewParams[i];
+                // Load the associated parameter and generate a field-access chain
+                var param = Method.Parameters[viewParam.ParameterIndex + 1];
+                var variable = Load(param);
+
+                // Wire the view pointer and the passed structure
+                using (var statement = BeginStatement(
+                    variable,
+                    viewParam.AccessChain.Add(CLTypeGenerator.ViewPointerFieldIndex)))
+                {
+                    statement.AppendOperation(
+                        string.Format(KernelViewNameFormat, i.ToString()));
+                }
             }
         }
 

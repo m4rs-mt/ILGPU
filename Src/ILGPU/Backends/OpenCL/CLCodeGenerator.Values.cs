@@ -28,7 +28,7 @@ namespace ILGPU.Backends.OpenCL
             StatementEmitter statementEmitter;
             if (!returnType.IsVoidType)
             {
-                var returnValue = AllocateIntrinsic(methodCall);
+                var returnValue = Allocate(methodCall);
                 statementEmitter = BeginStatement(returnValue);
                 statementEmitter.AppendCommand(GetMethodName(target));
             }
@@ -40,13 +40,7 @@ namespace ILGPU.Backends.OpenCL
             foreach (var argument in methodCall)
             {
                 var variable = Load(argument);
-                if (variable is ViewVariable viewVariable)
-                {
-                    statementEmitter.AppendArgument(viewVariable.Pointer);
-                    statementEmitter.AppendArgument(viewVariable.Length);
-                }
-                else
-                    statementEmitter.AppendArgument(variable as IntrinsicVariable);
+                statementEmitter.AppendArgument(variable);
             }
             statementEmitter.EndArguments();
 
@@ -69,8 +63,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(UnaryArithmeticValue)"/>
         public void Visit(UnaryArithmeticValue value)
         {
-            var argument = LoadIntrinsic(value.Value);
-            var target = AllocateIntrinsic(value);
+            var argument = Load(value.Value);
+            var target = Allocate(value);
 
             using (var statement = BeginStatement(target))
             {
@@ -95,10 +89,10 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(BinaryArithmeticValue)"/>
         public void Visit(BinaryArithmeticValue value)
         {
-            var left = LoadIntrinsic(value.Left);
-            var right = LoadIntrinsic(value.Right);
+            var left = Load(value.Left);
+            var right = Load(value.Right);
 
-            var target = AllocateIntrinsic(value);
+            var target = Allocate(value);
             using (var statement = BeginStatement(target))
             {
                 statement.AppendCast(value.BasicValueType);
@@ -141,11 +135,11 @@ namespace ILGPU.Backends.OpenCL
                 out string operation))
                 throw new InvalidCodeGenerationException();
 
-            var first = LoadIntrinsic(value.First);
-            var second = LoadIntrinsic(value.Second);
-            var third = LoadIntrinsic(value.Third);
+            var first = Load(value.First);
+            var second = Load(value.Second);
+            var third = Load(value.Third);
 
-            var targetRegister = AllocateIntrinsic(value);
+            var targetRegister = Allocate(value);
             using (var statement = BeginStatement(targetRegister))
             {
                 statement.AppendCast(value.BasicValueType);
@@ -171,10 +165,10 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(CompareValue)"/>
         public void Visit(CompareValue value)
         {
-            var left = LoadIntrinsic(value.Left);
-            var right = LoadIntrinsic(value.Right);
+            var left = Load(value.Left);
+            var right = Load(value.Right);
 
-            var targetRegister = AllocateIntrinsic(value);
+            var targetRegister = Allocate(value);
             using (var statement = BeginStatement(targetRegister))
             {
                 statement.AppendArgument(left);
@@ -188,9 +182,9 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(ConvertValue)"/>
         public void Visit(ConvertValue value)
         {
-            var sourceValue = LoadIntrinsic(value.Value);
+            var sourceValue = Load(value.Value);
 
-            var targetRegister = AllocateIntrinsic(value);
+            var targetRegister = Allocate(value);
             using (var statement = BeginStatement(targetRegister))
             {
                 statement.AppendCast(value.TargetType);
@@ -201,9 +195,9 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(PointerCast)"/>
         public void Visit(PointerCast value)
         {
-            var sourceValue = LoadIntrinsic(value.Value);
+            var sourceValue = Load(value.Value);
 
-            var targetRegister = AllocateIntrinsic(value);
+            var targetRegister = Allocate(value);
             using (var statement = BeginStatement(targetRegister))
             {
                 statement.AppendCast(value.TargetType);
@@ -214,8 +208,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(FloatAsIntCast)"/>
         public void Visit(FloatAsIntCast value)
         {
-            var source = LoadIntrinsic(value.Value);
-            var targetRegister = AllocateIntrinsic(value);
+            var source = Load(value.Value);
+            var targetRegister = Allocate(value);
 
             using (var statement = BeginStatement(targetRegister))
             {
@@ -229,8 +223,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(IntAsFloatCast)"/>
         public void Visit(IntAsFloatCast value)
         {
-            var source = LoadIntrinsic(value.Value);
-            var targetRegister = AllocateIntrinsic(value);
+            var source = Load(value.Value);
+            var targetRegister = Allocate(value);
 
             using (var statement = BeginStatement(targetRegister))
             {
@@ -244,11 +238,11 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(Predicate)"/>
         public void Visit(Predicate predicate)
         {
-            var condition = LoadIntrinsic(predicate.Condition);
-            var trueValue = LoadIntrinsic(predicate.TrueValue);
-            var falseValue = LoadIntrinsic(predicate.FalseValue);
+            var condition = Load(predicate.Condition);
+            var trueValue = Load(predicate.TrueValue);
+            var falseValue = Load(predicate.FalseValue);
 
-            var targetRegister = AllocateIntrinsic(predicate);
+            var targetRegister = Allocate(predicate);
             using (var statement = BeginStatement(targetRegister))
             {
                 statement.AppendArgument(condition);
@@ -262,15 +256,15 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(GenericAtomic)"/>
         public void Visit(GenericAtomic atomic)
         {
-            var target = LoadIntrinsic(atomic.Target);
-            var value = LoadIntrinsic(atomic.Value);
+            var target = Load(atomic.Target);
+            var value = Load(atomic.Value);
 
             var atomicOperation = CLInstructions.GetAtomicOperation(atomic.Kind);
 
             StatementEmitter statement;
             if (atomic.Kind == AtomicKind.Exchange)
             {
-                var result = AllocateIntrinsic(atomic);
+                var result = Allocate(atomic);
                 statement = BeginStatement(result, atomicOperation);
             }
             else
@@ -288,12 +282,12 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(AtomicCAS)"/>
         public void Visit(AtomicCAS atomicCAS)
         {
-            var target = LoadIntrinsic(atomicCAS.Target);
-            var value = LoadIntrinsic(atomicCAS.Value);
-            var compare = LoadIntrinsic(atomicCAS.CompareValue);
+            var target = Load(atomicCAS.Target);
+            var value = Load(atomicCAS.Value);
+            var compare = Load(atomicCAS.CompareValue);
 
             var tempVariable = AllocateType(BasicValueType.Int1) as PrimitiveVariable;
-            var targetVariable = AllocateIntrinsic(atomicCAS);
+            var targetVariable = Allocate(atomicCAS);
             using (var statement = BeginStatement(tempVariable))
             {
                 statement.AppendCommand(CLInstructions.AtomicCASOperation);
@@ -353,8 +347,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(Load)"/>
         public void Visit(Load load)
         {
-            var address = LoadIntrinsic(load.Source);
-            var target = AllocateIntrinsic(load);
+            var address = Load(load.Source);
+            var target = Allocate(load);
 
             using (var statement = BeginStatement(target))
             {
@@ -366,8 +360,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(Store)"/>
         public void Visit(Store store)
         {
-            var address = LoadIntrinsic(store.Target);
-            var value = LoadIntrinsic(store.Value);
+            var address = Load(store.Target);
+            var value = Load(store.Value);
 
             using (var statement = BeginStatement(
                 CLInstructions.DereferenceOperation))
@@ -381,8 +375,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(LoadFieldAddress)"/>
         public void Visit(LoadFieldAddress value)
         {
-            var source = LoadIntrinsic(value.Source);
-            var target = AllocateIntrinsic(value);
+            var source = Load(value.Source);
+            var target = Allocate(value);
 
             using (var statement = BeginStatement(target))
             {
@@ -398,7 +392,7 @@ namespace ILGPU.Backends.OpenCL
             if (value.Uses.TryGetSingleUse(out Use use) && use.Resolve() is Alloca)
                 return;
 
-            var variable = AllocateIntrinsic(value);
+            var variable = Allocate(value);
             using (var statement = BeginStatement(variable))
             {
                 switch (value.BasicValueType)
@@ -444,11 +438,11 @@ namespace ILGPU.Backends.OpenCL
                 case VoidType _:
                     // Ignore void type nulls
                     break;
-                case ViewType viewType:
-                    MakeNullView(value, viewType);
+                case ViewType _:
+                    MakeNullView(value);
                     break;
                 default:
-                    var target = AllocateIntrinsic(value);
+                    var target = Allocate(value);
                     using (var statement = BeginStatement(target))
                     {
                         statement.AppendCast(value.Type);
@@ -461,7 +455,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(SizeOfValue)"/>
         public void Visit(SizeOfValue value)
         {
-            var target = AllocateIntrinsic(value);
+            var target = Allocate(value);
             var size = ABI.GetSizeOf(value.TargetType);
             using (var statement = BeginStatement(target))
             {
@@ -472,8 +466,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(GetField)"/>
         public void Visit(GetField value)
         {
-            var source = LoadIntrinsic(value.ObjectValue);
-            var target = AllocateIntrinsic(value);
+            var source = Load(value.ObjectValue);
+            var target = Allocate(value);
             using (var statement = BeginStatement(target))
             {
                 statement.AppendArgument(source);
@@ -484,9 +478,9 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(SetField)"/>
         public void Visit(SetField value)
         {
-            var source = LoadIntrinsic(value.ObjectValue);
-            var set = LoadIntrinsic(value.Value);
-            var target = AllocateIntrinsic(value);
+            var source = Load(value.ObjectValue);
+            var set = Load(value.Value);
+            var target = Allocate(value);
 
             // Copy value
             using (var statement = BeginStatement(target))
@@ -503,9 +497,9 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(GetElement)"/>
         public void Visit(GetElement value)
         {
-            var source = LoadIntrinsic(value.ObjectValue);
-            var index = LoadIntrinsic(value.Index);
-            var target = AllocateIntrinsic(value);
+            var source = Load(value.ObjectValue);
+            var index = Load(value.Index);
+            var target = Allocate(value);
 
             using (var statement = BeginStatement(target))
             {
@@ -517,10 +511,10 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(SetElement)"/>
         public void Visit(SetElement value)
         {
-            var source = LoadIntrinsic(value.ObjectValue);
-            var index = LoadIntrinsic(value.Index);
-            var set = LoadIntrinsic(value.Value);
-            var target = AllocateIntrinsic(value);
+            var source = Load(value.ObjectValue);
+            var index = Load(value.Index);
+            var set = Load(value.Value);
+            var target = Allocate(value);
 
             // Copy value
             using (var statement = BeginStatement(target))
@@ -539,7 +533,7 @@ namespace ILGPU.Backends.OpenCL
             string operation,
             string args = null)
         {
-            var target = AllocateIntrinsic(value);
+            var target = Allocate(value);
             using (var statement = BeginStatement(target))
             {
                 statement.AppendCommand(operation);
@@ -604,8 +598,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(PredicateBarrier)"/>
         public void Visit(PredicateBarrier barrier)
         {
-            var sourcePredicate = LoadIntrinsic(barrier.Predicate);
-            var target = AllocateIntrinsic(barrier);
+            var sourcePredicate = Load(barrier.Predicate);
+            var target = Allocate(barrier);
 
             if (!CLInstructions.TryGetPredicateBarrier(
                 barrier.Kind,
@@ -633,9 +627,9 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(Broadcast)"/>
         public void Visit(Broadcast broadcast)
         {
-            var source = LoadIntrinsic(broadcast.Variable);
-            var origin = LoadIntrinsic(broadcast.Origin);
-            var target = AllocateIntrinsic(broadcast);
+            var source = Load(broadcast.Variable);
+            var origin = Load(broadcast.Origin);
+            var target = Allocate(broadcast);
 
             using (var statement = BeginStatement(target))
             {
@@ -658,9 +652,9 @@ namespace ILGPU.Backends.OpenCL
                 out string operation))
                 throw new InvalidCodeGenerationException();
 
-            var source = LoadIntrinsic(shuffle.Variable);
-            var origin = LoadIntrinsic(shuffle.Origin);
-            var target = AllocateIntrinsic(shuffle);
+            var source = Load(shuffle.Variable);
+            var origin = Load(shuffle.Origin);
+            var target = Allocate(shuffle);
             using (var statement = BeginStatement(target))
             {
                 statement.AppendCommand(operation);

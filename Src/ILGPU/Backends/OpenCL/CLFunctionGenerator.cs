@@ -11,7 +11,6 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
-using System.Collections.Generic;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -44,16 +43,14 @@ namespace ILGPU.Backends.OpenCL
         /// Generates a header stub for the current method.
         /// </summary>
         /// <param name="builder">The target builder to use.</param>
-        /// <returns>The list of mapped parameters.</returns>
-        private List<MappedParameter> GenerateHeaderStub(StringBuilder builder)
+        private void GenerateHeaderStub(StringBuilder builder)
         {
             Builder.Append(TypeGenerator[Method.ReturnType]);
             Builder.Append(' ');
             Builder.Append(GetMethodName(Method));
             Builder.AppendLine("(");
-            var parameters = GenerateParameters(Builder, 0);
+            GenerateParameters(Builder, 0);
             Builder.AppendLine(")");
-            return parameters;
         }
 
         /// <summary>
@@ -77,7 +74,7 @@ namespace ILGPU.Backends.OpenCL
                 return;
 
             // Declare function and parameters
-            var parameters = GenerateHeaderStub(Builder);
+            GenerateHeaderStub(Builder);
 
             // Generate code
             Builder.AppendLine("{");
