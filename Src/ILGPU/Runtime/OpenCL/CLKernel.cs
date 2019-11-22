@@ -33,41 +33,49 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="source">The OpenCL source code.</param>
         /// <param name="programPtr">The created program pointer.</param>
         /// <param name="kernelPtr">The created kernel pointer.</param>
+        /// <param name="errorLog">The error log (if any).</param>
         /// <returns>True, if the program and the kernel could be loaded successfully.</returns>
         internal static CLError LoadKernel(
             CLAccelerator accelerator,
             string source,
             out IntPtr programPtr,
-            out IntPtr kernelPtr)
+            out IntPtr kernelPtr,
+            out string errorLog)
         {
+            errorLog = null;
             kernelPtr = IntPtr.Zero;
-            var error = CLAPI.CreateProgram(
+            var programError = CLAPI.CreateProgram(
                 accelerator.ContextPtr,
                 source,
                 out programPtr);
-            if (error != CLError.CL_SUCCESS)
-                return error;
+            if (programError != CLError.CL_SUCCESS)
+                return programError;
 
             // TODO: OpenCL compiler options
             string options = string.Empty;
 
-            error |= CLAPI.BuildProgram(
+            var buildError = CLAPI.BuildProgram(
                 programPtr,
                 accelerator.DeviceId,
                 options);
 
-            error |= CLAPI.CreateKernel(
-                programPtr,
-                CLCompiledKernel.EntryName,
-                out kernelPtr);
-
-            if (error != CLError.CL_SUCCESS)
+            if (buildError != CLError.CL_SUCCESS)
             {
+                CLException.ThrowIfFailed(
+                    CLAPI.GetProgramBuildLog(
+                        programPtr,
+                        accelerator.DeviceId,
+                        out errorLog));
                 CLException.ThrowIfFailed(
                     CLAPI.ReleaseProgram(programPtr));
                 programPtr = IntPtr.Zero;
+                return buildError;
             }
-            return error;
+
+            return CLAPI.CreateKernel(
+                programPtr,
+                CLCompiledKernel.EntryName,
+                out kernelPtr);
         }
 
         #endregion
@@ -100,11 +108,31 @@ namespace ILGPU.Runtime.OpenCL
             MethodInfo launcher)
             : base(accelerator, kernel, launcher)
         {
+#if DEBUG
+            var errorCode = LoadKernel(
+                accelerator,
+                kernel.Source,
+                out programPtr,
+                out kernelPtr,
+                out var errorLog);
+            if (errorCode != CLError.CL_SUCCESS)
+            {
+                Debug.WriteLine("Kernel loading failed:");
+                if (string.IsNullOrWhiteSpace(errorLog))
+                    Debug.WriteLine(">> No error information available");
+                else
+                    Debug.WriteLine(errorLog);
+            }
+            CLException.ThrowIfFailed(errorCode);
+#else
             CLException.ThrowIfFailed(LoadKernel(
                 accelerator,
                 kernel.Source,
                 out programPtr,
-                out kernelPtr));
+                out kernelPtr,
+                out var _));
+#endif
+
         }
 
         #endregion

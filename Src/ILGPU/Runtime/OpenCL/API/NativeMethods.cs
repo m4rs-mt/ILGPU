@@ -141,6 +141,15 @@ namespace ILGPU.Runtime.OpenCL.API
         public static extern CLError ReleaseProgram(
             [In] IntPtr program);
 
+        [DllImport(LibName, EntryPoint = "clGetProgramBuildInfo")]
+        public static extern CLError GetProgramBuildInfo(
+            [In] IntPtr program,
+            [In] IntPtr device,
+            [In] CLProgramBuildInfo paramName,
+            [In] IntPtr paramValueSize,
+            [Out] void* paramValue,
+            [Out] out IntPtr paramValueSizeRet);
+
         [DllImport(LibName, EntryPoint = "clCreateKernel", BestFitMapping = false)]
         public static extern IntPtr CreateKernel(
             [In] IntPtr program,

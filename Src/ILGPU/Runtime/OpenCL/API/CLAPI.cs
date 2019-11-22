@@ -438,6 +438,63 @@ namespace ILGPU.Runtime.OpenCL.API
         }
 
         /// <summary>
+        /// Resolves program build information.
+        /// </summary>
+        /// <param name="program">The program pointer.</param>
+        /// <param name="device">The associated device.</param>
+        /// <param name="paramName">The param name to query.</param>
+        /// <param name="paramValueSize">The size of the parameter value.</param>
+        /// <param name="paramValue">The parameter value to use.</param>
+        /// <param name="paramValueSizeRet">The resulting parameter value size.</param>
+        /// <returns>The error code.</returns>
+        [CLSCompliant(false)]
+        public static CLError GetProgramBuildInfo(
+            IntPtr program,
+            IntPtr device,
+            CLProgramBuildInfo paramName,
+            IntPtr paramValueSize,
+            void* paramValue,
+            out IntPtr paramValueSizeRet) =>
+            NativeMethods.GetProgramBuildInfo(
+                program,
+                device,
+                paramName,
+                paramValueSize,
+                paramValue,
+                out paramValueSizeRet);
+
+        /// <summary>
+        /// Resolves program build-log information.
+        /// </summary>
+        /// <param name="program">The program pointer.</param>
+        /// <param name="device">The associated device.</param>
+        /// <param name="buildLog">The build log (if any).</param>
+        /// <returns>The error code.</returns>
+        public static CLError GetProgramBuildLog(
+            IntPtr program,
+            IntPtr device,
+            out string buildLog)
+        {
+            const int LogSize = 4096;
+            var log = stackalloc sbyte[LogSize];
+            var error = GetProgramBuildInfo(
+                program,
+                device,
+                CLProgramBuildInfo.CL_PROGRAM_BUILD_LOG,
+                new IntPtr(LogSize),
+                log,
+                out IntPtr logLength);
+            buildLog = string.Empty;
+            if (error == CLError.CL_SUCCESS)
+                buildLog = new string(
+                    log,
+                    0,
+                    logLength.ToInt32(),
+                    System.Text.Encoding.ASCII);
+            return error;
+        }
+
+        /// <summary>
         /// Releases the given program.
         /// </summary>
         /// <param name="program">The program to release.</param>

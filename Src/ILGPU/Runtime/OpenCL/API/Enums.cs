@@ -267,6 +267,17 @@ namespace ILGPU.Runtime.OpenCL.API
         CL_KERNEL_SUB_GROUP_COUNT_FOR_NDRANGE_KHR = 0x2034,
         CL_KERNEL_LOCAL_SIZE_FOR_SUB_GROUP_COUNT = 0x11B8
     }
+
+    [SuppressMessage("Microsoft.Design", "CA1008:Enums should have zero value",
+        Justification = "Interop enum")]
+    public enum CLProgramBuildInfo : int
+    {
+        CL_PROGRAM_BUILD_STATUS = 0x1181,
+        CL_PROGRAM_BUILD_OPTIONS = 0x1182,
+        CL_PROGRAM_BUILD_LOG = 0x1183,
+        CL_PROGRAM_BINARY_TYPE = 0x1184,
+        CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE = 0x1185
+    }
 }
 
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

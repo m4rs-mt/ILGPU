@@ -309,7 +309,8 @@ namespace ILGPU.Runtime.OpenCL
                     this,
                     DummyKernelSource,
                     out IntPtr programPtr,
-                    out IntPtr kernelPtr));
+                    out IntPtr kernelPtr,
+                    out var _));
                 try
                 {
                     // Resolve information
@@ -345,7 +346,8 @@ namespace ILGPU.Runtime.OpenCL
                 this,
                 DummySubGroupKernelSource,
                 out IntPtr programPtr,
-                out IntPtr kernelPtr) == CLError.CL_SUCCESS)
+                out IntPtr kernelPtr,
+                out var _) == CLError.CL_SUCCESS)
             {
                 // Some drivers return an internal handler delegate
                 // that crashes during invocation instead of telling that the
