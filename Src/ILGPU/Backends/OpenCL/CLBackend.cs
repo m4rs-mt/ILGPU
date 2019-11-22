@@ -12,6 +12,8 @@
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Transformations;
+using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using System.Reflection;
@@ -24,6 +26,33 @@ namespace ILGPU.Backends.OpenCL
     /// </summary>
     public sealed partial class CLBackend : CodeGeneratorBackend<CLIntrinsic.Handler, CLCodeGenerator.GeneratorArgs, CLCodeGenerator, StringBuilder>
     {
+        #region Nested Types
+
+        /// <summary>
+        /// The kernel specializer configuration.
+        /// </summary>
+        private readonly struct IntrinsicSpecializerConfiguration : IIntrinsicSpecializerConfiguration
+        {
+            /// <summary>
+            /// Constructs a new specializer configuration.
+            /// </summary>
+            /// <param name="flags">The associated context flags.</param>
+            public IntrinsicSpecializerConfiguration(ContextFlags flags)
+            {
+                ContextFlags = flags;
+            }
+
+            /// <summary>
+            /// Returns the associated context.
+            /// </summary>
+            public ContextFlags ContextFlags { get; }
+
+            /// <summary cref="IIntrinsicSpecializerConfiguration.EnableAssertions"/>
+            public bool EnableAssertions => false;
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -44,6 +73,10 @@ namespace ILGPU.Backends.OpenCL
                   abi => new CLArgumentMapper(context, abi))
         {
             Vendor = vendor;
+
+            InitializeKernelTransformers(
+                new IntrinsicSpecializerConfiguration(context.Flags),
+                builder => { });
         }
 
         #endregion
