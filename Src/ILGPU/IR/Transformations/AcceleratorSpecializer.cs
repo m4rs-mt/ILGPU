@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -22,9 +21,9 @@ namespace ILGPU.IR.Transformations
     public interface IAcceleratorSpecializerConfiguration
     {
         /// <summary>
-        /// Returns the current warp size.
+        /// Returns the current warp size (if any).
         /// </summary>
-        int WarpSize { get; }
+        int? WarpSize { get; }
 
         /// <summary>
         /// Tries to resolve the native size in bytes of the given type.
@@ -63,14 +62,12 @@ namespace ILGPU.IR.Transformations
             bool applied = false;
 
             var nativeWarpSize = configuration.WarpSize;
-            Debug.Assert(nativeWarpSize > 0, "Invalid native warp size");
-
             foreach (Value value in scope.Values)
             {
                 switch (value)
                 {
-                    case WarpSizeValue warpSizeValue:
-                        SpecializeConstant(builder, warpSizeValue, nativeWarpSize, ref applied);
+                    case WarpSizeValue warpSizeValue when nativeWarpSize.HasValue:
+                        SpecializeConstant(builder, warpSizeValue, nativeWarpSize.Value, ref applied);
                         break;
                     case SizeOfValue sizeOfValue when configuration.TryGetSizeOf(sizeOfValue.TargetType, out int size):
                         SpecializeConstant(builder, sizeOfValue, size, ref applied);

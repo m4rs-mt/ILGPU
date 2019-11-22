@@ -73,7 +73,7 @@ namespace ILGPU.Backends.PTX
             }
 
             /// <summary cref="IAcceleratorSpecializerConfiguration.WarpSize"/>
-            public int WarpSize => PTXBackend.WarpSize;
+            public int? WarpSize => PTXBackend.WarpSize;
 
             /// <summary>
             /// Returns the current ABI.
