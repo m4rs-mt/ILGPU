@@ -138,22 +138,6 @@ namespace ILGPU.Backends.OpenCL
             Bind(value, target);
         }
 
-        /// <summary>
-        /// Creates a set of operations to realize a generic lea operation.
-        /// </summary>
-        /// <param name="statement">The statement emitter.</param>
-        /// <param name="elementIndex">The current element index (the offset).</param>
-        /// <param name="address">The source address.</param>
-        private static void MakeLoadElementAddress(
-            ref StatementEmitter statement,
-            PrimitiveVariable elementIndex,
-            PointerVariable address)
-        {
-            statement.AppendCommand(CLInstructions.AddressOfOperation);
-            statement.Append(address);
-            statement.AppendIndexer(elementIndex);
-        }
-
         /// <summary cref="IValueVisitor.Visit(AddressSpaceCast)"/>
         public void Visit(AddressSpaceCast value)
         {

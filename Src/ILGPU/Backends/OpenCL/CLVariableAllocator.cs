@@ -46,15 +46,11 @@ namespace ILGPU.Backends.OpenCL
 
         #region Methods
 
-        /// <summary cref="VariableAllocator.AllocateViewVariable(int, TypeNode, MemoryAddressSpace)"/>
-        protected override ViewVariable AllocateViewVariable(
-            int variableId,
-            TypeNode elementType,
-            MemoryAddressSpace addressSpace) =>
+        /// <summary cref="VariableAllocator.AllocateViewVariable(int, ViewType)"/>
+        protected override ViewVariable AllocateViewVariable(int variableId, ViewType viewType) =>
             new ViewImplementationVariable(
                 variableId,
-                elementType,
-                addressSpace,
+                viewType,
                 CLTypeGenerator.ViewPointerFieldIndex,
                 CLTypeGenerator.ViewLengthFieldIndex);
 
@@ -78,8 +74,8 @@ namespace ILGPU.Backends.OpenCL
                             elementTypeName = addressSpacePrefix + " " + elementTypeName;
                         return elementTypeName + CLInstructions.DereferenceOperation;
                     }
-                case ObjectVariable objectVariable:
-                    return TypeGenerator[objectVariable.Type];
+                case TypedVariable typedVariable:
+                    return TypeGenerator[typedVariable.Type];
                 default:
                     throw new NotSupportedException();
             }

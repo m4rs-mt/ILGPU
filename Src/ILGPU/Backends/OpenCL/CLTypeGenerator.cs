@@ -51,13 +51,13 @@ namespace ILGPU.Backends.OpenCL
         /// The name of the pointer field inside a view.
         /// </summary>
         public static readonly string ViewPointerName =
-            string.Format(TypeNameFormat, ViewPointerFieldIndex.ToString());
+            string.Format(FieldNameFormat, ViewPointerFieldIndex.ToString());
 
         /// <summary>
         /// The name of the length field inside a view.
         /// </summary>
         public static readonly string ViewLengthName =
-            string.Format(TypeNameFormat, ViewLengthFieldIndex.ToString());
+            string.Format(FieldNameFormat, ViewLengthFieldIndex.ToString());
 
         #endregion
 
@@ -94,7 +94,6 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="structureLikeType">The structure-like type.</param>
             private void BeginStruct(TypeNode structureLikeType)
             {
-                Builder.Append("struct ");
                 Builder.AppendLine(TypeGenerator[structureLikeType]);
                 Builder.AppendLine("{");
             }
@@ -131,7 +130,7 @@ namespace ILGPU.Backends.OpenCL
                 Builder.Append(ViewPointerName);
                 Builder.AppendLine(";");
                 Builder.Append("\tint ");
-                Builder.AppendLine(ViewLengthName);
+                Builder.Append(ViewLengthName);
                 Builder.AppendLine(";");
                 EndStruct();
             }
@@ -367,8 +366,8 @@ namespace ILGPU.Backends.OpenCL
             Builder.Append(CLInstructions.GetAddressSpacePrefix(pointerType.AddressSpace));
             Builder.Append(' ');
             Builder.Append(this[pointerType.ElementType]);
-            Builder.Append(' ');
             Builder.Append(CLInstructions.DereferenceOperation);
+            Builder.Append(' ');
             Builder.Append(this[pointerType]);
             Builder.AppendLine(";");
         }

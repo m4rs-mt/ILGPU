@@ -29,17 +29,15 @@ namespace ILGPU.Backends.PointerViews
             /// Constructs a new view variable.
             /// </summary>
             /// <param name="id">The current variable id.</param>
-            /// <param name="elementType">The pointer element type.</param>
-            /// <param name="addressSpace">The associated address space.</param>
+            /// <param name="viewType">The view type.</param>
             /// <param name="pointerFieldIndex">The associated pointer field.</param>
             /// <param name="lengthFieldIndex">The associated length field.</param>
             internal ViewImplementationVariable(
                 int id,
-                TypeNode elementType,
-                MemoryAddressSpace addressSpace,
+                ViewType viewType,
                 int pointerFieldIndex,
                 int lengthFieldIndex)
-                : base(id, elementType, addressSpace)
+                : base(id, viewType)
             {
                 PointerFieldIndex = pointerFieldIndex;
                 LengthFieldIndex = lengthFieldIndex;

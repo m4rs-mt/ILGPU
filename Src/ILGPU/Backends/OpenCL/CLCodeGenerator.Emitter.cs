@@ -70,11 +70,15 @@ namespace ILGPU.Backends.OpenCL
             /// Starts a target assignment.
             /// </summary>
             /// <param name="target">The target.</param>
-            private void BeginAppendTarget(Variable target)
+            /// <param name="appendNew">True, to append a new variable target.</param>
+            private void BeginAppendTarget(Variable target, bool appendNew = true)
             {
-                var variableType = CodeGenerator.GetVariableType(target);
-                stringBuilder.Append(variableType);
-                stringBuilder.Append(' ');
+                if (appendNew)
+                {
+                    var variableType = CodeGenerator.GetVariableType(target);
+                    stringBuilder.Append(variableType);
+                    stringBuilder.Append(' ');
+                }
                 stringBuilder.Append(target.ToString());
             }
 
@@ -95,7 +99,7 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="indexer">The indexer variable.</param>
             internal void AppendIndexedTarget(Variable target, Variable indexer)
             {
-                BeginAppendTarget(target);
+                BeginAppendTarget(target, false);
                 AppendIndexer(indexer);
                 stringBuilder.Append(" = ");
             }
@@ -107,7 +111,7 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="fieldIndex">The field index.</param>
             internal void AppendFieldTarget(Variable target, int fieldIndex)
             {
-                BeginAppendTarget(target);
+                BeginAppendTarget(target, false);
                 AppendField(fieldIndex);
                 stringBuilder.Append(" = ");
             }
@@ -119,7 +123,7 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="accessChain">The field access chain.</param>
             internal void AppendFieldTarget(Variable target, ImmutableArray<int> accessChain)
             {
-                BeginAppendTarget(target);
+                BeginAppendTarget(target, false);
                 foreach (var fieldIndex in accessChain)
                     AppendField(fieldIndex);
                 stringBuilder.Append(" = ");

@@ -111,9 +111,31 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
+        /// A typed variable.
+        /// </summary>
+        public abstract class TypedVariable : Variable
+        {
+            /// <summary>
+            /// Constructs a new typed variable.
+            /// </summary>
+            /// <param name="id">The current variable id.</param>
+            /// <param name="type">The type.</param>
+            protected TypedVariable(int id, TypeNode type)
+                : base(id)
+            {
+                Type = type;
+            }
+
+            /// <summary>
+            /// Returns the underlying type.
+            /// </summary>
+            public TypeNode Type { get; }
+        }
+
+        /// <summary>
         /// An object variable.
         /// </summary>
-        public sealed class ObjectVariable : Variable
+        public sealed class ObjectVariable : TypedVariable
         {
             /// <summary>
             /// Constructs a new object variable.
@@ -121,47 +143,43 @@ namespace ILGPU.Backends
             /// <param name="id">The current variable id.</param>
             /// <param name="type">The object type.</param>
             internal ObjectVariable(int id, ObjectType type)
-                : base(id)
-            {
-                Type = type;
-            }
+                : base(id, type)
+            { }
 
             /// <summary>
             /// Returns the represented IR type.
             /// </summary>
-            public ObjectType Type { get; }
+            public new ObjectType Type => base.Type as ObjectType;
         }
 
         /// <summary>
         /// A virtual view variable.
         /// </summary>
-        public abstract class ViewVariable : Variable
+        public abstract class ViewVariable : TypedVariable
         {
             /// <summary>
             /// Constructs a new view variable.
             /// </summary>
             /// <param name="id">The current variable id.</param>
-            /// <param name="elementType">The pointer element type.</param>
-            /// <param name="addressSpace">The associated address space.</param>
-            protected ViewVariable(
-                int id,
-                TypeNode elementType,
-                MemoryAddressSpace addressSpace)
-                : base(id)
-            {
-                ElementType = elementType;
-                AddressSpace = addressSpace;
-            }
+            /// <param name="viewType">The view type.</param>
+            protected ViewVariable(int id, ViewType viewType)
+                : base(id, viewType)
+            { }
 
             /// <summary>
             /// Returns the represented IR element type.
             /// </summary>
-            public TypeNode ElementType { get; }
+            public TypeNode ElementType => Type.ElementType;
 
             /// <summary>
             /// Returns the associated address space.
             /// </summary>
-            public MemoryAddressSpace AddressSpace { get; }
+            public MemoryAddressSpace AddressSpace => Type.AddressSpace;
+
+            /// <summary>
+            /// Returns the represented IR type.
+            /// </summary>
+            public new ViewType Type => base.Type as ViewType;
         }
 
         #endregion
@@ -226,25 +244,18 @@ namespace ILGPU.Backends
         /// <summary>
         /// Allocates a view type.
         /// </summary>
-        /// <param name="elementType">The pointer element type to allocate.</param>
-        /// <param name="addressSpace">The associated address space.</param>
+        /// <param name="viewType">The view type to allocate.</param>
         /// <returns>The allocated variable.</returns>
-        public ViewVariable AllocateViewType(
-            TypeNode elementType,
-            MemoryAddressSpace addressSpace) =>
-            AllocateViewVariable(idCounter++, elementType, addressSpace);
+        public ViewVariable AllocateViewType(ViewType viewType) =>
+            AllocateViewVariable(idCounter++, viewType);
 
         /// <summary>
         /// Allocates a new view variable.
         /// </summary>
         /// <param name="variableId">The variable id.</param>
-        /// <param name="elementType">The pointer element type to allocate.</param>
-        /// <param name="addressSpace">The associated address space.</param>
+        /// <param name="viewType">The view type to allocate.</param>
         /// <returns>The allocated variable.</returns>
-        protected abstract ViewVariable AllocateViewVariable(
-            int variableId,
-            TypeNode elementType,
-            MemoryAddressSpace addressSpace);
+        protected abstract ViewVariable AllocateViewVariable(int variableId, ViewType viewType);
 
         /// <summary>
         /// Allocates the given type.
@@ -260,7 +271,7 @@ namespace ILGPU.Backends
                 case PointerType pointerType:
                     return AllocatePointerType(pointerType.ElementType, pointerType.AddressSpace);
                 case ViewType viewType:
-                    return AllocateViewType(viewType.ElementType, viewType.AddressSpace);
+                    return AllocateViewType(viewType);
                 case ObjectType objectType:
                     return new ObjectVariable(idCounter++, objectType);
                 default:
