@@ -571,6 +571,27 @@ namespace ILGPU.Runtime.OpenCL.API
                 value);
 
         /// <summary>
+        /// Sets a kernel argument.
+        /// </summary>
+        /// <param name="kernel">The target kernel.</param>
+        /// <param name="index">The argument index.</param>
+        /// <param name="size">The argument size in bytes.</param>
+        /// <param name="value">A pointer to the value to set.</param>
+        /// <returns>The error code.</returns>
+        [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static CLError SetKernelArgumentUnsafeWithKernel(
+            CLKernel kernel,
+            int index,
+            int size,
+            void* value) =>
+            NativeMethods.SetKernelArg(
+                kernel.KernelPtr,
+                index,
+                new IntPtr(size),
+                value);
+
+        /// <summary>
         /// Launches the given kernel function.
         /// </summary>
         /// <param name="stream">The current stream.</param>

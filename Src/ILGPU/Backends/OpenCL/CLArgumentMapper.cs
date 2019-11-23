@@ -34,7 +34,7 @@ namespace ILGPU.Backends.OpenCL
         /// The method to set OpenCL kernel arguments.
         /// </summary>
         private static readonly MethodInfo SetKernelArgumentMethod = typeof(CLAPI).GetMethod(
-            nameof(CLAPI.SetKernelArgumentUnsafe),
+            nameof(CLAPI.SetKernelArgumentUnsafeWithKernel),
             BindingFlags.Public | BindingFlags.Static);
 
         #endregion
@@ -180,6 +180,12 @@ namespace ILGPU.Backends.OpenCL
                     // Extract native pointer
                     emitter.EmitCall(
                         ViewImplementation.GetNativePtrMethod(Parameter.ElementType));
+
+                    // Store the resolved pointer in a local variable in order to pass
+                    // the reference to the local to the actual set-argument method.
+                    var tempLocal = emitter.DeclareLocal(typeof(IntPtr));
+                    emitter.Emit(LocalOperation.Store, tempLocal);
+                    emitter.Emit(LocalOperation.LoadAddress, tempLocal);
                 }
             }
 
