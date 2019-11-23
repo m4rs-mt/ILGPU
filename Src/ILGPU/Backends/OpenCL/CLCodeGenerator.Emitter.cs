@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.IR;
 using ILGPU.IR.Types;
 using System;
 using System.Collections.Immutable;
@@ -36,16 +37,14 @@ namespace ILGPU.Backends.OpenCL
             /// Constructs a new statement emitter using the given target.
             /// </summary>
             /// <param name="codeGenerator">The parent code generator.</param>
-            /// <param name="indent">The current indentation.</param>
-            internal StatementEmitter(CLCodeGenerator codeGenerator, int indent)
+            internal StatementEmitter(CLCodeGenerator codeGenerator)
             {
                 CodeGenerator = codeGenerator;
                 stringBuilder = codeGenerator.Builder;
                 argumentCount = 0;
                 argMode = false;
 
-                Indent = indent;
-                stringBuilder.Append('\t', indent);
+                codeGenerator.AppendIndent();
             }
 
             #endregion
@@ -56,11 +55,6 @@ namespace ILGPU.Backends.OpenCL
             /// Returns the associated codegenerator.
             /// </summary>
             public CLCodeGenerator CodeGenerator { get; }
-
-            /// <summary>
-            /// Returns the current indentation.
-            /// </summary>
-            public int Indent { get; }
 
             #endregion
 
@@ -401,13 +395,40 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary>
+        /// Appends the current indentation level to the builder.
+        /// </summary>
+        public void AppendIndent()
+        {
+            Builder.Append('\t', Indent);
+        }
+
+        /// <summary>
+        /// Pushes the current indentation level and appends it to the builder.
+        /// </summary>
+        public void PushAndAppendIndent()
+        {
+            PushIndent();
+            AppendIndent();
+        }
+
+        /// <summary>
+        /// Emits a new goto statement to the given target block.
+        /// </summary>
+        /// <param name="block">The target block to jump to.</param>
+        public void GotoStatement(BasicBlock block)
+        {
+            using (var statement = BeginStatement(CLInstructions.GotoStatement))
+                statement.AppendOperation(blockLookup[block]);
+        }
+
+        /// <summary>
         /// Begins a new statement.
         /// </summary>
         /// <param name="target">The target variable to assign to.</param>
         /// <returns>The created statement emitter.</returns>
         public StatementEmitter BeginStatement(Variable target)
         {
-            var emitter = new StatementEmitter(this, Indent);
+            var emitter = new StatementEmitter(this);
             emitter.AppendTarget(target);
             return emitter;
         }
@@ -420,7 +441,7 @@ namespace ILGPU.Backends.OpenCL
         /// <returns>The created statement emitter.</returns>
         public StatementEmitter BeginStatement(Variable target, int fieldIndex)
         {
-            var emitter = new StatementEmitter(this, Indent);
+            var emitter = new StatementEmitter(this);
             emitter.AppendFieldTarget(target, fieldIndex);
             return emitter;
         }
@@ -433,7 +454,7 @@ namespace ILGPU.Backends.OpenCL
         /// <returns>The created statement emitter.</returns>
         public StatementEmitter BeginStatement(Variable target, ImmutableArray<int> fieldIndices)
         {
-            var emitter = new StatementEmitter(this, Indent);
+            var emitter = new StatementEmitter(this);
             emitter.AppendFieldTarget(target, fieldIndices);
             return emitter;
         }
@@ -446,7 +467,7 @@ namespace ILGPU.Backends.OpenCL
         /// <returns>The created statement emitter.</returns>
         public StatementEmitter BeginStatement(Variable target, Variable indexer)
         {
-            var emitter = new StatementEmitter(this, Indent);
+            var emitter = new StatementEmitter(this);
             emitter.AppendIndexedTarget(target, indexer);
             return emitter;
         }
@@ -471,7 +492,7 @@ namespace ILGPU.Backends.OpenCL
         /// <returns>The created statement emitter.</returns>
         public StatementEmitter BeginStatement(string command)
         {
-            var emitter = new StatementEmitter(this, Indent);
+            var emitter = new StatementEmitter(this);
             emitter.AppendCommand(command);
             return emitter;
         }

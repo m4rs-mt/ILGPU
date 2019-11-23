@@ -15,6 +15,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -142,6 +143,11 @@ namespace ILGPU.Backends.OpenCL
 
         #region Instance
 
+        private int labelCounter = 0;
+        private readonly Dictionary<BasicBlock, string> blockLookup =
+            new Dictionary<BasicBlock, string>();
+        private readonly string labelPrefix;
+
         /// <summary>
         /// Constructs a new code generator.
         /// </summary>
@@ -156,6 +162,8 @@ namespace ILGPU.Backends.OpenCL
             ImplementationProvider = Backend.IntrinsicProvider;
             Allocas = allocas;
             ABI = args.ABI;
+
+            labelPrefix = "L_" + Method.Id.ToString();
 
             Builder = new StringBuilder();
         }
@@ -233,6 +241,23 @@ namespace ILGPU.Backends.OpenCL
         #region General Code Generation
 
         /// <summary>
+        /// Declares a new label.
+        /// </summary>
+        /// <returns>The declared label.</returns>
+        private string DeclareLabel() => labelPrefix + labelCounter++;
+
+        /// <summary>
+        /// Marks the given label.
+        /// </summary>
+        /// <param name="label">The label to mark.</param>
+        protected void MarkLabel(string label)
+        {
+            Builder.Append('\t');
+            Builder.Append(label);
+            Builder.AppendLine(": ;");
+        }
+
+        /// <summary>
         /// Generates parameter declarations by writing them to the
         /// target builder provided.
         /// </summary>
@@ -259,8 +284,76 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         protected void GenerateCodeInternal()
         {
-            // TODO: implement
-            throw new NotImplementedException();
+            // Build branch targets
+            foreach (var block in Scope)
+                blockLookup.Add(block, DeclareLabel());
+
+            // Find all phi nodes, allocate target registers and setup internal mapping
+            var cfg = Scope.CreateCFG();
+            var phiMapping = new Dictionary<BasicBlock, List<Variable>>(cfg.Count);
+            var dominators = Dominators.Create(cfg);
+            foreach (var node in cfg)
+            {
+                var phis = Phis.Create(node.Block);
+
+                // Allocate all phis nodes and store them in the associated dominator
+                foreach (var phi in phis)
+                {
+                    var targetNode = node;
+                    foreach (var argument in phi)
+                    {
+                        targetNode = dominators.GetImmediateCommonDominator(
+                            targetNode,
+                            cfg[argument.BasicBlock]);
+                    }
+
+                    var variable = Allocate(phi);
+                    if (!phiMapping.TryGetValue(targetNode.Block, out var phiVariables))
+                    {
+                        phiVariables = new List<Variable>();
+                        phiMapping.Add(targetNode.Block, phiVariables);
+                    }
+                    phiVariables.Add(variable);
+                }
+            }
+
+            // Generate code
+            foreach (var block in Scope)
+            {
+                // Mark block label
+                MarkLabel(blockLookup[block]);
+
+                // Declare phi variables (if any)
+                if (phiMapping.TryGetValue(block, out var phiVariables))
+                {
+                    foreach (var phiVariable in phiVariables)
+                    {
+                        // DeclareVariable(phiVariable);
+                        using (var statement = BeginStatement(phiVariable)) { }
+                    }
+                }
+
+                foreach (var value in block)
+                {
+                    // Check for intrinsic implementation
+                    if (ImplementationProvider.TryGetCodeGenerator(
+                        value,
+                        out var intrinsicCodeGenerator))
+                    {
+                        // Generate specialized code for this intrinsic node
+                        intrinsicCodeGenerator(Backend, this, value);
+                    }
+                    else
+                    {
+                        // Emit value
+                        value.Accept(this);
+                    }
+                }
+
+                // Build terminator
+                block.Terminator.Accept(this);
+                Builder.AppendLine();
+            }
         }
 
         #endregion

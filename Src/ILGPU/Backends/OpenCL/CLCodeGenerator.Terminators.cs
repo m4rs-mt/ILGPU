@@ -10,7 +10,6 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
-using System;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -32,22 +31,49 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(UnconditionalBranch)"/>
         public void Visit(UnconditionalBranch branch)
         {
-            // TODO: implement
-            throw new NotImplementedException();
+            GotoStatement(branch.Target);
         }
 
         /// <summary cref="IValueVisitor.Visit(ConditionalBranch)"/>
         public void Visit(ConditionalBranch branch)
         {
-            // TODO: implement
-            throw new NotImplementedException();
+            var condition = Load(branch.Condition);
+            AppendIndent();
+            Builder.Append("if (");
+            Builder.Append(condition.ToString());
+            Builder.AppendLine(")");
+            PushAndAppendIndent();
+            GotoStatement(branch.TrueTarget);
+            PopIndent();
+            GotoStatement(branch.FalseTarget);
         }
 
         /// <summary cref="IValueVisitor.Visit(SwitchBranch)"/>
         public void Visit(SwitchBranch branch)
         {
-            // TODO: implement
-            throw new NotImplementedException();
+            var condition = Load(branch.Condition);
+            AppendIndent();
+            Builder.Append("switch (");
+            Builder.Append(condition.ToString());
+            Builder.AppendLine(")");
+
+            AppendIndent();
+            Builder.AppendLine("{");
+
+            for (int i = 0, e = branch.NumCasesWithoutDefault; i < e; ++i)
+            {
+                Builder.Append("case ");
+                Builder.Append(i.ToString());
+                Builder.AppendLine(":");
+                PushAndAppendIndent();
+                GotoStatement(branch.GetCaseTarget(i));
+                PopIndent();
+            }
+
+            AppendIndent();
+            Builder.AppendLine("default:");
+            GotoStatement(branch.Targets[0]);
+            Builder.AppendLine("}");
         }
     }
 }
