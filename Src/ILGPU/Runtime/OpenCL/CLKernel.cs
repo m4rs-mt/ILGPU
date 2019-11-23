@@ -31,6 +31,7 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="source">The OpenCL source code.</param>
+        /// <param name="version">The OpenCL C version.</param>
         /// <param name="programPtr">The created program pointer.</param>
         /// <param name="kernelPtr">The created kernel pointer.</param>
         /// <param name="errorLog">The error log (if any).</param>
@@ -38,6 +39,7 @@ namespace ILGPU.Runtime.OpenCL
         internal static CLError LoadKernel(
             CLAccelerator accelerator,
             string source,
+            CLCVersion version,
             out IntPtr programPtr,
             out IntPtr kernelPtr,
             out string errorLog)
@@ -51,8 +53,8 @@ namespace ILGPU.Runtime.OpenCL
             if (programError != CLError.CL_SUCCESS)
                 return programError;
 
-            // TODO: OpenCL compiler options
-            string options = string.Empty;
+            // Specify the OpenCL C version.
+            string options = "-cl-std=" + version.ToString();
 
             var buildError = CLAPI.BuildProgram(
                 programPtr,
@@ -112,6 +114,7 @@ namespace ILGPU.Runtime.OpenCL
             var errorCode = LoadKernel(
                 accelerator,
                 kernel.Source,
+                kernel.CVersion,
                 out programPtr,
                 out kernelPtr,
                 out var errorLog);
@@ -128,6 +131,7 @@ namespace ILGPU.Runtime.OpenCL
             CLException.ThrowIfFailed(LoadKernel(
                 accelerator,
                 kernel.Source,
+                kernel.CVersion,
                 out programPtr,
                 out kernelPtr,
                 out var _));

@@ -123,10 +123,9 @@ namespace ILGPU.Backends.OpenCL
             {
                 BeginStruct(type);
                 Builder.Append('\t');
-                Builder.Append(CLInstructions.GetAddressSpacePrefix(type.AddressSpace));
-                Builder.Append(' ');
                 Builder.Append(TypeGenerator[type.ElementType]);
-                Builder.Append(" *");
+                Builder.Append(CLInstructions.DereferenceOperation);
+                Builder.Append(' ');
                 Builder.Append(ViewPointerName);
                 Builder.AppendLine(";");
                 Builder.Append("\tint ");
@@ -363,8 +362,6 @@ namespace ILGPU.Backends.OpenCL
                 return;
 
             Builder.Append("typedef ");
-            Builder.Append(CLInstructions.GetAddressSpacePrefix(pointerType.AddressSpace));
-            Builder.Append(' ');
             Builder.Append(this[pointerType.ElementType]);
             Builder.Append(CLInstructions.DereferenceOperation);
             Builder.Append(' ');

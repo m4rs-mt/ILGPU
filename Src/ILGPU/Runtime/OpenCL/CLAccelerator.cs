@@ -211,6 +211,14 @@ namespace ILGPU.Runtime.OpenCL
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_TYPE);
 
+            // Determine the supported OpenCL C version
+            var clVersionString = CLAPI.GetDeviceInfo(
+                DeviceId,
+                CLDeviceInfoType.CL_DEVICE_OPENCL_C_VERSION);
+            if (!CLCVersion.TryParse(clVersionString, out CLCVersion version))
+                version = CLCVersion.CL10;
+            CVersion = version;
+
             // Max grid size
             int workItemDimensions = IntrinsicMath.Max(CLAPI.GetDeviceInfo<int>(
                 DeviceId,
@@ -308,6 +316,7 @@ namespace ILGPU.Runtime.OpenCL
                 CLException.ThrowIfFailed(CLKernel.LoadKernel(
                     this,
                     DummyKernelSource,
+                    CVersion,
                     out IntPtr programPtr,
                     out IntPtr kernelPtr,
                     out var _));
@@ -345,6 +354,7 @@ namespace ILGPU.Runtime.OpenCL
             if (CLKernel.LoadKernel(
                 this,
                 DummySubGroupKernelSource,
+                CVersion,
                 out IntPtr programPtr,
                 out IntPtr kernelPtr,
                 out var _) == CLError.CL_SUCCESS)
@@ -422,6 +432,11 @@ namespace ILGPU.Runtime.OpenCL
         /// Returns the clock rate.
         /// </summary>
         public int ClockRate { get; }
+
+        /// <summary>
+        /// Returns the supported OpenCL C version.
+        /// </summary>
+        public CLCVersion CVersion { get; }
 
         /// <summary>
         /// Returns true if this accelerator has sub-group support.

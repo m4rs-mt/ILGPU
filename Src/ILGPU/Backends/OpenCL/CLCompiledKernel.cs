@@ -35,13 +35,16 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="context">The associated context.</param>
         /// <param name="entryPoint">The entry point.</param>
         /// <param name="source">The source code.</param>
+        /// <param name="version">The OpenCL C version.</param>
         public CLCompiledKernel(
             Context context,
             SeparateViewEntryPoint entryPoint,
-            string source)
+            string source,
+            CLCVersion version)
             : base(context, entryPoint)
         {
             Source = source;
+            CVersion = version;
         }
 
         #endregion
@@ -52,6 +55,11 @@ namespace ILGPU.Backends.OpenCL
         /// Returns the OpenCL source code.
         /// </summary>
         public string Source { get; }
+
+        /// <summary>
+        /// Returns the used OpenCL C version.
+        /// </summary>
+        public CLCVersion CVersion { get; }
 
         /// <summary>
         /// Returns the internally used entry point.

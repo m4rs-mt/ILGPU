@@ -24,7 +24,12 @@ namespace ILGPU.Backends.OpenCL
     /// <summary>
     /// Represents an OpenCL source backend.
     /// </summary>
-    public sealed partial class CLBackend : CodeGeneratorBackend<CLIntrinsic.Handler, CLCodeGenerator.GeneratorArgs, CLCodeGenerator, StringBuilder>
+    public sealed partial class CLBackend :
+        CodeGeneratorBackend<
+            CLIntrinsic.Handler,
+            CLCodeGenerator.GeneratorArgs,
+            CLCodeGenerator,
+            StringBuilder>
     {
         #region Nested Types
 
@@ -50,6 +55,15 @@ namespace ILGPU.Backends.OpenCL
             /// <summary cref="IIntrinsicSpecializerConfiguration.EnableAssertions"/>
             public bool EnableAssertions => false;
         }
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Represents the minimum OpenCL C version that is required.
+        /// </summary>
+        public static readonly CLCVersion MinimumVersion = new CLCVersion(2, 0);
 
         #endregion
 
@@ -156,7 +170,8 @@ namespace ILGPU.Backends.OpenCL
             return new CLCompiledKernel(
                 Context,
                 entryPoint as SeparateViewEntryPoint,
-                clSource);
+                clSource,
+                MinimumVersion);
         }
 
         #endregion

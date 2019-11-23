@@ -73,7 +73,7 @@ namespace ILGPU.Backends.OpenCL
         public override void GenerateCode()
         {
             // Emit kernel declaration and parameter definitions
-            Builder.Append("__kernel void ");
+            Builder.Append("kernel void ");
             Builder.Append(CLCompiledKernel.EntryName);
             Builder.AppendLine("(");
 
@@ -85,7 +85,7 @@ namespace ILGPU.Backends.OpenCL
             {
                 // Emit a specialized pointer type
                 var elementType = viewParameters[i].ElementType;
-                Builder.Append("\t __global ");
+                Builder.Append("\t global ");
                 Builder.Append(TypeGenerator[elementType]);
                 Builder.Append(' ');
                 Builder.Append(CLInstructions.DereferenceOperation);
