@@ -461,8 +461,14 @@ namespace ILGPU.Runtime.OpenCL
             new CLMemoryBuffer<T, TIndex>(this, extent);
 
         /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(TCompiledKernel)"/>
-        protected override CLKernel CreateKernel(CLCompiledKernel compiledKernel) =>
-            new CLKernel(this, compiledKernel, null);
+        protected override CLKernel CreateKernel(CLCompiledKernel compiledKernel)
+        {
+            // Verify OpenCL C version
+            if (compiledKernel.CVersion > CVersion)
+                throw new NotSupportedException(
+                    string.Format(RuntimeErrorMessages.NotSupportedOpenCLCVersion, compiledKernel.CVersion));
+            return new CLKernel(this, compiledKernel, null);
+        }
 
         /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(TCompiledKernel, MethodInfo)"/>
         protected override CLKernel CreateKernel(CLCompiledKernel compiledKernel, MethodInfo launcher) =>

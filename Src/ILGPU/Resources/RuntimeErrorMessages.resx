@@ -168,6 +168,9 @@
   <data name="NotSupportedNonBlittableType" xml:space="preserve">
     <value>Type type '{0}' is not blittable</value>
   </data>
+  <data name="NotSupportedOpenCLCVersion" xml:space="preserve">
+    <value>Not supported OpenCL C version (&gt;= {0} required)</value>
+  </data>
   <data name="NotSupportedPTXArchitecture" xml:space="preserve">
     <value>Not supported PTX architecture</value>
   </data>
