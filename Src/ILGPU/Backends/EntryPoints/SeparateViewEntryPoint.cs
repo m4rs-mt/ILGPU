@@ -113,7 +113,6 @@ namespace ILGPU.Backends.EntryPoints
                     EntryPoint = collection.EntryPoint;
                     Index = collection.StartIndex - 1;
                     EndIndex = collection.EndIndex;
-                    Current = default;
                 }
 
                 /// <summary>
@@ -132,7 +131,7 @@ namespace ILGPU.Backends.EntryPoints
                 public int EndIndex { get; }
 
                 /// <summary cref="IEnumerator{T}.Current"/>
-                public ViewParameter Current { get; private set; }
+                public ViewParameter Current => EntryPoint.ViewParameters[Index];
 
                 /// <summary cref="IEnumerator.Current"/>
                 object IEnumerator.Current => Current;

@@ -13,7 +13,6 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
-using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using System.Reflection;
@@ -130,10 +129,7 @@ namespace ILGPU.Backends.OpenCL
             out CLCodeGenerator.GeneratorArgs data)
         {
             var builder = new StringBuilder();
-            var typeGenerator = new CLTypeGenerator(
-                backendContext.ScopeProvider,
-                Context.TypeContext,
-                builder);
+            var typeGenerator = new CLTypeGenerator(Context.TypeContext, ABI.TargetPlatform);
 
             data = new CLCodeGenerator.GeneratorArgs(
                 this,
@@ -166,6 +162,12 @@ namespace ILGPU.Backends.OpenCL
             StringBuilder builder,
             CLCodeGenerator.GeneratorArgs data)
         {
+            var typeBuilder = new StringBuilder();
+            data.TypeGenerator.GenerateTypeDeclarations(typeBuilder);
+            data.TypeGenerator.GenerateTypeDefinitions(typeBuilder);
+
+            builder.Insert(0, typeBuilder.ToString());
+
             var clSource = builder.ToString();
             return new CLCompiledKernel(
                 Context,

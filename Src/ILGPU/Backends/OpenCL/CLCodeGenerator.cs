@@ -13,6 +13,7 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
 using System.Collections.Generic;
@@ -112,6 +113,11 @@ namespace ILGPU.Backends.OpenCL
             public Parameter Parameter { get; }
 
             #endregion
+        }
+
+        protected interface IContextDependentTypeGenerator
+        {
+            string GetOrCreateType(TypeNode typeNode);
         }
 
         #endregion
@@ -263,13 +269,17 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="target">The target builder to use.</param>
         /// <param name="paramOffset">The intrinsic parameter offset.</param>
-        protected void GenerateParameters(StringBuilder target, int paramOffset)
+        protected void GenerateParameters<IContextDependentTypeGenerator>(
+            IContextDependentTypeGenerator typeGenerator,
+            StringBuilder target,
+            int paramOffset)
+            where IContextDependentTypeGenerator : CLCodeGenerator.IContextDependentTypeGenerator
         {
             for (int i = paramOffset, e = Method.NumParameters; i < e; ++i)
             {
                 var param = Method.Parameters[i];
                 Builder.Append('\t');
-                Builder.Append(TypeGenerator[param.Type]);
+                Builder.Append(typeGenerator.GetOrCreateType(param.Type));
                 Builder.Append(' ');
                 var variable = Allocate(param);
                 Builder.Append(variable.VariableName);

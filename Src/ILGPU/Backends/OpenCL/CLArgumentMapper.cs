@@ -11,7 +11,7 @@
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.IL;
-using ILGPU.Backends.PointerViews;
+using ILGPU.Backends.SeparateViews;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using ILGPU.Runtime.OpenCL.API;

@@ -9,8 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Backends.PointerViews;
-using ILGPU.IR;
+using ILGPU.Backends.SeparateViews;
 using ILGPU.IR.Types;
 using System;
 using System.Runtime.CompilerServices;

@@ -77,12 +77,21 @@ namespace ILGPU.Backends.OpenCL
             }
 
             /// <summary>
+            /// Appends a target declaration.
+            /// </summary>
+            /// <param name="target">The target declaration.</param>
+            internal void AppendDeclaration(Variable target)
+            {
+                BeginAppendTarget(target);
+            }
+
+            /// <summary>
             /// Appends a target.
             /// </summary>
             /// <param name="target">The target.</param>
             internal void AppendTarget(Variable target)
             {
-                BeginAppendTarget(target);
+                AppendDeclaration(target);
                 stringBuilder.Append(" = ");
             }
 
@@ -234,6 +243,16 @@ namespace ILGPU.Backends.OpenCL
                     fieldIndex.ToString());
                 stringBuilder.Append('.');
                 stringBuilder.Append(fieldName);
+            }
+
+            /// <summary>
+            /// Appends a referenced field via an access chain.
+            /// </summary>
+            /// <param name="accessChain">The field access chain.</param>
+            public void AppendField(ImmutableArray<int> accessChain)
+            {
+                foreach (var fieldIndex in accessChain)
+                    AppendField(fieldIndex);
             }
 
             /// <summary>
@@ -409,6 +428,15 @@ namespace ILGPU.Backends.OpenCL
         {
             PushIndent();
             AppendIndent();
+        }
+
+        /// Declares a variable
+        /// </summary>
+        /// <param name="target">The target variable to declare.</param>
+        public void Declare(Variable target)
+        {
+            using (var emitter = new StatementEmitter(this))
+                emitter.AppendDeclaration(target);
         }
 
         /// <summary>

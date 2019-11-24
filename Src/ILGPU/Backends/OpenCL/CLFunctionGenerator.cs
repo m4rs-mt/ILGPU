@@ -11,6 +11,7 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Types;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -20,6 +21,33 @@ namespace ILGPU.Backends.OpenCL
     /// </summary>
     sealed class CLFunctionGenerator : CLCodeGenerator
     {
+        #region Nested Types
+
+        /// <summary>
+        /// A specialized function-type generator.
+        /// </summary>
+        private readonly struct FunctionTypeGenerator : IContextDependentTypeGenerator
+        {
+            /// <summary>
+            /// Constructs a new specialized function-type generator.
+            /// </summary>
+            /// <param name="typeGenerator">The parent type generator.</param>
+            public FunctionTypeGenerator(CLTypeGenerator typeGenerator)
+            {
+                TypeGenerator = typeGenerator;
+            }
+
+            /// <summary>
+            /// Returns the parent type generator.
+            /// </summary>
+            public CLTypeGenerator TypeGenerator { get; }
+
+            /// <summary cref="CLCodeGenerator.IContextDependentTypeGenerator.GetOrCreateType(TypeNode)"/>
+            public string GetOrCreateType(TypeNode typeNode) => TypeGenerator[typeNode];
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -49,7 +77,10 @@ namespace ILGPU.Backends.OpenCL
             Builder.Append(' ');
             Builder.Append(GetMethodName(Method));
             Builder.AppendLine("(");
-            GenerateParameters(Builder, 0);
+            GenerateParameters(
+                new FunctionTypeGenerator(TypeGenerator),
+                Builder,
+                0);
             Builder.AppendLine(")");
         }
 
