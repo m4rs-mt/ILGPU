@@ -12,6 +12,7 @@
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.IL;
 using ILGPU.Backends.PointerViews;
+using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using ILGPU.Runtime.OpenCL.API;
 using System;
@@ -347,12 +348,28 @@ namespace ILGPU.Backends.OpenCL
                 resultLocal);
             MapViews(emitter, viewMappingHandler, entryPoint);
 
+            // Map implicit kernel length (if required)
+            int parameterOffset = entryPoint.NumViewParameters;
+            if (!entryPoint.IsGroupedIndexEntry)
+            {
+                var lengthSource = new ArgumentSource(
+                    entryPoint.KernelIndexType,
+                    Kernel.KernelParamDimensionIdx);
+                SetKernelArgument(
+                    emitter,
+                    kernel,
+                    resultLocal,
+                    parameterOffset,
+                    lengthSource);
+                ++parameterOffset;
+            }
+
             // Map all remaining arguments
             var mappingHandler = new MappingHandler(
                 this,
                 kernel,
                 resultLocal,
-                entryPoint.NumViewParameters);
+                parameterOffset);
             Map(emitter, mappingHandler, entryPoint.Parameters);
 
             // Check mapping result
