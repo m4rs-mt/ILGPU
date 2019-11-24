@@ -38,7 +38,7 @@ namespace ILGPU.Runtime.OpenCL
             CLException.ThrowIfFailed(
                 CLAPI.CreateBuffer(
                     accelerator.ContextPtr,
-                    CLBufferFlags.CL_MEM_KERNEL_READ_AND_WRITE,
+                    CLBufferFlags.CL_MEM_READ_WRITE,
                     new IntPtr(extent.Size * ElementSize),
                     IntPtr.Zero,
                     out IntPtr resultPtr));
