@@ -593,6 +593,8 @@ namespace ILGPU.Runtime.OpenCL
         {
             if (dynamicSharedMemorySizeInBytes > 0)
                 throw new ArgumentOutOfRangeException(nameof(dynamicSharedMemorySizeInBytes));
+            if (maxGroupSize < 1)
+                maxGroupSize = MaxNumThreadsPerGroup;
 
             var clKernel = kernel as CLKernel;
             var workGroupSize = CLAPI.GetKernelWorkGroupInfo<int>(
