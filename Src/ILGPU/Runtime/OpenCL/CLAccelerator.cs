@@ -60,7 +60,7 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         private static readonly MethodInfo LaunchKernelMethod = typeof(CLAPI).GetMethod(
             nameof(CLAPI.LaunchKernelWithStreamBinding),
-            BindingFlags.Public | BindingFlags.Instance);
+            BindingFlags.Public | BindingFlags.Static);
 
         /// <summary>
         /// Represents the <see cref="CLException.ThrowIfFailed(CLError)" /> method.
@@ -597,10 +597,11 @@ namespace ILGPU.Runtime.OpenCL
                 maxGroupSize = MaxNumThreadsPerGroup;
 
             var clKernel = kernel as CLKernel;
-            var workGroupSize = CLAPI.GetKernelWorkGroupInfo<int>(
+            var workGroupSizeNative = CLAPI.GetKernelWorkGroupInfo<IntPtr>(
                 clKernel.KernelPtr,
                 DeviceId,
                 CLKernelWorkGroupInfoType.CL_KERNEL_WORK_GROUP_SIZE);
+            int workGroupSize = workGroupSizeNative.ToInt32();
             workGroupSize = IntrinsicMath.Min(workGroupSize, maxGroupSize);
             minGridSize = IntrinsicMath.DivRoundUp(MaxNumThreads, workGroupSize);
 
