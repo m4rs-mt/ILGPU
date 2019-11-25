@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
+using ILGPU.IR.Values;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -24,15 +25,15 @@ namespace ILGPU.Backends.OpenCL
         #region Nested Types
 
         /// <summary>
-        /// A specialized function-type generator.
+        /// A specialized function setup logic for parameters.
         /// </summary>
-        private readonly struct FunctionTypeGenerator : IContextDependentTypeGenerator
+        private readonly struct FunctionParameterSetupLoggic : IParametersSetupLogic
         {
             /// <summary>
-            /// Constructs a new specialized function-type generator.
+            /// Constructs a new specialized function setup logic.
             /// </summary>
             /// <param name="typeGenerator">The parent type generator.</param>
-            public FunctionTypeGenerator(CLTypeGenerator typeGenerator)
+            public FunctionParameterSetupLoggic(CLTypeGenerator typeGenerator)
             {
                 TypeGenerator = typeGenerator;
             }
@@ -42,8 +43,11 @@ namespace ILGPU.Backends.OpenCL
             /// </summary>
             public CLTypeGenerator TypeGenerator { get; }
 
-            /// <summary cref="CLCodeGenerator.IContextDependentTypeGenerator.GetOrCreateType(TypeNode)"/>
+            /// <summary cref="CLCodeGenerator.IParametersSetupLogic.GetOrCreateType(TypeNode)"/>
             public string GetOrCreateType(TypeNode typeNode) => TypeGenerator[typeNode];
+
+            /// <summary cref="CLCodeGenerator.IParametersSetupLogic.HandleIntrinsicParameter(int, Parameter)"/>
+            public Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter) => null;
         }
 
         #endregion
@@ -73,15 +77,13 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="builder">The target builder to use.</param>
         private void GenerateHeaderStub(StringBuilder builder)
         {
-            Builder.Append(TypeGenerator[Method.ReturnType]);
-            Builder.Append(' ');
-            Builder.Append(GetMethodName(Method));
-            Builder.AppendLine("(");
-            GenerateParameters(
-                new FunctionTypeGenerator(TypeGenerator),
-                Builder,
-                0);
-            Builder.AppendLine(")");
+            builder.Append(TypeGenerator[Method.ReturnType]);
+            builder.Append(' ');
+            builder.Append(GetMethodName(Method));
+            builder.AppendLine("(");
+            var setupLogic = new FunctionParameterSetupLoggic(TypeGenerator);
+            SetupParameters(builder, ref setupLogic, 0);
+            builder.AppendLine(")");
         }
 
         /// <summary>
@@ -109,7 +111,9 @@ namespace ILGPU.Backends.OpenCL
 
             // Generate code
             Builder.AppendLine("{");
+            PushIndent();
             GenerateCodeInternal();
+            PopIndent();
             Builder.AppendLine("}");
         }
 

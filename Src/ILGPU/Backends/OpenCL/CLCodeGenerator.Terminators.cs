@@ -37,6 +37,9 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IValueVisitor.Visit(ConditionalBranch)"/>
         public void Visit(ConditionalBranch branch)
         {
+            // TODO: refactor if-block generation into a separate emitter
+            // See also EmitImplicitKernelIndex
+
             var condition = Load(branch.Condition);
             AppendIndent();
             Builder.Append("if (");

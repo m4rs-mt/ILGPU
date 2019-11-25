@@ -136,10 +136,17 @@ namespace ILGPU.Backends.OpenCL
             /// Appends an indexer.
             /// </summary>
             /// <param name="indexer">The indexer variable.</param>
-            public void AppendIndexer(Variable indexer)
+            public void AppendIndexer(Variable indexer) =>
+                AppendIndexer(indexer.ToString());
+
+            /// <summary>
+            /// Appends an indexer.
+            /// </summary>
+            /// <param name="indexer">The indexer expression.</param>
+            public void AppendIndexer(string indexer)
             {
                 stringBuilder.Append('[');
-                stringBuilder.Append(indexer.ToString());
+                stringBuilder.Append(indexer);
                 stringBuilder.Append(']');
             }
 
@@ -430,6 +437,7 @@ namespace ILGPU.Backends.OpenCL
             AppendIndent();
         }
 
+        /// <summary>
         /// Declares a variable
         /// </summary>
         /// <param name="target">The target variable to declare.</param>

@@ -15,6 +15,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -115,9 +116,26 @@ namespace ILGPU.Backends.OpenCL
             #endregion
         }
 
-        protected interface IContextDependentTypeGenerator
+        /// <summary>
+        /// Represents a parameter logic to setup function parameters.
+        /// </summary>
+        protected interface IParametersSetupLogic
         {
+            /// <summary>
+            /// Gets or creates the given type in OpenCL code.
+            /// </summary>
+            /// <param name="typeNode">The type node.</param>
+            /// <returns>The resulting OpenCL type representation.</returns>
             string GetOrCreateType(TypeNode typeNode);
+
+            /// <summary>
+            /// Handles an intrinsic parameter and returns the
+            /// associated allocated variable (if any).
+            /// </summary>
+            /// <param name="parameterOffset">The current intrinsic parameter index.</param>
+            /// <param name="parameter">The intrinsic parameter.</param>
+            /// <returns>The allocated variable (if any).</returns>
+            Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter);
         }
 
         #endregion
@@ -267,26 +285,83 @@ namespace ILGPU.Backends.OpenCL
         /// Generates parameter declarations by writing them to the
         /// target builder provided.
         /// </summary>
-        /// <param name="target">The target builder to use.</param>
+        /// <typeparam name="TSetupLogic">The dependent code-generator type to use.</typeparam>
+        /// <param name="logic">The type generator to use.</param>
+        /// <param name="targetBuilder">The target builder to use.</param>
         /// <param name="paramOffset">The intrinsic parameter offset.</param>
-        protected void GenerateParameters<IContextDependentTypeGenerator>(
-            IContextDependentTypeGenerator typeGenerator,
-            StringBuilder target,
+        protected void SetupParameters<TSetupLogic>(
+            StringBuilder targetBuilder,
+            ref TSetupLogic logic,
             int paramOffset)
-            where IContextDependentTypeGenerator : CLCodeGenerator.IContextDependentTypeGenerator
+            where TSetupLogic : IParametersSetupLogic
         {
-            for (int i = paramOffset, e = Method.NumParameters; i < e; ++i)
-            {
-                var param = Method.Parameters[i];
-                Builder.Append('\t');
-                Builder.Append(typeGenerator.GetOrCreateType(param.Type));
-                Builder.Append(' ');
-                var variable = Allocate(param);
-                Builder.Append(variable.VariableName);
+            bool attachComma = false;
+            int offset = 0;
 
-                if (i + 1 < e)
-                    Builder.AppendLine(",");
+            foreach (var param in Method.Parameters)
+            {
+                Variable variable;
+                if (offset < paramOffset)
+                {
+                    variable = logic.HandleIntrinsicParameter(offset, param);
+                    offset++;
+                }
+                else
+                    variable = Allocate(param);
+
+                if (variable == null)
+                    continue;
+
+                if (attachComma)
+                    targetBuilder.AppendLine(",");
+
+                targetBuilder.Append('\t');
+                targetBuilder.Append(logic.GetOrCreateType(param.Type));
+                targetBuilder.Append(' ');
+                targetBuilder.Append(variable.VariableName);
+
+                attachComma = true;
             }
+        }
+
+        /// <summary>
+        /// Setups local or shared allocations.
+        /// </summary>
+        /// <param name="allocas">The allocations to setup.</param>
+        /// <param name="addressSpacePrefix">The source address-space prefix (like .local).</param>
+        private void SetupAllocations(AllocaKindInformation allocas, string addressSpacePrefix)
+        {
+            foreach (var allocaInfo in allocas)
+            {
+                var allocationVariable = AllocateType(allocaInfo.ElementType);
+                var allocaVariable = Allocate(allocaInfo.Alloca);
+
+                // Declare alloca using element-type information
+                AppendIndent();
+                Builder.Append(addressSpacePrefix);
+                Builder.Append(TypeGenerator[allocaInfo.ElementType]);
+                Builder.Append(' ');
+                Builder.Append(allocationVariable.VariableName);
+
+                if (allocaInfo.IsArray)
+                {
+                    Builder.Append('[');
+                    Builder.Append(allocaInfo.ArraySize);
+                    Builder.Append(']');
+                }
+
+                Builder.AppendLine(";");
+
+                // Since allocas are basically pointers in the IR we have to
+                // 'convert' the local allocations into generic pointers
+                using (var statement = BeginStatement(allocaVariable))
+                {
+                    statement.AppendOperation(CLInstructions.AddressOfOperation);
+                    if (allocaInfo.IsArray)
+                        statement.AppendIndexer("0");
+                }
+            }
+            Builder.AppendLine();
         }
 
         /// <summary>
@@ -294,6 +369,10 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         protected void GenerateCodeInternal()
         {
+            // Setup allocations
+            SetupAllocations(Allocas.LocalAllocations, string.Empty);
+            SetupAllocations(Allocas.SharedAllocations, "local ");
+
             // Build branch targets
             foreach (var block in Scope)
                 blockLookup.Add(block, DeclareLabel());

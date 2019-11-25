@@ -35,27 +35,55 @@ namespace ILGPU.Backends.OpenCL
         #region Nested Types
 
         /// <summary>
-        /// A specialized kernel-type generator.
+        /// A specialized kernel setup logic for parameters.
         /// </summary>
-        private readonly struct KernelTypeGenerator : IContextDependentTypeGenerator
+        private struct KernelParameterSetupLogic : IParametersSetupLogic
         {
             /// <summary>
-            /// Constructs a new specialized kernel-type generator.
+            /// Constructs a new specialized kernel setup logic.
             /// </summary>
-            /// <param name="typeGenerator">The parent type generator.</param>
-            public KernelTypeGenerator(CLTypeGenerator typeGenerator)
+            /// <param name="generator">The parent generator.</param>
+            public KernelParameterSetupLogic(CLKernelFunctionGenerator generator)
             {
-                TypeGenerator = typeGenerator;
+                Parent = generator;
+
+                IndexVariable = null;
+                LengthVariable = null;
             }
+
+            /// <summary>
+            /// Returns the main index variable.
+            /// </summary>
+            public Variable IndexVariable { get; private set; }
+
+            /// <summary>
+            /// Returns the length variable of implicitly grouped kernels.
+            /// </summary>
+            public Variable LengthVariable { get; private set; }
 
             /// <summary>
             /// Returns the parent type generator.
             /// </summary>
-            public CLTypeGenerator TypeGenerator { get; }
+            public CLKernelFunctionGenerator Parent { get; }
 
-            /// <summary cref="CLCodeGenerator.IContextDependentTypeGenerator.GetOrCreateType(TypeNode)"/>
+            /// <summary cref="CLCodeGenerator.IParametersSetupLogic.GetOrCreateType(TypeNode)"/>
             public string GetOrCreateType(TypeNode typeNode) =>
-                TypeGenerator.GetKernelArgumentType(typeNode);
+                Parent.TypeGenerator.GetKernelArgumentType(typeNode);
+
+            /// <summary cref="CLCodeGenerator.IParametersSetupLogic.HandleIntrinsicParameter(int, Parameter)"/>
+            public Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter)
+            {
+                IndexVariable = Parent.Allocate(parameter);
+
+                if (!Parent.EntryPoint.IsGroupedIndexEntry)
+                {
+                    // This is an implicitly grouped kernel that needs boundary information
+                    // to avoid out-of-bounds dispatches (See also PTXKernelFunctionGenerator)
+                    LengthVariable = Parent.AllocateType(parameter.ParameterType);
+                }
+
+                return LengthVariable;
+            }
         }
 
         #endregion
@@ -127,11 +155,8 @@ namespace ILGPU.Backends.OpenCL
             }
 
             // Emit all parameter declarations
-            // TODO: add implicitly-grouped intrinsic length parameter
-            GenerateParameters(
-                new KernelTypeGenerator(TypeGenerator),
-                Builder,
-                1);
+            var setupLogic = new KernelParameterSetupLogic(this);
+            SetupParameters(Builder, ref setupLogic, 1);
             Builder.AppendLine(")");
 
             // Emit code that moves view arguments into their appropriate targets
@@ -139,6 +164,14 @@ namespace ILGPU.Backends.OpenCL
             PushIndent();
             var paramVariables = GenerateArgumentMapping();
             GenerateViewWiring(paramVariables);
+
+            // Emit index computation
+#if DEBUG
+            Builder.AppendLine();
+            Builder.AppendLine("\t// Kernel indices");
+            Builder.AppendLine();
+#endif
+            SetupKernelIndex(setupLogic.IndexVariable, setupLogic.LengthVariable);
 
             // Generate code
             GenerateCodeInternal();
@@ -263,6 +296,118 @@ namespace ILGPU.Backends.OpenCL
                 {
                     statement.Append(sourceVariable);
                     statement.AppendField(lengthChain);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Emits an implicit kernel index computation.
+        /// </summary>
+        /// <param name="indexVariable">The index variable to write to.</param>
+        /// <param name="boundsVariable">The associated bounds variable.</param>
+        /// <param name="accessChain">The access chain to use.</param>
+        /// <param name="dimension">The parameter dimension.</param>
+        private void EmitImplicitKernelIndex(
+            Variable indexVariable,
+            Variable boundsVariable,
+            ImmutableArray<int> accessChain,
+            int dimension)
+        {
+            // Assign global id
+            using (var statement = BeginStatement(indexVariable, accessChain))
+            {
+                statement.AppendOperation(CLInstructions.GetGlobalId);
+                statement.BeginArguments();
+                statement.AppendCommand(dimension.ToString());
+                statement.EndArguments();
+            }
+
+            // Access bounds check
+            var tempCondition = AllocateType(BasicValueType.Int1);
+            using (var statement = BeginStatement(tempCondition))
+            {
+                statement.Append(indexVariable);
+                statement.AppendField(accessChain);
+
+                statement.AppendOperation(
+                    CLInstructions.GetCompareOperation(CompareKind.GreaterEqual));
+
+                statement.Append(boundsVariable);
+                statement.AppendField(accessChain);
+            }
+
+            // TODO: refactor if-block generation into a separate emitter
+            // See also Visit(ConditionalBranch).
+            AppendIndent();
+            Builder.Append("if (");
+            Builder.Append(tempCondition.ToString());
+            Builder.AppendLine(")");
+            PushIndent();
+            using (var statement = BeginStatement(CLInstructions.ReturnStatement)) { }
+            PopIndent();
+        }
+
+        /// <summary>
+        /// Emits an explicit kernel index computation.
+        /// </summary>
+        /// <param name="indexVariable">The index variable to write to.</param>
+        /// <param name="gridAccessChain">The access chain to use for grid accesses.</param>
+        /// <param name="groupAccessChain">The access chain to use for group accesses.</param>
+        /// <param name="dimension">The parameter dimension.</param>
+        private void EmitExplicitKernelIndex(
+            Variable indexVariable,
+            ImmutableArray<int> gridAccessChain,
+            ImmutableArray<int> groupAccessChain,
+            int dimension)
+        {
+            using (var statement = BeginStatement(indexVariable, gridAccessChain))
+            {
+                statement.AppendOperation(CLInstructions.GetGridIndex);
+                statement.BeginArguments();
+                statement.AppendCommand(dimension.ToString());
+                statement.EndArguments();
+            }
+
+            using (var statement = BeginStatement(indexVariable, groupAccessChain))
+            {
+                statement.AppendOperation(CLInstructions.GetGroupIndex);
+                statement.BeginArguments();
+                statement.AppendCommand(dimension.ToString());
+                statement.EndArguments();
+            }
+        }
+
+        /// <summary>
+        /// Setups the current kernel indices.
+        /// </summary>
+        /// <param name="indexVariable">The main kernel index variable.</param>
+        /// <param name="lengthVariable">The length variable of implicitly grouped kernels.</param>
+        private void SetupKernelIndex(Variable indexVariable, Variable lengthVariable)
+        {
+            Declare(indexVariable);
+            if (EntryPoint.IsGroupedIndexEntry)
+            {
+                var gridAccessChain = ImmutableArray.Create(0);
+                var groupAccessChain = ImmutableArray.Create(1);
+
+                for (int i = 0, e = (int)EntryPoint.IndexType - (int)IndexType.Index3D; i < e; ++i)
+                {
+                    EmitExplicitKernelIndex(
+                        indexVariable,
+                        gridAccessChain.Add(i),
+                        groupAccessChain.Add(i),
+                        i);
+                }
+            }
+            else
+            {
+                for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
+                {
+                    EmitImplicitKernelIndex(
+                        indexVariable,
+                        lengthVariable,
+                        ImmutableArray.Create(i),
+                        i);
                 }
             }
         }

@@ -98,6 +98,11 @@ namespace ILGPU.Backends.OpenCL
         public const string FloatAsInt = "as_int";
 
         /// <summary>
+        /// Resolves the current global work-item id.
+        /// </summary>
+        public const string GetGlobalId = "get_global_id";
+
+        /// <summary>
         /// Resolves the current grid size.
         /// </summary>
         public const string GetGridSize = "get_global_size";
