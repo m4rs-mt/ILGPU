@@ -60,7 +60,7 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         private static readonly MethodInfo LaunchKernelMethod = typeof(CLAPI).GetMethod(
             nameof(CLAPI.LaunchKernelWithStreamBinding),
-            BindingFlags.Public | BindingFlags.Static);
+            BindingFlags.NonPublic | BindingFlags.Static);
 
         /// <summary>
         /// Represents the <see cref="CLException.ThrowIfFailed(CLError)" /> method.

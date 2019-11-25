@@ -604,7 +604,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="blockDimZ">The block dimension in Z dimension.</param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe CLError LaunchKernelWithStreamBinding(
+        internal static unsafe CLError LaunchKernelWithStreamBinding(
             CLStream stream,
             CLKernel kernel,
             int gridDimX,
@@ -617,9 +617,9 @@ namespace ILGPU.Runtime.OpenCL.API
             var binding = stream.BindScoped();
 
             IntPtr* globalWorkSizes = stackalloc IntPtr[3];
-            globalWorkSizes[0] = new IntPtr(gridDimX);
-            globalWorkSizes[1] = new IntPtr(gridDimY);
-            globalWorkSizes[2] = new IntPtr(gridDimZ);
+            globalWorkSizes[0] = new IntPtr(gridDimX * blockDimX);
+            globalWorkSizes[1] = new IntPtr(gridDimY * blockDimY);
+            globalWorkSizes[2] = new IntPtr(gridDimZ * blockDimZ);
 
             IntPtr* localWorkSizes = stackalloc IntPtr[3];
             localWorkSizes[0] = new IntPtr(blockDimX);
