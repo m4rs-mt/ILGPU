@@ -13,6 +13,7 @@ using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ILGPU.Backends.OpenCL
@@ -382,7 +383,7 @@ namespace ILGPU.Backends.OpenCL
             {
                 statement.AppendCommand(CLInstructions.AddressOfOperation);
                 statement.AppendArgument(source);
-                statement.AppendField(value.FieldIndex);
+                statement.AppendFieldViaPtr(value.FieldIndex);
             }
         }
 
@@ -430,26 +431,44 @@ namespace ILGPU.Backends.OpenCL
             // Ignore string values for now
         }
 
-        /// <summary cref="IValueVisitor.Visit(NullValue)"/>
-        public void Visit(NullValue value)
+        /// <summary>
+        /// Emits a new null constant of the given type.
+        /// </summary>
+        /// <param name="variable">The target variable to write to.</param>
+        /// <param name="type">The current type.</param>
+        /// <param name="accessChain">The access chain to use.</param>
+        private void EmitNull(
+            Variable variable,
+            TypeNode type,
+            ImmutableArray<int> accessChain)
         {
-            switch (value.Type)
+            switch (type)
             {
-                case VoidType _:
-                    // Ignore void type nulls
+                case ViewType viewType:
+                    MakeNullView(variable, viewType, accessChain);
                     break;
-                case ViewType _:
-                    MakeNullView(value);
+                case StructureType structureType:
+                    for (int i = 0, e = structureType.NumFields; i < e; ++i)
+                        EmitNull(variable, structureType.Fields[i], accessChain.Add(i));
                     break;
                 default:
-                    var target = Allocate(value);
-                    using (var statement = BeginStatement(target))
+                    using (var statement = BeginStatement(variable, accessChain))
                     {
-                        statement.AppendCast(value.Type);
+                        statement.AppendCast(type);
                         statement.AppendConstant(0);
                     }
                     break;
             }
+        }
+
+        /// <summary cref="IValueVisitor.Visit(NullValue)"/>
+        public void Visit(NullValue value)
+        {
+            if (value.Type.IsVoidType)
+                return;
+            var target = Allocate(value);
+            Declare(target);
+            EmitNull(target, value.Type, ImmutableArray<int>.Empty);
         }
 
         /// <summary cref="IValueVisitor.Visit(SizeOfValue)"/>
@@ -488,10 +507,7 @@ namespace ILGPU.Backends.OpenCL
 
             // Update field value
             using (var statement = BeginStatement(target, value.FieldIndex))
-            {
-                statement.AppendCommand(" = ");
                 statement.AppendArgument(set);
-            }
         }
 
         /// <summary cref="IValueVisitor.Visit(GetElement)"/>

@@ -45,7 +45,7 @@ namespace ILGPU.Backends.OpenCL
             Builder.Append("if (");
             Builder.Append(condition.ToString());
             Builder.AppendLine(")");
-            PushAndAppendIndent();
+            PushIndent();
             GotoStatement(branch.TrueTarget);
             PopIndent();
             GotoStatement(branch.FalseTarget);

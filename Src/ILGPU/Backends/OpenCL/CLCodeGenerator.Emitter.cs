@@ -235,8 +235,30 @@ namespace ILGPU.Backends.OpenCL
                 }
                 else
                 {
-                    // Do not append a field access in this case
+                    Append(variable);
                 }
+            }
+
+            /// <summary>
+            /// Appends the specified field name.
+            /// </summary>
+            /// <param name="fieldIndex">The field index.</param>
+            private void AppendFieldName(int fieldIndex)
+            {
+                var fieldName = string.Format(
+                    CLTypeGenerator.FieldNameFormat,
+                    fieldIndex.ToString());
+                stringBuilder.Append(fieldName);
+            }
+
+            /// <summary>
+            /// Appends the referenced field accessor.
+            /// </summary>
+            /// <param name="fieldIndex">The field index.</param>
+            public void AppendFieldViaPtr(int fieldIndex)
+            {
+                stringBuilder.Append("->");
+                AppendFieldName(fieldIndex);
             }
 
             /// <summary>
@@ -245,11 +267,8 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="fieldIndex">The field index.</param>
             public void AppendField(int fieldIndex)
             {
-                var fieldName = string.Format(
-                    CLTypeGenerator.FieldNameFormat,
-                    fieldIndex.ToString());
                 stringBuilder.Append('.');
-                stringBuilder.Append(fieldName);
+                AppendFieldName(fieldIndex);
             }
 
             /// <summary>
@@ -364,6 +383,7 @@ namespace ILGPU.Backends.OpenCL
             {
                 AppendArgument();
                 stringBuilder.Append(value);
+                stringBuilder.Append('f');
             }
 
             /// <summary>

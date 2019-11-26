@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using System.Collections.Immutable;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -48,14 +49,21 @@ namespace ILGPU.Backends.OpenCL
         /// Creates a new empty view.
         /// </summary>
         /// <param name="value">The source value.</param>
-        private void MakeNullView(NullValue value)
+        /// <param name="viewType">The view type.</param>
+        /// <param name="accessChain">The access chain.</param>
+        private void MakeNullView(Variable value, ViewType viewType, ImmutableArray<int> accessChain)
         {
-            var target = AllocateView(value);
-
-            using (var statement = BeginStatement(target, target.PointerFieldIndex))
+            using (var statement = BeginStatement(
+                value,
+                accessChain.Add(CLTypeGenerator.ViewPointerFieldIndex)))
+            {
+                statement.AppendPointerCast(TypeGenerator[viewType.ElementType]);
                 statement.AppendConstant(0);
+            }
 
-            using (var statement = BeginStatement(target, target.LengthFieldIndex))
+            using (var statement = BeginStatement(
+                value,
+                accessChain.Add(CLTypeGenerator.ViewLengthFieldIndex)))
                 statement.AppendConstant(0);
         }
 
