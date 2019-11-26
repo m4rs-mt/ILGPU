@@ -89,9 +89,10 @@ namespace ILGPU.Backends.OpenCL
             /// Appends a target.
             /// </summary>
             /// <param name="target">The target.</param>
-            internal void AppendTarget(Variable target)
+            /// <param name="newTarget">True, if this a new target.</param>
+            internal void AppendTarget(Variable target, bool newTarget = true)
             {
-                AppendDeclaration(target);
+                BeginAppendTarget(target, newTarget);
                 stringBuilder.Append(" = ");
             }
 
@@ -475,6 +476,20 @@ namespace ILGPU.Backends.OpenCL
         {
             using (var statement = BeginStatement(CLInstructions.GotoStatement))
                 statement.AppendOperation(blockLookup[block]);
+        }
+
+        /// <summary>
+        /// Emits a move operation.
+        /// </summary>
+        /// <param name="target">The target variable to assign to.</param>
+        /// <param name="source">The source variable to assign to.</param>
+        public void Move(Variable target, Variable source)
+        {
+            using (var emitter = new StatementEmitter(this))
+            {
+                emitter.AppendTarget(target, false);
+                emitter.Append(source);
+            }
         }
 
         /// <summary>

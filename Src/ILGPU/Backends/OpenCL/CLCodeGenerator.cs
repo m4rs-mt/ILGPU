@@ -15,8 +15,6 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using ILGPU.Resources;
-using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -136,6 +134,83 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="parameter">The intrinsic parameter.</param>
             /// <returns>The allocated variable (if any).</returns>
             Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter);
+        }
+
+        /// <summary>
+        /// Represents a specialized phi binding allocator.
+        /// </summary>
+        private readonly struct PhiBindingAllocator : IPhiBindingAllocator
+        {
+            private readonly Dictionary<BasicBlock, List<Variable>> phiMapping;
+
+            /// <summary>
+            /// Constructs a new phi binding allocator.
+            /// </summary>
+            /// <param name="parent">The parent code generator.</param>
+            /// <param name="cfg">The CFG to use.</param>
+            public PhiBindingAllocator(CLCodeGenerator parent, CFG cfg)
+            {
+                phiMapping = new Dictionary<BasicBlock, List<Variable>>(cfg.Count);
+                Parent = parent;
+                CFG = cfg;
+                Dominators = Dominators.Create(cfg);
+            }
+
+            /// <summary>
+            /// Returns the parent code generator.
+            /// </summary>
+            public CLCodeGenerator Parent { get; }
+
+            /// <summary>
+            /// Returns the underlying CFG.
+            /// </summary>
+            public CFG CFG { get; }
+
+            /// <summary>
+            /// Returns the referenced dominators.
+            /// </summary>
+            public Dominators Dominators { get; }
+
+            /// <summary cref="IPhiBindingAllocator.Process(CFG.Node, Phis)"/>
+            public void Process(CFG.Node node, Phis phis) { }
+
+            /// <summary cref="IPhiBindingAllocator.Allocate(CFG.Node, PhiValue)"/>
+            public void Allocate(CFG.Node node, PhiValue phiValue)
+            {
+                var variable = Parent.Allocate(phiValue);
+
+                var targetNode = node;
+                foreach (var argument in phiValue)
+                {
+                    if (argument.BasicBlock == null)
+                        targetNode = CFG.EntryNode;
+                    else
+                    {
+                        targetNode = Dominators.GetImmediateCommonDominator(
+                            targetNode,
+                            CFG[argument.BasicBlock]);
+                    }
+
+                    if (targetNode == CFG.EntryNode)
+                        break;
+                }
+
+                if (!phiMapping.TryGetValue(targetNode.Block, out var phiVariables))
+                {
+                    phiVariables = new List<Variable>();
+                    phiMapping.Add(targetNode.Block, phiVariables);
+                }
+                phiVariables.Add(variable);
+            }
+
+            /// <summary>
+            /// Tries to get phi variables to declare in the given block.
+            /// </summary>
+            /// <param name="block">The block.</param>
+            /// <param name="phisToDeclare">The variables to declare (if any).</param>
+            /// <returns>True, if there are some phi variables to declare.</returns>
+            public bool TryGetPhis(BasicBlock block, out List<Variable> phisToDeclare) =>
+                phiMapping.TryGetValue(block, out phisToDeclare);
         }
 
         #endregion
@@ -357,6 +432,7 @@ namespace ILGPU.Backends.OpenCL
                 using (var statement = BeginStatement(allocaVariable))
                 {
                     statement.AppendOperation(CLInstructions.AddressOfOperation);
+                    statement.Append(allocationVariable);
                     if (allocaInfo.IsArray)
                         statement.AppendIndexer("0");
                 }
@@ -377,34 +453,11 @@ namespace ILGPU.Backends.OpenCL
             foreach (var block in Scope)
                 blockLookup.Add(block, DeclareLabel());
 
+
             // Find all phi nodes, allocate target registers and setup internal mapping
             var cfg = Scope.CreateCFG();
-            var phiMapping = new Dictionary<BasicBlock, List<Variable>>(cfg.Count);
-            var dominators = Dominators.Create(cfg);
-            foreach (var node in cfg)
-            {
-                var phis = Phis.Create(node.Block);
-
-                // Allocate all phis nodes and store them in the associated dominator
-                foreach (var phi in phis)
-                {
-                    var targetNode = node;
-                    foreach (var argument in phi)
-                    {
-                        targetNode = dominators.GetImmediateCommonDominator(
-                            targetNode,
-                            cfg[argument.BasicBlock]);
-                    }
-
-                    var variable = Allocate(phi);
-                    if (!phiMapping.TryGetValue(targetNode.Block, out var phiVariables))
-                    {
-                        phiVariables = new List<Variable>();
-                        phiMapping.Add(targetNode.Block, phiVariables);
-                    }
-                    phiVariables.Add(variable);
-                }
-            }
+            var bindingAllocator = new PhiBindingAllocator(this, cfg);
+            var phiBindings = PhiBindings.Create(cfg, bindingAllocator);
 
             // Generate code
             foreach (var block in Scope)
@@ -413,13 +466,10 @@ namespace ILGPU.Backends.OpenCL
                 MarkLabel(blockLookup[block]);
 
                 // Declare phi variables (if any)
-                if (phiMapping.TryGetValue(block, out var phiVariables))
+                if (bindingAllocator.TryGetPhis(block, out var phisToDeclare))
                 {
-                    foreach (var phiVariable in phiVariables)
-                    {
-                        // DeclareVariable(phiVariable);
-                        using (var statement = BeginStatement(phiVariable)) { }
-                    }
+                    foreach (var phiVariable in phisToDeclare)
+                        Declare(phiVariable);
                 }
 
                 foreach (var value in block)
@@ -436,6 +486,18 @@ namespace ILGPU.Backends.OpenCL
                     {
                         // Emit value
                         value.Accept(this);
+                    }
+                }
+
+                // Wire phi nodes
+                if (phiBindings.TryGetBindings(block, out var bindings))
+                {
+                    foreach (var (value, phiValue) in bindings)
+                    {
+                        var phiTargetRegister = Load(phiValue);
+                        var sourceRegister = Load(value);
+
+                        Move(phiTargetRegister, sourceRegister);
                     }
                 }
 
