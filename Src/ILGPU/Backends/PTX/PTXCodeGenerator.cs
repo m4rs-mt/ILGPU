@@ -159,6 +159,33 @@ namespace ILGPU.Backends.PTX
                 null;
         }
 
+        /// <summary>
+        /// Represents a specialized phi binding allocator.
+        /// </summary>
+        private readonly struct PhiBindingAllocator : IPhiBindingAllocator
+        {
+            /// <summary>
+            /// Constructs a new phi binding allocator.
+            /// </summary>
+            /// <param name="parent">The parent code generator.</param>
+            public PhiBindingAllocator(PTXCodeGenerator parent)
+            {
+                Parent = parent;
+            }
+
+            /// <summary>
+            /// Returns the parent code generator.
+            /// </summary>
+            public PTXCodeGenerator Parent { get; }
+
+            /// <summary cref="IPhiBindingAllocator.Process(CFG.Node, Phis)"/>
+            public void Process(CFG.Node node, Phis phis) { }
+
+            /// <summary cref="IPhiBindingAllocator.Allocate(CFG.Node, PhiValue)"/>
+            public void Allocate(CFG.Node node, PhiValue phiValue) =>
+                Parent.Allocate(phiValue);
+        }
+
         #endregion
 
         #region Static
@@ -415,38 +442,9 @@ namespace ILGPU.Backends.PTX
             foreach (var block in Scope)
                 blockLookup.Add(block, DeclareLabel());
 
-            // Find all phi nodes, allocate target registers and prepare
-            // register mapping for all arguments
+            // Find all phi nodes, allocate target registers and setup internal mapping
             var cfg = Scope.CreateCFG();
-            var phiMapping = new Dictionary<BasicBlock, List<(Value, PhiValue)>>();
-            foreach (var block in Scope.PostOrder)
-            {
-                // Gather phis in this block and allocate registers
-                var cfgNode = cfg[block];
-                var phis = Phis.Create(block);
-                foreach (var phi in phis)
-                {
-                    Allocate(phi);
-
-                    // Map all phi arguments
-                    Debug.Assert(cfgNode.NumPredecessors == phi.Nodes.Length, "Invalid phi value");
-                    var predecessorMapping = new Dictionary<NodeId, int>(capacity: cfgNode.NumPredecessors);
-                    for (int i = 0, e = cfgNode.NumPredecessors; i < e; ++i)
-                        predecessorMapping.Add(cfgNode.Predecessors[i].Block.Id, i);
-
-                    for (int i = 0, e = phi.Nodes.Length; i < e; ++i)
-                    {
-                        var predecessorIdx = predecessorMapping[phi.NodeBlockIds[i]];
-                        var argumentBlock = cfgNode.Predecessors[predecessorIdx].Block;
-                        if (!phiMapping.TryGetValue(argumentBlock, out List<(Value, PhiValue)> arguments))
-                        {
-                            arguments = new List<(Value, PhiValue)>();
-                            phiMapping.Add(argumentBlock, arguments);
-                        }
-                        arguments.Add((phi[i], phi));
-                    }
-                }
-            }
+            var phiBindings = PhiBindings.Create(cfg, new PhiBindingAllocator(this));
             Builder.AppendLine();
 
             // Generate code
@@ -481,9 +479,9 @@ namespace ILGPU.Backends.PTX
                 DebugInfoGenerator.ResetSequencePoints();
 
                 // Wire phi nodes
-                if (phiMapping.TryGetValue(block, out List<(Value, PhiValue)> phiArguments))
+                if (phiBindings.TryGetBindings(block, out var bindings))
                 {
-                    foreach (var (value, phiValue) in phiArguments)
+                    foreach (var (value, phiValue) in bindings)
                     {
                         var phiTargetRegister = Load(phiValue);
                         var sourceRegister = Load(value);
