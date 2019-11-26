@@ -146,9 +146,9 @@ namespace ILGPU.Backends.OpenCL
         private static readonly string[] AddressSpacePrefixes =
         {
             string.Empty,
-            "__global",
-            "__local",
-            "__private",
+            "global",
+            "local",
+            "private",
         };
 
         private static readonly string[] AddressSpaceCastOperations =
