@@ -24,12 +24,15 @@ namespace ILGPU.Backends.OpenCL
             var pointer = LoadAs<PointerVariable>(value.Pointer);
             var length = LoadAs<PrimitiveVariable>(value.Length);
 
+            // Declare view
+            Declare(target);
+
             // Assign pointer
             using (var statement = BeginStatement(target, target.PointerFieldIndex))
                 statement.Append(pointer);
 
             // Assign length
-            using (var statement = BeginStatement(target, target.VariableName))
+            using (var statement = BeginStatement(target, target.LengthFieldIndex))
                 statement.Append(length);
         }
 
@@ -73,6 +76,9 @@ namespace ILGPU.Backends.OpenCL
             var target = AllocateView(value);
             var source = LoadView(value.Value);
 
+            // Declare view
+            Declare(target);
+
             using (var statement = BeginStatement(target, target.PointerFieldIndex))
             {
                 statement.AppendPointerCast(TypeGenerator[target.ElementType]);
@@ -112,6 +118,9 @@ namespace ILGPU.Backends.OpenCL
             var offset = LoadAs<PrimitiveVariable>(value.Offset);
             var length = LoadAs<PrimitiveVariable>(value.Length);
             var target = AllocateView(value);
+
+            // Declare view
+            Declare(target);
 
             // Assign pointer
             using (var statement = BeginStatement(target, target.PointerFieldIndex))
@@ -153,12 +162,13 @@ namespace ILGPU.Backends.OpenCL
             var source = Load(value.Value);
             var target = Allocate(value);
 
-            using (var statement = BeginStatement(target))
+            bool isOperation = CLInstructions.TryGetAddressSpaceCast(
+                value.TargetAddressSpace,
+                out string operation);
+
+            void GeneratePointerCast(StatementEmitter statement)
             {
-                bool isOperation;
-                if (isOperation = CLInstructions.TryGetAddressSpaceCast(
-                    value.TargetAddressSpace,
-                    out string operation))
+                if (isOperation)
                 {
                     // There is a specific cast operation
                     statement.AppendCommand(operation);
@@ -166,13 +176,39 @@ namespace ILGPU.Backends.OpenCL
                     statement.Append(source);
                 }
                 else
-                {
                     statement.AppendPointerCast(TypeGenerator[targetType.ElementType]);
-                }
-                statement.TryAppendViewPointerField(source);
+                statement.Append(source);
+            }
 
-                if (isOperation)
-                    statement.EndArguments();
+            if (value.IsPointerCast)
+            {
+                using (var statement = BeginStatement(target))
+                {
+                    GeneratePointerCast(statement);
+                    if (isOperation)
+                        statement.EndArguments();
+                }
+            }
+            else
+            {
+                var targetView = target as ViewImplementationVariable;
+                Declare(target);
+
+                // Assign pointer
+                using (var statement = BeginStatement(target, targetView.PointerFieldIndex))
+                {
+                    GeneratePointerCast(statement);
+                    statement.AppendField(targetView.PointerFieldIndex);
+                    if (isOperation)
+                        statement.EndArguments();
+                }
+
+                // Assign length
+                using (var statement = BeginStatement(target, targetView.LengthFieldIndex))
+                {
+                    statement.Append(source);
+                    statement.AppendField(targetView.LengthFieldIndex);
+                }
             }
         }
     }
