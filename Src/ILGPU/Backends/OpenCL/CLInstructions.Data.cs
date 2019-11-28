@@ -93,9 +93,19 @@ namespace ILGPU.Backends.OpenCL
         public const string IntAsFloat = "as_float";
 
         /// <summary>
+        /// An long-as-double operation.
+        /// </summary>
+        public const string LongAsDouble = "as_double";
+
+        /// <summary>
         /// A float-as-int operation.
         /// </summary>
         public const string FloatAsInt = "as_int";
+
+        /// <summary>
+        /// A double-as-long operation.
+        /// </summary>
+        public const string DoubleAsLong = "as_long";
 
         /// <summary>
         /// Resolves the current global work-item id.
@@ -181,8 +191,8 @@ namespace ILGPU.Backends.OpenCL
 
         private static readonly string[] BroadcastOperations =
         {
-            "work_group_broadcast",
             "sub_group_broadcast",
+            "work_group_broadcast",
         };
 
         private static readonly Dictionary<(CLAcceleratorVendor, ShuffleKind), string> ShuffleOperations =

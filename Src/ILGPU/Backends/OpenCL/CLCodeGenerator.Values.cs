@@ -172,10 +172,12 @@ namespace ILGPU.Backends.OpenCL
             var targetRegister = Allocate(value);
             using (var statement = BeginStatement(targetRegister))
             {
+                statement.AppendCast(value.CompareType);
                 statement.AppendArgument(left);
                 statement.AppendCommand(
                     CLInstructions.GetCompareOperation(
                         value.Kind));
+                statement.AppendCast(value.CompareType);
                 statement.AppendArgument(right);
             }
         }
@@ -214,7 +216,10 @@ namespace ILGPU.Backends.OpenCL
 
             using (var statement = BeginStatement(targetRegister))
             {
-                statement.AppendCommand(CLInstructions.FloatAsInt);
+                statement.AppendCommand(
+                    value.BasicValueType == BasicValueType.Int64 ?
+                    CLInstructions.DoubleAsLong :
+                    CLInstructions.FloatAsInt);
                 statement.BeginArguments();
                 statement.AppendArgument(source);
                 statement.EndArguments();
@@ -229,7 +234,10 @@ namespace ILGPU.Backends.OpenCL
 
             using (var statement = BeginStatement(targetRegister))
             {
-                statement.AppendCommand(CLInstructions.IntAsFloat);
+                statement.AppendCommand(
+                    value.BasicValueType == BasicValueType.Float64 ?
+                    CLInstructions.LongAsDouble :
+                    CLInstructions.IntAsFloat);
                 statement.BeginArguments();
                 statement.AppendArgument(source);
                 statement.EndArguments();
@@ -259,25 +267,17 @@ namespace ILGPU.Backends.OpenCL
         {
             var target = Load(atomic.Target);
             var value = Load(atomic.Value);
+            var result = Allocate(atomic);
 
             var atomicOperation = CLInstructions.GetAtomicOperation(atomic.Kind);
-
-            StatementEmitter statement;
-            if (atomic.Kind == AtomicKind.Exchange)
+            using (var statement = BeginStatement(result, atomicOperation))
             {
-                var result = Allocate(atomic);
-                statement = BeginStatement(result, atomicOperation);
+                statement.BeginArguments();
+                statement.AppendAtomicCast(atomic.ArithmeticBasicValueType);
+                statement.AppendArgument(target);
+                statement.AppendArgument(value);
+                statement.EndArguments();
             }
-            else
-                statement = BeginStatement(atomicOperation);
-
-            statement.BeginArguments();
-            statement.AppendAtomicCast(atomic.ArithmeticBasicValueType);
-            statement.AppendArgument(target);
-            statement.AppendArgument(value);
-            statement.EndArguments();
-
-            statement.Dispose();
         }
 
         /// <summary cref="IValueVisitor.Visit(AtomicCAS)"/>

@@ -127,12 +127,12 @@ namespace ILGPU.Backends.OpenCL
             {
                 statement.AppendCommand(CLInstructions.AddressOfOperation);
                 statement.Append(source);
-                statement.TryAppendViewPointerField(source);
+                statement.AppendField(target.PointerFieldIndex);
                 statement.AppendIndexer(offset);
             }
 
             // Assign length
-            using (var statement = BeginStatement(target, target.VariableName))
+            using (var statement = BeginStatement(target, target.LengthFieldIndex))
                 statement.Append(length);
         }
 
