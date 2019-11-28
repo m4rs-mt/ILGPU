@@ -596,7 +596,7 @@ namespace ILGPU.Backends.OpenCL
         public void Visit(GroupDimensionValue value) =>
             MakeIntrinsicValue(
                 value,
-                CLInstructions.GetGridSize,
+                CLInstructions.GetGroupSize,
                 value.Dimension);
 
         /// <summary cref="IValueVisitor.Visit(WarpSizeValue)"/>
@@ -637,7 +637,13 @@ namespace ILGPU.Backends.OpenCL
         public void Visit(Barrier barrier)
         {
             using (var statement = BeginStatement(
-                CLInstructions.GetBarrier(barrier.Kind))) { }
+                CLInstructions.GetBarrier(barrier.Kind)))
+            {
+                statement.BeginArguments();
+                statement.AppendCommand(
+                    CLInstructions.GetMemoryFenceFlags(true));
+                statement.EndArguments();
+            }
         }
 
         /// <summary cref="IValueVisitor.Visit(Broadcast)"/>
