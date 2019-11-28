@@ -665,6 +665,7 @@ namespace ILGPU.Runtime.OpenCL.API
                 globalWorkSizes,
                 localWorkSizes,
                 0,
+                null,
                 null);
 
         /// <summary>

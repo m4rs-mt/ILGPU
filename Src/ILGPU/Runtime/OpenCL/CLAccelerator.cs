@@ -331,7 +331,8 @@ namespace ILGPU.Runtime.OpenCL
                 finally
                 {
                     CLException.ThrowIfFailed(
-                        CLAPI.ReleaseKernel(kernelPtr) |
+                        CLAPI.ReleaseKernel(kernelPtr));
+                    CLException.ThrowIfFailed(
                         CLAPI.ReleaseProgram(programPtr));
                 }
             }
@@ -383,7 +384,8 @@ namespace ILGPU.Runtime.OpenCL
                 finally
                 {
                     CLException.ThrowIfFailed(
-                        CLAPI.ReleaseKernel(kernelPtr) |
+                        CLAPI.ReleaseKernel(kernelPtr));
+                    CLException.ThrowIfFailed(
                         CLAPI.ReleaseProgram(programPtr));
                 }
             }
@@ -615,13 +617,13 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
+            base.Dispose(disposing);
             if (contextPtr != IntPtr.Zero)
             {
                 CLException.ThrowIfFailed(
                     CLAPI.ReleaseContext(contextPtr));
                 contextPtr = IntPtr.Zero;
             }
-            base.Dispose(disposing);
         }
 
         #endregion

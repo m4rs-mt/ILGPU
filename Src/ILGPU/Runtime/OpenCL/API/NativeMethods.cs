@@ -169,14 +169,15 @@ namespace ILGPU.Runtime.OpenCL.API
 
         [DllImport(LibName, EntryPoint = "clEnqueueNDRangeKernel")]
         public static extern CLError EnqueueNDRangeKernel(
-            IntPtr queue,
-            IntPtr kernel,
-            int workDimensions,
-            IntPtr* workOffsets,
-            IntPtr* globalWorkSizes,
-            IntPtr* localWorkSizes,
-            int numEvents,
-            IntPtr* events);
+            [In] IntPtr queue,
+            [In] IntPtr kernel,
+            [In] int workDimensions,
+            [In] IntPtr* workOffsets,
+            [In] IntPtr* globalWorkSizes,
+            [In] IntPtr* localWorkSizes,
+            [In] int numEvents,
+            [In] IntPtr* events,
+            [In, Out] IntPtr* creatingEvent);
 
         [DllImport(LibName, EntryPoint = "clGetKernelWorkGroupInfo")]
         public static extern CLError GetKernelWorkGroupInfo(
