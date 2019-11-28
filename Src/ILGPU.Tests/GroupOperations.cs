@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using ILGPU.Runtime.Cuda;
+using ILGPU.Runtime.OpenCL;
 using System;
 using System.Linq;
 using Xunit;
@@ -211,7 +212,10 @@ namespace ILGPU.Tests
 
             act.Should().Throw<Exception>()
                 .Which.GetBaseException()
-                .Should().Match(x => x is CudaException || x is NotSupportedException);
+                .Should().Match(x =>
+                x is CudaException ||
+                x is CLException ||
+                x is NotSupportedException);
         }
 
         internal static void GroupBroadcastKernel(

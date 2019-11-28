@@ -154,12 +154,18 @@ namespace ILGPU.Tests
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="buffer">The target buffer.</param>
         /// <param name="expected">The expected values.</param>
-        public void Verify<T>(MemoryBuffer<T> buffer, T[] expected)
+        /// <param name="offset">The custom data offset to use (if any).</param>
+        /// <param name="length">The custom data length to use (if any).</param>
+        public void Verify<T>(
+            MemoryBuffer<T> buffer,
+            T[] expected,
+            int? offset = null,
+            int? length = null)
             where T : struct
         {
             var data = buffer.GetAsArray(Accelerator.DefaultStream);
             Assert.Equal(data.Length, expected.Length);
-            for (int i = 0, e = data.Length; i < e; ++i)
+            for (int i = offset ?? 0, e = length ?? data.Length; i < e; ++i)
                 Assert.Equal(expected[i], data[i]);
         }
 

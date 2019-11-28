@@ -10,11 +10,9 @@ namespace ILGPU.Tests
             : base(output, contextProvider)
         { }
 
-        internal static void ArrayViewValidKernel(
-            Index index,
-            ArrayView<int> data,
-            ArrayView<int> invalid)
+        internal static void ArrayViewValidKernel(Index index, ArrayView<int> data)
         {
+            ArrayView<int> invalid = default;
             data[index] = (data.IsValid ? 1 : 0) + (!invalid.IsValid ? 1 : 0);
         }
 
@@ -27,7 +25,7 @@ namespace ILGPU.Tests
         public void ArrayViewValid(int length)
         {
             using var buffer = Accelerator.Allocate<int>(length);
-            Execute(length, buffer.View, new ArrayView<int>());
+            Execute(length, buffer.View);
 
             var expected = Enumerable.Repeat(2, length).ToArray();
             Verify(buffer, expected);
