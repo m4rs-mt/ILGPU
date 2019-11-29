@@ -347,6 +347,17 @@ namespace ILGPU.Backends.OpenCL
             }
 
             /// <summary>
+            /// Appends the address of the given register argument.
+            /// </summary>
+            /// <param name="argument">The argument to append.</param>
+            public void AppendArgumentAddress(Variable argument)
+            {
+                AppendArgument();
+                AppendCommand(CLInstructions.AddressOfOperation);
+                Append(argument);
+            }
+
+            /// <summary>
             /// Append ths given operation.
             /// </summary>
             /// <param name="operation">The operation to append.</param>

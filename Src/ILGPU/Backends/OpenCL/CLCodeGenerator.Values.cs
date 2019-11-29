@@ -295,7 +295,7 @@ namespace ILGPU.Backends.OpenCL
                 statement.BeginArguments();
                 statement.AppendAtomicCast(atomicCAS.ArithmeticBasicValueType);
                 statement.AppendArgument(target);
-                statement.AppendArgument(value);
+                statement.AppendArgumentAddress(value);
                 statement.AppendArgument(compare);
                 statement.EndArguments();
             }
@@ -313,6 +313,7 @@ namespace ILGPU.Backends.OpenCL
 
                 statement.AppendCommand(CLInstructions.AtomicLoadOperation);
                 statement.BeginArguments();
+                statement.AppendAtomicCast(atomicCAS.ArithmeticBasicValueType);
                 statement.AppendArgument(target);
                 statement.EndArguments();
             }
