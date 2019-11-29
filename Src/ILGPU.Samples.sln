@@ -3,43 +3,43 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29424.173
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceInfo", "DeviceInfo\DeviceInfo.csproj", "{715584CD-87DA-4F1F-86C3-A3D9AB50EE53}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeviceInfo", "DeviceInfo\DeviceInfo.csproj", "{715584CD-87DA-4F1F-86C3-A3D9AB50EE53}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ILGPU", "ILGPU", "{60D61949-4B05-4BAB-9BF7-C8BA2EF905AB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleKernel", "SimpleKernel\SimpleKernel.csproj", "{BB818792-0B95-477F-AF76-B617088E4B65}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleKernel", "SimpleKernel\SimpleKernel.csproj", "{BB818792-0B95-477F-AF76-B617088E4B65}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleAlloc", "SimpleAlloc\SimpleAlloc.csproj", "{1B1ADAAB-8B74-4FDA-B7CF-8DAC6F3E18CC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleAlloc", "SimpleAlloc\SimpleAlloc.csproj", "{1B1ADAAB-8B74-4FDA-B7CF-8DAC6F3E18CC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IndexImplementation", "IndexImplementation\IndexImplementation.csproj", "{8CC54BA0-79D9-4515-A543-903FDF344DC4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IndexImplementation", "IndexImplementation\IndexImplementation.csproj", "{8CC54BA0-79D9-4515-A543-903FDF344DC4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Empty", "Empty\Empty.csproj", "{66490342-A4D0-4C57-81DC-145C8DF1DF85}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Empty", "Empty\Empty.csproj", "{66490342-A4D0-4C57-81DC-145C8DF1DF85}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Simple", "Simple", "{A0D83DD0-4DFE-4350-A652-8AB0B0F62F02}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleViews", "SimpleViews\SimpleViews.csproj", "{F29B4DD6-60EA-4DB4-BCBF-B25521BAEF89}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleViews", "SimpleViews\SimpleViews.csproj", "{F29B4DD6-60EA-4DB4-BCBF-B25521BAEF89}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Advanced", "Advanced", "{C1D99632-ED4A-4B08-A14D-4C8DB375934F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdvancedViews", "AdvancedViews\AdvancedViews.csproj", "{6DC9F6CE-5E60-40F4-9679-73E013FFA1E4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdvancedViews", "AdvancedViews\AdvancedViews.csproj", "{6DC9F6CE-5E60-40F4-9679-73E013FFA1E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleAtomics", "SimpleAtomics\SimpleAtomics.csproj", "{3A372731-484C-4623-AB59-36088939D360}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleAtomics", "SimpleAtomics\SimpleAtomics.csproj", "{3A372731-484C-4623-AB59-36088939D360}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleMath", "SimpleMath\SimpleMath.csproj", "{6FA852F3-4B39-4FF6-8959-65FAA7A3F31B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleMath", "SimpleMath\SimpleMath.csproj", "{6FA852F3-4B39-4FF6-8959-65FAA7A3F31B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdvancedAtomics", "AdvancedAtomics\AdvancedAtomics.csproj", "{0C356BF3-F6FB-4288-8C1A-03AC00D68DFA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdvancedAtomics", "AdvancedAtomics\AdvancedAtomics.csproj", "{0C356BF3-F6FB-4288-8C1A-03AC00D68DFA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImplicitlyGroupedKernels", "ImplicitlyGroupedKernels\ImplicitlyGroupedKernels.csproj", "{4587C725-A9C2-44B7-8FF3-D59D39DD0074}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImplicitlyGroupedKernels", "ImplicitlyGroupedKernels\ImplicitlyGroupedKernels.csproj", "{4587C725-A9C2-44B7-8FF3-D59D39DD0074}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExplicitlyGroupedKernels", "ExplicitlyGroupedKernels\ExplicitlyGroupedKernels.csproj", "{21339493-3330-4D2C-9605-0BAA9B675A56}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExplicitlyGroupedKernels", "ExplicitlyGroupedKernels\ExplicitlyGroupedKernels.csproj", "{21339493-3330-4D2C-9605-0BAA9B675A56}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharedMemory", "SharedMemory\SharedMemory.csproj", "{66CCC9F7-75E6-4573-AB6C-1CC3FD8B6981}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharedMemory", "SharedMemory\SharedMemory.csproj", "{66CCC9F7-75E6-4573-AB6C-1CC3FD8B6981}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ILGPU.Lightning", "ILGPU.Lightning", "{D1EF07F4-DEB6-4E9E-870E-CC077DFFD674}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleStructures", "SimpleStructures\SimpleStructures.csproj", "{F75D6FD6-FDE8-4EE7-8462-92B2799CE31D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleStructures", "SimpleStructures\SimpleStructures.csproj", "{F75D6FD6-FDE8-4EE7-8462-92B2799CE31D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleConstants", "SimpleConstants\SimpleConstants.csproj", "{AE391688-AA58-49E1-B0E8-9FDA25DA23BD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleConstants", "SimpleConstants\SimpleConstants.csproj", "{AE391688-AA58-49E1-B0E8-9FDA25DA23BD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningSequence", "LightningSequence\LightningSequence.csproj", "{B3E1FB45-B89D-4B48-B6C8-EE94AA5355F3}"
 EndProject
@@ -53,15 +53,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningTransform", "Light
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightningReduce", "LightningReduce\LightningReduce.csproj", "{43186946-9265-4E1E-9167-C6E6BB2FD6AA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarpShuffle", "WarpShuffle\WarpShuffle.csproj", "{B43A6385-0030-4ED6-B1E5-74303D65DEA5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WarpShuffle", "WarpShuffle\WarpShuffle.csproj", "{B43A6385-0030-4ED6-B1E5-74303D65DEA5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mandelbrot", "Mandelbrot\Mandelbrot.csproj", "{88BDFE37-9C45-406C-9E05-3F190A6EAD57}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LowLevelKernelCompilation", "LowLevelKernelCompilation\LowLevelKernelCompilation.csproj", "{2F9FC475-C45F-4192-9081-A971731E8717}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LowLevelKernelCompilation", "LowLevelKernelCompilation\LowLevelKernelCompilation.csproj", "{2F9FC475-C45F-4192-9081-A971731E8717}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Applications", "Applications", "{30F390DB-B823-40A2-A881-382B9EF36C07}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MatrixMultiply", "MatrixMultiply\MatrixMultiply.csproj", "{89648D2A-FD70-41E4-AC53-517DF19C744F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdjustableSharedMemory", "AdjustableSharedMemory\AdjustableSharedMemory.csproj", "{B0AE18F5-52AB-4DB6-8FC5-A7731196F8E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -197,6 +199,12 @@ Global
 		{89648D2A-FD70-41E4-AC53-517DF19C744F}.DebugVerification|Any CPU.Build.0 = Debug|Any CPU
 		{89648D2A-FD70-41E4-AC53-517DF19C744F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{89648D2A-FD70-41E4-AC53-517DF19C744F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0AE18F5-52AB-4DB6-8FC5-A7731196F8E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0AE18F5-52AB-4DB6-8FC5-A7731196F8E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0AE18F5-52AB-4DB6-8FC5-A7731196F8E0}.DebugVerification|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0AE18F5-52AB-4DB6-8FC5-A7731196F8E0}.DebugVerification|Any CPU.Build.0 = Debug|Any CPU
+		{B0AE18F5-52AB-4DB6-8FC5-A7731196F8E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0AE18F5-52AB-4DB6-8FC5-A7731196F8E0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -230,6 +238,7 @@ Global
 		{2F9FC475-C45F-4192-9081-A971731E8717} = {C1D99632-ED4A-4B08-A14D-4C8DB375934F}
 		{30F390DB-B823-40A2-A881-382B9EF36C07} = {60D61949-4B05-4BAB-9BF7-C8BA2EF905AB}
 		{89648D2A-FD70-41E4-AC53-517DF19C744F} = {C1D99632-ED4A-4B08-A14D-4C8DB375934F}
+		{B0AE18F5-52AB-4DB6-8FC5-A7731196F8E0} = {C1D99632-ED4A-4B08-A14D-4C8DB375934F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {30E502BD-3826-417F-888F-1CE19CF5C6DA}
