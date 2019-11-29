@@ -19,7 +19,7 @@ namespace ILGPU.Resources {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class ErrorMessages {
@@ -412,11 +412,20 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A function does not have an intrinsic implementation for this backend. &apos;EnableAlgorithms&apos; from the Algorithms library not invoked?.
+        /// </summary>
+        internal static string NotSupportedIntrinsicImplementation0 {
+            get {
+                return ResourceManager.GetString("NotSupportedIntrinsicImplementation0", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The function &apos;{0}&apos; does not have an intrinsic implementation for this backend. &apos;EnableAlgorithms&apos; from the Algorithms library not invoked?.
         /// </summary>
-        internal static string NotSupportedIntrinsicImplementation {
+        internal static string NotSupportedIntrinsicImplementation1 {
             get {
-                return ResourceManager.GetString("NotSupportedIntrinsicImplementation", resourceCulture);
+                return ResourceManager.GetString("NotSupportedIntrinsicImplementation1", resourceCulture);
             }
         }
         

@@ -81,7 +81,7 @@ namespace ILGPU.Backends.OpenCL
             : base(
                   context,
                   BackendType.OpenCL,
-                  BackendFlags.RequiresIntrinsicImplementations,
+                  BackendFlags.None,
                   new CLABI(context.TypeContext, platform),
                   abi => new CLArgumentMapper(context, abi))
         {
@@ -128,6 +128,9 @@ namespace ILGPU.Backends.OpenCL
             in KernelSpecialization specialization,
             out CLCodeGenerator.GeneratorArgs data)
         {
+            // Ensure that all intrinsics can be generated
+            backendContext.EnsureIntrinsicImplementations(IntrinsicProvider);
+
             var builder = new StringBuilder();
             var typeGenerator = new CLTypeGenerator(Context.TypeContext, ABI.TargetPlatform);
 

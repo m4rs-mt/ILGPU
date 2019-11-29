@@ -60,9 +60,10 @@ namespace ILGPU.Backends.OpenCL
             bool isFloat,
             out bool isFunction)
         {
-            string operation;
-            (operation, isFunction) = UnaryArithmeticOperations[(kind, isFloat)];
-            return operation;
+            if (!UnaryArithmeticOperations.TryGetValue((kind, isFloat), out var operation))
+                throw new NotSupportedIntrinsicException(kind.ToString());
+            isFunction = operation.Item2;
+            return operation.Item1;
         }
 
         /// <summary>
@@ -77,13 +78,14 @@ namespace ILGPU.Backends.OpenCL
             bool isFloat,
             out bool isFunction)
         {
-            string operation;
-            (operation, isFunction) = BinaryArithmeticOperations[(kind, isFloat)];
-            return operation;
+            if (!BinaryArithmeticOperations.TryGetValue((kind, isFloat), out var operation))
+                throw new NotSupportedIntrinsicException(kind.ToString());
+            isFunction = operation.Item2;
+            return operation.Item1;
         }
 
         /// <summary>
-        /// Tries to resolve a ternay arithmetic operation.
+        /// Tries to resolve a ternary arithmetic operation.
         /// </summary>
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="isFloat">True, if this is a floating-point operation.</param>

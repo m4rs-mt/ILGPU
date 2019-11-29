@@ -22,6 +22,17 @@ namespace ILGPU.Backends.OpenCL
     /// </summary>
     sealed class CLFunctionGenerator : CLCodeGenerator
     {
+        #region Constants
+
+        /// <summary>
+        /// Methods with these flags will be skipped during code generation.
+        /// </summary>
+        private const MethodFlags MethodFlagsToSkip =
+            MethodFlags.External |
+            MethodFlags.Intrinsic;
+
+        #endregion
+
         #region Nested Types
 
         /// <summary>
@@ -91,7 +102,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         public override void GenerateHeader(StringBuilder builder)
         {
-            if (Method.HasFlags(MethodFlags.External))
+            if (Method.HasFlags(MethodFlagsToSkip))
                 return;
 
             GenerateHeaderStub(builder);
@@ -103,7 +114,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         public override void GenerateCode()
         {
-            if (Method.HasFlags(MethodFlags.External))
+            if (Method.HasFlags(MethodFlagsToSkip))
                 return;
 
             // Declare function and parameters

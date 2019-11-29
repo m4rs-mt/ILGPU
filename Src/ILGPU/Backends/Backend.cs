@@ -75,11 +75,6 @@ namespace ILGPU.Backends
         /// The default flags (none).
         /// </summary>
         None = 0,
-
-        /// <summary>
-        /// Requires all intrinsic functions to be implemented.
-        /// </summary>
-        RequiresIntrinsicImplementations = 1 << 0,
     }
 
     /// <summary>
@@ -188,18 +183,17 @@ namespace ILGPU.Backends
 
             #region Instance
 
+            private readonly List<Method> notImplementedIntrinsics;
             private readonly Dictionary<Method, Allocas> allocaMapping;
 
             /// <summary>
             /// Constructs a new backend context.
             /// </summary>
-            /// <param name="flags">The current backend flags.</param>
             /// <param name="kernelContext">The current kernel context.</param>
             /// <param name="kernelMethod">The kernel function.</param>
             /// <param name="abi">The current ABI.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal BackendContext(
-                BackendFlags flags,
                 IRContext kernelContext,
                 Method kernelMethod,
                 ABI abi)
@@ -208,6 +202,7 @@ namespace ILGPU.Backends
                 KernelMethod = kernelMethod;
                 ScopeProvider = new CachedScopeProvider();
                 allocaMapping = new Dictionary<Method, Allocas>();
+                notImplementedIntrinsics = new List<Method>();
 
                 var toProcess = new Stack<Scope>();
                 var currentScope = ScopeProvider[kernelMethod];
@@ -215,17 +210,11 @@ namespace ILGPU.Backends
                 var sharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
                 var sharedMemorySize = 0;
 
-                bool requiresIntrinsics = (flags & BackendFlags.RequiresIntrinsicImplementations) != BackendFlags.None;
-
                 for (; ; )
                 {
                     // Check for an unsupported intrinsic function
-                    if (requiresIntrinsics && currentScope.Method.HasFlags(MethodFlags.Intrinsic))
-                    {
-                        throw new NotSupportedException(string.Format(
-                            ErrorMessages.NotSupportedIntrinsicImplementation,
-                            currentScope.Method.Name));
-                    }
+                    if (currentScope.Method.HasFlags(MethodFlags.Intrinsic))
+                        notImplementedIntrinsics.Add(currentScope.Method);
 
                     var allocas = Allocas.Create(currentScope, abi);
                     allocaMapping.Add(currentScope.Method, allocas);
@@ -298,6 +287,26 @@ namespace ILGPU.Backends
             #endregion
 
             #region Methods
+
+            /// <summary>
+            /// Ensures that all not-implemented intrinsics have a valid associated
+            /// code generator that will implement this intrinsic.
+            /// </summary>
+            /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
+            /// <param name="provider">The implementation provider to use.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void EnsureIntrinsicImplementations<TDelegate>(
+                IntrinsicImplementationProvider<TDelegate> provider)
+                where TDelegate : Delegate
+            {
+                // Iterate over all not-implemented intrinsic and ensure that a valid
+                // code generation has been registered that will implement this intrinsic.
+                foreach (var intrinsic in notImplementedIntrinsics)
+                {
+                    if (!provider.TryGetMapping(intrinsic, out var _))
+                        throw new NotSupportedIntrinsicException(intrinsic);
+                }
+            }
 
             /// <summary>
             /// Returns an enumerator to enumerate all entries.
@@ -527,7 +536,7 @@ namespace ILGPU.Backends
                 backendHook.OptimizedKernelContext(kernelContext, kernelMethod);
 
                 // Compile kernel
-                var backendContext = new BackendContext(BackendFlags, kernelContext, kernelMethod, ABI);
+                var backendContext = new BackendContext(kernelContext, kernelMethod, ABI);
                 var entryPoint = CreateEntryPoint(
                     kernelMethod.Source as MethodInfo,
                     backendContext,

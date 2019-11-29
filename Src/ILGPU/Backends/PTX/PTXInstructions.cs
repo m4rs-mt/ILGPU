@@ -14,7 +14,7 @@ using ILGPU.IR.Values;
 namespace ILGPU.Backends.PTX
 {
     /// <summary>
-    /// Constains general PTX instructions.
+    /// Contains general PTX instructions.
     /// </summary>
     public static partial class PTXInstructions
     {
@@ -40,8 +40,12 @@ namespace ILGPU.Backends.PTX
         /// <param name="kind">The compare kind.</param>
         /// <param name="type">The type to compare.</param>
         /// <returns>The resolved compare operation.</returns>
-        public static string GetCompareOperation(CompareKind kind, ArithmeticBasicValueType type) =>
-            CompareOperations[(kind, type)];
+        public static string GetCompareOperation(CompareKind kind, ArithmeticBasicValueType type)
+        {
+            if (CompareOperations.TryGetValue((kind, type), out string operation))
+                return operation;
+            throw new NotSupportedIntrinsicException(kind.ToString());
+        }
 
         /// <summary>
         /// Resolves a convert operation.
@@ -49,8 +53,12 @@ namespace ILGPU.Backends.PTX
         /// <param name="source">The source type to convert from.</param>
         /// <param name="target">The target type to convert to.</param>
         /// <returns>The resolved convert operation.</returns>
-        public static string GetConvertOperation(ArithmeticBasicValueType source, ArithmeticBasicValueType target) =>
-            ConvertOperations[(source, target)];
+        public static string GetConvertOperation(ArithmeticBasicValueType source, ArithmeticBasicValueType target)
+        {
+            if (ConvertOperations.TryGetValue((source, target), out string operation))
+                return operation;
+            throw new NotSupportedIntrinsicException($"{source} -> {target}");
+        }
 
         /// <summary>
         /// Resolves an unary arithmetic operation.
@@ -66,9 +74,10 @@ namespace ILGPU.Backends.PTX
         {
             var key = (kind, type);
             if (fastMath &&
-                UnaryArithmeticOperationsFastMath.TryGetValue(key, out string operation))
+                UnaryArithmeticOperationsFastMath.TryGetValue(key, out string operation) ||
+                UnaryArithmeticOperations.TryGetValue(key, out operation))
                 return operation;
-            return UnaryArithmeticOperations[key];
+            throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
         /// <summary>
@@ -85,13 +94,14 @@ namespace ILGPU.Backends.PTX
         {
             var key = (kind, type);
             if (fastMath &&
-                BinaryArithmeticOperationsFastMath.TryGetValue(key, out string operation))
+                BinaryArithmeticOperationsFastMath.TryGetValue(key, out string operation) ||
+                BinaryArithmeticOperations.TryGetValue(key, out operation))
                 return operation;
-            return BinaryArithmeticOperations[key];
+            throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
         /// <summary>
-        /// Resolves a ternay arithmetic operation.
+        /// Resolves a ternary arithmetic operation.
         /// </summary>
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="type">The operation type.</param>
@@ -100,8 +110,9 @@ namespace ILGPU.Backends.PTX
             TernaryArithmeticKind kind,
             ArithmeticBasicValueType type)
         {
-            var key = (kind, type);
-            return TernaryArithmeticOperations[key];
+            if (TernaryArithmeticOperations.TryGetValue((kind, type), out string operation))
+                return operation;
+            throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
         /// <summary>
@@ -110,8 +121,12 @@ namespace ILGPU.Backends.PTX
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="requireResult">True, if the return value is required.</param>
         /// <returns>The resolved atomic operation.</returns>
-        public static string GetAtomicOperation(AtomicKind kind, bool requireResult) =>
-            AtomicOperations[(kind, requireResult)];
+        public static string GetAtomicOperation(AtomicKind kind, bool requireResult)
+        {
+            if (AtomicOperations.TryGetValue((kind, requireResult), out string operation))
+                return operation;
+            throw new NotSupportedIntrinsicException(kind.ToString());
+        }
 
         /// <summary>
         /// Resolves an atomic-operation suffix.
@@ -119,8 +134,13 @@ namespace ILGPU.Backends.PTX
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="type">The operation type.</param>
         /// <returns>The resolved atomic-operation suffix.</returns>
-        public static string GetAtomicOperationSuffix(AtomicKind kind, ArithmeticBasicValueType type) =>
-            AtomicOperationsTypes[(kind, type)];
+        public static string GetAtomicOperationSuffix(AtomicKind kind, ArithmeticBasicValueType type)
+        {
+            if (AtomicOperationsTypes.TryGetValue((kind, type), out string operation))
+                return operation;
+            throw new NotSupportedIntrinsicException(kind.ToString());
+
+        }
 
         /// <summary>
         /// Resolves an address-space-cast operation.

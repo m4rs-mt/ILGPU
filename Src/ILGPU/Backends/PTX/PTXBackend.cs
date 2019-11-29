@@ -22,7 +22,12 @@ namespace ILGPU.Backends.PTX
     /// <summary>
     /// Represents a PTX (Cuda) backend.
     /// </summary>
-    public sealed class PTXBackend : CodeGeneratorBackend<PTXIntrinsic.Handler, PTXCodeGenerator.GeneratorArgs, PTXCodeGenerator, StringBuilder>
+    public sealed class PTXBackend :
+        CodeGeneratorBackend<
+            PTXIntrinsic.Handler,
+            PTXCodeGenerator.GeneratorArgs,
+            PTXCodeGenerator,
+            StringBuilder>
     {
         #region Constants
 
@@ -107,7 +112,7 @@ namespace ILGPU.Backends.PTX
             : base(
                   context,
                   BackendType.PTX,
-                  BackendFlags.RequiresIntrinsicImplementations,
+                  BackendFlags.None,
                   new PTXABI(context.TypeContext, platform),
                   _ => new PTXArgumentMapper(context))
         {
@@ -171,6 +176,9 @@ namespace ILGPU.Backends.PTX
             in KernelSpecialization specialization,
             out PTXCodeGenerator.GeneratorArgs data)
         {
+            // Ensure that all intrinsics can be generated
+            backendContext.EnsureIntrinsicImplementations(IntrinsicProvider);
+
             bool useDebugInfo = Context.HasFlags(ContextFlags.EnableDebugInformation);
             PTXDebugInfoGenerator debugInfoGenerator = PTXNoDebugInfoGenerator.Empty;
             if (useDebugInfo)

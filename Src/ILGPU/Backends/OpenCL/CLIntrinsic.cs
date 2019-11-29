@@ -17,7 +17,8 @@ using System.Reflection;
 namespace ILGPU.Backends.OpenCL
 {
     /// <summary>
-    /// Represents an OpenCL-specific intrinsic implementation.
+    /// Represents a specific handler for user defined code-generation functionality
+    /// that is compatible with the <see cref="CLBackend"/>.
     /// </summary>
     public sealed class CLIntrinsic : IntrinsicImplementation
     {
@@ -60,6 +61,23 @@ namespace ILGPU.Backends.OpenCL
                   BackendType.OpenCL,
                   handlerType,
                   null,
+                  mode)
+        { }
+
+        /// <summary>
+        /// Constructs a new OpenCL intrinsic that can handle all architectures.
+        /// </summary>
+        /// <param name="handlerType">The associated target handler type.</param>
+        /// <param name="methodName">The target method name (or null).</param>
+        /// <param name="mode">The code-generator mode.</param>
+        public CLIntrinsic(
+            Type handlerType,
+            string methodName,
+            IntrinsicImplementationMode mode)
+            : base(
+                  BackendType.OpenCL,
+                  handlerType,
+                  methodName,
                   mode)
         { }
 

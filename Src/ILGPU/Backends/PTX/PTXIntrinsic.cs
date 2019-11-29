@@ -40,7 +40,7 @@ namespace ILGPU.Backends.PTX
         #region Instance
 
         /// <summary>
-        /// Constructs a new PTX backend handler that can handle all architectures.
+        /// Constructs a new PTX intrinsic that can handle all architectures.
         /// </summary>
         /// <param name="targetMethod">The associated target method.</param>
         /// <param name="mode">The code-generation mode.</param>
@@ -52,7 +52,7 @@ namespace ILGPU.Backends.PTX
         { }
 
         /// <summary>
-        /// Constructs a new PTX backend handler that can handle all architectures.
+        /// Constructs a new PTX intrinsic that can handle all architectures.
         /// </summary>
         /// <param name="handlerType">The associated target handler type.</param>
         /// <param name="mode">The code-generation mode.</param>
@@ -65,7 +65,7 @@ namespace ILGPU.Backends.PTX
         { }
 
         /// <summary>
-        /// Constructs a new PTX backend handler that can handle all architectures.
+        /// Constructs a new PTX intrinsic that can handle all architectures.
         /// </summary>
         /// <param name="handlerType">The associated target handler type.</param>
         /// <param name="mode">The code-generation mode.</param>
@@ -80,7 +80,7 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Constructs a new PTX backend handler.
+        /// Constructs a new PTX intrinsic.
         /// </summary>
         /// <param name="handlerType">The associated target handler type.</param>
         /// <param name="methodName">The target method name (or null).</param>
@@ -97,7 +97,7 @@ namespace ILGPU.Backends.PTX
         { }
 
         /// <summary>
-        /// Constructs a new PTX backend handler.
+        /// Constructs a new PTX intrinsic.
         /// </summary>
         /// <param name="handlerType">The associated target handler type.</param>
         /// <param name="methodName">The target method name (or null).</param>
@@ -118,7 +118,7 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Constructs a new PTX backend handler.
+        /// Constructs a new PTX intrinsic.
         /// </summary>
         /// <param name="handlerType">The associated target handler type.</param>
         /// <param name="methodName">The target method name (or null).</param>
