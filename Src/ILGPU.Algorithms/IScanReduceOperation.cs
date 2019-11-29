@@ -20,6 +20,12 @@ namespace ILGPU.Algorithms.ScanReduceOperations
         where T : struct
     {
         /// <summary>
+        /// Returns the associated OpenCL command suffix for the internal code generator
+        /// to build the final OpenCL command to use.
+        /// </summary>
+        string CLCommand { get; }
+
+        /// <summary>
         /// Returns the identity value (the neutral element of the operation), such that
         /// Apply(Apply(Identity, left), right) == Apply(left, right).
         /// </summary>

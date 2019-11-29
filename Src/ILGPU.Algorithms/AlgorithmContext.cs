@@ -11,6 +11,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Algorithms;
+using ILGPU.Algorithms.CL;
 using ILGPU.Algorithms.IL;
 using ILGPU.Algorithms.PTX;
 using System;
@@ -72,6 +73,7 @@ namespace ILGPU
                 throw new ArgumentNullException(nameof(context));
 
             var intrinsicManager = context.IntrinsicManager;
+            CLContext.EnableCLAlgorithms(intrinsicManager);
             ILContext.EnableILAlgorithms(intrinsicManager);
             PTXContext.EnablePTXAlgorithms(intrinsicManager);
         }

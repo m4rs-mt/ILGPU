@@ -703,6 +703,8 @@ namespace ILGPU.Algorithms
                 case AcceleratorType.CPU:
                     // We use a single-grouped kernel
                     return CreateSingleGroupScan<T, TScanOperation>(accelerator, kind);
+                case AcceleratorType.OpenCL:
+                    return CreateMultiPassScan<T, TScanOperation>(accelerator, kind);
                 case AcceleratorType.Cuda:
                     return CreateSinglePassScan<T, TScanOperation>(accelerator, kind);
                 default:

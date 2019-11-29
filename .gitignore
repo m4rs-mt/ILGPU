@@ -244,6 +244,7 @@ ModelManifest.xml
 
 # Ignore specific template outputs
 Src/ILGPU.Algorithms/AlgorithmContextMappings.cs
+Src/ILGPU.Algorithms/CL/CLContext.Generated.cs
 Src/ILGPU.Algorithms/IL/ILContext.Generated.cs
 Src/ILGPU.Algorithms/PTX/PTXContext.Generated.cs
 Src/ILGPU.Algorithms/RadixSortOperations.cs

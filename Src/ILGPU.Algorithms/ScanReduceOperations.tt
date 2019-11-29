@@ -44,6 +44,12 @@ namespace ILGPU.Algorithms.ScanReduceOperations
     public readonly struct <#= op.Name #><#= type.Name #> : IScanReduceOperation<<#= type.Type #>>
     {
         /// <summary>
+        /// Returns the associated OpenCL command suffix for the internal code generator
+        /// to build the final OpenCL command to use.
+        /// </summary>
+        public string CLCommand => "<#= op.Name.ToLower() #>";
+
+        /// <summary>
         /// Returns the identity value (the neutral element of the operation), such that
         /// Apply(Apply(Identity, left), right) == Apply(left, right).
         /// </summary>
