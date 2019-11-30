@@ -1,6 +1,6 @@
 ********************************************************************************
-Copyrights and Licenses for third party dependencies of ILGPU.Lightning.
-ILGPU.Lightning Dependencies:
+Copyrights and Licenses for third party dependencies of ILGPU.Algorithms.
+ILGPU.Algorithms Dependencies:
     - ILGPU (http://www.ilgpu.net)
 ********************************************************************************
 

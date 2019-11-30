@@ -15,7 +15,7 @@ To transform them, right-click a text template and select Run Custom Tool. Alter
 
 # License information
 
-ILGPU.Lightning is licensed under the University of Illinois/NCSA Open Source License.
+ILGPU.Algorithms is licensed under the University of Illinois/NCSA Open Source License.
 Detailed license information can be found in LICENSE.txt.
 
 Copyright (c) 2019 ILGPU Algorithms Project. All rights reserved.
@@ -23,8 +23,8 @@ Copyright (c) 2016-2018 ILGPU Lightning Project. All rights reserved.
 
 ## License information of required dependencies
 
-Different parts of ILGPU.Lightning require different third-party libraries.
-* ILGPU.Lightning Dependencies
+Different parts of ILGPU.Algorithms require different third-party libraries.
+* ILGPU.Algorithms Dependencies
     - ILGPU (http://www.ilgpu.net)
 
 Detailed copyright and license information of these dependencies can be found in
