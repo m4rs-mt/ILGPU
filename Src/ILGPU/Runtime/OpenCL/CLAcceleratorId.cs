@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.OpenCL;
 using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
@@ -71,6 +72,14 @@ namespace ILGPU.Runtime.OpenCL
                 extensionString.ToLower().Split(' '));
             Extensions = extensionSet.ToImmutableArray();
 
+            // Determine the supported OpenCL C version
+            var clVersionString = CLAPI.GetDeviceInfo(
+                DeviceId,
+                CLDeviceInfoType.CL_DEVICE_OPENCL_C_VERSION);
+            if (!CLCVersion.TryParse(clVersionString, out CLCVersion version))
+                version = CLCVersion.CL10;
+            CVersion = version;
+
             // Resolve extension method
             getKernelSubGroupInfo = CLAPI.GetExtension<clGetKernelSubGroupInfoKHR>(platformId);
         }
@@ -93,6 +102,11 @@ namespace ILGPU.Runtime.OpenCL
         /// Returns the OpenCL device type.
         /// </summary>
         public CLDeviceType DeviceType { get; }
+
+        /// <summary>
+        /// Returns the supported OpenCL C version.
+        /// </summary>
+        public CLCVersion CVersion { get; }
 
         /// <summary>
         /// Returns all extensions.

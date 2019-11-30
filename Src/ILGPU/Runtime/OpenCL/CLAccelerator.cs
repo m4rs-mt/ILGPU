@@ -108,6 +108,7 @@ namespace ILGPU.Runtime.OpenCL
         static CLAccelerator()
         {
             var accelerators = ImmutableArray.CreateBuilder<CLAcceleratorId>();
+            var allAccelerators = ImmutableArray.CreateBuilder<CLAcceleratorId>();
 
             try
             {
@@ -145,9 +146,12 @@ namespace ILGPU.Runtime.OpenCL
                             CLDeviceInfoType.CL_DEVICE_AVAILABLE) == 0)
                             continue;
 
-                        accelerators.Add(new CLAcceleratorId(
-                            platform,
-                            device));
+                        var acceleratorId = new CLAcceleratorId(platform, device);
+
+                        if (acceleratorId.CVersion < CLBackend.MinimumVersion)
+                            allAccelerators.Add(acceleratorId);
+                        else
+                            accelerators.Add(acceleratorId);
                     }
                 }
             }
@@ -158,13 +162,19 @@ namespace ILGPU.Runtime.OpenCL
             finally
             {
                 CLAccelerators = accelerators.ToImmutable();
+                AllCLAccelerators = allAccelerators.ToImmutable();
             }
         }
 
         /// <summary>
-        /// Represents the list of available Cuda accelerators.
+        /// Represents the list of available and supported OpenCL accelerators.
         /// </summary>
         public static ImmutableArray<CLAcceleratorId> CLAccelerators { get; }
+
+        /// <summary>
+        /// Represents the list of all available OpenCL accelerators.
+        /// </summary>
+        public static ImmutableArray<CLAcceleratorId> AllCLAccelerators { get; }
 
         #endregion
 
@@ -185,6 +195,7 @@ namespace ILGPU.Runtime.OpenCL
 
             PlatformId = acceleratorId.PlatformId;
             DeviceId = acceleratorId.DeviceId;
+            CVersion = acceleratorId.CVersion;
 
             PlatformName = CLAPI.GetPlatformInfo(
                 PlatformId,
@@ -210,14 +221,6 @@ namespace ILGPU.Runtime.OpenCL
             DeviceType = (CLDeviceType)CLAPI.GetDeviceInfo<long>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_TYPE);
-
-            // Determine the supported OpenCL C version
-            var clVersionString = CLAPI.GetDeviceInfo(
-                DeviceId,
-                CLDeviceInfoType.CL_DEVICE_OPENCL_C_VERSION);
-            if (!CLCVersion.TryParse(clVersionString, out CLCVersion version))
-                version = CLCVersion.CL10;
-            CVersion = version;
 
             // Max grid size
             int workItemDimensions = IntrinsicMath.Max(CLAPI.GetDeviceInfo<int>(
@@ -337,7 +340,6 @@ namespace ILGPU.Runtime.OpenCL
                 }
             }
         }
-
 
         /// <summary>
         /// Initializes support for sub groups.

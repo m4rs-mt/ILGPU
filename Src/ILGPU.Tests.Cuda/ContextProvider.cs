@@ -1,6 +1,7 @@
 ﻿using ILGPU.IR.Transformations;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
+using System;
 
 namespace ILGPU.Tests.Cuda
 {
@@ -12,6 +13,8 @@ namespace ILGPU.Tests.Cuda
 
         public override Accelerator CreateAccelerator(Context context)
         {
+            if (CudaAccelerator.CudaAccelerators.Length < 1)
+                throw new NotSupportedException();
             return new CudaAccelerator(context);
         }
     }
