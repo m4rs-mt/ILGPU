@@ -11,6 +11,7 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Types;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 
@@ -66,7 +67,7 @@ namespace ILGPU.Backends
             /// </summary>
             /// <param name="id">The current variable id.</param>
             /// <param name="basicValueType">The basic value type.</param>
-            internal PrimitiveVariable(int id, BasicValueType basicValueType)
+            internal PrimitiveVariable(int id, ArithmeticBasicValueType basicValueType)
                 : base(id)
             {
                 BasicValueType = basicValueType;
@@ -75,7 +76,7 @@ namespace ILGPU.Backends
             /// <summary>
             /// Returns the associated basic value type.
             /// </summary>
-            public BasicValueType BasicValueType { get; }
+            public ArithmeticBasicValueType BasicValueType { get; }
         }
 
         /// <summary>
@@ -214,6 +215,21 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
+        /// Allocates a new variable.
+        /// </summary>
+        /// <param name="value">The value to allocate.</param>
+        /// <param name="basicValueType">The actual type to allocate.</param>
+        /// <returns>The allocated variable.</returns>
+        public Variable Allocate(Value value, ArithmeticBasicValueType basicValueType)
+        {
+            if (variableLookup.TryGetValue(value, out Variable variable))
+                return variable;
+            variable = AllocateType(basicValueType);
+            variableLookup.Add(value, variable);
+            return variable;
+        }
+
+        /// <summary>
         /// Allocates a new variable as type <typeparamref name="T"/>.
         /// </summary>
         /// <param name="value">The value to allocate.</param>
@@ -227,8 +243,16 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="basicValueType">The type to allocate.</param>
         /// <returns>The allocated variable.</returns>
-        public Variable AllocateType(BasicValueType basicValueType) =>
+        public Variable AllocateType(ArithmeticBasicValueType basicValueType) =>
             new PrimitiveVariable(idCounter++, basicValueType);
+
+        /// <summary>
+        /// Allocates the given type.
+        /// </summary>
+        /// <param name="basicValueType">The type to allocate.</param>
+        /// <returns>The allocated variable.</returns>
+        public Variable AllocateType(BasicValueType basicValueType) =>
+            new PrimitiveVariable(idCounter++, basicValueType.GetArithmeticBasicValueType(false));
 
         /// <summary>
         /// Allocates a pointer type.

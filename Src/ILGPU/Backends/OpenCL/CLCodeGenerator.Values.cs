@@ -65,11 +65,11 @@ namespace ILGPU.Backends.OpenCL
         public void Visit(UnaryArithmeticValue value)
         {
             var argument = Load(value.Value);
-            var target = Allocate(value);
+            var target = Allocate(value, value.ArithmeticBasicValueType);
 
             using (var statement = BeginStatement(target))
             {
-                statement.AppendCast(value.BasicValueType);
+                statement.AppendCast(value.ArithmeticBasicValueType);
                 var operation = CLInstructions.GetArithmeticOperation(
                     value.Kind,
                     value.BasicValueType.IsFloat(),
@@ -93,10 +93,10 @@ namespace ILGPU.Backends.OpenCL
             var left = Load(value.Left);
             var right = Load(value.Right);
 
-            var target = Allocate(value);
+            var target = Allocate(value, value.ArithmeticBasicValueType);
             using (var statement = BeginStatement(target))
             {
-                statement.AppendCast(value.BasicValueType);
+                statement.AppendCast(value.ArithmeticBasicValueType);
                 var operation = CLInstructions.GetArithmeticOperation(
                     value.Kind,
                     value.BasicValueType.IsFloat(),
@@ -140,10 +140,10 @@ namespace ILGPU.Backends.OpenCL
             var second = Load(value.Second);
             var third = Load(value.Third);
 
-            var targetRegister = Allocate(value);
-            using (var statement = BeginStatement(targetRegister))
+            var target = Allocate(value, value.ArithmeticBasicValueType);
+            using (var statement = BeginStatement(target))
             {
-                statement.AppendCast(value.BasicValueType);
+                statement.AppendCast(value.ArithmeticBasicValueType);
                 statement.AppendCommand(operation);
                 statement.BeginArguments();
 
@@ -169,8 +169,8 @@ namespace ILGPU.Backends.OpenCL
             var left = Load(value.Left);
             var right = Load(value.Right);
 
-            var targetRegister = Allocate(value);
-            using (var statement = BeginStatement(targetRegister))
+            var target = Allocate(value);
+            using (var statement = BeginStatement(target))
             {
                 statement.AppendCast(value.CompareType);
                 statement.AppendArgument(left);
@@ -187,10 +187,11 @@ namespace ILGPU.Backends.OpenCL
         {
             var sourceValue = Load(value.Value);
 
-            var targetRegister = Allocate(value);
-            using (var statement = BeginStatement(targetRegister))
+            var target = Allocate(value, value.TargetType);
+            using (var statement = BeginStatement(target))
             {
                 statement.AppendCast(value.TargetType);
+                statement.AppendCast(value.SourceType);
                 statement.AppendArgument(sourceValue);
             }
         }
@@ -200,8 +201,8 @@ namespace ILGPU.Backends.OpenCL
         {
             var sourceValue = Load(value.Value);
 
-            var targetRegister = Allocate(value);
-            using (var statement = BeginStatement(targetRegister))
+            var target = Allocate(value);
+            using (var statement = BeginStatement(target))
             {
                 statement.AppendCast(value.TargetType);
                 statement.AppendArgument(sourceValue);
@@ -212,9 +213,9 @@ namespace ILGPU.Backends.OpenCL
         public void Visit(FloatAsIntCast value)
         {
             var source = Load(value.Value);
-            var targetRegister = Allocate(value);
+            var target = Allocate(value);
 
-            using (var statement = BeginStatement(targetRegister))
+            using (var statement = BeginStatement(target))
             {
                 statement.AppendCommand(
                     value.BasicValueType == BasicValueType.Int64 ?
@@ -230,9 +231,9 @@ namespace ILGPU.Backends.OpenCL
         public void Visit(IntAsFloatCast value)
         {
             var source = Load(value.Value);
-            var targetRegister = Allocate(value);
+            var target = Allocate(value);
 
-            using (var statement = BeginStatement(targetRegister))
+            using (var statement = BeginStatement(target))
             {
                 statement.AppendCommand(
                     value.BasicValueType == BasicValueType.Float64 ?
@@ -251,8 +252,8 @@ namespace ILGPU.Backends.OpenCL
             var trueValue = Load(predicate.TrueValue);
             var falseValue = Load(predicate.FalseValue);
 
-            var targetRegister = Allocate(predicate);
-            using (var statement = BeginStatement(targetRegister))
+            var target = Allocate(predicate);
+            using (var statement = BeginStatement(target))
             {
                 statement.AppendArgument(condition);
                 statement.AppendCommand(CLInstructions.SelectOperation1);
