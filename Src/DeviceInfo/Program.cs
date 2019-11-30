@@ -51,7 +51,7 @@ namespace DeviceInfo
                     // Note that all accelerators have to be disposed before the global context is disposed
                     using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
-                        Console.WriteLine($"AcceleratorId: {acceleratorId.AcceleratorType}, {acceleratorId.DeviceId}");
+                        Console.WriteLine($"AcceleratorId: {acceleratorId.AcceleratorType}, {accelerator.Name}");
                         PrintAcceleratorInfo(accelerator);
                         Console.WriteLine();
                     }

@@ -47,6 +47,7 @@ namespace AdvancedAtomics
 
     /// <summary>
     /// Demonstrates custom atomics using Atomic.MakeAtomic.
+    /// CAUTION: This sample might not run on some GPUs due to missing support for atomic functions.
     /// </summary>
     class Program
     {

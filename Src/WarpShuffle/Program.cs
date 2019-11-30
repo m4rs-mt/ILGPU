@@ -11,10 +11,7 @@
 
 using ILGPU;
 using ILGPU.Runtime;
-using ILGPU.ShuffleOperations;
 using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace WarpShuffle
 {
@@ -24,7 +21,10 @@ namespace WarpShuffle
         /// Explicitly grouped kernels receive an index type (first parameter) of type:
         /// <see cref="GroupedIndex"/>, <see cref="GroupedIndex2"/> or <see cref="GroupedIndex3"/>.
         /// Note that you can use warp-shuffle functionality only within 
-        /// explicitly-grouped kernels.
+        /// explicitly-grouped kernels. Previously, it was required to use one of the predefined
+        /// shuffle overloads. If the desired function was not available, you had to create a
+        /// custom shuffle operation implementation. The current ILGPU version emits the required
+        /// shuffle instructions (even for complex data types) automatically.
         /// </summary>
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
@@ -44,72 +44,56 @@ namespace WarpShuffle
         }
 
         /// <summary>
-        /// A custom shuffle-down functionality for longs.
+        /// A complex user-defined data structure.
         /// </summary>
-        readonly struct ShuffleDownInt64 : IShuffleDown<long>
+        public readonly struct ComplexStruct
         {
             /// <summary>
-            /// Meta structure for representing a long.
+            /// Constructs a new complex structure.
             /// </summary>
-            [StructLayout(LayoutKind.Sequential)]
-            struct Int2
+            /// <param name="x">the x value.</param>
+            /// <param name="y">The y value.</param>
+            /// <param name="z">The z value.</param>
+            public ComplexStruct(int x, float y, double z)
             {
-                /// <summary>
-                /// Represents the first part of a long.
-                /// </summary>
-                public int X;
-
-                /// <summary>
-                /// Represents the second part of a long.
-                /// </summary>
-                public int Y;
+                X = x;
+                Y = y;
+                Z = z;
             }
 
-            /// <summary>
-            /// Performs a shuffle operation. It returns the value of the variable
-            /// in the context of the lane with the id current lane + delta.
-            /// </summary>
-            /// <param name="variable">The source variable to shuffle.</param>
-            /// <param name="delta">The delta to add to the current lane.</param>
-            /// <returns>The value of the variable in the scope of the desired lane.</returns>
-            public long ShuffleDown(long variable, int delta)
-            {
-                var source = Unsafe.As<long, Int2>(ref variable);
-                var result = new Int2()
-                {
-                    X = Warp.ShuffleDown(source.X, delta),
-                    Y = Warp.ShuffleDown(source.Y, delta),
-                };
-                return Unsafe.As<Int2, long>(ref result);
-            }
+            public int X { get; }
+            public float Y { get; }
+            public double Z { get; }
+
+            public override string ToString() =>
+                $"X: {X}, Y: {Y}, Z: {Z}";
         }
 
         /// <summary>
-        /// Explicitly grouped kernels receive an index type (first parameter) of type:
-        /// <see cref="GroupedIndex"/>, <see cref="GroupedIndex2"/> or <see cref="GroupedIndex3"/>.
-        /// Note that you can use warp-shuffle functionality only within 
-        /// explicitly-grouped kernels.
+        /// A kernel demonstrating the generic ILGPU shuffle functionality: The compiler
+        /// automatically generates the required shuffle instructions (even for complex
+        /// user-defined data types).
         /// </summary>
-        /// <typeparam name="TShuffleOperation">The type of the shuffle operation.</typeparam>
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
-        static void ShuffleDownKernel<TShuffleOperation>(
+        /// <param name="value">The value to shuffle.</param>
+        static void ShuffleGeneric<T>(
             GroupedIndex index,               // The grouped thread index (1D in this case)
-            ArrayView<long> dataView)          // A view to a chunk of memory (1D in this case)
-            where TShuffleOperation : struct, IShuffleDown<long>
+            ArrayView<T> dataView,            // A view to a chunk of memory (1D in this case)
+            T value)                          // A constant value
+            where T : struct
         {
             // Compute the global 1D index for accessing the data view
             var globalIndex = index.ComputeGlobalIndex();
 
-            // Use custom shuffle-down functionality to shuffle the 
-            // given value by a delta of 2 lanes
-            long value = index.GroupIdx;
-            TShuffleOperation shuffleOperation = default;
-            value = shuffleOperation.ShuffleDown(value, 2);
+            // Use intrinsic shuffle functionality to shuffle the 
+            // given value from line 0. This does not make much sense in this
+            // case since all values will have the same value. However,
+            // this demonstrates the generic flexibility of the shuffle instructions.
+            value = Warp.Shuffle(value, 0);
 
             dataView[globalIndex] = value;
         }
-
 
         /// <summary>
         /// Launches a simple 1D kernel using warp intrinsics.
@@ -143,17 +127,17 @@ namespace WarpShuffle
                                 Console.WriteLine($"Data[{i}] = {target[i]}");
                         }
 
-                        using (var dataTarget = accelerator.Allocate<long>(accelerator.WarpSize))
+                        using (var dataTarget = accelerator.Allocate<ComplexStruct>(accelerator.WarpSize))
                         {
                             // Load the explicitly grouped kernel
-                            var reduceKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<long>>(
-                                ShuffleDownKernel<ShuffleDownInt64>);
+                            var reduceKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<ComplexStruct>, ComplexStruct>(
+                                ShuffleGeneric);
                             dataTarget.MemSetToZero();
 
-                            reduceKernel(dimension, dataTarget.View);
+                            reduceKernel(dimension, dataTarget.View, new ComplexStruct(2, 40.0f, 16.0));
                             accelerator.Synchronize();
 
-                            Console.WriteLine("Generic shuffle-down kernel");
+                            Console.WriteLine("Generic shuffle kernel");
                             var target = dataTarget.GetAsArray();
                             for (int i = 0, e = target.Length; i < e; ++i)
                                 Console.WriteLine($"Data[{i}] = {target[i]}");

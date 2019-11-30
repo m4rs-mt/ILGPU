@@ -120,7 +120,7 @@ namespace SimpleConstants
         }
 
         /// <summary>
-        /// Demonstates different use cases of constants and static fields.
+        /// Demonstrates different use cases of constants and static fields.
         /// </summary>
         static void Main()
         {

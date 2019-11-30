@@ -15,6 +15,9 @@ using System;
 
 namespace SimpleAtomics
 {
+    /// <summary>
+    /// CAUTION: This sample might not run on some GPUs due to missing support for atomic functions.
+    /// </summary>
     class Program
     {
         /// <summary>

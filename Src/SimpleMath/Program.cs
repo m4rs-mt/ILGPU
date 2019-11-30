@@ -19,12 +19,13 @@ namespace SimpleMath
     {
         /// <summary>
         /// A simple 1D kernel using math functions.
-        /// The GPUMath class contains intrinsic math functions that -
-        /// in contrast to the default .Net Math class -
-        /// work on both floats and doubles.
-        /// Note that both classes are supported on all
-        /// accelerators. The CompileUnitFlags.FastMath flag can be used during the creation of the
-        /// compile unit to enable fast math intrinsics.
+        /// The <see cref="IntrinsicMath"/> class contains intrinsic math functions that -
+        /// in contrast to the default .Net Math class - work on both floats and doubles. Note that
+        /// the /// <see cref="IntrinsicMath"/> class is supported on all accelerators.
+        /// The CompileUnitFlags.FastMath flag can be used during the creation of the compile unit
+        /// to enable fast math intrinsics.
+        /// Note that the full power of math functions on all accelerators is available via the
+        /// Algorithms library (see ILGPU.Algorithms.Math sample).
         /// </summary>
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
@@ -36,9 +37,12 @@ namespace SimpleMath
             ArrayView<double> doubleView2)  // A view of doubles to store double results from .Net Math
         {
             // Note the different returns type of GPUMath.Sqrt and Math.Sqrt.
-            singleView[index] = XMath.Sqrt(index);
-            doubleView[index] = XMath.Sqrt((double)(int)index);
-            doubleView2[index] = Math.Sqrt(index);
+            singleView[index] = IntrinsicMath.Abs(index);
+            doubleView[index] = IntrinsicMath.Clamp((double)(int)index, 0.0, 12.0);
+
+            // Note that use can safely use functions from the Math class as long as they have a counterpart
+            // in the IntrinsicMath class.
+            doubleView2[index] = Math.Min(0.2, index);
         }
 
         /// <summary>
