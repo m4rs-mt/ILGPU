@@ -10,24 +10,22 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU;
-using ILGPU.Lightning;
+using ILGPU.Algorithms;
 using ILGPU.Runtime;
 using System;
 
-namespace LightningTransform
+namespace AlgorithmsTransform
 {
     /// <summary>
     /// A custom structure that can be used in a memory buffer.
     /// </summary>
-    struct CustomStruct
+    public struct CustomStruct
     {
-        public int First;
-        public int Second;
+        public int First { get; set; }
+        public int Second { get; set; }
 
-        public override string ToString()
-        {
-            return $"First: {First}, Second: {Second}";
-        }
+        public override string ToString() =>
+            $"First: {First}, Second: {Second}";
     }
 
     /// <summary>
@@ -57,6 +55,9 @@ namespace LightningTransform
         {
             using (var context = new Context())
             {
+                // Enable algorithms library
+                context.EnableAlgorithms();
+
                 // For each available accelerator...
                 foreach (var acceleratorId in Accelerator.Accelerators)
                 {
@@ -65,23 +66,15 @@ namespace LightningTransform
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         var sourceBuffer = accelerator.Allocate<int>(64);
-                        accelerator.Initialize(sourceBuffer.View, 2);
+                        accelerator.Initialize(accelerator.DefaultStream, sourceBuffer.View, 2);
 
                         using (var targetBuffer = accelerator.Allocate<CustomStruct>(64))
                         {
-                            // Transforms the first half.
-                            // Note that the transformer uses the default accelerator stream in this case.
-                            accelerator.Transform(
-                                sourceBuffer.View.GetSubView(0, sourceBuffer.Length / 2),
-                                targetBuffer.View,
-                                new IntToCustomStructTransformer());
-
-                            // Transforms the second half.
-                            // Note that this overload requires an explicit accelerator stream.
+                            // Transforms all elements.
                             accelerator.Transform(
                                 accelerator.DefaultStream,
-                                sourceBuffer.View.GetSubView(sourceBuffer.Length / 2),
-                                targetBuffer.View.GetSubView(sourceBuffer.Length / 2),
+                                sourceBuffer.View,
+                                targetBuffer.View,
                                 new IntToCustomStructTransformer());
 
                             accelerator.Synchronize();
@@ -93,7 +86,7 @@ namespace LightningTransform
 
                         using (var targetBuffer = accelerator.Allocate<CustomStruct>(64))
                         {
-                            // Calling the convenient Transform function on the lightning context
+                            // Calling the convenient Transform function on the accelerator
                             // involves internal heap allocations. This can be avoided by constructing
                             // a transformer explicitly:
                             var transformer = accelerator.CreateTransformer<int, CustomStruct, IntToCustomStructTransformer>();

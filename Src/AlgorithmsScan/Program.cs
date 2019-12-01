@@ -10,11 +10,12 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU;
-using ILGPU.Lightning;
+using ILGPU.Algorithms;
+using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Runtime;
 using System;
 
-namespace LightningScan
+namespace AlgorithmsScan
 {
     class Program
     {
@@ -22,6 +23,9 @@ namespace LightningScan
         {
             using (var context = new Context())
             {
+                // Enable algorithms library
+                context.EnableAlgorithms();
+
                 // For each available accelerator...
                 foreach (var acceleratorId in Accelerator.Accelerators)
                 {
@@ -30,18 +34,29 @@ namespace LightningScan
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         var sourceBuffer = accelerator.Allocate<int>(32);
-                        accelerator.Initialize(sourceBuffer.View, 2);
+                        accelerator.Initialize(accelerator.DefaultStream, sourceBuffer.View, 2);
 
                         // The parallel scan implementation needs temporary storage.
-                        // By default, the lightning context hosts a memory-buffer cache
+                        // By default, every accelerator hosts a memory-buffer cache
                         // for operations that require a temporary cache.
 
                         // Computes an inclusive parallel scan
                         using (var targetBuffer = accelerator.Allocate<int>(32))
                         {
-                            // This overload uses the default accelerator stream and
-                            // the default memory-buffer cache of the lightning context.
-                            accelerator.InclusiveScan(sourceBuffer.View, targetBuffer.View);
+                            // Create a new inclusive scan using the AddInt32 scan operation
+                            // Use the available scan operations in the namespace ILGPU.Algorithms.ScanReduceOperations.
+                            var scan = accelerator.CreateInclusiveScan<int, AddInt32>();
+
+                            // Compute the required amount of temporary memory
+                            var tempMemSize = accelerator.ComputeScanTempStorageSize<int>(targetBuffer.Length);
+                            using (var tempBuffer = accelerator.Allocate<int>(tempMemSize))
+                            {
+                                scan(
+                                    accelerator.DefaultStream,
+                                    sourceBuffer.View,
+                                    targetBuffer.View,
+                                    tempBuffer.View);
+                            }
 
                             Console.WriteLine("Inclusive Scan:");
                             accelerator.Synchronize();
@@ -54,9 +69,20 @@ namespace LightningScan
                         // Computes an exclusive parallel scan
                         using (var targetBuffer = accelerator.Allocate<int>(32))
                         {
-                            // This overload uses the default accelerator stream and
-                            // the default memory-buffer cache of the lightning context.
-                            accelerator.ExclusiveScan(sourceBuffer.View, targetBuffer.View);
+                            // Create a new exclusive scan using the AddInt32 scan operation
+                            // Use the available scan operations in the namespace ILGPU.Algorithms.ScanReduceOperations.
+                            var scan = accelerator.CreateExclusiveScan<int, AddInt32>();
+
+                            // Compute the required amount of temporary memory
+                            var tempMemSize = accelerator.ComputeScanTempStorageSize<int>(targetBuffer.Length);
+                            using (var tempBuffer = accelerator.Allocate<int>(tempMemSize))
+                            {
+                                scan(
+                                    accelerator.DefaultStream,
+                                    sourceBuffer.View,
+                                    targetBuffer.View,
+                                    tempBuffer.View);
+                            }
 
                             Console.WriteLine("Exclusive Scan:");
                             accelerator.Synchronize();
@@ -66,34 +92,23 @@ namespace LightningScan
                                 Console.WriteLine($"Data[{i}] = {data[i]}");
                         }
 
-                        // A ScanProvider that hosts its own memory-buffer cache to allow
+                        // Creates a ScanProvider that hosts its own memory-buffer cache to allow
                         // for parallel invocations of different operations that require
                         // an extra cache.
                         using (var scanProvider = accelerator.CreateScanProvider())
                         {
+                            var scanUsingScanProvider = scanProvider.CreateInclusiveScan<int, AddInt32>();
+
+                            // Please note that the create scan does not need additional temporary memory
+                            // allocations as they will be automatically managed by the ScanProvider instance.
                             using (var targetBuffer = accelerator.Allocate<int>(32))
                             {
-                                // This overload uses the default accelerator stream and
-                                // the internal memory-buffer cache of the scan provider.
-                                scanProvider.InclusiveScan(sourceBuffer.View, targetBuffer.View);
+                                scanUsingScanProvider(
+                                    accelerator.DefaultStream,
+                                    sourceBuffer.View,
+                                    targetBuffer.View);
 
-                                Console.WriteLine("Inclusive Scan:");
                                 accelerator.Synchronize();
-
-                                var data = targetBuffer.GetAsArray();
-                                for (int i = 0, e = data.Length; i < e; ++i)
-                                    Console.WriteLine($"Data[{i}] = {data[i]}");
-                            }
-
-                            using (var targetBuffer = accelerator.Allocate<int>(32))
-                            {
-                                // This overload uses the default accelerator stream and
-                                // the internal memory-buffer cache of the scan provider.
-                                scanProvider.ExclusiveScan(sourceBuffer.View, targetBuffer.View);
-
-                                Console.WriteLine("Exclusive Scan:");
-                                accelerator.Synchronize();
-
                                 var data = targetBuffer.GetAsArray();
                                 for (int i = 0, e = data.Length; i < e; ++i)
                                     Console.WriteLine($"Data[{i}] = {data[i]}");

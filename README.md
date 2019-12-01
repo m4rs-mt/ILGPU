@@ -30,9 +30,10 @@ Please refer to the ILGPU readme for further dependencies, like the CUDA runtime
 
 These samples explain the basic and more advanced capabilities of ILGPU, respectively.
 
-## ILGPU.Lightning
+## ILGPU.Algorithms
 
-These samples show how to leverage ILGPU.Lightning for even more comfortable GPU programming.
+These samples show how to leverage ILGPU.Algorithms for even more comfortable GPU programming.
+Note that some of the algorithms samples might not work on all GPUs due to their hardware capabilities.
 
 ## Remarks
 

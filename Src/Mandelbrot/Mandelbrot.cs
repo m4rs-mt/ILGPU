@@ -78,16 +78,14 @@ namespace Mandelbrot
                 Index, int, int, int, ArrayView<int>>(MandelbrotKernel);
         }
 
-
         /// <summary>
-        /// Dispose lightning-context and cuda-context.
+        /// Dispose accelerator and main ILGPU context.
         /// </summary>
         public static void Dispose()
         {
             accelerator.Dispose();
             context.Dispose();
         }
-
 
         /// <summary>
         /// Calculate the mandelbrot set on the GPU.

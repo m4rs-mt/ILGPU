@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.Net.SDK">
+  <PropertyGroup>
+    <TargetFrameworks>net47;netcoreapp2.0</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <LangVersion>7.3</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="ILGPU" Version="0.7.0" />
+    <PackageReference Include="ILGPU.Algorithms" Version="0.7.0" />
+  </ItemGroup>
+</Project>

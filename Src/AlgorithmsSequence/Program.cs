@@ -10,12 +10,12 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU;
-using ILGPU.Lightning;
-using ILGPU.Lightning.Sequencers;
+using ILGPU.Algorithms;
+using ILGPU.Algorithms.Sequencers;
 using ILGPU.Runtime;
 using System;
 
-namespace LightningSequence
+namespace AlgorithmsSequence
 {
     /// <summary>
     /// A custom structure that can be used in a memory buffer.
@@ -25,10 +25,8 @@ namespace LightningSequence
         public Index First;
         public Index Second;
 
-        public override string ToString()
-        {
-            return $"First: {First}, Second: {Second}";
-        }
+        public override string ToString() =>
+            $"First: {First}, Second: {Second}";
     }
 
     /// <summary>
@@ -55,14 +53,12 @@ namespace LightningSequence
         /// </summary>
         /// <param name="sequenceIndex">The sequence index for the computation of the corresponding value.</param>
         /// <returns>The computed sequence value.</returns>
-        public CustomStruct ComputeSequenceElement(Index sequenceIndex)
-        {
-            return new CustomStruct()
+        public CustomStruct ComputeSequenceElement(Index sequenceIndex) =>
+            new CustomStruct()
             {
                 First = sequenceIndex,
                 Second = SecondOffset + sequenceIndex
             };
-        }
     }
 
     class Program
@@ -75,13 +71,8 @@ namespace LightningSequence
         {
             using (var buffer = accelerator.Allocate<int>(64))
             {
-                // Creates a sequence (from 0 to buffer.Length / 2 - 1).
-                // Note that in this case, the sequencer uses the default accelerator stream.
-                accelerator.Sequence(buffer.View.GetSubView(0, buffer.Length / 2), new Int32Sequencer());
-
-                // Creates a sequence (from 0 to buffer.Length / 2 - 1).
-                // Note that this overload requires an explicit accelerator stream.
-                accelerator.Sequence(accelerator.DefaultStream, buffer.View.GetSubView(buffer.Length / 2), new Int32Sequencer());
+                // Creates a sequence (from 0 to buffer.Length - 1).
+                accelerator.Sequence(accelerator.DefaultStream, buffer.View, new Int32Sequencer());
 
                 accelerator.Synchronize();
 
@@ -93,7 +84,7 @@ namespace LightningSequence
             // Custom sequencer
             using (var buffer = accelerator.Allocate<CustomStruct>(64))
             {
-                accelerator.Sequence(buffer.View, new CustomSequencer(32));
+                accelerator.Sequence(accelerator.DefaultStream, buffer.View, new CustomSequencer(32));
 
                 accelerator.Synchronize();
 
@@ -102,7 +93,7 @@ namespace LightningSequence
                     Console.WriteLine($"CustomData[{i}] = {data[i]}");
             }
 
-            // Calling the convenient Sequence function on the lightning context
+            // Calling the convenient Sequence function on the accelerator
             // involves internal heap allocations. This can be avoided by constructing
             // a sequencer explicitly:
             var sequencer = accelerator.CreateSequencer<CustomStruct, CustomSequencer>();
@@ -129,21 +120,13 @@ namespace LightningSequence
         {
             using (var buffer = accl.Allocate<int>(64))
             {
-                // Creates a sequence (from 0 to buffer.Length / 2 - 1):
+                // Creates a sequence (from 0 to buffer.Length - 1):
                 // - [0, sequenceLength - 1] = [0, sequenceLength]
                 // - [sequenceLength, sequenceLength * 2 -1] = [0, sequenceLength]
-                // Note that the sequencer uses the default accelerator stream in this case.
-                accl.RepeatedSequence(
-                    buffer.View.GetSubView(0, buffer.Length / 2),
-                    2
-                    , new Int32Sequencer());
-
-                // Creates a sequence (from 0 to buffer.Length / 2 - 1).
-                // Note that this overload requires an explicit accelerator stream.
                 accl.RepeatedSequence(
                     accl.DefaultStream,
-                    buffer.View.GetSubView(buffer.Length / 2),
-                    4,
+                    buffer.View.GetSubView(0, buffer.Length),
+                    2,
                     new Int32Sequencer());
 
                 accl.Synchronize();
@@ -154,7 +137,7 @@ namespace LightningSequence
             }
 
             // There is also a CreateRepeatedSequencer function that avoids
-            // unnecessary boxing.
+            // unnecessary heap allocations.
         }
 
         /// <summary>
@@ -165,21 +148,13 @@ namespace LightningSequence
         {
             using (var buffer = accl.Allocate<int>(64))
             {
-                // Creates a sequence (from 0 to buffer.Length / 2 - 1):
-                // - [0, sequenceBatchLength - 1] = 0,,
+                // Creates a sequence (from 0 to buffer.Length):
+                // - [0, sequenceBatchLength - 1] = 0,
                 // - [sequenceBatchLength, sequenceBatchLength * 2 -1] = 1,
-                // Note that in this case, the sequencer uses the default accelerator stream.
-                accl.BatchedSequence(
-                    buffer.View.GetSubView(0, buffer.Length / 2),
-                    2
-                    , new Int32Sequencer());
-
-                // Creates a sequence (from 0 to buffer.Length / 2 - 1).
-                // Note that this overload requires an explicit accelerator stream.
                 accl.BatchedSequence(
                     accl.DefaultStream,
-                    buffer.View.GetSubView(buffer.Length / 2),
-                    4,
+                    buffer.View,
+                    2,
                     new Int32Sequencer());
 
                 accl.Synchronize();
@@ -187,6 +162,9 @@ namespace LightningSequence
                 var data = buffer.GetAsArray();
                 for (int i = 0, e = data.Length; i < e; ++i)
                     Console.WriteLine($"BatchedData[{i}] = {data[i]}");
+
+                // There is also a CreateBatchedSequencer function that avoids
+                // unnecessary heap allocations.
             }
         }
 
@@ -198,7 +176,7 @@ namespace LightningSequence
         {
             using (var buffer = accl.Allocate<int>(64))
             {
-                // Creates a sequence (from 0 to buffer.Length / 2 - 1):
+                // Creates a sequence (from 0 to buffer.Length):
                 // - [0, sequenceLength - 1] = 
                 //       - [0, sequenceBatchLength - 1] = sequencer(0),
                 //       - [sequenceBatchLength, sequenceBatchLength * 2 - 1] = sequencer(1),
@@ -207,20 +185,11 @@ namespace LightningSequence
                 //       - [sequenceLength, sequenceLength + sequenceBatchLength - 1] = sequencer(0),
                 //       - [sequenceLength + sequenceBatchLength, sequenceLength + sequenceBatchLength * 2 - 1] = sequencer(1),
                 //       - ...
-                // Note that the sequencer uses the default accelerator stream in this case.
-                accl.RepeatedBatchedSequence(
-                    buffer.View.GetSubView(0, buffer.Length / 2),
-                    2,
-                    4,
-                    new Int32Sequencer());
-
-                // Creates a sequence (from 0 to buffer.Length / 2 - 1).
-                // Note that this overload requires an explicit accelerator stream.
                 accl.RepeatedBatchedSequence(
                     accl.DefaultStream,
-                    buffer.View.GetSubView(buffer.Length / 2),
-                    6,
-                    8,
+                    buffer.View,
+                    2,
+                    4,
                     new Int32Sequencer());
 
                 accl.Synchronize();
@@ -228,6 +197,9 @@ namespace LightningSequence
                 var data = buffer.GetAsArray();
                 for (int i = 0, e = data.Length; i < e; ++i)
                     Console.WriteLine($"RepeatedBatchedData[{i}] = {data[i]}");
+
+                // There is also a CreateRepeatedBatchedSequencer function that avoids
+                // unnecessary heap allocations.
             }
         }
 

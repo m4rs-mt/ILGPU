@@ -10,24 +10,22 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU;
-using ILGPU.Lightning;
+using ILGPU.Algorithms;
 using ILGPU.Runtime;
 using System;
 
-namespace LightningInitialize
+namespace AlgorithmsInitialize
 {
     /// <summary>
     /// A custom structure that can be used in a memory buffer.
     /// </summary>
-    struct CustomStruct
+    public struct CustomStruct
     {
-        public int First;
-        public int Second;
+        public int First { get; set; }
+        public int Second { get; set; }
 
-        public override string ToString()
-        {
-            return $"First: {First}, Second: {Second}";
-        }
+        public override string ToString() =>
+            $"First: {First}, Second: {Second}";
     }
 
     class Program
@@ -36,24 +34,21 @@ namespace LightningInitialize
         {
             using (var context = new Context())
             {
+                // Enable algorithms library
+                context.EnableAlgorithms();
+
                 // For each available accelerator...
                 foreach (var acceleratorId in Accelerator.Accelerators)
                 {
-                    // A lightning context encapsulates an ILGPU accelerator
+                    // Create the associated accelerator
                     using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         using (var buffer = accelerator.Allocate<int>(64))
                         {
-                            // Initializes the first half by setting the value to 42.
-                            // Note that in this case, the initializer uses the default accelerator stream.
-                            accelerator.Initialize(buffer.View.GetSubView(0, buffer.Length / 2), 42);
-
-                            // Initializes the second half by setting the value to 23.
-                            // Note that this overload requires an explicit accelerator stream.
-                            accelerator.Initialize(accelerator.DefaultStream, buffer.View.GetSubView(buffer.Length / 2), 23);
-
+                            // Initializes all values by setting the value to 23.
+                            accelerator.Initialize(accelerator.DefaultStream, buffer.View, 23);
                             accelerator.Synchronize();
 
                             var data = buffer.GetAsArray();
@@ -61,7 +56,7 @@ namespace LightningInitialize
                                 Console.WriteLine($"Data[{i}] = {data[i]}");
                         }
 
-                        // Calling the convenient Initialize function on the lightning context
+                        // Calling the convenient Initialize function on the accelerator
                         // involves internal heap allocations. This can be avoided by constructing
                         // an initializer explicitly:
                         var initializer = accelerator.CreateInitializer<CustomStruct>();
