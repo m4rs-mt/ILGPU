@@ -102,18 +102,6 @@ namespace ILGPU.Runtime.OpenCL.API
         }
 
         /// <summary>
-        /// Resolves the number of available platforms.
-        /// </summary>
-        /// <returns>The error code.</returns>
-        public static CLError GetNumDevices(IntPtr platform, CLDeviceType deviceType, out int numDevices) =>
-            NativeMethods.GetDeviceIDs(
-                platform,
-                deviceType,
-                short.MaxValue,
-                null,
-                out numDevices);
-
-        /// <summary>
         /// Resolves the number of available devices.
         /// </summary>
         /// <param name="platform">The target platform.</param>

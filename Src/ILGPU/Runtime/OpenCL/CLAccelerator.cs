@@ -53,6 +53,15 @@ namespace ILGPU.Runtime.OpenCL
     /// </summary>
     public sealed class CLAccelerator : KernelAccelerator<CLCompiledKernel, CLKernel>
     {
+        #region Constants
+
+        /// <summary>
+        /// The maximum number of devices per platform.
+        /// </summary>
+        private const int MaxNumDevicesPerPlatform = 64;
+
+        #endregion
+
         #region Static
 
         /// <summary>
@@ -109,6 +118,7 @@ namespace ILGPU.Runtime.OpenCL
         {
             var accelerators = ImmutableArray.CreateBuilder<CLAcceleratorId>();
             var allAccelerators = ImmutableArray.CreateBuilder<CLAcceleratorId>();
+            var devices = new IntPtr[MaxNumDevicesPerPlatform];
 
             try
             {
@@ -124,13 +134,9 @@ namespace ILGPU.Runtime.OpenCL
                 foreach (var platform in platforms)
                 {
                     // Resolve all devices
-                    if (CLAPI.GetNumDevices(
-                        platform,
-                        CLDeviceType.CL_DEVICE_TYPE_ALL,
-                        out int numDevices) != CLError.CL_SUCCESS)
-                        continue;
+                    int numDevices = devices.Length;
+                    Array.Clear(devices, 0, numDevices);
 
-                    var devices = new IntPtr[numDevices];
                     if (CLAPI.GetDevices(
                         platform,
                         CLDeviceType.CL_DEVICE_TYPE_ALL,
@@ -138,8 +144,13 @@ namespace ILGPU.Runtime.OpenCL
                         out numDevices) != CLError.CL_SUCCESS)
                         continue;
 
-                    foreach (var device in devices)
+                    for (int i = 0; i < numDevices; ++i)
                     {
+                        // Resolve device and ignore invalid devices
+                        var device = devices[i];
+                        if (device == IntPtr.Zero)
+                            continue;
+
                         // Check for available device
                         if (CLAPI.GetDeviceInfo<int>(
                             device,
@@ -147,7 +158,6 @@ namespace ILGPU.Runtime.OpenCL
                             continue;
 
                         var acceleratorId = new CLAcceleratorId(platform, device);
-
                         if (acceleratorId.CVersion < CLBackend.MinimumVersion)
                             allAccelerators.Add(acceleratorId);
                         else
