@@ -106,11 +106,10 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <returns>The error code.</returns>
         public static CLError GetNumDevices(IntPtr platform, CLDeviceType deviceType, out int numDevices) =>
-            NativeMethods.GetDeviceIDs(
+            GetDevices(
                 platform,
                 deviceType,
-                short.MaxValue,
-                null,
+                new IntPtr[short.MaxValue],
                 out numDevices);
 
         /// <summary>
