@@ -103,6 +103,10 @@ namespace ILGPU.Backends.OpenCL
             : base(args, scope, allocas)
         {
             EntryPoint = args.EntryPoint;
+
+            // Analyze and create required kernel interop types first
+            foreach (var param in Method.Parameters)
+                TypeGenerator.GetKernelArgumentType(param.Type);
         }
 
         #endregion
