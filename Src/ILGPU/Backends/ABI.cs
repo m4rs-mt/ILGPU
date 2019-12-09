@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace ILGPU.Backends
 {
@@ -35,8 +36,7 @@ namespace ILGPU.Backends
     /// <summary>
     /// Represents a generic ABI specification.
     /// </summary>
-    /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract class ABI : ISizeOfABI
+    public abstract class ABI : DisposeBase, ISizeOfABI, ICache
     {
         #region Static
 
@@ -103,19 +103,20 @@ namespace ILGPU.Backends
         /// <summary>
         /// Contains default size information about built-in types.
         /// </summary>
-        private readonly Dictionary<BasicValueType, int> basicTypeInformation =
-            new Dictionary<BasicValueType, int>()
-            {
-                { BasicValueType.Int1, 1 },
-                { BasicValueType.Int8, 1 },
-                { BasicValueType.Int16, 2 },
-                { BasicValueType.Int32, 4 },
-                { BasicValueType.Int64, 8 },
+        private readonly int[] basicTypeInformation = new int[]
+        {
+            -1, // None
+            1,
+            1,
+            2,
+            4,
+            8,
+            4,
+            8
+        };
 
-                { BasicValueType.Float32, 4 },
-                { BasicValueType.Float64, 8 },
-            };
-
+        private readonly ReaderWriterLockSlim cachingLock = new ReaderWriterLockSlim(
+            LockRecursionPolicy.SupportsRecursion);
         private readonly Dictionary<TypeNode, ABITypeInfo> typeInformation =
             new Dictionary<TypeNode, ABITypeInfo>();
 
@@ -192,10 +193,8 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="basicValueType">The type to define.</param>
         /// <param name="size">New size information</param>
-        protected void DefineBasicTypeInformation(BasicValueType basicValueType, int size)
-        {
-            basicTypeInformation[basicValueType] = size;
-        }
+        protected void DefineBasicTypeInformation(BasicValueType basicValueType, int size) =>
+            basicTypeInformation[(int)basicValueType] = size;
 
         /// <summary>
         /// Resolves all fields offsets of the given type.
@@ -227,9 +226,8 @@ namespace ILGPU.Backends
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetSizeOf(TypeNode type)
         {
-            Debug.Assert(type != null, "Invalid type");
-            var info = ResolveABIInfo(type);
-            return info.Size;
+            GetAlignmentAndSizeOf(type, out int size, out var _);
+            return size;
         }
 
         /// <summary>
@@ -240,9 +238,8 @@ namespace ILGPU.Backends
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetAlignmentOf(TypeNode type)
         {
-            Debug.Assert(type != null, "Invalid type");
-            var info = ResolveABIInfo(type);
-            return info.Alignment;
+            GetAlignmentAndSizeOf(type, out var _, out int alignment);
+            return alignment;
         }
 
         /// <summary>
@@ -285,40 +282,56 @@ namespace ILGPU.Backends
                 return new ABITypeInfo(ImmutableArray<int>.Empty, PointerSize, PointerSize);
             if (type.IsViewType)
                 return ViewTypeInfo;
-            if (basicTypeInformation.TryGetValue(type.BasicValueType, out int size))
+            int size = basicTypeInformation[(int)type.BasicValueType];
+            if (size > 0)
                 return new ABITypeInfo(ImmutableArray<int>.Empty, size, size);
 
-            if (typeInformation.TryGetValue(type, out ABITypeInfo info))
-                return info;
+            cachingLock.EnterUpgradeableReadLock();
+            try
+            {
+                if (typeInformation.TryGetValue(type, out ABITypeInfo info))
+                    return info;
 
-            if (type is ArrayType arrayType)
-            {
-                // Compute array information
-                GetAlignmentAndSizeOf(
-                    arrayType.ElementType,
-                    out int arrayElementSize,
-                    out int arrayElementAlignment);
-                info = new ABITypeInfo(
-                    ImmutableArray<int>.Empty,
-                    arrayElementAlignment,
-                    arrayElementSize * arrayType.Length);
-            }
-            else
-            {
-                // This must be a structure type
-                var structureType = type as StructureType;
-                Debug.Assert(structureType != null, "Not supported type");
-                if (structureType.NumFields < 1)
+                cachingLock.EnterWriteLock();
+                try
                 {
-                    // This is an empty struct -> requires special handling
-                    info = new ABITypeInfo(ImmutableArray<int>.Empty, 1, 1);
+                    if (type is ArrayType arrayType)
+                    {
+                        // Compute array information
+                        GetAlignmentAndSizeOf(
+                            arrayType.ElementType,
+                            out int arrayElementSize,
+                            out int arrayElementAlignment);
+                        info = new ABITypeInfo(
+                            ImmutableArray<int>.Empty,
+                            arrayElementAlignment,
+                            arrayElementSize * arrayType.Length);
+                    }
+                    else
+                    {
+                        // This must be a structure type
+                        var structureType = type as StructureType;
+                        Debug.Assert(structureType != null, "Not supported type");
+                        if (structureType.NumFields < 1)
+                        {
+                            // This is an empty struct -> requires special handling
+                            info = new ABITypeInfo(ImmutableArray<int>.Empty, 1, 1);
+                        }
+                        else
+                            info = ResolveABIInfo(structureType);
+                    }
+                    typeInformation.Add(type, info);
+                    return info;
                 }
-                else
-                    info = ResolveABIInfo(structureType);
+                finally
+                {
+                    cachingLock.ExitWriteLock();
+                }
             }
-            typeInformation.Add(type, info);
-
-            return info;
+            finally
+            {
+                cachingLock.ExitUpgradeableReadLock();
+            }
         }
 
         /// <summary>
@@ -352,6 +365,35 @@ namespace ILGPU.Backends
                 offsets.MoveToImmutable(),
                 alignment,
                 size);
+        }
+
+        /// <summary>
+        /// Clears all internal caches.
+        /// </summary>
+        /// <param name="mode">The clear mode.</param>
+        public virtual void ClearCache(ClearCacheMode mode)
+        {
+            cachingLock.EnterWriteLock();
+            try
+            {
+                typeInformation.Clear();
+            }
+            finally
+            {
+                cachingLock.ExitWriteLock();
+            }
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary cref="DisposeBase.Dispose(bool)"/>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                cachingLock.Dispose();
+            base.Dispose(disposing);
         }
 
         #endregion
