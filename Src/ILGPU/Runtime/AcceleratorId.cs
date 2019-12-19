@@ -18,7 +18,7 @@ namespace ILGPU.Runtime
     /// Represents a single accelerator reference.
     /// </summary>
     [Serializable]
-    public abstract class AcceleratorId : DisposeBase
+    public abstract class AcceleratorId
     {
         #region Instance
 
@@ -36,7 +36,7 @@ namespace ILGPU.Runtime
         #region Properties
 
         /// <summary>
-        /// Retunrs the type of the associated accelerator.
+        /// Returns the type of the associated accelerator.
         /// </summary>
         public AcceleratorType AcceleratorType { get; }
 

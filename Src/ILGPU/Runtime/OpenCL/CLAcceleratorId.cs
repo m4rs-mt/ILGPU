@@ -11,7 +11,6 @@
 
 using ILGPU.Backends.OpenCL;
 using ILGPU.Runtime.OpenCL.API;
-using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -249,21 +248,6 @@ namespace ILGPU.Runtime.OpenCL
         /// <returns>The string representation of this accelerator id.</returns>
         public override string ToString() =>
             $"Platform {PlatformId}, Device {DeviceId}, {base.ToString()}";
-
-        #endregion
-
-        #region IDisposable
-
-        /// <summary cref="DisposeBase.Dispose(bool)"/>
-        protected override void Dispose(bool disposing)
-        {
-            if (DeviceId != IntPtr.Zero)
-            {
-                CLAPI.ReleaseDevice(DeviceId);
-                DeviceId = IntPtr.Zero;
-            }
-            base.Dispose(disposing);
-        }
 
         #endregion
     }
