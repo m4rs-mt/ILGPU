@@ -3,7 +3,7 @@
 //                     Copyright (c) 2016-2018 Marcel Koester
 //                                www.ilgpu.net
 //
-// File: TypeInformation.tt
+// File: TypeInformation.ttinclude
 //
 // This file is part of ILGPU and is distributed under the University of
 // Illinois Open Source License. See LICENSE.txt for details.

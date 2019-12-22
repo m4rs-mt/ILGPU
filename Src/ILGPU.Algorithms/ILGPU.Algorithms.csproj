@@ -75,10 +75,6 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Sequencers.cs</LastGenOutput>
     </None>
-    <None Update="TypeInformation.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>TypeInformation.cs</LastGenOutput>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -116,11 +112,6 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Sequencers.tt</DependentUpon>
-    </Compile>
-    <Compile Update="TypeInformation.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>TypeInformation.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 
