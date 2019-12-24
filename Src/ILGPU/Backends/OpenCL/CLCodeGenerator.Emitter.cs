@@ -395,7 +395,10 @@ namespace ILGPU.Backends.OpenCL
             {
                 AppendArgument();
                 stringBuilder.Append(value);
-                stringBuilder.Append('f');
+                if (value % 1.0f == 0.0f)
+                    stringBuilder.Append(".0f");
+                else
+                    stringBuilder.Append('f');
             }
 
             /// <summary>
