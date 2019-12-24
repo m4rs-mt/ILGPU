@@ -79,7 +79,7 @@ namespace ILGPU.Runtime.OpenCL
             BindingFlags.Public | BindingFlags.Static);
 
         /// <summary>
-        /// The first dummy kernel that is compiled during accelerator intialization.
+        /// The first dummy kernel that is compiled during accelerator initialization.
         /// </summary>
         private const string DummyKernelSource =
             "__kernel void " + CLCompiledKernel.EntryName + "(\n" +
@@ -90,7 +90,7 @@ namespace ILGPU.Runtime.OpenCL
             "   c[i] = a[i] + b[i];\n}";
 
         /// <summary>
-        /// The second dummy kernel that is compiled during accelerator intialization.
+        /// The second dummy kernel that is compiled during accelerator initialization.
         /// </summary>
         private const string DummySubGroupKernelSource =
             "__kernel void " + CLCompiledKernel.EntryName + "(\n" +
@@ -108,7 +108,7 @@ namespace ILGPU.Runtime.OpenCL
             "cl_intel_subgroups");
 
         /// <summary>
-        /// Detects all cuda accelerators.
+        /// Detects all OpenCL accelerators.
         /// </summary>
         [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline",
             Justification = "Complex initialization logic is required in this case")]
