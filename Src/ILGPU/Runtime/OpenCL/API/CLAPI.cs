@@ -463,7 +463,7 @@ namespace ILGPU.Runtime.OpenCL.API
             IntPtr device,
             out string buildLog)
         {
-            const int LogSize = 4096;
+            const int LogSize = 32_000;
             var log = stackalloc sbyte[LogSize];
             var error = GetProgramBuildInfo(
                 program,
