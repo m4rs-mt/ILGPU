@@ -147,6 +147,16 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
         </Compile>
+        <Compile Update="Util\DataBlocks.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>DataBlocks.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Util\PrimitiveDataBlocks.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
+        </Compile>
     </ItemGroup>
     <ItemGroup>
         <None Update="ArrayViews.tt">
@@ -204,6 +214,14 @@
         <None Update="TypeInformation.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>TypeInformation.cs</LastGenOutput>
+        </None>
+        <None Update="Util\PrimitiveDataBlocks.tt">
+          <LastGenOutput>PrimitiveDataBlocks.cs</LastGenOutput>
+          <Generator>TextTemplatingFileGenerator</Generator>
+        </None>
+        <None Update="Util\DataBlocks.tt">
+          <LastGenOutput>DataBlocks.cs</LastGenOutput>
+          <Generator>TextTemplatingFileGenerator</Generator>
         </None>
     </ItemGroup>
     <ItemGroup>

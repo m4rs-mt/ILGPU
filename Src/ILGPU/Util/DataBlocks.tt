@@ -1,0 +1,174 @@
+﻿// -----------------------------------------------------------------------------
+//                                    ILGPU
+//                     Copyright (c) 2016-2019 Marcel Koester
+//                                www.ilgpu.net
+//
+// File: DataBlocks.tt/DataBlocks.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<# var typeParameterRanges = Enumerable.Range(1, 14); #>
+<# var typeRange = from r in typeParameterRanges
+    let range = Enumerable.Range(1, r + 1)
+    select new
+    {
+        Range = r + 1,
+        IndexRange = range,
+        TypeParams = string.Join(", ", from rangeIdx in range select $"T{rangeIdx}"),
+        MethodParams = string.Join(", ", from rangeIdx in range select $"T{rangeIdx} param{rangeIdx}"),
+    }; #>
+
+using System;
+using System.Runtime.InteropServices;
+
+namespace ILGPU.Util
+{
+<# foreach (var typeParams in typeRange) { #>
+    /// <summary>
+    /// Represents a tuple consisting of multiple elements.
+    /// </summary>
+    /// <typeparam name="T1">The element type of the 1st element.</typeparam>
+    /// <typeparam name="T2">The element type of the 2nd element.</typeparam>
+<# for (int i = 3; i <= typeParams.Range; ++i) { #>
+    /// <typeparam name="T<#= i #>">The element type of the <#= i #>-th element.</typeparam>
+<# } #>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DataBlock<<#= typeParams.TypeParams #>> : IEquatable<DataBlock<<#= typeParams.TypeParams #>>>
+<# for (int i = 1; i <= typeParams.Range; ++i) { #>
+        where T<#= i #> : struct, IEquatable<T<#= i #>>
+<# } #>
+    {
+        #region Constants
+
+        /// <summary>
+        /// Represents the native size of a single element.
+        /// </summary>
+        public static readonly int ElementSize = ArrayView<DataBlock<<#= typeParams.TypeParams #>>>.ElementSize;
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new data block.
+        /// </summary>
+        public DataBlock(<#= typeParams.MethodParams #>)
+        {
+<# for (int i = 1; i <= typeParams.Range; ++i) { #>
+            Item<#= i #> = param<#= i #>;
+<# } #>
+        }
+
+        /// <summary>
+        /// Constructs a new data block.
+        /// </summary>
+        public DataBlock((<#= typeParams.TypeParams #>) valueTuple)
+        {
+<# for (int i = 1; i <= typeParams.Range; ++i) { #>
+            Item<#= i #> = valueTuple.Item<#= i #>;
+<# } #>
+        }
+
+        #endregion
+
+        #region Properties
+<# for (int i = 1; i <= typeParams.Range; ++i) { #>
+
+        /// <summary>
+        /// Returns the i-th element.
+        /// </summary>
+        public T<#= i #> Item<#= i #> { get; set; }
+<# } #>
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Returns a value tuple that stores all items.
+        /// </summary>
+        /// <returns>The constructed value tuple.</returns>
+        public (<#= typeParams.TypeParams #>) ToValueTuple() =>
+            (<#= string.Join(", ", typeParams.IndexRange.Select(t => "Item" + t)) #>);
+
+        /// <summary cref="IEquatable{T}.Equals(T)"/>
+        public bool Equals(DataBlock<<#= typeParams.TypeParams #>> other) =>
+            <#= string.Join(" && ", typeParams.IndexRange.Select(t =>
+                $"Item{t}.Equals(other.Item{t})")) #>;
+
+        #endregion
+
+        #region Object
+
+        /// <summary>
+        /// Returns true if the given object is equal to the current one.
+        /// </summary>
+        /// <param name="obj">The other object.</param>
+        /// <returns>True, if the given object is equal to the current one.</returns>
+        public override bool Equals(object obj) =>
+            obj is DataBlock<<#= typeParams.TypeParams #>> other && Equals(other);
+
+        /// <summary>
+        /// Returns the combined hash code of all items.
+        /// </summary>
+        /// <returns>The hash code of all items.</returns>
+        public override int GetHashCode() => 
+            <#= string.Join(" ^ ", typeParams.IndexRange.Select(t =>
+                $"Item{t}.GetHashCode()")) #>;
+
+        /// <summary>
+        /// Returns the string representation of this view.
+        /// </summary>
+        /// <returns>The string representation of this view.</returns>
+        public override string ToString() =>
+            "(" + <#= string.Join(" + \", \" + ", typeParams.IndexRange.Select(t => $"Item{t}.ToString()")) #> + ")";
+
+        #endregion
+
+        #region Operators
+
+        /// <summary>
+        /// Converts the given data block into its tuple representation.
+        /// </summary>
+        /// <param name="dataBlock">The data block to convert.</param>
+        public static implicit operator (<#= typeParams.TypeParams #>)(DataBlock<<#= typeParams.TypeParams #>> dataBlock) =>
+            dataBlock.ToValueTuple();
+
+        /// <summary>
+        /// Converts the given tuple into its data block representation.
+        /// </summary>
+        /// <param name="valueTuple">The value tuple to convert.</param>
+        public static implicit operator DataBlock<<#= typeParams.TypeParams #>>((<#= typeParams.TypeParams #>) valueTuple) =>
+            new DataBlock<<#= typeParams.TypeParams #>>(valueTuple);
+
+        /// <summary>
+        /// Returns true if both data blocks represent the same elements.
+        /// </summary>
+        /// <param name="left">The left block.</param>
+        /// <param name="right">The right block.</param>
+        /// <returns>True, if both data block represent the same elements.</returns>
+        public static bool operator ==(DataBlock<<#= typeParams.TypeParams #>> left, DataBlock<<#= typeParams.TypeParams #>> right) =>
+            left.Equals(right);
+
+        /// <summary>
+        /// Returns true if both data blocks do not represent the same elements.
+        /// </summary>
+        /// <param name="left">The left block.</param>
+        /// <param name="right">The right block.</param>
+        /// <returns>True, if both data block do not represent the same elements.</returns>
+        public static bool operator !=(DataBlock<<#= typeParams.TypeParams #>> left, DataBlock<<#= typeParams.TypeParams #>> right) =>
+            !(left == right);
+
+        #endregion
+    }
+
+<#  } #>
+}

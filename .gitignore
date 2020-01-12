@@ -260,6 +260,8 @@ Src/ILGPU/Runtime/MemoryBuffers.cs
 Src/ILGPU/Runtime/SharedMemoryKernelLoaders.cs
 Src/ILGPU/ShuffleOperations.cs
 Src/ILGPU/TypeInformation.cs
+Src/ILGPU/Util/DataBlocks.cs
+Src/ILGPU/Util/PrimitiveDataBlocks.cs
 
 # Generated test source files
 Src/ILGPU.Tests/Generic/ConfigurationBase.cs
