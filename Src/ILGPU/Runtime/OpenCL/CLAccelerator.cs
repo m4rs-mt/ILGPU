@@ -104,7 +104,7 @@ namespace ILGPU.Runtime.OpenCL
         /// All subgroup extensions.
         /// </summary>
         private readonly ImmutableArray<string> SubGroupExtensions = ImmutableArray.Create(
-            "cl_subgroups_khr",
+            "cl_khr_subgroups",
             "cl_intel_subgroups");
 
         /// <summary>
