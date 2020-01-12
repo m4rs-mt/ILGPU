@@ -127,6 +127,26 @@ namespace ILGPU.Backends.OpenCL
             first.Major > second.Major ||
             first.Major == second.Major && first.Minor > second.Minor;
 
+        /// <summary>
+        /// Returns true if the first version is smaller than or equal to the second one.
+        /// </summary>
+        /// <param name="first">The first version.</param>
+        /// <param name="second">The second version.</param>
+        /// <returns>True, if the first version is smaller than the second one.</returns>
+        public static bool operator <=(CLCVersion first, CLCVersion second) =>
+            first.Major <= second.Major ||
+            first.Major == second.Major && first.Minor <= second.Minor;
+
+        /// <summary>
+        /// Returns true if the first version is greater than or equal to the second one.
+        /// </summary>
+        /// <param name="first">The first version.</param>
+        /// <param name="second">The second version.</param>
+        /// <returns>True, if the first version is greater than the second one.</returns>
+        public static bool operator >=(CLCVersion first, CLCVersion second) =>
+            first.Major >= second.Major ||
+            first.Major == second.Major && first.Minor >= second.Minor;
+
         #endregion
     }
 }

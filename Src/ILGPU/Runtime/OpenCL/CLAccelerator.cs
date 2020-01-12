@@ -158,9 +158,8 @@ namespace ILGPU.Runtime.OpenCL
                             continue;
 
                         var acceleratorId = new CLAcceleratorId(platform, device);
-                        if (acceleratorId.CVersion < CLBackend.MinimumVersion)
-                            allAccelerators.Add(acceleratorId);
-                        else
+                        allAccelerators.Add(acceleratorId);
+                        if (acceleratorId.CVersion >= CLBackend.MinimumVersion)
                             accelerators.Add(acceleratorId);
                     }
                 }
