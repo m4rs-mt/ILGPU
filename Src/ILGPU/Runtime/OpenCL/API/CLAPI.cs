@@ -465,21 +465,24 @@ namespace ILGPU.Runtime.OpenCL.API
         {
             const int LogSize = 32_000;
             var log = new sbyte[LogSize];
-            var error = GetProgramBuildInfo(
-                program,
-                device,
-                CLProgramBuildInfo.CL_PROGRAM_BUILD_LOG,
-                new IntPtr(LogSize),
-                log,
-                out IntPtr logLength);
-            buildLog = string.Empty;
-            if (error == CLError.CL_SUCCESS)
-                buildLog = new string(
-                    log,
-                    0,
-                    logLength.ToInt32(),
-                    System.Text.Encoding.ASCII);
-            return error;
+            fixed (sbyte* logPtr = &log[0])
+            {
+                var error = GetProgramBuildInfo(
+                    program,
+                    device,
+                    CLProgramBuildInfo.CL_PROGRAM_BUILD_LOG,
+                    new IntPtr(LogSize),
+                    logPtr,
+                    out IntPtr logLength);
+                buildLog = string.Empty;
+                if (error == CLError.CL_SUCCESS)
+                    buildLog = new string(
+                        logPtr,
+                        0,
+                        logLength.ToInt32(),
+                        System.Text.Encoding.ASCII);
+                return error;
+            }
         }
 
         /// <summary>
