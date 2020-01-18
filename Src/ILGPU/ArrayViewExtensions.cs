@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -21,6 +22,21 @@ namespace ILGPU
     public static class ArrayViewExtensions
     {
         #region ArrayView
+
+        /// <summary>
+        /// Loads the effective address of the current view.
+        /// This operation is not supported on accelerators.
+        /// </summary>
+        /// <remarks>
+        /// Use with caution since this operation does not make sense with respect to all
+        /// target platforms.
+        /// </remarks>
+        /// <returns>The effective address.</returns>
+        [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void* LoadEffectiveAddress<T>(this ArrayView<T> view)
+            where T : struct =>
+            view.LoadEffectiveAddress();
 
         /// <summary>
         /// Converts this view into a new 2D view.
