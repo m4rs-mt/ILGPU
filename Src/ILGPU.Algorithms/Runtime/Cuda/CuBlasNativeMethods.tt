@@ -1,0 +1,481 @@
+﻿// -----------------------------------------------------------------------------
+//                             ILGPU.Algorithms
+//                  Copyright (c) 2020 ILGPU Algorithms Project
+//                                www.ilgpu.net
+//
+// File: CuBlasNativeMethods.tt/CuBlasNativeMethods.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="CuBlasMappings.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+
+using System;
+using System.Runtime.InteropServices;
+
+namespace ILGPU.Runtime.Cuda
+{
+    unsafe partial class NativeMethods
+    {
+        #region Level 1
+
+<# foreach (var func in GetBlasEntries(Amax, Amin, Asum, Nrm2)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x,
+            int incx,
+            void* result);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Axpy)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* alpha,
+            void* x,
+            int incx,
+            void* y,
+            int incy);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Dot, RotM)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x,
+            int incx,
+            void* y,
+            int incy,
+            void* result);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Rot)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x,
+            int incx,
+            void* y,
+            int incy,
+            void* c,
+            void* s);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(RotG)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            void* a,
+            void* b,
+            void* c,
+            void* s);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Scal)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* alpha,
+            void* x,
+            int incx);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Swap)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x,
+            int incx,
+            void* y,
+            int incy);
+
+<# } #>
+
+        #endregion
+
+        #region Level 2
+
+<# foreach (var func in GetBlasEntries(Gbmv)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasOperation trans,
+            int m,
+            int n,
+            int kl,
+            int ku,
+            void* alpha,
+            void* a,
+            int lda,
+            void* x,
+            int incx,
+            void* beta,
+            void* y,
+            int incy);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Gemv)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasOperation trans,
+            int m,
+            int n,
+            void* alpha,
+            void* a,
+            int lda,
+            void* x,
+            int incx,
+            void* beta,
+            void* y,
+            int incy);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Ger)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int m,
+            int n,
+            void* alpha,
+            void* x,
+            int incx,
+            void* y,
+            int incy,
+            void* a,
+            int lda);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Sbmv)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo, 
+            int n,
+            int k,
+            void* alpha,
+            void* a,
+            int lda,
+            void* x, 
+            int incx,
+            void* beta,
+            void* y,
+            int incy);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Spmv)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n, 
+            void* alpha,
+            void* ap,
+            void* x,
+            int incx,
+            void* beta,
+            void* y,
+            int incy);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Spr)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n, 
+            void* alpha,
+            void* x,
+            int incx,
+            void* ap);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Spr2)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n, 
+            void* alpha,
+            void* x,
+            int incx,
+            void* y,
+            int incy,
+            void* ap);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Symv)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n, 
+            void* alpha,
+            void* a,
+            int lda,
+            void* x,
+            int incx,
+            void* beta,
+            void* y,
+            int incy);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Syr)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n, 
+            void* alpha,
+            void* x,
+            int incx,
+            void* a,
+            int lda);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Syr2)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n, 
+            void* alpha,
+            void* x,
+            int incx,
+            void* y,
+            int incy,
+            void* a,
+            int lda);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Tbmv, Tbsv)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, 
+            int k,
+            void* a,
+            int lda,
+            void* x,
+            int incx);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Tpmv, Tpsv)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, 
+            void* ap,
+            void* x,
+            int incx);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Trmv, Trsv)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, 
+            void *a,
+            int lda,
+            void* x,
+            int incx);
+
+<# } #>
+        #endregion
+
+        #region Level 3
+
+<# foreach (var func in GetBlasEntries(Gemm)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasOperation transa,
+            CuBlasOperation transb,
+            int m,
+            int n,
+            int k,
+            void* alpha,
+            void* a,
+            int lda,
+            void* b,
+            int ldb,
+            void* beta,
+            void* c,
+            int ldc);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Symm)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode side,
+            CuBlasFillMode uplo,
+            int m,
+            int n,
+            void* alpha,
+            void* a,
+            int lda,
+            void* b,
+            int ldb,
+            void* beta,
+            void* c,
+            int ldc);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Syrk)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            int n,
+            int k,
+            void* alpha,
+            void* a,
+            int lda,
+            void* beta,
+            void* c,
+            int ldc);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Syr2k, Syrkx)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            int n,
+            int k,
+            void* alpha,
+            void* a,
+            int lda,
+            void* b,
+            int ldb,
+            void* beta,
+            void* c,
+            int ldc);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Trmm)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode side,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int m,
+            int n,
+            void* alpha,
+            void* a,
+            int lda,
+            void* b,
+            int ldb,
+            void* c,
+            int ldc);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Trsm)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode side,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int m,
+            int n,
+            void* alpha,
+            void* a,
+            int lda,
+            void* b,
+            int ldb);
+
+<# } #>
+        #endregion
+
+        #region Blas Extensions
+
+<# foreach (var func in GetBlasEntries(Geam)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasOperation transa,
+            CuBlasOperation transb,
+            int m,
+            int n,
+            void* alpha,
+            void* a,
+            int lda,
+            void* beta,
+            void* b,
+            int ldb,
+            void* c,
+            int ldc);
+
+<# } #>
+
+<# foreach (var func in GetBlasEntries(Dgmm)) { #>
+        [DllImport(LibName)]
+        public static extern CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode mode,
+            int m,
+            int n,
+            void* a,
+            int lda,
+            void* x,
+            int incx,
+            void* c,
+            int ldc);
+
+<# } #>
+        #endregion
+    }
+}

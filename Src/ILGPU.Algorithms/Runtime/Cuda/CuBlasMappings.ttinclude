@@ -1,0 +1,372 @@
+﻿// -----------------------------------------------------------------------------
+//                             ILGPU.Algorithms
+//                  Copyright (c) 2020 ILGPU Algorithms Project
+//                                www.ilgpu.net
+//
+// File: CuBlasMappings.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ include file="../../TypeInformation.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#+
+public static readonly (string, string)[] CuBlasTypes = new (string, string)[]
+{
+    ("float", "float"),
+    ("double", "double"),
+    ("Float2", "float"),
+    ("Double2", "double")
+};
+
+// Level 1
+
+public static readonly string[] Amax = new string[]
+{
+    "cublasIsamax_v2",
+    "cublasIdamax_v2",
+    "cublasIcamax_v2",
+    "cublasIzamax_v2",
+};
+
+public static readonly string[] Amin = new string[]
+{
+    "cublasIsamin_v2",
+    "cublasIdamin_v2",
+    "cublasIcamin_v2",
+    "cublasIzamin_v2",
+};
+
+public static readonly string[] Asum = new string[]
+{
+    "cublasSasum_v2",
+    "cublasDasum_v2",
+    "cublasScasum_v2",
+    "cublasDzasum_v2",
+};
+
+public static readonly string[] Axpy = new string[]
+{
+    "cublasSaxpy_v2",
+    "cublasDaxpy_v2",
+    "cublasCaxpy_v2",
+    "cublasZaxpy_v2",
+};
+
+public static readonly string[] Dot = new string[]
+{
+    "cublasSdot_v2",
+    "cublasDdot_v2",
+    "cublasCdotu_v2",
+    "cublasCdotc_v2",
+};
+
+public static readonly string[] Nrm2 = new string[]
+{
+    "cublasSnrm2_v2",
+    "cublasDnrm2_v2",
+    "cublasScnrm2_v2",
+    "cublasDznrm2_v2"
+};
+
+public static readonly string[] Rot = new string[]
+{
+    "cublasSrot_v2",
+    "cublasDrot_v2",
+    "cublasCsrot_v2",
+    "cublasZdrot_v2"
+};
+
+public static readonly string[] RotG = new string[]
+{
+    "cublasSrotg_v2",
+    "cublasDrotg_v2",
+    "cublasCrotg_v2",
+    "cublasZrotg_v2"
+};
+
+public static readonly string[] RotM = new string[]
+{
+    "cublasSrotm_v2",
+    "cublasDrotm_v2",
+};
+
+public static readonly string[] Scal = new string[]
+{
+    "cublasSscal_v2",
+    "cublasDscal_v2",
+    "cublasCscal_v2",
+    "cublasZscal_v2",
+};
+
+public static readonly string[] Swap = new string[]
+{
+    "cublasSswap_v2",
+    "cublasDswap_v2",
+    "cublasCswap_v2",
+    "cublasZswap_v2",
+};
+
+// Level 2
+
+public static readonly string[] Gbmv = new string[]
+{
+    "cublasSgbmv_v2",
+    "cublasDgbmv_v2",
+    "cublasCgbmv_v2",
+    "cublasZgbmv_v2",
+};
+
+public static readonly string[] Gemv = new string[]
+{
+    "cublasSgemv_v2",
+    "cublasDgemv_v2",
+    "cublasCgemv_v2",
+    "cublasZgemv_v2",
+};
+
+public static readonly string[] Ger = new string[]
+{
+    "cublasSger_v2",
+    "cublasDger_v2",
+    "cublasCgeru_v2",
+    "cublasZgeru_v2",
+};
+
+public static readonly string[] Sbmv = new string[]
+{
+    "cublasSsbmv_v2",
+    "cublasDsbmv_v2",
+    "cublasChbmv_v2",
+    "cublasZhbmv_v2",
+};
+
+public static readonly string[] Spmv = new string[]
+{
+    "cublasSspmv_v2",
+    "cublasDspmv_v2",
+    "cublasChpmv_v2",
+    "cublasZhpmv_v2",
+};
+
+public static readonly string[] Spr = new string[]
+{
+    "cublasSspr_v2",
+    "cublasDspr_v2",
+    "cublasChpr_v2",
+    "cublasZhpr_v2",
+};
+
+public static readonly string[] Spr2 = new string[]
+{
+    "cublasSspr2_v2",
+    "cublasDspr2_v2",
+    "cublasChpr2_v2",
+    "cublasZhpr2_v2",
+};
+
+public static readonly string[] Symv = new string[]
+{
+    "cublasSsymv_v2",
+    "cublasDsymv_v2",
+    "cublasCsymv_v2",
+    "cublasZsymv_v2",
+};
+
+public static readonly string[] Syr = new string[]
+{
+    "cublasSsyr_v2",
+    "cublasDsyr_v2",
+    "cublasCsyr_v2",
+    "cublasZsyr_v2",
+};
+
+public static readonly string[] Syr2 = new string[]
+{
+    "cublasSsyr2_v2",
+    "cublasDsyr2_v2",
+    "cublasCsyr2_v2",
+    "cublasZsyr2_v2",
+};
+
+public static readonly string[] Tbmv = new string[]
+{
+    "cublasStbmv_v2",
+    "cublasDtbmv_v2",
+    "cublasCtbmv_v2",
+    "cublasZtbmv_v2",
+};
+
+public static readonly string[] Tbsv = new string[]
+{
+    "cublasStbsv_v2",
+    "cublasDtbsv_v2",
+    "cublasCtbsv_v2",
+    "cublasZtbsv_v2",
+};
+
+public static readonly string[] Tpmv = new string[]
+{
+    "cublasStpmv_v2",
+    "cublasDtpmv_v2",
+    "cublasCtpmv_v2",
+    "cublasZtpmv_v2",
+};
+
+public static readonly string[] Tpsv = new string[]
+{
+    "cublasStpsv_v2",
+    "cublasDtpsv_v2",
+    "cublasCtpsv_v2",
+    "cublasZtpsv_v2",
+};
+
+public static readonly string[] Trmv = new string[]
+{
+    "cublasStrmv_v2",
+    "cublasDtrmv_v2",
+    "cublasCtrmv_v2",
+    "cublasZtrmv_v2",
+};
+
+public static readonly string[] Trsv = new string[]
+{
+    "cublasStrsv_v2",
+    "cublasDtrsv_v2",
+    "cublasCtrsv_v2",
+    "cublasZtrsv_v2",
+};
+
+// Level 3
+
+public static readonly string[] Gemm = new string[]
+{
+    "cublasSgemm_v2",
+    "cublasDgemm_v2",
+    "cublasCgemm_v2",
+    "cublasZgemm_v2",
+};
+
+public static readonly string[] Symm = new string[]
+{
+    "cublasSsymm_v2",
+    "cublasDsymm_v2",
+    "cublasCsymm_v2",
+    "cublasZsymm_v2",
+};
+
+public static readonly string[] Syrk = new string[]
+{
+    "cublasSsyrk_v2",
+    "cublasDsyrk_v2",
+    "cublasCsyrk_v2",
+    "cublasZsyrk_v2",
+};
+
+public static readonly string[] Syr2k = new string[]
+{
+    "cublasSsyr2k_v2",
+    "cublasDsyr2k_v2",
+    "cublasCsyr2k_v2",
+    "cublasZsyr2k_v2",
+};
+
+public static readonly string[] Syrkx = new string[]
+{
+    "cublasSsyrkx",
+    "cublasDsyrkx",
+    "cublasCsyrkx",
+    "cublasZsyrkx",
+};
+
+public static readonly string[] Trmm = new string[]
+{
+    "cublasStrmm_v2",
+    "cublasDtrmm_v2",
+    "cublasCtrmm_v2",
+    "cublasZtrmm_v2",
+};
+
+public static readonly string[] Trsm = new string[]
+{
+    "cublasStrsm_v2",
+    "cublasDtrsm_v2",
+    "cublasCtrsm_v2",
+    "cublasZtrsm_v2",
+};
+
+// Extensions
+
+public static readonly string[] Geam = new string[]
+{
+    "cublasSgeam",
+    "cublasDgeam",
+    "cublasCgeam",
+    "cublasZgeam",
+};
+
+public static readonly string[] Dgmm = new string[]
+{
+    "cublasSdgmm",
+    "cublasDdgmm",
+    "cublasCdgmm",
+    "cublasZdgmm",
+};
+
+// Helper
+
+public static IEnumerable<(T, string, string)> GetBlasMapping<T>(params T[] values)
+{
+    for (int i = 0; i < values.Length; ++i)
+    {
+        var (type, elemType) = CuBlasTypes[i];
+        yield return (values[i], type, elemType);
+    }
+}
+
+public static IEnumerable<(string, T, string, string)> GetBlasMapping<T>(params (string, T[])[] bindings)
+{
+    foreach (var (entry, values) in bindings)
+    {
+        for (int i = 0; i < values.Length; ++i)
+        {
+            var (type, elemType) = CuBlasTypes[i];
+            yield return (entry, values[i], type, elemType);
+        }
+    }
+}
+
+public static IEnumerable<(string, T, string, string, string, Func<string, string>)> GetBlasMappingHostDevice<T>(
+    params (string, T[])[] bindings) =>
+    GetBlasMappingHostDevice(false, bindings);
+
+public static IEnumerable<(string, T, string, string, string, Func<string, string>)> GetBlasMappingHostDevice<T>(
+    bool byRef,
+    params (string, T[])[] bindings)
+{
+    foreach (var (entry, func, type, elemType) in GetBlasMapping(bindings))
+    {
+        // Emit the default operand type
+        if (byRef)
+            yield return (entry, func, type, elemType,
+                "ref " + type, name => $"Unsafe.AsPointer(ref {name})");
+        else
+            yield return (entry, func, type, elemType,
+                type, name => $"Unsafe.AsPointer(ref {name})");
+
+        // Emit the view operand type
+        yield return (entry, func, type, elemType,
+            $"ArrayView<{type}>", name => name + ".LoadEffectiveAddress()");
+    }
+}
+
+public static IEnumerable<string> GetBlasEntries(params string[][] bindings)
+{
+    foreach (var values in bindings)
+        foreach (var value in values)
+            yield return value;
+}
+#>

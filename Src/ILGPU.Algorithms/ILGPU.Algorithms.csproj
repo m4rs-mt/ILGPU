@@ -42,7 +42,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="ILGPU" Version="0.7.0" />
+    <PackageReference Include="ILGPU" Version="0.7.1" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
   </ItemGroup>
 
@@ -66,6 +66,22 @@
     <None Update="RadixSortOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>RadixSortOperations.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuBlasMethodsLevel1.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasMethodsLevel1.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuBlasMethodsLevel2.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasMethodsLevel2.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuBlasMethodsLevel3.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasMethodsLevel3.cs</LastGenOutput>
+    </None>
+    <None Update="Runtime\Cuda\CuBlasNativeMethods.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CuBlasNativeMethods.cs</LastGenOutput>
     </None>
     <None Update="ScanReduceOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -102,6 +118,26 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>RadixSortOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuBlasMethodsLevel1.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasMethodsLevel1.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuBlasMethodsLevel2.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasMethodsLevel2.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuBlasMethodsLevel3.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasMethodsLevel3.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Cuda\CuBlasNativeMethods.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CuBlasNativeMethods.tt</DependentUpon>
     </Compile>
     <Compile Update="ScanReduceOperations.cs">
       <DesignTime>True</DesignTime>
