@@ -339,11 +339,11 @@ public static IEnumerable<(string, T, string, string)> GetBlasMapping<T>(params 
     }
 }
 
-public static IEnumerable<(string, T, string, string, string, Func<string, string>)> GetBlasMappingHostDevice<T>(
+public static IEnumerable<(string, T, string, string, string, Func<string, string>, string)> GetBlasMappingHostDevice<T>(
     params (string, T[])[] bindings) =>
     GetBlasMappingHostDevice(false, bindings);
 
-public static IEnumerable<(string, T, string, string, string, Func<string, string>)> GetBlasMappingHostDevice<T>(
+public static IEnumerable<(string, T, string, string, string, Func<string, string>, string)> GetBlasMappingHostDevice<T>(
     bool byRef,
     params (string, T[])[] bindings)
 {
@@ -352,14 +352,17 @@ public static IEnumerable<(string, T, string, string, string, Func<string, strin
         // Emit the default operand type
         if (byRef)
             yield return (entry, func, type, elemType,
-                "ref " + type, name => $"Unsafe.AsPointer(ref {name})");
+                "ref " + type, name => $"Unsafe.AsPointer(ref {name})",
+                "EnsurePointerMode(CuBlasPointerMode.Host)");
         else
             yield return (entry, func, type, elemType,
-                type, name => $"Unsafe.AsPointer(ref {name})");
+                type, name => $"Unsafe.AsPointer(ref {name})",
+                "EnsurePointerMode(CuBlasPointerMode.Host)");
 
         // Emit the view operand type
         yield return (entry, func, type, elemType,
-            $"ArrayView<{type}>", name => name + ".LoadEffectiveAddress()");
+            $"ArrayView<{type}>", name => name + ".LoadEffectiveAddress()",
+            "EnsurePointerMode(CuBlasPointerMode.Device)");
     }
 }
 

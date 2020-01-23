@@ -11,14 +11,80 @@
 
 using ILGPU.Util;
 using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime.Cuda
 {
     /// <summary>
     /// Wraps library calls to the external native Nvidia cuBlas library.
     /// </summary>
-    public sealed unsafe partial class CuBlas : DisposeBase
+    /// <typeparam name="TPointerModeHandler">
+    /// A user-defined handler type to change/adapt the current pointer mode.
+    /// </typeparam>
+    public unsafe partial class CuBlas<TPointerModeHandler> : DisposeBase
+        where TPointerModeHandler : struct, ICuBlasPointerModeHandler<TPointerModeHandler>
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents a scoped assignment of a <see cref="CuBlas{TPointerModeHandler}.PointerMode"/> value.
+        /// </summary>
+        public readonly struct PointerModeScope : IDisposable
+        {
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new pointer scope.
+            /// </summary>
+            /// <param name="parent">The parent pointer scope.</param>
+            /// <param name="pointerMode">The new pointer mode.</param>
+            internal PointerModeScope(CuBlas<TPointerModeHandler> parent, CuBlasPointerMode pointerMode)
+            {
+                Debug.Assert(parent != null, "Invalid parent");
+
+                Parent = parent;
+                OldPointerMode = parent.PointerMode;
+                parent.PointerMode = pointerMode;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the parent <see cref="CuBlas{TPointerModeHandler}"/> instance.
+            /// </summary>
+            public CuBlas<TPointerModeHandler> Parent { get; }
+
+            /// <summary>
+            /// Returns the old pointer mode.
+            /// </summary>
+            public CuBlasPointerMode OldPointerMode { get; }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Recovers the previous pointer mode.
+            /// </summary>
+            public void Recover() => Parent.PointerMode = OldPointerMode;
+
+            #endregion
+
+            #region IDisposable
+
+            /// <summary>
+            /// Restores the previous pointer mode.
+            /// </summary>
+            void IDisposable.Dispose() => Recover();
+
+            #endregion
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -135,6 +201,34 @@ namespace ILGPU.Runtime.Cuda
 
         #region Methods
 
+        /// <summary>
+        /// Opens a new scoped pointer mode.
+        /// </summary>
+        /// <param name="pointerMode">The new pointer mode to use.</param>
+        /// <returns>The created pointer scope.</returns>
+        public PointerModeScope BeginPointerScope(CuBlasPointerMode pointerMode) =>
+            new PointerModeScope(this, pointerMode);
+
+        /// <summary>
+        /// Ensures the given pointer mode.
+        /// </summary>
+        /// <param name="pointerMode">The pointer mode to ensure.</param>
+        /// <remarks>
+        /// Checks whether the given mode is compatible with the current one in debug builds.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void EnsurePointerMode(CuBlasPointerMode pointerMode)
+        {
+            TPointerModeHandler pointerModeHandler = default;
+            pointerModeHandler.UpdatePointerMode(this, pointerMode);
+
+#if DEBUG
+            Debug.Assert(
+                PointerMode == pointerMode,
+                $"Invalid pointer mode: '{pointerMode}' expected");
+#endif
+        }
+
         #endregion
 
         #region IDisposable
@@ -151,6 +245,25 @@ namespace ILGPU.Runtime.Cuda
                 Handle = IntPtr.Zero;
             }
         }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a <see cref="CuBlas{TPointerModeHandler}"/> class that does not handle
+    /// pointer mode changes automatically.
+    /// </summary>
+    public sealed class CuBlas : CuBlas<CuBlasPointerModeHandlers.ManualMode>
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new CuBlas instance to access the Nvidia cublas library.
+        /// </summary>
+        /// <param name="accelerator">The associated cuda accelerator.</param>
+        public CuBlas(CudaAccelerator accelerator)
+            : base(accelerator)
+        { }
 
         #endregion
     }

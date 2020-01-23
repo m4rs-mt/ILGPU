@@ -18,13 +18,12 @@
 <#@ output extension=".cs" #>
 
 using ILGPU.Util;
-using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime.Cuda
 {
-    partial class CuBlas
+    partial class CuBlas<TPointerModeHandler>
     {
 <# foreach (var (entry, func, type, elemType) in GetBlasMapping(
     (nameof(Amax), Amax),
@@ -36,6 +35,8 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The computed value.</returns>
         public unsafe int <#= entry #>(ArrayView<<#= type #>> input)
         {
+            EnsurePointerMode(CuBlasPointerMode.Host);
+
             int result;
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
@@ -54,6 +55,8 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="output">The output view.</param>
         public unsafe void <#= entry #>(ArrayView<<#= type #>> input, ArrayView<int> output)
         {
+            EnsurePointerMode(CuBlasPointerMode.Device);
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -75,6 +78,8 @@ namespace ILGPU.Runtime.Cuda
         /// <returns>The computed value.</returns>
         public unsafe <#= type #> <#= entry #>(ArrayView<<#= type #>> input)
         {
+            EnsurePointerMode(CuBlasPointerMode.Host);
+
             <#= type #> result = default;
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
@@ -93,6 +98,8 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="output">The output view.</param>
         public unsafe void <#= entry #>(ArrayView<<#= type #>> input, ArrayView<<#= type #>> output)
         {
+            EnsurePointerMode(CuBlasPointerMode.Device);
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -104,7 +111,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Axpy), Axpy))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -117,6 +124,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> x,
             ArrayView<<#= type #>> y)
         {
+            <#= paramVerifier #>;
             Debug.Assert(x.Length == y.Length, "Invalid length");
 
             CuBlasException.ThrowIfFailed(
@@ -144,6 +152,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> x,
             ArrayView<<#= type #>> y)
         {
+            EnsurePointerMode(CuBlasPointerMode.Host);
             Debug.Assert(x.Length == y.Length, "Invalid length");
 
             <#= type #> result = default;
@@ -170,6 +179,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> y,
             ArrayView<<#= type #>> output)
         {
+            EnsurePointerMode(CuBlasPointerMode.Device);
             Debug.Assert(x.Length == y.Length, "Invalid length");
 
             CuBlasException.ThrowIfFailed(
@@ -185,7 +195,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Rot), Rot))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -200,6 +210,8 @@ namespace ILGPU.Runtime.Cuda
             <#= paramType #> c,
             <#= paramType #> s)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -262,7 +274,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     true,
     (nameof(RotM), RotM))) { #>
         /// <summary>
@@ -276,6 +288,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> y,
             <#= paramType #> param)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -289,7 +303,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Scal), Scal))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -300,6 +314,8 @@ namespace ILGPU.Runtime.Cuda
             <#= paramType #> alpha,
             ArrayView<<#= type #>> x)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,

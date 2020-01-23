@@ -18,15 +18,13 @@
 <#@ output extension=".cs" #>
 
 using ILGPU.Util;
-using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime.Cuda
 {
-    partial class CuBlas
+    partial class CuBlas<TPointerModeHandler>
     {
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Gbmv), Gbmv))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -46,6 +44,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> y,
             int incy)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -66,7 +66,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Gemv), Gemv))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -84,6 +84,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> y,
             int incy)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -102,7 +104,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Ger), Ger))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -118,6 +120,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> a,
             int lda)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -134,7 +138,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Sbmv), Sbmv))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -152,6 +156,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> y,
             int incy)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -170,7 +176,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Spmv), Spmv))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -186,6 +192,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> y,
             int incy)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -202,7 +210,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Spr), Spr))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -215,6 +223,8 @@ namespace ILGPU.Runtime.Cuda
             int incx,
             ArrayView<<#= type #>> ap)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -228,7 +238,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Spr2), Spr2))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -243,6 +253,8 @@ namespace ILGPU.Runtime.Cuda
             int incy,
             ArrayView<<#= type #>> ap)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -258,7 +270,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Symv), Symv))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -275,6 +287,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> y,
             int incy)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -292,7 +306,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Syr), Syr))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -306,6 +320,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> a,
             int lda)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
@@ -320,7 +336,7 @@ namespace ILGPU.Runtime.Cuda
 
 <# } #>
 
-<# foreach (var (entry, func, type, elemType, paramType, paramGetter) in GetBlasMappingHostDevice(
+<# foreach (var (entry, func, type, elemType, paramType, paramGetter, paramVerifier) in GetBlasMappingHostDevice(
     (nameof(Syr2), Syr2))) { #>
         /// <summary>
         /// Performs the CuBlas <#= entry #> operation.
@@ -336,6 +352,8 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> a,
             int lda)
         {
+            <#= paramVerifier #>;
+
             CuBlasException.ThrowIfFailed(
                 NativeMethods.<#= func #>(
                     Handle,
