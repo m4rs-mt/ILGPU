@@ -2,11 +2,11 @@
 
   <PropertyGroup>
     <TargetFrameworks>net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
-    <Version>0.7.0</Version>
+    <Version>0.7.1</Version>
     <Platforms>AnyCPU</Platforms>
-    <Copyright>Copyright © 2019 ILGPU Algorithms Project, Copyright © 2017-2018 ILGPU Lightning Project</Copyright>
-    <AssemblyVersion>0.7.0.0</AssemblyVersion>
-    <FileVersion>0.7.0.0</FileVersion>
+    <Copyright>Copyright © 2019-2020 ILGPU Algorithms Project, Copyright © 2017-2018 ILGPU Lightning Project</Copyright>
+    <AssemblyVersion>0.7.1.0</AssemblyVersion>
+    <FileVersion>0.7.1.0</FileVersion>
     <LangVersion>7.2</LangVersion>
     <Authors>ILGPU Algorithms Project</Authors>
     <Description>ILGPU Algorithms library for high-level GPU programming.</Description>
