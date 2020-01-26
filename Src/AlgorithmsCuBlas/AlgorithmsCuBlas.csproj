@@ -10,6 +10,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="ILGPU" Version="0.7.1" />
-    <PackageReference Include="ILGPU.Algorithms" Version="0.7.0" />
+    <PackageReference Include="ILGPU.Algorithms" Version="0.7.1" />
   </ItemGroup>
 </Project>
