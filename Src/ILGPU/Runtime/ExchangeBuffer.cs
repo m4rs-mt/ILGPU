@@ -202,7 +202,7 @@ namespace ILGPU.Runtime
             CopyToAccelerator(Accelerator.DefaultStream);
 
         /// <summary>
-        /// Copes data from CPU memory to the associated accelerator.
+        /// Copies data from CPU memory to the associated accelerator.
         /// </summary>
         /// <param name="stream">The stream to use.</param>
         public void CopyToAccelerator(AcceleratorStream stream)
@@ -211,7 +211,6 @@ namespace ILGPU.Runtime
                 throw new ArgumentNullException(nameof(stream));
 
             Buffer.CopyFromView(stream, CPUView, 0);
-            stream.Synchronize();
         }
 
         /// <summary>
