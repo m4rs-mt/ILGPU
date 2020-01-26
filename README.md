@@ -51,7 +51,7 @@ execute the Cuda test cases.
 ILGPU is licensed under the University of Illinois/NCSA Open Source License.
 Detailed license information can be found in LICENSE.txt.
 
-Copyright (c) 2016-2019 Marcel Koester (www.ilgpu.net). All rights reserved.
+Copyright (c) 2016-2020 Marcel Koester (www.ilgpu.net). All rights reserved.
 
 ## License information of required dependencies
 

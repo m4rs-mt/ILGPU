@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------
 //                                    ILGPU
-//                     Copyright (c) 2016-2019 Marcel Koester
+//                     Copyright (c) 2016-2020 Marcel Koester
 //                                www.ilgpu.net
 //
 // File: ILOpCode.cs
