@@ -379,6 +379,21 @@ namespace ILGPU.Runtime.Cuda.API
         public abstract CudaError FreeMemory(IntPtr devicePtr);
 
         /// <summary>
+        /// Allocates memory on the host.
+        /// </summary>
+        /// <param name="hostPtr">The resulting host pointer.</param>
+        /// <param name="bytesize">The size of the allocation in bytes.</param>
+        /// <returns>The error status.</returns>
+        public abstract CudaError AllocateHostMemory(out IntPtr hostPtr, IntPtr bytesize);
+
+        /// <summary>
+        /// Frees the given host pointer.
+        /// </summary>
+        /// <param name="hostPtr">The host pointer.</param>
+        /// <returns>The error status.</returns>
+        public abstract CudaError FreeHostMemory(IntPtr hostPtr);
+
+        /// <summary>
         /// Performs a memory-copy operation.
         /// </summary>
         /// <param name="destination">The destination.</param>
