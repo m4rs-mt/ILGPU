@@ -9,6 +9,8 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Runtime.Cuda;
+using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -60,13 +62,67 @@ namespace ILGPU.Runtime
 
         #endregion
 
+        #region Nested Types
+
+        /// <summary>
+        /// Represents a view source that allocates native memory in page-locked CPU memory.
+        /// </summary>
+        sealed class CudaViewSource : ViewPointerWrapper
+        {
+            /// <summary>
+            /// Creates a new Cuda view source.
+            /// </summary>
+            /// <param name="sizeInBytes">The size in bytes to allocate.</param>
+            /// <returns>An unsafe array view source.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static CudaViewSource Create(int sizeInBytes)
+            {
+                CudaException.ThrowIfFailed(
+                    CudaAPI.Current.AllocateHostMemory(
+                        out IntPtr hostPtr,
+                        new IntPtr(sizeInBytes)));
+                return new CudaViewSource(hostPtr);
+            }
+
+            /// <summary>
+            /// Creates a new unmanaged memory view source.
+            /// </summary>
+            /// <param name="nativePtr">The native host pointer.</param>
+            private CudaViewSource(IntPtr nativePtr)
+                : base(nativePtr)
+            { }
+
+            /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index, Index)"/>
+            protected internal override ArraySegment<byte> GetAsRawArray(
+                AcceleratorStream stream,
+                Index byteOffset,
+                Index byteExtent) => throw new InvalidOperationException();
+
+            #region IDispoable
+
+            /// <summary cref="DisposeBase.Dispose(bool)"/>
+            protected override void Dispose(bool disposing)
+            {
+                if (NativePtr != IntPtr.Zero)
+                {
+                    CudaAPI.Current.FreeHostMemory(NativePtr);
+                    NativePtr = IntPtr.Zero;
+                }
+                base.Dispose(disposing);
+            }
+
+            #endregion
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// The internally allocated CPU memory.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly UnmanagedMemoryViewSource cpuMemory;
+        private readonly ViewPointerWrapper cpuMemory;
 
         /// <summary>
         /// A cached version of the CPU memory pointer.
@@ -82,7 +138,11 @@ namespace ILGPU.Runtime
             : base(buffer.Accelerator, buffer.Extent.Size)
         {
             // Allocate CPU memory
-            cpuMemory = UnmanagedMemoryViewSource.Create(buffer.LengthInBytes);
+            if (Accelerator is CudaAccelerator)
+                cpuMemory = CudaViewSource.Create(buffer.LengthInBytes);
+            else
+                cpuMemory = UnmanagedMemoryViewSource.Create(buffer.LengthInBytes);
+
             cpuMemoryPointer = cpuMemory.NativePtr.ToPointer();
             CPUView = new ArrayView<T>(cpuMemory, 0, buffer.Length);
 

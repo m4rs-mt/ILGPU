@@ -140,7 +140,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Creates a new unmanaged memory view source.
         /// </summary>
-        /// <param name="sizeInBytes">The size in bytes to allocate..</param>
+        /// <param name="sizeInBytes">The size in bytes to allocate.</param>
         /// <returns>An unsafe array view source.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe UnmanagedMemoryViewSource Create(int sizeInBytes) =>
