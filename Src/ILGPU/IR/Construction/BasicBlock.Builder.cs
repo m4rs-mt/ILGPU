@@ -227,7 +227,8 @@ namespace ILGPU.IR
                 for (int i = 0, e = Count; i < e; ++i)
                 {
                     var valueRef = values[i];
-                    if (toRemove.Contains(valueRef.DirectTarget))
+                    if (toRemove.Contains(valueRef.DirectTarget) ||
+                        valueRef.DirectTarget.IsReplaced && toRemove.Contains(valueRef.Resolve()))
                         continue;
                     targetCollection.Add(valueRef);
                 }
@@ -420,11 +421,16 @@ namespace ILGPU.IR
                 Debug.Assert(value != null, "Invalid value");
                 Debug.Assert(value.BasicBlock == BasicBlock, "Invalid value method");
                 Debug.Assert(implementationMethod != null, "Invalid method");
-                Debug.Assert(BasicBlock.Method != implementationMethod, "Cannot introduce recurisve methods");
+                Debug.Assert(BasicBlock.Method != implementationMethod, "Cannot introduce recursive methods");
+
+                int oldPosition = InsertPosition;
+                SetupInsertPosition(value);
 
                 var call = CreateCall(implementationMethod, value.Nodes);
                 value.Replace(call);
-                Remove(call);
+                Remove(value);
+
+                InsertPosition = oldPosition;
             }
 
             /// <summary cref="IRBuilder.CreateTerminator(TerminatorValue)"/>
