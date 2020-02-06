@@ -33,14 +33,53 @@ namespace ILGPU.Runtime
         /// <param name="accelerator">The associated acclerator to use.</param>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>The allocated exchange buffer.</returns>
+        /// <remarks>
+        /// This function uses the default buffer allocation mode
+        /// <see cref="ExchangeBufferMode.PreferPagedLockedMemory"/>
+        /// </remarks>
         public static ExchangeBuffer<T> AllocateExchangeBuffer<T>(
             this Accelerator accelerator,
             Index extent)
+            where T : struct =>
+            accelerator.AllocateExchangeBuffer<T>(
+                extent,
+                ExchangeBufferMode.PreferPagedLockedMemory);
+
+        /// <summary>
+        /// Allocates a new exchange buffer that allocates the specified amount of elements
+        /// on the current accelerator. Furthermore, it keeps a buffer of the same size in pinned
+        /// CPU memory to enable async memory transfers between the CPU and the GPU.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="accelerator">The associated acclerator to use.</param>
+        /// <param name="extent">The extent (number of elements to allocate).</param>
+        /// <param name="mode">The current allocation mode.</param>
+        /// <returns>The allocated exchange buffer.</returns>
+        public static ExchangeBuffer<T> AllocateExchangeBuffer<T>(
+            this Accelerator accelerator,
+            Index extent,
+            ExchangeBufferMode mode)
             where T : struct
         {
             var gpuBuffer = accelerator.Allocate<T>(extent);
-            return new ExchangeBuffer<T>(gpuBuffer);
+            return new ExchangeBuffer<T>(gpuBuffer, mode);
         }
+    }
+
+    /// <summary>
+    /// Specifies the allocation mode for a single exchange buffer.
+    /// </summary>
+    public enum ExchangeBufferMode
+    {
+        /// <summary>
+        /// Prefer paged locked memory for improved transfer speeds.
+        /// </summary>
+        PreferPagedLockedMemory = 0,
+
+        /// <summary>
+        /// Allocate CPU memory in pageable memory to leverage virtual memory.
+        /// </summary>
+        UsePageablememory = 1,
     }
 
     /// <summary>
@@ -134,11 +173,13 @@ namespace ILGPU.Runtime
         /// Initializes this memory buffer.
         /// </summary>
         /// <param name="buffer">The underlying memory buffer.</param>
-        internal ExchangeBuffer(MemoryBuffer<T, Index> buffer)
+        /// <param name="mode">The current buffer allocation mode.</param>
+        internal ExchangeBuffer(MemoryBuffer<T, Index> buffer, ExchangeBufferMode mode)
             : base(buffer.Accelerator, buffer.Extent.Size)
         {
             // Allocate CPU memory
-            if (Accelerator is CudaAccelerator)
+            if (Accelerator is CudaAccelerator &&
+                mode == ExchangeBufferMode.PreferPagedLockedMemory)
                 cpuMemory = CudaViewSource.Create(buffer.LengthInBytes);
             else
                 cpuMemory = UnmanagedMemoryViewSource.Create(buffer.LengthInBytes);
