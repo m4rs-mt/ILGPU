@@ -39,19 +39,9 @@ namespace ILGPU
         Index3D = 3,
 
         /// <summary>
-        /// Represents a grouped 1D index.
+        /// Represents a grouped index.
         /// </summary>
-        GroupedIndex1D = 4,
-
-        /// <summary>
-        /// Represents a grouped 2D index.
-        /// </summary>
-        GroupedIndex2D = 5,
-
-        /// <summary>
-        /// Represents a grouped 3D index.
-        /// </summary>
-        GroupedIndex3D = 6,
+        GroupedIndex = 4,
     }
 
     /// <summary>
@@ -74,12 +64,8 @@ namespace ILGPU
                     return typeof(Index2);
                 case IndexType.Index3D:
                     return typeof(Index3);
-                case IndexType.GroupedIndex1D:
-                    return typeof(GroupedIndex);
-                case IndexType.GroupedIndex2D:
-                    return typeof(GroupedIndex2);
-                case IndexType.GroupedIndex3D:
-                    return typeof(GroupedIndex3);
+                case IndexType.GroupedIndex:
+                    return typeof(KernelConfig);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(indexType));
             }
@@ -98,49 +84,9 @@ namespace ILGPU
                 return IndexType.Index2D;
             else if (indexType == typeof(Index3))
                 return IndexType.Index3D;
-            else if (indexType == typeof(GroupedIndex))
-                return IndexType.GroupedIndex1D;
-            else if (indexType == typeof(GroupedIndex2))
-                return IndexType.GroupedIndex2D;
-            else if (indexType == typeof(GroupedIndex3))
-                return IndexType.GroupedIndex3D;
+            else if (indexType == typeof(KernelConfig))
+                return IndexType.GroupedIndex;
             return IndexType.None;
-        }
-
-        /// <summary>
-        /// Tries to resolve an ungrouped index type.
-        /// An ungrouped index type is either <see cref="IndexType.None"/>,
-        /// <see cref="IndexType.Index1D"/>, <see cref="IndexType.Index2D"/> or
-        /// <see cref="IndexType.Index3D"/>.
-        /// </summary>
-        /// <param name="indexType">The index type.</param>
-        /// <returns>The resolved index type or none.</returns>
-        public static IndexType GetUngroupedIndexType(this IndexType indexType)
-        {
-            switch (indexType)
-            {
-                case IndexType.GroupedIndex1D:
-                    return IndexType.Index1D;
-                case IndexType.GroupedIndex2D:
-                    return IndexType.Index2D;
-                case IndexType.GroupedIndex3D:
-                    return IndexType.Index3D;
-                default:
-                    return indexType;
-            }
-        }
-
-        /// <summary>
-        /// Tries to resolve an ungrouped index type.
-        /// An ungrouped index type is either <see cref="IndexType.None"/>,
-        /// <see cref="IndexType.Index1D"/>, <see cref="IndexType.Index2D"/> or
-        /// <see cref="IndexType.Index3D"/>.
-        /// </summary>
-        /// <param name="indexType">The managed .Net index type.</param>
-        /// <returns>The resolved index type or none.</returns>
-        public static IndexType GetUngroupedIndexType(this Type indexType)
-        {
-            return GetUngroupedIndexType(GetIndexType(indexType));
         }
     }
 
@@ -229,29 +175,5 @@ namespace ILGPU
         /// <param name="newElementSize">The new element size.</param>
         /// <returns>The adjusted extent to match the new element size.</returns>
         TIndex ComputedCastedExtent(TIndex extent, int elementSize, int newElementSize);
-    }
-
-    /// <summary>
-    /// Represents a grouped-index type.
-    /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1040:AvoidEmptyInterfaces")]
-    public interface IGroupedIndex : IIndex
-    { }
-
-    /// <summary>
-    /// Represents a grouped-index type.
-    /// </summary>
-    public interface IGroupedIndex<TIndex> : IGroupedIndex
-        where TIndex : IIndex, IEquatable<TIndex>
-    {
-        /// <summary>
-        /// Returns the global block idx.
-        /// </summary>
-        TIndex GridIdx { get; }
-
-        /// <summary>
-        /// Returns the lock thread idx.
-        /// </summary>
-        TIndex GroupIdx { get; }
     }
 }

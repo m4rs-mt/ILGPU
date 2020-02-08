@@ -99,30 +99,6 @@ namespace ILGPU
         #region Methods
 
         /// <summary>
-        /// Computes the global index of a grouped index (gridIdx, groupIdx).
-        /// </summary>
-        /// <param name="index">The grouped index.</param>
-        /// <returns>The computes global index.</returns>
-        public static Index ComputeGlobalIndex(GroupedIndex index) =>
-            ComputeGlobalIndex(index.GridIdx, index.GroupIdx);
-
-        /// <summary>
-        /// Computes the global index of a grouped index (gridIdx, groupIdx).
-        /// </summary>
-        /// <param name="index">The grouped index.</param>
-        /// <returns>The computes global index.</returns>
-        public static Index2 ComputeGlobalIndex(GroupedIndex2 index) =>
-            ComputeGlobalIndex(index.GridIdx, index.GroupIdx);
-
-        /// <summary>
-        /// Computes the global index of a grouped index (gridIdx, groupIdx).
-        /// </summary>
-        /// <param name="index">The grouped index.</param>
-        /// <returns>The computes global index.</returns>
-        public static Index3 ComputeGlobalIndex(GroupedIndex3 index) =>
-            ComputeGlobalIndex(index.GridIdx, index.GroupIdx);
-
-        /// <summary>
         /// Computes the global index of a given gridIdx and a groupIdx.
         /// </summary>
         /// <param name="gridIdx">The grid index.</param>

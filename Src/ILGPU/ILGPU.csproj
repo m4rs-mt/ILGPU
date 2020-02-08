@@ -122,11 +122,6 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>TypeInformation.tt</DependentUpon>
         </Compile>
-        <Compile Update="GroupedIndices.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>GroupedIndices.tt</DependentUpon>
-        </Compile>
         <Compile Update="IR\Construction\CompareOperations.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
@@ -174,10 +169,6 @@
         <None Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>RemappedIntrinsics.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="GroupedIndices.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>GroupedIndices.cs</LastGenOutput>
         </None>
         <None Update="IR\Construction\CompareOperations.tt">
           <Generator>TextTemplatingFileGenerator</Generator>

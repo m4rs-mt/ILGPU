@@ -120,11 +120,10 @@ namespace ILGPU.Backends.EntryPoints
             var parameters = MethodInfo.GetParameters();
             if (parameters.Length < 1)
                 throw new ArgumentException(ErrorMessages.InvalidEntryPointIndexParameter);
-            KernelIndexType = UngroupedIndexType = parameters[0].ParameterType;
+            KernelIndexType = parameters[0].ParameterType;
             IndexType = KernelIndexType.GetIndexType();
             if (IndexType == IndexType.None)
                 throw new NotSupportedException(ErrorMessages.InvalidEntryPointIndexParameterOfWrongType);
-            UngroupedIndexType = IndexType.GetUngroupedIndexType().GetManagedIndexType();
 
             // Compute the number of actual parameters
             var parameterTypes = ImmutableArray.CreateBuilder<Type>(
@@ -165,25 +164,12 @@ namespace ILGPU.Backends.EntryPoints
         /// <summary>
         /// Returns true iff the entry-point type = grouped index.
         /// </summary>
-        public bool IsGroupedIndexEntry
-        {
-            get
-            {
-                return
-                    IndexType >= IndexType.GroupedIndex1D &&
-                    IndexType <= IndexType.GroupedIndex3D;
-            }
-        }
-
-        /// <summary>
-        /// Returns the ungrouped index type of the index parameter.
-        /// This can be <see cref="Index"/>, <see cref="Index2"/> or <see cref="Index3"/>.
-        /// </summary>
-        public Type UngroupedIndexType { get; }
+        public bool IsGroupedIndexEntry => IndexType == IndexType.GroupedIndex;
 
         /// <summary>
         /// Returns the index type of the index parameter.
-        /// This can also return a grouped index.
+        /// This can also return the <see cref="KernelConfig"/> type in the case of
+        /// an explicitly grouped kernel.
         /// </summary>
         public Type KernelIndexType { get; }
 
@@ -213,17 +199,12 @@ namespace ILGPU.Backends.EntryPoints
                 switch (IndexType)
                 {
                     case IndexType.Index1D:
+                    case IndexType.GroupedIndex:
                         return 1;
                     case IndexType.Index2D:
                         return 2;
                     case IndexType.Index3D:
                         return 3;
-                    case IndexType.GroupedIndex1D:
-                        return 2;
-                    case IndexType.GroupedIndex2D:
-                        return 4;
-                    case IndexType.GroupedIndex3D:
-                        return 6;
                     default:
                         throw new InvalidOperationException();
                 }

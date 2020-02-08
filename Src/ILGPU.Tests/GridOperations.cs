@@ -12,9 +12,7 @@ namespace ILGPU.Tests
             : base(output, contextProvider)
         { }
 
-        internal static void GridDimensionKernel(
-            GroupedIndex3 index,
-            ArrayView<int> data)
+        internal static void GridDimensionKernel(ArrayView<int> data)
         {
             data[0] = Grid.DimensionX;
             data[1] = Grid.DimensionY;
@@ -23,14 +21,6 @@ namespace ILGPU.Tests
             Debug.Assert(Grid.IndexX < Grid.DimensionX);
             Debug.Assert(Grid.IndexY < Grid.DimensionY);
             Debug.Assert(Grid.IndexZ < Grid.DimensionZ);
-
-            Debug.Assert(index.GridIdx.X == Grid.IndexX);
-            Debug.Assert(index.GridIdx.Y == Grid.IndexY);
-            Debug.Assert(index.GridIdx.Z == Grid.IndexZ);
-
-            Debug.Assert(index.GroupIdx.X == Group.IndexX);
-            Debug.Assert(index.GroupIdx.Y == Group.IndexY);
-            Debug.Assert(index.GroupIdx.Z == Group.IndexZ);
         }
 
         [Theory]

@@ -216,8 +216,8 @@ namespace ILGPU.Runtime
         /// Returns a kernel extent (a grouped index) with the maximum number of groups using the
         /// maximum number of threads per group to launch common grid-stride loop kernels.
         /// </summary>
-        public GroupedIndex MaxNumGroupsExtent => new GroupedIndex(
-            NumMultiprocessors * (MaxNumThreadsPerMultiprocessor / MaxNumThreadsPerGroup),
+        public (Index, Index) MaxNumGroupsExtent =>
+            (NumMultiprocessors * (MaxNumThreadsPerMultiprocessor / MaxNumThreadsPerGroup),
             MaxNumThreadsPerGroup);
 
         /// <summary>
