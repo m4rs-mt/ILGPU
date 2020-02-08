@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Runtime;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -94,7 +95,14 @@ namespace ILGPU
         /// </summary>
         /// <param name="index">The starting offset.</param>
         /// <returns>The new subview.</returns>
+        /// <remarks>
+        /// Note that this function interprets the memory view as a linear contiguous chunk of
+        /// memory that does not pay attention to the actual <see cref="Extent"/>. Instead, it
+        /// converts the (potentially multidemensional) indices to linear indices and returns
+        /// a raw view that spans a contiguous region of memory.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("Use GetSubView(TIndex, Index) instead")]
         public ArrayView<T, TIndex> GetSubView(TIndex index)
         {
             Debug.Assert(index.InBounds(Extent), "Offset ouf of bounds");
@@ -107,7 +115,14 @@ namespace ILGPU
         /// <param name="index">The starting offset.</param>
         /// <param name="subViewExtent">The extent of the new subview.</param>
         /// <returns>The new subview.</returns>
+        /// <remarks>
+        /// Note that this function interprets the memory view as a linear contiguous chunk of
+        /// memory that does not pay attention to the actual <see cref="Extent"/>. Instead, it
+        /// converts the (potentially multidemensional) indices to linear indices and returns
+        /// a raw view that spans a contiguous region of memory.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("Use GetSubView(TIndex, Index) instead")]
         public ArrayView<T, TIndex> GetSubView(TIndex index, TIndex subViewExtent)
         {
             Debug.Assert(index.InBounds(Extent), "Offset ouf of bounds");
@@ -116,6 +131,28 @@ namespace ILGPU
             Debug.Assert(index.Add(subViewExtent).InBoundsInclusive(Extent), "Subview out of range");
             var subView = BaseView.GetSubView(elementIndex, subViewExtent.Size);
             return new ArrayView<T, TIndex>(subView, subViewExtent);
+        }
+
+        /// <summary>
+        /// Returns a subview of the current view starting at the given offset.
+        /// </summary>
+        /// <param name="index">The starting offset.</param>
+        /// <param name="subViewExtent">The extent of the new subview.</param>
+        /// <returns>The new raw subview.</returns>
+        /// <remarks>
+        /// Note that this function interprets the memory view as a linear contiguous chunk of
+        /// memory that does not pay attention to the actual <see cref="Extent"/>. Instead, it
+        /// converts the (potentially multidemensional) indices to linear indices and returns
+        /// a raw view that spans a contiguous region of memory.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView<T> GetSubView(TIndex index, Index subViewExtent)
+        {
+            Debug.Assert(index.InBounds(Extent), "Offset ouf of bounds");
+            var elementIndex = index.ComputeLinearIndex(Extent);
+            Debug.Assert(elementIndex >= 0 && elementIndex < Length, "Offset ouf of bounds");
+            Debug.Assert(elementIndex + subViewExtent <= Length, "Subview out of range");
+            return BaseView.GetSubView(elementIndex, subViewExtent);
         }
 
         /// <summary>

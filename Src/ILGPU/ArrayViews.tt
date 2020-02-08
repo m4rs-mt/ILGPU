@@ -103,6 +103,7 @@ namespace ILGPU
         /// <param name="offset">The starting offset.</param>
         /// <returns>The new subview.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("Use BaseView.GetSubView instead")]
         public <#= typeName #><T> GetSubView(<#= indexType #> offset) =>
             new <#= typeName #><T>(BaseView.GetSubView(offset));
 
@@ -113,8 +114,25 @@ namespace ILGPU
         /// <param name="subViewExtent">The extent of the new subview.</param>
         /// <returns>The new subview.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("Use BaseView.GetSubView instead")]
         public <#= typeName #><T> GetSubView(<#= indexType #> offset, <#= indexType #> subViewExtent) =>
             new <#= typeName #><T>(BaseView.GetSubView(offset, subViewExtent));
+
+        /// <summary>
+        /// Returns a subview of the current view starting at the given offset.
+        /// </summary>
+        /// <param name="index">The starting offset.</param>
+        /// <param name="subViewExtent">The extent of the new subview.</param>
+        /// <returns>The new raw subview.</returns>
+        /// <remarks>
+        /// Note that this function interprets the memory view as a linear contiguous chunk of
+        /// memory that does not pay attention to the actual <see cref="Extent"/>. Instead, it
+        /// converts the (potentially multidemensional) indices to linear indices and returns
+        /// a raw view that spans a contiguous region of memory.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView<T> GetSubView(<#= indexType #> index, Index subViewExtent) =>
+            BaseView.GetSubView(index, subViewExtent);
 
         /// <summary>
         /// Casts the current array view into another array-view type.

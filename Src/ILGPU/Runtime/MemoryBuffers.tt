@@ -27,6 +27,7 @@ namespace ILGPU.Runtime
 <#      var typeName = i == 1 ? "MemoryBuffer" : $"MemoryBuffer{i}D"; #>
 <#      var arrayViewType = i == 1 ? "ArrayView" : $"ArrayView{i}D"; #>
 <#      var indexType = i == 1 ? "Index" : $"Index{i}"; #>
+<#      bool obsoleteCopyMethods = i > 1; #>
     /// <summary>
     /// Represents a <#= i #>D memory buffer that can be used in the scope
     /// of ILGPU runtime kernels.
@@ -169,6 +170,7 @@ namespace ILGPU.Runtime
         /// <param name="offset">The starting offset.</param>
         /// <returns>The new subview.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("Use View.GetSubView(TIndex, Index) instead")]
         public ArrayView<T, <#= indexType #>> GetSubView(<#= indexType #> offset) =>
             View.GetSubView(offset);
 
@@ -179,6 +181,7 @@ namespace ILGPU.Runtime
         /// <param name="subViewExtent">The extent of the new subview.</param>
         /// <returns>The new subview.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [Obsolete("Use View.GetSubView(TIndex, Index) instead")]
         public ArrayView<T, <#= indexType #>> GetSubView(
             <#= indexType #> offset,
             <#= indexType #> subViewExtent) =>
@@ -325,8 +328,32 @@ namespace ILGPU.Runtime
                 target,
                 sourceOffset,
                 default,
-                Extent);
+                Length);
 
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+<#      if (obsoleteCopyMethods) { #>
+        [Obsolete("Use CopyTo(<#= typeName #><T>, TIndex, TIndex, Index) instead")]
+<#      } #>
+        public void CopyTo(
+            <#= typeName #><T> target,
+            <#= indexType #> sourceOffset,
+            <#= indexType #> targetOffset,
+            <#= indexType #> extent) =>
+            buffer.CopyTo(
+                target,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+<#      if (obsoleteCopyMethods) { #>
         /// <summary>
         /// Copies elements from the current buffer to the target buffer using
         /// the default accelerator stream.
@@ -340,13 +367,40 @@ namespace ILGPU.Runtime
             <#= typeName #><T> target,
             <#= indexType #> sourceOffset,
             <#= indexType #> targetOffset,
-            <#= indexType #> extent) =>
+            Index extent) =>
             buffer.CopyTo(
                 target,
                 sourceOffset,
                 targetOffset,
                 extent);
+<#      } #>
 
+        /// <summary>
+        /// Copies elements from the current buffer to the target buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+<#      if (obsoleteCopyMethods) { #>
+        [Obsolete("Use CopyTo(AcceleratorStream, <#= typeName #><T>, TIndex, TIndex, Index) instead")]
+<#      } #>
+        public void CopyTo(
+            AcceleratorStream stream,
+            <#= typeName #><T> target,
+            <#= indexType #> sourceOffset,
+            <#= indexType #> targetOffset,
+            <#= indexType #> extent) =>
+            buffer.CopyTo(
+                stream,
+                target,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+<#      if (obsoleteCopyMethods) { #>
         /// <summary>
         /// Copies elements from the current buffer to the target buffer.
         /// </summary>
@@ -361,13 +415,14 @@ namespace ILGPU.Runtime
             <#= typeName #><T> target,
             <#= indexType #> sourceOffset,
             <#= indexType #> targetOffset,
-            <#= indexType #> extent) =>
+            Index extent) =>
             buffer.CopyTo(
                 stream,
                 target,
                 sourceOffset,
                 targetOffset,
                 extent);
+<#      } #>
 
         /// <summary>
         /// Copies a single element of this buffer to the given target variable
@@ -453,6 +508,9 @@ namespace ILGPU.Runtime
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+<#      if (obsoleteCopyMethods) { #>
+        [Obsolete("Use CopyFrom(<#= typeName #><T>, TIndex, TIndex, Index) instead")]
+<#      } #>
         public void CopyFrom(
             <#= typeName #><T> source,
             <#= indexType #> sourceOffset,
@@ -464,6 +522,54 @@ namespace ILGPU.Runtime
                 targetOffset,
                 extent);
 
+<#      if (obsoleteCopyMethods) { #>
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(
+            <#= typeName #><T> source,
+            <#= indexType #> sourceOffset,
+            <#= indexType #> targetOffset,
+            Index extent) =>
+            buffer.CopyFrom(
+                source,
+                sourceOffset,
+                targetOffset,
+                extent);
+<#      } #>
+
+        /// <summary>
+        /// Copies elements to the current buffer from the source buffer.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="source">The source buffer.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+<#      if (obsoleteCopyMethods) { #>
+        [Obsolete("Use CopyFrom(AcceleratorStream, <#= typeName #><T>, TIndex, TIndex, Index) instead")]
+<#      } #>
+        public void CopyFrom(
+            AcceleratorStream stream,
+            <#= typeName #><T> source,
+            <#= indexType #> sourceOffset,
+            <#= indexType #> targetOffset,
+            <#= indexType #> extent) =>
+            buffer.CopyFrom(
+                stream,
+                source,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+<#      if (obsoleteCopyMethods) { #>
         /// <summary>
         /// Copies elements to the current buffer from the source buffer.
         /// </summary>
@@ -478,13 +584,14 @@ namespace ILGPU.Runtime
             <#= typeName #><T> source,
             <#= indexType #> sourceOffset,
             <#= indexType #> targetOffset,
-            <#= indexType #> extent) =>
+            Index extent) =>
             buffer.CopyFrom(
                 stream,
                 source,
                 sourceOffset,
                 targetOffset,
                 extent);
+<#      } #>
 
         /// <summary>
         /// Copies elements to the current buffer from the source buffer.
