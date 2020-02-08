@@ -39,9 +39,9 @@ namespace ILGPU
         Index3D = 3,
 
         /// <summary>
-        /// Represents a grouped index.
+        /// Represents a generic kernel config.
         /// </summary>
-        GroupedIndex = 4,
+        KernelConfig = 4,
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ namespace ILGPU
                     return typeof(Index2);
                 case IndexType.Index3D:
                     return typeof(Index3);
-                case IndexType.GroupedIndex:
+                case IndexType.KernelConfig:
                     return typeof(KernelConfig);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(indexType));
@@ -85,7 +85,7 @@ namespace ILGPU
             else if (indexType == typeof(Index3))
                 return IndexType.Index3D;
             else if (indexType == typeof(KernelConfig))
-                return IndexType.GroupedIndex;
+                return IndexType.KernelConfig;
             return IndexType.None;
         }
     }
@@ -95,7 +95,6 @@ namespace ILGPU
     /// </summary>
     public interface IIndex
     {
-
         /// <summary>
         /// Returns the size represented by this index (eg. x, x * y or x * y * z).
         /// </summary>
