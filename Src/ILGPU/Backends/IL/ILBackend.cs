@@ -37,12 +37,7 @@ namespace ILGPU.Backends.IL
             /// <summary>
             /// Maps the grid dimension.
             /// </summary>
-            public ILLocal GridDim { get; set; }
-
-            /// <summary>
-            /// Maps the group dimension.
-            /// </summary>
-            public ILLocal GroupDim { get; set; }
+            public ILLocal UserGridDim { get; set; }
 
             /// <summary>
             /// Maps the current thread index.
@@ -274,7 +269,7 @@ namespace ILGPU.Backends.IL
             ImmutableArray<FieldInfo> taskArgumentMapping)
             where TEmitter : IILEmitter
         {
-            var ungroupedIndexType = entryPoint.UngroupedIndexType;
+            var kernelIndexType = entryPoint.KernelIndexType;
 
             // Cast generic task type to actual task type
             var task = emitter.DeclareLocal(taskType);
@@ -287,19 +282,19 @@ namespace ILGPU.Backends.IL
             var sourceGroupDim = emitter.DeclareLocal(typeof(Index3));
 
             // Determine used grid dimensions
-            kernelData.GridDim = emitter.DeclareLocal(ungroupedIndexType);
             var groupDimSize = emitter.DeclareLocal(typeof(int));
-            kernelData.GroupDim = emitter.DeclareLocal(ungroupedIndexType);
             {
+                kernelData.UserGridDim = emitter.DeclareLocal(entryPoint.KernelIndexType);
+
                 emitter.Emit(OpCodes.Ldarg_0);
                 emitter.EmitCall(typeof(CPUAcceleratorTask).GetProperty(
                     nameof(CPUAcceleratorTask.UserGridDim)).GetGetMethod(false));
                 emitter.Emit(LocalOperation.Store, sourceGridDim);
 
                 KernelLauncherBuilder.EmitConvertIndex3ToTargetType(
-                    ungroupedIndexType, emitter,
+                    entryPoint.IndexType, emitter,
                     () => emitter.Emit(LocalOperation.Load, sourceGridDim));
-                emitter.Emit(LocalOperation.Store, kernelData.GridDim);
+                emitter.Emit(LocalOperation.Store, kernelData.UserGridDim);
 
                 var getGroupDimFromTask = typeof(CPUAcceleratorTask).GetProperty(
                     nameof(CPUAcceleratorTask.GroupDim)).GetGetMethod(false);
@@ -307,15 +302,16 @@ namespace ILGPU.Backends.IL
                 emitter.EmitCall(getGroupDimFromTask);
                 emitter.Emit(LocalOperation.Store, sourceGroupDim);
 
+                var groupDim = emitter.DeclareLocal(kernelData.UserGridDim.VariableType);
                 KernelLauncherBuilder.EmitConvertIndex3ToTargetType(
-                    ungroupedIndexType, emitter,
+                    entryPoint.IndexType, emitter,
                     () => emitter.Emit(LocalOperation.Load, sourceGroupDim));
-                emitter.Emit(LocalOperation.Store, kernelData.GroupDim);
+                emitter.Emit(LocalOperation.Store, groupDim);
 
                 // Compute linear group-dim size
-                emitter.Emit(LocalOperation.LoadAddress, kernelData.GroupDim);
+                emitter.Emit(LocalOperation.LoadAddress, groupDim);
                 emitter.EmitCall(
-                    ungroupedIndexType.GetProperty(nameof(IIndex.Size)).GetGetMethod());
+                    kernelIndexType.GetProperty(nameof(IIndex.Size)).GetGetMethod());
                 emitter.Emit(LocalOperation.Store, groupDimSize);
             }
 
@@ -376,12 +372,12 @@ namespace ILGPU.Backends.IL
             // Bind current multi-dimensional grid and group indices
             emitter.Emit(LocalOperation.Load, linearGridIndex);
             KernelLauncherBuilder.EmitConvertFrom1DIndexToTargetIndexType(
-                typeof(Index3),
+                IndexType.Index3D,
                 emitter,
                 () => emitter.Emit(LocalOperation.Load, sourceGridDim));
             emitter.Emit(LocalOperation.Load, linearGroupIndex);
             KernelLauncherBuilder.EmitConvertFrom1DIndexToTargetIndexType(
-                typeof(Index3),
+                IndexType.Index3D,
                 emitter,
                 () => emitter.Emit(LocalOperation.Load, sourceGroupDim));
             emitter.EmitCall(CPURuntimeThreadContext.SetupIndicesMethod);
@@ -391,31 +387,15 @@ namespace ILGPU.Backends.IL
                 // Use direct construction for 1D index
                 emitter.Emit(LocalOperation.Load, globalIndex);
                 KernelLauncherBuilder.EmitConvertFrom1DIndexToTargetIndexType(
-                    ungroupedIndexType,
+                    entryPoint.IndexType,
                     emitter,
-                    () => emitter.Emit(LocalOperation.Load, kernelData.GridDim));
+                    () => emitter.Emit(LocalOperation.Load, kernelData.UserGridDim));
+                emitter.Emit(LocalOperation.Store, kernelData.Index);
             }
             else
             {
-                emitter.Emit(LocalOperation.Load, linearGridIndex);
-                KernelLauncherBuilder.EmitConvertFrom1DIndexToTargetIndexType(
-                    ungroupedIndexType,
-                    emitter,
-                    () => emitter.Emit(LocalOperation.Load, kernelData.GridDim));
-
-                emitter.Emit(LocalOperation.Load, linearGroupIndex);
-                KernelLauncherBuilder.EmitConvertFrom1DIndexToTargetIndexType(
-                    ungroupedIndexType,
-                    emitter,
-                    () => emitter.Emit(LocalOperation.Load, kernelData.GroupDim));
-
-                // Compute group index
-
-                var groupedConstructor = entryPoint.KernelIndexType.GetConstructor(
-                    new Type[] { ungroupedIndexType, ungroupedIndexType });
-                emitter.EmitNewObject(groupedConstructor);
+                // Do nothing
             }
-            emitter.Emit(LocalOperation.Store, kernelData.Index);
         }
 
         /// <summary>

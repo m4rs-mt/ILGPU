@@ -89,16 +89,16 @@ namespace ILGPU.Runtime
         /// Emits code to convert an Index3 to a specific target type.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
-        /// <param name="ungroupedIndexType">The index type (can be Index, Index2 or Index3).</param>
+        /// <param name="indexType">The index type (can be Index, Index2 or Index3).</param>
         /// <param name="emitter">The target IL emitter.</param>
         /// <param name="loadIdx">A callback to load the referenced index value onto the stack.</param>
         public static void EmitConvertIndex3ToTargetType<TEmitter>(
-            Type ungroupedIndexType,
+            IndexType indexType,
             in TEmitter emitter,
             Action loadIdx)
             where TEmitter : IILEmitter
         {
-            var numValues = (int)ungroupedIndexType.GetUngroupedIndexType();
+            var numValues = (int)indexType;
             if (numValues > 3)
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedIndexType);
             var idxLocal = emitter.DeclareLocal(typeof(Index3));
@@ -110,7 +110,8 @@ namespace ILGPU.Runtime
                 emitter.Emit(LocalOperation.LoadAddress, idxLocal);
                 emitter.EmitCall(Index3ValueGetter[i]);
             }
-            var mainConstructor = GetMainIndexConstructor(ungroupedIndexType);
+            var mainConstructor = GetMainIndexConstructor(
+                indexType.GetManagedIndexType());
             emitter.EmitNewObject(mainConstructor);
         }
 
@@ -118,33 +119,34 @@ namespace ILGPU.Runtime
         /// Emits code to convert a linear index to a specific target type.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
-        /// <param name="ungroupedIndexType">The index type (can be Index, Index2 or Index3).</param>
+        /// <param name="indexType">The index type (can be Index, Index2 or Index3).</param>
         /// <param name="emitter">The target IL emitter.</param>
         /// <param name="loadDimension">A callback to load the referenced dimension value onto the stack.</param>
         public static void EmitConvertFrom1DIndexToTargetIndexType<TEmitter>(
-            Type ungroupedIndexType,
+            IndexType indexType,
             in TEmitter emitter,
             Action loadDimension)
             where TEmitter : IILEmitter
         {
-            switch (ungroupedIndexType.GetUngroupedIndexType())
+            var managedIndexType = indexType.GetManagedIndexType();
+            switch (indexType)
             {
                 case IndexType.Index1D:
                     // Invoke default constructor of the index class
                     emitter.EmitNewObject(
-                        GetMainIndexConstructor(ungroupedIndexType));
+                        GetMainIndexConstructor(managedIndexType));
                     break;
                 case IndexType.Index2D:
                     loadDimension();
                     emitter.EmitCall(
-                        ungroupedIndexType.GetMethod(
+                        managedIndexType.GetMethod(
                             nameof(Index2.ReconstructIndex),
                             BindingFlags.Public | BindingFlags.Static));
                     break;
                 case IndexType.Index3D:
                     loadDimension();
                     emitter.EmitCall(
-                        ungroupedIndexType.GetMethod(
+                        managedIndexType.GetMethod(
                             nameof(Index3.ReconstructIndex),
                             BindingFlags.Public | BindingFlags.Static));
                     break;
@@ -215,48 +217,41 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Emits a kernel-dimension configuration.
-        /// It pushes 6 integers onto the evaluation stack (gridIdx.X, gridIdx.Y, ...) by default.
-        /// Howerver, using a custom <paramref name="convertIndex3Args"/> function allows to create
-        /// and instantiate custom grid and group indices.
+        /// Emits a kernel-dimension configuration. In the case of an ungrouped index type, all arguments
+        /// will be transformed into a <see cref="KernelConfig"/> instance. Otherwise, the passed kernel
+        /// configuration will be used without any modifications.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="entryPoint">The entry point.</param>
         /// <param name="emitter">The target IL emitter.</param>
         /// <param name="dimensionIdx">The argument index of the provided launch-dimension index.</param>
-        /// <param name="convertIndex3Args">Allows to create and instantiate custom grid and group indices.</param>
-        public static void EmitLoadDimensions<TEmitter>(
+        public static void EmitLoadKernelConfig<TEmitter>(
             EntryPoint entryPoint,
             in TEmitter emitter,
-            int dimensionIdx,
-            Action convertIndex3Args)
+            int dimensionIdx)
             where TEmitter : IILEmitter
         {
-            EmitLoadDimensions(
+            EmitLoadKernelConfig(
                 entryPoint,
                 emitter,
                 dimensionIdx,
-                convertIndex3Args,
                 0);
         }
 
         /// <summary>
-        /// Emits a kernel-dimension configuration.
-        /// It pushes 6 integers onto the evaluation stack (gridIdx.X, gridIdx.Y, ...) by default.
-        /// Howerver, using a custom <paramref name="convertIndex3Args"/> function allows to create
-        /// and instantiate custom grid and group indices.
+        /// Emits a kernel-dimension configuration. In the case of an ungrouped index type, all arguments
+        /// will be transformed into a <see cref="KernelConfig"/> instance. Otherwise, the passed kernel
+        /// configuration will be used without any modifications.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="entryPoint">The entry point.</param>
         /// <param name="emitter">The target IL emitter.</param>
         /// <param name="dimensionIdx">The argument index of the provided launch-dimension index.</param>
-        /// <param name="convertIndex3Args">Allows to create and instantiate custom grid and group indices.</param>
         /// <param name="customGroupSize">The custom group size used for automatic blocking.</param>
-        public static void EmitLoadDimensions<TEmitter>(
+        public static void EmitLoadKernelConfig<TEmitter>(
             EntryPoint entryPoint,
             TEmitter emitter,
             int dimensionIdx,
-            Action convertIndex3Args,
             int customGroupSize)
             where TEmitter : IILEmitter
         {
@@ -269,7 +264,7 @@ namespace ILGPU.Runtime
                 // This is no limitation of the current PTX backend.
 
                 EmitLoadDimensions(
-                    entryPoint.UngroupedIndexType,
+                    entryPoint.KernelIndexType,
                     emitter,
                     () => emitter.Emit(ArgumentOperation.LoadAddress, dimensionIdx),
                     dimIdx =>
@@ -283,47 +278,22 @@ namespace ILGPU.Runtime
                         emitter.Emit(OpCodes.Div);
                     });
 
-                convertIndex3Args();
-
                 // Custom grouping
                 emitter.EmitConstant(Math.Max(customGroupSize, 1));
                 emitter.Emit(OpCodes.Ldc_I4_1);
                 emitter.Emit(OpCodes.Ldc_I4_1);
 
-                convertIndex3Args();
+                var config = emitter.DeclareLocal(typeof(KernelConfig));
+                emitter.EmitNewObject(KernelConfig.ImplicitlyGroupedKernelConstructor);
+                emitter.Emit(LocalOperation.Store, config);
+
+                emitter.Emit(LocalOperation.LoadAddress, config);
             }
             else
             {
                 Debug.Assert(customGroupSize == 0, "Invalid custom group size");
 
-                var groupedIndexType = entryPoint.KernelIndexType;
-                var gridIdx = emitter.DeclareLocal(entryPoint.UngroupedIndexType);
-
                 emitter.Emit(ArgumentOperation.LoadAddress, dimensionIdx);
-                emitter.EmitCall(
-                    groupedIndexType.GetProperty(
-                        nameof(GroupedIndex.GridIdx),
-                        BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false));
-                emitter.Emit(LocalOperation.Store, gridIdx);
-                EmitLoadDimensions(
-                    entryPoint.UngroupedIndexType,
-                    emitter,
-                    () => emitter.Emit(LocalOperation.LoadAddress, gridIdx));
-                convertIndex3Args();
-
-                var groupIdx = emitter.DeclareLocal(entryPoint.UngroupedIndexType);
-
-                emitter.Emit(ArgumentOperation.LoadAddress, dimensionIdx);
-                emitter.EmitCall(
-                    groupedIndexType.GetProperty(
-                        nameof(GroupedIndex.GroupIdx),
-                        BindingFlags.Public | BindingFlags.Instance).GetGetMethod(false));
-                emitter.Emit(LocalOperation.Store, groupIdx);
-                EmitLoadDimensions(
-                    entryPoint.UngroupedIndexType,
-                    emitter,
-                    () => emitter.Emit(LocalOperation.LoadAddress, groupIdx));
-                convertIndex3Args();
             }
         }
 

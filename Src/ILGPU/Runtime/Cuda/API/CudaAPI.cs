@@ -699,13 +699,7 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         /// <param name="stream">The current stream.</param>
         /// <param name="kernel">The current kernel.</param>
-        /// <param name="gridDimX">The grid dimension in X dimension.</param>
-        /// <param name="gridDimY">The grid dimension in Y dimension.</param>
-        /// <param name="gridDimZ">The grid dimension in Z dimension.</param>
-        /// <param name="blockDimX">The block dimension in X dimension.</param>
-        /// <param name="blockDimY">The block dimension in Y dimension.</param>
-        /// <param name="blockDimZ">The block dimension in Z dimension.</param>
-        /// <param name="sharedMemSizeInBytes">The shared-memory size in bytes.</param>
+        /// <param name="config">The current kernel configuration.</param>
         /// <param name="args">The arguments.</param>
         /// <param name="kernelArgs">The kernel arguments.</param>
         /// <returns>The error status.</returns>
@@ -713,13 +707,7 @@ namespace ILGPU.Runtime.Cuda.API
         public CudaError LaunchKernelWithStreamBinding(
             CudaStream stream,
             CudaKernel kernel,
-            int gridDimX,
-            int gridDimY,
-            int gridDimZ,
-            int blockDimX,
-            int blockDimY,
-            int blockDimZ,
-            int sharedMemSizeInBytes,
+            KernelConfig config,
             IntPtr args,
             IntPtr kernelArgs)
         {
@@ -727,13 +715,13 @@ namespace ILGPU.Runtime.Cuda.API
 
             var result = LaunchKernel(
                 kernel.FunctionPtr,
-                gridDimX,
-                gridDimY,
-                gridDimZ,
-                blockDimX,
-                blockDimY,
-                blockDimZ,
-                sharedMemSizeInBytes,
+                config.GridDimension.X,
+                config.GridDimension.Y,
+                config.GridDimension.Z,
+                config.GroupDimension.X,
+                config.GroupDimension.Y,
+                config.GroupDimension.Z,
+                config.SharedMemoryConfig,
                 stream.StreamPtr,
                 args,
                 kernelArgs);

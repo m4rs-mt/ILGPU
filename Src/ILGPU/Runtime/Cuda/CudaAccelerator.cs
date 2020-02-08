@@ -46,12 +46,12 @@ namespace ILGPU.Runtime.Cuda
             BindingFlags.Public | BindingFlags.Static).GetGetMethod();
 
         /// <summary>
-        /// Represents the <see cref="CudaAPI.LaunchKernelWithStreamBinding(CudaStream, CudaKernel, int, int, int, int, int, int, int, IntPtr, IntPtr)"/>
+        /// Represents the <see cref="CudaAPI.LaunchKernelWithStreamBinding(CudaStream, CudaKernel, KernelConfig, IntPtr, IntPtr)"/>
         /// method.
         /// </summary>
         private static readonly MethodInfo LaunchKernelMethod = typeof(CudaAPI).GetMethod(
             nameof(CudaAPI.LaunchKernelWithStreamBinding),
-            BindingFlags.Public | BindingFlags.Instance);
+            BindingFlags.NonPublic | BindingFlags.Instance);
 
         /// <summary>
         /// Represents the <see cref="CudaException.ThrowIfFailed(CudaError)" /> method.
@@ -513,16 +513,12 @@ namespace ILGPU.Runtime.Cuda
                 Kernel.KernelInstanceParamIdx,
                 emitter);
 
-            // Load dimensions
-            KernelLauncherBuilder.EmitLoadDimensions(
+            // Load kernel config
+            KernelLauncherBuilder.EmitLoadKernelConfig(
                 entryPoint,
                 emitter,
                 Kernel.KernelParamDimensionIdx,
-                () => { },
                 customGroupSize);
-
-            // Load shared-mem size (0 bytes in dynamic shared memory)
-            emitter.Emit(OpCodes.Ldc_I4_0);
 
             // Load kernel args
             emitter.Emit(LocalOperation.Load, argumentBuffer);

@@ -55,10 +55,8 @@ namespace ILGPU.Runtime.CPU
         internal static readonly Type[] ConstructorParameterTypes =
         {
             typeof(CPUKernelExecutionHandler),
-            typeof(Index3),
-            typeof(Index3),
-            typeof(Index3),
-            typeof(Index3),
+            typeof(KernelConfig),
+            typeof(KernelConfig),
             typeof(int)
         };
 
@@ -91,10 +89,8 @@ namespace ILGPU.Runtime.CPU
         /// <param name="sharedMemSize">The required amount of shareed-memory per thread group in bytes.</param>
         public CPUAcceleratorTask(
             CPUKernelExecutionHandler kernelExecutionDelegate,
-            Index3 userGridDim,
-            Index3 userGroupDim,
-            Index3 gridDim,
-            Index3 groupDim,
+            KernelConfig userConfig,
+            KernelConfig gridConfig,
             int sharedMemSize)
         {
             Debug.Assert(kernelExecutionDelegate != null, "Invalid execution delegate");

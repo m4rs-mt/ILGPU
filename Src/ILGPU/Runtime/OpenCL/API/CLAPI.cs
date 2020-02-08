@@ -587,35 +587,28 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="stream">The current stream.</param>
         /// <param name="kernel">The current kernel.</param>
-        /// <param name="gridDimX">The grid dimension in X dimension.</param>
-        /// <param name="gridDimY">The grid dimension in Y dimension.</param>
-        /// <param name="gridDimZ">The grid dimension in Z dimension.</param>
-        /// <param name="blockDimX">The block dimension in X dimension.</param>
-        /// <param name="blockDimY">The block dimension in Y dimension.</param>
-        /// <param name="blockDimZ">The block dimension in Z dimension.</param>
+        /// <param name="config">The current kernel configuration.</param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static unsafe CLError LaunchKernelWithStreamBinding(
             CLStream stream,
             CLKernel kernel,
-            int gridDimX,
-            int gridDimY,
-            int gridDimZ,
-            int blockDimX,
-            int blockDimY,
-            int blockDimZ)
+            KernelConfig config)
         {
             var binding = stream.BindScoped();
 
+            var gridDim = config.GridDimension;
+            var blockDim = config.GroupDimension;
+
             IntPtr* globalWorkSizes = stackalloc IntPtr[3];
-            globalWorkSizes[0] = new IntPtr(gridDimX * blockDimX);
-            globalWorkSizes[1] = new IntPtr(gridDimY * blockDimY);
-            globalWorkSizes[2] = new IntPtr(gridDimZ * blockDimZ);
+            globalWorkSizes[0] = new IntPtr(gridDim.X * blockDim.X);
+            globalWorkSizes[1] = new IntPtr(gridDim.Y * blockDim.Y);
+            globalWorkSizes[2] = new IntPtr(gridDim.Z * blockDim.Z);
 
             IntPtr* localWorkSizes = stackalloc IntPtr[3];
-            localWorkSizes[0] = new IntPtr(blockDimX);
-            localWorkSizes[1] = new IntPtr(blockDimY);
-            localWorkSizes[2] = new IntPtr(blockDimZ);
+            localWorkSizes[0] = new IntPtr(blockDim.X);
+            localWorkSizes[1] = new IntPtr(blockDim.Y);
+            localWorkSizes[2] = new IntPtr(blockDim.Z);
 
             var result = LaunchKernelUnsafe(
                 stream.CommandQueue,

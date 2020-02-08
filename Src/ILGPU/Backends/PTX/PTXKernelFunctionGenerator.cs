@@ -217,21 +217,6 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Emits an explicit kernel index computation.
-        /// </summary>
-        /// <param name="targetGridIdx">The target grid index register.</param>
-        /// <param name="targetGroupIdx">The targhet group index register.</param>
-        /// <param name="dimension">The dimension index.</param>
-        private void EmitExplicitKernelIndex(
-            PrimitiveRegister targetGridIdx,
-            PrimitiveRegister targetGroupIdx,
-            int dimension)
-        {
-            MoveFromIntrinsicRegister(targetGridIdx, PTXRegisterKind.Ctaid, dimension);
-            MoveFromIntrinsicRegister(targetGroupIdx, PTXRegisterKind.Tid, dimension);
-        }
-
-        /// <summary>
         /// Setups the current kernel indices.
         /// </summary>
         /// <param name="indexRegister">The main kernel index register.</param>
@@ -240,28 +225,15 @@ namespace ILGPU.Backends.PTX
             StructureRegister indexRegister,
             StructureRegister lengthRegister)
         {
+            // Skip this step for grouped kernels
             if (EntryPoint.IsGroupedIndexEntry)
+                return;
+            for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
             {
-                var gridRegisters = indexRegister.Children[0] as StructureRegister;
-                var groupRegisters = indexRegister.Children[1] as StructureRegister;
-
-                for (int i = 0, e = (int)EntryPoint.IndexType - (int)IndexType.Index3D; i < e; ++i)
-                {
-                    EmitExplicitKernelIndex(
-                        gridRegisters.Children[i] as PrimitiveRegister,
-                        groupRegisters.Children[i] as PrimitiveRegister,
-                        i);
-                }
-            }
-            else
-            {
-                for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
-                {
-                    EmitImplicitKernelIndex(
-                        i,
-                        indexRegister.Children[i] as PrimitiveRegister,
-                        lengthRegister.Children[i] as PrimitiveRegister);
-                }
+                EmitImplicitKernelIndex(
+                    i,
+                    indexRegister.Children[i] as PrimitiveRegister,
+                    lengthRegister.Children[i] as PrimitiveRegister);
             }
         }
 

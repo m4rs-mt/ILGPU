@@ -65,7 +65,7 @@ namespace ILGPU.Runtime.OpenCL
         #region Static
 
         /// <summary>
-        /// Represents the <see cref="CLAPI.LaunchKernelWithStreamBinding(CLStream, CLKernel, int, int, int, int, int, int)"/> method.
+        /// Represents the <see cref="CLAPI.LaunchKernelWithStreamBinding(CLStream, CLKernel, KernelConfig)"/> method.
         /// </summary>
         private static readonly MethodInfo LaunchKernelMethod = typeof(CLAPI).GetMethod(
             nameof(CLAPI.LaunchKernelWithStreamBinding),
@@ -553,11 +553,10 @@ namespace ILGPU.Runtime.OpenCL
             emitter.Emit(LocalOperation.Load, kernelLocal);
 
             // Load dimensions
-            KernelLauncherBuilder.EmitLoadDimensions(
+            KernelLauncherBuilder.EmitLoadKernelConfig(
                 entryPoint,
                 emitter,
                 Kernel.KernelParamDimensionIdx,
-                () => { },
                 customGroupSize);
 
             // Dispatch kernel

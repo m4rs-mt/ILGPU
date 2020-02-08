@@ -453,7 +453,6 @@ namespace ILGPU.Backends.OpenCL
             foreach (var block in Scope)
                 blockLookup.Add(block, DeclareLabel());
 
-
             // Find all phi nodes, allocate target registers and setup internal mapping
             var cfg = Scope.CreateCFG();
             var bindingAllocator = new PhiBindingAllocator(this, cfg);

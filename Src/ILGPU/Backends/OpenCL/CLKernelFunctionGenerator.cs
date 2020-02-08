@@ -14,6 +14,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -73,10 +74,10 @@ namespace ILGPU.Backends.OpenCL
             /// <summary cref="CLCodeGenerator.IParametersSetupLogic.HandleIntrinsicParameter(int, Parameter)"/>
             public Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter)
             {
-                IndexVariable = Parent.Allocate(parameter);
-
                 if (!Parent.EntryPoint.IsGroupedIndexEntry)
                 {
+                    IndexVariable = Parent.Allocate(parameter);
+
                     // This is an implicitly grouped kernel that needs boundary information
                     // to avoid out-of-bounds dispatches (See also PTXKernelFunctionGenerator)
                     LengthVariable = Parent.AllocateType(parameter.ParameterType);
@@ -352,67 +353,26 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary>
-        /// Emits an explicit kernel index computation.
-        /// </summary>
-        /// <param name="indexVariable">The index variable to write to.</param>
-        /// <param name="gridAccessChain">The access chain to use for grid accesses.</param>
-        /// <param name="groupAccessChain">The access chain to use for group accesses.</param>
-        /// <param name="dimension">The parameter dimension.</param>
-        private void EmitExplicitKernelIndex(
-            Variable indexVariable,
-            ImmutableArray<int> gridAccessChain,
-            ImmutableArray<int> groupAccessChain,
-            int dimension)
-        {
-            using (var statement = BeginStatement(indexVariable, gridAccessChain))
-            {
-                statement.AppendOperation(CLInstructions.GetGridIndex);
-                statement.BeginArguments();
-                statement.AppendCommand(dimension.ToString());
-                statement.EndArguments();
-            }
-
-            using (var statement = BeginStatement(indexVariable, groupAccessChain))
-            {
-                statement.AppendOperation(CLInstructions.GetGroupIndex);
-                statement.BeginArguments();
-                statement.AppendCommand(dimension.ToString());
-                statement.EndArguments();
-            }
-        }
-
-        /// <summary>
         /// Setups the current kernel indices.
         /// </summary>
         /// <param name="indexVariable">The main kernel index variable.</param>
         /// <param name="lengthVariable">The length variable of implicitly grouped kernels.</param>
         private void SetupKernelIndex(Variable indexVariable, Variable lengthVariable)
         {
-            Declare(indexVariable);
-            if (EntryPoint.IsGroupedIndexEntry)
+            if (!EntryPoint.IsGroupedIndexEntry)
             {
-                var gridAccessChain = ImmutableArray.Create(0);
-                var groupAccessChain = ImmutableArray.Create(1);
-
-                for (int i = 0, e = (int)EntryPoint.IndexType - (int)IndexType.Index3D; i < e; ++i)
-                {
-                    EmitExplicitKernelIndex(
-                        indexVariable,
-                        gridAccessChain.Add(i),
-                        groupAccessChain.Add(i),
-                        i);
-                }
+                Debug.Assert(indexVariable == null, "Invalid index variable");
+                return;
             }
-            else
+
+            Declare(indexVariable);
+            for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
             {
-                for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
-                {
-                    EmitImplicitKernelIndex(
-                        indexVariable,
-                        lengthVariable,
-                        ImmutableArray.Create(i),
-                        i);
-                }
+                EmitImplicitKernelIndex(
+                    indexVariable,
+                    lengthVariable,
+                    ImmutableArray.Create(i),
+                    i);
             }
         }
 

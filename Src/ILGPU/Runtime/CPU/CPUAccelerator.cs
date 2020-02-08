@@ -389,22 +389,16 @@ namespace ILGPU.Runtime.CPU
                         BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).GetGetMethod(true));
 
                 // Load custom user dimension
-                KernelLauncherBuilder.EmitLoadDimensions(
+                KernelLauncherBuilder.EmitLoadKernelConfig(
                     entryPoint,
                     emitter,
-                    Kernel.KernelParamDimensionIdx,
-                    () => emitter.EmitNewObject(
-                        typeof(Index3).GetConstructor(
-                            new Type[] { typeof(int), typeof(int), typeof(int) })));
+                    Kernel.KernelParamDimensionIdx);
 
-                // Load dimensions as index3 arguments
-                KernelLauncherBuilder.EmitLoadDimensions(
+                // Load dimensions
+                KernelLauncherBuilder.EmitLoadKernelConfig(
                     entryPoint,
                     emitter,
                     Kernel.KernelParamDimensionIdx,
-                    () => emitter.EmitNewObject(
-                        typeof(Index3).GetConstructor(
-                            new Type[] { typeof(int), typeof(int), typeof(int) })),
                     customGroupSize);
 
                 // Load shared-memory size
