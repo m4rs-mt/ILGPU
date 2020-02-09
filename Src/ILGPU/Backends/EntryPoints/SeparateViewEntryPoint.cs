@@ -238,15 +238,15 @@ namespace ILGPU.Backends.EntryPoints
         /// Constructs a new entry point targeting the given method.
         /// </summary>
         /// <param name="methodSource">The source method.</param>
-        /// <param name="sharedMemorySize">The size of the shared memory in bytes.</param>
+        /// <param name="sharedMemory">The shared memory specification.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="typeInformationManager">The information manager to use.</param>
         public SeparateViewEntryPoint(
             MethodInfo methodSource,
-            int sharedMemorySize,
+            in SharedMemorySpecification sharedMemory,
             in KernelSpecialization specialization,
             TypeInformationManager typeInformationManager)
-            : base(methodSource, sharedMemorySize, specialization)
+            : base(methodSource, sharedMemory, specialization)
         {
             var builder = ImmutableArray.CreateBuilder<ViewParameter>(
                 Parameters.NumParameters);

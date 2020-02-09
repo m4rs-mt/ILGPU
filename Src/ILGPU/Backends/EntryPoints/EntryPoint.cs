@@ -101,18 +101,18 @@ namespace ILGPU.Backends.EntryPoints
         /// Constructs a new entry point targeting the given method.
         /// </summary>
         /// <param name="methodSource">The source method.</param>
-        /// <param name="sharedMemorySize">The size of the shared memory in bytes.</param>
+        /// <param name="sharedMemory">The shared memory specification.</param>
         /// <param name="specialization">The kernel specialization.</param>
         public EntryPoint(
             MethodInfo methodSource,
-            int sharedMemorySize,
+            in SharedMemorySpecification sharedMemory,
             in KernelSpecialization specialization)
         {
             MethodInfo = methodSource;
             if (MethodInfo == null)
                 throw new NotSupportedException(ErrorMessages.InvalidEntryPointWithoutDotNetMethod);
             Specialization = specialization;
-            SharedMemorySize = sharedMemorySize;
+            SharedMemory = sharedMemory;
 
             if (!MethodInfo.IsStatic)
                 throw new NotSupportedException(ErrorMessages.InvalidEntryPointInstanceKernelMethod);
@@ -212,9 +212,9 @@ namespace ILGPU.Backends.EntryPoints
         }
 
         /// <summary>
-        /// Returns the amount of shared memory.
+        /// Returns the associated shared memory specification.
         /// </summary>
-        public int SharedMemorySize { get; }
+        public SharedMemorySpecification SharedMemory { get; }
 
         #endregion
 
@@ -251,6 +251,60 @@ namespace ILGPU.Backends.EntryPoints
 
             return result;
         }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a shared memory specification of a specific kernel.
+    /// </summary>
+    public readonly struct SharedMemorySpecification
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new shared memory specification.
+        /// </summary>
+        /// <param name="staticSize">The static shared memory size.</param>
+        /// <param name="dynamicElementSize">The dynamic shared memory element size.</param>
+        public SharedMemorySpecification(
+            int staticSize,
+            int dynamicElementSize)
+        {
+            Debug.Assert(staticSize >= 0, "Invalid static memory size");
+            Debug.Assert(dynamicElementSize >= 0, "Invalid dynamic memory element size");
+            StaticSize = staticSize;
+            DynamicElementSize = dynamicElementSize;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns true if the current specification.
+        /// </summary>
+        public bool HasSharedMemory => HasStaticMemory | HasDynamicMemory;
+
+        /// <summary>
+        /// Returns the amount of shared memory.
+        /// </summary>
+        public int StaticSize { get; }
+
+        /// <summary>
+        /// Returns true if the current specification required static shared memory.
+        /// </summary>
+        public bool HasStaticMemory => StaticSize > 0;
+
+        /// <summary>
+        /// Returns the element size of a dynamic shared memory element (if any).
+        /// </summary>
+        public int DynamicElementSize { get; }
+
+        /// <summary>
+        /// Returns true if this entry point required dynamic shared memory.
+        /// </summary>
+        public bool HasDynamicMemory => DynamicElementSize > 0;
 
         #endregion
     }
