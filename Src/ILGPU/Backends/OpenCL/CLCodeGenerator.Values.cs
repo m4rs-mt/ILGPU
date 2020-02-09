@@ -296,7 +296,7 @@ namespace ILGPU.Backends.OpenCL
                 statement.BeginArguments();
                 statement.AppendAtomicCast(atomicCAS.ArithmeticBasicValueType);
                 statement.AppendArgument(target);
-                statement.AppendArgumentAddress(value);
+                statement.AppendArgumentAddressWithCast(value, "__generic " + CLTypeGenerator.GetBasicValueType(atomicCAS.ArithmeticBasicValueType) + " *");
                 statement.AppendArgument(compare);
                 statement.EndArguments();
             }
