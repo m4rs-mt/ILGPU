@@ -65,7 +65,7 @@ namespace ILGPU.Backends.PTX
             {
                 IndexRegister = Parent.Allocate(parameter) as StructureRegister;
 
-                if (!EntryPoint.IsGroupedIndexEntry)
+                if (!EntryPoint.IsExplicitlyGrouped)
                 {
                     // This is an implicitly grouped kernel that needs
                     // boundary information to avoid out-of-bounds dispatches
@@ -226,7 +226,7 @@ namespace ILGPU.Backends.PTX
             StructureRegister lengthRegister)
         {
             // Skip this step for grouped kernels
-            if (EntryPoint.IsGroupedIndexEntry)
+            if (EntryPoint.IsExplicitlyGrouped)
                 return;
             for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
             {

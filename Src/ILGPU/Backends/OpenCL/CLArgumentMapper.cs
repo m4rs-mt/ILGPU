@@ -350,7 +350,7 @@ namespace ILGPU.Backends.OpenCL
 
             // Map implicit kernel length (if required)
             int parameterOffset = entryPoint.NumViewParameters;
-            if (!entryPoint.IsGroupedIndexEntry)
+            if (!entryPoint.IsExplicitlyGrouped)
             {
                 var lengthSource = new ArgumentSource(
                     entryPoint.KernelIndexType,

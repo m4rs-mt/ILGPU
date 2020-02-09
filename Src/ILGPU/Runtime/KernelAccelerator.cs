@@ -63,7 +63,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentOutOfRangeException(nameof(customGroupSize));
             if (!(kernel is TCompiledKernel compiledKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
-            if (kernel.EntryPoint.IsGroupedIndexEntry)
+            if (kernel.EntryPoint.IsExplicitlyGrouped)
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
             return CreateKernel(
                 compiledKernel,
@@ -80,7 +80,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentNullException(nameof(kernel));
             if (!(kernel is TCompiledKernel compiledKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
-            if (kernel.EntryPoint.IsGroupedIndexEntry)
+            if (kernel.EntryPoint.IsExplicitlyGrouped)
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
 
             var result = CreateKernel(compiledKernel);

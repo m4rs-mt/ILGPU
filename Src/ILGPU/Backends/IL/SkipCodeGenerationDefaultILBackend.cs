@@ -11,7 +11,6 @@
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Runtime;
-using System.Reflection;
 
 namespace ILGPU.Backends.IL
 {
@@ -58,7 +57,7 @@ namespace ILGPU.Backends.IL
         /// <param name="backendHandler">The backend handler.</param>
         /// <returns>The compiled kernel that represents the compilation result.</returns>
         public override CompiledKernel Compile<TBackendHandler>(
-            MethodInfo entry,
+            EntryPointDescription entry,
             in KernelSpecialization specialization,
             TBackendHandler backendHandler)
         {

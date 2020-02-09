@@ -495,7 +495,7 @@ namespace ILGPU.Runtime.Cuda
             var argumentBuffer = argumentMapper.Map(emitter, entryPoint);
 
             // Add the actual dispatch-size information to the kernel parameters
-            if (!entryPoint.IsGroupedIndexEntry)
+            if (!entryPoint.IsExplicitlyGrouped)
                 PTXArgumentMapper.StoreKernelLength(emitter, argumentBuffer);
 
             // Emit kernel launch

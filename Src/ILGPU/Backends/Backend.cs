@@ -496,7 +496,7 @@ namespace ILGPU.Backends
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The compiled kernel that represents the compilation result.</returns>
         public CompiledKernel Compile(
-            MethodInfo entry,
+            EntryPointDescription entry,
             in KernelSpecialization specialization) =>
             Compile(entry, specialization, new NoHook());
 
@@ -510,11 +510,13 @@ namespace ILGPU.Backends
         /// <param name="backendHook">The backend hook.</param>
         /// <returns>The compiled kernel that represents the compilation result.</returns>
         public virtual CompiledKernel Compile<TBackendHook>(
-            MethodInfo entry,
+            EntryPointDescription entry,
             in KernelSpecialization specialization,
             TBackendHook backendHook)
             where TBackendHook : IBackendHook
         {
+            entry.Validate();
+
             using (var kernelContext = new IRContext(Context))
             {
                 IRContext mainContext;
@@ -525,7 +527,7 @@ namespace ILGPU.Backends
 
                     Frontend.CodeGenerationResult generationResult;
                     using (var frontendCodeGenerationPhase = codeGenerationPhase.BeginFrontendCodeGeneration())
-                        generationResult = frontendCodeGenerationPhase.GenerateCode(entry);
+                        generationResult = frontendCodeGenerationPhase.GenerateCode(entry.MethodSource);
 
                     generatedKernelMethod = generationResult.Result;
                     codeGenerationPhase.Optimize();
@@ -546,7 +548,7 @@ namespace ILGPU.Backends
                 // Compile kernel
                 var backendContext = new BackendContext(kernelContext, kernelMethod, ABI);
                 var entryPoint = CreateEntryPoint(
-                    kernelMethod.Source as MethodInfo,
+                    entry,
                     backendContext,
                     specialization);
                 return Compile(entryPoint, backendContext, specialization);
@@ -556,16 +558,16 @@ namespace ILGPU.Backends
         /// <summary>
         /// Creates a new entry point that is compatible with the current backend.
         /// </summary>
-        /// <param name="method">The entry point method.</param>
+        /// <param name="entry">The entry point.</param>
         /// <param name="backendContext">The current kernel context containing all required functions.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The created entry point.</returns>
         protected virtual EntryPoint CreateEntryPoint(
-            MethodInfo method,
+            EntryPointDescription entry,
             in BackendContext backendContext,
             in KernelSpecialization specialization) =>
             new EntryPoint(
-                method,
+                entry,
                 backendContext.SharedMemorySpecification,
                 specialization);
 

@@ -52,14 +52,14 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
-        public static Action<AcceleratorStream, <#= delegateParams.TypeParams #>> LoadKernel<<#= delegateParams.TypeParams #>>(
+        public static Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>> LoadKernel<<#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action)
             <#= delegateParams.TypeRestrictions #>
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-            return accelerator.LoadKernel<Action<AcceleratorStream, <#= delegateParams.TypeParams #>>>(action.Method);
+            return accelerator.LoadKernel<Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>>>(action.Method);
         }
 
         /// <summary>
@@ -73,14 +73,14 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
-        public static Action<<#= delegateParams.TypeParams #>> LoadStreamKernel<<#= delegateParams.TypeParams #>>(
+        public static Action<KernelConfig, <#= delegateParams.TypeParams #>> LoadStreamKernel<<#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action)
             <#= delegateParams.TypeRestrictions #>
         {
             var baseKernel = accelerator.LoadKernel<<#= delegateParams.TypeParams #>>(action);
-            return (<#= delegateParams.DefaultStreamLambdaParams #>) =>
-                baseKernel(accelerator.DefaultStream, <#= delegateParams.DefaultStreamArgs #>);
+            return (KernelConfig config, <#= delegateParams.DefaultStreamLambdaParams #>) =>
+                baseKernel(accelerator.DefaultStream, config, <#= delegateParams.DefaultStreamArgs #>);
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace ILGPU.Runtime
         /// <param name="action">The action to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
-        public static Action<AcceleratorStream, <#= delegateParams.TypeParams #>> LoadKernel<<#= delegateParams.TypeParams #>>(
+        public static Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>> LoadKernel<<#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action,
             KernelSpecialization specialization)
@@ -100,7 +100,7 @@ namespace ILGPU.Runtime
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-            return accelerator.LoadKernel<Action<AcceleratorStream, <#= delegateParams.TypeParams #>>>(
+            return accelerator.LoadKernel<Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>>>(
                 action.Method,
                 specialization);
         }
@@ -117,15 +117,15 @@ namespace ILGPU.Runtime
         /// Note that implictly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
-        public static Action<<#= delegateParams.TypeParams #>> LoadStreamKernel<<#= delegateParams.TypeParams #>>(
+        public static Action<KernelConfig, <#= delegateParams.TypeParams #>> LoadStreamKernel<<#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action,
             KernelSpecialization specialization)
             <#= delegateParams.TypeRestrictions #>
         {
             var baseKernel = accelerator.LoadKernel<<#= delegateParams.TypeParams #>>(action, specialization);
-            return (<#= delegateParams.DefaultStreamLambdaParams #>) =>
-                baseKernel(accelerator.DefaultStream, <#= delegateParams.DefaultStreamArgs #>);
+            return (KernelConfig config, <#= delegateParams.DefaultStreamLambdaParams #>) =>
+                baseKernel(accelerator.DefaultStream, config, <#= delegateParams.DefaultStreamArgs #>);
         }
 
 <#      // LoadImplicitlyGroupedKernel #>

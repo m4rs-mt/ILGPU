@@ -15,7 +15,6 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
-using System.Reflection;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -110,13 +109,13 @@ namespace ILGPU.Backends.OpenCL
 
         #region Methods
 
-        /// <summary cref="Backend.CreateEntryPoint(MethodInfo, in BackendContext, in KernelSpecialization)"/>
+        /// <summary cref="Backend.CreateEntryPoint(EntryPointDescription, in BackendContext, in KernelSpecialization)"/>
         protected override EntryPoint CreateEntryPoint(
-            MethodInfo method,
+            EntryPointDescription entry,
             in BackendContext backendContext,
             in KernelSpecialization specialization) =>
             new SeparateViewEntryPoint(
-                method,
+                entry,
                 backendContext.SharedMemorySpecification,
                 specialization,
                 Context.TypeContext);

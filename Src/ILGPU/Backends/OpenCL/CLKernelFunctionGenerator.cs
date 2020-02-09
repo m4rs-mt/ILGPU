@@ -74,7 +74,7 @@ namespace ILGPU.Backends.OpenCL
             /// <summary cref="CLCodeGenerator.IParametersSetupLogic.HandleIntrinsicParameter(int, Parameter)"/>
             public Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter)
             {
-                if (!Parent.EntryPoint.IsGroupedIndexEntry)
+                if (!Parent.EntryPoint.IsExplicitlyGrouped)
                 {
                     IndexVariable = Parent.Allocate(parameter);
 
@@ -359,7 +359,7 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="lengthVariable">The length variable of implicitly grouped kernels.</param>
         private void SetupKernelIndex(Variable indexVariable, Variable lengthVariable)
         {
-            if (!EntryPoint.IsGroupedIndexEntry)
+            if (!EntryPoint.IsExplicitlyGrouped)
             {
                 Debug.Assert(indexVariable == null, "Invalid index variable");
                 return;

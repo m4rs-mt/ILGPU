@@ -21,6 +21,153 @@ using System.Runtime.InteropServices;
 namespace ILGPU.Backends.EntryPoints
 {
     /// <summary>
+    /// Specifies an entry point method including its associated index type.
+    /// </summary>
+    public readonly struct EntryPointDescription : IEquatable<EntryPointDescription>
+    {
+        #region Static
+
+        /// <summary>
+        /// Creates a new entry point description from the given method source that is compatible
+        /// with explicitly grouped kernels.
+        /// </summary>
+        /// <param name="methodSource">The kernel method source.</param>
+        /// <returns>The created entry point description.</returns>
+        public static EntryPointDescription FromExplicitlyGroupedKernel(MethodInfo methodSource) =>
+            new EntryPointDescription(methodSource, IndexType.KernelConfig);
+
+        /// <summary>
+        /// Creates a new entry point description from the given method source that is compatible
+        /// with implicitly grouped kernels.
+        /// </summary>
+        /// <param name="methodSource">The kernel method source.</param>
+        /// <returns>The created entry point description.</returns>
+        public static EntryPointDescription FromImplicitlyGroupedKernel(MethodInfo methodSource)
+        {
+            if (methodSource == null)
+                throw new ArgumentNullException(nameof(methodSource));
+            var parameters = methodSource.GetParameters();
+            if (parameters.Length < 1)
+                throw new NotSupportedException(ErrorMessages.InvalidEntryPointIndexParameter);
+
+            // Try to get index type from first parameter
+            var firstParamType = parameters[0].ParameterType;
+            var indexType = firstParamType.GetIndexType();
+            if (indexType == IndexType.None)
+                throw new NotSupportedException(
+                    ErrorMessages.InvalidEntryPointIndexParameterOfWrongType);
+            return new EntryPointDescription(methodSource, indexType);
+        }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new entry point description.
+        /// </summary>
+        /// <param name="methodSource">The method source.</param>
+        /// <param name="indexType">The index type.</param>
+        private EntryPointDescription(MethodInfo methodSource, IndexType indexType)
+        {
+            if (indexType == IndexType.None)
+                throw new ArgumentOutOfRangeException(nameof(indexType));
+            MethodSource = methodSource ?? throw new ArgumentNullException(nameof(methodSource));
+            IndexType = indexType;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the kernel method.
+        /// </summary>
+        public MethodInfo MethodSource { get; }
+
+        /// <summary>
+        /// Returns the associated index type.
+        /// </summary>
+        public IndexType IndexType { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Validates this object and throws a <see cref="NotSupportedException"/> in the case
+        /// of a not supported kernel configuration.
+        /// </summary>
+        public void Validate()
+        {
+            if (MethodSource == null)
+                throw new NotSupportedException(ErrorMessages.InvalidEntryPointWithoutDotNetMethod);
+            if (!MethodSource.IsStatic)
+                throw new NotSupportedException(ErrorMessages.InvalidEntryPointInstanceKernelMethod);
+            if (IndexType == IndexType.None)
+                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
+        }
+
+        /// <summary>
+        /// Returns true if the given description is equal to the current one.
+        /// </summary>
+        /// <param name="other">The other description.</param>
+        /// <returns>True, if the given cached key is equal to the current one.</returns>
+        public bool Equals(EntryPointDescription other) =>
+            other.MethodSource == MethodSource &&
+            other.IndexType == IndexType;
+
+        #endregion
+
+        #region Object
+
+        /// <summary>
+        /// Returns true if the given object is equal to the current one.
+        /// </summary>
+        /// <param name="obj">The other object.</param>
+        /// <returns>True, if the given object is equal to the current one.</returns>
+        public override bool Equals(object obj) =>
+            obj is EntryPointDescription other && Equals(other);
+
+        /// <summary>
+        /// Returns the hash code of this object.
+        /// </summary>
+        /// <returns>The hash code of this object.</returns>
+        public override int GetHashCode() =>
+            MethodSource.GetHashCode() ^ IndexType.GetHashCode();
+
+        /// <summary>
+        /// Returns the string representation of this object.
+        /// </summary>
+        /// <returns>The string representation of this object.</returns>
+        public override string ToString() => $"{MethodSource}({IndexType})";
+
+        #endregion
+
+        #region Operators
+
+        /// <summary>
+        /// Returns true if the left and right descriptions are the same.
+        /// </summary>
+        /// <param name="left">The left description.</param>
+        /// <param name="right">The right description.</param>
+        /// <returns>True, if the left and right descriptions are the same.</returns>
+        public static bool operator ==(EntryPointDescription left, EntryPointDescription right) =>
+            left.Equals(right);
+
+        /// <summary>
+        /// Returns true if the left and right descriptions are not the same.
+        /// </summary>
+        /// <param name="left">The left description.</param>
+        /// <param name="right">The right description.</param>
+        /// <returns>True, if the left and right descriptions are not the same.</returns>
+        public static bool operator !=(EntryPointDescription left, EntryPointDescription right) =>
+            !(left == right);
+
+        #endregion
+    }
+
+    /// <summary>
     /// Represents a kernel entry point.
     /// </summary>
     public class EntryPoint
@@ -101,38 +248,32 @@ namespace ILGPU.Backends.EntryPoints
         /// <summary>
         /// Constructs a new entry point targeting the given method.
         /// </summary>
-        /// <param name="methodSource">The source method.</param>
+        /// <param name="description">The entry point description.</param>
         /// <param name="sharedMemory">The shared memory specification.</param>
         /// <param name="specialization">The kernel specialization.</param>
         public EntryPoint(
-            MethodInfo methodSource,
+            EntryPointDescription description,
             in SharedMemorySpecification sharedMemory,
             in KernelSpecialization specialization)
         {
-            MethodInfo = methodSource;
-            if (MethodInfo == null)
-                throw new NotSupportedException(ErrorMessages.InvalidEntryPointWithoutDotNetMethod);
+            description.Validate();
+
+            MethodInfo = description.MethodSource;
             Specialization = specialization;
             SharedMemory = sharedMemory;
 
-            if (!MethodInfo.IsStatic)
-                throw new NotSupportedException(ErrorMessages.InvalidEntryPointInstanceKernelMethod);
-
-            var parameters = MethodInfo.GetParameters();
-            if (parameters.Length < 1)
-                throw new ArgumentException(ErrorMessages.InvalidEntryPointIndexParameter);
-            KernelIndexType = parameters[0].ParameterType;
-            IndexType = KernelIndexType.GetIndexType();
-            if (IndexType == IndexType.None)
-                throw new NotSupportedException(ErrorMessages.InvalidEntryPointIndexParameterOfWrongType);
+            IndexType = description.IndexType;
+            KernelIndexType = IndexType.GetManagedIndexType();
 
             // Compute the number of actual parameters
+            var parameters = MethodInfo.GetParameters();
+            var kernelIndexParamOffset = IndexType == IndexType.KernelConfig ? 0 : 1;
             var parameterTypes = ImmutableArray.CreateBuilder<Type>(
-                parameters.Length - 1 + (!MethodInfo.IsStatic ? 1 : 0));
+                parameters.Length - kernelIndexParamOffset + (!MethodInfo.IsStatic ? 1 : 0));
 
             // TODO: enhance performance by passing arguments by ref
             // TODO: implement additional backend support
-            for (int i = 1, e = parameters.Length; i < e; ++i)
+            for (int i = kernelIndexParamOffset, e = parameters.Length; i < e; ++i)
             {
                 var type = parameters[i].ParameterType;
                 if (type.IsPointer || type.IsPassedViaPtr())
@@ -143,7 +284,6 @@ namespace ILGPU.Backends.EntryPoints
 
             Parameters = new ParameterSpecification(
                 parameterTypes.MoveToImmutable());
-
             for (int i = 0, e = Parameters.NumParameters; i < e; ++i)
                 HasByRefParameters |= Parameters.IsByRef(i);
         }
@@ -163,9 +303,14 @@ namespace ILGPU.Backends.EntryPoints
         public IndexType IndexType { get; }
 
         /// <summary>
-        /// Returns true iff the entry-point type = grouped index.
+        /// Returns true if the entry point represents an explicitly grouped kernel.
         /// </summary>
-        public bool IsGroupedIndexEntry => IndexType == IndexType.GroupedIndex;
+        public bool IsExplicitlyGrouped => IndexType == IndexType.KernelConfig;
+
+        /// <summary>
+        /// Returns true if the entry point represents an implicitly grouped kernel.
+        /// </summary>
+        public bool IsImplictlyGrouped => !IsExplicitlyGrouped;
 
         /// <summary>
         /// Returns the index type of the index parameter.
@@ -200,7 +345,7 @@ namespace ILGPU.Backends.EntryPoints
                 switch (IndexType)
                 {
                     case IndexType.Index1D:
-                    case IndexType.GroupedIndex:
+                    case IndexType.KernelConfig:
                         return 1;
                     case IndexType.Index2D:
                         return 2;
@@ -263,6 +408,20 @@ namespace ILGPU.Backends.EntryPoints
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct SharedMemorySpecification
     {
+        #region Static
+
+        /// <summary>
+        /// Represents the associated constructor taking two integer parameters.
+        /// </summary>
+        internal static ConstructorInfo Constructor = typeof(SharedMemorySpecification).
+            GetConstructor(new Type[]
+            {
+                typeof(int),
+                typeof(int)
+            });
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -270,9 +429,7 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <param name="staticSize">The static shared memory size.</param>
         /// <param name="dynamicElementSize">The dynamic shared memory element size.</param>
-        public SharedMemorySpecification(
-            int staticSize,
-            int dynamicElementSize)
+        public SharedMemorySpecification(int staticSize, int dynamicElementSize)
         {
             Debug.Assert(staticSize >= 0, "Invalid static memory size");
             Debug.Assert(dynamicElementSize >= 0, "Invalid dynamic memory element size");
