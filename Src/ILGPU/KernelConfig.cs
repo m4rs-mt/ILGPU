@@ -400,4 +400,79 @@ namespace ILGPU
         public bool HasDynamicMemory => Specification.HasDynamicMemory;
     }
 
+    /// <summary>
+    /// Represents a runtime kernel configuration that is used internally to specify
+    /// launch dimensions and shared memory settings.
+    /// </summary>
+    [Serializable]
+    [StructLayout(LayoutKind.Sequential)]
+    public readonly struct RuntimeKernelConfig
+    {
+        #region Static
+
+        /// <summary>
+        /// Represents the associated constructor.
+        /// </summary>
+        internal static ConstructorInfo Constructor = typeof(RuntimeKernelConfig).
+            GetConstructor(new Type[]
+            {
+                typeof(KernelConfig),
+                typeof(SharedMemorySpecification)
+            });
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new runtime kernel configuration.
+        /// </summary>
+        /// <param name="kernelConfig">The kernel configuration to use.</param>
+        /// <param name="specification">The shared memory specification to use.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public RuntimeKernelConfig(
+            KernelConfig kernelConfig,
+            SharedMemorySpecification specification)
+        {
+            GridDimension = kernelConfig.GridDimension;
+            GroupDimension = kernelConfig.GroupDimension;
+            SharedMemoryConfig = new SharedMemoryConfig(
+                specification,
+                kernelConfig.SharedMemoryConfig);
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the global grid dimension.
+        /// </summary>
+        public Index3 GridDimension { get; }
+
+        /// <summary>
+        /// Returns the global group dimension of each group.
+        /// </summary>
+        public Index3 GroupDimension { get; }
+
+        /// <summary>
+        /// Returns the current shared memory configuration.
+        /// </summary>
+        public SharedMemoryConfig SharedMemoryConfig { get; }
+
+        /// <summary>
+        /// Returns true if this configuration is a valid launch configuration.
+        /// </summary>
+        public bool IsValid
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return (GridDimension.X > 0 & GridDimension.Y > 0 & GridDimension.Z > 0) &&
+                    (GroupDimension.X > 0 & GroupDimension.Y > 0 & GroupDimension.Z > 0);
+            }
+        }
+
+        #endregion
+    }
 }
