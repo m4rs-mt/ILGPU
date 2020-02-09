@@ -704,10 +704,10 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="kernelArgs">The kernel arguments.</param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CudaError LaunchKernelWithStreamBinding(
+        internal CudaError LaunchKernelWithStreamBinding(
             CudaStream stream,
             CudaKernel kernel,
-            KernelConfig config,
+            RuntimeKernelConfig config,
             IntPtr args,
             IntPtr kernelArgs)
         {
@@ -721,7 +721,7 @@ namespace ILGPU.Runtime.Cuda.API
                 config.GroupDimension.X,
                 config.GroupDimension.Y,
                 config.GroupDimension.Z,
-                config.SharedMemoryConfig,
+                config.SharedMemoryConfig.DynamicArraySize,
                 stream.StreamPtr,
                 args,
                 kernelArgs);

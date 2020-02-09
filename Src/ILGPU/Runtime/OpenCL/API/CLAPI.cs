@@ -593,7 +593,7 @@ namespace ILGPU.Runtime.OpenCL.API
         internal static unsafe CLError LaunchKernelWithStreamBinding(
             CLStream stream,
             CLKernel kernel,
-            KernelConfig config)
+            RuntimeKernelConfig config)
         {
             var binding = stream.BindScoped();
 

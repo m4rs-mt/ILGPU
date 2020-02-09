@@ -46,7 +46,7 @@ namespace ILGPU.Runtime.Cuda
             BindingFlags.Public | BindingFlags.Static).GetGetMethod();
 
         /// <summary>
-        /// Represents the <see cref="CudaAPI.LaunchKernelWithStreamBinding(CudaStream, CudaKernel, KernelConfig, IntPtr, IntPtr)"/>
+        /// Represents the <see cref="CudaAPI.LaunchKernelWithStreamBinding(CudaStream, CudaKernel, RuntimeKernelConfig, IntPtr, IntPtr)"/>
         /// method.
         /// </summary>
         private static readonly MethodInfo LaunchKernelMethod = typeof(CudaAPI).GetMethod(

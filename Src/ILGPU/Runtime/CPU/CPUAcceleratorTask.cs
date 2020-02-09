@@ -85,32 +85,30 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         /// <param name="kernelExecutionDelegate">The execution method.</param>
         /// <param name="userConfig">The user-defined grid configuration.</param>
-        /// <param name="gridConfig">The global grid configuration.</param>
-        /// <param name="sharedMemory">The shared memory specification to use.</param>
+        /// <param name="config">The global task configuration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CPUAcceleratorTask(
             CPUKernelExecutionHandler kernelExecutionDelegate,
             KernelConfig userConfig,
-            KernelConfig gridConfig,
-            SharedMemorySpecification sharedMemory)
+            RuntimeKernelConfig config)
         {
             Debug.Assert(kernelExecutionDelegate != null, "Invalid execution delegate");
             if (!userConfig.IsValid)
                 throw new ArgumentOutOfRangeException(
                     nameof(userConfig),
                     RuntimeErrorMessages.InvalidGridDimension);
-            if (!gridConfig.IsValid)
+            if (!config.IsValid)
                 throw new ArgumentOutOfRangeException(
-                    nameof(gridConfig),
+                    nameof(config),
                     RuntimeErrorMessages.InvalidGridDimension);
 
             KernelExecutionDelegate = kernelExecutionDelegate;
             UserGridDim = userConfig.GridDimension;
             UserDimension = userConfig.GridDimension.Size * userConfig.GroupDimension.Size;
-            GridDim = gridConfig.GridDimension;
-            GroupDim = gridConfig.GroupDimension;
+            GridDim = config.GridDimension;
+            GroupDim = config.GroupDimension;
             RuntimeDimension = GridDim.Size * GroupDim.Size;
-            SharedMemory = sharedMemory;
+            SharedMemory = config.SharedMemoryConfig.Specification;
         }
 
         #endregion

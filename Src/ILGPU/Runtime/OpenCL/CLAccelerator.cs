@@ -65,7 +65,7 @@ namespace ILGPU.Runtime.OpenCL
         #region Static
 
         /// <summary>
-        /// Represents the <see cref="CLAPI.LaunchKernelWithStreamBinding(CLStream, CLKernel, KernelConfig)"/> method.
+        /// Represents the <see cref="CLAPI.LaunchKernelWithStreamBinding(CLStream, CLKernel, RuntimeKernelConfig)"/> method.
         /// </summary>
         private static readonly MethodInfo LaunchKernelMethod = typeof(CLAPI).GetMethod(
             nameof(CLAPI.LaunchKernelWithStreamBinding),
