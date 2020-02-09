@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Backends.EntryPoints;
 using ILGPU.Resources;
 using System;
 using System.Diagnostics;
@@ -57,6 +58,7 @@ namespace ILGPU.Runtime.CPU
             typeof(CPUKernelExecutionHandler),
             typeof(KernelConfig),
             typeof(KernelConfig),
+            typeof(int),
             typeof(int)
         };
 
@@ -82,46 +84,33 @@ namespace ILGPU.Runtime.CPU
         /// Constructs a new accelerator task.
         /// </summary>
         /// <param name="kernelExecutionDelegate">The execution method.</param>
-        /// <param name="userGridDim">The grid dimension that was specified by the user.</param>
-        /// <param name="userGroupDim">The group dimension that was specified by the user.</param>
-        /// <param name="gridDim">The grid dimension.</param>
-        /// <param name="groupDim">The group dimension.</param>
-        /// <param name="sharedMemSize">The required amount of shareed-memory per thread group in bytes.</param>
+        /// <param name="userConfig">The user-defined grid configuration.</param>
+        /// <param name="gridConfig">The global grid configuration.</param>
+        /// <param name="sharedMemory">The shared memory specification to use.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CPUAcceleratorTask(
             CPUKernelExecutionHandler kernelExecutionDelegate,
             KernelConfig userConfig,
             KernelConfig gridConfig,
-            int sharedMemSize)
+            SharedMemorySpecification sharedMemory)
         {
             Debug.Assert(kernelExecutionDelegate != null, "Invalid execution delegate");
-            if (sharedMemSize < 0)
+            if (!userConfig.IsValid)
                 throw new ArgumentOutOfRangeException(
-                    nameof(sharedMemSize),
-                    RuntimeErrorMessages.InvalidSharedMemorySize);
-            if (gridDim.X < 0 | gridDim.Y < 0 | gridDim.Z < 0 | gridDim == Index3.Zero)
-                throw new ArgumentOutOfRangeException(
-                    nameof(gridDim),
+                    nameof(userConfig),
                     RuntimeErrorMessages.InvalidGridDimension);
-            if (groupDim.X < 0 | groupDim.Y < 0 | groupDim.Z < 0 | groupDim == Index3.Zero)
+            if (!gridConfig.IsValid)
                 throw new ArgumentOutOfRangeException(
-                    nameof(groupDim),
-                    RuntimeErrorMessages.InvalidGroupDimension);
-            if (userGridDim.Size < 1)
-                throw new ArgumentOutOfRangeException(
-                    nameof(userGridDim),
+                    nameof(gridConfig),
                     RuntimeErrorMessages.InvalidGridDimension);
-            if (userGroupDim.Size < 1)
-                throw new ArgumentOutOfRangeException(
-                    nameof(userGroupDim),
-                    RuntimeErrorMessages.InvalidGroupDimension);
 
             KernelExecutionDelegate = kernelExecutionDelegate;
-            UserGridDim = userGridDim;
-            UserDimension = userGridDim.Size * userGroupDim.Size;
-            GridDim = gridDim;
-            GroupDim = groupDim;
-            RuntimeDimension = gridDim.Size * groupDim.Size;
-            SharedMemSize = sharedMemSize;
+            UserGridDim = userConfig.GridDimension;
+            UserDimension = userConfig.GridDimension.Size * userConfig.GroupDimension.Size;
+            GridDim = gridConfig.GridDimension;
+            GroupDim = gridConfig.GroupDimension;
+            RuntimeDimension = GridDim.Size * GroupDim.Size;
+            SharedMemory = sharedMemory;
         }
 
         #endregion
@@ -154,9 +143,9 @@ namespace ILGPU.Runtime.CPU
         public int RuntimeDimension { get; }
 
         /// <summary>
-        /// Returns the required amount of shared-memory per thread group in bytes.
+        /// Returns the shared memory specification to use.
         /// </summary>
-        public int SharedMemSize { get; }
+        public SharedMemorySpecification SharedMemory { get; }
 
         /// <summary>
         /// Returns the associated kernel-execution delegate.

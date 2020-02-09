@@ -237,6 +237,9 @@ namespace ILGPU.Backends
                 SharedAllocations = new AllocaKindInformation(
                     sharedAllocations.ToImmutable(),
                     sharedMemorySize);
+                SharedMemorySpecification = new SharedMemorySpecification(
+                    sharedMemorySize,
+                    0);
             }
 
             #endregion
@@ -272,6 +275,11 @@ namespace ILGPU.Backends
             /// Returns all required shared allocations.
             /// </summary>
             public AllocaKindInformation SharedAllocations { get; }
+
+            /// <summary>
+            /// Returns the associated shared memory specification.
+            /// </summary>
+            public SharedMemorySpecification SharedMemorySpecification { get; }
 
             /// <summary>
             /// Returns the number of all functions.
@@ -558,7 +566,7 @@ namespace ILGPU.Backends
             in KernelSpecialization specialization) =>
             new EntryPoint(
                 method,
-                backendContext.SharedAllocations.TotalSize,
+                backendContext.SharedMemorySpecification,
                 specialization);
 
         /// <summary>

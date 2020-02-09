@@ -117,7 +117,7 @@ namespace ILGPU.Backends.OpenCL
             in KernelSpecialization specialization) =>
             new SeparateViewEntryPoint(
                 method,
-                backendContext.SharedAllocations.TotalSize,
+                backendContext.SharedMemorySpecification,
                 specialization,
                 Context.TypeContext);
 

@@ -16,6 +16,7 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace ILGPU.Backends.EntryPoints
 {
@@ -258,6 +259,8 @@ namespace ILGPU.Backends.EntryPoints
     /// <summary>
     /// Represents a shared memory specification of a specific kernel.
     /// </summary>
+    [Serializable]
+    [StructLayout(LayoutKind.Sequential)]
     public readonly struct SharedMemorySpecification
     {
         #region Instance
@@ -273,6 +276,7 @@ namespace ILGPU.Backends.EntryPoints
         {
             Debug.Assert(staticSize >= 0, "Invalid static memory size");
             Debug.Assert(dynamicElementSize >= 0, "Invalid dynamic memory element size");
+
             StaticSize = staticSize;
             DynamicElementSize = dynamicElementSize;
         }

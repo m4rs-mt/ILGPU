@@ -65,7 +65,9 @@ namespace ILGPU.Backends.IL
             // Construct a new debugging entry point
             var entryPoint = new EntryPoint(
                 entry,
-                SharedMemoryPerKernel,
+                new SharedMemorySpecification(
+                    SharedMemoryPerKernel,
+                    0),
                 specialization);
 
             return Compile(entryPoint, default, specialization);
