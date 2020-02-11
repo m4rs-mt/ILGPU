@@ -237,12 +237,6 @@ namespace ILGPU.Runtime.Cuda
         {
             TPointerModeHandler pointerModeHandler = default;
             pointerModeHandler.UpdatePointerMode(this, pointerMode);
-
-#if DEBUG
-            Debug.Assert(
-                PointerMode == pointerMode,
-                $"Invalid pointer mode: '{pointerMode}' expected");
-#endif
         }
 
         #endregion
