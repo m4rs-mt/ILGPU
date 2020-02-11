@@ -17,3 +17,6 @@ dotnet_diagnostic.CA1815.severity = none
 
 # IDE0060: Remove unused parameter
 dotnet_code_quality_unused_parameters = all:silent
+
+# CA1060: Move pinvokes to native methods class
+dotnet_diagnostic.CA1060.severity = none

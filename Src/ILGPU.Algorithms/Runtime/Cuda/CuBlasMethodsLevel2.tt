@@ -47,7 +47,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     trans,
                     m,
@@ -87,7 +87,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     trans,
                     m,
@@ -123,7 +123,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     m,
                     n,
@@ -159,7 +159,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     uplo,
                     n,
@@ -195,7 +195,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     uplo,
                     n,
@@ -226,7 +226,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     uplo,
                     n,
@@ -256,7 +256,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     uplo,
                     n,
@@ -290,7 +290,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     uplo,
                     n,
@@ -323,7 +323,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     uplo,
                     n,
@@ -355,7 +355,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     uplo,
                     n,
@@ -388,7 +388,7 @@ namespace ILGPU.Runtime.Cuda
             int incx)
         {
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     uplo,
                     trans,
@@ -419,7 +419,7 @@ namespace ILGPU.Runtime.Cuda
             int incx)
         {
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     uplo,
                     trans,
@@ -449,7 +449,7 @@ namespace ILGPU.Runtime.Cuda
             int incx)
         {
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     uplo,
                     trans,

@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -97,18 +98,28 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="accelerator">The associated cuda accelerator.</param>
         public CuBlas(CudaAccelerator accelerator)
+            : this(accelerator, CuBlasAPIVersion.V10)
+        { }
+
+        /// <summary>
+        /// Constructs a new CuBlas instance to access the Nvidia cublas library.
+        /// </summary>
+        /// <param name="accelerator">The associated cuda accelerator.</param>
+        /// <param name="apiVersion">The cuBlas library version.</param>
+        public CuBlas(CudaAccelerator accelerator, CuBlasAPIVersion apiVersion)
         {
             if (accelerator == null)
                 throw new ArgumentNullException(nameof(accelerator));
 
+            API = CuBlasAPI.Create(apiVersion);
             accelerator.Bind();
             CuBlasException.ThrowIfFailed(
-                NativeMethods.Create(out IntPtr handle));
+                API.Create(out IntPtr handle));
             Handle = handle;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.GetVersion(handle, out int version));
-            Version = version;
+                API.GetVersion(handle, out int currentVersion));
+            Version = currentVersion;
 
             Stream = accelerator.DefaultStream as CudaStream;
         }
@@ -116,6 +127,11 @@ namespace ILGPU.Runtime.Cuda
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the associated cuBlas API instance.
+        /// </summary>
+        internal CuBlasAPI API { get; }
 
         /// <summary>
         /// The native CuBlas library handle.
@@ -135,13 +151,13 @@ namespace ILGPU.Runtime.Cuda
             get
             {
                 CuBlasException.ThrowIfFailed(
-                    NativeMethods.GetPointerMode(Handle, out var mode));
+                    API.GetPointerMode(Handle, out var mode));
                 return mode;
             }
             set
             {
                 CuBlasException.ThrowIfFailed(
-                    NativeMethods.SetPointerMode(Handle, value));
+                    API.SetPointerMode(Handle, value));
             }
         }
 
@@ -153,13 +169,13 @@ namespace ILGPU.Runtime.Cuda
             get
             {
                 CuBlasException.ThrowIfFailed(
-                    NativeMethods.GetAtomicsMode(Handle, out var mode));
+                    API.GetAtomicsMode(Handle, out var mode));
                 return mode;
             }
             set
             {
                 CuBlasException.ThrowIfFailed(
-                    NativeMethods.SetAtomicsMode(Handle, value));
+                    API.SetAtomicsMode(Handle, value));
             }
         }
 
@@ -171,13 +187,13 @@ namespace ILGPU.Runtime.Cuda
             get
             {
                 CuBlasException.ThrowIfFailed(
-                    NativeMethods.GetMathMode(Handle, out var mode));
+                    API.GetMathMode(Handle, out var mode));
                 return mode;
             }
             set
             {
                 CuBlasException.ThrowIfFailed(
-                    NativeMethods.SetMathMode(Handle, value));
+                    API.SetMathMode(Handle, value));
             }
         }
 
@@ -192,7 +208,7 @@ namespace ILGPU.Runtime.Cuda
                 if (value == null)
                     throw new ArgumentNullException(nameof(value));
                 CuBlasException.ThrowIfFailed(
-                    NativeMethods.SetStream(Handle, value.StreamPtr));
+                    API.SetStream(Handle, value.StreamPtr));
                 stream = value;
             }
         }
@@ -241,7 +257,7 @@ namespace ILGPU.Runtime.Cuda
             if (Handle != IntPtr.Zero)
             {
                 CuBlasException.ThrowIfFailed(
-                    NativeMethods.Free(Handle));
+                    API.Free(Handle));
                 Handle = IntPtr.Zero;
             }
         }

@@ -16,30 +16,190 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
+<#
+var apis = new (string, bool)[]
+{
+    ("CuBlasAPI",      false),
+    ("WindowsAPI_V10", true),
+    ("LinuxAPI_V10",   true),
+    ("MacOSAPI_V10",   true),
+};
+#>
 
 using System;
 using System.Runtime.InteropServices;
 
-namespace ILGPU.Runtime.Cuda
+namespace ILGPU.Runtime.Cuda.API
 {
-    unsafe partial class NativeMethods
+<# foreach (var (className, define) in apis) { #>
+
+    internal unsafe partial class <#= className #>
     {
+        #region Context
+
+<#      if (define) { #>
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasCreate_v2(out IntPtr handle);
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasGetVersion_v2(
+            IntPtr handle,
+            out int version);
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasDestroy_v2(IntPtr handle);
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasGetStream_v2(
+            IntPtr handle,
+            out IntPtr stream);
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasSetStream_v2(
+            IntPtr handle,
+            IntPtr stream);
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasGetPointerMode_v2(
+            IntPtr handle,
+            out CuBlasPointerMode mode);
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasSetPointerMode_v2(
+            IntPtr handle,
+            CuBlasPointerMode mode);
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasGetAtomicsMode(
+            IntPtr handle,
+            out CuBlasAtomicsMode mode);
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasSetAtomicsMode(
+            IntPtr handle,
+            CuBlasAtomicsMode mode);
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasGetMathMode(
+            IntPtr handle,
+            out CuBlasMathMode mode);
+
+        [DllImport(LibName)]
+        private static extern CuBlasStatus cublasSetMathMode(
+            IntPtr handle,
+            CuBlasMathMode mode);
+
+        /// <summary cref="CuBlasAPI.Create(out IntPtr)"/>
+        public override CuBlasStatus Create(out IntPtr handle) =>
+            cublasCreate_v2(out handle);
+
+        /// <summary cref="CuBlasAPI.GetVersion(IntPtr, out int)"/>
+        public override CuBlasStatus GetVersion(IntPtr handle, out int version) =>
+            cublasGetVersion_v2(handle, out version);
+
+        /// <summary cref="CuBlasAPI.Free(IntPtr)"/>
+        public override CuBlasStatus Free(IntPtr handle) =>
+            cublasDestroy_v2(handle);
+
+        /// <summary cref="CuBlasAPI.GetStream(IntPtr, out IntPtr)"/>
+        public override CuBlasStatus GetStream(IntPtr handle, out IntPtr stream) =>
+            cublasGetStream_v2(handle, out stream);
+
+        /// <summary cref="CuBlasAPI.SetStream(IntPtr, IntPtr)"/>
+        public override CuBlasStatus SetStream(IntPtr handle, IntPtr stream) =>
+            cublasSetStream_v2(handle, stream);
+
+        /// <summary cref="CuBlasAPI.GetPointerMode(IntPtr, out CuBlasPointerMode)"/>
+        public override CuBlasStatus GetPointerMode(IntPtr handle, out CuBlasPointerMode mode) =>
+            cublasGetPointerMode_v2(handle, out mode);
+
+        /// <summary cref="CuBlasAPI.SetPointerMode(IntPtr, CuBlasPointerMode)"/>
+        public override CuBlasStatus SetPointerMode(IntPtr handle, CuBlasPointerMode mode) =>
+            cublasSetPointerMode_v2(handle, mode);
+
+        /// <summary cref="CuBlasAPI.GetAtomicsMode(IntPtr, out CuBlasAtomicsMode)"/>
+        public override CuBlasStatus GetAtomicsMode(IntPtr handle, out CuBlasAtomicsMode mode) =>
+            cublasGetAtomicsMode(handle, out mode);
+
+        /// <summary cref="CuBlasAPI.SetAtomicsMode(IntPtr, CuBlasAtomicsMode)"/>
+        public override CuBlasStatus SetAtomicsMode(IntPtr handle, CuBlasAtomicsMode mode) =>
+            cublasSetAtomicsMode(handle, mode);
+
+        /// <summary cref="CuBlasAPI.GetMathMode(IntPtr, out CuBlasMathMode)"/>
+        public override CuBlasStatus GetMathMode(IntPtr handle, out CuBlasMathMode mode) =>
+            cublasGetMathMode(handle, out mode);
+
+        /// <summary cref="CuBlasAPI.SetMathMode(IntPtr, CuBlasMathMode)"/>
+        public override CuBlasStatus SetMathMode(IntPtr handle, CuBlasMathMode mode)  =>
+            cublasSetMathMode(handle, mode);
+
+<#      } else { #>
+
+        public abstract CuBlasStatus Create(out IntPtr handle);
+
+        public abstract CuBlasStatus GetVersion(IntPtr handle, out int version);
+
+        public abstract CuBlasStatus Free(IntPtr handle);
+
+        public abstract CuBlasStatus GetStream(IntPtr handle, out IntPtr stream);
+
+        public abstract CuBlasStatus SetStream(IntPtr handle, IntPtr stream);
+
+        public abstract CuBlasStatus GetPointerMode(IntPtr handle, out CuBlasPointerMode mode);
+
+        public abstract CuBlasStatus SetPointerMode(IntPtr handle, CuBlasPointerMode mode);
+
+        public abstract CuBlasStatus GetAtomicsMode(IntPtr handle, out CuBlasAtomicsMode mode);
+
+        public abstract CuBlasStatus SetAtomicsMode(IntPtr handle, CuBlasAtomicsMode mode);
+
+        public abstract CuBlasStatus GetMathMode(IntPtr handle, out CuBlasMathMode mode);
+
+        public abstract CuBlasStatus SetMathMode(IntPtr handle, CuBlasMathMode mode);
+
+<#      } #>
+
+        #endregion
+
         #region Level 1
 
-<# foreach (var func in GetBlasEntries(Amax, Amin, Asum, Nrm2)) { #>
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Amax, Amin, Asum, Nrm2)) { #>
+<#          if (define) { #>
+
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             int n,
             void* x,
             int incx,
             void* result);
 
-<# } #>
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x,
+            int incx,
+            void* result) =>
+            <#= nativeFunc #>(handle, n, x, incx, result);
 
-<# foreach (var func in GetBlasEntries(Axpy)) { #>
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x,
+            int incx,
+            void* result);
+
+<#          } #>
+
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Axpy)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             int n,
             void* alpha,
@@ -48,434 +208,1135 @@ namespace ILGPU.Runtime.Cuda
             void* y,
             int incy);
 
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Dot, RotM)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public override CuBlasStatus <#= func #>(
             IntPtr handle,
             int n,
+            void* alpha,
             void* x,
             int incx,
             void* y,
-            int incy,
+            int incy) =>
+            <#= nativeFunc #>(handle, n, alpha, x, incx, y, incy);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* alpha,
+            void* x,
+            int incx,
+            void* y,
+            int incy);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Dot, RotM)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            int n,
+            void* x, int incx,
+            void* y, int incy,
             void* result);
 
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Rot)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public override CuBlasStatus <#= func #>(
             IntPtr handle,
             int n,
-            void* x,
-            int incx,
-            void* y,
-            int incy,
+            void* x, int incx,
+            void* y, int incy,
+            void* result) =>
+            <#= nativeFunc #>(handle, n, x, incx, y, incy, result);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x, int incx,
+            void* y, int incy,
+            void* result);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Rot)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            int n,
+            void* x, int incx,
+            void* y, int incy,
             void* c,
             void* s);
 
-<# } #>
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x, int incx,
+            void* y, int incy,
+            void* c,
+            void* s) =>
+            <#= nativeFunc #>(handle, n, x, incx, y, incy, c, s);
 
-<# foreach (var func in GetBlasEntries(RotG)) { #>
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x, int incx,
+            void* y, int incy,
+            void* c,
+            void* s);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(RotG)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             void* a,
             void* b,
             void* c,
             void* s);
 
-<# } #>
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            void* a,
+            void* b,
+            void* c,
+            void* s) =>
+            <#= nativeFunc #>(handle, a, b, c, s);
 
-<# foreach (var func in GetBlasEntries(Scal)) { #>
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            void* a,
+            void* b,
+            void* c,
+            void* s);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Scal)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             int n,
             void* alpha,
             void* x,
             int incx);
 
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Swap)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public override CuBlasStatus <#= func #>(
             IntPtr handle,
             int n,
+            void* alpha,
             void* x,
-            int incx,
-            void* y,
-            int incy);
+            int incx) =>
+            <#= nativeFunc #>(handle, n, alpha, x, incx);
 
-<# } #>
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* alpha,
+            void* x,
+            int incx);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Swap)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            int n,
+            void* x, int incx,
+            void* y, int incy);
+
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x, int incx,
+            void* y, int incy) =>
+            <#= nativeFunc #>(handle, n, x, incx, y, incy);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int n,
+            void* x, int incx,
+            void* y, int incy);
+
+<#          } #>
+<#      } #>
 
         #endregion
 
         #region Level 2
 
-<# foreach (var func in GetBlasEntries(Gbmv)) { #>
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Gbmv)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasOperation trans,
-            int m,
-            int n,
-            int kl,
-            int ku,
+            int m, int n,
+            int kl, int ku,
             void* alpha,
-            void* a,
-            int lda,
-            void* x,
-            int incx,
+            void* a, int lda,
+            void* x, int incx,
             void* beta,
-            void* y,
-            int incy);
+            void* y, int incy);
 
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Gemv)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public override CuBlasStatus <#= func #>(
             IntPtr handle,
             CuBlasOperation trans,
-            int m,
-            int n,
+            int m, int n,
+            int kl, int ku,
             void* alpha,
-            void* a,
-            int lda,
-            void* x,
-            int incx,
+            void* a, int lda,
+            void* x, int incx,
             void* beta,
-            void* y,
-            int incy);
+            void* y, int incy) =>
+            <#= nativeFunc #>(
+                handle, trans,
+                m, n,
+                kl, ku,
+                alpha,
+                a, lda,
+                x, incx,
+                beta,
+                y, incy);
 
-<# } #>
+<#          } else { #>
 
-<# foreach (var func in GetBlasEntries(Ger)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public abstract CuBlasStatus <#= func #>(
             IntPtr handle,
-            int m,
-            int n,
+            CuBlasOperation trans,
+            int m, int n,
+            int kl, int ku,
             void* alpha,
-            void* x,
-            int incx,
-            void* y,
-            int incy,
-            void* a,
-            int lda);
+            void* a, int lda,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy);
 
-<# } #>
+<#          } #>
+<#      } #>
 
-<# foreach (var func in GetBlasEntries(Sbmv)) { #>
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Gemv)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            CuBlasOperation trans,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy);
+
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasOperation trans,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy) =>
+            <#= nativeFunc #>(
+                handle, trans,
+                m, n,
+                alpha,
+                a, lda,
+                x, incx,
+                beta,
+                y, incy);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasOperation trans,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Ger)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            int m, int n,
+            void* alpha,
+            void* x, int incx,
+            void* y, int incy,
+            void* a, int lda);
+
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int m, int n,
+            void* alpha,
+            void* x, int incx,
+            void* y, int incy,
+            void* a, int lda) =>
+            <#= nativeFunc #>(
+                handle,
+                m, n,
+                alpha,
+                x, incx,
+                y, incy,
+                a, lda);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            int m, int n,
+            void* alpha,
+            void* x, int incx,
+            void* y, int incy,
+            void* a, int lda);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Sbmv)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasFillMode uplo, 
+            int n, int k,
+            void* alpha,
+            void* a, int lda,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy);
+
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo, 
+            int n, int k,
+            void* alpha,
+            void* a, int lda,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy) =>
+            <#= nativeFunc #>(
+                handle, uplo,
+                n, k,
+                alpha,
+                a, lda,
+                x, incx,
+                beta,
+                y, incy);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo, 
+            int n, int k,
+            void* alpha,
+            void* a, int lda,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Spmv)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
             int n,
-            int k,
-            void* alpha,
-            void* a,
-            int lda,
-            void* x, 
-            int incx,
-            void* beta,
-            void* y,
-            int incy);
-
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Spmv)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
-            IntPtr handle,
-            CuBlasFillMode uplo,
-            int n, 
             void* alpha,
             void* ap,
-            void* x,
-            int incx,
+            void* x, int incx,
             void* beta,
-            void* y,
-            int incy);
+            void* y, int incy);
 
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Spr)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public override CuBlasStatus <#= func #>(
             IntPtr handle,
             CuBlasFillMode uplo,
-            int n, 
+            int n,
             void* alpha,
-            void* x,
-            int incx,
+            void* ap,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy) =>
+            <#= nativeFunc #>(
+                handle, uplo,
+                n,
+                alpha,
+                ap,
+                x, incx,
+                beta,
+                y, incy);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* ap,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Spr)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* x, int incx,
             void* ap);
 
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Spr2)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public override CuBlasStatus <#= func #>(
             IntPtr handle,
             CuBlasFillMode uplo,
-            int n, 
+            int n,
             void* alpha,
-            void* x,
-            int incx,
-            void* y,
-            int incy,
+            void* x, int incx,
+            void* ap) =>
+            <#= nativeFunc #>(
+                handle, uplo,
+                n,
+                alpha,
+                x, incx,
+                ap);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* x, int incx,
             void* ap);
 
-<# } #>
+<#          } #>
+<#      } #>
 
-<# foreach (var func in GetBlasEntries(Symv)) { #>
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Spr2)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasFillMode uplo,
-            int n, 
+            int n,
             void* alpha,
-            void* a,
-            int lda,
-            void* x,
-            int incx,
+            void* x, int incx,
+            void* y, int incy,
+            void* ap);
+
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* x, int incx,
+            void* y, int incy,
+            void* ap) =>
+            <#= nativeFunc #>(
+                handle, uplo,
+                n,
+                alpha,
+                x, incx,
+                y, incy,
+                ap);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* x, int incx,
+            void* y, int incy,
+            void* ap);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Symv)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* a, int lda,
+            void* x, int incx,
             void* beta,
-            void* y,
-            int incy);
+            void* y, int incy);
 
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Syr)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public override CuBlasStatus <#= func #>(
             IntPtr handle,
             CuBlasFillMode uplo,
-            int n, 
+            int n,
             void* alpha,
-            void* x,
-            int incx,
-            void* a,
-            int lda);
+            void* a, int lda,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy) =>
+            <#= nativeFunc #>(
+                handle, uplo,
+                n,
+                alpha,
+                a, lda,
+                x, incx,
+                beta,
+                y, incy);
 
-<# } #>
+<#          } else { #>
 
-<# foreach (var func in GetBlasEntries(Syr2)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public abstract CuBlasStatus <#= func #>(
             IntPtr handle,
             CuBlasFillMode uplo,
-            int n, 
+            int n,
             void* alpha,
-            void* x,
-            int incx,
-            void* y,
-            int incy,
-            void* a,
-            int lda);
+            void* a, int lda,
+            void* x, int incx,
+            void* beta,
+            void* y, int incy);
 
-<# } #>
+<#          } #>
+<#      } #>
 
-<# foreach (var func in GetBlasEntries(Tbmv, Tbsv)) { #>
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Syr)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* x, int incx,
+            void* a, int lda);
+
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* x, int incx,
+            void* a, int lda) =>
+            <#= nativeFunc #>(
+                handle, uplo,
+                n,
+                alpha,
+                x, incx,
+                a, lda);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* x, int incx,
+            void* a, int lda);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Syr2)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* x, int incx,
+            void* y, int incy,
+            void* a, int lda);
+
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* x, int incx,
+            void* y, int incy,
+            void* a, int lda) =>
+            <#= nativeFunc #>(
+                handle, uplo,
+                n,
+                alpha,
+                x, incx,
+                y, incy,
+                a, lda);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            int n,
+            void* alpha,
+            void* x, int incx,
+            void* y, int incy,
+            void* a, int lda);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Tbmv, Tbsv)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasFillMode uplo,
             CuBlasOperation trans,
             CuBlasDiagType diag,
-            int n, 
-            int k,
-            void* a,
-            int lda,
-            void* x,
-            int incx);
+            int n, int k,
+            void* a, int lda,
+            void* x, int incx);
 
-<# } #>
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, int k,
+            void* a, int lda,
+            void* x, int incx) =>
+            <#= nativeFunc #>(
+                handle, uplo,
+                trans, diag,
+                n, k,
+                a, lda,
+                x, incx);
 
-<# foreach (var func in GetBlasEntries(Tpmv, Tpsv)) { #>
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, int k,
+            void* a, int lda,
+            void* x, int incx);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Tpmv, Tpsv)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasFillMode uplo,
             CuBlasOperation trans,
             CuBlasDiagType diag,
             int n, 
             void* ap,
-            void* x,
-            int incx);
+            void* x, int incx);
 
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Trmv, Trsv)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public override CuBlasStatus <#= func #>(
             IntPtr handle,
             CuBlasFillMode uplo,
             CuBlasOperation trans,
             CuBlasDiagType diag,
             int n, 
-            void *a,
-            int lda,
-            void* x,
-            int incx);
+            void* ap,
+            void* x, int incx) =>
+            <#= nativeFunc #>(
+                handle, uplo,
+                trans, diag,
+                n,
+                ap,
+                x, incx);
 
-<# } #>
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, 
+            void* ap,
+            void* x, int incx);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Trmv, Trsv)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, 
+            void* a, int lda,
+            void* x, int incx);
+
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, 
+            void* a, int lda,
+            void* x, int incx) =>
+            <#= nativeFunc #>(
+                handle, uplo,
+                trans, diag,
+                n,
+                a, lda,
+                x, incx);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int n, 
+            void* a, int lda,
+            void* x, int incx);
+
+<#          } #>
+<#      } #>
+
         #endregion
 
         #region Level 3
 
-<# foreach (var func in GetBlasEntries(Gemm)) { #>
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Gemm)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasOperation transa,
             CuBlasOperation transb,
-            int m,
-            int n,
-            int k,
+            int m, int n, int k,
             void* alpha,
-            void* a,
-            int lda,
-            void* b,
-            int ldb,
+            void* a, int lda,
+            void* b, int ldb,
             void* beta,
-            void* c,
-            int ldc);
+            void* c, int ldc);
 
-<# } #>
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasOperation transa,
+            CuBlasOperation transb,
+            int m, int n, int k,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb,
+            void* beta,
+            void* c, int ldc) =>
+            <#= nativeFunc #>(
+                handle,
+                transa, transb,
+                m, n, k,
+                alpha,
+                a, lda,
+                b, ldb,
+                beta,
+                c, ldc);
 
-<# foreach (var func in GetBlasEntries(Symm)) { #>
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasOperation transa,
+            CuBlasOperation transb,
+            int m, int n, int k,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb,
+            void* beta,
+            void* c, int ldc);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Symm)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasSideMode side,
             CuBlasFillMode uplo,
-            int m,
-            int n,
+            int m, int n,
             void* alpha,
-            void* a,
-            int lda,
-            void* b,
-            int ldb,
+            void* a, int lda,
+            void* b, int ldb,
             void* beta,
-            void* c,
-            int ldc);
+            void* c, int ldc);
 
-<# } #>
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode side,
+            CuBlasFillMode uplo,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb,
+            void* beta,
+            void* c, int ldc) =>
+            <#= nativeFunc #>(
+                handle,
+                side, uplo,
+                m, n,
+                alpha,
+                a, lda,
+                b, ldb,
+                beta,
+                c, ldc);
 
-<# foreach (var func in GetBlasEntries(Syrk)) { #>
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode side,
+            CuBlasFillMode uplo,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb,
+            void* beta,
+            void* c, int ldc);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Syrk)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasFillMode uplo,
             CuBlasOperation trans,
-            int n,
-            int k,
+            int n, int k,
             void* alpha,
-            void* a,
-            int lda,
+            void* a, int lda,
             void* beta,
-            void* c,
-            int ldc);
+            void* c, int ldc);
 
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Syr2k, Syrkx)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public override CuBlasStatus <#= func #>(
             IntPtr handle,
             CuBlasFillMode uplo,
             CuBlasOperation trans,
-            int n,
-            int k,
+            int n, int k,
             void* alpha,
-            void* a,
-            int lda,
-            void* b,
-            int ldb,
+            void* a, int lda,
             void* beta,
-            void* c,
-            int ldc);
+            void* c, int ldc) =>
+            <#= nativeFunc #>(
+                handle,
+                uplo, trans,
+                n, k,
+                alpha,
+                a, lda,
+                beta,
+                c, ldc);
 
-<# } #>
+<#          } else { #>
 
-<# foreach (var func in GetBlasEntries(Trmm)) { #>
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            int n, int k,
+            void* alpha,
+            void* a, int lda,
+            void* beta,
+            void* c, int ldc);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Syr2k, Syrkx)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            int n, int k,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb,
+            void* beta,
+            void* c, int ldc);
+
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            int n, int k,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb,
+            void* beta,
+            void* c, int ldc) =>
+            <#= nativeFunc #>(
+                handle,
+                uplo, trans,
+                n, k,
+                alpha,
+                a, lda,
+                b, ldb,
+                beta,
+                c, ldc);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            int n, int k,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb,
+            void* beta,
+            void* c, int ldc);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Trmm)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasSideMode side,
             CuBlasFillMode uplo,
             CuBlasOperation trans,
             CuBlasDiagType diag,
-            int m,
-            int n,
+            int m, int n,
             void* alpha,
-            void* a,
-            int lda,
-            void* b,
-            int ldb,
-            void* c,
-            int ldc);
+            void* a, int lda,
+            void* b, int ldb,
+            void* c, int ldc);
 
-<# } #>
-
-<# foreach (var func in GetBlasEntries(Trsm)) { #>
-        [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        public override CuBlasStatus <#= func #>(
             IntPtr handle,
             CuBlasSideMode side,
             CuBlasFillMode uplo,
             CuBlasOperation trans,
             CuBlasDiagType diag,
-            int m,
-            int n,
+            int m, int n,
             void* alpha,
-            void* a,
-            int lda,
-            void* b,
-            int ldb);
+            void* a, int lda,
+            void* b, int ldb,
+            void* c, int ldc) =>
+            <#= nativeFunc #>(
+                handle,
+                side, uplo,
+                trans, diag,
+                m, n,
+                alpha,
+                a, lda,
+                b, ldb,
+                c, ldc);
 
-<# } #>
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode side,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb,
+            void* c, int ldc);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Trsm)) { #>
+<#          if (define) { #>
+        [DllImport(LibName)]
+        private static extern CuBlasStatus <#= nativeFunc #>(
+            IntPtr handle,
+            CuBlasSideMode side,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb);
+
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode side,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb) =>
+            <#= nativeFunc #>(
+                handle,
+                side, uplo,
+                trans, diag,
+                m, n,
+                alpha,
+                a, lda,
+                b, ldb);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode side,
+            CuBlasFillMode uplo,
+            CuBlasOperation trans,
+            CuBlasDiagType diag,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* b, int ldb);
+
+<#          } #>
+<#      } #>
+
         #endregion
 
         #region Blas Extensions
 
-<# foreach (var func in GetBlasEntries(Geam)) { #>
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Geam)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasOperation transa,
             CuBlasOperation transb,
-            int m,
-            int n,
+            int m, int n,
             void* alpha,
-            void* a,
-            int lda,
+            void* a, int lda,
             void* beta,
-            void* b,
-            int ldb,
-            void* c,
-            int ldc);
+            void* b, int ldb,
+            void* c, int ldc);
 
-<# } #>
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasOperation transa,
+            CuBlasOperation transb,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* beta,
+            void* b, int ldb,
+            void* c, int ldc) =>
+            <#= nativeFunc #>(
+                handle,
+                transa, transb,
+                m, n,
+                alpha,
+                a, lda,
+                beta,
+                b, ldb,
+                c, ldc);
 
-<# foreach (var func in GetBlasEntries(Dgmm)) { #>
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasOperation transa,
+            CuBlasOperation transb,
+            int m, int n,
+            void* alpha,
+            void* a, int lda,
+            void* beta,
+            void* b, int ldb,
+            void* c, int ldc);
+
+<#          } #>
+<#      } #>
+
+<#      foreach (var (func, nativeFunc) in GetBlasEntries(Dgmm)) { #>
+<#          if (define) { #>
         [DllImport(LibName)]
-        public static extern CuBlasStatus <#= func #>(
+        private static extern CuBlasStatus <#= nativeFunc #>(
             IntPtr handle,
             CuBlasSideMode mode,
-            int m,
-            int n,
-            void* a,
-            int lda,
-            void* x,
-            int incx,
-            void* c,
-            int ldc);
+            int m, int n,
+            void* a, int lda,
+            void* x, int incx,
+            void* c, int ldc);
 
-<# } #>
+        public override CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode mode,
+            int m, int n,
+            void* a, int lda,
+            void* x, int incx,
+            void* c, int ldc) =>
+            <#= nativeFunc #>(
+                handle, mode,
+                m, n,
+                a, lda,
+                x, incx,
+                c, ldc);
+
+<#          } else { #>
+
+        public abstract CuBlasStatus <#= func #>(
+            IntPtr handle,
+            CuBlasSideMode mode,
+            int m, int n,
+            void* a, int lda,
+            void* x, int incx,
+            void* c, int ldc);
+
+<#          } #>
+<#      } #>
+
         #endregion
     }
+<# } #>
 }

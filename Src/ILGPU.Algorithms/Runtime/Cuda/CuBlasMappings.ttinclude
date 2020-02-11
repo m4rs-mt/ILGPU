@@ -26,294 +26,294 @@ public static readonly (string, string)[] CuBlasTypes = new (string, string)[]
 
 public static readonly string[] Amax = new string[]
 {
-    "cublasIsamax_v2",
-    "cublasIdamax_v2",
-    "cublasIcamax_v2",
-    "cublasIzamax_v2",
+    "Isamax_v2",
+    "Idamax_v2",
+    "Icamax_v2",
+    "Izamax_v2",
 };
 
 public static readonly string[] Amin = new string[]
 {
-    "cublasIsamin_v2",
-    "cublasIdamin_v2",
-    "cublasIcamin_v2",
-    "cublasIzamin_v2",
+    "Isamin_v2",
+    "Idamin_v2",
+    "Icamin_v2",
+    "Izamin_v2",
 };
 
 public static readonly string[] Asum = new string[]
 {
-    "cublasSasum_v2",
-    "cublasDasum_v2",
-    "cublasScasum_v2",
-    "cublasDzasum_v2",
+    "Sasum_v2",
+    "Dasum_v2",
+    "Scasum_v2",
+    "Dzasum_v2",
 };
 
 public static readonly string[] Axpy = new string[]
 {
-    "cublasSaxpy_v2",
-    "cublasDaxpy_v2",
-    "cublasCaxpy_v2",
-    "cublasZaxpy_v2",
+    "Saxpy_v2",
+    "Daxpy_v2",
+    "Caxpy_v2",
+    "Zaxpy_v2",
 };
 
 public static readonly string[] Dot = new string[]
 {
-    "cublasSdot_v2",
-    "cublasDdot_v2",
-    "cublasCdotu_v2",
-    "cublasCdotc_v2",
+    "Sdot_v2",
+    "Ddot_v2",
+    "Cdotu_v2",
+    "Cdotc_v2",
 };
 
 public static readonly string[] Nrm2 = new string[]
 {
-    "cublasSnrm2_v2",
-    "cublasDnrm2_v2",
-    "cublasScnrm2_v2",
-    "cublasDznrm2_v2"
+    "Snrm2_v2",
+    "Dnrm2_v2",
+    "Scnrm2_v2",
+    "Dznrm2_v2"
 };
 
 public static readonly string[] Rot = new string[]
 {
-    "cublasSrot_v2",
-    "cublasDrot_v2",
-    "cublasCsrot_v2",
-    "cublasZdrot_v2"
+    "Srot_v2",
+    "Drot_v2",
+    "Csrot_v2",
+    "Zdrot_v2"
 };
 
 public static readonly string[] RotG = new string[]
 {
-    "cublasSrotg_v2",
-    "cublasDrotg_v2",
-    "cublasCrotg_v2",
-    "cublasZrotg_v2"
+    "Srotg_v2",
+    "Drotg_v2",
+    "Crotg_v2",
+    "Zrotg_v2"
 };
 
 public static readonly string[] RotM = new string[]
 {
-    "cublasSrotm_v2",
-    "cublasDrotm_v2",
+    "Srotm_v2",
+    "Drotm_v2",
 };
 
 public static readonly string[] Scal = new string[]
 {
-    "cublasSscal_v2",
-    "cublasDscal_v2",
-    "cublasCscal_v2",
-    "cublasZscal_v2",
+    "Sscal_v2",
+    "Dscal_v2",
+    "Cscal_v2",
+    "Zscal_v2",
 };
 
 public static readonly string[] Swap = new string[]
 {
-    "cublasSswap_v2",
-    "cublasDswap_v2",
-    "cublasCswap_v2",
-    "cublasZswap_v2",
+    "Sswap_v2",
+    "Dswap_v2",
+    "Cswap_v2",
+    "Zswap_v2",
 };
 
 // Level 2
 
 public static readonly string[] Gbmv = new string[]
 {
-    "cublasSgbmv_v2",
-    "cublasDgbmv_v2",
-    "cublasCgbmv_v2",
-    "cublasZgbmv_v2",
+    "Sgbmv_v2",
+    "Dgbmv_v2",
+    "Cgbmv_v2",
+    "Zgbmv_v2",
 };
 
 public static readonly string[] Gemv = new string[]
 {
-    "cublasSgemv_v2",
-    "cublasDgemv_v2",
-    "cublasCgemv_v2",
-    "cublasZgemv_v2",
+    "Sgemv_v2",
+    "Dgemv_v2",
+    "Cgemv_v2",
+    "Zgemv_v2",
 };
 
 public static readonly string[] Ger = new string[]
 {
-    "cublasSger_v2",
-    "cublasDger_v2",
-    "cublasCgeru_v2",
-    "cublasZgeru_v2",
+    "Sger_v2",
+    "Dger_v2",
+    "Cgeru_v2",
+    "Zgeru_v2",
 };
 
 public static readonly string[] Sbmv = new string[]
 {
-    "cublasSsbmv_v2",
-    "cublasDsbmv_v2",
-    "cublasChbmv_v2",
-    "cublasZhbmv_v2",
+    "Ssbmv_v2",
+    "Dsbmv_v2",
+    "Chbmv_v2",
+    "Zhbmv_v2",
 };
 
 public static readonly string[] Spmv = new string[]
 {
-    "cublasSspmv_v2",
-    "cublasDspmv_v2",
-    "cublasChpmv_v2",
-    "cublasZhpmv_v2",
+    "Sspmv_v2",
+    "Dspmv_v2",
+    "Chpmv_v2",
+    "Zhpmv_v2",
 };
 
 public static readonly string[] Spr = new string[]
 {
-    "cublasSspr_v2",
-    "cublasDspr_v2",
-    "cublasChpr_v2",
-    "cublasZhpr_v2",
+    "Sspr_v2",
+    "Dspr_v2",
+    "Chpr_v2",
+    "Zhpr_v2",
 };
 
 public static readonly string[] Spr2 = new string[]
 {
-    "cublasSspr2_v2",
-    "cublasDspr2_v2",
-    "cublasChpr2_v2",
-    "cublasZhpr2_v2",
+    "Sspr2_v2",
+    "Dspr2_v2",
+    "Chpr2_v2",
+    "Zhpr2_v2",
 };
 
 public static readonly string[] Symv = new string[]
 {
-    "cublasSsymv_v2",
-    "cublasDsymv_v2",
-    "cublasCsymv_v2",
-    "cublasZsymv_v2",
+    "Ssymv_v2",
+    "Dsymv_v2",
+    "Csymv_v2",
+    "Zsymv_v2",
 };
 
 public static readonly string[] Syr = new string[]
 {
-    "cublasSsyr_v2",
-    "cublasDsyr_v2",
-    "cublasCsyr_v2",
-    "cublasZsyr_v2",
+    "Ssyr_v2",
+    "Dsyr_v2",
+    "Csyr_v2",
+    "Zsyr_v2",
 };
 
 public static readonly string[] Syr2 = new string[]
 {
-    "cublasSsyr2_v2",
-    "cublasDsyr2_v2",
-    "cublasCsyr2_v2",
-    "cublasZsyr2_v2",
+    "Ssyr2_v2",
+    "Dsyr2_v2",
+    "Csyr2_v2",
+    "Zsyr2_v2",
 };
 
 public static readonly string[] Tbmv = new string[]
 {
-    "cublasStbmv_v2",
-    "cublasDtbmv_v2",
-    "cublasCtbmv_v2",
-    "cublasZtbmv_v2",
+    "Stbmv_v2",
+    "Dtbmv_v2",
+    "Ctbmv_v2",
+    "Ztbmv_v2",
 };
 
 public static readonly string[] Tbsv = new string[]
 {
-    "cublasStbsv_v2",
-    "cublasDtbsv_v2",
-    "cublasCtbsv_v2",
-    "cublasZtbsv_v2",
+    "Stbsv_v2",
+    "Dtbsv_v2",
+    "Ctbsv_v2",
+    "Ztbsv_v2",
 };
 
 public static readonly string[] Tpmv = new string[]
 {
-    "cublasStpmv_v2",
-    "cublasDtpmv_v2",
-    "cublasCtpmv_v2",
-    "cublasZtpmv_v2",
+    "Stpmv_v2",
+    "Dtpmv_v2",
+    "Ctpmv_v2",
+    "Ztpmv_v2",
 };
 
 public static readonly string[] Tpsv = new string[]
 {
-    "cublasStpsv_v2",
-    "cublasDtpsv_v2",
-    "cublasCtpsv_v2",
-    "cublasZtpsv_v2",
+    "Stpsv_v2",
+    "Dtpsv_v2",
+    "Ctpsv_v2",
+    "Ztpsv_v2",
 };
 
 public static readonly string[] Trmv = new string[]
 {
-    "cublasStrmv_v2",
-    "cublasDtrmv_v2",
-    "cublasCtrmv_v2",
-    "cublasZtrmv_v2",
+    "Strmv_v2",
+    "Dtrmv_v2",
+    "Ctrmv_v2",
+    "Ztrmv_v2",
 };
 
 public static readonly string[] Trsv = new string[]
 {
-    "cublasStrsv_v2",
-    "cublasDtrsv_v2",
-    "cublasCtrsv_v2",
-    "cublasZtrsv_v2",
+    "Strsv_v2",
+    "Dtrsv_v2",
+    "Ctrsv_v2",
+    "Ztrsv_v2",
 };
 
 // Level 3
 
 public static readonly string[] Gemm = new string[]
 {
-    "cublasSgemm_v2",
-    "cublasDgemm_v2",
-    "cublasCgemm_v2",
-    "cublasZgemm_v2",
+    "Sgemm_v2",
+    "Dgemm_v2",
+    "Cgemm_v2",
+    "Zgemm_v2",
 };
 
 public static readonly string[] Symm = new string[]
 {
-    "cublasSsymm_v2",
-    "cublasDsymm_v2",
-    "cublasCsymm_v2",
-    "cublasZsymm_v2",
+    "Ssymm_v2",
+    "Dsymm_v2",
+    "Csymm_v2",
+    "Zsymm_v2",
 };
 
 public static readonly string[] Syrk = new string[]
 {
-    "cublasSsyrk_v2",
-    "cublasDsyrk_v2",
-    "cublasCsyrk_v2",
-    "cublasZsyrk_v2",
+    "Ssyrk_v2",
+    "Dsyrk_v2",
+    "Csyrk_v2",
+    "Zsyrk_v2",
 };
 
 public static readonly string[] Syr2k = new string[]
 {
-    "cublasSsyr2k_v2",
-    "cublasDsyr2k_v2",
-    "cublasCsyr2k_v2",
-    "cublasZsyr2k_v2",
+    "Ssyr2k_v2",
+    "Dsyr2k_v2",
+    "Csyr2k_v2",
+    "Zsyr2k_v2",
 };
 
 public static readonly string[] Syrkx = new string[]
 {
-    "cublasSsyrkx",
-    "cublasDsyrkx",
-    "cublasCsyrkx",
-    "cublasZsyrkx",
+    "Ssyrkx",
+    "Dsyrkx",
+    "Csyrkx",
+    "Zsyrkx",
 };
 
 public static readonly string[] Trmm = new string[]
 {
-    "cublasStrmm_v2",
-    "cublasDtrmm_v2",
-    "cublasCtrmm_v2",
-    "cublasZtrmm_v2",
+    "Strmm_v2",
+    "Dtrmm_v2",
+    "Ctrmm_v2",
+    "Ztrmm_v2",
 };
 
 public static readonly string[] Trsm = new string[]
 {
-    "cublasStrsm_v2",
-    "cublasDtrsm_v2",
-    "cublasCtrsm_v2",
-    "cublasZtrsm_v2",
+    "Strsm_v2",
+    "Dtrsm_v2",
+    "Ctrsm_v2",
+    "Ztrsm_v2",
 };
 
 // Extensions
 
 public static readonly string[] Geam = new string[]
 {
-    "cublasSgeam",
-    "cublasDgeam",
-    "cublasCgeam",
-    "cublasZgeam",
+    "Sgeam",
+    "Dgeam",
+    "Cgeam",
+    "Zgeam",
 };
 
 public static readonly string[] Dgmm = new string[]
 {
-    "cublasSdgmm",
-    "cublasDdgmm",
-    "cublasCdgmm",
-    "cublasZdgmm",
+    "Sdgmm",
+    "Ddgmm",
+    "Cdgmm",
+    "Zdgmm",
 };
 
 // Helper
@@ -366,10 +366,10 @@ public static IEnumerable<(string, T, string, string, string, Func<string, strin
     }
 }
 
-public static IEnumerable<string> GetBlasEntries(params string[][] bindings)
+public static IEnumerable<(string, string)> GetBlasEntries(params string[][] bindings)
 {
     foreach (var values in bindings)
         foreach (var value in values)
-            yield return value;
+            yield return (value, "cublas" + value);
 }
 #>

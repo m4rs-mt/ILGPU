@@ -39,7 +39,7 @@ namespace ILGPU.Runtime.Cuda
 
             int result;
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     input.Length,
                     input.LoadEffectiveAddress(),
@@ -58,7 +58,7 @@ namespace ILGPU.Runtime.Cuda
             EnsurePointerMode(CuBlasPointerMode.Device);
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     input.Length,
                     input.LoadEffectiveAddress(),
@@ -82,7 +82,7 @@ namespace ILGPU.Runtime.Cuda
 
             <#= type #> result = default;
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     input.Length,
                     input.LoadEffectiveAddress(),
@@ -101,7 +101,7 @@ namespace ILGPU.Runtime.Cuda
             EnsurePointerMode(CuBlasPointerMode.Device);
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     input.Length,
                     input.LoadEffectiveAddress(),
@@ -128,7 +128,7 @@ namespace ILGPU.Runtime.Cuda
             Debug.Assert(x.Length == y.Length, "Invalid length");
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     x.Length,
                     <#= paramGetter("alpha") #>,
@@ -157,7 +157,7 @@ namespace ILGPU.Runtime.Cuda
 
             <#= type #> result = default;
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     x.Length,
                     x.LoadEffectiveAddress(),
@@ -183,7 +183,7 @@ namespace ILGPU.Runtime.Cuda
             Debug.Assert(x.Length == y.Length, "Invalid length");
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     x.Length,
                     x.LoadEffectiveAddress(),
@@ -213,7 +213,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     x.Length,
                     x.LoadEffectiveAddress(),
@@ -242,7 +242,7 @@ namespace ILGPU.Runtime.Cuda
             <#= type #> s)
         {
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     Unsafe.AsPointer(ref a),
                     Unsafe.AsPointer(ref b),
@@ -264,7 +264,7 @@ namespace ILGPU.Runtime.Cuda
             ArrayView<<#= type #>> s)
         {
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     a.LoadEffectiveAddress(),
                     b.LoadEffectiveAddress(),
@@ -291,7 +291,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     x.Length,
                     x.LoadEffectiveAddress(),
@@ -317,7 +317,7 @@ namespace ILGPU.Runtime.Cuda
             <#= paramVerifier #>;
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     x.Length,
                     <#= paramGetter("alpha") #>,
@@ -341,7 +341,7 @@ namespace ILGPU.Runtime.Cuda
             Debug.Assert(x.Length == y.Length, "Invalid length");
 
             CuBlasException.ThrowIfFailed(
-                NativeMethods.<#= func #>(
+                API.<#= func #>(
                     Handle,
                     x.Length,
                     x.LoadEffectiveAddress(),
