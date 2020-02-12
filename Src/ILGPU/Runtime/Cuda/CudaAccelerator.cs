@@ -514,7 +514,7 @@ namespace ILGPU.Runtime.Cuda
                 emitter);
 
             // Load kernel config
-            KernelLauncherBuilder.EmitLoadKernelConfig(
+            KernelLauncherBuilder.EmitLoadRuntimeKernelConfig(
                 entryPoint,
                 emitter,
                 Kernel.KernelParamDimensionIdx,

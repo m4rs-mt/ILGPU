@@ -71,8 +71,11 @@ namespace ILGPU.Backends.IL
             TEmitter emitter,
             KernelGenerationData kernelData)
         {
-            // Load index
-            emitter.Emit(LocalOperation.Load, kernelData.Index);
+            if (entryPoint.IsImplictlyGrouped)
+            {
+                // Load index
+                emitter.Emit(LocalOperation.Load, kernelData.Index);
+            }
 
             // Load kernel arguments
             foreach (var uniform in kernelData.Uniforms)

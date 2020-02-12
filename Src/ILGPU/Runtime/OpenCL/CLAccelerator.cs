@@ -553,7 +553,7 @@ namespace ILGPU.Runtime.OpenCL
             emitter.Emit(LocalOperation.Load, kernelLocal);
 
             // Load dimensions
-            KernelLauncherBuilder.EmitLoadKernelConfig(
+            KernelLauncherBuilder.EmitLoadRuntimeKernelConfig(
                 entryPoint,
                 emitter,
                 Kernel.KernelParamDimensionIdx,

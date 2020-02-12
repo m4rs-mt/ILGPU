@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Backends;
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.IL;
 using ILGPU.Resources;
@@ -26,36 +25,6 @@ namespace ILGPU.Runtime
     static class KernelLauncherBuilder
     {
         #region Methods
-
-        /// <summary>
-        /// Emits code to create an Index instance from a loaded integer value.
-        /// </summary>
-        /// <typeparam name="TEmitter">The emitter type.</typeparam>
-        /// <param name="emitter">The target IL emitter.</param>
-        public static void EmitLoadIndex<TEmitter>(in TEmitter emitter)
-            where TEmitter : IILEmitter
-        {
-            emitter.EmitNewObject(Index.MainConstructor);
-        }
-
-        /// <summary>
-        /// Emits code for computing and loading the required shared-memory size.
-        /// </summary>
-        /// <typeparam name="TEmitter">The emitter type.</typeparam>
-        /// <param name="entryPoint">The entry point for code generation.</param>
-        /// <param name="emitter">The target IL emitter.</param>
-        public static ILLocal EmitSharedMemorySizeComputation<TEmitter>(
-            EntryPoint entryPoint,
-            in TEmitter emitter)
-            where TEmitter : IILEmitter
-        {
-            // Compute sizes of dynamic-shared variables
-            var sharedMemSize = emitter.DeclareLocal(typeof(int));
-            emitter.EmitConstant(entryPoint.SharedMemorySize);
-            emitter.Emit(LocalOperation.Store, sharedMemSize);
-
-            return sharedMemSize;
-        }
 
         /// <summary>
         /// Stores all getter methods to resolve all index values of an <see cref="Index3"/>.
@@ -217,25 +186,19 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Emits a kernel-dimension configuration. In the case of an ungrouped index type, all arguments
-        /// will be transformed into a <see cref="KernelConfig"/> instance. Otherwise, the passed kernel
-        /// configuration will be used without any modifications.
+        /// Emits code for loading a <see cref="SharedMemorySpecification"/> instance.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
-        /// <param name="entryPoint">The entry point.</param>
+        /// <param name="entryPoint">The entry point for code generation.</param>
         /// <param name="emitter">The target IL emitter.</param>
-        /// <param name="dimensionIdx">The argument index of the provided launch-dimension index.</param>
-        public static void EmitLoadKernelConfig<TEmitter>(
+        public static void EmitSharedMemorySpeficiation<TEmitter>(
             EntryPoint entryPoint,
-            in TEmitter emitter,
-            int dimensionIdx)
+            in TEmitter emitter)
             where TEmitter : IILEmitter
         {
-            EmitLoadKernelConfig(
-                entryPoint,
-                emitter,
-                dimensionIdx,
-                0);
+            emitter.EmitConstant(entryPoint.SharedMemory.StaticSize);
+            emitter.EmitConstant(entryPoint.SharedMemory.DynamicElementSize);
+            emitter.EmitNewObject(SharedMemorySpecification.Constructor);
         }
 
         /// <summary>
@@ -252,10 +215,10 @@ namespace ILGPU.Runtime
             EntryPoint entryPoint,
             TEmitter emitter,
             int dimensionIdx,
-            int customGroupSize)
+            int customGroupSize = 0)
             where TEmitter : IILEmitter
         {
-            if (!entryPoint.IsGroupedIndexEntry)
+            if (entryPoint.IsImplictlyGrouped)
             {
                 Debug.Assert(customGroupSize >= 0, "Invalid custom group size");
 
@@ -283,18 +246,39 @@ namespace ILGPU.Runtime
                 emitter.Emit(OpCodes.Ldc_I4_1);
                 emitter.Emit(OpCodes.Ldc_I4_1);
 
-                var config = emitter.DeclareLocal(typeof(KernelConfig));
                 emitter.EmitNewObject(KernelConfig.ImplicitlyGroupedKernelConstructor);
-                emitter.Emit(LocalOperation.Store, config);
-
-                emitter.Emit(LocalOperation.LoadAddress, config);
             }
             else
             {
                 Debug.Assert(customGroupSize == 0, "Invalid custom group size");
 
-                emitter.Emit(ArgumentOperation.LoadAddress, dimensionIdx);
+                emitter.Emit(ArgumentOperation.Load, dimensionIdx);
             }
+        }
+
+        /// <summary>
+        /// Emits a new runtime kernel configuration.
+        /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
+        /// <param name="entryPoint">The entry point.</param>
+        /// <param name="emitter">The target IL emitter.</param>
+        /// <param name="dimensionIdx">The argument index of the provided launch-dimension index.</param>
+        /// <param name="customGroupSize">The custom group size used for automatic blocking.</param>
+        public static void EmitLoadRuntimeKernelConfig<TEmitter>(
+            EntryPoint entryPoint,
+            TEmitter emitter,
+            int dimensionIdx,
+            int customGroupSize = 0)
+            where TEmitter : IILEmitter
+        {
+            EmitLoadKernelConfig(
+                entryPoint,
+                emitter,
+                dimensionIdx,
+                customGroupSize);
+            EmitSharedMemorySpeficiation(entryPoint, emitter);
+
+            emitter.EmitNewObject(RuntimeKernelConfig.Constructor);
         }
 
         /// <summary>

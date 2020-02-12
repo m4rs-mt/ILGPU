@@ -380,8 +380,6 @@ namespace ILGPU.Runtime.CPU
             // Create an instance of the custom task type
             var task = emitter.DeclareLocal(kernel.TaskType);
             {
-                var sharedMemSize = KernelLauncherBuilder.EmitSharedMemorySizeComputation(entryPoint, emitter);
-
                 emitter.Emit(LocalOperation.Load, cpuKernel);
                 emitter.EmitCall(
                     typeof(CPUKernel).GetProperty(
@@ -395,14 +393,11 @@ namespace ILGPU.Runtime.CPU
                     Kernel.KernelParamDimensionIdx);
 
                 // Load dimensions
-                KernelLauncherBuilder.EmitLoadKernelConfig(
+                KernelLauncherBuilder.EmitLoadRuntimeKernelConfig(
                     entryPoint,
                     emitter,
                     Kernel.KernelParamDimensionIdx,
                     customGroupSize);
-
-                // Load shared-memory size
-                emitter.Emit(LocalOperation.Load, sharedMemSize);
 
                 // Create new task object
                 emitter.EmitNewObject(kernel.TaskConstructor);

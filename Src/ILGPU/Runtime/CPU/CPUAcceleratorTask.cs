@@ -57,9 +57,7 @@ namespace ILGPU.Runtime.CPU
         {
             typeof(CPUKernelExecutionHandler),
             typeof(KernelConfig),
-            typeof(KernelConfig),
-            typeof(int),
-            typeof(int)
+            typeof(RuntimeKernelConfig)
         };
 
         /// <summary>
@@ -107,7 +105,6 @@ namespace ILGPU.Runtime.CPU
             UserDimension = userConfig.GridDimension.Size * userConfig.GroupDimension.Size;
             GridDim = config.GridDimension;
             GroupDim = config.GroupDimension;
-            RuntimeDimension = GridDim.Size * GroupDim.Size;
             SharedMemory = config.SharedMemoryConfig.Specification;
         }
 
@@ -136,9 +133,19 @@ namespace ILGPU.Runtime.CPU
         public Index3 GroupDim { get; }
 
         /// <summary>
+        /// Returns the group dimension size.
+        /// </summary>
+        public int GroupDimSize => GroupDim.Size;
+
+        /// <summary>
         /// Returns the runtime-defined kernel dimension.
         /// </summary>
-        public int RuntimeDimension { get; }
+        public int UserRuntimeDimension => UserGridDim.Size * GroupDimSize;
+
+        /// <summary>
+        /// Returns the runtime-defined kernel dimension.
+        /// </summary>
+        public int RuntimeDimension => GridDim.Size * GroupDimSize;
 
         /// <summary>
         /// Returns the shared memory specification to use.
