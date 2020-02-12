@@ -127,7 +127,10 @@ namespace ILGPU.Backends.PTX
             Builder.AppendLine("(");
 
             var parameterLogic = new KernelParameterSetupLogic(EntryPoint, this);
-            var parameters = SetupParameters(Builder, ref parameterLogic, 1);
+            var parameters = SetupParameters(
+                Builder,
+                ref parameterLogic,
+                EntryPoint.IsExplicitlyGrouped ? 0 : 1);
             Builder.AppendLine();
             Builder.AppendLine(")");
             SetupKernelSpecialization(EntryPoint.Specialization);

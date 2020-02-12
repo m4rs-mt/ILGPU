@@ -161,7 +161,10 @@ namespace ILGPU.Backends.OpenCL
 
             // Emit all parameter declarations
             var setupLogic = new KernelParameterSetupLogic(this);
-            SetupParameters(Builder, ref setupLogic, 1);
+            SetupParameters(
+                Builder,
+                ref setupLogic,
+                EntryPoint.IsExplicitlyGrouped ? 0 : 1);
             Builder.AppendLine(")");
 
             // Emit code that moves view arguments into their appropriate targets
