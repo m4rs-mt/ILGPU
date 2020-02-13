@@ -94,6 +94,13 @@ namespace ILGPU
         /// <returns>The grid dimension.</returns>
         public static Index3 Dimension => new Index3(DimensionX, DimensionY, DimensionZ);
 
+        /// <summary>
+        /// Returns the global index.
+        /// </summary>
+        public static Index3 GlobalIndex => ComputeGlobalIndex(
+            Index,
+            Group.Index);
+
         #endregion
 
         #region Methods
