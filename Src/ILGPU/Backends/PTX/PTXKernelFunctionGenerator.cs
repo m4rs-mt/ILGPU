@@ -121,6 +121,8 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         public override void GenerateCode()
         {
+            var allocations = SetupDynamicSharedAllocations();
+
             Builder.AppendLine();
             Builder.Append(".visible .entry ");
             Builder.Append(PTXCompiledKernel.EntryName);
@@ -138,7 +140,7 @@ namespace ILGPU.Backends.PTX
 
             // Build memory allocations
             PrepareCodeGeneration();
-            var allocations = SetupAllocations();
+            SetupAllocations(allocations);
             var registerOffset = Builder.Length;
 
             // Build param bindings and local memory variables

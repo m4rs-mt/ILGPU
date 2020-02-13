@@ -105,7 +105,7 @@ namespace ILGPU.Runtime.CPU
             UserDimension = userConfig.GridDimension.Size * userConfig.GroupDimension.Size;
             GridDim = config.GridDimension;
             GroupDim = config.GroupDimension;
-            SharedMemory = config.SharedMemoryConfig.Specification;
+            SharedMemoryConfig = config.SharedMemoryConfig;
         }
 
         #endregion
@@ -148,9 +148,9 @@ namespace ILGPU.Runtime.CPU
         public int RuntimeDimension => GridDim.Size * GroupDimSize;
 
         /// <summary>
-        /// Returns the shared memory specification to use.
+        /// Returns the shared memory config to use.
         /// </summary>
-        public SharedMemorySpecification SharedMemory { get; }
+        public SharedMemoryConfig SharedMemoryConfig { get; }
 
         /// <summary>
         /// Returns the associated kernel-execution delegate.

@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Resources;
 using System;
 using System.Diagnostics;
 using System.Reflection;
@@ -352,6 +353,10 @@ namespace ILGPU
         {
             Specification = specification;
             DynamicConfig = dynamicConfig;
+
+            if (!specification.HasDynamicMemory && dynamicConfig.NumElements > 0)
+                throw new InvalidOperationException(
+                    ErrorMessages.InvalidDynamicSharedMemoryConfiguration);
         }
 
         /// <summary>

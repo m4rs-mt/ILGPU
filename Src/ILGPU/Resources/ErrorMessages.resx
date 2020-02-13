@@ -294,4 +294,13 @@
   <data name="NotSupportedIntrinsicImplementation1" xml:space="preserve">
     <value>The function '{0}' does not have an intrinsic implementation for this backend. 'EnableAlgorithms' from the Algorithms library not invoked?</value>
   </data>
+  <data name="InvalidDynamicSharedMemoryConfiguration" xml:space="preserve">
+    <value>Dynamic shared memory elements specified but the kernel does not support dynamic shared memory bindings</value>
+  </data>
+  <data name="NotSupportedMultipleDynamicSharedMemoryAllocations" xml:space="preserve">
+    <value>Multiple dynamic shared memory allocations are not supported</value>
+  </data>
+  <data name="NotSupportedDynamicSharedMemoryAllocations" xml:space="preserve">
+    <value>Dynamic shared memory allocations are not supported by this accelerator</value>
+  </data>
 </root>

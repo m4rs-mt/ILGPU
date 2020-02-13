@@ -15,6 +15,8 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -448,6 +450,10 @@ namespace ILGPU.Backends.OpenCL
             // Setup allocations
             SetupAllocations(Allocas.LocalAllocations, string.Empty);
             SetupAllocations(Allocas.SharedAllocations, "local ");
+
+            if (Allocas.DynamicSharedAllocations.Length > 0)
+                throw new NotSupportedException(
+                    ErrorMessages.NotSupportedDynamicSharedMemoryAllocations);
 
             // Build branch targets
             foreach (var block in Scope)

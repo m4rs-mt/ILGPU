@@ -142,6 +142,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Dynamic shared memory elements specified but the kernel does not support dynamic shared memory bindings.
+        /// </summary>
+        internal static string InvalidDynamicSharedMemoryConfiguration {
+            get {
+                return ResourceManager.GetString("InvalidDynamicSharedMemoryConfiguration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to An entry point must receive at least one index parameter.
         /// </summary>
         internal static string InvalidEntryPointIndexParameter {
@@ -322,6 +331,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Dynamic shared memory allocations are not supported by this accelerator.
+        /// </summary>
+        internal static string NotSupportedDynamicSharedMemoryAllocations {
+            get {
+                return ResourceManager.GetString("NotSupportedDynamicSharedMemoryAllocations", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot cast type &apos;{0}&apos; to float/int.
         /// </summary>
         internal static string NotSupportedFloatIntCast {
@@ -471,6 +489,15 @@ namespace ILGPU.Resources {
         internal static string NotSupportedMethodJump {
             get {
                 return ResourceManager.GetString("NotSupportedMethodJump", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Multiple dynamic shared memory allocations are not supported.
+        /// </summary>
+        internal static string NotSupportedMultipleDynamicSharedMemoryAllocations {
+            get {
+                return ResourceManager.GetString("NotSupportedMultipleDynamicSharedMemoryAllocations", resourceCulture);
             }
         }
         

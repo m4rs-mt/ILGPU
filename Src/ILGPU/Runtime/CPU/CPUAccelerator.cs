@@ -269,7 +269,7 @@ namespace ILGPU.Runtime.CPU
             for (int i = 0; i < numRuntimeGroups; ++i)
             {
                 var context = groupContexts[i];
-                context.Initialize(task.GroupDim, task.SharedMemSize);
+                context.Initialize(task.GroupDim, task.SharedMemoryConfig);
             }
 
             Interlocked.MemoryBarrier();
@@ -341,7 +341,6 @@ namespace ILGPU.Runtime.CPU
                     groupContext.WaitForNextThreadIndex();
 
                     var targetDimension = Math.Min(task.UserDimension, runtimeDimension);
-                    Debug.Assert(groupContext.SharedMemory.LengthInBytes == task.SharedMemSize, "Invalid shared-memory initialization");
                     task.Execute(
                         groupContext,
                         runtimeGroupThreadIdx,

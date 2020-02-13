@@ -20,6 +20,7 @@ namespace ILGPU.Frontend.Intrinsic
     {
         AllocateElement,
         Allocate,
+        AllocateDynamic,
     }
 
     /// <summary>
@@ -66,6 +67,9 @@ namespace ILGPU.Frontend.Intrinsic
                     break;
                 case SharedMemoryIntrinsicKind.Allocate:
                     length = context[0];
+                    break;
+                case SharedMemoryIntrinsicKind.AllocateDynamic:
+                    length = builder.CreatePrimitiveValue(-1);
                     break;
                 default:
                     throw context.GetNotSupportedException(

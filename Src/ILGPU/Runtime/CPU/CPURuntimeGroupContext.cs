@@ -94,6 +94,11 @@ namespace ILGPU.Runtime.CPU
         private volatile int sharedMemoryLock = 0;
 
         /// <summary>
+        /// The current dynamic shared memory array size in bytes.
+        /// </summary>
+        private volatile int dynamicSharedMemoryArrayLength;
+
+        /// <summary>
         /// The current shared-memory view.
         /// </summary>
         private ArrayView<byte> currentSharedMemoryView;
@@ -195,6 +200,15 @@ namespace ILGPU.Runtime.CPU
             sharedMemoryOffset = sizeInBytes;
             ++advancedSharedMemoryBufferIndex;
         }
+
+        /// <summary>
+        /// Performs a dynamic shared-memory allocation.
+        /// </summary>
+        /// <returns>The resolved shared-memory array view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView<T> AllocateSharedMemoryDynamic<T>()
+            where T : struct =>
+            AllocateSharedMemory<T>(dynamicSharedMemoryArrayLength);
 
         /// <summary>
         /// Performs a shared-memory allocation.
@@ -311,13 +325,16 @@ namespace ILGPU.Runtime.CPU
         /// Initializes this context.
         /// </summary>
         /// <param name="groupDimension">The group dimension.</param>
-        /// <param name="sharedMemSize">The required shared-memory size in bytes used by this group.</param>
+        /// <param name="sharedMemoryConfig">The current shared memory configuration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Initialize(Index3 groupDimension, int sharedMemSize)
+        internal void Initialize(
+            Index3 groupDimension,
+            in SharedMemoryConfig sharedMemoryConfig)
         {
             sharedMemoryOffset = 0;
             sharedMemoryLock = 0;
             advancedSharedMemoryBufferIndex = -1;
+            dynamicSharedMemoryArrayLength = sharedMemoryConfig.NumDynamicElements;
 
             var groupSize = groupDimension.Size;
             var currentBarrierCount = groupBarrier.ParticipantCount;
@@ -326,11 +343,13 @@ namespace ILGPU.Runtime.CPU
             else if (currentBarrierCount < groupSize)
                 groupBarrier.AddParticipants(groupSize - currentBarrierCount);
 
-            if (sharedMemSize > 0)
-                SharedMemory = sharedMemoryBuffer.Allocate<byte>(sharedMemSize);
+            if (sharedMemoryConfig.HasSharedMemory)
+                SharedMemory = sharedMemoryBuffer.Allocate<byte>(
+                    sharedMemoryConfig.StaticSize +
+                    sharedMemoryConfig.DynamicArraySize);
             else
                 SharedMemory = new ArrayView<byte>();
-            if (sharedMemSize > SharedMemorySize)
+            if (SharedMemory.Length > SharedMemorySize)
                 throw new InvalidKernelOperationException();
             currentSharedMemoryView = default;
         }

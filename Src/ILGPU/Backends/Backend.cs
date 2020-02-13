@@ -208,7 +208,8 @@ namespace ILGPU.Backends
                 var currentScope = ScopeProvider[kernelMethod];
 
                 var sharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
-                var sharedMemorySize = 0;
+                var dynamicSharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(1);
+                int sharedMemorySize = 0;
 
                 for (; ; )
                 {
@@ -221,7 +222,9 @@ namespace ILGPU.Backends
 
                     sharedAllocations.AddRange(allocas.SharedAllocations.Allocas);
                     sharedMemorySize += allocas.SharedMemorySize;
+                    dynamicSharedAllocations.AddRange(allocas.DynamicSharedAllocations.Allocas);
 
+                    // Check for dynamic shared memory
                     foreach (Value value in currentScope.Values)
                     {
                         if (value is MethodCall call &&
@@ -234,12 +237,22 @@ namespace ILGPU.Backends
                     currentScope = toProcess.Pop();
                 }
 
+                if (dynamicSharedAllocations.Count > 1)
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedMultipleDynamicSharedMemoryAllocations);
+
+                // Store shared memory information
                 SharedAllocations = new AllocaKindInformation(
                     sharedAllocations.ToImmutable(),
                     sharedMemorySize);
+                DynamicSharedAllocations = new AllocaKindInformation(
+                    dynamicSharedAllocations.ToImmutable(),
+                    0);
                 SharedMemorySpecification = new SharedMemorySpecification(
                     sharedMemorySize,
-                    0);
+                    dynamicSharedAllocations.Count > 0 ?
+                        dynamicSharedAllocations[0].ElementSize :
+                        0);
             }
 
             #endregion
@@ -272,9 +285,14 @@ namespace ILGPU.Backends
             public CachedScopeProvider ScopeProvider { get; }
 
             /// <summary>
-            /// Returns all required shared allocations.
+            /// Returns all shared allocations.
             /// </summary>
             public AllocaKindInformation SharedAllocations { get; }
+
+            /// <summary>
+            /// Returns all dynamic shared allocations.
+            /// </summary>
+            public AllocaKindInformation DynamicSharedAllocations { get; }
 
             /// <summary>
             /// Returns the associated shared memory specification.

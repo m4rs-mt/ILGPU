@@ -511,11 +511,12 @@ namespace ILGPU.Backends.PTX
         /// <param name="addressSpacePrefix">The source address-space prefix (like .local).</param>
         /// <param name="namePrefix">The name prefix.</param>
         /// <param name="result">The resulting list of allocations.</param>
-        private void SetupAllocations(
+        protected void SetupAllocations<TCollection>(
             AllocaKindInformation allocas,
             string addressSpacePrefix,
             string namePrefix,
-            List<(Alloca, string)> result)
+            TCollection result)
+            where TCollection : ICollection<(Alloca, string)>
         {
             var offset = 0;
             foreach (var allocaInfo in allocas)
@@ -535,7 +536,8 @@ namespace ILGPU.Backends.PTX
                 var name = namePrefix + offset++;
                 Builder.Append(name);
                 Builder.Append('[');
-                Builder.Append(allocaInfo.ArraySize * elementSize);
+                if (!allocaInfo.IsDynamicArray)
+                    Builder.Append(allocaInfo.ArraySize * elementSize);
                 Builder.AppendLine("];");
 
                 result.Add((allocaInfo.Alloca, name));
@@ -544,15 +546,29 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Setups local allocations.
+        /// Setups dynamic shared memory allocations.
         /// </summary>
         /// <returns>A list of pairs associating alloca nodes with thei local variable names.</returns>
-        internal List<(Alloca, string)> SetupAllocations()
+        internal List<(Alloca, string)> SetupDynamicSharedAllocations()
         {
             var result = new List<(Alloca, string)>();
-            SetupAllocations(Allocas.LocalAllocations, ".local ", "__local_depot", result);
-            SetupAllocations(Allocas.SharedAllocations, ".shared ", "__shared_alloca", result);
+            SetupAllocations(
+                Allocas.DynamicSharedAllocations,
+                ".extern .shared ",
+                "__dyn_shared_alloca",
+                result);
             return result;
+        }
+
+        /// <summary>
+        /// Setups local allocations.
+        /// </summary>
+        /// <param name="collection">The target collection to add to.</param>
+        internal void SetupAllocations<TCollection>(TCollection collection)
+            where TCollection : IList<(Alloca, string)>
+        {
+            SetupAllocations(Allocas.LocalAllocations, ".local ", "__local_depot", collection);
+            SetupAllocations(Allocas.SharedAllocations, ".shared ", "__shared_alloca", collection);
         }
 
         /// <summary>

@@ -39,16 +39,22 @@ namespace ILGPU.IR.Analyses
             Alloca = alloca;
             ElementSize = elementSize;
 
-            var arrayLength = alloca.ArrayLength.ResolveAs<PrimitiveValue>();
-            if (arrayLength == null)
+            var rawArrayLength = alloca.ArrayLength;
+            var arrayLength = rawArrayLength.ResolveAs<PrimitiveValue>();
+            if (arrayLength != null)
+                ArraySize = arrayLength.Int32Value;
+            else
             {
-                throw new NotSupportedException(
-                    string.Format(
-                        ErrorMessages.NotSupportedDynamicAllocation,
-                        alloca.AddressSpace,
-                        arrayLength));
+                var dynamicArrayLength = rawArrayLength.ResolveAs<UndefinedValue>();
+                if (dynamicArrayLength != null)
+                    ArraySize = -1;
+                else
+                    throw new NotSupportedException(
+                        string.Format(
+                            ErrorMessages.NotSupportedDynamicAllocation,
+                            alloca.AddressSpace,
+                            rawArrayLength));
             }
-            ArraySize = arrayLength.Int32Value;
         }
 
         /// <summary>
@@ -62,9 +68,14 @@ namespace ILGPU.IR.Analyses
         public Alloca Alloca { get; }
 
         /// <summary>
-        /// Returns true iff this is an array.
+        /// Returns true if this is an array.
         /// </summary>
         public bool IsArray => ArraySize > 1;
+
+        /// <summary>
+        /// Returns true if this is an array with dynamic length.
+        /// </summary>
+        public bool IsDynamicArray => ArraySize < 0;
 
         /// <summary>
         /// Returns the number 
@@ -115,8 +126,7 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="index">The index.</param>
         /// <returns>The resolved alloca information.</returns>
-        public AllocaInformation this[int index] =>
-            Allocas[index];
+        public AllocaInformation this[int index] => Allocas[index];
 
         /// <summary>
         /// Returns the number of allocations.
@@ -166,6 +176,7 @@ namespace ILGPU.IR.Analyses
         {
             var localAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
             var sharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
+            var dynamicSharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
 
             int localMemorySize = 0;
             int sharedMemorySize = 0;
@@ -177,10 +188,19 @@ namespace ILGPU.IR.Analyses
                     switch (alloca.AddressSpace)
                     {
                         case MemoryAddressSpace.Local:
-                            AddAllocation(abi, alloca, localAllocations, ref localMemorySize);
+                            AddAllocation(
+                                abi,
+                                alloca,
+                                localAllocations,
+                                ref localMemorySize);
                             break;
                         case MemoryAddressSpace.Shared:
-                            AddAllocation(abi, alloca, sharedAllocations, ref sharedMemorySize);
+                            AddAllocation(
+                                abi,
+                                alloca,
+                                sharedAllocations,
+                                ref sharedMemorySize,
+                                dynamicSharedAllocations);
                             break;
                         default:
                             Debug.Assert(false, "Invalid address space");
@@ -195,6 +215,9 @@ namespace ILGPU.IR.Analyses
             SharedAllocations = new AllocaKindInformation(
                 sharedAllocations.ToImmutable(),
                 sharedMemorySize);
+            DynamicSharedAllocations = new AllocaKindInformation(
+                dynamicSharedAllocations.ToImmutable(),
+                0);
         }
 
         /// <summary>
@@ -204,18 +227,28 @@ namespace ILGPU.IR.Analyses
         /// <param name="alloca">The current alloca.</param>
         /// <param name="builder">The target builder.</param>
         /// <param name="memorySize">The current memory size.</param>
+        /// <param name="dynamicBuilder">The target builder for dynamic allocations.</param>
         private static void AddAllocation(
             ABI abi,
             Alloca alloca,
             ImmutableArray<AllocaInformation>.Builder builder,
-            ref int memorySize)
+            ref int memorySize,
+            ImmutableArray<AllocaInformation>.Builder dynamicBuilder = null)
         {
             var info = new AllocaInformation(
                 builder.Count,
                 alloca,
                 abi.GetSizeOf(alloca.AllocaType));
-            memorySize += info.TotalSize;
-            builder.Add(info);
+            if (info.IsDynamicArray)
+            {
+                Debug.Assert(dynamicBuilder != null, "Invalid dynamic local memory allocation");
+                dynamicBuilder.Add(info);
+            }
+            else
+            {
+                builder.Add(info);
+                memorySize += info.TotalSize;
+            }
         }
 
         #endregion
@@ -231,6 +264,11 @@ namespace ILGPU.IR.Analyses
         /// Returns all shared allocations.
         /// </summary>
         public AllocaKindInformation SharedAllocations { get; }
+
+        /// <summary>
+        /// Returns all dynamic shared allocations.
+        /// </summary>
+        public AllocaKindInformation DynamicSharedAllocations { get; }
 
         /// <summary>
         /// Returns the total local memory size in bytes.
