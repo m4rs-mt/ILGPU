@@ -73,7 +73,7 @@ namespace ILGPU.Backends.PointerViews
         /// </summary>
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
-        public ref T this[Index index]
+        public ref T this[Index1 index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => ref LoadElementAddress(index);
@@ -89,7 +89,7 @@ namespace ILGPU.Backends.PointerViews
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref T LoadElementAddress(Index index) =>
+        public ref T LoadElementAddress(Index1 index) =>
             ref Unsafe.Add(ref Unsafe.AsRef<T>(Ptr), index);
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace ILGPU.Backends.PointerViews
         /// <param name="length">The extent of the new subview.</param>
         /// <returns>The new subview.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ViewImplementation<T> GetSubView(Index offset, Index length) =>
+        public ViewImplementation<T> GetSubView(Index1 offset, Index1 length) =>
             new ViewImplementation<T>(
                 Unsafe.AsPointer(ref this[offset]),
                 length);

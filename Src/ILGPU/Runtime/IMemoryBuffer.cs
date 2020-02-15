@@ -44,7 +44,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the length of this buffer in bytes.
         /// </summary>
-        Index LengthInBytes { get; }
+        Index1 LengthInBytes { get; }
 
         /// <summary>
         /// Copies the current contents into a new array.

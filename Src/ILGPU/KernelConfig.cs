@@ -53,7 +53,7 @@ namespace ILGPU
         /// <param name="gridDimension">The grid dimension to use.</param>
         /// <param name="groupDimension">The group dimension to use.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public KernelConfig(Index gridDimension, Index groupDimension)
+        public KernelConfig(Index1 gridDimension, Index1 groupDimension)
             : this(gridDimension, groupDimension, default)
         { }
 
@@ -65,8 +65,8 @@ namespace ILGPU
         /// <param name="sharedMemoryConfig">The dynamic shared memory configuration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public KernelConfig(
-            Index gridDimension,
-            Index groupDimension,
+            Index1 gridDimension,
+            Index1 groupDimension,
             DynamicSharedMemoryConfig sharedMemoryConfig)
             : this(
                   new Index3(gridDimension.X, 1, 1),
@@ -252,7 +252,17 @@ namespace ILGPU
         /// </summary>
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator KernelConfig((Index3, Index) dimensions) =>
+        public static implicit operator KernelConfig((Index1, Index1) dimensions) =>
+            new KernelConfig(
+                new Index3(dimensions.Item1, 1, 1),
+                new Index3(dimensions.Item2, 1, 1));
+
+        /// <summary>
+        /// Converts the given dimension tuple into an equivalent kernel configuration.
+        /// </summary>
+        /// <param name="dimensions">The kernel dimensions.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator KernelConfig((Index3, Index1) dimensions) =>
             new KernelConfig(dimensions.Item1, new Index3(dimensions.Item2, 1, 1));
 
         /// <summary>
@@ -270,6 +280,18 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator KernelConfig((Index3, Index3) dimensions) =>
             new KernelConfig(dimensions.Item1, dimensions.Item2);
+
+        /// <summary>
+        /// Converts the given dimension tuple into an equivalent kernel configuration.
+        /// </summary>
+        /// <param name="dimensions">The kernel dimensions.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator KernelConfig(
+            (Index1, Index1, DynamicSharedMemoryConfig) dimensions) =>
+            new KernelConfig(
+                new Index3(dimensions.Item1, 1, 1),
+                new Index3(dimensions.Item2, 1, 1),
+                dimensions.Item3);
 
         /// <summary>
         /// Converts the given dimension tuple into an equivalent kernel configuration.
@@ -329,6 +351,18 @@ namespace ILGPU
         /// Returns true if this is a valid configuration.
         /// </summary>
         public bool IsValid => NumElements >= 0;
+
+        #endregion
+
+        #region Operators
+
+        /// <summary>
+        /// Converts the given number of elements into a dynamic shared memory configuration.
+        /// </summary>
+        /// <param name="numElements">The number of elements.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator DynamicSharedMemoryConfig(int numElements) =>
+            new DynamicSharedMemoryConfig(numElements);
 
         #endregion
     }

@@ -39,7 +39,7 @@ namespace ILGPU.Runtime
         /// </remarks>
         public static ExchangeBuffer<T> AllocateExchangeBuffer<T>(
             this Accelerator accelerator,
-            Index extent)
+            Index1 extent)
             where T : struct =>
             accelerator.AllocateExchangeBuffer<T>(
                 extent,
@@ -57,7 +57,7 @@ namespace ILGPU.Runtime
         /// <returns>The allocated exchange buffer.</returns>
         public static ExchangeBuffer<T> AllocateExchangeBuffer<T>(
             this Accelerator accelerator,
-            Index extent,
+            Index1 extent,
             ExchangeBufferMode mode)
             where T : struct
         {
@@ -131,11 +131,11 @@ namespace ILGPU.Runtime
                 : base(nativePtr)
             { }
 
-            /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index, Index)"/>
+            /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index1, Index1)"/>
             protected internal override ArraySegment<byte> GetAsRawArray(
                 AcceleratorStream stream,
-                Index byteOffset,
-                Index byteExtent) => throw new InvalidOperationException();
+                Index1 byteOffset,
+                Index1 byteExtent) => throw new InvalidOperationException();
 
             #region IDispoable
 
@@ -174,7 +174,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="buffer">The underlying memory buffer.</param>
         /// <param name="mode">The current buffer allocation mode.</param>
-        internal ExchangeBuffer(MemoryBuffer<T, Index> buffer, ExchangeBufferMode mode)
+        internal ExchangeBuffer(MemoryBuffer<T, Index1> buffer, ExchangeBufferMode mode)
             : base(buffer.Accelerator, buffer.Extent.Size)
         {
             // Allocate CPU memory
@@ -201,7 +201,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the underlying generic memory buffer.
         /// </summary>
-        public MemoryBuffer<T, Index> Buffer { get; }
+        public MemoryBuffer<T, Index1> Buffer { get; }
 
         /// <summary>
         /// Returns an array view that can access this array.
@@ -211,12 +211,12 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the length of this buffer in bytes.
         /// </summary>
-        public Index LengthInBytes => Buffer.LengthInBytes;
+        public Index1 LengthInBytes => Buffer.LengthInBytes;
 
         /// <summary>
         /// Returns the extent of this buffer.
         /// </summary>
-        public Index Extent { get; }
+        public Index1 Extent { get; }
 
         /// <summary>
         /// Returns an array view to the CPU part of this buffer.
@@ -228,7 +228,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="index">The element index to access.</param>
         /// <returns>A reference to the i-th element in CPU memory.</returns>
-        public unsafe ref T this[Index index]
+        public unsafe ref T this[Index1 index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => ref Unsafe.Add(
@@ -264,8 +264,8 @@ namespace ILGPU.Runtime
         /// <returns>A new array holding the requested contents.</returns>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index byteOffset,
-            Index byteExtent) =>
+            Index1 byteOffset,
+            Index1 byteExtent) =>
             Buffer.GetAsRawArray(stream, byteOffset, byteExtent);
 
         /// <summary>
@@ -336,13 +336,13 @@ namespace ILGPU.Runtime
         /// Returns the underlying generic memory buffer.
         /// </summary>
         /// <returns>The underlying generic memory buffer.</returns>
-        public MemoryBuffer<T, Index> ToMemoryBuffer() => Buffer;
+        public MemoryBuffer<T, Index1> ToMemoryBuffer() => Buffer;
 
         /// <summary>
         /// Returns an array view that can access this array.
         /// </summary>
         /// <returns>An array view that can access this array.</returns>
-        public ArrayView<T, Index> ToArrayView() => View;
+        public ArrayView<T, Index1> ToArrayView() => View;
 
         #endregion
 
@@ -362,7 +362,7 @@ namespace ILGPU.Runtime
         /// Implicitly converts this buffer into an array view.
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
-        public static implicit operator MemoryBuffer<T, Index>(ExchangeBuffer<T> buffer)
+        public static implicit operator MemoryBuffer<T, Index1>(ExchangeBuffer<T> buffer)
         {
             Debug.Assert(buffer != null, "Invalid buffer");
             return buffer.Buffer;

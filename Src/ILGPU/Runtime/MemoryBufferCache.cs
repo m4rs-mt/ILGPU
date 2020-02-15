@@ -32,7 +32,7 @@ namespace ILGPU.Runtime
         /// This represents the actual memory cache.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private MemoryBuffer<byte, Index> cache;
+        private MemoryBuffer<byte, Index1> cache;
 
         /// <summary>
         /// Constructs a new memory-buffer cache.
@@ -47,11 +47,11 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="accelerator">The associated accelerator to allocate memory on.</param>
         /// <param name="initialLength">The initial length of the buffer.</param>
-        public MemoryBufferCache(Accelerator accelerator, Index initialLength)
+        public MemoryBufferCache(Accelerator accelerator, Index1 initialLength)
             : base(accelerator)
         {
             if (initialLength > 0)
-                cache = accelerator.Allocate<byte, Index>(initialLength);
+                cache = accelerator.Allocate<byte, Index1>(initialLength);
         }
 
         #endregion
@@ -61,12 +61,12 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the current cached size in bytes.
         /// </summary>
-        public Index CacheSizeInBytes => cache?.LengthInBytes ?? 0;
+        public Index1 CacheSizeInBytes => cache?.LengthInBytes ?? 0;
 
         /// <summary>
         /// Returns the underlying memory buffer.
         /// </summary>
-        public MemoryBuffer<byte, Index> Cache => cache;
+        public MemoryBuffer<byte, Index1> Cache => cache;
 
         #endregion
 
@@ -79,7 +79,7 @@ namespace ILGPU.Runtime
         /// <returns>The available number of elements of type T.</returns>
         [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter",
             Justification = "The generic parameter is required to compute the number of elements of the given type that can be stored")]
-        public Index GetCacheSize<T>()
+        public Index1 GetCacheSize<T>()
             where T : struct => (cache?.Length ?? 0) * ArrayView<T>.ElementSize;
 
         /// <summary>
@@ -90,15 +90,15 @@ namespace ILGPU.Runtime
         /// <param name="numElements">The number of elements to allocate.</param>
         /// <returns>An array view that can access the requested number of elements.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> Allocate<T>(Index numElements)
+        public ArrayView<T> Allocate<T>(Index1 numElements)
             where T : struct
         {
-            if (numElements < Index.One)
+            if (numElements < Index1.One)
                 return default;
             if (numElements > GetCacheSize<T>())
             {
                 cache?.Dispose();
-                cache = Accelerator.Allocate<byte, Index>(numElements * ArrayView<T>.ElementSize);
+                cache = Accelerator.Allocate<byte, Index1>(numElements * ArrayView<T>.ElementSize);
             }
             Debug.Assert(numElements <= GetCacheSize<T>());
             return cache.View.Cast<T>().GetSubView(0, numElements).AsLinearView();
@@ -112,7 +112,7 @@ namespace ILGPU.Runtime
         /// <param name="target">The target location.</param>
         /// <param name="targetIndex">The target index.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void CopyTo<T>(AcceleratorStream stream, out T target, Index targetIndex)
+        public unsafe void CopyTo<T>(AcceleratorStream stream, out T target, Index1 targetIndex)
             where T : struct
         {
             target = default;
@@ -130,7 +130,7 @@ namespace ILGPU.Runtime
         /// <param name="source">The source value.</param>
         /// <param name="sourceIndex">The target index.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void CopyFrom<T>(AcceleratorStream stream, T source, Index sourceIndex)
+        public unsafe void CopyFrom<T>(AcceleratorStream stream, T source, Index1 sourceIndex)
             where T : struct
         {
             using (var wrapper = ViewPointerWrapper.Create(ref source))

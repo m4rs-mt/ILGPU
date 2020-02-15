@@ -26,7 +26,7 @@ namespace ILGPU
 {
 <#  for (int i = 2; i <= 3; ++i) { #>
 <#      var typeName = i == 1 ? "ArrayView" : $"ArrayView{i}D"; #>
-<#      var indexType = i == 1 ? "Index" : $"Index{i}"; #>
+<#      var indexType = $"Index{i}"; #>
     /// <summary>
     /// Represents a general view to an array on an accelerator.
     /// </summary>
@@ -131,7 +131,7 @@ namespace ILGPU
         /// a raw view that spans a contiguous region of memory.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> GetSubView(<#= indexType #> index, Index subViewExtent) =>
+        public ArrayView<T> GetSubView(<#= indexType #> index, Index1 subViewExtent) =>
             BaseView.GetSubView(index, subViewExtent);
 
         /// <summary>

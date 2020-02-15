@@ -59,7 +59,7 @@ namespace ILGPU
             switch (indexType)
             {
                 case IndexType.Index1D:
-                    return typeof(Index);
+                    return typeof(Index1);
                 case IndexType.Index2D:
                     return typeof(Index2);
                 case IndexType.Index3D:
@@ -78,7 +78,7 @@ namespace ILGPU
         /// <returns>The resolved index type or none.</returns>
         public static IndexType GetIndexType(this Type indexType)
         {
-            if (indexType == typeof(Index))
+            if (indexType == typeof(Index1))
                 return IndexType.Index1D;
             else if (indexType == typeof(Index2))
                 return IndexType.Index2D;

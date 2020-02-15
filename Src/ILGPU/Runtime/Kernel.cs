@@ -133,7 +133,7 @@ namespace ILGPU.Runtime
         /// <param name="args">The kernel arguments.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Launch(AcceleratorStream stream, int dimension, params object[] args) =>
-            InvokeLauncher(new Index(dimension), stream, args);
+            InvokeLauncher(new Index1(dimension), stream, args);
 
         #endregion
     }

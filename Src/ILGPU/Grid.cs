@@ -111,7 +111,7 @@ namespace ILGPU
         /// <param name="gridIdx">The grid index.</param>
         /// <param name="groupIdx">The group index.</param>
         /// <returns>The computes global index.</returns>
-        public static Index ComputeGlobalIndex(Index gridIdx, Index groupIdx) =>
+        public static Index1 ComputeGlobalIndex(Index1 gridIdx, Index1 groupIdx) =>
             groupIdx + gridIdx * Group.Dimension.X;
 
         /// <summary>

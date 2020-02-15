@@ -66,7 +66,7 @@ namespace ILGPU
     /// <typeparam name="T">The element type.</typeparam>
     [SuppressMessage("Microsoft.Design", "CA1040: AvoidEmptyInterfaces",
         Justification = "Can be used in generic constraints")]
-    public interface IArrayView<T> : IArrayView<T, Index>
+    public interface IArrayView<T> : IArrayView<T, Index1>
         where T : struct
     { }
 
@@ -97,7 +97,7 @@ namespace ILGPU
         /// <param name="index">The base index.</param>
         /// <param name="length">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView(ArrayViewSource source, Index index, Index length)
+        public ArrayView(ArrayViewSource source, Index1 index, Index1 length)
         {
             Debug.Assert(source != null, "Invalid source buffer");
             Debug.Assert(index >= 0, "Index of of range");
@@ -133,15 +133,15 @@ namespace ILGPU
         /// <summary>
         /// Returns the index of this view.
         /// </summary>
-        internal Index Index { get; }
+        internal Index1 Index { get; }
 
         /// <summary>
         /// Returns the extent of this view.
         /// </summary>
-        public Index Extent
+        public Index1 Extent
         {
             [ViewIntrinsic(ViewIntrinsicKind.GetViewExtent)]
-            get => new Index(Length);
+            get => new Index1(Length);
         }
 
         /// <summary>
@@ -167,7 +167,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
-        public unsafe ref T this[Index index]
+        public unsafe ref T this[Index1 index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             [ViewIntrinsic(ViewIntrinsicKind.GetViewElementAddressByIndex)]
@@ -248,7 +248,7 @@ namespace ILGPU
         public ArrayView<TOther> Cast<TOther>()
             where TOther : struct
         {
-            var extent = new Index(Length);
+            var extent = new Index1(Length);
             var newExtent = extent.ComputedCastedExtent(
                 extent, ElementSize, ArrayView<TOther>.ElementSize);
             var newIndex = extent.ComputedCastedExtent(
@@ -285,16 +285,16 @@ namespace ILGPU
         /// Converts a linear view to its explicit form.
         /// </summary>
         /// <param name="view">The view to convert.</param>
-        public static implicit operator ArrayView<T, Index>(ArrayView<T> view)
+        public static implicit operator ArrayView<T, Index1>(ArrayView<T> view)
         {
-            return new ArrayView<T, Index>(view, view.Length);
+            return new ArrayView<T, Index1>(view, view.Length);
         }
 
         /// <summary>
         /// Converts a linear view from its explicit form.
         /// </summary>
         /// <param name="view">The view to convert.</param>
-        public static implicit operator ArrayView<T>(ArrayView<T, Index> view)
+        public static implicit operator ArrayView<T>(ArrayView<T, Index1> view)
         {
             return view.AsLinearView();
         }

@@ -57,7 +57,7 @@ namespace ILGPU.Runtime
         /// <returns>The loaded effective address.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal unsafe ref byte LoadEffectiveAddress(
-            Index index,
+            Index1 index,
             int elementSize)
         {
             return ref Unsafe.AddByteOffset(
@@ -71,7 +71,7 @@ namespace ILGPU.Runtime
         /// <param name="byteOffset">The offset in bytes.</param>
         /// <param name="byteExtent">The extent in bytes (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
-        internal ArraySegment<byte> GetAsDebugRawArray(Index byteOffset, Index byteExtent) =>
+        internal ArraySegment<byte> GetAsDebugRawArray(Index1 byteOffset, Index1 byteExtent) =>
             GetAsRawArray(Accelerator.DefaultStream, byteOffset, byteExtent);
 
         /// <summary>
@@ -83,8 +83,8 @@ namespace ILGPU.Runtime
         /// <returns>A new array holding the requested contents.</returns>
         protected internal abstract ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index byteOffset,
-            Index byteExtent);
+            Index1 byteOffset,
+            Index1 byteExtent);
 
         #endregion
     }
@@ -125,11 +125,11 @@ namespace ILGPU.Runtime
             NativePtr = ptr;
         }
 
-        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index, Index)"/>
+        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index1, Index1)"/>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index byteOffset,
-            Index byteExtent) => throw new InvalidOperationException();
+            Index1 byteOffset,
+            Index1 byteExtent) => throw new InvalidOperationException();
     }
 
     /// <summary>
@@ -150,11 +150,11 @@ namespace ILGPU.Runtime
             : base(Marshal.AllocHGlobal(sizeInBytes))
         { }
 
-        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index, Index)"/>
+        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index1, Index1)"/>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index byteOffset,
-            Index byteExtent) => throw new InvalidOperationException();
+            Index1 byteOffset,
+            Index1 byteExtent) => throw new InvalidOperationException();
 
         #region IDispoable
 
@@ -202,10 +202,10 @@ namespace ILGPU.Runtime
         /// </summary>
         public int ElementSize { get; }
 
-        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index, Index)"/>
+        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index1, Index1)"/>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index byteOffset,
-            Index byteExtent) => throw new InvalidOperationException();
+            Index1 byteOffset,
+            Index1 byteExtent) => throw new InvalidOperationException();
     }
 }

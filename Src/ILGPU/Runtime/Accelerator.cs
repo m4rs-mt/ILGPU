@@ -216,7 +216,7 @@ namespace ILGPU.Runtime
         /// Returns a kernel extent (a grouped index) with the maximum number of groups using the
         /// maximum number of threads per group to launch common grid-stride loop kernels.
         /// </summary>
-        public (Index, Index) MaxNumGroupsExtent =>
+        public (Index1, Index1) MaxNumGroupsExtent =>
             (NumMultiprocessors * (MaxNumThreadsPerMultiprocessor / MaxNumThreadsPerGroup),
             MaxNumThreadsPerGroup);
 
@@ -302,7 +302,7 @@ namespace ILGPU.Runtime
         public MemoryBuffer<T> Allocate<T>(int extent)
             where T : struct
         {
-            return new MemoryBuffer<T>(Allocate<T, Index>(extent));
+            return new MemoryBuffer<T>(Allocate<T, Index1>(extent));
         }
 
         /// <summary>

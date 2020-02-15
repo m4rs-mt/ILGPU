@@ -89,7 +89,7 @@ namespace ILGPU.Runtime
             fixed (byte* ptr = &rawData.Array[rawData.Offset])
             {
                 ref var castedPtr = ref Unsafe.AsRef<byte>(ptr);
-                for (Index i = 0, e = view.Length; i < e; ++i)
+                for (Index1 i = 0, e = view.Length; i < e; ++i)
                 {
                     ref var elementPtr = ref Interop.ComputeEffectiveAddress(
                         ref castedPtr,

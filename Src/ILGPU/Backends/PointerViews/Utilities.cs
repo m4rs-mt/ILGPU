@@ -42,7 +42,7 @@ namespace ILGPU.Backends.PointerViews
             return implType.GetConstructor(new Type[]
             {
                 typeof(void).MakePointerType(),
-                typeof(Index),
+                typeof(Index1),
             });
         }
 

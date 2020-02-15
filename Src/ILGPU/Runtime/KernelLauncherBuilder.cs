@@ -50,7 +50,7 @@ namespace ILGPU.Runtime
         private static ConstructorInfo GetMainIndexConstructor(Type indexType)
         {
             return (ConstructorInfo)indexType.GetField(
-                nameof(Index.MainConstructor),
+                nameof(Index1.MainConstructor),
                 BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
         }
 

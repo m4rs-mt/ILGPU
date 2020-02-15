@@ -46,11 +46,11 @@ namespace ILGPU.Runtime.Cuda
 
         #region Methods
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(AcceleratorStream, ArrayView{T}, Index)"/>
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(AcceleratorStream, ArrayView{T}, Index1)"/>
         protected internal unsafe override void CopyToView(
             AcceleratorStream stream,
             ArrayView<T> target,
-            Index sourceOffset)
+            Index1 sourceOffset)
         {
             var binding = Accelerator.BindScoped();
 
@@ -80,11 +80,11 @@ namespace ILGPU.Runtime.Cuda
             binding.Recover();
         }
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(AcceleratorStream, ArrayView{T}, Index)"/>
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(AcceleratorStream, ArrayView{T}, Index1)"/>
         protected internal unsafe override void CopyFromView(
             AcceleratorStream stream,
             ArrayView<T> source,
-            Index targetOffset)
+            Index1 targetOffset)
         {
             var binding = Accelerator.BindScoped();
 

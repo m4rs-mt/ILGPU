@@ -66,7 +66,7 @@ namespace ILGPU
         /// <param name="groupThreadIdx">The current thread index within the current group.</param>
         /// <returns>The current warp index in the range [0, NumUsedWarps - 1].</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeWarpIdx(Index groupThreadIdx) => groupThreadIdx / WarpSize;
+        public static int ComputeWarpIdx(Index1 groupThreadIdx) => groupThreadIdx / WarpSize;
 
         /// <summary>
         /// Computes the current thread within a warp in the range [0, WarpSize - 1].
@@ -74,7 +74,7 @@ namespace ILGPU
         /// <param name="groupThreadIdx">The current thread index within the current group.</param>
         /// <returns>The current warp thread index in the range [0, WarpSize - 1].</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeWarpThreadIdx(Index groupThreadIdx) => groupThreadIdx % WarpSize;
+        public static int ComputeWarpThreadIdx(Index1 groupThreadIdx) => groupThreadIdx % WarpSize;
 
         #endregion
 

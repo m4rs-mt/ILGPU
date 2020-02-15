@@ -125,7 +125,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the length of this buffer in bytes.
         /// </summary>
-        public Index LengthInBytes => new Index(Length) * ElementSize;
+        public Index1 LengthInBytes => new Index1(Length) * ElementSize;
 
         /// <summary>
         /// Returns an array view that can access this buffer.
@@ -148,7 +148,7 @@ namespace ILGPU.Runtime
         /// <param name="index">The element index.</param>
         /// <returns>The computed pointer.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal unsafe void* ComputeEffectiveAddress(Index index)
+        internal unsafe void* ComputeEffectiveAddress(Index1 index)
         {
             ref var address = ref Interop.ComputeEffectiveAddress(
                 ref Unsafe.AsRef<byte>(NativePtr.ToPointer()),
@@ -170,7 +170,7 @@ namespace ILGPU.Runtime
         protected internal abstract void CopyToView(
             AcceleratorStream stream,
             ArrayView<T> target,
-            Index sourceOffset);
+            Index1 sourceOffset);
 
         /// <summary>
         /// Copies elements from the source view to the current buffer.
@@ -181,7 +181,7 @@ namespace ILGPU.Runtime
         protected internal abstract void CopyFromView(
             AcceleratorStream stream,
             ArrayView<T> source,
-            Index targetOffset);
+            Index1 targetOffset);
 
         /// <summary>
         /// Copies elements from the current buffer to the target view using
@@ -304,7 +304,7 @@ namespace ILGPU.Runtime
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [Obsolete("Use CopyTo(MemoryBuffer<T, TIndex>, TIndex, TIndex, Index) instead")]
+        [Obsolete("Use CopyTo(MemoryBuffer<T, TIndex>, TIndex, TIndex, Index1) instead")]
         public void CopyTo(
             MemoryBuffer<T, TIndex> target,
             TIndex sourceOffset,
@@ -325,7 +325,7 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
-        [Obsolete("Use CopyTo(AcceleratorStream, MemoryBuffer<T, TIndex>, TIndex, TIndex, Index) instead")]
+        [Obsolete("Use CopyTo(AcceleratorStream, MemoryBuffer<T, TIndex>, TIndex, TIndex, Index1) instead")]
         public void CopyTo(
             AcceleratorStream stream,
             MemoryBuffer<T, TIndex> target,
@@ -352,7 +352,7 @@ namespace ILGPU.Runtime
             MemoryBuffer<T, TIndex> target,
             TIndex sourceOffset,
             TIndex targetOffset,
-            Index extent) =>
+            Index1 extent) =>
             CopyTo(
                 Accelerator.DefaultStream,
                 target,
@@ -373,7 +373,7 @@ namespace ILGPU.Runtime
             MemoryBuffer<T, TIndex> target,
             TIndex sourceOffset,
             TIndex targetOffset,
-            Index extent)
+            Index1 extent)
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
@@ -566,7 +566,7 @@ namespace ILGPU.Runtime
             MemoryBuffer<T, TIndex> source,
             TIndex sourceOffset,
             TIndex targetOffset,
-            Index extent) =>
+            Index1 extent) =>
             CopyFrom(
                 Accelerator.DefaultStream,
                 source,
@@ -588,7 +588,7 @@ namespace ILGPU.Runtime
             MemoryBuffer<T, TIndex> source,
             TIndex sourceOffset,
             TIndex targetOffset,
-            Index extent)
+            Index1 extent)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -763,11 +763,11 @@ namespace ILGPU.Runtime
             return result;
         }
 
-        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index, Index)"/>
+        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index1, Index1)"/>
         protected internal sealed override unsafe ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index byteOffset,
-            Index byteExtent)
+            Index1 byteOffset,
+            Index1 byteExtent)
         {
             var rawOffset = byteOffset - byteOffset % ElementSize;
             int offset = byteExtent + rawOffset;
@@ -799,7 +799,7 @@ namespace ILGPU.Runtime
         /// <param name="stream">The used accelerator stream.</param>
         /// <returns>A new array holding the requested contents.</returns>
         public override byte[] GetAsRawArray(AcceleratorStream stream) =>
-            GetAsRawArray(stream, Index.Zero, LengthInBytes).Array;
+            GetAsRawArray(stream, Index1.Zero, LengthInBytes).Array;
 
         /// <summary>
         /// Returns a subview of the current view starting at the given offset.

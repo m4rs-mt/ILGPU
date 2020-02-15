@@ -146,7 +146,7 @@ namespace ILGPU
         /// a raw view that spans a contiguous region of memory.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> GetSubView(TIndex index, Index subViewExtent)
+        public ArrayView<T> GetSubView(TIndex index, Index1 subViewExtent)
         {
             Debug.Assert(index.InBounds(Extent), "Offset ouf of bounds");
             var elementIndex = index.ComputeLinearIndex(Extent);

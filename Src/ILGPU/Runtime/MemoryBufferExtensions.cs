@@ -21,7 +21,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns an array view that can access this buffer.
         /// </summary>
-        ArrayView<T, Index> IMemoryBuffer<T, Index>.View => View;
+        ArrayView<T, Index1> IMemoryBuffer<T, Index1>.View => View;
 
         #endregion
 

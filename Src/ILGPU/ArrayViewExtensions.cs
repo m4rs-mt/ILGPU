@@ -164,7 +164,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static VariableView<T> GetVariableView<T>(this ArrayView<T> view)
             where T : struct =>
-            view.GetVariableView(Index.Zero);
+            view.GetVariableView(Index1.Zero);
 
         /// <summary>
         /// Returns a variable view to the given element.
@@ -174,7 +174,7 @@ namespace ILGPU
         /// <param name="element">The element index.</param>
         /// <returns>The resolved variable view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static VariableView<T> GetVariableView<T>(this ArrayView<T> view, Index element)
+        public static VariableView<T> GetVariableView<T>(this ArrayView<T> view, Index1 element)
             where T : struct =>
             new VariableView<T>(view.GetSubView(element, 1));
 

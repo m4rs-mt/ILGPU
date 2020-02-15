@@ -26,7 +26,7 @@ namespace ILGPU.Runtime
 <#  for (int i = 1; i <= 3; ++i) { #>
 <#      var typeName = i == 1 ? "MemoryBuffer" : $"MemoryBuffer{i}D"; #>
 <#      var arrayViewType = i == 1 ? "ArrayView" : $"ArrayView{i}D"; #>
-<#      var indexType = i == 1 ? "Index" : $"Index{i}"; #>
+<#      var indexType = $"Index{i}"; #>
 <#      bool obsoleteCopyMethods = i > 1; #>
     /// <summary>
     /// Represents a <#= i #>D memory buffer that can be used in the scope
@@ -83,7 +83,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the length of this buffer in bytes.
         /// </summary>
-        public Index LengthInBytes => Length * ElementSize;
+        public Index1 LengthInBytes => Length * ElementSize;
 
         /// <summary>
         /// Returns the extent of this buffer.
@@ -118,8 +118,8 @@ namespace ILGPU.Runtime
         /// <returns>A new array holding the requested contents.</returns>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index byteOffset,
-            Index byteExtent) =>
+            Index1 byteOffset,
+            Index1 byteExtent) =>
             buffer.GetAsRawArray(stream, byteOffset, byteExtent);
 
         /// <summary>
@@ -170,7 +170,7 @@ namespace ILGPU.Runtime
         /// <param name="offset">The starting offset.</param>
         /// <returns>The new subview.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [Obsolete("Use View.GetSubView(TIndex, Index) instead")]
+        [Obsolete("Use View.GetSubView(TIndex, Index1) instead")]
         public ArrayView<T, <#= indexType #>> GetSubView(<#= indexType #> offset) =>
             View.GetSubView(offset);
 
@@ -181,7 +181,7 @@ namespace ILGPU.Runtime
         /// <param name="subViewExtent">The extent of the new subview.</param>
         /// <returns>The new subview.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [Obsolete("Use View.GetSubView(TIndex, Index) instead")]
+        [Obsolete("Use View.GetSubView(TIndex, Index1) instead")]
         public ArrayView<T, <#= indexType #>> GetSubView(
             <#= indexType #> offset,
             <#= indexType #> subViewExtent) =>
@@ -340,7 +340,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 <#      if (obsoleteCopyMethods) { #>
-        [Obsolete("Use CopyTo(<#= typeName #><T>, TIndex, TIndex, Index) instead")]
+        [Obsolete("Use CopyTo(<#= typeName #><T>, TIndex, TIndex, Index1) instead")]
 <#      } #>
         public void CopyTo(
             <#= typeName #><T> target,
@@ -367,7 +367,7 @@ namespace ILGPU.Runtime
             <#= typeName #><T> target,
             <#= indexType #> sourceOffset,
             <#= indexType #> targetOffset,
-            Index extent) =>
+            Index1 extent) =>
             buffer.CopyTo(
                 target,
                 sourceOffset,
@@ -385,7 +385,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 <#      if (obsoleteCopyMethods) { #>
-        [Obsolete("Use CopyTo(AcceleratorStream, <#= typeName #><T>, TIndex, TIndex, Index) instead")]
+        [Obsolete("Use CopyTo(AcceleratorStream, <#= typeName #><T>, TIndex, TIndex, Index1) instead")]
 <#      } #>
         public void CopyTo(
             AcceleratorStream stream,
@@ -415,7 +415,7 @@ namespace ILGPU.Runtime
             <#= typeName #><T> target,
             <#= indexType #> sourceOffset,
             <#= indexType #> targetOffset,
-            Index extent) =>
+            Index1 extent) =>
             buffer.CopyTo(
                 stream,
                 target,
@@ -509,7 +509,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 <#      if (obsoleteCopyMethods) { #>
-        [Obsolete("Use CopyFrom(<#= typeName #><T>, TIndex, TIndex, Index) instead")]
+        [Obsolete("Use CopyFrom(<#= typeName #><T>, TIndex, TIndex, Index1) instead")]
 <#      } #>
         public void CopyFrom(
             <#= typeName #><T> source,
@@ -536,7 +536,7 @@ namespace ILGPU.Runtime
             <#= typeName #><T> source,
             <#= indexType #> sourceOffset,
             <#= indexType #> targetOffset,
-            Index extent) =>
+            Index1 extent) =>
             buffer.CopyFrom(
                 source,
                 sourceOffset,
@@ -554,7 +554,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 <#      if (obsoleteCopyMethods) { #>
-        [Obsolete("Use CopyFrom(AcceleratorStream, <#= typeName #><T>, TIndex, TIndex, Index) instead")]
+        [Obsolete("Use CopyFrom(AcceleratorStream, <#= typeName #><T>, TIndex, TIndex, Index1) instead")]
 <#      } #>
         public void CopyFrom(
             AcceleratorStream stream,
@@ -584,7 +584,7 @@ namespace ILGPU.Runtime
             <#= typeName #><T> source,
             <#= indexType #> sourceOffset,
             <#= indexType #> targetOffset,
-            Index extent) =>
+            Index1 extent) =>
             buffer.CopyFrom(
                 stream,
                 source,

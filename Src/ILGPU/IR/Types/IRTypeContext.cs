@@ -100,7 +100,7 @@ namespace ILGPU.IR.Types
             // Setup index types
             indexTypes = new StructureType[]
             {
-                CreateType(typeof(Index)) as StructureType,
+                CreateType(typeof(Index1)) as StructureType,
                 CreateType(typeof(Index2)) as StructureType,
                 CreateType(typeof(Index3)) as StructureType,
             };

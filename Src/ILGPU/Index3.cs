@@ -107,10 +107,6 @@ namespace ILGPU
 
         #region Instance
 
-        internal readonly int x;
-        internal readonly int y;
-        internal readonly int z;
-
         /// <summary>
         /// Constructs a new 3D index.
         /// </summary>
@@ -145,9 +141,9 @@ namespace ILGPU
         /// <param name="z">The z index.</param>
         public Index3(int x, int y, int z)
         {
-            this.x = x;
-            this.y = y;
-            this.z = z;
+            X = x;
+            Y = y;
+            Z = z;
         }
 
         #endregion
@@ -157,20 +153,20 @@ namespace ILGPU
         /// <summary>
         /// Returns the x index.
         /// </summary>
-        public int X => x;
+        public int X { get; }
 
         /// <summary>
         /// Returns the y index.
         /// </summary>
-        public int Y => y;
+        public int Y { get; }
 
         /// <summary>
         /// Returns the z index.
         /// </summary>
-        public int Z => z;
+        public int Z { get; }
 
         /// <summary>
-        /// Returns true iff this is the first index.
+        /// Returns true if this is the first index.
         /// </summary>
         public bool IsFirst => X == 0 && Y == 0 && Z == 0;
 
@@ -199,52 +195,38 @@ namespace ILGPU
         #region IGenericIndex
 
         /// <summary cref="IGenericIndex{TIndex}.InBounds(TIndex)"/>
-        public bool InBounds(Index3 dimension)
-        {
-            return x >= 0 && x < dimension.x &&
-                y >= 0 && y < dimension.y &&
-                z >= 0 && z < dimension.z;
-        }
+        public bool InBounds(Index3 dimension) =>
+            X >= 0 && X < dimension.X &&
+            Y >= 0 && Y < dimension.Y &&
+            Z >= 0 && Z < dimension.Z;
 
         /// <summary cref="IGenericIndex{TIndex}.InBoundsInclusive(TIndex)"/>
-        public bool InBoundsInclusive(Index3 dimension)
-        {
-            return x >= 0 && x <= dimension.x &&
-                y >= 0 && y <= dimension.y &&
-                z >= 0 && z <= dimension.z;
-        }
+        public bool InBoundsInclusive(Index3 dimension) =>
+            X >= 0 && X <= dimension.X &&
+            Y >= 0 && Y <= dimension.Y &&
+            Z >= 0 && Z <= dimension.Z;
 
         /// <summary>
         /// Computes the linear index of this 3D index by using the provided 3D dimension.
         /// </summary>
         /// <param name="dimension">The dimension for index computation.</param>
         /// <returns>The computed linear index of this 3D index.</returns>
-        public int ComputeLinearIndex(Index3 dimension)
-        {
-            return ((Z * dimension.Y) + Y) * dimension.X + X;
-        }
+        public int ComputeLinearIndex(Index3 dimension) =>
+            ((Z * dimension.Y) + Y) * dimension.X + X;
 
         /// <summary>
         /// Reconstructs a 3D index from a linear index.
         /// </summary>
         /// <param name="linearIndex">The lienar index.</param>
         /// <returns>The reconstructed 3D index.</returns>
-        public Index3 ReconstructIndex(int linearIndex)
-        {
-            return ReconstructIndex(linearIndex, this);
-        }
+        public Index3 ReconstructIndex(int linearIndex) =>
+            ReconstructIndex(linearIndex, this);
 
         /// <summary cref="IGenericIndex{TIndex}.Add(TIndex)"/>
-        public Index3 Add(Index3 rhs)
-        {
-            return this + rhs;
-        }
+        public Index3 Add(Index3 rhs) => this + rhs;
 
         /// <summary cref="IGenericIndex{TIndex}.Subtract(TIndex)"/>
-        public Index3 Subtract(Index3 rhs)
-        {
-            return this - rhs;
-        }
+        public Index3 Subtract(Index3 rhs) => this - rhs;
 
         /// <summary cref="IGenericIndex{TIndex}.ComputedCastedExtent(TIndex, int, int)"/>
         public Index3 ComputedCastedExtent(Index3 extent, int elementSize, int newElementSize)
@@ -256,17 +238,31 @@ namespace ILGPU
 
         #endregion
 
+        #region Methods
+
+        /// <summary>
+        /// Deconstructs the current instance into a value tuple.
+        /// </summary>
+        /// <param name="x">The x value.</param>
+        /// <param name="y">The y value.</param>
+        /// <param name="z">The z value.</param>
+        public void Deconstruct(out int x, out int y, out int z)
+        {
+            x = X;
+            y = Y;
+            z = Z;
+        }
+
+        #endregion
+
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given index is equal to the current index.
+        /// Returns true if the given index is equal to the current index.
         /// </summary>
         /// <param name="other">The other index.</param>
-        /// <returns>True, iff the given index is equal to the current index.</returns>
-        public bool Equals(Index3 other)
-        {
-            return this == other;
-        }
+        /// <returns>True, if the given index is equal to the current index.</returns>
+        public bool Equals(Index3 other) => this == other;
 
         #endregion
 
@@ -288,49 +284,36 @@ namespace ILGPU
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current index.
+        /// Returns true if the given object is equal to the current index.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current index.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is Index3)
-                return Equals((Index3)obj);
-            return false;
-        }
+        /// <returns>True, if the given object is equal to the current index.</returns>
+        public override bool Equals(object obj) =>
+            obj is Index3 other && Equals(other);
 
         /// <summary>
         /// Returns the hash code of this index.
         /// </summary>
         /// <returns>The hash code of this index.</returns>
-        public override int GetHashCode()
-        {
-            return X.GetHashCode() ^ Y.GetHashCode() ^ Z.GetHashCode();
-        }
+        public override int GetHashCode() =>
+            X.GetHashCode() ^ Y.GetHashCode() ^ Z.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this index.
         /// </summary>
         /// <returns>The string representation of this index.</returns>
-        public override string ToString()
-        {
-            return $"({X}, {Y}, {Z})";
-        }
+        public override string ToString() => $"({X}, {Y}, {Z})";
 
         #endregion
 
         #region Operators
 
         /// <summary>
-        /// Adds two indices (component wise).
+        /// Converts the given value tuple into an equivalent <see cref="Index3"/>.
         /// </summary>
-        /// <param name="first">The first index.</param>
-        /// <param name="second">The second index.</param>
-        /// <returns>The added index.</returns>
-        public static Index3 Add(Index3 first, Index3 second)
-        {
-            return first + second;
-        }
+        /// <param name="values">The values.</param>
+        public static implicit operator Index3((int, int, int) values) =>
+            new Index3(values.Item1, values.Item2, values.Item3);
 
         /// <summary>
         /// Adds two indices (component wise).
@@ -338,10 +321,17 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The added index.</returns>
-        public static Index3 operator +(Index3 first, Index3 second)
-        {
-            return new Index3(first.X + second.X, first.Y + second.Y, first.Z + second.Z);
-        }
+        public static Index3 Add(Index3 first, Index3 second) =>
+            first + second;
+
+        /// <summary>
+        /// Adds two indices (component wise).
+        /// </summary>
+        /// <param name="first">The first index.</param>
+        /// <param name="second">The second index.</param>
+        /// <returns>The added index.</returns>
+        public static Index3 operator +(Index3 first, Index3 second) =>
+            new Index3(first.X + second.X, first.Y + second.Y, first.Z + second.Z);
 
         /// <summary>
         /// Subtracts two indices (component wise).
@@ -349,10 +339,8 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The subtracted index.</returns>
-        public static Index3 Subtract(Index3 first, Index3 second)
-        {
-            return first - second;
-        }
+        public static Index3 Subtract(Index3 first, Index3 second) =>
+            first - second;
 
         /// <summary>
         /// Subtracts two indices (component wise).
@@ -360,10 +348,8 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The subtracted index.</returns>
-        public static Index3 operator -(Index3 first, Index3 second)
-        {
-            return new Index3(first.X - second.X, first.Y - second.Y, first.Z - second.Z);
-        }
+        public static Index3 operator -(Index3 first, Index3 second) =>
+            new Index3(first.X - second.X, first.Y - second.Y, first.Z - second.Z);
 
         /// <summary>
         /// Multiplies an index with a scalar (component wise).
@@ -371,10 +357,8 @@ namespace ILGPU
         /// <param name="first">The scalar value.</param>
         /// <param name="second">The index.</param>
         /// <returns>The multiplied index.</returns>
-        public static Index3 operator *(int first, Index3 second)
-        {
-            return new Index3(first) * second;
-        }
+        public static Index3 operator *(int first, Index3 second) =>
+            new Index3(first) * second;
 
         /// <summary>
         /// Multiplies an index with a scalar (component wise).
@@ -382,10 +366,8 @@ namespace ILGPU
         /// <param name="first">The index.</param>
         /// <param name="second">The scalar value.</param>
         /// <returns>The multiplied index.</returns>
-        public static Index3 operator *(Index3 first, int second)
-        {
-            return first * new Index3(second);
-        }
+        public static Index3 operator *(Index3 first, int second) =>
+            first * new Index3(second);
 
         /// <summary>
         /// Multiplies two indices (component wise).
@@ -393,10 +375,8 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The multiplied index.</returns>
-        public static Index3 Multiply(Index3 first, Index3 second)
-        {
-            return first * second;
-        }
+        public static Index3 Multiply(Index3 first, Index3 second) =>
+            first * second;
 
         /// <summary>
         /// Multiplies two indices (component wise).
@@ -404,10 +384,8 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The multiplied index.</returns>
-        public static Index3 operator *(Index3 first, Index3 second)
-        {
-            return new Index3(first.X * second.X, first.Y * second.Y, first.Z * second.Z);
-        }
+        public static Index3 operator *(Index3 first, Index3 second) =>
+            new Index3(first.X * second.X, first.Y * second.Y, first.Z * second.Z);
 
         /// <summary>
         /// Divides an index with a scalar (component wise).
@@ -415,10 +393,8 @@ namespace ILGPU
         /// <param name="first">The scalar value.</param>
         /// <param name="second">The index.</param>
         /// <returns>The divided index.</returns>
-        public static Index3 operator /(int first, Index3 second)
-        {
-            return new Index3(first) / second;
-        }
+        public static Index3 operator /(int first, Index3 second) =>
+            new Index3(first) / second;
 
         /// <summary>
         /// Divides an index with a scalar (component wise).
@@ -426,10 +402,8 @@ namespace ILGPU
         /// <param name="first">The index.</param>
         /// <param name="second">The scalar value.</param>
         /// <returns>The divided index.</returns>
-        public static Index3 operator /(Index3 first, int second)
-        {
-            return first / new Index3(second);
-        }
+        public static Index3 operator /(Index3 first, int second) =>
+            first / new Index3(second);
 
         /// <summary>
         /// Divides two indices (component wise).
@@ -437,10 +411,8 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The divided index.</returns>
-        public static Index3 Divide(Index3 first, Index3 second)
-        {
-            return first / second;
-        }
+        public static Index3 Divide(Index3 first, Index3 second) =>
+            first / second;
 
         /// <summary>
         /// Divides two indices (component wise).
@@ -448,76 +420,62 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The divided index.</returns>
-        public static Index3 operator /(Index3 first, Index3 second)
-        {
-            return new Index3(first.X / second.X, first.Y / second.Y, first.Z / second.Z);
-        }
+        public static Index3 operator /(Index3 first, Index3 second) =>
+            new Index3(first.X / second.X, first.Y / second.Y, first.Z / second.Z);
 
         /// <summary>
-        /// Returns true iff the first and second index are the same.
+        /// Returns true if the first and second index are the same.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first and second index are the same.</returns>
-        public static bool operator ==(Index3 first, Index3 second)
-        {
-            return first.X == second.X && first.Y == second.Y && first.Z == second.Z;
-        }
+        /// <returns>True, if the first and second index are the same.</returns>
+        public static bool operator ==(Index3 first, Index3 second) =>
+            first.X == second.X && first.Y == second.Y && first.Z == second.Z;
 
         /// <summary>
-        /// Returns true iff the first and second index are not the same.
+        /// Returns true if the first and second index are not the same.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first and second index are not the same.</returns>
-        public static bool operator !=(Index3 first, Index3 second)
-        {
-            return first.X != second.X || first.Y != second.Y || first.Z != second.Z;
-        }
+        /// <returns>True, if the first and second index are not the same.</returns>
+        public static bool operator !=(Index3 first, Index3 second) =>
+            first.X != second.X || first.Y != second.Y || first.Z != second.Z;
 
         /// <summary>
-        /// Returns true iff the first index is smaller than the second index.
+        /// Returns true if the first index is smaller than the second index.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first index is smaller than the second index.</returns>
-        public static bool operator <(Index3 first, Index3 second)
-        {
-            return first.X < second.X && first.Y < second.Y && first.Z < second.Z;
-        }
+        /// <returns>True, if the first index is smaller than the second index.</returns>
+        public static bool operator <(Index3 first, Index3 second) =>
+            first.X < second.X && first.Y < second.Y && first.Z < second.Z;
 
         /// <summary>
-        /// Returns true iff the first index is smaller than or equal to the second index.
+        /// Returns true if the first index is smaller than or equal to the second index.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first index is smaller than or equal the second index.</returns>
-        public static bool operator <=(Index3 first, Index3 second)
-        {
-            return first.X <= second.X && first.Y <= second.Y && first.Z <= second.Z;
-        }
+        /// <returns>True, if the first index is smaller than or equal the second index.</returns>
+        public static bool operator <=(Index3 first, Index3 second) =>
+            first.X <= second.X && first.Y <= second.Y && first.Z <= second.Z;
 
         /// <summary>
-        /// Returns true iff the first index is greater than the second index.
+        /// Returns true if the first index is greater than the second index.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first index is greater than the second index.</returns>
-        public static bool operator >(Index3 first, Index3 second)
-        {
-            return first.X > second.X && first.Y > second.Y && first.Z > second.Z;
-        }
+        /// <returns>True, if the first index is greater than the second index.</returns>
+        public static bool operator >(Index3 first, Index3 second) =>
+            first.X > second.X && first.Y > second.Y && first.Z > second.Z;
 
         /// <summary>
-        /// Returns true iff the first index is greater than or equal to the second index.
+        /// Returns true if the first index is greater than or equal to the second index.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first index is greater or equal to the second index.</returns>
-        public static bool operator >=(Index3 first, Index3 second)
-        {
-            return first.X >= second.X && first.Y >= second.Y && first.Z >= second.Z;
-        }
+        /// <returns>True, if the first index is greater or equal to the second index.</returns>
+        public static bool operator >=(Index3 first, Index3 second) =>
+            first.X >= second.X && first.Y >= second.Y && first.Z >= second.Z;
 
         #endregion
     }

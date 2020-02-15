@@ -63,9 +63,9 @@ namespace ILGPU
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="length">The number of elements to allocate.</param>
         /// <returns>An allocated region of shared memory.</returns>
-        public static ArrayView<T> Allocate<T>(Index length)
+        public static ArrayView<T> Allocate<T>(Index1 length)
             where T : struct =>
-            Allocate<T, Index>(length).AsLinearView();
+            Allocate<T, Index1>(length).AsLinearView();
 
         /// <summary>
         /// Allocates a 2D chunk of shared memory with the specified number of elements.
@@ -74,7 +74,7 @@ namespace ILGPU
         /// <param name="width">The width of the 2D buffer.</param>
         /// <param name="height">The height of the 2D buffer.</param>
         /// <returns>An allocated region of shared memory.</returns>
-        public static ArrayView2D<T> Allocate2D<T>(Index width, Index height)
+        public static ArrayView2D<T> Allocate2D<T>(Index1 width, Index1 height)
             where T : struct =>
             Allocate2D<T>(new Index2(width, height));
 
@@ -96,7 +96,7 @@ namespace ILGPU
         /// <param name="height">The height of the 3D buffer.</param>
         /// <param name="depth">The depth of the 3D buffer.</param>
         /// <returns>An allocated region of shared memory.</returns>
-        public static ArrayView3D<T> Allocate3D<T>(Index width, Index height, Index depth)
+        public static ArrayView3D<T> Allocate3D<T>(Index1 width, Index1 height, Index1 depth)
             where T : struct =>
             Allocate3D<T>(new Index3(width, height, depth));
 

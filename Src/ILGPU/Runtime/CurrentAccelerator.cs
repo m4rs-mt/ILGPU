@@ -181,7 +181,7 @@ namespace ILGPU.Runtime
         /// <returns>True, iff the given object is equal to the current binding.</returns>
         public override bool Equals(object obj)
         {
-            if (obj is Index idx)
+            if (obj is Index1 idx)
                 return Equals(idx);
             return false;
         }
