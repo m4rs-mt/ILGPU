@@ -15,9 +15,7 @@ namespace ILGPU.Tests
             : base(output, contextProvider)
         { }
 
-        internal static void GroupDimensionKernel(
-            GroupedIndex3 index,
-            ArrayView<int> data)
+        internal static void GroupDimensionKernel(ArrayView<int> data)
         {
             data[0] = Group.DimensionX;
             data[1] = Group.DimensionY;
@@ -34,7 +32,7 @@ namespace ILGPU.Tests
             for (int i = 2; i <= Math.Min(8, Accelerator.MaxNumThreadsPerGroup); i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(3);
-                var extent = new GroupedIndex3(
+                var extent = new KernelConfig(
                     new Index3(1, 1, 1),
                     new Index3(
                         Math.Max(i * xMask, 1),
@@ -45,9 +43,9 @@ namespace ILGPU.Tests
 
                 var expected = new int[]
                 {
-                    extent.GroupIdx.X,
-                    extent.GroupIdx.Y,
-                    extent.GroupIdx.Z,
+                    extent.GroupDimension.X,
+                    extent.GroupDimension.Y,
+                    extent.GroupDimension.Z,
                 };
                 Verify(buffer, expected);
             }
@@ -64,7 +62,7 @@ namespace ILGPU.Tests
             for (int i = 2; i <= end; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(3);
-                var extent = new GroupedIndex3(
+                var extent = new KernelConfig(
                     new Index3(1, 1, 1),
                     new Index3(
                         Math.Max(i * xMask, 1),
@@ -74,9 +72,9 @@ namespace ILGPU.Tests
 
                 var expected = new int[]
                 {
-                    extent.GroupIdx.X,
-                    extent.GroupIdx.Y,
-                    extent.GroupIdx.Z,
+                    extent.GroupDimension.X,
+                    extent.GroupDimension.Y,
+                    extent.GroupDimension.Z,
                 };
                 Verify(buffer, expected);
             }
@@ -90,26 +88,24 @@ namespace ILGPU.Tests
             for (int i = 1; i <= end; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(3);
-                var extent = new GroupedIndex3(
+                var extent = new KernelConfig(
                     new Index3(1, 1, 1),
                     new Index3(i, i, i));
                 Execute(extent, buffer.View);
 
                 var expected = new int[]
                 {
-                    extent.GroupIdx.X,
-                    extent.GroupIdx.Y,
-                    extent.GroupIdx.Z,
+                    extent.GroupDimension.X,
+                    extent.GroupDimension.Y,
+                    extent.GroupDimension.Z,
                 };
                 Verify(buffer, expected);
             }
         }
 
-        internal static void GroupBarrierKernel(
-            GroupedIndex index,
-            ArrayView<int> data)
+        internal static void GroupBarrierKernel(ArrayView<int> data)
         {
-            var idx = index.GridIdx * Group.DimensionX + index.GroupIdx;
+            var idx = Grid.IndexX * Group.DimensionX + Group.IndexX;
             Group.Barrier();
             data[idx] = idx;
         }
@@ -124,7 +120,7 @@ namespace ILGPU.Tests
             for (int i = 1; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
-                var extent = new GroupedIndex(
+                var extent = new KernelConfig(
                     length,
                     i);
                 Execute(extent, buffer.View);
@@ -135,12 +131,11 @@ namespace ILGPU.Tests
         }
 
         internal static void GroupBarrierAndKernel(
-            GroupedIndex index,
             ArrayView<int> data,
             Index bound)
         {
-            var idx = index.GridIdx * Group.DimensionX + index.GroupIdx;
-            data[idx] = Group.BarrierAnd(index.GroupIdx < bound) ? 1 : 0;
+            var idx = Grid.IndexX * Group.DimensionX + Group.IndexX;
+            data[idx] = Group.BarrierAnd(Group.IndexX < bound) ? 1 : 0;
         }
 
         [Theory]
@@ -153,7 +148,7 @@ namespace ILGPU.Tests
             for (int i = 2; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
-                var extent = new GroupedIndex(length, i);
+                var extent = new KernelConfig(length, i);
                 Execute(extent, buffer.View, new Index(i));
 
                 var expected = Enumerable.Repeat(1, buffer.Length).ToArray();
@@ -167,12 +162,11 @@ namespace ILGPU.Tests
         }
 
         internal static void GroupBarrierOrKernel(
-            GroupedIndex index,
             ArrayView<int> data,
             Index bound)
         {
-            var idx = index.GridIdx * Group.DimensionX + index.GroupIdx;
-            data[idx] = Group.BarrierOr(index.GroupIdx < bound) ? 1 : 0;
+            var idx = Grid.IndexX * Group.DimensionX + Group.IndexX;
+            data[idx] = Group.BarrierOr(Group.IndexX < bound) ? 1 : 0;
         }
 
         [Theory]
@@ -185,7 +179,7 @@ namespace ILGPU.Tests
             for (int i = 2; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
-                var extent = new GroupedIndex(length, i);
+                var extent = new KernelConfig(length, i);
                 Execute(extent, buffer.View, new Index(1));
 
                 var expected = Enumerable.Repeat(1, buffer.Length).ToArray();
@@ -198,7 +192,7 @@ namespace ILGPU.Tests
             }
         }
 
-        static void EmptyKernel(GroupedIndex index, int c)
+        static void EmptyKernel(int c)
         { }
 
         [Fact]
@@ -206,7 +200,7 @@ namespace ILGPU.Tests
         public void ExceedGroupSize()
         {
             var groupSize = Accelerator.MaxNumThreadsPerGroup + 1;
-            var extent = new GroupedIndex(2, groupSize);
+            var extent = new KernelConfig(2, groupSize);
 
             Action act = () => Execute(extent, 0);
 
@@ -218,12 +212,10 @@ namespace ILGPU.Tests
                 x is NotSupportedException);
         }
 
-        internal static void GroupBroadcastKernel(
-            GroupedIndex index,
-            ArrayView<int> data)
+        internal static void GroupBroadcastKernel(ArrayView<int> data)
         {
-            var idx = index.GridIdx * Group.DimensionX + index.GroupIdx;
-            data[idx] = Group.Broadcast(index.GroupIdx.X, Group.DimensionX - 1);
+            var idx = Grid.IndexX * Group.DimensionX + Group.IndexX;
+            data[idx] = Group.Broadcast(Group.IndexX, Group.DimensionX - 1);
         }
 
         [Theory]
@@ -236,7 +228,7 @@ namespace ILGPU.Tests
             for (int i = 2; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
-                var extent = new GroupedIndex(length, i);
+                var extent = new KernelConfig(length, i);
                 Execute(extent, buffer.View);
 
                 var expected = Enumerable.Repeat(i - 1, buffer.Length).ToArray();
