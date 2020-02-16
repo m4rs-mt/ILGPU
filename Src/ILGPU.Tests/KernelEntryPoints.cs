@@ -11,7 +11,7 @@ namespace ILGPU.Tests
             : base(output, contextProvider)
         { }
 
-        internal static void Index1EntryPointKernel(Index index, ArrayView<int> output)
+        internal static void Index1EntryPointKernel(Index1 index, ArrayView<int> output)
         {
             output[index] = index;
         }
@@ -137,7 +137,7 @@ namespace ILGPU.Tests
                     stride);
                 using var buffer = Accelerator.Allocate<int>(extent.Size);
                 buffer.MemSetToZero(Accelerator.DefaultStream);
-                Execute(extent, buffer.View, stride, extent.GridDimension);
+                Execute(extent, buffer.View, stride, extent.GridDimension.XY);
 
                 var expected = new int[extent.Size];
                 for (int j = 0; j < length * length; ++j)
@@ -146,7 +146,7 @@ namespace ILGPU.Tests
                     for (int k = 0; k < i * i; ++k)
                     {
                         var groupIdx = Index2.ReconstructIndex(k, extent.GroupDimension.XY);
-                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GroupDimension.XY);
+                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridDimension.XY);
                         expected[idx] = idx;
                     }
                 }

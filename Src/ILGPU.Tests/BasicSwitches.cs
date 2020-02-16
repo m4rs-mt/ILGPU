@@ -10,7 +10,7 @@ namespace ILGPU.Tests
         { }
 
         internal static void BasicSwitchKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> source)
         {
@@ -59,7 +59,7 @@ namespace ILGPU.Tests
         }
 
         internal static void BasicSwitchStoreKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> data2,
             ArrayView<int> source)

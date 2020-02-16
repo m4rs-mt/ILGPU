@@ -132,7 +132,7 @@ namespace ILGPU.Tests
 
         internal static void GroupBarrierAndKernel(
             ArrayView<int> data,
-            Index bound)
+            Index1 bound)
         {
             var idx = Grid.IndexX * Group.DimensionX + Group.IndexX;
             data[idx] = Group.BarrierAnd(Group.IndexX < bound) ? 1 : 0;
@@ -149,12 +149,12 @@ namespace ILGPU.Tests
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
                 var extent = new KernelConfig(length, i);
-                Execute(extent, buffer.View, new Index(i));
+                Execute(extent, buffer.View, new Index1(i));
 
                 var expected = Enumerable.Repeat(1, buffer.Length).ToArray();
                 Verify(buffer, expected);
 
-                Execute(extent, buffer.View, new Index(i - 1));
+                Execute(extent, buffer.View, new Index1(i - 1));
 
                 expected = Enumerable.Repeat(0, buffer.Length).ToArray();
                 Verify(buffer, expected);
@@ -163,7 +163,7 @@ namespace ILGPU.Tests
 
         internal static void GroupBarrierOrKernel(
             ArrayView<int> data,
-            Index bound)
+            Index1 bound)
         {
             var idx = Grid.IndexX * Group.DimensionX + Group.IndexX;
             data[idx] = Group.BarrierOr(Group.IndexX < bound) ? 1 : 0;
@@ -180,12 +180,12 @@ namespace ILGPU.Tests
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
                 var extent = new KernelConfig(length, i);
-                Execute(extent, buffer.View, new Index(1));
+                Execute(extent, buffer.View, new Index1(1));
 
                 var expected = Enumerable.Repeat(1, buffer.Length).ToArray();
                 Verify(buffer, expected);
 
-                Execute(extent, buffer.View, new Index(0));
+                Execute(extent, buffer.View, new Index1(0));
 
                 expected = Enumerable.Repeat(0, buffer.Length).ToArray();
                 Verify(buffer, expected);

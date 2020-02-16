@@ -12,7 +12,7 @@ namespace ILGPU.Tests
         { }
 
         internal static void DebugAssertKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             Debug.Assert(data[index] >= 0);
@@ -33,7 +33,7 @@ namespace ILGPU.Tests
         }
 
         internal static void DebugAssertMessageKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             Debug.Assert(data[index] >= 0, "Invalid kernel argument");
@@ -54,7 +54,7 @@ namespace ILGPU.Tests
         }
 
         internal static void DebugFailedKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             if (data[index] < 0)

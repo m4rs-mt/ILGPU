@@ -15,7 +15,7 @@ namespace ILGPU.Tests
         { }
 
         internal static void WhileFalseKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             int value = 42;
@@ -36,7 +36,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ForCounterKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             int counter)
         {
@@ -62,7 +62,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ForCounterDataKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> source)
         {
@@ -91,7 +91,7 @@ namespace ILGPU.Tests
         }
 
         internal static void NestedForCounterKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             int counter,
             int counter2)
@@ -122,7 +122,7 @@ namespace ILGPU.Tests
         }
 
         internal static void DoWhileKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             int counter)
         {

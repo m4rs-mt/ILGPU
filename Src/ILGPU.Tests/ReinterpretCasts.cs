@@ -14,7 +14,7 @@ namespace ILGPU.Tests
         { }
 
         internal static void ReinterpretFloatsKernel(
-            Index index,
+            Index1 index,
             ArrayView<float> data,
             ArrayView<double> data2,
             float value,

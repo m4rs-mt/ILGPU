@@ -15,7 +15,7 @@ namespace ILGPU.Tests
         { }
 
         internal static void IfTrueKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             int value;
@@ -38,7 +38,7 @@ namespace ILGPU.Tests
         }
 
         internal static void IfFalseKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             int value;
@@ -61,7 +61,7 @@ namespace ILGPU.Tests
         }
 
         internal static void IfTrueSideEffectsKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> data2)
         {
@@ -93,7 +93,7 @@ namespace ILGPU.Tests
         }
 
         internal static void IfFalseSideEffectsKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> data2)
         {
@@ -125,7 +125,7 @@ namespace ILGPU.Tests
         }
 
         internal static void IfSideEffectsKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> data2,
             int c)
@@ -162,7 +162,7 @@ namespace ILGPU.Tests
         }
 
         internal static void IfNestedSideEffectsKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> data2,
             int c,
@@ -222,7 +222,7 @@ namespace ILGPU.Tests
         }
 
         internal static void IfAndOrKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             int value;

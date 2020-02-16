@@ -12,7 +12,7 @@ namespace ILGPU.Tests
         { }
 
         internal static void WarpDimensionKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> length,
             ArrayView<int> idx)
         {
@@ -42,11 +42,9 @@ namespace ILGPU.Tests
             Verify(idxBuffer, expectedIndices);
         }
 
-        internal static void WarpBarrierKernel(
-            GroupedIndex index,
-            ArrayView<int> data)
+        internal static void WarpBarrierKernel(ArrayView<int> data)
         {
-            var idx = index.GridIdx * Group.DimensionX + index.GroupIdx;
+            var idx = Grid.GlobalIndex.X;
             Warp.Barrier();
             data[idx] = idx;
         }
@@ -60,7 +58,7 @@ namespace ILGPU.Tests
         {
             var warpSize = Accelerator.WarpSize;
             using var buffer = Accelerator.Allocate<int>(length * warpSize);
-            var extent = new GroupedIndex(
+            var extent = new KernelConfig(
                 length,
                 warpSize);
             Execute(extent, buffer.View);
@@ -69,12 +67,10 @@ namespace ILGPU.Tests
             Verify(buffer, expected);
         }
 
-        internal static void WarpBroadcastKernel(
-            GroupedIndex index,
-            ArrayView<int> data)
+        internal static void WarpBroadcastKernel(ArrayView<int> data)
         {
-            var idx = index.GridIdx * Group.DimensionX + index.GroupIdx;
-            data[idx] = Warp.Broadcast(index.GroupIdx.X, Warp.WarpSize - 1);
+            var idx = Grid.GlobalIndex.X;
+            data[idx] = Warp.Broadcast(Group.IndexX, Warp.WarpSize - 1);
         }
 
         [Theory]
@@ -86,7 +82,7 @@ namespace ILGPU.Tests
         {
             var warpSize = Accelerator.WarpSize;
             using var buffer = Accelerator.Allocate<int>(length * warpSize);
-            var extent = new GroupedIndex(
+            var extent = new KernelConfig(
                 length,
                 warpSize);
             Execute(extent, buffer.View);
@@ -96,7 +92,7 @@ namespace ILGPU.Tests
         }
 
         internal static void WarpShuffleKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             var targetIdx = Warp.WarpSize - 1;
@@ -120,7 +116,7 @@ namespace ILGPU.Tests
         }
 
         internal static void WarpShuffleDownKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             int shiftAmount)
         {
@@ -155,7 +151,7 @@ namespace ILGPU.Tests
         }
 
         internal static void WarpShuffleUpKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             int shiftAmount)
         {
@@ -190,7 +186,7 @@ namespace ILGPU.Tests
         }
 
         internal static void WarpShuffleXorKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             var value = Warp.LaneIdx;

@@ -21,7 +21,7 @@ namespace ILGPU.Tests
         }
 
         internal static void SizeOfKernel<T>(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
             where T : struct
         {
@@ -47,7 +47,7 @@ namespace ILGPU.Tests
                 BindingFlags.NonPublic | BindingFlags.Static);
             var specializedMethod = method.MakeGenericMethod(type);
             using var buffer = Accelerator.Allocate<int>(1);
-            Execute<Index>(specializedMethod, buffer.Length, buffer.View);
+            Execute<Index1>(specializedMethod, buffer.Length, buffer.View);
 
             var size = Marshal.SizeOf(type);
             var expected = new int[] { size };

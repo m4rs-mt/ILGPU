@@ -14,7 +14,7 @@ namespace ILGPU.Tests
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "Testing unconditional jump")]
         internal static void BasicJumpKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> source)
         {
@@ -46,7 +46,7 @@ namespace ILGPU.Tests
         }
 
         internal static void BasicIfJumpKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> source)
         {
@@ -82,7 +82,7 @@ namespace ILGPU.Tests
         }
 
         internal static void BasicLoopJumpKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> source)
         {

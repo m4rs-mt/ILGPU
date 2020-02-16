@@ -42,7 +42,7 @@ namespace ILGPU.Tests
 <#         var testName = "BinaryOperation" + baseName; #>
 <#         var kernelName = "BinaryOperationKernel" + testName; #>
         internal static void <#= kernelName #>(
-            Index index,
+            Index1 index,
             ArrayView<<#= typeName #>> a,
             ArrayView<<#= typeName #>> b,
             ArrayView<<#= typeName #>> c)

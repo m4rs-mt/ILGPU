@@ -12,11 +12,9 @@ namespace ILGPU.Tests
             : base(output, contextProvider)
         { }
 
-        internal static void MemoryFenceGroupLevelKernel(
-            GroupedIndex index,
-            ArrayView<int> data)
+        internal static void MemoryFenceGroupLevelKernel(ArrayView<int> data)
         {
-            var idx = index.ComputeGlobalIndex();
+            var idx = Grid.GlobalIndex.X;
             data[idx] = idx;
 
             MemoryFence.GroupLevel();
@@ -28,7 +26,7 @@ namespace ILGPU.Tests
         {
             for (int i = 1; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
-                var extent = new GroupedIndex(Length, i);
+                var extent = new KernelConfig(Length, i);
                 using var buffer = Accelerator.Allocate<int>(extent.Size);
                 Execute(extent, buffer.View);
 
@@ -38,7 +36,7 @@ namespace ILGPU.Tests
         }
 
         internal static void MemoryFenceDeviceLevelKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             data[index] = index;
@@ -58,7 +56,7 @@ namespace ILGPU.Tests
         }
 
         internal static void MemoryFenceSystemLevelKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             data[index] = index;

@@ -33,7 +33,7 @@ namespace ILGPU.Tests
             for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(3);
-                var extent = new GroupedIndex3(
+                var extent = new KernelConfig(
                     new Index3(
                         Math.Max(i * xMask, 1),
                         Math.Max(i * yMask, 1),
@@ -44,9 +44,9 @@ namespace ILGPU.Tests
 
                 var expected = new int[]
                 {
-                    extent.GridIdx.X,
-                    extent.GridIdx.Y,
-                    extent.GridIdx.Z,
+                    extent.GridDimension.X,
+                    extent.GridDimension.Y,
+                    extent.GridDimension.Z,
                 };
                 Verify(buffer, expected);
             }

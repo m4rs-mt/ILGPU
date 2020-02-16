@@ -26,7 +26,7 @@ namespace ILGPU.Tests
 <#         var testName = "ConvertOperation" + baseName; #>
 <#         var kernelName = "ConvertOperationKernel" + baseName; #>
         internal static void <#= kernelName #>(
-            Index index,
+            Index1 index,
             ArrayView<<#= typeName #>> a,
             ArrayView<<#= targetTypeName #>> b)
         {

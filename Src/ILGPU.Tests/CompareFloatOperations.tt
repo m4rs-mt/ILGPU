@@ -34,7 +34,7 @@ namespace ILGPU.Tests
 <#         var testName = "CompareOperation" + baseName; #>
 <#         var kernelName = "CompareOperationKernel" + testName; #>
         internal static void <#= kernelName #>(
-            Index index,
+            Index1 index,
             ArrayView<<#= typeName #>> a,
             ArrayView<<#= typeName #>> b,
             ArrayView<int> c)

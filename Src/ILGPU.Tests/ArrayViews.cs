@@ -10,7 +10,7 @@ namespace ILGPU.Tests
             : base(output, contextProvider)
         { }
 
-        internal static void ArrayViewValidKernel(Index index, ArrayView<int> data)
+        internal static void ArrayViewValidKernel(Index1 index, ArrayView<int> data)
         {
             ArrayView<int> invalid = default;
             data[index] = (data.IsValid ? 1 : 0) + (!invalid.IsValid ? 1 : 0);
@@ -32,7 +32,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewLeaKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> source)
         {
@@ -59,7 +59,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewLeaIndexKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> source)
         {
@@ -86,7 +86,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewLengthKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             data[index] = data.Length;
@@ -108,7 +108,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewExtentKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             data[index] = data.Extent.X;
@@ -130,7 +130,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewLengthInBytesKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data)
         {
             data[index] = data.LengthInBytes;
@@ -152,7 +152,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewGetSubViewKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> length,
             ArrayView<int> source,
@@ -198,7 +198,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewGetSubViewImplicitLengthKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> length,
             ArrayView<int> source,
             int subViewOffset)
@@ -232,7 +232,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewCastSmallerKernel(
-            Index index,
+            Index1 index,
             ArrayView<byte> data,
             ArrayView<int> length,
             ArrayView<int> source)
@@ -273,7 +273,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewCastLargerKernel(
-            Index index,
+            Index1 index,
             ArrayView<long> data,
             ArrayView<int> length,
             ArrayView<int> source)
@@ -315,7 +315,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewLinearViewKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> source)
         {
@@ -342,7 +342,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewGetVariableViewKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> source)
         {
@@ -369,11 +369,11 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewCastToGenericViewKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<int> source)
         {
-            ArrayView<int, Index> otherKernel = source;
+            ArrayView<int, Index1> otherKernel = source;
             data[index] = otherKernel[index];
         }
 
@@ -404,7 +404,7 @@ namespace ILGPU.Tests
         }
 
         internal static void ArrayViewGetSubVariableViewKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> data,
             ArrayView<Pair<int>> source)
         {

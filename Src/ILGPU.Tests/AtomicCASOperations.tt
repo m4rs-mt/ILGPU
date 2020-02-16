@@ -22,7 +22,7 @@ namespace ILGPU.Tests
 <#      var casTestName = "AtomicOperationCAS" + baseName; #>
 <#      var casKernelName = "AtomicOperationKernelCAS" + baseName; #>
         internal static void <#= casKernelName #>(
-            Index index,
+            Index1 index,
             ArrayView<<#= typeName #>> a,
             ArrayView<<#= typeName #>> b,
             ArrayView<<#= typeName #>> c,

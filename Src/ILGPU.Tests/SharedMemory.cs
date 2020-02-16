@@ -10,19 +10,17 @@ namespace ILGPU.Tests
             : base(output, contextProvider)
         { }
 
-        internal static void SharedMemoryVariableKernel(
-            GroupedIndex index,
-            ArrayView<int> data)
+        internal static void SharedMemoryVariableKernel(ArrayView<int> data)
         {
             ref var sharedMemory = ref ILGPU.SharedMemory.Allocate<int>();
-            if (index.GroupIdx.IsFirst)
+            if (Group.IndexX == 0)
                 sharedMemory = 0;
             Group.Barrier();
 
             Atomic.Add(ref sharedMemory, 1);
             Group.Barrier();
 
-            var idx = index.ComputeGlobalIndex();
+            var idx = Grid.GlobalIndex.X;
             data[idx] = sharedMemory;
         }
 
@@ -36,7 +34,7 @@ namespace ILGPU.Tests
             for (int i = 1; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(i * groupMultiplier);
-                var index = new GroupedIndex(groupMultiplier, i);
+                var index = new KernelConfig(groupMultiplier, i);
                 Execute(index, buffer.View);
 
                 var expected = Enumerable.Repeat(i, buffer.Length).ToArray();
@@ -44,16 +42,14 @@ namespace ILGPU.Tests
             }
         }
 
-        internal static void SharedMemoryArrayKernel(
-            GroupedIndex index,
-            ArrayView<int> data)
+        internal static void SharedMemoryArrayKernel(ArrayView<int> data)
         {
             var sharedMemory = ILGPU.SharedMemory.Allocate<int>(2);
-            sharedMemory[index.GroupIdx] = index.GroupIdx;
+            sharedMemory[Group.IndexX] = Group.IndexX;
             Group.Barrier();
 
-            var idx = index.ComputeGlobalIndex();
-            data[idx] = sharedMemory[(index.GroupIdx + 1) % Group.DimensionX];
+            var idx = Grid.GlobalIndex.X;
+            data[idx] = sharedMemory[(Group.IndexX + 1) % Group.DimensionX];
         }
 
         [Theory]
@@ -64,7 +60,7 @@ namespace ILGPU.Tests
         public void SharedMemoryArray(int groupMultiplier)
         {
             using var buffer = Accelerator.Allocate<int>(2 * groupMultiplier);
-            var index = new GroupedIndex(groupMultiplier, 2);
+            var index = new KernelConfig(groupMultiplier, 2);
             Execute(index, buffer.View);
 
             var expected = new int[buffer.Length];

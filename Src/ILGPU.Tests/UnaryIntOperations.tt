@@ -30,7 +30,7 @@ namespace ILGPU.Tests
 <#         var testName = "UnaryOperation" + baseName; #>
 <#         var kernelName = "UnaryOperationKernel" + baseName; #>
         internal static void <#= kernelName #>(
-            Index index,
+            Index1 index,
             ArrayView<<#= typeName #>> a,
             ArrayView<<#= typeName #>> b)
         {

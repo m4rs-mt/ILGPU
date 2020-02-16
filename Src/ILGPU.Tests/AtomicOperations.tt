@@ -37,7 +37,7 @@ namespace ILGPU.Tests
 <#         var redTestName = "AtomicOperationRed" + baseName; #>
 <#         var redKernelName = "AtomicOperationKernelRed" + testName; #>
         internal static void <#= kernelName #>(
-            Index index,
+            Index1 index,
             ArrayView<<#= typeName #>> a,
             ArrayView<<#= typeName #>> b,
             ArrayView<<#= typeName #>> c)
@@ -75,7 +75,7 @@ namespace ILGPU.Tests
         }
 
         internal static void <#= redKernelName #>(
-            Index index,
+            Index1 index,
             ArrayView<<#= typeName #>> a,
             ArrayView<<#= typeName #>> b)
         {
