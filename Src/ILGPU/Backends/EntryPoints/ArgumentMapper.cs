@@ -566,22 +566,22 @@ namespace ILGPU.Backends.EntryPoints
         /// <typeparam name="TMappingHandler">The handler type.</typeparam>
         /// <param name="emitter">The target emitter to write to.</param>
         /// <param name="mappingHandler">The target mapping handler to use.</param>
-        /// <param name="specification">The parameter specification to map.</param>
+        /// <param name="parameters">The parameter collection to map.</param>
         protected void Map<TILEmitter, TMappingHandler>(
             in TILEmitter emitter,
             in TMappingHandler mappingHandler,
-            in EntryPoint.ParameterSpecification specification)
+            in ParameterCollection parameters)
             where TILEmitter : IILEmitter
             where TMappingHandler : IMappingHandler
         {
             // Map all parameters
-            for (int i = 0, e = specification.NumParameters; i < e; ++i)
+            for (int i = 0, e = parameters.Count; i < e; ++i)
             {
-                if (specification.IsByRef(i))
+                if (parameters.IsByRef(i))
                     throw new NotSupportedException(ErrorMessages.InvalidEntryPointParameter);
 
                 // Load parameter argument and map instance
-                var parameterType = specification.ParameterTypes[i];
+                var parameterType = parameters.ParameterTypes[i];
                 var parameterIndex = i + Kernel.KernelParameterOffset;
                 var argumentSource = new ArgumentSource(parameterType, parameterIndex);
 
@@ -626,7 +626,7 @@ namespace ILGPU.Backends.EntryPoints
             // Resolve all information from all kernel arguments
             int viewArgumentIndex = 0;
             var specification = entryPoint.Parameters;
-            for (int i = 0, e = specification.NumParameters; i < e; ++i)
+            for (int i = 0, e = specification.Count; i < e; ++i)
             {
                 if (specification.IsByRef(i))
                     throw new NotSupportedException(ErrorMessages.InvalidEntryPointParameter);

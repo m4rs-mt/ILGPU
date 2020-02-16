@@ -498,12 +498,52 @@ namespace ILGPU.Backends
         /// Initializes the associated kernel transformers.
         /// </summary>
         /// <param name="createTransformers">The target handler.</param>
-        protected void InitializeKernelTransformers(Action<ImmutableArray<Transformer>.Builder> createTransformers)
+        protected void InitializeKernelTransformers(
+            Action<ImmutableArray<Transformer>.Builder> createTransformers)
         {
             Debug.Assert(createTransformers != null, "Invalid transformers");
             var builder = ImmutableArray.CreateBuilder<Transformer>();
             createTransformers(builder);
             KernelTransformers = builder.ToImmutable();
+        }
+
+        /// <summary>
+        /// Precompiles the given entry point description into an IR method.
+        /// </summary>
+        /// <param name="entry">The desired entry point.</param>
+        /// <returns>The pre compiled IR method.</returns>
+        public Method PreCompileKernelMethod(in EntryPointDescription entry) =>
+            PreCompileKernelMethod(entry, new NoHook());
+
+        /// <summary>
+        /// Precompiles the given entry point description into an IR method.
+        /// </summary>
+        /// <typeparam name="TBackendHook">The backend hook type.</typeparam>
+        /// <param name="entry">The desired entry point.</param>
+        /// <param name="backendHook">The backend hook.</param>
+        /// <returns>The pre compiled IR method.</returns>
+        public Method PreCompileKernelMethod<TBackendHook>(
+            in EntryPointDescription entry,
+            TBackendHook backendHook)
+            where TBackendHook : IBackendHook
+        {
+            entry.Validate();
+
+            Method generatedKernelMethod;
+            using (var codeGenerationPhase = Context.BeginCodeGeneration())
+            {
+                var mainContext = codeGenerationPhase.IRContext;
+
+                Frontend.CodeGenerationResult generationResult;
+                using (var frontendPhase = codeGenerationPhase.BeginFrontendCodeGeneration())
+                    generationResult = frontendPhase.GenerateCode(entry.MethodSource);
+
+                generatedKernelMethod = generationResult.Result;
+                codeGenerationPhase.Optimize();
+
+                backendHook.FinishedCodeGeneration(mainContext, generatedKernelMethod);
+            }
+            return generatedKernelMethod;
         }
 
         /// <summary>
@@ -514,7 +554,7 @@ namespace ILGPU.Backends
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The compiled kernel that represents the compilation result.</returns>
         public CompiledKernel Compile(
-            EntryPointDescription entry,
+            in EntryPointDescription entry,
             in KernelSpecialization specialization) =>
             Compile(entry, specialization, new NoHook());
 
@@ -528,43 +568,62 @@ namespace ILGPU.Backends
         /// <param name="backendHook">The backend hook.</param>
         /// <returns>The compiled kernel that represents the compilation result.</returns>
         public virtual CompiledKernel Compile<TBackendHook>(
-            EntryPointDescription entry,
+            in EntryPointDescription entry,
             in KernelSpecialization specialization,
             TBackendHook backendHook)
             where TBackendHook : IBackendHook
         {
-            entry.Validate();
+            var generatedKernelMethod = PreCompileKernelMethod(entry, backendHook);
+            return Compile(
+                generatedKernelMethod,
+                entry,
+                specialization,
+                backendHook);
+        }
 
+        /// <summary>
+        /// Compiles a given method into a compiled kernel.
+        /// </summary>
+        /// <param name="kernelMethod">The main IR kernel method.</param>
+        /// <param name="entry">The desired entry point.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <returns>The compiled kernel that represents the compilation result.</returns>
+        public CompiledKernel Compile(
+            Method kernelMethod,
+            in EntryPointDescription entry,
+            in KernelSpecialization specialization) =>
+            Compile(kernelMethod, entry, specialization, new NoHook());
+
+        /// <summary>
+        /// Compiles a given method into a compiled kernel.
+        /// </summary>
+        /// <typeparam name="TBackendHook">The backend hook type.</typeparam>
+        /// <param name="kernelMethod">The main IR kernel method.</param>
+        /// <param name="entry">The desired entry point.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <param name="backendHook">The backend hook.</param>
+        /// <returns>The compiled kernel that represents the compilation result.</returns>
+        public CompiledKernel Compile<TBackendHook>(
+            Method kernelMethod,
+            in EntryPointDescription entry,
+            in KernelSpecialization specialization,
+            TBackendHook backendHook)
+            where TBackendHook : IBackendHook
+        {
             using (var kernelContext = new IRContext(Context))
             {
-                IRContext mainContext;
-                Method generatedKernelMethod;
-                using (var codeGenerationPhase = Context.BeginCodeGeneration())
-                {
-                    mainContext = codeGenerationPhase.IRContext;
-
-                    Frontend.CodeGenerationResult generationResult;
-                    using (var frontendCodeGenerationPhase = codeGenerationPhase.BeginFrontendCodeGeneration())
-                        generationResult = frontendCodeGenerationPhase.GenerateCode(entry.MethodSource);
-
-                    generatedKernelMethod = generationResult.Result;
-                    codeGenerationPhase.Optimize();
-
-                    backendHook.FinishedCodeGeneration(mainContext, generatedKernelMethod);
-                }
-
-                // Import the all kernel functions into our context
+                // Import the all kernel functions into our kernel context
                 var scopeProvider = new CachedScopeProvider();
-                var kernelMethod = kernelContext.Import(generatedKernelMethod, scopeProvider);
-                backendHook.InitializedKernelContext(kernelContext, kernelMethod);
+                var method = kernelContext.Import(kernelMethod, scopeProvider);
+                backendHook.InitializedKernelContext(kernelContext, method);
 
                 // Apply backend optimizations
                 foreach (var transformer in KernelTransformers)
                     kernelContext.Transform(transformer);
-                backendHook.OptimizedKernelContext(kernelContext, kernelMethod);
+                backendHook.OptimizedKernelContext(kernelContext, method);
 
                 // Compile kernel
-                var backendContext = new BackendContext(kernelContext, kernelMethod, ABI);
+                var backendContext = new BackendContext(kernelContext, method, ABI);
                 var entryPoint = CreateEntryPoint(
                     entry,
                     backendContext,
@@ -581,7 +640,7 @@ namespace ILGPU.Backends
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The created entry point.</returns>
         protected virtual EntryPoint CreateEntryPoint(
-            EntryPointDescription entry,
+            in EntryPointDescription entry,
             in BackendContext backendContext,
             in KernelSpecialization specialization) =>
             new EntryPoint(

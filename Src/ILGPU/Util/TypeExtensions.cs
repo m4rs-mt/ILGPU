@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Runtime;
 using System;
 using System.Reflection;
 using System.Text;
@@ -34,6 +35,22 @@ namespace ILGPU.Util
                 return false;
             var args = type.GetGenericArguments();
             elementType = args[0];
+            return true;
+        }
+
+        /// <summary>
+        /// Checks whether the given type is a specialized type.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <param name="nestedType">The resolved element type in case of an array view.</param>
+        /// <returns>True, in case of an array view.</returns>
+        public static bool IsSpecializedType(this Type type, out Type nestedType)
+        {
+            nestedType = null;
+            if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(SpecializedValue<>))
+                return false;
+            var args = type.GetGenericArguments();
+            nestedType = args[0];
             return true;
         }
 

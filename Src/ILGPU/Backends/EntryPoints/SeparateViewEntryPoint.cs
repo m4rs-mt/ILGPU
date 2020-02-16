@@ -249,8 +249,8 @@ namespace ILGPU.Backends.EntryPoints
             : base(description, sharedMemory, specialization)
         {
             var builder = ImmutableArray.CreateBuilder<ViewParameter>(
-                Parameters.NumParameters);
-            for (int i = 0, e = Parameters.NumParameters; i < e; ++i)
+                Parameters.Count);
+            for (int i = 0, e = Parameters.Count; i < e; ++i)
             {
                 var typeInfo = typeInformationManager.GetTypeInfo(Parameters[i]);
                 int sourceIndex = builder.Count;

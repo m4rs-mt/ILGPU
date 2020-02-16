@@ -263,7 +263,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Represents a generic kernel loader.
         /// </summary>
-        private interface IKernelLoader
+        public interface IKernelLoader
         {
             /// <summary>
             /// Returns the custom group size.
@@ -344,8 +344,8 @@ namespace ILGPU.Runtime
         /// <returns>The loaded kernel.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Kernel LoadGenericKernelDirect<TKernelLoader>(
-            EntryPointDescription entry,
-            KernelSpecialization specialization,
+            in EntryPointDescription entry,
+            in KernelSpecialization specialization,
             ref TKernelLoader kernelLoader)
             where TKernelLoader : struct, IKernelLoader
         {
@@ -363,8 +363,8 @@ namespace ILGPU.Runtime
         /// <returns>The loaded kernel.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Kernel LoadGenericKernel<TKernelLoader>(
-            EntryPointDescription entry,
-            KernelSpecialization specialization,
+            in EntryPointDescription entry,
+            in KernelSpecialization specialization,
             ref TKernelLoader kernelLoader)
             where TKernelLoader : struct, IKernelLoader
         {
@@ -401,7 +401,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="entry">The entry point to compile into a <see cref="CompiledKernel"/>.</param>
         /// <returns>The compiled kernel.</returns>
-        public CompiledKernel CompileKernel(EntryPointDescription entry) =>
+        public CompiledKernel CompileKernel(in EntryPointDescription entry) =>
             CompileKernel(entry, KernelSpecialization.Empty);
 
         /// <summary>
@@ -411,11 +411,14 @@ namespace ILGPU.Runtime
         /// <param name="entry">The entry point to compile into a <see cref="CompiledKernel"/>.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The compiled kernel.</returns>
-        public CompiledKernel CompileKernel(EntryPointDescription entry, KernelSpecialization specialization)
+        public CompiledKernel CompileKernel(
+            in EntryPointDescription entry,
+            in KernelSpecialization specialization)
         {
             // Check for compatiblity
             if (!specialization.IsCompatibleWith(this))
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernelSpecialization);
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedKernelSpecialization);
 
             if (KernelCacheEnabled)
             {
@@ -463,7 +466,9 @@ namespace ILGPU.Runtime
             if (compiledKernelCache.Count >= MinNumberOfKernelsInGC)
             {
                 var oldCompiledKernels = compiledKernelCache;
-                compiledKernelCache = new Dictionary<CachedCompiledKernelKey, WeakReference<CompiledKernel>>();
+                compiledKernelCache = new Dictionary<
+                    CachedCompiledKernelKey,
+                    WeakReference<CompiledKernel>>();
                 foreach (var entry in oldCompiledKernels)
                 {
                     if (entry.Value.TryGetTarget(out CompiledKernel _))

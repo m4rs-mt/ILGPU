@@ -407,7 +407,7 @@ namespace ILGPU.Runtime.CPU
 
             // Assign parameters
             var parameters = entryPoint.Parameters;
-            for (int i = 0, e = parameters.NumParameters; i < e; ++i)
+            for (int i = 0, e = parameters.Count; i < e; ++i)
             {
                 emitter.Emit(LocalOperation.Load, task);
                 emitter.Emit(ArgumentOperation.Load, i + Kernel.KernelParameterOffset);

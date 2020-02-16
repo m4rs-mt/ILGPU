@@ -144,7 +144,7 @@ namespace ILGPU.Backends.OpenCL
             // Note that we have to emit custom parameters for every view argument
             // since views have to be mapped by the driver to kernel arguments.
             var viewParameters = EntryPoint.ViewParameters;
-            bool hasDefaultParameters = EntryPoint.Parameters.NumParameters > 0;
+            bool hasDefaultParameters = EntryPoint.Parameters.Count > 0;
             for (int i = 0, e = viewParameters.Length; i < e; ++i)
             {
                 // Emit a specialized pointer type

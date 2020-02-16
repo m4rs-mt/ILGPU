@@ -57,7 +57,7 @@ namespace ILGPU.Backends.IL
         /// <param name="backendHandler">The backend handler.</param>
         /// <returns>The compiled kernel that represents the compilation result.</returns>
         public override CompiledKernel Compile<TBackendHandler>(
-            EntryPointDescription entry,
+            in EntryPointDescription entry,
             in KernelSpecialization specialization,
             TBackendHandler backendHandler)
         {

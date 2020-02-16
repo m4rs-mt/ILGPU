@@ -109,9 +109,9 @@ namespace ILGPU.Backends.OpenCL
 
         #region Methods
 
-        /// <summary cref="Backend.CreateEntryPoint(EntryPointDescription, in BackendContext, in KernelSpecialization)"/>
+        /// <summary cref="Backend.CreateEntryPoint(in EntryPointDescription, in BackendContext, in KernelSpecialization)"/>
         protected override EntryPoint CreateEntryPoint(
-            EntryPointDescription entry,
+            in EntryPointDescription entry,
             in BackendContext backendContext,
             in KernelSpecialization specialization) =>
             new SeparateViewEntryPoint(

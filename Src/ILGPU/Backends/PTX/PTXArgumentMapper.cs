@@ -136,7 +136,7 @@ namespace ILGPU.Backends.PTX
             var parameters = entryPoint.Parameters;
 
             // Compute the actual number of kernel arguments
-            int numParameters = parameters.NumParameters;
+            int numParameters = parameters.Count;
             int parameterOffset = 0;
             if (!entryPoint.IsExplicitlyGrouped)
             {

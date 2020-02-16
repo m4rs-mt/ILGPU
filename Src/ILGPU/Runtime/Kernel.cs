@@ -10,10 +10,15 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.IL;
+using ILGPU.IR;
 using ILGPU.Resources;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
@@ -30,6 +35,117 @@ namespace ILGPU.Runtime
         internal const int KernelStreamParamIdx = 1;
         internal const int KernelParamDimensionIdx = 2;
         internal const int KernelParameterOffset = KernelParamDimensionIdx + 1;
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Creates a launcher delegate that uses the <see cref="SpecializationCache{TLoader, TArgs, TDelegate}"/>
+        /// to created dynamically specialized kernels.
+        /// </summary>
+        /// <typeparam name="TLoader">The associated loader type.</typeparam>
+        /// <typeparam name="TDelegate">The lancher delegate type.</typeparam>
+        /// <param name="accelerator">The associated accelerator.</param>
+        /// <param name="entry">The entry point to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <param name="kernelMethod">The kernel IR method.</param>
+        /// <param name="loader">The loader instance.</param>
+        /// <returns>A dynamic kernel launcher that automagically specializes kernels.</returns>
+        public static TDelegate CreateSpecializedLauncher<TDelegate, TLoader>(
+            Accelerator accelerator,
+            in EntryPointDescription entry,
+            in KernelSpecialization specialization,
+            Method kernelMethod,
+            ref TLoader loader)
+            where TDelegate : Delegate
+            where TLoader : struct, Accelerator.IKernelLoader
+        {
+            Debug.Assert(entry.HasSpecializedParameters);
+
+            // Build customized runtime structure
+            var context = accelerator.Context;
+            var keyStruct = context.DefineRuntimeStruct();
+            var specializedParameters = entry.Parameters.SpecializedParameters;
+            var fieldBuilders = new List<FieldInfo>(specializedParameters.Length);
+            foreach (var param in specializedParameters)
+            {
+                fieldBuilders.Add(keyStruct.DefineField(
+                    "Key" + param.Index,
+                    param.ParameterType,
+                    FieldAttributes.Public));
+            }
+
+            // Define equals and hash code functions
+            keyStruct.GenerateEqualsAndHashCode(fieldBuilders.ToArray());
+
+            // Create new structure instance and assign fields
+            var keyStructType = keyStruct.CreateType();
+            var cacheType = typeof(SpecializationCache<,,>).MakeGenericType(
+                typeof(TLoader),
+                keyStructType,
+                typeof(TDelegate));
+            var method = entry.CreateLauncherMethod(context, cacheType);
+            var emitter = new ILEmitter(method.ILGenerator);
+
+            var keyVariable = emitter.DeclareLocal(keyStructType);
+            emitter.Emit(LocalOperation.LoadAddress, keyVariable);
+            emitter.Emit(OpCodes.Initobj, keyStructType);
+
+            // Assign all fields
+            var fields = keyStruct.GetFields();
+            for (int i = 0, e = fields.Length; i < e; ++i)
+            {
+                // Load target field address
+                emitter.Emit(LocalOperation.LoadAddress, keyVariable);
+
+                // Load the associated argument address and extract the value to specialize for
+                var param = specializedParameters[i];
+                emitter.Emit(ArgumentOperation.LoadAddress, KernelParameterOffset + param.Index);
+
+                var valueProperty = param.SpecializedType.GetProperty(
+                    nameof(SpecializedValue<int>.Value),
+                    BindingFlags.Public | BindingFlags.Instance);
+                emitter.EmitCall(valueProperty.GetGetMethod());
+
+                // Store value
+                emitter.Emit(OpCodes.Stfld, fields[i]);
+            }
+
+            // Resolve kernel and dispatch it
+            var getOrCreateMethod = cacheType.GetMethod(
+                "GetOrCreateKernel",
+                BindingFlags.Public | BindingFlags.Instance);
+            emitter.Emit(ArgumentOperation.Load, KernelInstanceParamIdx);
+            emitter.Emit(LocalOperation.Load, keyVariable);
+            emitter.EmitCall(getOrCreateMethod);
+
+            // Load all arguments
+            emitter.Emit(ArgumentOperation.Load, KernelStreamParamIdx);
+            emitter.Emit(ArgumentOperation.Load, KernelParamDimensionIdx);
+            for (int i = 0, e = entry.Parameters.Count; i < e; ++i)
+                emitter.Emit(ArgumentOperation.Load, i + KernelParameterOffset);
+
+            // Dispatch kernel
+            var invokeMethod = typeof(TDelegate).GetMethod(
+                "Invoke",
+                BindingFlags.Public | BindingFlags.Instance);
+            emitter.EmitCall(invokeMethod);
+
+            // Return
+            emitter.Emit(OpCodes.Ret);
+
+            // Build launcher delegate
+            var launcherMethod = method.Finish();
+            var cacheInstance = Activator.CreateInstance(
+                cacheType,
+                accelerator,
+                kernelMethod,
+                loader,
+                entry,
+                specialization);
+            return launcherMethod.CreateDelegate(typeof(TDelegate), cacheInstance) as TDelegate;
+        }
 
         #endregion
 
@@ -50,7 +166,7 @@ namespace ILGPU.Runtime
             Debug.Assert(compiledKernel != null, "Invalid compiled kernel");
             Specialization = compiledKernel.Specialization;
             Launcher = launcher;
-            NumParameters = compiledKernel.EntryPoint.Parameters.NumParameters;
+            NumParameters = compiledKernel.EntryPoint.Parameters.Count;
         }
 
         #endregion

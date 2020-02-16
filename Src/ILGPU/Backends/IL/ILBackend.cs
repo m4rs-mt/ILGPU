@@ -196,12 +196,12 @@ namespace ILGPU.Backends.IL
         /// <summary>
         /// Generates specialized task classes for kernel execution.
         /// </summary>codeEmitter
-        /// <param name="parameterSpecification">The parameter specification.</param>
+        /// <param name="parameters">The parameter collection.</param>
         /// <param name="taskConstructor">The created task constructor.</param>
         /// <param name="taskArgumentMapping">The created task-argument mapping that maps parameter indices of uniforms
         /// and dynamically-sized shared-memory-variable-length specifications to fields in the task class.</param>
         private Type GenerateAcceleratorTask(
-            in EntryPoint.ParameterSpecification parameterSpecification,
+            in ParameterCollection parameters,
             out ConstructorInfo taskConstructor,
             out ImmutableArray<FieldInfo> taskArgumentMapping)
         {
@@ -230,12 +230,12 @@ namespace ILGPU.Backends.IL
             }
 
             // Define all fields
-            var argFieldBuilders = new FieldInfo[parameterSpecification.NumParameters];
+            var argFieldBuilders = new FieldInfo[parameters.Count];
             for (int i = 0, e = argFieldBuilders.Length; i < e; ++i)
             {
                 argFieldBuilders[i] = taskBuilder.DefineField(
                     $"Arg{i}",
-                    parameterSpecification[i],
+                    parameters[i],
                     FieldAttributes.Public);
             }
 
@@ -243,9 +243,8 @@ namespace ILGPU.Backends.IL
             taskConstructor = taskType.GetConstructor(CPUAcceleratorTask.ConstructorParameterTypes);
 
             // Map the final fields
-            var resultMapping = ImmutableArray.CreateBuilder<FieldInfo>(
-                parameterSpecification.NumParameters);
-            for (int i = 0, e = parameterSpecification.NumParameters; i < e; ++i)
+            var resultMapping = ImmutableArray.CreateBuilder<FieldInfo>(parameters.Count);
+            for (int i = 0, e = parameters.Count; i < e; ++i)
                 resultMapping.Add(taskType.GetField(argFieldBuilders[i].Name));
             taskArgumentMapping = resultMapping.MoveToImmutable();
 

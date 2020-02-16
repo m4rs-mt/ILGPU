@@ -258,14 +258,45 @@ namespace ILGPU.Runtime
         /// <returns>The loaded kernel-launcher delegate.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private TDelegate LoadGenericKernel<TDelegate, TKernelLoader>(
-            EntryPointDescription entry,
-            KernelSpecialization specialization,
+            in EntryPointDescription entry,
+            in KernelSpecialization specialization,
             ref TKernelLoader kernelLoader)
             where TDelegate : Delegate
             where TKernelLoader : struct, IKernelLoader
         {
+            // Check for specialized parameters
+            if (entry.HasSpecializedParameters)
+                return LoadSpecializationKernel<TDelegate, TKernelLoader>(
+                    entry,
+                    specialization,
+                    ref kernelLoader);
+
             var kernel = LoadGenericKernel(entry, specialization, ref kernelLoader);
             return kernel.CreateLauncherDelegate<TDelegate>();
+        }
+
+        /// <summary>
+        /// Loads a kernel specified by the given method without using internal caches.
+        /// </summary>
+        /// <param name="entry">The entry point to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <param name="kernelLoader">The kernel loader.</param>
+        /// <returns>The loaded specialized kernel delegate.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private TDelegate LoadSpecializationKernel<TDelegate, TKernelLoader>(
+            in EntryPointDescription entry,
+            in KernelSpecialization specialization,
+            ref TKernelLoader kernelLoader)
+            where TDelegate : Delegate
+            where TKernelLoader : struct, IKernelLoader
+        {
+            var kernelMethod = Backend.PreCompileKernelMethod(entry);
+            return Kernel.CreateSpecializedLauncher<TDelegate, TKernelLoader>(
+                this,
+                entry,
+                specialization,
+                kernelMethod,
+                ref kernelLoader);
         }
 
         #endregion
