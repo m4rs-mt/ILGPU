@@ -55,9 +55,7 @@ namespace ILGPU.Runtime
         #region Direct Kernel Loading
 
         /// <summary>
-        /// Loads the given kernel.
-        /// Note that implictly-grouped kernels will be launched with a group size
-        /// of the current warp size of the accelerator.
+        /// Loads the given explicitly grouped kernel.
         /// </summary>
         /// <param name="kernel">The kernel to load.</param>
         /// <returns>The loaded kernel.</returns>
@@ -70,9 +68,7 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Loads the given kernel.
-        /// Note that implictly-grouped kernels will be launched with a group size
-        /// of the current warp size of the accelerator.
+        /// Loads the given explicitly grouped kernel.
         /// </summary>
         /// <param name="kernel">The kernel to load.</param>
         /// <returns>The loaded kernel.</returns>
@@ -88,8 +84,7 @@ namespace ILGPU.Runtime
         /// <param name="customGroupSize">The custom group size to use.</param>
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
-        /// Note that implictly-grouped kernel will be launched with the given
-        /// group size.
+        /// Note that implictly-grouped kernel will be launched with the given group size.
         /// </remarks>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
@@ -106,8 +101,7 @@ namespace ILGPU.Runtime
         /// <param name="customGroupSize">The custom group size to use.</param>
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
-        /// Note that implictly-grouped kernel will be launched with the given
-        /// group size.
+        /// Note that implictly-grouped kernel will be launched with the given group size.
         /// </remarks>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
