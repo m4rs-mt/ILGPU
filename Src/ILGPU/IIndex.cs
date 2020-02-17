@@ -78,7 +78,11 @@ namespace ILGPU
         /// <returns>The resolved index type or none.</returns>
         public static IndexType GetIndexType(this Type indexType)
         {
-            if (indexType == typeof(Index1))
+#pragma warning disable CS0618 // Type or member is obsolete
+            // TODO: replace the additional check once the Index type has
+            // been removed from the project
+            if (indexType == typeof(Index1) ||
+                indexType == typeof(Index))
                 return IndexType.Index1D;
             else if (indexType == typeof(Index2))
                 return IndexType.Index2D;
@@ -87,6 +91,7 @@ namespace ILGPU
             else if (indexType == typeof(KernelConfig))
                 return IndexType.KernelConfig;
             return IndexType.None;
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 
