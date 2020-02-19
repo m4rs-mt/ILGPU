@@ -75,8 +75,14 @@ namespace ILGPU.Runtime.Cuda
         TensorOpMath = 1
     }
 
+    /// <summary>
+    /// Specifies a cuBlas API version.
+    /// </summary>
     public enum CuBlasAPIVersion : int
     {
+        /// <summary>
+        /// Version 10 of the cuBlas library.
+        /// </summary>
         V10
     }
 }
