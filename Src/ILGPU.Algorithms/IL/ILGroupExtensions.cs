@@ -38,6 +38,10 @@ namespace ILGPU.Algorithms.IL
             ref var sharedMemory = ref SharedMemory.Allocate<T>();
 
             TReduction reduction = default;
+            if (Group.IndexX == 0)
+                sharedMemory = reduction.Identity;
+            Group.Barrier();
+
             reduction.AtomicApply(ref sharedMemory, value);
 
             Group.Barrier();
