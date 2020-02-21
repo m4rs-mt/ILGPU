@@ -329,7 +329,7 @@ namespace ILGPU.Runtime.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Initialize(
             Index3 groupDimension,
-            in SharedMemoryConfig sharedMemoryConfig)
+            in RuntimeSharedMemoryConfig sharedMemoryConfig)
         {
             sharedMemoryOffset = 0;
             sharedMemoryLock = 0;

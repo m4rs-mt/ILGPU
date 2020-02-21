@@ -113,7 +113,13 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         public override void GenerateHeader(StringBuilder builder)
         {
-            // We do not need to generate a header for a kernel function.
+            // Generate global dynamic shared memory allocation information
+            if (EntryPoint.SharedMemory.HasDynamicMemory)
+            {
+                builder.Append(".extern .shared .align 1 .b8 ");
+                builder.Append(DynamicSharedMemoryAllocationName);
+                builder.AppendLine("[];");
+            }
         }
 
         /// <summary>
@@ -121,8 +127,6 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         public override void GenerateCode()
         {
-            var allocations = SetupDynamicSharedAllocations();
-
             Builder.AppendLine();
             Builder.Append(".visible .entry ");
             Builder.Append(PTXCompiledKernel.EntryName);
@@ -140,7 +144,7 @@ namespace ILGPU.Backends.PTX
 
             // Build memory allocations
             PrepareCodeGeneration();
-            SetupAllocations(allocations);
+            var allocations = SetupAllocations();
             var registerOffset = Builder.Length;
 
             // Build param bindings and local memory variables

@@ -66,7 +66,7 @@ namespace ILGPU.Backends.IL
                 entry,
                 new SharedMemorySpecification(
                     SharedMemoryPerKernel,
-                    0),
+                    false),
                 specialization);
 
             return Compile(entryPoint, default, specialization);

@@ -197,7 +197,10 @@ namespace ILGPU.Runtime
             where TEmitter : IILEmitter
         {
             emitter.EmitConstant(entryPoint.SharedMemory.StaticSize);
-            emitter.EmitConstant(entryPoint.SharedMemory.DynamicElementSize);
+            emitter.Emit(
+                entryPoint.SharedMemory.HasDynamicMemory ?
+                OpCodes.Ldc_I4_1 :
+                OpCodes.Ldc_I4_0);
             emitter.EmitNewObject(SharedMemorySpecification.Constructor);
         }
 

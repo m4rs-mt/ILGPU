@@ -101,10 +101,10 @@ namespace ILGPU.Runtime.CPU
                     RuntimeErrorMessages.InvalidGridDimension);
 
             KernelExecutionDelegate = kernelExecutionDelegate;
-            UserGridDim = userConfig.GridDimension;
-            UserDimension = userConfig.GridDimension.Size * userConfig.GroupDimension.Size;
-            GridDim = config.GridDimension;
-            GroupDim = config.GroupDimension;
+            UserGridDim = userConfig.GridDim;
+            UserDimension = userConfig.GridDim.Size * userConfig.GroupDim.Size;
+            GridDim = config.GridDim;
+            GroupDim = config.GroupDim;
             SharedMemoryConfig = config.SharedMemoryConfig;
         }
 
@@ -150,7 +150,7 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Returns the shared memory config to use.
         /// </summary>
-        public SharedMemoryConfig SharedMemoryConfig { get; }
+        public RuntimeSharedMemoryConfig SharedMemoryConfig { get; }
 
         /// <summary>
         /// Returns the associated kernel-execution delegate.

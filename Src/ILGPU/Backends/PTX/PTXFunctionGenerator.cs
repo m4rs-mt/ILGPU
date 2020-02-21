@@ -89,11 +89,10 @@ namespace ILGPU.Backends.PTX
             if (Method.HasFlags(MethodFlags.External))
                 return;
 
-            var allocations = SetupDynamicSharedAllocations();
             var parameters = GenerateHeaderDeclaration(Builder);
             Builder.AppendLine("{");
 
-            SetupAllocations(allocations);
+            var allocations = SetupAllocations();
             var registerOffset = Builder.Length;
 
             // Build param bindings and local memory variables

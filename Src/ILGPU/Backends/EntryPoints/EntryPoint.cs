@@ -151,7 +151,6 @@ namespace ILGPU.Backends.EntryPoints
     /// Represents a shared memory specification of a specific kernel.
     /// </summary>
     [Serializable]
-    [StructLayout(LayoutKind.Sequential)]
     public readonly struct SharedMemorySpecification
     {
         #region Static
@@ -163,7 +162,7 @@ namespace ILGPU.Backends.EntryPoints
             GetConstructor(new Type[]
             {
                 typeof(int),
-                typeof(int)
+                typeof(bool)
             });
 
         #endregion
@@ -174,14 +173,13 @@ namespace ILGPU.Backends.EntryPoints
         /// Constructs a new shared memory specification.
         /// </summary>
         /// <param name="staticSize">The static shared memory size.</param>
-        /// <param name="dynamicElementSize">The dynamic shared memory element size.</param>
-        public SharedMemorySpecification(int staticSize, int dynamicElementSize)
+        /// <param name="hasDynamicMemory">True, if this specification requires dynamic shared memory..</param>
+        public SharedMemorySpecification(int staticSize, bool hasDynamicMemory)
         {
             Debug.Assert(staticSize >= 0, "Invalid static memory size");
-            Debug.Assert(dynamicElementSize >= 0, "Invalid dynamic memory element size");
 
             StaticSize = staticSize;
-            DynamicElementSize = dynamicElementSize;
+            HasDynamicMemory = hasDynamicMemory;
         }
 
         #endregion
@@ -204,14 +202,9 @@ namespace ILGPU.Backends.EntryPoints
         public bool HasStaticMemory => StaticSize > 0;
 
         /// <summary>
-        /// Returns the element size of a dynamic shared memory element (if any).
+        /// Returns true if the current specification requires dynamic shared memory.
         /// </summary>
-        public int DynamicElementSize { get; }
-
-        /// <summary>
-        /// Returns true if this entry point required dynamic shared memory.
-        /// </summary>
-        public bool HasDynamicMemory => DynamicElementSize > 0;
+        public bool HasDynamicMemory { get; }
 
         #endregion
     }

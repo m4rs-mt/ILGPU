@@ -237,10 +237,6 @@ namespace ILGPU.Backends
                     currentScope = toProcess.Pop();
                 }
 
-                if (dynamicSharedAllocations.Count > 1)
-                    throw new NotSupportedException(
-                        ErrorMessages.NotSupportedMultipleDynamicSharedMemoryAllocations);
-
                 // Store shared memory information
                 SharedAllocations = new AllocaKindInformation(
                     sharedAllocations.ToImmutable(),
@@ -250,9 +246,7 @@ namespace ILGPU.Backends
                     0);
                 SharedMemorySpecification = new SharedMemorySpecification(
                     sharedMemorySize,
-                    dynamicSharedAllocations.Count > 0 ?
-                        dynamicSharedAllocations[0].ElementSize :
-                        0);
+                    dynamicSharedAllocations.Count > 0);
             }
 
             #endregion

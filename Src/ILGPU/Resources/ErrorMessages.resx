@@ -297,9 +297,6 @@
   <data name="InvalidDynamicSharedMemoryConfiguration" xml:space="preserve">
     <value>Dynamic shared memory elements specified but the kernel does not support dynamic shared memory bindings</value>
   </data>
-  <data name="NotSupportedMultipleDynamicSharedMemoryAllocations" xml:space="preserve">
-    <value>Multiple dynamic shared memory allocations are not supported</value>
-  </data>
   <data name="NotSupportedDynamicSharedMemoryAllocations" xml:space="preserve">
     <value>Dynamic shared memory allocations are not supported by this accelerator</value>
   </data>

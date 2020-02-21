@@ -597,8 +597,8 @@ namespace ILGPU.Runtime.OpenCL.API
         {
             var binding = stream.BindScoped();
 
-            var gridDim = config.GridDimension;
-            var blockDim = config.GroupDimension;
+            var gridDim = config.GridDim;
+            var blockDim = config.GroupDim;
 
             IntPtr* globalWorkSizes = stackalloc IntPtr[3];
             globalWorkSizes[0] = new IntPtr(gridDim.X * blockDim.X);

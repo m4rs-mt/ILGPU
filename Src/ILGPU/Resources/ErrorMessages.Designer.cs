@@ -493,15 +493,6 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Multiple dynamic shared memory allocations are not supported.
-        /// </summary>
-        internal static string NotSupportedMultipleDynamicSharedMemoryAllocations {
-            get {
-                return ResourceManager.GetString("NotSupportedMultipleDynamicSharedMemoryAllocations", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Not supported platform &apos;{0}&apos; ({1} required).
         /// </summary>
         internal static string NotSupportedPlatform {

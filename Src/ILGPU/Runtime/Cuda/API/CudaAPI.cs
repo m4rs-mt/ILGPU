@@ -715,12 +715,12 @@ namespace ILGPU.Runtime.Cuda.API
 
             var result = LaunchKernel(
                 kernel.FunctionPtr,
-                config.GridDimension.X,
-                config.GridDimension.Y,
-                config.GridDimension.Z,
-                config.GroupDimension.X,
-                config.GroupDimension.Y,
-                config.GroupDimension.Z,
+                config.GridDim.X,
+                config.GridDim.Y,
+                config.GridDim.Z,
+                config.GroupDim.X,
+                config.GroupDim.Y,
+                config.GroupDim.Z,
                 config.SharedMemoryConfig.DynamicArraySize,
                 stream.StreamPtr,
                 args,

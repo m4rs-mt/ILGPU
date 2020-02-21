@@ -137,16 +137,16 @@ namespace ILGPU.Tests
                     stride);
                 using var buffer = Accelerator.Allocate<int>(extent.Size);
                 buffer.MemSetToZero(Accelerator.DefaultStream);
-                Execute(extent, buffer.View, stride, extent.GridDimension.XY);
+                Execute(extent, buffer.View, stride, extent.GridDim.XY);
 
                 var expected = new int[extent.Size];
                 for (int j = 0; j < length * length; ++j)
                 {
-                    var gridIdx = Index2.ReconstructIndex(j, extent.GridDimension.XY);
+                    var gridIdx = Index2.ReconstructIndex(j, extent.GridDim.XY);
                     for (int k = 0; k < i * i; ++k)
                     {
-                        var groupIdx = Index2.ReconstructIndex(k, extent.GroupDimension.XY);
-                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridDimension.XY);
+                        var groupIdx = Index2.ReconstructIndex(k, extent.GroupDim.XY);
+                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridDim.XY);
                         expected[idx] = idx;
                     }
                 }
@@ -179,16 +179,16 @@ namespace ILGPU.Tests
                     stride);
                 using var buffer = Accelerator.Allocate<int>(extent.Size);
                 buffer.MemSetToZero(Accelerator.DefaultStream);
-                Execute(extent, buffer.View, stride, extent.GridDimension);
+                Execute(extent, buffer.View, stride, extent.GridDim);
 
                 var expected = new int[extent.Size];
                 for (int j = 0; j < length * length * length; ++j)
                 {
-                    var gridIdx = Index3.ReconstructIndex(j, extent.GridDimension);
+                    var gridIdx = Index3.ReconstructIndex(j, extent.GridDim);
                     for (int k = 0; k < i * i * i; ++k)
                     {
-                        var groupIdx = Index3.ReconstructIndex(k, extent.GroupDimension);
-                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridDimension);
+                        var groupIdx = Index3.ReconstructIndex(k, extent.GroupDim);
+                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridDim);
                         expected[idx] = idx;
                     }
                 }

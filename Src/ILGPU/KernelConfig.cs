@@ -50,27 +50,27 @@ namespace ILGPU
         /// Constructs a new kernel configuration that does not use any dynamically
         /// specified shared memory.
         /// </summary>
-        /// <param name="gridDimension">The grid dimension to use.</param>
-        /// <param name="groupDimension">The group dimension to use.</param>
+        /// <param name="gridDim">The grid dimension to use.</param>
+        /// <param name="groupDim">The group dimension to use.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public KernelConfig(Index1 gridDimension, Index1 groupDimension)
-            : this(gridDimension, groupDimension, default)
+        public KernelConfig(Index1 gridDim, Index1 groupDim)
+            : this(gridDim, groupDim, default)
         { }
 
         /// <summary>
         /// Constructs a new kernel configuration.
         /// </summary>
-        /// <param name="gridDimension">The grid dimension to use.</param>
-        /// <param name="groupDimension">The group dimension to use.</param>
+        /// <param name="gridDim">The grid dimension to use.</param>
+        /// <param name="groupDim">The group dimension to use.</param>
         /// <param name="sharedMemoryConfig">The dynamic shared memory configuration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public KernelConfig(
-            Index1 gridDimension,
-            Index1 groupDimension,
-            DynamicSharedMemoryConfig sharedMemoryConfig)
+            Index1 gridDim,
+            Index1 groupDim,
+            SharedMemoryConfig sharedMemoryConfig)
             : this(
-                  new Index3(gridDimension.X, 1, 1),
-                  new Index3(groupDimension.X, 1, 1),
+                  new Index3(gridDim.X, 1, 1),
+                  new Index3(groupDim.X, 1, 1),
                   sharedMemoryConfig)
         { }
 
@@ -78,27 +78,27 @@ namespace ILGPU
         /// Constructs a new kernel configuration that does not use any dynamically
         /// specified shared memory.
         /// </summary>
-        /// <param name="gridDimension">The grid dimension to use.</param>
-        /// <param name="groupDimension">The group dimension to use.</param>
+        /// <param name="gridDim">The grid dimension to use.</param>
+        /// <param name="groupDim">The group dimension to use.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public KernelConfig(Index2 gridDimension, Index2 groupDimension)
-            : this(gridDimension, groupDimension, default)
+        public KernelConfig(Index2 gridDim, Index2 groupDim)
+            : this(gridDim, groupDim, default)
         { }
 
         /// <summary>
         /// Constructs a new kernel configuration.
         /// </summary>
-        /// <param name="gridDimension">The grid dimension to use.</param>
-        /// <param name="groupDimension">The group dimension to use.</param>
+        /// <param name="gridDim">The grid dimension to use.</param>
+        /// <param name="groupDim">The group dimension to use.</param>
         /// <param name="sharedMemoryConfig">The dynamic shared memory configuration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public KernelConfig(
-            Index2 gridDimension,
-            Index2 groupDimension,
-            DynamicSharedMemoryConfig sharedMemoryConfig)
+            Index2 gridDim,
+            Index2 groupDim,
+            SharedMemoryConfig sharedMemoryConfig)
             : this(
-                  new Index3(gridDimension.X, gridDimension.Y, 1),
-                  new Index3(groupDimension.X, groupDimension.Y, 1),
+                  new Index3(gridDim.X, gridDim.Y, 1),
+                  new Index3(groupDim.X, groupDim.Y, 1),
                   sharedMemoryConfig)
         { }
 
@@ -106,11 +106,11 @@ namespace ILGPU
         /// Constructs a new kernel configuration that does not use any dynamically
         /// specified shared memory.
         /// </summary>
-        /// <param name="gridDimension">The grid dimension to use.</param>
-        /// <param name="groupDimension">The group dimension to use.</param>
+        /// <param name="gridDim">The grid dimension to use.</param>
+        /// <param name="groupDim">The group dimension to use.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public KernelConfig(Index3 gridDimension, Index3 groupDimension)
-            : this(gridDimension, groupDimension, default)
+        public KernelConfig(Index3 gridDim, Index3 groupDim)
+            : this(gridDim, groupDim, default)
         { }
 
         /// <summary>
@@ -136,21 +136,21 @@ namespace ILGPU
         /// <summary>
         /// Constructs a new kernel configuration.
         /// </summary>
-        /// <param name="gridDimension">The grid dimension to use.</param>
-        /// <param name="groupDimension">The group dimension to use.</param>
+        /// <param name="gridDim">The grid dimension to use.</param>
+        /// <param name="groupDim">The group dimension to use.</param>
         /// <param name="sharedMemoryConfig">The dynamic shared memory configuration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public KernelConfig(
-            Index3 gridDimension,
-            Index3 groupDimension,
-            DynamicSharedMemoryConfig sharedMemoryConfig)
+            Index3 gridDim,
+            Index3 groupDim,
+            SharedMemoryConfig sharedMemoryConfig)
         {
-            Debug.Assert(gridDimension.Size >= 0, "Invalid grid dimension");
-            Debug.Assert(groupDimension.Size >= 0, "Invalid group dimension");
-            Debug.Assert(sharedMemoryConfig.IsValid, "Invalid shared memory configuration");
+            Debug.Assert(gridDim.Size >= 0, "Invalid grid dimension");
+            Debug.Assert(groupDim.Size >= 0, "Invalid group dimension");
+            Debug.Assert(sharedMemoryConfig.UsesDynamicSharedMemory, "Invalid shared memory configuration");
 
-            GridDimension = gridDimension;
-            GroupDimension = groupDimension;
+            GridDim = gridDim;
+            GroupDim = groupDim;
             SharedMemoryConfig = sharedMemoryConfig;
         }
 
@@ -161,22 +161,22 @@ namespace ILGPU
         /// <summary>
         /// Returns the global grid dimension.
         /// </summary>
-        public Index3 GridDimension { get; }
+        public Index3 GridDim { get; }
 
         /// <summary>
         /// Returns the global group dimension of each group.
         /// </summary>
-        public Index3 GroupDimension { get; }
+        public Index3 GroupDim { get; }
 
         /// <summary>
         /// Returns the associated dynamic memory configuration.
         /// </summary>
-        public DynamicSharedMemoryConfig SharedMemoryConfig { get; }
+        public SharedMemoryConfig SharedMemoryConfig { get; }
 
         /// <summary>
         /// Returns true if the current configuration uses dynamic shared memory.
         /// </summary>
-        public bool UsesDynamicSharedMemory => SharedMemoryConfig.NumElements > 0;
+        public bool UsesDynamicSharedMemory => SharedMemoryConfig.UsesDynamicSharedMemory;
 
         /// <summary>
         /// Returns true if this configuration is a valid launch configuration.
@@ -186,16 +186,16 @@ namespace ILGPU
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return (GridDimension.X > 0 & GridDimension.Y > 0 & GridDimension.Z > 0) &&
-                    (GroupDimension.X > 0 & GroupDimension.Y > 0 & GroupDimension.Z > 0) &&
-                    SharedMemoryConfig.IsValid;
+                return (GridDim.X > 0 & GridDim.Y > 0 & GridDim.Z > 0) &&
+                    (GroupDim.X > 0 & GroupDim.Y > 0 & GroupDim.Z > 0) &&
+                    SharedMemoryConfig.UsesDynamicSharedMemory;
             }
         }
 
         /// <summary>
         /// Returns the total launch size.
         /// </summary>
-        public int Size => GridDimension.Size * GroupDimension.Size;
+        public int Size => GridDim.Size * GroupDim.Size;
 
         #endregion
 
@@ -205,41 +205,41 @@ namespace ILGPU
         /// Converts the current instance into a dimension tuple.
         /// </summary>
         /// <returns>A dimension tuple representing this kernel configuration.</returns>
-        public (Index3, Index3) ToDimensions() => (GridDimension, GroupDimension);
+        public (Index3, Index3) ToDimensions() => (GridDim, GroupDim);
 
         /// <summary>
         /// Converts the current instance into a value tuple.
         /// </summary>
         /// <returns>A value tuple representing this kernel configuration.</returns>
-        public (Index3, Index3, DynamicSharedMemoryConfig) ToValueTuple() =>
-            (GridDimension, GroupDimension, SharedMemoryConfig);
+        public (Index3, Index3, SharedMemoryConfig) ToValueTuple() =>
+            (GridDim, GroupDim, SharedMemoryConfig);
 
         /// <summary>
         /// Deconstructs the current instance into a dimension tuple.
         /// </summary>
-        /// <param name="gridDimension">The grid dimension.</param>
-        /// <param name="groupDimension">The group dimension.</param>
+        /// <param name="gridDim">The grid dimension.</param>
+        /// <param name="groupDim">The group dimension.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Deconstruct(out Index3 gridDimension, out Index3 groupDimension)
+        public void Deconstruct(out Index3 gridDim, out Index3 groupDim)
         {
-            gridDimension = GridDimension;
-            groupDimension = GroupDimension;
+            gridDim = GridDim;
+            groupDim = GroupDim;
         }
 
         /// <summary>
         /// Deconstructs the current instance into a value tuple.
         /// </summary>
-        /// <param name="gridDimension">The grid dimension.</param>
-        /// <param name="groupDimension">The group dimension.</param>
+        /// <param name="gridDim">The grid dimension.</param>
+        /// <param name="groupDim">The group dimension.</param>
         /// <param name="sharedMemoryConfig">The shared memory configuration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Deconstruct(
-            out Index3 gridDimension,
-            out Index3 groupDimension,
-            out DynamicSharedMemoryConfig sharedMemoryConfig)
+            out Index3 gridDim,
+            out Index3 groupDim,
+            out SharedMemoryConfig sharedMemoryConfig)
         {
-            gridDimension = GridDimension;
-            groupDimension = GroupDimension;
+            gridDim = GridDim;
+            groupDim = GroupDim;
             sharedMemoryConfig = SharedMemoryConfig;
         }
 
@@ -278,6 +278,14 @@ namespace ILGPU
         /// </summary>
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator KernelConfig((Index2, Index2) dimensions) =>
+            new KernelConfig(dimensions.Item1, dimensions.Item2);
+
+        /// <summary>
+        /// Converts the given dimension tuple into an equivalent kernel configuration.
+        /// </summary>
+        /// <param name="dimensions">The kernel dimensions.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator KernelConfig((Index3, Index3) dimensions) =>
             new KernelConfig(dimensions.Item1, dimensions.Item2);
 
@@ -287,7 +295,7 @@ namespace ILGPU
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator KernelConfig(
-            (Index1, Index1, DynamicSharedMemoryConfig) dimensions) =>
+            (Index1, Index1, SharedMemoryConfig) dimensions) =>
             new KernelConfig(
                 new Index3(dimensions.Item1, 1, 1),
                 new Index3(dimensions.Item2, 1, 1),
@@ -299,7 +307,7 @@ namespace ILGPU
         /// <param name="dimensions">The kernel dimensions.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static implicit operator KernelConfig(
-            (Index3, Index3, DynamicSharedMemoryConfig) dimensions) =>
+            (Index3, Index3, SharedMemoryConfig) dimensions) =>
             new KernelConfig(dimensions.Item1, dimensions.Item2, dimensions.Item3);
 
         /// <summary>
@@ -313,7 +321,7 @@ namespace ILGPU
         /// Converts the given kernel configuration into an equivalent value tuple.
         /// </summary>
         /// <param name="config">The kernel configuration to convert.</param>
-        public static implicit operator (Index3, Index3, DynamicSharedMemoryConfig)(KernelConfig config) =>
+        public static implicit operator (Index3, Index3, SharedMemoryConfig)(KernelConfig config) =>
             config.ToValueTuple();
 
         #endregion
@@ -324,18 +332,51 @@ namespace ILGPU
     /// </summary>
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct DynamicSharedMemoryConfig
+    public readonly struct SharedMemoryConfig
     {
+        #region Static
+
+        /// <summary>
+        /// An empty shared memory configuration.
+        /// </summary>
+        /// <remarks>
+        /// This configuration does not use dynamic shared memory.
+        /// </remarks>
+        public static readonly SharedMemoryConfig Empty = default;
+
+        /// <summary>
+        /// Requests a <see cref="SharedMemoryConfig"/>
+        /// </summary>
+        /// <typeparam name="T">The element type to use.</typeparam>
+        /// <param name="numElements">The number of elements to request.</param>
+        /// <returns>A shared memory configuration that uses shared memory.</returns>
+        public static SharedMemoryConfig RequestDynamic<T>(int numElements)
+            where T : struct
+        {
+            if (numElements < 1)
+                throw new ArgumentOutOfRangeException(nameof(numElements));
+            var elementSize = Interop.SizeOf<T>();
+            return new SharedMemoryConfig(numElements, elementSize);
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new shared memory configuration.
         /// </summary>
         /// <param name="numElements">The number of elements to allocate.</param>
-        public DynamicSharedMemoryConfig(int numElements)
+        /// <param name="elementSize">The element size to allocate.</param>
+        public SharedMemoryConfig(int numElements, int elementSize)
         {
-            Debug.Assert(numElements >= 0, "Invalid number of shared-memory elements");
+            if (numElements < 0)
+                throw new ArgumentOutOfRangeException(nameof(numElements));
+            if (elementSize < 0)
+                throw new ArgumentOutOfRangeException(nameof(elementSize));
+
             NumElements = numElements;
+            ElementSize = elementSize;
         }
 
         #endregion
@@ -348,21 +389,19 @@ namespace ILGPU
         public int NumElements { get; }
 
         /// <summary>
-        /// Returns true if this is a valid configuration.
+        /// Returns the element size in bytes.
         /// </summary>
-        public bool IsValid => NumElements >= 0;
-
-        #endregion
-
-        #region Operators
+        public int ElementSize { get; }
 
         /// <summary>
-        /// Converts the given number of elements into a dynamic shared memory configuration.
+        /// Returns the array size in bytes of the dynamically allocated shared memory.
         /// </summary>
-        /// <param name="numElements">The number of elements.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator DynamicSharedMemoryConfig(int numElements) =>
-            new DynamicSharedMemoryConfig(numElements);
+        public int ArraySize => NumElements * ElementSize;
+
+        /// <summary>
+        /// Returns true if this configuration uses dynamic shared memory.
+        /// </summary>
+        public bool UsesDynamicSharedMemory => NumElements > 0 & ElementSize > 0;
 
         #endregion
     }
@@ -372,8 +411,7 @@ namespace ILGPU
     /// shared memory.
     /// </summary>
     [Serializable]
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly struct SharedMemoryConfig
+    public readonly struct RuntimeSharedMemoryConfig
     {
         /// <summary>
         /// Constructs a new shared memory configuration.
@@ -381,9 +419,9 @@ namespace ILGPU
         /// <param name="specification">The general specification.</param>
         /// <param name="dynamicConfig">The dynamic configuration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public SharedMemoryConfig(
+        public RuntimeSharedMemoryConfig(
             SharedMemorySpecification specification,
-            DynamicSharedMemoryConfig dynamicConfig)
+            SharedMemoryConfig dynamicConfig)
         {
             Specification = specification;
             DynamicConfig = dynamicConfig;
@@ -401,7 +439,7 @@ namespace ILGPU
         /// <summary>
         /// Returns the dynamic configuration.
         /// </summary>
-        public DynamicSharedMemoryConfig DynamicConfig { get; }
+        public SharedMemoryConfig DynamicConfig { get; }
 
         /// <summary>
         /// Returns the number of dynamic shared memory elements.
@@ -409,9 +447,9 @@ namespace ILGPU
         public int NumDynamicElements => DynamicConfig.NumElements;
 
         /// <summary>
-        /// Returns the array size of the dynamically allocated shared memory <inheritdocbytes./>
+        /// Returns the array size in bytes of the dynamically allocated shared memory.
         /// </summary>
-        public int DynamicArraySize => NumDynamicElements * DynamicElementSize;
+        public int DynamicArraySize => DynamicConfig.ArraySize;
 
         /// <summary>
         /// Returns true if the current specification.
@@ -424,17 +462,12 @@ namespace ILGPU
         public int StaticSize => Specification.StaticSize;
 
         /// <summary>
-        /// Returns true if the current specification required static shared memory.
+        /// Returns true if the current config requires static shared memory.
         /// </summary>
         public bool HasStaticMemory => Specification.HasStaticMemory;
 
         /// <summary>
-        /// Returns the element size of a dynamic shared memory element (if any).
-        /// </summary>
-        public int DynamicElementSize => Specification.DynamicElementSize;
-
-        /// <summary>
-        /// Returns true if this entry point required dynamic shared memory.
+        /// Returns true if the current config requires dynamic shared memory.
         /// </summary>
         public bool HasDynamicMemory => Specification.HasDynamicMemory;
     }
@@ -473,9 +506,9 @@ namespace ILGPU
             KernelConfig kernelConfig,
             SharedMemorySpecification specification)
         {
-            GridDimension = kernelConfig.GridDimension;
-            GroupDimension = kernelConfig.GroupDimension;
-            SharedMemoryConfig = new SharedMemoryConfig(
+            GridDim = kernelConfig.GridDim;
+            GroupDim = kernelConfig.GroupDim;
+            SharedMemoryConfig = new RuntimeSharedMemoryConfig(
                 specification,
                 kernelConfig.SharedMemoryConfig);
         }
@@ -487,17 +520,17 @@ namespace ILGPU
         /// <summary>
         /// Returns the global grid dimension.
         /// </summary>
-        public Index3 GridDimension { get; }
+        public Index3 GridDim { get; }
 
         /// <summary>
         /// Returns the global group dimension of each group.
         /// </summary>
-        public Index3 GroupDimension { get; }
+        public Index3 GroupDim { get; }
 
         /// <summary>
         /// Returns the current shared memory configuration.
         /// </summary>
-        public SharedMemoryConfig SharedMemoryConfig { get; }
+        public RuntimeSharedMemoryConfig SharedMemoryConfig { get; }
 
         /// <summary>
         /// Returns true if this configuration is a valid launch configuration.
@@ -507,8 +540,8 @@ namespace ILGPU
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return (GridDimension.X > 0 & GridDimension.Y > 0 & GridDimension.Z > 0) &&
-                    (GroupDimension.X > 0 & GroupDimension.Y > 0 & GroupDimension.Z > 0);
+                return (GridDim.X > 0 & GridDim.Y > 0 & GridDim.Z > 0) &&
+                    (GroupDim.X > 0 & GroupDim.Y > 0 & GroupDim.Z > 0);
             }
         }
 

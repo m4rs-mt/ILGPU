@@ -111,13 +111,14 @@ namespace ILGPU
             new ArrayView3D<T>(Allocate<T, Index3>(extent));
 
         /// <summary>
-        /// Allocates a chunk of shared memory that is specified dynamically
+        /// Gets a chunk of dynamically allocated shared memory as typed memory view
+        /// with the element type <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <returns>An allocated region of shared memory.</returns>
+        /// <returns>A view to a dynamically allocated region of shared memory.</returns>
         [SharedMemoryIntrinsic(SharedMemoryIntrinsicKind.AllocateDynamic)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView<T> AllocateDynamic<T>()
+        public static ArrayView<T> GetDynamic<T>()
             where T : struct =>
             CPURuntimeGroupContext.Current.AllocateSharedMemoryDynamic<T>();
     }

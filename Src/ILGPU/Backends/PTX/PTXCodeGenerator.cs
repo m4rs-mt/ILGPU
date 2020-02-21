@@ -46,6 +46,11 @@ namespace ILGPU.Backends.PTX
             PTXInstructionSet.ISA_61,
             PTXInstructionSet.ISA_60);
 
+        /// <summary>
+        /// The name for the globally registered dynamic shared memory alloca (if any).
+        /// </summary>
+        protected const string DynamicSharedMemoryAllocationName = "__dyn_shared_alloca";
+
         #endregion
 
         #region Nested Types
@@ -546,29 +551,19 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Setups dynamic shared memory allocations.
-        /// </summary>
-        /// <returns>A list of pairs associating alloca nodes with thei local variable names.</returns>
-        internal List<(Alloca, string)> SetupDynamicSharedAllocations()
-        {
-            var result = new List<(Alloca, string)>();
-            SetupAllocations(
-                Allocas.DynamicSharedAllocations,
-                ".extern .shared ",
-                "__dyn_shared_alloca",
-                result);
-            return result;
-        }
-
-        /// <summary>
         /// Setups local allocations.
         /// </summary>
-        /// <param name="collection">The target collection to add to.</param>
-        internal void SetupAllocations<TCollection>(TCollection collection)
-            where TCollection : IList<(Alloca, string)>
+        /// <returns>A collection of allocations.</returns>
+        internal List<(Alloca, string)> SetupAllocations()
         {
-            SetupAllocations(Allocas.LocalAllocations, ".local ", "__local_depot", collection);
-            SetupAllocations(Allocas.SharedAllocations, ".shared ", "__shared_alloca", collection);
+            var result = new List<(Alloca, string)>();
+            SetupAllocations(Allocas.LocalAllocations, ".local ", "__local_depot", result);
+            SetupAllocations(Allocas.SharedAllocations, ".shared ", "__shared_alloca", result);
+
+            // Register a common name for all dynamic shared memory allocations
+            foreach (var alloca in Allocas.DynamicSharedAllocations)
+                result.Add((alloca.Alloca, DynamicSharedMemoryAllocationName));
+            return result;
         }
 
         /// <summary>
@@ -779,7 +774,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Binds the given list of allocations.
         /// </summary>
-        /// <param name="allocations">A list associating alloca nodes with thei local names.</param>
+        /// <param name="allocations">A list associating alloca nodes with their local names.</param>
         internal void BindAllocations(List<(Alloca, string)> allocations)
         {
             foreach (var allocaEntry in allocations)
