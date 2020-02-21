@@ -13,7 +13,7 @@ namespace ILGPU.Tests
         internal static void SharedMemoryVariableKernel(ArrayView<int> data)
         {
             ref var sharedMemory = ref ILGPU.SharedMemory.Allocate<int>();
-            if (Group.IndexX == 0)
+            if (Group.IsFirstThread)
                 sharedMemory = 0;
             Group.Barrier();
 
@@ -45,11 +45,11 @@ namespace ILGPU.Tests
         internal static void SharedMemoryArrayKernel(ArrayView<int> data)
         {
             var sharedMemory = ILGPU.SharedMemory.Allocate<int>(2);
-            sharedMemory[Group.IndexX] = Group.IndexX;
+            sharedMemory[Group.IdxX] = Group.IdxX;
             Group.Barrier();
 
             var idx = Grid.GlobalIndex.X;
-            data[idx] = sharedMemory[(Group.IndexX + 1) % Group.DimensionX];
+            data[idx] = sharedMemory[(Group.IdxX + 1) % Group.DimX];
         }
 
         [Theory]

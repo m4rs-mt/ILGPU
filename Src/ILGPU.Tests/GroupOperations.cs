@@ -17,9 +17,9 @@ namespace ILGPU.Tests
 
         internal static void GroupDimensionKernel(ArrayView<int> data)
         {
-            data[0] = Group.DimensionX;
-            data[1] = Group.DimensionY;
-            data[2] = Group.DimensionZ;
+            data[0] = Group.DimX;
+            data[1] = Group.DimY;
+            data[2] = Group.DimZ;
         }
 
         [Theory]
@@ -105,7 +105,7 @@ namespace ILGPU.Tests
 
         internal static void GroupBarrierKernel(ArrayView<int> data)
         {
-            var idx = Grid.IndexX * Group.DimensionX + Group.IndexX;
+            var idx = Grid.IdxX * Group.DimX + Group.IdxX;
             Group.Barrier();
             data[idx] = idx;
         }
@@ -134,8 +134,8 @@ namespace ILGPU.Tests
             ArrayView<int> data,
             Index1 bound)
         {
-            var idx = Grid.IndexX * Group.DimensionX + Group.IndexX;
-            data[idx] = Group.BarrierAnd(Group.IndexX < bound) ? 1 : 0;
+            var idx = Grid.IdxX * Group.DimX + Group.IdxX;
+            data[idx] = Group.BarrierAnd(Group.IdxX < bound) ? 1 : 0;
         }
 
         [Theory]
@@ -165,8 +165,8 @@ namespace ILGPU.Tests
             ArrayView<int> data,
             Index1 bound)
         {
-            var idx = Grid.IndexX * Group.DimensionX + Group.IndexX;
-            data[idx] = Group.BarrierOr(Group.IndexX < bound) ? 1 : 0;
+            var idx = Grid.IdxX * Group.DimX + Group.IdxX;
+            data[idx] = Group.BarrierOr(Group.IdxX < bound) ? 1 : 0;
         }
 
         [Theory]
@@ -214,8 +214,8 @@ namespace ILGPU.Tests
 
         internal static void GroupBroadcastKernel(ArrayView<int> data)
         {
-            var idx = Grid.IndexX * Group.DimensionX + Group.IndexX;
-            data[idx] = Group.Broadcast(Group.IndexX, Group.DimensionX - 1);
+            var idx = Grid.IdxX * Group.DimX + Group.IdxX;
+            data[idx] = Group.Broadcast(Group.IdxX, Group.DimX - 1);
         }
 
         [Theory]

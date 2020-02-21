@@ -81,7 +81,7 @@ namespace ILGPU.Tests
         internal static void GroupedIndex1EntryPointKernel(
             ArrayView<int> output, int stride)
         {
-            var idx = Grid.IndexX * stride + Group.IndexX;
+            var idx = Grid.IdxX * stride + Group.IdxX;
             output[idx] = idx;
         }
 

@@ -12,6 +12,7 @@
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.CPU;
+using System;
 
 namespace ILGPU
 {
@@ -26,7 +27,14 @@ namespace ILGPU
         /// Returns the X index withing the scheduled thread grid.
         /// </summary>
         /// <returns>The X grid dimension.</returns>
-        public static int IndexX
+        [Obsolete("Use IdxX instead")]
+        public static int IndexX => IdxX;
+
+        /// <summary>
+        /// Returns the X index withing the scheduled thread grid.
+        /// </summary>
+        /// <returns>The X grid dimension.</returns>
+        public static int IdxX
         {
             [GridIntrinsic(GridIntrinsicKind.GetGridIndex, DeviceConstantDimension3D.X)]
             get => CPURuntimeThreadContext.GridIndex.X;
@@ -36,7 +44,14 @@ namespace ILGPU
         /// Returns the Y index withing the scheduled thread grid.
         /// </summary>
         /// <returns>The Y grid dimension.</returns>
-        public static int IndexY
+        [Obsolete("Use IdxY instead")]
+        public static int IndexY => IdxY;
+
+        /// <summary>
+        /// Returns the Y index withing the scheduled thread grid.
+        /// </summary>
+        /// <returns>The Y grid dimension.</returns>
+        public static int IdxY
         {
             [GridIntrinsic(GridIntrinsicKind.GetGridIndex, DeviceConstantDimension3D.Y)]
             get => CPURuntimeThreadContext.GridIndex.Y;
@@ -46,7 +61,14 @@ namespace ILGPU
         /// Returns the Z index withing the scheduled thread grid.
         /// </summary>
         /// <returns>The Z grid dimension.</returns>
-        public static int IndexZ
+        [Obsolete("Use IdxZ instead")]
+        public static int IndexZ => IdxZ;
+
+        /// <summary>
+        /// Returns the Z index withing the scheduled thread grid.
+        /// </summary>
+        /// <returns>The Z grid dimension.</returns>
+        public static int IdxZ
         {
             [GridIntrinsic(GridIntrinsicKind.GetGridIndex, DeviceConstantDimension3D.Z)]
             get => CPURuntimeThreadContext.GridIndex.Z;
@@ -56,13 +78,20 @@ namespace ILGPU
         /// Returns the index within the scheduled thread grid.
         /// </summary>
         /// <returns>The grid index.</returns>
-        public static Index3 Index => new Index3(IndexX, IndexY, IndexZ);
+        public static Index3 Index => new Index3(IdxX, IdxY, IdxZ);
 
         /// <summary>
         /// Returns the X dimension of the scheduled thread grid.
         /// </summary>
         /// <returns>The X grid dimension.</returns>
-        public static int DimensionX
+        [Obsolete("Use DimX instead")]
+        public static int DimensionX => DimX;
+
+        /// <summary>
+        /// Returns the X dimension of the scheduled thread grid.
+        /// </summary>
+        /// <returns>The X grid dimension.</returns>
+        public static int DimX
         {
             [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.X)]
             get => CPURuntimeThreadContext.GridDimension.X;
@@ -72,7 +101,14 @@ namespace ILGPU
         /// Returns the Y dimension of the scheduled thread grid.
         /// </summary>
         /// <returns>The Y grid dimension.</returns>
-        public static int DimensionY
+        [Obsolete("Use DimY instead")]
+        public static int DimensionY => DimY;
+
+        /// <summary>
+        /// Returns the Y dimension of the scheduled thread grid.
+        /// </summary>
+        /// <returns>The Y grid dimension.</returns>
+        public static int DimY
         {
             [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.Y)]
             get => CPURuntimeThreadContext.GridDimension.Y;
@@ -82,7 +118,14 @@ namespace ILGPU
         /// Returns the Z dimension of the scheduled thread grid.
         /// </summary>
         /// <returns>The Z grid dimension.</returns>
-        public static int DimensionZ
+        [Obsolete("Use DimZ instead")]
+        public static int DimensionZ => DimZ;
+
+        /// <summary>
+        /// Returns the Z dimension of the scheduled thread grid.
+        /// </summary>
+        /// <returns>The Z grid dimension.</returns>
+        public static int DimZ
         {
             [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.Z)]
             get => CPURuntimeThreadContext.GridDimension.Z;
@@ -92,7 +135,7 @@ namespace ILGPU
         /// Returns the dimension of the scheduled thread grid.
         /// </summary>
         /// <returns>The grid dimension.</returns>
-        public static Index3 Dimension => new Index3(DimensionX, DimensionY, DimensionZ);
+        public static Index3 Dimension => new Index3(DimX, DimY, DimZ);
 
         /// <summary>
         /// Returns the global index.

@@ -70,7 +70,7 @@ namespace ILGPU.Tests
         internal static void WarpBroadcastKernel(ArrayView<int> data)
         {
             var idx = Grid.GlobalIndex.X;
-            data[idx] = Warp.Broadcast(Group.IndexX, Warp.WarpSize - 1);
+            data[idx] = Warp.Broadcast(Group.IdxX, Warp.WarpSize - 1);
         }
 
         [Theory]

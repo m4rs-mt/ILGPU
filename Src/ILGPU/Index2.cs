@@ -43,14 +43,8 @@ namespace ILGPU
         /// <summary>
         /// Returns the grid dimension for this index type.
         /// </summary>
-        public static Index2 Dimension
-        {
-            get
-            {
-                var dimension = Grid.Dimension;
-                return new Index2(dimension.X, dimension.Y);
-            }
-        }
+        [Obsolete("Use Grid.Dimension.XY instead")]
+        public static Index2 Dimension => new Index2(Grid.DimX, Grid.DimY);
 
         /// <summary>
         /// Reconstructs a 2D index from a linear index.

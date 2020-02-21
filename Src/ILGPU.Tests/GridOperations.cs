@@ -14,13 +14,13 @@ namespace ILGPU.Tests
 
         internal static void GridDimensionKernel(ArrayView<int> data)
         {
-            data[0] = Grid.DimensionX;
-            data[1] = Grid.DimensionY;
-            data[2] = Grid.DimensionZ;
+            data[0] = Grid.DimX;
+            data[1] = Grid.DimY;
+            data[2] = Grid.DimZ;
 
-            Debug.Assert(Grid.IndexX < Grid.DimensionX);
-            Debug.Assert(Grid.IndexY < Grid.DimensionY);
-            Debug.Assert(Grid.IndexZ < Grid.DimensionZ);
+            Debug.Assert(Grid.IdxX < Grid.DimX);
+            Debug.Assert(Grid.IdxY < Grid.DimY);
+            Debug.Assert(Grid.IdxZ < Grid.DimZ);
         }
 
         [Theory]

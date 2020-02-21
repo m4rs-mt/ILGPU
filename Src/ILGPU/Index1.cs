@@ -43,7 +43,8 @@ namespace ILGPU
         /// <summary>
         /// Returns the grid dimension for this index type.
         /// </summary>
-        public static Index1 Dimension => Grid.Dimension.X;
+        [Obsolete("Use Grid.DimX instead")]
+        public static Index1 Dimension => Grid.DimX;
 
         /// <summary>
         /// Returns the main constructor to create a new index instance.

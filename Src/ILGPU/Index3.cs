@@ -43,6 +43,7 @@ namespace ILGPU
         /// <summary>
         /// Returns the grid dimension for this index type.
         /// </summary>
+        [Obsolete("Use Grid.Dimension instead")]
         public static Index3 Dimension => Grid.Dimension;
 
         /// <summary>
