@@ -259,9 +259,7 @@ namespace ILGPU.IR
         /// <param name="methodBase">The method to declare.</param>
         /// <param name="created">True, iff the method has been created.</param>
         /// <returns>The declared method.</returns>
-        internal Method Declare(
-            MethodBase methodBase,
-            out bool created)
+        public Method Declare(MethodBase methodBase, out bool created)
         {
             Debug.Assert(methodBase != null, "Invalid method base");
             // Check for existing method
@@ -294,9 +292,7 @@ namespace ILGPU.IR
         /// <param name="declaration">The method declaration.</param>
         /// <param name="created">True, iff the method has been created.</param>
         /// <returns>The declared method.</returns>
-        internal Method Declare(
-            in MethodDeclaration declaration,
-            out bool created)
+        public Method Declare(in MethodDeclaration declaration, out bool created)
         {
             Debug.Assert(declaration.ReturnType != null, "Invalid return type");
 

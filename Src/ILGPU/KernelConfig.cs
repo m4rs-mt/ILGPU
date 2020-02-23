@@ -186,8 +186,7 @@ namespace ILGPU
             get
             {
                 return (GridDim.X > 0 & GridDim.Y > 0 & GridDim.Z > 0) &&
-                    (GroupDim.X > 0 & GroupDim.Y > 0 & GroupDim.Z > 0) &&
-                    SharedMemoryConfig.UsesDynamicSharedMemory;
+                    (GroupDim.X > 0 & GroupDim.Y > 0 & GroupDim.Z > 0);
             }
         }
 

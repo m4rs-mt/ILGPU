@@ -12,14 +12,30 @@
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace ILGPU.Runtime
 {
+    /// <summary>
+    /// The base interface for all automatically generated specialization argument structures
+    /// that are used in combination with the <see cref="SpecializationCache{TLoader, TArgs, TDelegate}"/>.
+    /// </summary>
+    internal interface ISpecializationCacheArgs
+    {
+        /// <summary>
+        /// Returns the i-th argument as an untyped managed object.
+        /// </summary>
+        /// <param name="index">The argument index.</param>
+        /// <returns>The resolved untyped managed object.</returns>
+        object GetSpecializedArg(int index);
+    }
+
     /// <summary>
     /// A specialization cache to store and managed specialized kernel versions.
     /// </summary>
@@ -28,7 +44,7 @@ namespace ILGPU.Runtime
     /// <typeparam name="TDelegate">The launcher delegate type.</typeparam>
     internal class SpecializationCache<TLoader, TArgs, TDelegate> : DisposeBase
         where TLoader : struct, Accelerator.IKernelLoader
-        where TArgs : struct
+        where TArgs : struct, ISpecializationCacheArgs
         where TDelegate : Delegate
     {
         #region Instance
@@ -98,6 +114,61 @@ namespace ILGPU.Runtime
         #region Methods
 
         /// <summary>
+        /// Creates a kernel wrapper method that invokes the actual kernel method
+        /// with specialized values.
+        /// </summary>
+        /// <param name="kernelMethod">The kernel method to invoke.</param>
+        /// <param name="args">The target arguments.</param>
+        /// <returns>The created IR method.</returns>
+        private Method CreateKernelWrapper(Method kernelMethod, in TArgs args)
+        {
+            // Create a new wrapper kernel launcher
+            var handle = MethodHandle.Create("Bla");
+            var targetContext = kernelMethod.Context;
+            var targetMethod = targetContext.Declare(
+                new MethodDeclaration(
+                    handle,
+                    targetContext.VoidType),
+                out var _);
+            using (var methodBuilder = targetMethod.CreateBuilder())
+            {
+                var blockBuilder = methodBuilder.CreateEntryBlock();
+
+                // Append all parameters
+                var targetValues = ImmutableArray.CreateBuilder<ValueReference>(
+                    kernelMethod.NumParameters);
+                var specializedParameters = Entry.Parameters.SpecializedParameters;
+                for (int i = 0, specialParamIdx = 0, e = kernelMethod.NumParameters; i < e; ++i)
+                {
+                    var param = kernelMethod.Parameters[i];
+                    // Append parameter in all cases to ensure compatibility
+                    // with the current argument mapper implementations
+                    // TODO: remove these parameters and adapt all argument mappers
+                    var newParam = methodBuilder.AddParameter(param.Type, param.Name);
+
+                    // Check for a specialized parameter
+                    if (specialParamIdx < specializedParameters.Length &&
+                        specializedParameters[specialParamIdx].Index == i)
+                    {
+                        // Resolve the managed argument -> note that this object cannot be null
+                        var managedArgument = args.GetSpecializedArg(specialParamIdx);
+                        var irValue = blockBuilder.CreateValue(
+                            managedArgument,
+                            managedArgument.GetType());
+
+                        targetValues.Add(irValue);
+                        ++specialParamIdx;
+                    }
+                    else
+                        targetValues.Add(newParam);
+                }
+                blockBuilder.CreateCall(kernelMethod, targetValues.MoveToImmutable());
+                blockBuilder.CreateReturn();
+            }
+            return targetMethod;
+        }
+
+        /// <summary>
         /// Specializes a kernel with the given customized arguments.
         /// </summary>
         /// <param name="args">The argument structure.</param>
@@ -107,9 +178,10 @@ namespace ILGPU.Runtime
         {
             using (var targetContext = new IRContext(KernelContext.Context))
             {
-                var targetMethod = targetContext.Import(
+                var oldKernelMethod = targetContext.Import(
                     KernelMethod,
                     new NewScopeProvider());
+                var targetMethod = CreateKernelWrapper(oldKernelMethod, args);
                 targetContext.Optimize();
 
                 var compiledKernel = Accelerator.Backend.Compile(

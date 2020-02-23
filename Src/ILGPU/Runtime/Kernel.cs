@@ -41,6 +41,60 @@ namespace ILGPU.Runtime
         #region Static
 
         /// <summary>
+        /// Implements a <see cref="ISpecializationCacheArgs"/> interface in order to
+        /// make the given <paramref name="typeBuilder"/> compatible with a
+        /// <see cref="SpecializationCache{TLoader, TArgs, TDelegate}"/> instance.
+        /// </summary>
+        /// <param name="typeBuilder">The target type builder to use.</param>
+        /// <param name="fields">The source fields used for implementation.</param>
+        private static void ImplementSpecializationCacheArgs(
+            TypeBuilder typeBuilder,
+            FieldInfo[] fields)
+        {
+            var specializedType = typeof(SpecializedValue<>);
+            var getArgMethod = typeBuilder.DefineMethod(
+                nameof(ISpecializationCacheArgs.GetSpecializedArg),
+                MethodAttributes.Public | MethodAttributes.Virtual,
+                typeof(object),
+                new Type[] { typeof(int) });
+
+            var emitter = new ILEmitter(getArgMethod.GetILGenerator());
+
+            // Declare labels and emit jump table
+            var labels = new ILLabel[fields.Length];
+            for (int i = 0, e = fields.Length; i < e; ++i)
+                labels[i] = emitter.DeclareLabel();
+            emitter.Emit(OpCodes.Ldarg_1);
+            emitter.EmitSwitch(labels);
+            for (int i = 0, e = fields.Length; i < e; ++i)
+            {
+                var field = fields[i];
+                emitter.MarkLabel(labels[i]);
+                emitter.Emit(OpCodes.Ldarg_0);
+                emitter.Emit(OpCodes.Ldfld, field);
+
+                // Wrap in a specialized instance
+                var fieldReturnType = specializedType.MakeGenericType(field.FieldType);
+                var instanceConstructor = fieldReturnType.GetConstructor(
+                    new Type[]
+                    {
+                        field.FieldType
+                    });
+                emitter.EmitNewObject(instanceConstructor);
+
+                emitter.Emit(OpCodes.Box, fieldReturnType);
+                emitter.Emit(OpCodes.Ret);
+            }
+
+            // Return dummy arg
+            emitter.Emit(OpCodes.Ldnull);
+            emitter.Emit(OpCodes.Ret);
+            emitter.Finish();
+
+            typeBuilder.AddInterfaceImplementation(typeof(ISpecializationCacheArgs));
+        }
+
+        /// <summary>
         /// Creates a launcher delegate that uses the <see cref="SpecializationCache{TLoader, TArgs, TDelegate}"/>
         /// to created dynamically specialized kernels.
         /// </summary>
@@ -75,9 +129,13 @@ namespace ILGPU.Runtime
                     param.ParameterType,
                     FieldAttributes.Public));
             }
+            var sourceFields = fieldBuilders.ToArray();
 
             // Define equals and hash code functions
-            keyStruct.GenerateEqualsAndHashCode(fieldBuilders.ToArray());
+            keyStruct.GenerateEqualsAndHashCode(sourceFields);
+
+            // Implement ISpecializationCacheArgs interface
+            ImplementSpecializationCacheArgs(keyStruct, sourceFields);
 
             // Create new structure instance and assign fields
             var keyStructType = keyStruct.CreateType();
