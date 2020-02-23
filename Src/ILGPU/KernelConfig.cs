@@ -147,7 +147,6 @@ namespace ILGPU
         {
             Debug.Assert(gridDim.Size >= 0, "Invalid grid dimension");
             Debug.Assert(groupDim.Size >= 0, "Invalid group dimension");
-            Debug.Assert(sharedMemoryConfig.UsesDynamicSharedMemory, "Invalid shared memory configuration");
 
             GridDim = gridDim;
             GroupDim = groupDim;
