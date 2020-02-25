@@ -105,13 +105,6 @@ namespace ILGPU.Runtime
             !first.Equals(second);
 
         /// <summary>
-        /// Converts the given value into an equivalent <see cref="SpecializedValue{T}"/> instance.
-        /// </summary>
-        /// <param name="value">The value to convert.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator SpecializedValue<T>(T value) => new SpecializedValue<T>(value);
-
-        /// <summary>
         /// Converts the given <see cref="SpecializedValue{T}"/> instance into its underlying value.
         /// </summary>
         /// <param name="value">The value to convert.</param>
