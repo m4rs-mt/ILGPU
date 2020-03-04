@@ -356,6 +356,18 @@ namespace ILGPU.Backends.OpenCL
                 AppendCommand(CLInstructions.AddressOfOperation);
                 Append(argument);
             }
+            /// <summary>
+            /// Appends the address of the given register argument with a cast.
+            /// </summary>
+            /// <param name="argument">The argument to append.</param>
+            /// <param name="typeExpression">Appends an unsafe cast expression</param>
+            public void AppendArgumentAddressWithCast(Variable argument, string typeExpression)
+            {
+                AppendArgument();
+                AppendCast(typeExpression);
+                AppendCommand(CLInstructions.AddressOfOperation);
+                Append(argument);
+            }
 
             /// <summary>
             /// Append ths given operation.
