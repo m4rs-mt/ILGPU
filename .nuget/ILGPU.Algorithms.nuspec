@@ -16,7 +16,7 @@
       ILGPU.Algorithms offers several high-level programming functions that simplify programming with ILGPU. It provides useful generic GPU algorithms (e.g. sequence, transform, reorder, scan, radix sort and reduce). All algorithms and functions work with CPU and GPU accelerators for easy and fast development, debugging, simulation and deployment processes.
     </summary>
     <releaseNotes>http://www.ilgpu.net/releases/ILGPU.Algorithms.ReleaseNotes.txt</releaseNotes>
-    <copyright>Copyright © 2019 ILGPU Algorithms Project. Copyright 2016-2018 ILGPU Lightning Project. All rights reserved.</copyright>
+    <copyright>Copyright © 2019-2020 ILGPU Algorithms Project. Copyright 2016-2018 ILGPU Lightning Project. All rights reserved.</copyright>
     <tags>ilgpu gpu llvm nvidia amd amp opencl cuda scan prefix sum sort reduce parallel foreach</tags>
     <dependencies>
       <dependency id="ILGPU" version="0.7.1" />
