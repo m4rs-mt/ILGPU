@@ -216,7 +216,7 @@ namespace ILGPU.Frontend.Intrinsic
             {
                 case nameof(RuntimeHelpers.InitializeArray):
                     InitializeArray(context);
-                    return context.Builder.CreateUndefinedVoid();
+                    return context.Builder.CreateUndefined();
                 default:
                     throw context.GetNotSupportedException(
                         ErrorMessages.NotSupportedIntrinsic, context.Method.Name);

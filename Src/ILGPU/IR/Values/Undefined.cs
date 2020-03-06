@@ -24,10 +24,9 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a undefined value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="type">The phi type.</param>
-        internal UndefinedValue(BasicBlock basicBlock, TypeNode type)
-            : base(ValueKind.Undefined, basicBlock, type)
+        /// <param name="voidType">The void type.</param>
+        internal UndefinedValue(TypeNode voidType)
+            : base(ValueKind.Undefined, null, voidType, false)
         { }
 
         #endregion
@@ -39,7 +38,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateUndefined(Type);
+            builder.CreateUndefined();
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

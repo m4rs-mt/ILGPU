@@ -73,6 +73,10 @@ namespace ILGPU.IR
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             TypeContext = context.TypeContext;
+
+            UndefinedValue = new UndefinedValue(TypeContext.VoidType);
+            Create(UndefinedValue);
+
             gcDelegate = (Method method) => method.GC();
         }
 
@@ -89,6 +93,11 @@ namespace ILGPU.IR
         /// Returns the associated type context.
         /// </summary>
         public IRTypeContext TypeContext { get; }
+
+        /// <summary>
+        /// Returns an undefined value.
+        /// </summary>
+        public UndefinedValue UndefinedValue { get; }
 
         /// <summary>
         /// Returns the associated flags.

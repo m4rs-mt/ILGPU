@@ -182,23 +182,10 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
-        /// Creates a node that represents an undefined value of type void.
+        /// Creates a node that represents an undefined value.
         /// </summary>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateUndefinedVoid() =>
-            CreateUndefined(VoidType);
-
-        /// <summary>
-        /// Creates a node that represents an undefined value of
-        /// the given type.
-        /// </summary>
-        /// <param name="type">The type.</param>
-        /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateUndefined(TypeNode type)
-        {
-            Debug.Assert(type != null, "Invalid type node");
-            return new UndefinedValue(BasicBlock, type);
-        }
+        public ValueReference CreateUndefined() => Context.UndefinedValue;
 
         /// <summary>
         /// Creates a node that represents a managed runtime handle.
