@@ -33,7 +33,7 @@ namespace ILGPU.IR.Values
             Method method,
             TypeNode type,
             string name)
-            : base(ValueKind.Parameter, null, type, false)
+            : base(ValueKind.Parameter, null, type, ValueFlags.NotReplacable)
         {
             Method = method;
             ParameterType = type;

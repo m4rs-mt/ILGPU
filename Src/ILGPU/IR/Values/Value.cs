@@ -123,11 +123,42 @@ namespace ILGPU.IR
     }
 
     /// <summary>
+    /// Flags that can be associated with every value.
+    /// </summary>
+    [Flags]
+    public enum ValueFlags : int
+    {
+        /// <summary>
+        /// The default flags.
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// The value cannot be replaced.
+        /// </summary>
+        NotReplacable = 1 << 0,
+
+        /// <summary>
+        /// The value cannot have uses.
+        /// </summary>
+        NoUses = 1 << 1,
+    }
+
+    /// <summary>
     /// Represents a basic intermediate-representation value.
     /// It is the base class for all values in the scope of this IR.
     /// </summary>
     public abstract class Value : Node, IValue, IEquatable<Value>
     {
+        #region Constants
+
+        /// <summary>
+        /// The default value flags.
+        /// </summary>
+        public const ValueFlags DefaultFlags = ValueFlags.None;
+
+        #endregion
+
         #region Nested Types
 
         /// <summary>
@@ -178,6 +209,7 @@ namespace ILGPU.IR
 
         #endregion
 
+
         #region Instance
 
         /// <summary>
@@ -199,7 +231,7 @@ namespace ILGPU.IR
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
         protected Value(ValueKind kind, BasicBlock basicBlock, TypeNode initialType)
-            : this(kind, basicBlock, initialType, true)
+            : this(kind, basicBlock, initialType, DefaultFlags)
         { }
 
         /// <summary>
@@ -208,12 +240,12 @@ namespace ILGPU.IR
         /// <param name="valueKind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
-        /// <param name="canBeReplaced">True, iff this value can be replaced.</param>
+        /// <param name="valueFlags">Custom value flags.</param>
         protected Value(
             ValueKind valueKind,
             BasicBlock basicBlock,
             TypeNode initialType,
-            bool canBeReplaced)
+            ValueFlags valueFlags)
         {
             Debug.Assert(initialType != null, "Invalid initialType");
 
@@ -223,7 +255,7 @@ namespace ILGPU.IR
             type = initialType;
             Nodes = ImmutableArray<ValueReference>.Empty;
 
-            CanBeReplaced = canBeReplaced;
+            ValueFlags = valueFlags;
             Replacement = this;
         }
 
@@ -266,9 +298,21 @@ namespace ILGPU.IR
             Type != null ? Type.BasicValueType : BasicValueType.None;
 
         /// <summary>
-        /// Returns true iff the current value can be replaced.
+        /// Returns the associated value flags.
         /// </summary>
-        public bool CanBeReplaced { get; }
+        public ValueFlags ValueFlags { get; }
+
+        /// <summary>
+        /// Returns true if the current value can be replaced.
+        /// </summary>
+        public bool CanBeReplaced =>
+            (ValueFlags & ValueFlags.NotReplacable) != ValueFlags.NotReplacable;
+
+        /// <summary>
+        /// Returns true if the current value can have uses.
+        /// </summary>
+        public bool CanHaveUses =>
+            (ValueFlags & ValueFlags.NoUses) != ValueFlags.NoUses;
 
         /// <summary>
         /// Returns the replacement of this value (if any).
@@ -357,8 +401,9 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="target">The target value.</param>
         /// <param name="useIndex">The use index.</param>
-        internal void AddUse(Value target, int useIndex)
+        private void AddUse(Value target, int useIndex)
         {
+            Debug.Assert(CanHaveUses, "Value cannot have uses");
             Debug.Assert(target != null, "Invalid target");
             Debug.Assert(useIndex >= 0, "Invalid use index");
             allUses.Add(new Use(target, useIndex));
@@ -407,7 +452,8 @@ namespace ILGPU.IR
             for (int i = 0, e = nodes.Length; i < e; ++i)
             {
                 var value = nodes[i].Resolve();
-                value.AddUse(this, i);
+                if (value.CanHaveUses)
+                    value.AddUse(this, i);
             }
         }
 
@@ -425,27 +471,23 @@ namespace ILGPU.IR
             Debug.Assert(target != this, "Invalid replacement cycle");
             Replacement = target;
 
-            // Propagate uses
-            foreach (var use in allUses)
-                Replacement.AddUse(use.Target, use.Index);
+            if (target.CanHaveUses)
+            {
+                // Propagate uses
+                foreach (var use in allUses)
+                    Replacement.AddUse(use.Target, use.Index);
+            }
 
             // Notify nodes
             foreach (var use in allUses)
-                use.Target.OnReplacedNode(use.Index);
-
-            OnReplace();
+                use.Target.OnReplacedNode();
         }
-
-        /// <summary>
-        /// Invoked when this node is replaced
-        /// </summary>
-        protected virtual void OnReplace() { }
 
         /// <summary>
         /// Invoked when an attached node is replaced.
         /// </summary>
-        /// <param name="index">The replacement index.</param>
-        protected virtual void OnReplacedNode(int index)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void OnReplacedNode()
         {
             InvalidateType();
         }
