@@ -227,9 +227,15 @@ namespace ILGPU.IR
                 for (int i = 0, e = Count; i < e; ++i)
                 {
                     var valueRef = values[i];
-                    if (toRemove.Contains(valueRef.DirectTarget) ||
-                        valueRef.DirectTarget.IsReplaced && toRemove.Contains(valueRef.Resolve()))
+                    var directTarget = valueRef.DirectTarget;
+                    if (toRemove.Contains(directTarget) ||
+                        directTarget.IsReplaced && toRemove.Contains(valueRef.Resolve()))
+                    {
+                        // Replace if possible
+                        if (!directTarget.IsReplaced)
+                            directTarget.Replace(CreateUndefined());
                         continue;
+                    }
                     targetCollection.Add(valueRef);
                 }
 
