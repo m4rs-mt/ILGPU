@@ -99,8 +99,8 @@ namespace ILGPU.IR.Transformations
             if (!contextFlags.HasFlags(ContextFlags.NoInlining))
                 builder.Add(new Inliner());
             builder.Add(new SimplifyControlFlow());
-            builder.Add(new InferAddressSpaces());
             builder.Add(new SSAConstruction());
+            builder.Add(new InferAddressSpaces());
             builder.Add(new DeadCodeElimination());
         }
 
