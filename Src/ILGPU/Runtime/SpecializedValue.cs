@@ -16,6 +16,22 @@ using System.Runtime.InteropServices;
 namespace ILGPU.Runtime
 {
     /// <summary>
+    /// Provides static helper functions for the structure <see cref="SpecializedValue{T}"/>.
+    /// </summary>
+    public static class SpecializedValue
+    {
+        /// <summary>
+        /// Creates a new specialized value instance.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="value">The value.</param>
+        /// <returns>The new specialized value.</returns>
+        public static SpecializedValue<T> New<T>(in T value)
+            where T : struct, IEquatable<T> =>
+            new SpecializedValue<T>(value);
+    }
+
+    /// <summary>
     /// Represents a dynamically specialized value that can be passed to a kernel.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
