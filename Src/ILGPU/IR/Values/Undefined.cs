@@ -26,7 +26,11 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="voidType">The void type.</param>
         internal UndefinedValue(TypeNode voidType)
-            : base(ValueKind.Undefined, null, voidType, ValueFlags.None)
+            : base(
+                  ValueKind.Undefined,
+                  null,
+                  voidType,
+                  ValueFlags.NotReplacable | ValueFlags.NoUses)
         { }
 
         #endregion
