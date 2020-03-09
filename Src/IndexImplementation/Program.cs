@@ -357,7 +357,7 @@ namespace IndexImplementation
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void MyKernelND(
-            Index index,
+            Index1 index,
             ArrayView<int, MyIndex4> dataView)
         {
             // Reconstruct a valid 4D index
@@ -393,7 +393,7 @@ namespace IndexImplementation
                         AllocND(accelerator, (idx, dimension) => idx.ComputeLinearIndex(dimension));
                         AllocND(accelerator, (idx, dimension) => (long)idx.ComputeLinearIndex(dimension));
 
-                        var kernel = accelerator.LoadAutoGroupedStreamKernel<Index, ArrayView<int, MyIndex4>>(MyKernelND);
+                        var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<int, MyIndex4>>(MyKernelND);
                         using (var buffer = accelerator.Allocate<int, MyIndex4>(Dimension))
                         {
                             kernel(Dimension.Size, buffer.View);

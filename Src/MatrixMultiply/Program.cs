@@ -281,10 +281,9 @@ namespace MatrixMultiply
             if (ka != kb)
                 throw new ArgumentException($"Cannot multiply {m}x{ka} matrix by {n}x{kb} matrix", nameof(b));
 
-            var kernel = accelerator.LoadStreamKernel<GroupedIndex2, ArrayView2D<float>, ArrayView2D<float>, ArrayView2D<float>>(MatrixMultiplyTiledKernel);
+            var kernel = accelerator.LoadStreamKernel<ArrayView2D<float>, ArrayView2D<float>, ArrayView2D<float>>(MatrixMultiplyTiledKernel);
             var groupSize = new Index2(TILE_SIZE, TILE_SIZE);
             var numGroups = new Index2((m + TILE_SIZE - 1) / TILE_SIZE, (n + TILE_SIZE - 1) / TILE_SIZE);
-            var launchDimension = new GroupedIndex2(numGroups, groupSize);
 
             using (var aBuffer = accelerator.Allocate<float>(m, ka))
             using (var bBuffer = accelerator.Allocate<float>(ka, n))
@@ -293,7 +292,7 @@ namespace MatrixMultiply
                 aBuffer.CopyFrom(a, Index2.Zero, Index2.Zero, aBuffer.Extent);
                 bBuffer.CopyFrom(b, Index2.Zero, Index2.Zero, bBuffer.Extent);
 
-                kernel(launchDimension, aBuffer, bBuffer, cBuffer);
+                kernel((numGroups, groupSize), aBuffer, bBuffer, cBuffer);
                 accelerator.Synchronize();
 
                 return cBuffer.GetAs2DArray();
@@ -303,15 +302,14 @@ namespace MatrixMultiply
         /// <summary>
         /// The tiled matrix multiplication kernel that runs on the accelerated device.
         /// </summary>
-        /// <param name="index">Current matrix index</param>
         /// <param name="aView">An input matrix of size MxK</param>
         /// <param name="bView">An input matrix of size KxN</param>
         /// <param name="cView">An output matrix of size MxN</param>
-        static void MatrixMultiplyTiledKernel(GroupedIndex2 index, ArrayView2D<float> aView, ArrayView2D<float> bView, ArrayView2D<float> cView)
+        static void MatrixMultiplyTiledKernel(ArrayView2D<float> aView, ArrayView2D<float> bView, ArrayView2D<float> cView)
         {
-            var global = index.ComputeGlobalIndex();
-            var x = index.GroupIdx.X;
-            var y = index.GroupIdx.Y;
+            var global = Grid.GlobalIndex.XY;
+            var x = Group.IdxX;
+            var y = Group.IdxY;
 
             var aTile = SharedMemory.Allocate2D<float>(TILE_SIZE, TILE_SIZE);
             var bTile = SharedMemory.Allocate2D<float>(TILE_SIZE, TILE_SIZE);

@@ -32,7 +32,7 @@ namespace SimpleKernel
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="constant">A uniform constant.</param>
         static void MyKernel(
-            Index index,               // The global thread index (1D in this case)
+            Index1 index,              // The global thread index (1D in this case)
             ArrayView<int> dataView,   // A view to a chunk of memory (1D in this case)
             int constant)              // A sample uniform constant
         {
@@ -64,7 +64,7 @@ namespace SimpleKernel
                         // var kernel = accelerator.LoadautoGroupedKernel<Index, ArrayView<int>, int>(MyKernel);
                         // For more detail refer to the ImplicitlyGroupedKernels or ExplicitlyGroupedKernels sample.
                         var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index, ArrayView<int>, int>(MyKernel);
+                            Index1, ArrayView<int>, int>(MyKernel);
 
                         using (var buffer = accelerator.Allocate<int>(1024))
                         {

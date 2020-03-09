@@ -197,7 +197,7 @@ namespace CustomIntrinsics
         /// <summary>
         /// Demo kernel demonstrating intrinsic remapping.
         /// </summary>
-        public static void KernelUsingCustomIntrinsic(Index index, ArrayView<int> view)
+        public static void KernelUsingCustomIntrinsic(Index1 index, ArrayView<int> view)
         {
             // Invoke the intrinsic like a default function
             view[index] = CustomRemappedIntrinsic.ComputeBackendDependent(index);
@@ -206,7 +206,7 @@ namespace CustomIntrinsics
         /// <summary>
         /// Demo kernel demonstrating intrinsic code generation.
         /// </summary>
-        public static void KernelUsingCustomCodeGeneratorIntrinsic(Index index, ArrayView<int> view)
+        public static void KernelUsingCustomCodeGeneratorIntrinsic(Index1 index, ArrayView<int> view)
         {
             // Invoke the intrinsic like a default function
             view[index] = CustomCodeGeneratorIntrinsic.ComputeBackendDependentUsingCodeGenerator(index);
@@ -233,9 +233,9 @@ namespace CustomIntrinsics
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         // Compile and load kernels using our custom intrinsic implementation
-                        var remappingKernel = accelerator.LoadAutoGroupedStreamKernel<Index, ArrayView<int>>(
+                        var remappingKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<int>>(
                             KernelUsingCustomIntrinsic);
-                        var codeGeneratorKernel = accelerator.LoadAutoGroupedStreamKernel<Index, ArrayView<int>>(
+                        var codeGeneratorKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<int>>(
                             KernelUsingCustomCodeGeneratorIntrinsic);
 
                         using (var buffer = accelerator.Allocate<int>(32))

@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU;
+using ILGPU.Backends.EntryPoints;
 using ILGPU.Runtime;
 using System;
 using System.Reflection;
@@ -34,7 +35,7 @@ namespace LowLevelKernelCompilation
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="constant">A nice uniform constant.</param>
         static void MyKernel(
-            Index index,               // The global thread index (1D in this case)
+            Index1 index,              // The global thread index (1D in this case)
             ArrayView<int> dataView,   // A view to a chunk of memory (1D in this case)
             int constant)              // A uniform constant
         {
@@ -52,16 +53,14 @@ namespace LowLevelKernelCompilation
         /// An explicitly-grouped kernel can be loaded with:
         /// - LoadKernel
         /// </summary>
-        /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="constant">A uniform constant.</param>
         static void GroupedKernel(
-            GroupedIndex index,          // The grouped thread index (1D in this case)
             ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
             int constant)                // A sample uniform constant
         {
-            // Compute the global 1D index for accessing the data view
-            var globalIndex = index.ComputeGlobalIndex();
+            // Get the global 1D index for accessing the data view
+            var globalIndex = Grid.GlobalIndex.X;
 
             if (globalIndex < dataView.Length)
                 dataView[globalIndex] = globalIndex + constant;
@@ -71,7 +70,7 @@ namespace LowLevelKernelCompilation
         }
 
         /// <summary>
-        /// Compiles and launches an explicltly-grouped kernel.
+        /// Compiles and launches an explicitly grouped kernel.
         /// </summary>
         static void CompileAndLaunchKernel(Accelerator accelerator, int groupSize)
         {
@@ -80,7 +79,8 @@ namespace LowLevelKernelCompilation
 
             // Resolve and compile method into a kernel
             var method = typeof(Program).GetMethod(nameof(GroupedKernel), BindingFlags.NonPublic | BindingFlags.Static);
-            var compiledKernel = backend.Compile(method, default);
+            var entryPointDesc = EntryPointDescription.FromExplicitlyGroupedKernel(method);
+            var compiledKernel = backend.Compile(entryPointDesc, default);
             // Info: If the current accelerator is a CudaAccelerator, we can cast the compiled kernel to a
             // PTXCompiledKernel in order to extract the PTX assembly code.
 
@@ -89,7 +89,7 @@ namespace LowLevelKernelCompilation
             // Note that the kernel has to be disposed manually.
             using (var kernel = accelerator.LoadKernel(compiledKernel))
             {
-                var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, GroupedIndex, ArrayView<int>, int>>();
+                var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, KernelConfig, ArrayView<int>, int>>();
                 // -------------------------------------------------------------------------------
 
                 using (var buffer = accelerator.Allocate<int>(1024))
@@ -97,9 +97,8 @@ namespace LowLevelKernelCompilation
                     // You can also use kernel.Launch; however, the generic launch method involves boxing.
                     launcher(
                         accelerator.DefaultStream,
-                        new GroupedIndex(
-                            (buffer.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
-                            groupSize),                                        // Use the given group size
+                        ((buffer.Length + groupSize - 1) / groupSize, // Compute the number of groups (round up)
+                         groupSize),                                  // Use the given group size
                         buffer.View,
                         42);
 
@@ -126,7 +125,8 @@ namespace LowLevelKernelCompilation
 
             // Resolve and compile method into a kernel
             var method = typeof(Program).GetMethod(nameof(MyKernel), BindingFlags.NonPublic | BindingFlags.Static);
-            var compiledKernel = backend.Compile(method, default);
+            var entryPointDesc = EntryPointDescription.FromImplicitlyGroupedKernel(method);
+            var compiledKernel = backend.Compile(entryPointDesc, default);
             // Info: If the current accelerator is a CudaAccelerator, we can cast the compiled kernel to a
             // PTXCompiledKernel in order to extract the PTX assembly code.
 
@@ -135,7 +135,7 @@ namespace LowLevelKernelCompilation
             // Note that the kernel has to be disposed manually.
             using (var kernel = accelerator.LoadImplicitlyGroupedKernel(compiledKernel, groupSize))
             {
-                var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, Index, ArrayView<int>, int>>();
+                var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, Index1, ArrayView<int>, int>>();
                 // -------------------------------------------------------------------------------
 
                 using (var buffer = accelerator.Allocate<int>(1024))
@@ -174,7 +174,8 @@ namespace LowLevelKernelCompilation
 
             // Resolve and compile method into a kernel
             var method = typeof(Program).GetMethod(nameof(MyKernel), BindingFlags.NonPublic | BindingFlags.Static);
-            var compiledKernel = backend.Compile(method, default);
+            var entryPointDesc = EntryPointDescription.FromImplicitlyGroupedKernel(method);
+            var compiledKernel = backend.Compile(entryPointDesc, default);
             // Info: If the current accelerator is a CudaAccelerator, we can cast the compiled kernel to a
             // PTXCompiledKernel in order to extract the PTX assembly code.
 
@@ -183,7 +184,7 @@ namespace LowLevelKernelCompilation
             // Note that the kernel has to be disposed manually.
             using (var kernel = accelerator.LoadAutoGroupedKernel(compiledKernel))
             {
-                var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, Index, ArrayView<int>, int>>();
+                var launcher = kernel.CreateLauncherDelegate<Action<AcceleratorStream, Index1, ArrayView<int>, int>>();
                 // -------------------------------------------------------------------------------
 
                 using (var buffer = accelerator.Allocate<int>(1024))
@@ -215,7 +216,7 @@ namespace LowLevelKernelCompilation
 
         /// <summary>
         /// Launches a simple 1D kernel using implicit and auto-grouping functionality.
-        /// This sample demonstates the creation of launcher delegates in order to avoid boxing.
+        /// This sample demonstrates the creation of launcher delegates in order to avoid boxing.
         /// </summary>
         static void Main()
         {

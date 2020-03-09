@@ -47,7 +47,7 @@ namespace SimpleStructures
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void MyKernel(
-            Index index,
+            Index1 index,
             ArrayView<CustomDataType> dataView)
         {
             dataView[index] = new CustomDataType(index);
@@ -67,7 +67,7 @@ namespace SimpleStructures
                     using (var accelerator = Accelerator.Create(context, acceleratorId))
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
-                        var kernel = accelerator.LoadAutoGroupedStreamKernel<Index, ArrayView<CustomDataType>>(MyKernel);
+                        var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<CustomDataType>>(MyKernel);
                         using (var buffer = accelerator.Allocate<CustomDataType>(1024))
                         {
                             // Launch buffer.Length many threads and pass a view to buffer

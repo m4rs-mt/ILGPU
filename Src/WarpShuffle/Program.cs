@@ -29,18 +29,14 @@ namespace WarpShuffle
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void ShuffleDownKernel(
-            GroupedIndex index,               // The grouped thread index (1D in this case)
             ArrayView<int> dataView)          // A view to a chunk of memory (1D in this case)
         {
-            // Compute the global 1D index for accessing the data view
-            var globalIndex = index.ComputeGlobalIndex();
-
             // Use native shuffle-down functionality to shuffle the 
             // given value by a delta of 2 lanes
-            int value = index.GroupIdx;
+            int value = Group.IdxX;
             value = Warp.ShuffleDown(value, 2);
 
-            dataView[globalIndex] = value;
+            dataView[Grid.GlobalIndex.X] = value;
         }
 
         /// <summary>
@@ -78,21 +74,17 @@ namespace WarpShuffle
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="value">The value to shuffle.</param>
         static void ShuffleGeneric<T>(
-            GroupedIndex index,               // The grouped thread index (1D in this case)
             ArrayView<T> dataView,            // A view to a chunk of memory (1D in this case)
             T value)                          // A constant value
             where T : struct
         {
-            // Compute the global 1D index for accessing the data view
-            var globalIndex = index.ComputeGlobalIndex();
-
             // Use intrinsic shuffle functionality to shuffle the 
             // given value from line 0. This does not make much sense in this
             // case since all values will have the same value. However,
             // this demonstrates the generic flexibility of the shuffle instructions.
             value = Warp.Shuffle(value, 0);
 
-            dataView[globalIndex] = value;
+            dataView[Grid.GlobalIndex.X] = value;
         }
 
         /// <summary>
@@ -111,11 +103,11 @@ namespace WarpShuffle
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
-                        var dimension = new GroupedIndex(1, accelerator.WarpSize);
+                        KernelConfig dimension = (1, accelerator.WarpSize);
                         using (var dataTarget = accelerator.Allocate<int>(accelerator.WarpSize))
                         {
                             // Load the explicitly grouped kernel
-                            var shuffleDownKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<int>>(ShuffleDownKernel);
+                            var shuffleDownKernel = accelerator.LoadStreamKernel<ArrayView<int>>(ShuffleDownKernel);
                             dataTarget.MemSetToZero();
 
                             shuffleDownKernel(dimension, dataTarget.View);
@@ -130,7 +122,7 @@ namespace WarpShuffle
                         using (var dataTarget = accelerator.Allocate<ComplexStruct>(accelerator.WarpSize))
                         {
                             // Load the explicitly grouped kernel
-                            var reduceKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<ComplexStruct>, ComplexStruct>(
+                            var reduceKernel = accelerator.LoadStreamKernel<ArrayView<ComplexStruct>, ComplexStruct>(
                                 ShuffleGeneric);
                             dataTarget.MemSetToZero();
 

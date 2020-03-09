@@ -31,16 +31,14 @@ namespace ExplicitlyGroupedKernels
         /// Note that you must not use warp-shuffle functionality within implicitly grouped
         /// kernels since not all lanes of a warp are guaranteed to participate in the warp shuffle.
         /// </summary>
-        /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="constant">A nice uniform constant.</param>
         static void GroupedKernel(
-            GroupedIndex index,          // The grouped thread index (1D in this case)
             ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
             int constant)                // A sample uniform constant
         {
-            // Compute the global 1D index for accessing the data view
-            var globalIndex = index.ComputeGlobalIndex();
+            // Get the global 1D index for accessing the data view
+            var globalIndex = Grid.GlobalIndex.X;
 
             if (globalIndex < dataView.Length)
                 dataView[globalIndex] = globalIndex + constant;
@@ -53,12 +51,12 @@ namespace ExplicitlyGroupedKernels
         /// Demonstrates the use of a group-wide barrier.
         /// </summary>
         static void GroupedKernelBarrier(
-            GroupedIndex index,          // The grouped thread index (1D in this case)
             ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
             ArrayView<int> outputView,   // A view to a chunk of memory (1D in this case)
             int constant)                // A sample uniform constant
         {
-            var globalIndex = index.ComputeGlobalIndex();
+            // Get the global 1D index for accessing the data view
+            var globalIndex = Grid.GlobalIndex.X;
 
             // Wait until all threads in the group reach this point
             Group.Barrier();
@@ -71,21 +69,20 @@ namespace ExplicitlyGroupedKernels
         /// Demonstrates the use of a group-wide and-barrier.
         /// </summary>
         static void GroupedKernelAndBarrier(
-            GroupedIndex index,          // The grouped thread index (1D in this case)
             ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
             ArrayView<int> outputView,   // A view to a chunk of memory (1D in this case)
             int constant)              // A sample uniform constant
         {
-            // Compute the global 1D index for accessing the data view
-            var globalIndex = index.ComputeGlobalIndex();
+            // Get the global 1D index for accessing the data view
+            var globalIndex = Grid.GlobalIndex.X;
 
-            // Load value iff the index is in range
+            // Load value if the index is in range
             var value = globalIndex < dataView.Length ?
                 dataView[globalIndex] :
                 constant + 1;
 
             // Wait until all threads in the group reach this point. Moreover, BarrierAnd
-            // evaluates the given predicate and returns true iff the predicate evaluates
+            // evaluates the given predicate and returns true if the predicate evaluates
             // to true for all threads in the group.
             var found = Group.BarrierAnd(value > constant);
 
@@ -97,21 +94,20 @@ namespace ExplicitlyGroupedKernels
         /// Demonstrates the use of a group-wide or-barrier.
         /// </summary>
         static void GroupedKernelOrBarrier(
-            GroupedIndex index,          // The grouped thread index (1D in this case)
             ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
             ArrayView<int> outputView,   // A view to a chunk of memory (1D in this case)
             int constant)                // A sample uniform constant
         {
-            // Compute the global 1D index for accessing the data view
-            var globalIndex = index.ComputeGlobalIndex();
+            // Get the global 1D index for accessing the data view
+            var globalIndex = Grid.GlobalIndex.X;
 
-            // Load value iff the index is in range
+            // Load value if the index is in range
             var value = globalIndex < dataView.Length ?
                 dataView[globalIndex] :
                 constant;
 
             // Wait until all threads in the group reach this point. Moreover, BarrierOr
-            // evaluates the given predicate and returns true iff the predicate evaluates
+            // evaluates the given predicate and returns true if the predicate evaluates
             // to true for any thread in the group.
             var found = Group.BarrierOr(value > constant);
 
@@ -123,15 +119,14 @@ namespace ExplicitlyGroupedKernels
         /// Demonstrates the use of a group-wide popcount-barrier.
         /// </summary>
         static void GroupedKernelPopCountBarrier(
-            GroupedIndex index,          // The global thread index (1D in this case)
             ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
             ArrayView<int> outputView,   // A view to a chunk of memory (1D in this case)
             int constant)                // A sample uniform constant
         {
-            // Compute the global 1D index for accessing the data view
-            var globalIndex = index.ComputeGlobalIndex();
+            // Get the global 1D index for accessing the data view
+            var globalIndex = Grid.GlobalIndex.X;
 
-            // Load value iff the index is in range
+            // Load value if the index is in range
             var value = globalIndex < dataView.Length ?
                 dataView[globalIndex] :
                 constant;
@@ -163,8 +158,8 @@ namespace ExplicitlyGroupedKernels
 
                         var data = Enumerable.Range(1, 128).ToArray();
 
-                        var groupSize = accelerator.MaxNumThreadsPerGroup;
-                        var launchDimension = new GroupedIndex(
+                        int groupSize = accelerator.MaxNumThreadsPerGroup;
+                        KernelConfig launchDimension = (
                             (data.Length + groupSize - 1) / groupSize,  // Compute the number of groups (round up)
                             groupSize);                                 // Use the given group size
 
@@ -180,7 +175,7 @@ namespace ExplicitlyGroupedKernels
                                 {
                                     dataTarget.MemSetToZero();
 
-                                    var groupedKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<int>, int>(GroupedKernel);
+                                    var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, int>(GroupedKernel);
                                     groupedKernel(launchDimension, dataTarget.View, 64);
 
                                     accelerator.Synchronize();
@@ -195,7 +190,7 @@ namespace ExplicitlyGroupedKernels
                                 {
                                     dataTarget.MemSetToZero();
 
-                                    var groupedKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<int>, ArrayView<int>, int>(GroupedKernelBarrier);
+                                    var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelBarrier);
                                     groupedKernel(launchDimension, dataSource, dataTarget.View, 64);
 
                                     accelerator.Synchronize();
@@ -210,7 +205,7 @@ namespace ExplicitlyGroupedKernels
                                 {
                                     dataTarget.MemSetToZero();
 
-                                    var groupedKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<int>, ArrayView<int>, int>(GroupedKernelAndBarrier);
+                                    var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelAndBarrier);
                                     groupedKernel(launchDimension, dataSource, dataTarget.View, 0);
 
                                     accelerator.Synchronize();
@@ -225,7 +220,7 @@ namespace ExplicitlyGroupedKernels
                                 {
                                     dataTarget.MemSetToZero();
 
-                                    var groupedKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<int>, ArrayView<int>, int>(GroupedKernelOrBarrier);
+                                    var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelOrBarrier);
                                     groupedKernel(launchDimension, dataSource, dataTarget.View, 64);
 
                                     accelerator.Synchronize();
@@ -240,7 +235,7 @@ namespace ExplicitlyGroupedKernels
                                 {
                                     dataTarget.MemSetToZero();
 
-                                    var groupedKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<int>, ArrayView<int>, int>(GroupedKernelPopCountBarrier);
+                                    var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, ArrayView<int>, int>(GroupedKernelPopCountBarrier);
                                     groupedKernel(launchDimension, dataSource, dataTarget.View, 0);
 
                                     accelerator.Synchronize();

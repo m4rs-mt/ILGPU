@@ -16,7 +16,7 @@ using System;
 namespace AdvancedViews
 {
     /// <summary>
-    /// This structure holds several elements elements and our desired
+    /// This structure holds several elements and our desired
     /// encapsulated element counter field.
     /// </summary>
     struct ComposedStructure
@@ -50,10 +50,10 @@ namespace AdvancedViews
         /// </summary>
         /// <param name="index">The thread index.</param>
         /// <param name="elements">The elements to check.</param>
-        /// <param name="view"></param>
-        /// <param name="comparisonValue"></param>
+        /// <param name="view">The target view.</param>
+        /// <param name="comparisonValue">The comparison value to use.</param>
         static void MyKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> elements,
             ArrayView<ComposedStructure> view,
             int comparisonValue)
@@ -68,7 +68,7 @@ namespace AdvancedViews
         }
 
         /// <summary>
-        /// Demonstates the use of variable-sub-view accesses.
+        /// Demonstrates the use of variable-sub-view accesses.
         /// </summary>
         static void Main()
         {
@@ -83,7 +83,7 @@ namespace AdvancedViews
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
                         var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index, ArrayView<int>, ArrayView<ComposedStructure>, int>(MyKernel);
+                            Index1, ArrayView<int>, ArrayView<ComposedStructure>, int>(MyKernel);
 
                         using (var elementsBuffer = accelerator.Allocate<int>(1024))
                         {

@@ -45,7 +45,7 @@ namespace SimpleConstants
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void ConstantKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> dataView)
         {
             dataView[index] = ConstantValue;
@@ -57,7 +57,7 @@ namespace SimpleConstants
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void StaticFieldAccessKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> dataView)
         {
             dataView[index] = ReadOnlyValue;
@@ -74,7 +74,7 @@ namespace SimpleConstants
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void StaticNonReadOnlyFieldAccessKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> dataView)
         {
             dataView[index] = WriteEnabledValue;
@@ -91,7 +91,7 @@ namespace SimpleConstants
         /// <param name="index">The current thread index.</param>
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         static void StaticFieldWriteAccessKernel(
-            Index index,
+            Index1 index,
             ArrayView<int> dataView)
         {
             WriteEnabledValue = index;
@@ -99,7 +99,7 @@ namespace SimpleConstants
 
         static void LaunchKernel(
             Accelerator accelerator,
-            Action<Index, ArrayView<int>> method,
+            Action<Index1, ArrayView<int>> method,
             int? expectedValue)
         {
             var kernel = accelerator.LoadAutoGroupedStreamKernel(method);

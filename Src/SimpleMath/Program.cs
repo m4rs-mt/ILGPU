@@ -31,7 +31,7 @@ namespace SimpleMath
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="constant">A uniform constant.</param>
         static void MathKernel(
-            Index index,                    // The global thread index (1D in this case)
+            Index1 index,                    // The global thread index (1D in this case)
             ArrayView<float> singleView,    // A view of floats to store float results from GPUMath
             ArrayView<double> doubleView,   // A view of doubles to store double results from GPUMath
             ArrayView<double> doubleView2)  // A view of doubles to store double results from .Net Math
@@ -61,7 +61,7 @@ namespace SimpleMath
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
                         var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index, ArrayView<float>, ArrayView<double>, ArrayView<double>>(MathKernel);
+                            Index1, ArrayView<float>, ArrayView<double>, ArrayView<double>>(MathKernel);
 
                         var buffer = accelerator.Allocate<float>(128);
                         var buffer2 = accelerator.Allocate<double>(128);

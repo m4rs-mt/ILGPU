@@ -29,7 +29,7 @@ namespace SimpleAtomics
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="constant">A uniform constant.</param>
         static void AtomicOperationKernel(
-            Index index,               // The global thread index (1D in this case)
+            Index1 index,               // The global thread index (1D in this case)
             ArrayView<int> dataView,   // A view to a chunk of memory (1D in this case)
             int constant)              // A sample uniform constant
         {
@@ -68,7 +68,7 @@ namespace SimpleAtomics
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
                         var kernel = accelerator.LoadAutoGroupedStreamKernel<
-                            Index, ArrayView<int>, int>(AtomicOperationKernel);
+                            Index1, ArrayView<int>, int>(AtomicOperationKernel);
                         using (var buffer = accelerator.Allocate<int>(7))
                         {
                             // Initialize buffer to zero

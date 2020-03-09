@@ -25,7 +25,7 @@ namespace GroupGridIndices
         {
             // Gets the current thread index within a group.
             // Alternative: Group.Index.X
-            return Group.IndexX;
+            return Group.IdxX;
         }
 
         /// <summary>
@@ -36,17 +36,17 @@ namespace GroupGridIndices
         {
             // Gets the current group index within the grid.
             // Alternative: Grid.Index.X
-            return Grid.IndexX;
+            return Grid.IdxX;
         }
 
         /// <summary>
-        /// Writes data to the globally unqiue thread index using static properties.
+        /// Writes data to the globally unique thread index using static properties.
         /// </summary>
         /// <param name="dataView">The target view.</param>
         /// <param name="constant">The constant to write into the data view.</param>
         static void WriteToGlobalIndex(ArrayView<int> dataView, int constant)
         {
-            var globalIndex = Group.DimensionX * GetGridIndex() + GetGroupIndex();
+            var globalIndex = Group.DimX * GetGridIndex() + GetGroupIndex();
 
             if (globalIndex < dataView.Length)
                 dataView[globalIndex] = constant;
@@ -55,11 +55,9 @@ namespace GroupGridIndices
         /// <summary>
         /// A grouped kernel that uses a helper function
         /// </summary>
-        /// <param name="index"></param>
-        /// <param name="dataView"></param>
-        /// <param name="constant"></param>
+        /// <param name="dataView">The target view.</param>
+        /// <param name="constant">A uniform constant.</param>
         static void GroupedKernel(
-            GroupedIndex index,          // The grouped thread index (1D in this case)
             ArrayView<int> dataView,     // A view to a chunk of memory (1D in this case)
             int constant)                // A sample uniform constant
         {
@@ -83,12 +81,12 @@ namespace GroupGridIndices
                         Console.WriteLine($"Performing operations on {accelerator}");
 
                         var groupSize = accelerator.MaxNumThreadsPerGroup;
-                        var launchDimension = new GroupedIndex(2, groupSize);
+                        KernelConfig kernelConfig = (2, groupSize);
 
-                        using (var buffer = accelerator.Allocate<int>(launchDimension.Size))
+                        using (var buffer = accelerator.Allocate<int>(kernelConfig.Size))
                         {
-                            var groupedKernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView<int>, int>(GroupedKernel);
-                            groupedKernel(launchDimension, buffer.View, 64);
+                            var groupedKernel = accelerator.LoadStreamKernel<ArrayView<int>, int>(GroupedKernel);
+                            groupedKernel(kernelConfig, buffer.View, 64);
 
                             accelerator.Synchronize();
 

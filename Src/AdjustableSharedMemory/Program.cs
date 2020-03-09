@@ -15,7 +15,6 @@ using System;
 
 namespace SharedMemory
 {
-
     class Program
     {
         /// <summary>
@@ -49,12 +48,11 @@ namespace SharedMemory
         /// <param name="outputView">The view pointing to our memory buffer.</param>
         /// <param name="sharedArray">Implicit shared-memory parameter that is handled by the runtime.</param>
         static void SharedMemoryKernel<TSharedAllocationSize>(
-            GroupedIndex index,          // The grouped thread index (1D in this case)
             ArrayView<int> outputView)   // A view to a chunk of memory (1D in this case)
             where TSharedAllocationSize : struct, ISharedAllocationSize
         {
             // Compute the global 1D index for accessing the data view
-            var globalIndex = index.ComputeGlobalIndex();
+            var globalIndex = Grid.GlobalIndex.X;
 
             // Declares a shared-memory array with a number elements of type int
             // that are resolved via the generic parameter.
@@ -82,13 +80,13 @@ namespace SharedMemory
                     {
                         // Load a specialized shared-memory kernel
                         var sharedMemoryKernel = accelerator.LoadStreamKernel<
-                            GroupedIndex, ArrayView<int>>(SharedMemoryKernel<TSharedAllocationSize>);
+                            ArrayView<int>>(SharedMemoryKernel<TSharedAllocationSize>);
                         dataTarget.MemSetToZero();
 
                         // Note that shared memory cannot be accessed from the outside
                         // and must be initialized by the kernel
                         sharedMemoryKernel(
-                            new GroupedIndex(1, accelerator.MaxNumThreadsPerGroup),
+                            (1, accelerator.MaxNumThreadsPerGroup),
                             dataTarget.View);
 
                         accelerator.Synchronize();
@@ -105,7 +103,7 @@ namespace SharedMemory
         /// <summary>
         /// Launches a simple 1D kernel using shared memory.
         /// </summary>
-        static void Main(string[] args)
+        static void Main()
         {
             // Create main context
             using (var context = new Context())

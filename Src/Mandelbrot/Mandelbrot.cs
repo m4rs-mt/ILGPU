@@ -27,7 +27,7 @@ namespace Mandelbrot
         /// <param name="max_iterations"></param>
         /// <param name="output"></param>
         static void MandelbrotKernel(
-            Index index,
+            Index1 index,
             int width, int height, int max_iterations,
             ArrayView<int> output)
         {
@@ -60,7 +60,7 @@ namespace Mandelbrot
 
         private static Context context;
         private static Accelerator accelerator;
-        private static System.Action<Index, int, int, int, ArrayView<int>> mandelbrot_kernel;
+        private static System.Action<Index1, int, int, int, ArrayView<int>> mandelbrot_kernel;
 
         /// <summary>
         /// Compile the mandelbrot kernel in ILGPU-CPU or ILGPU-CUDA mode.
@@ -75,7 +75,7 @@ namespace Mandelbrot
                 accelerator = new CPUAccelerator(context);
 
             mandelbrot_kernel = accelerator.LoadAutoGroupedStreamKernel<
-                Index, int, int, int, ArrayView<int>>(MandelbrotKernel);
+                Index1, int, int, int, ArrayView<int>>(MandelbrotKernel);
         }
 
         /// <summary>

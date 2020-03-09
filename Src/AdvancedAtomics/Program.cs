@@ -58,7 +58,7 @@ namespace AdvancedAtomics
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="value">The value to add.</param>
         static void AddDoubleAtomicKernel(
-            Index index,
+            Index1 index,
             ArrayView<double> dataView,
             double value)
         {
@@ -78,7 +78,7 @@ namespace AdvancedAtomics
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="value">The value to add.</param>
         static void AddDoubleAtomicILGPUFunctionsKernel(
-            Index index,
+            Index1 index,
             ArrayView<double> dataView,
             double value)
         {
@@ -97,7 +97,7 @@ namespace AdvancedAtomics
         /// <param name="dataView">The view pointing to our memory buffer.</param>
         /// <param name="value">The value to add.</param>
         static void AddDoubleBuiltInKernel(
-            Index index,
+            Index1 index,
             ArrayView<double> dataView,
             double value)
         {
@@ -107,7 +107,7 @@ namespace AdvancedAtomics
 
         static void LaunchKernel(
             Accelerator accelerator,
-            Action<Index, ArrayView<double>, double> method)
+            Action<Index1, ArrayView<double>, double> method)
         {
             Console.WriteLine("Launching: " + method.Method.Name);
 
