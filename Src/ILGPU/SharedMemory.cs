@@ -16,7 +16,7 @@ using System.Runtime.CompilerServices;
 namespace ILGPU
 {
     /// <summary>
-    /// Containts methods to allocate and managed shared memory.
+    /// Contains methods to allocate and managed shared memory.
     /// </summary>
     public static class SharedMemory
     {
