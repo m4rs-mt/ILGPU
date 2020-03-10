@@ -237,9 +237,11 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates an instantiated terminator.
         /// </summary>
+        /// <typeparam name="T">The terminator value type.</typeparam>
         /// <param name="node">The terminator to create.</param>
         /// <returns>The created node.</returns>
-        protected abstract TerminatorValue CreateTerminator(TerminatorValue node);
+        protected abstract T CreateTerminator<T>(T node)
+            where T : TerminatorValue;
 
         /// <summary>
         /// Append a new value.

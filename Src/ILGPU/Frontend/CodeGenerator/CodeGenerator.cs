@@ -274,7 +274,7 @@ namespace ILGPU.Frontend
                 Debug.Assert(
                     builderTerminator.NumTargets == 1,
                     "Implicit branches can have one successor only");
-                blockBuilder.CreateUnconditionalBranch(builderTerminator.Targets[0]);
+                blockBuilder.CreateBranch(builderTerminator.Targets[0]);
             }
         }
 

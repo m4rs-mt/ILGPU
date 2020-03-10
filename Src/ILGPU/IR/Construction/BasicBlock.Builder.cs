@@ -311,7 +311,7 @@ namespace ILGPU.IR
                 var exitBlocks = rebuilder.Rebuild();
 
                 // Wire current block with new entry block
-                CreateUnconditionalBranch(rebuilder.EntryBlock.BasicBlock);
+                CreateBranch(rebuilder.EntryBlock.BasicBlock);
 
                 // Replace call with the appropriate return value
                 if (!callTarget.IsVoid)
@@ -342,7 +342,7 @@ namespace ILGPU.IR
 
                 // Wire exit blocks with temp block
                 foreach (var (block, _) in exitBlocks)
-                    block.CreateUnconditionalBranch(tempBlock.BasicBlock);
+                    block.CreateBranch(tempBlock.BasicBlock);
 
                 return tempBlock;
             }
@@ -378,7 +378,7 @@ namespace ILGPU.IR
                 // Adjust terminators
                 tempBlock.Terminator = Terminator;
                 Terminator = null;
-                CreateUnconditionalBranch(tempBlock.BasicBlock);
+                CreateBranch(tempBlock.BasicBlock);
 
                 // Update phi blocks
                 RemapPhiArguments(tempBlock.BasicBlock.Successors, BasicBlock.Id, tempBlock.BasicBlock.Id);
@@ -439,12 +439,12 @@ namespace ILGPU.IR
                 InsertPosition = oldPosition;
             }
 
-            /// <summary cref="IRBuilder.CreateTerminator(TerminatorValue)"/>
-            protected override TerminatorValue CreateTerminator(TerminatorValue node)
+            /// <summary cref="IRBuilder.CreateTerminator{T}(T)"/>
+            protected override T CreateTerminator<T>(T node)
             {
                 MethodBuilder.Create(node);
                 Terminator?.Replace(node);
-                return Terminator = node;
+                return (Terminator = node) as T;
             }
 
             /// <summary cref="IRBuilder.CreatePhiValue(PhiValue)"/>

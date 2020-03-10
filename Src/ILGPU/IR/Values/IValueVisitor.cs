@@ -320,7 +320,7 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="branch">The node.</param>
-        void Visit(ConditionalBranch branch);
+        void Visit(IfBranch branch);
 
         /// <summary>
         /// Visits the node.

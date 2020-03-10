@@ -237,7 +237,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateUnconditionalBranch(
+            builder.CreateBranch(
                 rebuilder.LookupTarget(Target));
 
         /// <summary cref="Value.Accept"/>
@@ -259,7 +259,81 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a conditional branch terminator.
     /// </summary>
-    public sealed class ConditionalBranch : Branch
+    public abstract class ConditionalBranch : Branch
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new conditional branch terminator.
+        /// </summary>
+        /// <param name="kind">The value kind.</param>
+        /// <param name="context">The parent IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="condition">The jump condition.</param>
+        /// <param name="targets">The jump targets.</param>
+        protected ConditionalBranch(
+            ValueKind kind,
+            IRContext context,
+            BasicBlock basicBlock,
+            ValueReference condition,
+            ImmutableArray<BasicBlock> targets)
+            : base(
+                  kind,
+                  context,
+                  basicBlock,
+                  targets,
+                  ImmutableArray.Create(condition))
+        { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the associated branch condition.
+        /// </summary>
+        public ValueReference Condition => this[0];
+
+        /// <summary>
+        /// Returns true if this conditional branch can be folded.
+        /// </summary>
+        /// <remarks>
+        /// A branch can be folded if its condition evaluates to a constant value.
+        /// </remarks>
+        public bool CanFold => Condition.IsPrimitive();
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Folds this branch into another branch that might be unconditional.
+        /// </summary>
+        /// <param name="builder">The builder to use.</param>
+        /// <returns>The folded branch.</returns>
+        public Branch Fold(IRBuilder builder)
+        {
+            var condition = Condition.ResolveAs<PrimitiveValue>();
+            if (condition == null)
+                return this;
+            return FoldBranch(builder, condition);
+        }
+
+        /// <summary>
+        /// Folds this conditional branch into an unconditional branch.
+        /// </summary>
+        /// <param name="builder">The builder to use.</param>
+        /// <param name="condition">The constant condition value.</param>
+        /// <returns>The folded branch.</returns>
+        protected abstract Branch FoldBranch(IRBuilder builder, PrimitiveValue condition);
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents an if branch terminator.
+    /// </summary>
+    public sealed class IfBranch : ConditionalBranch
     {
         #region Instance
 
@@ -271,18 +345,18 @@ namespace ILGPU.IR.Values
         /// <param name="condition">The jump condition.</param>
         /// <param name="falseTarget">The false jump target.</param>
         /// <param name="trueTarget">The true jump target.</param>
-        internal ConditionalBranch(
+        internal IfBranch(
             IRContext context,
             BasicBlock basicBlock,
             ValueReference condition,
             BasicBlock trueTarget,
             BasicBlock falseTarget)
             : base(
-                  ValueKind.ConditionalBranch,
+                  ValueKind.IfBranch,
                   context,
                   basicBlock,
-                  ImmutableArray.Create(trueTarget, falseTarget),
-                  ImmutableArray.Create(condition))
+                  condition,
+                  ImmutableArray.Create(trueTarget, falseTarget))
         {
             Debug.Assert(
                 condition.Type.IsPrimitiveType &&
@@ -293,11 +367,6 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Returns the associated branch condition.
-        /// </summary>
-        public ValueReference Condition => this[0];
 
         /// <summary>
         /// Returns the true jump target.
@@ -313,9 +382,18 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
+        /// <summary cref="ConditionalBranch.FoldBranch(IRBuilder, PrimitiveValue)"/>
+        protected override Branch FoldBranch(IRBuilder builder, PrimitiveValue condition)
+        {
+            var target = condition.Int1Value ?
+                TrueTarget :
+                FalseTarget;
+            return builder.CreateBranch(target);
+        }
+
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
-            builder.CreateConditionalBranch(
+            builder.CreateIfBranch(
                 rebuilder.Rebuild(Condition),
                 rebuilder.LookupTarget(TrueTarget),
                 rebuilder.LookupTarget(FalseTarget));
@@ -340,7 +418,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a single switch terminator.
     /// </summary>
-    public sealed class SwitchBranch : Branch
+    public sealed class SwitchBranch : ConditionalBranch
     {
         #region Instance
 
@@ -360,8 +438,8 @@ namespace ILGPU.IR.Values
                   ValueKind.SwitchBranch,
                   context,
                   basicBlock,
-                  targets,
-                  ImmutableArray.Create(value))
+                  value,
+                  targets)
         {
             Debug.Assert(
                 value.Type.IsPrimitiveType &&
@@ -372,11 +450,6 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Returns the associated predicate value.
-        /// </summary>
-        public ValueReference Condition => this[0];
 
         /// <summary>
         /// Returns the default block.
@@ -403,6 +476,16 @@ namespace ILGPU.IR.Values
         {
             Debug.Assert(i < Targets.Length - 1, "Invalid case argument");
             return Targets[i + 1];
+        }
+
+        /// <summary cref="ConditionalBranch.FoldBranch(IRBuilder, PrimitiveValue)"/>
+        protected override Branch FoldBranch(IRBuilder builder, PrimitiveValue condition)
+        {
+            int caseValue = condition.Int32Value;
+            var target = caseValue < 0 || caseValue >= NumCasesWithoutDefault ?
+                Targets[0] :
+                GetCaseTarget(caseValue);
+            return builder.CreateBranch(target);
         }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>

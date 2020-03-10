@@ -420,7 +420,7 @@ namespace ILGPU.IR.Analyses
                 return false;
 
             var entryBlock = entryNode.Block;
-            if (!(entryBlock.Terminator is ConditionalBranch branch))
+            if (!(entryBlock.Terminator is IfBranch branch))
                 return false;
 
             ifInfo = new IfInfo(

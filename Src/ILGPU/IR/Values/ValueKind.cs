@@ -232,9 +232,9 @@ namespace ILGPU.IR
         UnconditionalBranch,
 
         /// <summary>
-        /// A <see cref="Values.ConditionalBranch"/> terminator value.
+        /// A <see cref="Values.IfBranch"/> terminator value.
         /// </summary>
-        ConditionalBranch,
+        IfBranch,
 
         /// <summary>
         /// A <see cref="Values.SwitchBranch"/> terminator value.

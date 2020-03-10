@@ -40,7 +40,7 @@ namespace ILGPU.Frontend
         {
             var targets = block.GetBuilderTerminator(1);
 
-            builder.CreateUnconditionalBranch(targets[0]);
+            builder.CreateBranch(targets[0]);
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace ILGPU.Frontend
             var targets = block.GetBuilderTerminator(2);
 
             var condition = CreateCompare(block, builder, compareKind, instructionFlags);
-            builder.CreateConditionalBranch(condition, targets[0], targets[1]);
+            builder.CreateIfBranch(condition, targets[0], targets[1]);
         }
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace ILGPU.Frontend
             var rightValue = builder.CreatePrimitiveValue(comparisonValue.BasicValueType, 0);
 
             var condition = CreateCompare(builder, comparisonValue, rightValue, kind, CompareFlags.None);
-            builder.CreateConditionalBranch(condition, targets[0], targets[1]);
+            builder.CreateIfBranch(condition, targets[0], targets[1]);
         }
 
         /// <summary>

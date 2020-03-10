@@ -45,7 +45,7 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="target">The target block.</param>
         /// <returns>The created terminator.</returns>
-        public TerminatorValue CreateUnconditionalBranch(BasicBlock target)
+        public Branch CreateBranch(BasicBlock target)
         {
             Debug.Assert(target != null, "Invalid target");
             return CreateTerminator(new UnconditionalBranch(
@@ -61,7 +61,7 @@ namespace ILGPU.IR.Construction
         /// <param name="trueTarget">The true target block.</param>
         /// <param name="falseTarget">The false target block.</param>
         /// <returns>The created terminator.</returns>
-        public TerminatorValue CreateConditionalBranch(
+        public Branch CreateIfBranch(
             Value condition,
             BasicBlock trueTarget,
             BasicBlock falseTarget)
@@ -70,7 +70,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(trueTarget != null, "Invalid true target");
             Debug.Assert(falseTarget != null, "Invalid false target");
 
-            return CreateTerminator(new ConditionalBranch(
+            return CreateTerminator(new IfBranch(
                 Context,
                 BasicBlock,
                 condition,
@@ -84,7 +84,7 @@ namespace ILGPU.IR.Construction
         /// <param name="value">The selection value.</param>
         /// <param name="targets">All switch targets.</param>
         /// <returns>The created terminator.</returns>
-        public TerminatorValue CreateSwitchBranch(
+        public Branch CreateSwitchBranch(
             Value value,
             ImmutableArray<BasicBlock> targets)
         {
@@ -97,7 +97,7 @@ namespace ILGPU.IR.Construction
             // Transformation to create simple predicates
             if (targets.Length == 2)
             {
-                return CreateConditionalBranch(
+                return CreateIfBranch(
                     CreateCompare(value, CreatePrimitiveValue(0), CompareKind.Equal),
                     targets[0],
                     targets[1]);

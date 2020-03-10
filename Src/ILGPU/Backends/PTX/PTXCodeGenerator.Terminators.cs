@@ -36,8 +36,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(ConditionalBranch)"/>
-        public void Visit(ConditionalBranch branch)
+        /// <summary cref="IValueVisitor.Visit(IfBranch)"/>
+        public void Visit(IfBranch branch)
         {
             var condition = LoadPrimitive(branch.Condition);
             using (var command = BeginCommand(
