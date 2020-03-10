@@ -160,18 +160,19 @@ namespace ILGPU.Backends.OpenCL
             }
 
             // Emit all parameter declarations
+            int paramOffset = EntryPoint.IsExplicitlyGrouped ? 0 : 1;
             var setupLogic = new KernelParameterSetupLogic(this);
             SetupParameters(
                 Builder,
                 ref setupLogic,
-                EntryPoint.IsExplicitlyGrouped ? 0 : 1);
+                paramOffset);
             Builder.AppendLine(")");
 
             // Emit code that moves view arguments into their appropriate targets
             Builder.AppendLine("{");
             PushIndent();
-            var paramVariables = GenerateArgumentMapping();
-            GenerateViewWiring(paramVariables);
+            var paramVariables = GenerateArgumentMapping(paramOffset);
+            GenerateViewWiring(paramVariables, paramOffset);
 
             // Emit index computation
 #if DEBUG
@@ -233,7 +234,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Generates code that wires kernel-specific arguments into internal arguments.
         /// </summary>
-        private Variable[] GenerateArgumentMapping()
+        /// <param name="paramOffset">The parameter offset.</param>
+        private Variable[] GenerateArgumentMapping(int paramOffset)
         {
 #if DEBUG
             Builder.AppendLine("\t// Map parameters");
@@ -242,7 +244,7 @@ namespace ILGPU.Backends.OpenCL
             var parameters = Method.Parameters;
             var oldVariables = new Variable[parameters.Count];
 
-            for (int i = 1, e = parameters.Count; i < e; ++i)
+            for (int i = paramOffset, e = parameters.Count; i < e; ++i)
             {
                 var param = parameters[i];
                 var sourceVariable = Load(param);
@@ -266,7 +268,9 @@ namespace ILGPU.Backends.OpenCL
         /// Generates code that wires custom view parameters and all other data structures
         /// that are passed to a kernel.
         /// </summary>
-        private void GenerateViewWiring(Variable[] oldVariables)
+        /// <param name="oldVariables">All old variables that have the be bound.</param>
+        /// <param name="paramOffset">The parameter offset.</param>
+        private void GenerateViewWiring(Variable[] oldVariables, int paramOffset)
         {
 #if DEBUG
             Builder.AppendLine();
@@ -278,8 +282,8 @@ namespace ILGPU.Backends.OpenCL
             {
                 var viewParam = viewParams[i];
                 // Load the associated parameter and generate a field-access chain
-                var param = Method.Parameters[viewParam.ParameterIndex + 1];
-                var sourceVariable = oldVariables[viewParam.ParameterIndex + 1];
+                var param = Method.Parameters[viewParam.ParameterIndex + paramOffset];
+                var sourceVariable = oldVariables[viewParam.ParameterIndex + paramOffset];
                 var targetVariable = Load(param);
 
                 // Wire the view pointer and the passed structure
@@ -362,12 +366,10 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="lengthVariable">The length variable of implicitly grouped kernels.</param>
         private void SetupKernelIndex(Variable indexVariable, Variable lengthVariable)
         {
-            if (!EntryPoint.IsExplicitlyGrouped)
-            {
-                Debug.Assert(indexVariable == null, "Invalid index variable");
+            if (EntryPoint.IsExplicitlyGrouped)
                 return;
-            }
 
+            Debug.Assert(indexVariable != null, "Invalid index variable");
             Declare(indexVariable);
             for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
             {
