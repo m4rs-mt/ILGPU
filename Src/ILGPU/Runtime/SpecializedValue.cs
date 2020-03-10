@@ -26,7 +26,8 @@ namespace ILGPU.Runtime
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="value">The value.</param>
         /// <returns>The new specialized value.</returns>
-        public static SpecializedValue<T> New<T>(in T value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SpecializedValue<T> New<T>(T value)
             where T : struct, IEquatable<T> =>
             new SpecializedValue<T>(value);
     }
