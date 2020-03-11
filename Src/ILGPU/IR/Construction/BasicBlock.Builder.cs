@@ -82,7 +82,12 @@ namespace ILGPU.IR
             public TerminatorValue Terminator
             {
                 get => BasicBlock.Terminator;
-                set => BasicBlock.Terminator = value;
+                set
+                {
+                    if (value != null)
+                        value.BasicBlock = BasicBlock;
+                    BasicBlock.Terminator = value;
+                }
             }
 
             /// <summary>
