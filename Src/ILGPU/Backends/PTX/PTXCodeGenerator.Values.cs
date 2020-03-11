@@ -1000,5 +1000,9 @@ namespace ILGPU.Backends.PTX
         {
             Debug.Assert(false, "Invalid debug node -> should have been removed");
         }
+
+        /// <summary cref="IValueVisitor.Visit(AcceleratorTypeValue)"/>
+        public void Visit(AcceleratorTypeValue handle) =>
+            throw new InvalidCodeGenerationException();
     }
 }

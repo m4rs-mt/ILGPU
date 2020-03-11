@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Runtime;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -24,6 +25,11 @@ namespace ILGPU.IR.Transformations
         /// Returns the current warp size (if any).
         /// </summary>
         int? WarpSize { get; }
+
+        /// <summary>
+        /// Returns the current accelerator type.
+        /// </summary>
+        AcceleratorType AcceleratorType { get; }
 
         /// <summary>
         /// Tries to resolve the native size in bytes of the given type.
@@ -45,6 +51,50 @@ namespace ILGPU.IR.Transformations
     public sealed class AcceleratorSpecializer<TConfiguration> : UnorderedTransformation
         where TConfiguration : IAcceleratorSpecializerConfiguration
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Specializes device constants.
+        /// </summary>
+        private struct Specalizer
+        {
+            public Specalizer(Method.Builder builder)
+            {
+                Builder = builder;
+                Applied = false;
+            }
+
+            /// <summary>
+            /// Returns the current builder.
+            /// </summary>
+            public Method.Builder Builder { get; }
+
+            /// <summary>
+            /// Returns true if the current specializer has been applied.
+            /// </summary>
+            public bool Applied { get; private set; }
+
+            /// <summary>
+            /// Specializes the given value.
+            /// </summary>
+            /// <param name="value">The value to specialize.</param>
+            /// <param name="constant">The constant to replace the value with.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Specialize(Value value, int constant)
+            {
+                var blockBuilder = Builder[value.BasicBlock];
+
+                blockBuilder.SetupInsertPosition(value);
+                var primitiveSize = blockBuilder.CreatePrimitiveValue(constant);
+                value.Replace(primitiveSize);
+                blockBuilder.Remove(value);
+
+                Applied = true;
+            }
+        }
+
+        #endregion
+
         private readonly TConfiguration configuration;
 
         /// <summary>
@@ -59,44 +109,27 @@ namespace ILGPU.IR.Transformations
         protected override bool PerformTransformation(Method.Builder builder)
         {
             var scope = builder.CreateScope();
-            bool applied = false;
+            var specializer = new Specalizer(builder);
 
             var nativeWarpSize = configuration.WarpSize;
             foreach (Value value in scope.Values)
             {
                 switch (value)
                 {
-                    case WarpSizeValue warpSizeValue when nativeWarpSize.HasValue:
-                        SpecializeConstant(builder, warpSizeValue, nativeWarpSize.Value, ref applied);
+                    case AcceleratorTypeValue _:
+                        specializer.Specialize(value, (int)configuration.AcceleratorType);
                         break;
-                    case SizeOfValue sizeOfValue when configuration.TryGetSizeOf(sizeOfValue.TargetType, out int size):
-                        SpecializeConstant(builder, sizeOfValue, size, ref applied);
+                    case WarpSizeValue _ when nativeWarpSize.HasValue:
+                        specializer.Specialize(value, nativeWarpSize.Value);
+                        break;
+                    case SizeOfValue sizeOfValue when
+                        configuration.TryGetSizeOf(sizeOfValue.TargetType, out int size):
+                        specializer.Specialize(value, size);
                         break;
                 }
             }
 
-            return applied;
-        }
-
-        /// <summary>
-        /// Specializes a single constant value.
-        /// </summary>
-        /// <param name="builder">The parent method builder.</param>
-        /// <param name="value">The method to specialize.</param>
-        /// <param name="constant">The constant integer value.</param>
-        /// <param name="applied">The applied value.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void SpecializeConstant(
-            Method.Builder builder,
-            Value value,
-            int constant,
-            ref bool applied)
-        {
-            var blockBuilder = builder[value.BasicBlock];
-            var primitiveSize = blockBuilder.CreatePrimitiveValue(constant);
-            value.Replace(primitiveSize);
-
-            applied = true;
+            return specializer.Applied;
         }
     }
 }

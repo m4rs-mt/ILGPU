@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Runtime;
 using ILGPU.Util;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -87,6 +88,13 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <returns>The new node marker.</returns>
         public NodeMarker NewNodeMarker() => Context.NewNodeMarker();
+
+        /// <summary>
+        /// Creates a node that represents an <see cref="Accelerator.CurrentType"/> property.
+        /// </summary>
+        /// <returns>A reference to the requested value.</returns>
+        public ValueReference CreateAcceleratorTypeValue() =>
+            Append(new AcceleratorTypeValue(Context, BasicBlock));
 
         /// <summary>
         /// Creates a node that represents a <see cref="Warp.WarpSize"/> property.

@@ -38,6 +38,48 @@ namespace ILGPU.IR.Values
     }
 
     /// <summary>
+    /// Represents the <see cref="Warp.LaneIdx"/> property.
+    /// </summary>
+    public sealed class AcceleratorTypeValue : DeviceConstantValue
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new value.
+        /// </summary>
+        /// <param name="context">The current IR context.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
+        internal AcceleratorTypeValue(
+            IRContext context,
+            BasicBlock basicBlock)
+            : base(
+                  ValueKind.AcceleratorType,
+                  basicBlock,
+                  context.GetPrimitiveType(BasicValueType.Int32))
+        { }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+            builder.CreateAcceleratorTypeValue();
+
+        /// <summary cref="Value.Accept" />
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region Object
+
+        /// <summary cref="Node.ToPrefixString"/>
+        protected override string ToPrefixString() => "acclType";
+
+        #endregion
+    }
+
+    /// <summary>
     /// Represents a dimension of a 3D device constant.
     /// </summary>
     public enum DeviceConstantDimension3D

@@ -25,6 +25,7 @@ namespace ILGPU.Frontend.Intrinsic
 {
     enum IntrinsicType
     {
+        Accelerator,
         Atomic,
         Grid,
         Group,
@@ -99,6 +100,9 @@ namespace ILGPU.Frontend.Intrinsic
             {
                 switch (intrinsic.Type)
                 {
+                    case IntrinsicType.Accelerator:
+                        result = HandleAcceleratorOperation(context, intrinsic as AcceleratorIntrinsicAttribute);
+                        break;
                     case IntrinsicType.Atomic:
                         result = HandleAtomicOperation(context, intrinsic as AtomicIntrinsicAttribute);
                         break;

@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.Frontend.Intrinsic;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
@@ -22,7 +23,7 @@ namespace ILGPU.Runtime
     /// <summary>
     /// Represents the general type of an accelerator.
     /// </summary>
-    public enum AcceleratorType
+    public enum AcceleratorType : int
     {
         /// <summary>
         /// Represents a CPU accelerator.
@@ -89,6 +90,16 @@ namespace ILGPU.Runtime
                 default:
                     throw new ArgumentException(RuntimeErrorMessages.NotSupportedTargetAccelerator, nameof(acceleratorId));
             }
+        }
+
+        /// <summary>
+        /// Returns the current accelerator type.
+        /// </summary>
+        /// <remarks>Note that this static property is also accessible within kernels.</remarks>
+        public static AcceleratorType CurrentType
+        {
+            [AcceleratorIntrinsic(AcceleratorIntrinsicKind.CurrentType)]
+            get => AcceleratorType.CPU;
         }
 
         #endregion

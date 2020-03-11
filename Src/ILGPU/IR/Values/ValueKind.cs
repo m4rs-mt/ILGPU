@@ -100,6 +100,11 @@ namespace ILGPU.IR
         // Device Constants
 
         /// <summary>
+        /// A <see cref="Values.AcceleratorTypeValue"/> value.
+        /// </summary>
+        AcceleratorType,
+
+        /// <summary>
         /// A <see cref="Values.GridIndexValue"/> value.
         /// </summary>
         GridIndex,

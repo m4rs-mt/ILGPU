@@ -713,5 +713,9 @@ namespace ILGPU.Backends.OpenCL
         {
             Debug.Assert(false, "Invalid debug node -> should have been removed");
         }
+
+        /// <summary cref="IValueVisitor.Visit(AcceleratorTypeValue)"/>
+        public void Visit(AcceleratorTypeValue handle) =>
+            throw new InvalidCodeGenerationException();
     }
 }
