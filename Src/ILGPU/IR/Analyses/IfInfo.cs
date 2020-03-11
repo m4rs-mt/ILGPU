@@ -91,7 +91,7 @@ namespace ILGPU.IR.Analyses
         #region Methods
 
         /// <summary>
-        /// Returns tue if this is a simple if. A simple if is directly
+        /// Returns true if this is a simple if. A simple if is directly
         /// connected to both branch blocks. Furthermore, each branch block
         /// is directly linked to exit block.
         /// </summary>
@@ -315,8 +315,8 @@ namespace ILGPU.IR.Analyses
     }
 
     /// <summary>
-    /// Inferes high-level control-flow ifs
-    /// from unstructred low-level control flow.
+    /// Infers high-level control-flow ifs
+    /// from unstructured low-level control flow.
     /// </summary>
     [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of this program analysis")]
