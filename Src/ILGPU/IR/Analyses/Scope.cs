@@ -48,17 +48,12 @@ namespace ILGPU.IR.Analyses
         #region Nested Types
 
         /// <summary>
-        /// Represents a visitor for function calls.
+        /// Represents a visitor for values.
         /// </summary>
-        public interface IFunctionCallVisitor
-        {
-            /// <summary>
-            /// Visits the given function call.
-            /// </summary>
-            /// <param name="functionCall">The function call.</param>
-            /// <returns>True, iff the process should be continued.</returns>
-            bool Visit(MethodCall functionCall);
-        }
+        /// <typeparam name="TValue">The value type.</typeparam>
+        /// <param name="value">The value to visit.</param>
+        public delegate void ValueVisitor<in TValue>(TValue value)
+            where TValue : Value;
 
         /// <summary>
         /// Enumerates all actual basic blocks in post order.
@@ -332,14 +327,18 @@ namespace ILGPU.IR.Analyses
         /// starting with the entry block.
         /// </summary>
         /// <param name="entryBlock">The starting block.</param>
-        /// <returns>The resolved list of blocks in post order.</returns>
-        private static List<BasicBlock> ComputePostOrder<THandler>(BasicBlock entryBlock)
+        /// <param name="result">The list of blocks in post order.</param>
+        /// <param name="foundBlocks">The set of found blocks.</param>
+        private static void ComputePostOrder<THandler>(
+            BasicBlock entryBlock,
+            out List<BasicBlock> result,
+            out HashSet<BasicBlock> foundBlocks)
             where THandler : struct, IPostOrderNodeHandler
         {
             THandler handler = default;
 
-            var result = new List<BasicBlock>();
-            var foundBlocks = new HashSet<BasicBlock>();
+            result = new List<BasicBlock>();
+            foundBlocks = new HashSet<BasicBlock>();
             var processed = new Stack<(BasicBlock, int)>();
             var current = (Block: entryBlock, Child: 0);
 
@@ -373,7 +372,6 @@ namespace ILGPU.IR.Analyses
                     break;
                 current = processed.Pop();
             }
-            return result;
         }
 
         /// <summary>
@@ -402,6 +400,7 @@ namespace ILGPU.IR.Analyses
         #region Instance
 
         private readonly List<BasicBlock> postOrder;
+        private readonly HashSet<BasicBlock> contained;
 
         /// <summary>
         /// Creates a new method scope.
@@ -414,10 +413,16 @@ namespace ILGPU.IR.Analyses
             Method = method;
             ScopeFlags = scopeFlags;
 
-            postOrder =
-                (scopeFlags & ScopeFlags.AddAlreadyVisitedNodes) == ScopeFlags.AddAlreadyVisitedNodes ?
-                ComputePostOrder<AddAlreadyVisitedNodesPostOrderHandler>(method.EntryBlock) :
-                ComputePostOrder<DefaultPostOrderHandler>(method.EntryBlock);
+            if ((scopeFlags & ScopeFlags.AddAlreadyVisitedNodes) != ScopeFlags.None)
+                ComputePostOrder<AddAlreadyVisitedNodesPostOrderHandler>(
+                    method.EntryBlock,
+                    out postOrder,
+                    out contained);
+            else
+                ComputePostOrder<DefaultPostOrderHandler>(
+                    method.EntryBlock,
+                    out postOrder,
+                    out contained);
         }
 
         #endregion
@@ -471,6 +476,17 @@ namespace ILGPU.IR.Analyses
         #region Methods
 
         /// <summary>
+        /// Returns true if the given block is contained in this scope.
+        /// </summary>
+        /// <param name="block">The block to test.</param>
+        /// <returns>True, if the given block is contained in this scope.</returns>
+        public bool Contains(BasicBlock block)
+        {
+            Debug.Assert(block != null, "Invalid block");
+            return contained.Contains(block);
+        }
+
+        /// <summary>
         /// Creates a new CFG.
         /// </summary>
         /// <returns>The created CFG.</returns>
@@ -487,18 +503,34 @@ namespace ILGPU.IR.Analyses
             References.Create(this, predicate);
 
         /// <summary>
-        /// Visits all function calls in this scope.
+        /// Executes the given visitor for each terminator is this scope.
         /// </summary>
-        /// <typeparam name="TVisitor">The visitor type.</typeparam>
+        /// <typeparam name="TTerminatorValue">The terminator value to match.</typeparam>
         /// <param name="visitor">The visitor.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void VisitFunctionCalls<TVisitor>(ref TVisitor visitor)
-            where TVisitor : IFunctionCallVisitor
+        public void ForEachTerminator<TTerminatorValue>(ValueVisitor<TTerminatorValue> visitor)
+            where TTerminatorValue : TerminatorValue
+        {
+            foreach (var block in this)
+            {
+                if (block.Terminator.Resolve() is TTerminatorValue terminator)
+                    visitor(terminator);
+            }
+        }
+
+        /// <summary>
+        /// Executes the given visitor for each value in this scope.
+        /// </summary>
+        /// <typeparam name="TValue">The value to match.</typeparam>
+        /// <param name="visitor">The visitor.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ForEachValue<TValue>(ValueVisitor<TValue> visitor)
+            where TValue : Value
         {
             foreach (Value value in Values)
             {
-                if (value is MethodCall call)
-                    visitor.Visit(call);
+                if (value is TValue matchedValue)
+                    visitor(matchedValue);
             }
         }
 
