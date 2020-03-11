@@ -115,13 +115,14 @@ namespace ILGPU.IR.Construction
             Debug.Assert(left != null, "Invalid left node");
             Debug.Assert(right != null, "Invalid right node");
 
+            // TODO: add additional partial arithmetic simplifications in a generic way
             if (UseConstantPropagation && left is PrimitiveValue leftValue)
             {
                 // Check for constants
-                if (right is PrimitiveValue rightValue)
+                if (right is PrimitiveValue rightConstant)
                 {
                     return BinaryArithmeticFoldConstants(
-                        leftValue, rightValue, kind, flags);
+                        leftValue, rightConstant, kind, flags);
                 }
 
                 if (kind == BinaryArithmeticKind.Div)
@@ -139,6 +140,30 @@ namespace ILGPU.IR.Construction
                         default:
                             break;
                     }
+                }
+            }
+
+            // TODO: remove the following hard-coded rules
+            if (right is PrimitiveValue rightValue &&
+                left.BasicValueType.IsInt() && Utilities.IsPowerOf2(rightValue.RawValue))
+            {
+                if (kind == BinaryArithmeticKind.Div || kind == BinaryArithmeticKind.Mul)
+                {
+                    var shiftAmount = CreatePrimitiveValue((int)Math.Log(
+                        Math.Abs((double)rightValue.RawValue),
+                        2.0));
+                    var leftKind = Utilities.Select(
+                        kind == BinaryArithmeticKind.Div,
+                        BinaryArithmeticKind.Shr,
+                        BinaryArithmeticKind.Shl);
+                    var rightKind = Utilities.Select(
+                        leftKind == BinaryArithmeticKind.Shr,
+                        BinaryArithmeticKind.Shl,
+                        BinaryArithmeticKind.Shr);
+                    return CreateArithmetic(
+                        left,
+                        shiftAmount,
+                        Utilities.Select(rightValue.RawValue > 0, leftKind, rightKind));
                 }
             }
 
