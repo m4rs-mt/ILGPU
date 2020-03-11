@@ -218,6 +218,19 @@ namespace ILGPU.IR
         #region Methods
 
         /// <summary>
+        /// Returns true if the given block is a registered successor.
+        /// </summary>
+        /// <param name="successor">The potential successor block.</param>
+        /// <returns>True, if the given block is a registered successor.</returns>
+        public bool HasSuccessor(BasicBlock successor)
+        {
+            foreach (var succ in Successors)
+                if (succ == successor)
+                    return true;
+            return false;
+        }
+
+        /// <summary>
         /// Checks whether this block has side effects.
         /// </summary>
         /// <returns>True, if this block has side effects.</returns>

@@ -50,6 +50,15 @@ namespace ILGPU.IR.Analyses
             IfBlock = ifBlock;
             ElseBlock = elseBlock;
             ExitBlock = exitBlock;
+
+            // Check if and else blocks
+            if (IfBlock == exitBlock)
+            {
+                IfBlock = elseBlock;
+                ElseBlock = null;
+            }
+            else if (ElseBlock == exitBlock)
+                ElseBlock = null;
         }
 
         #endregion
@@ -97,16 +106,26 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <returns>True, if this is a simple if.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsSimpleIf() =>
-            HasElseBlock &&
-            // Check direct connection of the entry node
-            EntryBlock.Successors[0] == IfBlock &&
-            EntryBlock.Successors[1] == ElseBlock &&
-            // Check direct connection of the exit node
-            IfBlock.Successors.Length == 1 &&
-            IfBlock.Successors[0] == ExitBlock &&
-            ElseBlock.Successors.Length == 1 &&
-            ElseBlock.Successors[0] == ExitBlock;
+        public bool IsSimpleIf()
+        {
+            if (HasElseBlock)
+                return
+                // Check direct connection of the entry node
+                EntryBlock.HasSuccessor(IfBlock) &&
+                EntryBlock.HasSuccessor(ElseBlock) &&
+                // Check direct connection of the exit node
+                IfBlock.Successors.Length == 1 &&
+                IfBlock.Successors[0] == ExitBlock &&
+                ElseBlock.Successors.Length == 1 &&
+                ElseBlock.Successors[0] == ExitBlock;
+            return
+                // Check direct connection of the entry node
+                EntryBlock.HasSuccessor(IfBlock) &&
+                EntryBlock.HasSuccessor(ExitBlock) &&
+                // Check direct connection of the exit node
+                IfBlock.Successors.Length == 1 &&
+                IfBlock.Successors[0] == ExitBlock;
+        }
 
         /// <summary>
         /// Returns true if this if has side effects.
@@ -121,8 +140,7 @@ namespace ILGPU.IR.Analyses
         /// Resolves detailed variable information.
         /// </summary>
         /// <returns>The resolved variable information.</returns>
-        public IfVariableInfo ResolveVariableInfo() =>
-            new IfVariableInfo(this);
+        public IfVariableInfo ResolveVariableInfo() => new IfVariableInfo(this);
 
         #endregion
     }
@@ -240,10 +258,9 @@ namespace ILGPU.IR.Analyses
         /// <param name="ifInfo">The variable info.</param>
         internal IfVariableInfo(in IfInfo ifInfo)
         {
-            Debug.Assert(ifInfo.HasElseBlock, "Invalid variable information");
             int capacity = IntrinsicMath.Max(
                 ifInfo.IfBlock.Count,
-                ifInfo.ElseBlock.Count);
+                ifInfo.ElseBlock?.Count ?? 0);
 
             variableValues = new HashSet<Value>();
             variablesInfo = new Dictionary<PhiValue, Variable>(capacity);
@@ -269,7 +286,7 @@ namespace ILGPU.IR.Analyses
             }
 
             // Link else block
-            foreach (Value value in ifInfo.ElseBlock)
+            foreach (Value value in (ifInfo.ElseBlock ?? ifInfo.EntryBlock))
             {
                 foreach (var use in value.Uses)
                 {

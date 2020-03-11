@@ -78,7 +78,7 @@ namespace ILGPU.IR.Transformations
 
                 // Check size constraints
                 int ifBlockSize = ifInfo.IfBlock.Count;
-                int elseBlockSize = ifInfo.ElseBlock.Count;
+                int elseBlockSize = ifInfo.HasElseBlock ? ifInfo.ElseBlock.Count : ifBlockSize;
                 int blockSizeDiff = IntrinsicMath.Abs(ifBlockSize - elseBlockSize);
 
                 if (ifBlockSize > MaxBlockSize ||
@@ -112,7 +112,8 @@ namespace ILGPU.IR.Transformations
                 // Merge all blocks
                 var blockBuilder = builder[ifInfo.EntryBlock];
                 blockBuilder.MergeBlock(ifInfo.IfBlock);
-                blockBuilder.MergeBlock(ifInfo.ElseBlock);
+                if (ifInfo.HasElseBlock)
+                    blockBuilder.MergeBlock(ifInfo.ElseBlock);
                 blockBuilder.MergeBlock(ifInfo.ExitBlock);
 
                 converted = true;
