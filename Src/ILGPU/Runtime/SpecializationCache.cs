@@ -123,13 +123,14 @@ namespace ILGPU.Runtime
         private Method CreateKernelWrapper(Method kernelMethod, in TArgs args)
         {
             // Create a new wrapper kernel launcher
-            var handle = MethodHandle.Create("Bla");
+            var handle = MethodHandle.Create("LauncherWrapper");
             var targetContext = kernelMethod.Context;
             var targetMethod = targetContext.Declare(
                 new MethodDeclaration(
                     handle,
                     targetContext.VoidType),
                 out var _);
+            kernelMethod.AddFlags(MethodFlags.Inline);
             using (var methodBuilder = targetMethod.CreateBuilder())
             {
                 var blockBuilder = methodBuilder.CreateEntryBlock();
