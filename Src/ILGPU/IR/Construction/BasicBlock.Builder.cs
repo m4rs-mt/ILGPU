@@ -138,7 +138,7 @@ namespace ILGPU.IR
             /// </summary>
             /// <param name="valueEntry">The value entry.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void SetupInsertPosition(in ValueEntry valueEntry)
+            public void SetupInsertPosition(ValueEntry valueEntry)
             {
                 InsertPosition = valueEntry.Index + 1;
             }
@@ -148,7 +148,7 @@ namespace ILGPU.IR
             /// </summary>
             /// <param name="value">The value entry.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void SetupInsertPosition(in Value value)
+            public void SetupInsertPosition(Value value)
             {
                 Debug.Assert(value.BasicBlock == BasicBlock, "Invalid block association");
                 InsertPosition = Values.IndexOf(value);
@@ -186,9 +186,19 @@ namespace ILGPU.IR
             }
 
             /// <summary>
-            /// Clears all attached values (except the terminator).
+            /// Removes all operations of this block (including the terminator).
             /// </summary>
             public void Clear()
+            {
+                foreach (var reference in Values)
+                    toRemove.Add(reference.DirectTarget);
+                toRemove.Add(Terminator);
+            }
+
+            /// <summary>
+            /// Clears all attached values (except the terminator).
+            /// </summary>
+            private void ClearLists()
             {
                 Values.Clear();
                 toRemove.Clear();
@@ -412,7 +422,7 @@ namespace ILGPU.IR
                     Value movedValue = values[offset];
                     movedValue.BasicBlock = BasicBlock;
                 }
-                otherBuilder.Clear();
+                otherBuilder.ClearLists();
 
                 // Wire terminators
                 Terminator = other.Terminator;
