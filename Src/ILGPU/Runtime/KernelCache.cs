@@ -196,7 +196,7 @@ namespace ILGPU.Runtime
         {
             #region Instance
 
-            private WeakReference<Kernel> kernelReference;
+            private WeakReference<object> kernelReference;
 
             /// <summary>
             /// Constructs a new cached kernel.
@@ -205,7 +205,7 @@ namespace ILGPU.Runtime
             /// <param name="groupSize">The computed group size.</param>
             /// <param name="minGridSize">The computed minimum grid size.</param>
             public CachedKernel(
-                WeakReference<Kernel> kernel,
+                WeakReference<object> kernel,
                 int groupSize,
                 int minGridSize)
             {
@@ -236,10 +236,15 @@ namespace ILGPU.Runtime
             /// Tries to resolve the associated kernel.
             /// </summary>
             /// <param name="kernel">The resolved kernel.</param>
-            /// <returns>True, iff the associated kernel could be resolved.</returns>
-            public bool TryGetKernel(out Kernel kernel)
+            /// <returns>True, if the associated kernel could be resolved.</returns>
+            public bool TryGetKernel<T>(out T kernel)
+                where T : class
             {
-                return kernelReference.TryGetTarget(out kernel);
+                kernel = null;
+                if (!kernelReference.TryGetTarget(out var temp))
+                    return false;
+
+                return (kernel = temp as T) != null;
             }
 
             /// <summary>
@@ -248,12 +253,13 @@ namespace ILGPU.Runtime
             /// </summary>
             /// <param name="target">The new target kernel.</param>
             /// <returns>An updated weak reference that points to the given target.</returns>
-            public WeakReference<Kernel> UpdateReference(Kernel target)
+            public WeakReference<object> UpdateReference<T>(T target)
+                where T : class
             {
                 if (kernelReference != null)
                     kernelReference.SetTarget(target);
                 else
-                    kernelReference = new WeakReference<Kernel>(target);
+                    kernelReference = new WeakReference<object>(target);
                 return kernelReference;
             }
 
@@ -283,6 +289,13 @@ namespace ILGPU.Runtime
             /// <returns>The loaded kernel.</returns>
             Kernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel);
         }
+
+        /// <summary>
+        /// Represents an internal cached kernel loader.
+        /// </summary>
+        private delegate T CachedKernelLoader<T, TKernelLoader>(ref TKernelLoader kernelLoader)
+            where T : class
+            where TKernelLoader : struct, IKernelLoader;
 
         #endregion
 
@@ -322,7 +335,7 @@ namespace ILGPU.Runtime
         private bool KernelCacheEnabled => kernelCache != null;
 
         /// <summary>
-        /// True, iff a GC run is requested to clean disposed child kernels.
+        /// True, if a GC run is requested to clean disposed child kernels.
         /// </summary>
         /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
         private bool RequestKernelCacheGC_SyncRoot =>
@@ -333,6 +346,55 @@ namespace ILGPU.Runtime
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Loads a kernel specified by the given method.
+        /// </summary>
+        /// <typeparam name="TKernelLoader">The type of the kernel loader.</typeparam>
+        /// <typeparam name="T">The internal cached type.</typeparam>
+        /// <param name="entry">The entry point to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <param name="kernelLoader">The kernel loader.</param>
+        /// <param name="cachedLoader">The cached kernel loader.</param>
+        /// <returns>The loaded kernel.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private T LoadCachedKernel<TKernelLoader, T>(
+            in EntryPointDescription entry,
+            in KernelSpecialization specialization,
+            ref TKernelLoader kernelLoader,
+            CachedKernelLoader<T, TKernelLoader> cachedLoader)
+            where T : class
+            where TKernelLoader : struct, IKernelLoader
+        {
+            if (KernelCacheEnabled)
+            {
+                var cachedCompiledKernelKey = new CachedCompiledKernelKey(entry, specialization);
+                var cachedKey = new CachedKernelKey(cachedCompiledKernelKey, kernelLoader.GroupSize);
+                lock (syncRoot)
+                {
+                    if (!kernelCache.TryGetValue(cachedKey, out CachedKernel cached) ||
+                        !cached.TryGetKernel(out T result))
+                    {
+                        result = cachedLoader(ref kernelLoader);
+                        kernelCache[cachedKey] = new CachedKernel(
+                            cached.UpdateReference(result),
+                            kernelLoader.GroupSize,
+                            kernelLoader.MinGridSize);
+                    }
+                    else
+                    {
+                        kernelLoader.MinGridSize = cached.MinGridSize;
+                        kernelLoader.GroupSize = cached.GroupSize;
+                    }
+                    RequestGC_SyncRoot();
+                    return result;
+                }
+            }
+            else
+            {
+                return cachedLoader(ref kernelLoader);
+            }
+        }
 
         /// <summary>
         /// Loads a kernel specified by the given method without using internal caches.
@@ -356,45 +418,73 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Loads a kernel specified by the given method.
         /// </summary>
-        /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
+        /// <typeparam name="TKernelLoader">The type of the kernel loader.</typeparam>
         /// <param name="entry">The entry point to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
         /// <returns>The loaded kernel.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Kernel LoadGenericKernel<TKernelLoader>(
+            EntryPointDescription entry,
+            KernelSpecialization specialization,
+            ref TKernelLoader kernelLoader)
+            where TKernelLoader : struct, IKernelLoader =>
+            LoadCachedKernel(
+                entry,
+                specialization,
+                ref kernelLoader,
+                (ref TKernelLoader loader) =>
+                    LoadGenericKernelDirect(entry, specialization, ref loader));
+
+        /// <summary>
+        /// Loads a kernel specified by the given method without using internal caches.
+        /// </summary>
+        /// <param name="entry">The entry point to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <param name="kernelLoader">The kernel loader.</param>
+        /// <returns>The loaded specialized kernel delegate.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private TDelegate LoadSpecializationKernelDirect<TDelegate, TKernelLoader>(
             in EntryPointDescription entry,
             in KernelSpecialization specialization,
             ref TKernelLoader kernelLoader)
+            where TDelegate : Delegate
             where TKernelLoader : struct, IKernelLoader
         {
-            if (KernelCacheEnabled)
-            {
-                var cachedCompiledKernelKey = new CachedCompiledKernelKey(entry, specialization);
-                var cachedKey = new CachedKernelKey(cachedCompiledKernelKey, kernelLoader.GroupSize);
-                lock (syncRoot)
-                {
-                    if (!kernelCache.TryGetValue(cachedKey, out CachedKernel cached) ||
-                        !cached.TryGetKernel(out Kernel result))
-                    {
-                        result = LoadGenericKernelDirect(entry, specialization, ref kernelLoader);
-                        kernelCache[cachedKey] = new CachedKernel(
-                            cached.UpdateReference(result),
-                            kernelLoader.GroupSize,
-                            kernelLoader.MinGridSize);
-                    }
-                    else
-                    {
-                        kernelLoader.MinGridSize = cached.MinGridSize;
-                        kernelLoader.GroupSize = cached.GroupSize;
-                    }
-                    RequestGC_SyncRoot();
-                    return result;
-                }
-            }
-            else
-                return LoadGenericKernelDirect(entry, specialization, ref kernelLoader);
+            var kernelMethod = Backend.PreCompileKernelMethod(entry);
+            return Kernel.CreateSpecializedLauncher<TDelegate, TKernelLoader>(
+                this,
+                entry,
+                specialization,
+                kernelMethod,
+                ref kernelLoader);
         }
+
+        /// <summary>
+        /// Loads a kernel specified by the given method.
+        /// </summary>
+        /// <typeparam name="TDelegate">The delegate type.</typeparam>
+        /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
+        /// <param name="entry">The entry point to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <param name="kernelLoader">The kernel loader.</param>
+        /// <returns>The loaded kernel.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private TDelegate LoadSpecializationKernel<TDelegate, TKernelLoader>(
+            EntryPointDescription entry,
+            KernelSpecialization specialization,
+            ref TKernelLoader kernelLoader)
+            where TDelegate : Delegate
+            where TKernelLoader : struct, IKernelLoader =>
+            LoadCachedKernel(
+                entry,
+                specialization,
+                ref kernelLoader,
+                (ref TKernelLoader loader) =>
+                    LoadSpecializationKernelDirect<TDelegate, TKernelLoader>(
+                        entry,
+                        specialization,
+                        ref loader));
 
         /// <summary>
         /// Compiles the given method into a <see cref="CompiledKernel"/>.
@@ -415,7 +505,7 @@ namespace ILGPU.Runtime
             in EntryPointDescription entry,
             in KernelSpecialization specialization)
         {
-            // Check for compatiblity
+            // Check for compatibility
             if (!specialization.IsCompatibleWith(this))
                 throw new NotSupportedException(
                     RuntimeErrorMessages.NotSupportedKernelSpecialization);
@@ -444,7 +534,7 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Clears the internal cache cache.
+        /// Clears the internal cache.
         /// </summary>
         private void ClearKernelCache_SyncRoot()
         {
@@ -482,7 +572,7 @@ namespace ILGPU.Runtime
                 kernelCache = new Dictionary<CachedKernelKey, CachedKernel>();
                 foreach (var entry in oldKernels)
                 {
-                    if (entry.Value.TryGetKernel(out Kernel _))
+                    if (entry.Value.TryGetKernel(out object _))
                         kernelCache.Add(entry.Key, entry.Value);
                 }
             }

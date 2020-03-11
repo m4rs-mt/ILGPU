@@ -23,7 +23,7 @@ namespace ILGPU.Runtime
         #region Kernel Creation
 
         /// <summary>
-        /// Adjusts and verifies a customm group size of a specific kernel.
+        /// Adjusts and verifies a custom group size of a specific kernel.
         /// Note that this function ensures that implicitly grouped kernels
         /// without an explicit group size will be launched with a group size
         /// that is equal to the available warp size.
@@ -84,7 +84,7 @@ namespace ILGPU.Runtime
         /// <param name="customGroupSize">The custom group size to use.</param>
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
-        /// Note that implictly-grouped kernel will be launched with the given group size.
+        /// Note that implicitly-grouped kernel will be launched with the given group size.
         /// </remarks>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
@@ -101,7 +101,7 @@ namespace ILGPU.Runtime
         /// <param name="customGroupSize">The custom group size to use.</param>
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
-        /// Note that implictly-grouped kernel will be launched with the given group size.
+        /// Note that implicitly-grouped kernel will be launched with the given group size.
         /// </remarks>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
@@ -241,7 +241,7 @@ namespace ILGPU.Runtime
 
         /// <summary>
         /// Loads a kernel specified by the given method and returns a launcher of the specified type.
-        /// Note that implictly-grouped kernels will be launched with a group size
+        /// Note that implicitly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </summary>
         /// <typeparam name="TDelegate">The delegate type.</typeparam>
@@ -269,36 +269,12 @@ namespace ILGPU.Runtime
             return kernel.CreateLauncherDelegate<TDelegate>();
         }
 
-        /// <summary>
-        /// Loads a kernel specified by the given method without using internal caches.
-        /// </summary>
-        /// <param name="entry">The entry point to compile into a kernel.</param>
-        /// <param name="specialization">The kernel specialization.</param>
-        /// <param name="kernelLoader">The kernel loader.</param>
-        /// <returns>The loaded specialized kernel delegate.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private TDelegate LoadSpecializationKernel<TDelegate, TKernelLoader>(
-            in EntryPointDescription entry,
-            in KernelSpecialization specialization,
-            ref TKernelLoader kernelLoader)
-            where TDelegate : Delegate
-            where TKernelLoader : struct, IKernelLoader
-        {
-            var kernelMethod = Backend.PreCompileKernelMethod(entry);
-            return Kernel.CreateSpecializedLauncher<TDelegate, TKernelLoader>(
-                this,
-                entry,
-                specialization,
-                kernelMethod,
-                ref kernelLoader);
-        }
-
         #endregion
 
         #region Kernel Loading
 
         /// <summary>
-        /// Loads the given explicitly grouped kernel. Implictly-grouped kernels are not supported.
+        /// Loads the given explicitly grouped kernel. Implicitly-grouped kernels are not supported.
         /// </summary>
         /// <param name="method">The method to compile into a kernel.</param>
         /// <returns>The loaded kernel.</returns>
@@ -307,7 +283,7 @@ namespace ILGPU.Runtime
             LoadKernel(method, KernelSpecialization.Empty);
 
         /// <summary>
-        /// Loads the given explicitly grouped kernel. Implictly-grouped kernels are not supported.
+        /// Loads the given explicitly grouped kernel. Implicitly-grouped kernels are not supported.
         /// </summary>
         /// <param name="method">The method to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
@@ -323,7 +299,7 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Loads the given implicitly-grouped kernel. Implictly-grouped kernel
+        /// Loads the given implicitly-grouped kernel. Implicitly-grouped kernel
         /// will be launched with the given group size.
         /// </summary>
         /// <param name="method">The method to compile into a kernel.</param>
@@ -384,7 +360,7 @@ namespace ILGPU.Runtime
         /// <param name="method">The method to compile into a kernel.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         /// <remarks>
-        /// Note that implictly-grouped kernels are not supported.
+        /// Note that implicitly-grouped kernels are not supported.
         /// </remarks>
         public TDelegate LoadKernel<TDelegate>(MethodInfo method)
             where TDelegate : Delegate =>
@@ -399,7 +375,7 @@ namespace ILGPU.Runtime
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         /// <remarks>
-        /// Note that implictly-grouped kernels will be launched with a group size
+        /// Note that implicitly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
         public TDelegate LoadKernel<TDelegate>(MethodInfo method, KernelSpecialization specialization)
@@ -420,7 +396,7 @@ namespace ILGPU.Runtime
         /// <param name="customGroupSize">The custom group size to use.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         /// <remarks>
-        /// Note that implictly-grouped kernel will be launched with the given
+        /// Note that implicitly-grouped kernel will be launched with the given
         /// group size.
         /// </remarks>
         public TDelegate LoadImplicitlyGroupedKernel<TDelegate>(MethodInfo method, int customGroupSize)
@@ -484,7 +460,7 @@ namespace ILGPU.Runtime
         /// <param name="methodDelegate">The delegate to compile into a kernel.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         /// <remarks>
-        /// Note that implictly-grouped kernels will be launched with a group size
+        /// Note that implicitly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
         public TDelegate LoadKernel<TDelegate, TSourceDelegate>(TSourceDelegate methodDelegate)
@@ -502,7 +478,7 @@ namespace ILGPU.Runtime
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         /// <remarks>
-        /// Note that implictly-grouped kernels will be launched with a group size
+        /// Note that implicitly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
         public TDelegate LoadKernel<TDelegate, TSourceDelegate>(
@@ -522,7 +498,7 @@ namespace ILGPU.Runtime
         /// <param name="customGroupSize">The custom group size to use.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         /// <remarks>
-        /// Note that implictly-grouped kernel will be launched with the given
+        /// Note that implicitly-grouped kernel will be launched with the given
         /// group size.
         /// </remarks>
         public TDelegate LoadImplicitlyGroupedKernel<TDelegate, TSourceDelegate>(

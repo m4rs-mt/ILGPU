@@ -66,10 +66,10 @@ namespace ILGPU.Runtime
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given specialization is equal to the current specialization.
+        /// Returns true if the given specialization is equal to the current specialization.
         /// </summary>
         /// <param name="other">The other specialization.</param>
-        /// <returns>True, iff the given specialization is equal to the current specialization.</returns>
+        /// <returns>True, if the given specialization is equal to the current specialization.</returns>
         public bool Equals(KernelSpecialization other)
         {
             return this == other;
@@ -83,14 +83,14 @@ namespace ILGPU.Runtime
         /// Checks whether the given accelerator is compatible with the current specialization.
         /// </summary>
         /// <param name="accelerator">The target accelerator.</param>
-        /// <returns>True, iff the given accelerator is compatible with the current specialization.</returns>
+        /// <returns>True, if the given accelerator is compatible with the current specialization.</returns>
         public bool IsCompatibleWith(Accelerator accelerator)
         {
             if (accelerator == null)
                 throw new ArgumentNullException(nameof(accelerator));
 
             // TODO: We might want to verify MinNumGroupsPerMultiprocessor in the future at this point.
-            // However, this requires further extensions of the accelerator api.
+            // However, this requires further extensions of the accelerator API.
             if (!MaxNumThreadsPerGroup.HasValue)
                 return true;
 
@@ -102,10 +102,10 @@ namespace ILGPU.Runtime
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current specialization.
+        /// Returns true if the given object is equal to the current specialization.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current specialization.</returns>
+        /// <returns>True, if the given object is equal to the current specialization.</returns>
         public override bool Equals(object obj)
         {
             if (obj is KernelSpecialization other)
@@ -136,11 +136,11 @@ namespace ILGPU.Runtime
         #region Operators
 
         /// <summary>
-        /// Returns true iff the specialization and second specialization are the same.
+        /// Returns true if the specialization and second specialization are the same.
         /// </summary>
         /// <param name="first">The first specialization.</param>
         /// <param name="second">The second specialization.</param>
-        /// <returns>True, iff the first and second specialization are the same.</returns>
+        /// <returns>True, if the first and second specialization are the same.</returns>
         public static bool operator ==(KernelSpecialization first, KernelSpecialization second)
         {
             return first.MaxNumThreadsPerGroup.GetValueOrDefault(0) ==
@@ -150,11 +150,11 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Returns true iff the first and second specialization are not the same.
+        /// Returns true if the first and second specialization are not the same.
         /// </summary>
         /// <param name="first">The first specialization.</param>
         /// <param name="second">The second specialization.</param>
-        /// <returns>True, iff the first and second specialization are not the same.</returns>
+        /// <returns>True, if the first and second specialization are not the same.</returns>
         public static bool operator !=(KernelSpecialization first, KernelSpecialization second)
         {
             return !(first == second);
