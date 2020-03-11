@@ -173,6 +173,21 @@ namespace ILGPU.IR.Analyses
                 #region Methods
 
                 /// <summary>
+                /// Tries to find a node with the given id.
+                /// </summary>
+                /// <param name="nodeId">The node id to look for.</param>
+                /// <returns>The found node (if any).</returns>
+                public Node Find(NodeId nodeId)
+                {
+                    foreach (var node in Nodes)
+                    {
+                        if (node.Block.Id == nodeId)
+                            return node;
+                    }
+                    return null;
+                }
+
+                /// <summary>
                 /// Returns a node enumerator to iterate over all attached nodes.
                 /// </summary>
                 /// <returns>The resulting node enumerator.</returns>
