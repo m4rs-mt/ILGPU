@@ -144,6 +144,12 @@ namespace ILGPU.IR
             }
 
             /// <summary>
+            /// Sets the insert position to the end of the current value list.
+            /// </summary>
+            public void SetupInsertPositionToEnd() =>
+                InsertPosition = Values.Count;
+
+            /// <summary>
             /// Sets the insert position to the index stored in the given value entry.
             /// </summary>
             /// <param name="value">The value entry.</param>
