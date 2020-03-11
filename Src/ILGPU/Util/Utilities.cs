@@ -9,12 +9,14 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Util
 {
     /// <summary>
-    /// General util methods.
+    /// General utility methods.
     /// </summary>
     public static class Utilities
     {
@@ -32,13 +34,13 @@ namespace ILGPU.Util
         }
 
         /// <summary>
-        /// Swaps the given values iff swap is true.
+        /// Swaps the given values if swap is true.
         /// </summary>
         /// <typeparam name="T">The type of the values.</typeparam>
-        /// <param name="performSwap">True, iff the values should be swapped.</param>
+        /// <param name="performSwap">True, if the values should be swapped.</param>
         /// <param name="first">The first value to swap with the second one.</param>
         /// <param name="second">The second value to swap with the first one.</param>
-        /// <returns>True, iff the values were swapped.</returns>
+        /// <returns>True, if the values were swapped.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Swap<T>(bool performSwap, ref T first, ref T second)
         {
@@ -62,5 +64,26 @@ namespace ILGPU.Util
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Select<T>(bool takeFirst, T first, T second) =>
             takeFirst ? first : second;
+
+        /// <summary>
+        /// Returns true if the given integer is a power of two.
+        /// </summary>
+        /// <param name="value">The integer value.</param>
+        /// <returns>True, if the given integer is a power of two.</returns>
+        public static bool IsPowerOf2(long value)
+        {
+            Debug.Assert(value > long.MinValue, "Invalid power of two");
+            return IsPowerOf2((ulong)IntrinsicMath.Abs(value));
+        }
+
+        /// <summary>
+        /// Returns true if the given integer is a power of two.
+        /// </summary>
+        /// <param name="value">The integer value.</param>
+        /// <returns>True, if the given integer is a power of two.</returns>
+        [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsPowerOf2(ulong value) =>
+            value > 0 & ((value & (value - 1)) == 0);
     }
 }
