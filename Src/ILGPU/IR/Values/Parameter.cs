@@ -33,9 +33,8 @@ namespace ILGPU.IR.Values
             Method method,
             TypeNode type,
             string name)
-            : base(ValueKind.Parameter, null, type, ValueFlags.NotReplacable)
+            : base(ValueKind.Parameter, method, type)
         {
-            Method = method;
             ParameterType = type;
             Name = name ?? "param";
             Seal(ImmutableArray<ValueReference>.Empty);

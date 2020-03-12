@@ -78,7 +78,7 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents a method node within the IR.
     /// </summary>
-    public sealed partial class Method : Node, IMethodMappingObject
+    public sealed partial class Method : ValueParent, IMethodMappingObject
     {
         #region Nested Types
 

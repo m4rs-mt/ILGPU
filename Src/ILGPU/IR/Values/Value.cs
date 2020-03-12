@@ -213,6 +213,12 @@ namespace ILGPU.IR
         #region Instance
 
         /// <summary>
+        /// The current parent container.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ValueParent parent;
+
+        /// <summary>
         /// The current node type.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -225,33 +231,32 @@ namespace ILGPU.IR
         private readonly HashSet<Use> allUses = new HashSet<Use>();
 
         /// <summary>
-        /// Constructs a new value that is marked as replacable.
+        /// Constructs a new value that is marked as replaceable.
         /// </summary>
         /// <param name="kind">The value kind.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="parentValue">The parent.</param>
         /// <param name="initialType">The initial node type.</param>
-        protected Value(ValueKind kind, BasicBlock basicBlock, TypeNode initialType)
-            : this(kind, basicBlock, initialType, DefaultFlags)
+        protected Value(ValueKind kind, ValueParent parentValue, TypeNode initialType)
+            : this(kind, parentValue, initialType, DefaultFlags)
         { }
 
         /// <summary>
         /// Constructs a new value.
         /// </summary>
         /// <param name="valueKind">The value kind.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="parentValue">The parent.</param>
         /// <param name="initialType">The initial node type.</param>
         /// <param name="valueFlags">Custom value flags.</param>
         protected Value(
             ValueKind valueKind,
-            BasicBlock basicBlock,
+            ValueParent parentValue,
             TypeNode initialType,
             ValueFlags valueFlags)
         {
             Debug.Assert(initialType != null, "Invalid initialType");
 
             ValueKind = valueKind;
-            BasicBlock = basicBlock;
-            Method = basicBlock?.Method;
+            parent = parentValue;
             type = initialType;
             Nodes = ImmutableArray<ValueReference>.Empty;
 
@@ -271,12 +276,28 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the parent method.
         /// </summary>
-        public Method Method { get; protected set; }
+        public Method Method
+        {
+            get
+            {
+                if (parent is BasicBlock basicBlock)
+                    return basicBlock.Method;
+                return parent as Method;
+            }
+        }
 
         /// <summary>
         /// Returns the parent basic block.
         /// </summary>
-        public BasicBlock BasicBlock { get; internal set; }
+        public BasicBlock BasicBlock
+        {
+            get => parent as BasicBlock;
+            internal set
+            {
+                Debug.Assert(parent.IsBasicBlock, "Invalid basic block binding");
+                parent = value;
+            }
+        }
 
         /// <summary>
         /// Returns the associated type.
@@ -569,6 +590,26 @@ namespace ILGPU.IR
         /// <returns>The hash code of this value.</returns>
         public override int GetHashCode() =>
             base.GetHashCode();
+
+        #endregion
+    }
+
+    /// <summary>
+    /// A parent value container that holds and manages values.
+    /// </summary>
+    public abstract class ValueParent : Node
+    {
+        #region Properties
+
+        /// <summary>
+        /// Returns true if this parent container is a block.
+        /// </summary>
+        public bool IsBasicBlock => this is BasicBlock;
+
+        /// <summary>
+        /// Returns true if this container is method.
+        /// </summary>
+        public bool IsMethod => this is Method;
 
         #endregion
     }

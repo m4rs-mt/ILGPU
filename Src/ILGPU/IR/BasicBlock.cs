@@ -26,7 +26,7 @@ namespace ILGPU.IR
     /// </summary>
     [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of the current entity")]
-    public sealed partial class BasicBlock : Node, IReadOnlyCollection<BasicBlock.ValueEntry>
+    public sealed partial class BasicBlock : ValueParent, IReadOnlyCollection<BasicBlock.ValueEntry>
     {
         #region Nested Types
 
