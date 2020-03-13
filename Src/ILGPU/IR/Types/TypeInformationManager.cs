@@ -41,15 +41,17 @@ namespace ILGPU.IR.Types
             /// <param name="parent">The parent type manager.</param>
             /// <param name="type">The .Net type.</param>
             /// <param name="fields">All managed fields.</param>
+            /// <param name="fieldOffsets">All field offsets.</param>
             /// <param name="fieldTypes">All managed field types.</param>
-            /// <param name="fieldIndices">Maps fields to their indices.</param>
+            /// <param name="numFlattenedFiels">The number of flattened fields.</param>
             /// <param name="isBlittable">True, if this type is blittable.</param>
             internal TypeInformation(
                 TypeInformationManager parent,
                 Type type,
                 ImmutableArray<FieldInfo> fields,
+                ImmutableArray<int> fieldOffsets,
                 ImmutableArray<Type> fieldTypes,
-                ImmutableDictionary<FieldInfo, int> fieldIndices,
+                int numFlattenedFiels,
                 bool isBlittable)
             {
                 Debug.Assert(parent != null, "Invalid parent");
@@ -58,9 +60,10 @@ namespace ILGPU.IR.Types
                 Parent = parent;
                 ManagedType = type;
                 Fields = fields;
+                FieldOffsets = fieldOffsets;
                 FieldTypes = fieldTypes;
-                FieldIndices = fieldIndices;
                 IsBlittable = isBlittable;
+                NumFlattendedFields = numFlattenedFiels;
             }
 
             #endregion
@@ -83,13 +86,6 @@ namespace ILGPU.IR.Types
             public int NumFields => Fields.Length;
 
             /// <summary>
-            /// Resolves the index of the given field.
-            /// </summary>
-            /// <param name="field">The field.</param>
-            /// <returns>The field index.</returns>
-            public int this[FieldInfo field] => FieldIndices[field];
-
-            /// <summary>
             /// Returns all fields.
             /// </summary>
             public ImmutableArray<FieldInfo> Fields { get; }
@@ -100,14 +96,19 @@ namespace ILGPU.IR.Types
             public ImmutableArray<Type> FieldTypes { get; }
 
             /// <summary>
-            /// Maps field information to field indices.
+            /// Returns all field offsets.
             /// </summary>
-            public ImmutableDictionary<FieldInfo, int> FieldIndices { get; }
+            public ImmutableArray<int> FieldOffsets { get; }
 
             /// <summary>
             /// Returns true if the associated .Net type is blittable.
             /// </summary>
             public bool IsBlittable { get; }
+
+            /// <summary>
+            /// Returns the number of flattened fields.
+            /// </summary>
+            public int NumFlattendedFields { get; }
 
             #endregion
 
@@ -137,14 +138,18 @@ namespace ILGPU.IR.Types
             }
 
             /// <summary>
-            /// Tries to resolve an index of the given field.
+            /// Gets the absolute index of the given field.
             /// </summary>
-            /// <param name="info">The field.</param>
-            /// <param name="index">The target index.</param>
-            /// <returns>True, if the field could be resolved.</returns>
-            public bool TryResolveIndex(FieldInfo info, out int index)
+            /// <param name="info">The field to get.</param>
+            /// <returns>The absolute field index.</returns>
+            public int GetAbsoluteIndex(FieldInfo info)
             {
-                return FieldIndices.TryGetValue(info, out index);
+                for (int i = 0, e = NumFields; i < e; ++i)
+                {
+                    if (Fields[i] == info)
+                        return FieldOffsets[i];
+                }
+                return -1;
             }
 
             #endregion
@@ -263,8 +268,9 @@ namespace ILGPU.IR.Types
                 this,
                 type,
                 ImmutableArray<FieldInfo>.Empty,
+                ImmutableArray<int>.Empty,
                 ImmutableArray<Type>.Empty,
-                ImmutableDictionary<FieldInfo, int>.Empty,
+                1,
                 isBlittable);
             typeInfoMapping.Add(type, result);
             return result;
@@ -316,25 +322,27 @@ namespace ILGPU.IR.Types
                 return leftOffset.CompareTo(rightOffset);
             });
             var fields = ImmutableArray.Create(fieldArray);
-            var fieldIndicesBuilder = ImmutableDictionary.CreateBuilder<FieldInfo, int>();
             var fieldTypesBuilder = ImmutableArray.CreateBuilder<Type>(fields.Length);
-            var fieldIndex = 0;
+            var fieldOffsetsBuilder = ImmutableArray.CreateBuilder<int>(fields.Length);
+            int flattenedFields = 0;
             bool isBlittable = !type.IsEnum;
             foreach (var field in fields)
             {
-                fieldIndicesBuilder.Add(field, fieldIndex++);
+                fieldOffsetsBuilder.Add(flattenedFields);
                 fieldTypesBuilder.Add(field.FieldType);
-                isBlittable &= GetTypeInfoInternal(field.FieldType).IsBlittable;
+
+                var nestedTypeInfo = GetTypeInfoInternal(field.FieldType);
+                isBlittable &= nestedTypeInfo.IsBlittable;
+                flattenedFields += nestedTypeInfo.NumFlattendedFields;
             }
-            var fieldIndices = fieldIndicesBuilder.ToImmutable();
-            var fieldTypes = fieldTypesBuilder.MoveToImmutable();
 
             return new TypeInformation(
                 this,
                 type,
                 fields,
-                fieldTypes,
-                fieldIndices,
+                fieldOffsetsBuilder.MoveToImmutable(),
+                fieldTypesBuilder.MoveToImmutable(),
+                flattenedFields,
                 isBlittable);
         }
 

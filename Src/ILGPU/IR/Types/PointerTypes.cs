@@ -14,9 +14,25 @@ using System;
 namespace ILGPU.IR.Types
 {
     /// <summary>
+    /// An abstract type that has an element type and an address space.
+    /// </summary>
+    public interface IAddressSpaceType
+    {
+        /// <summary>
+        /// Returns the underlying element type.
+        /// </summary>
+        TypeNode ElementType { get; }
+
+        /// <summary>
+        /// Returns the associated address space.
+        /// </summary>
+        MemoryAddressSpace AddressSpace { get; }
+    }
+
+    /// <summary>
     /// Represents an abstract type that relies on addresses.
     /// </summary>
-    public abstract class AddressSpaceType : TypeNode
+    public abstract class AddressSpaceType : TypeNode, IAddressSpaceType
     {
         #region Instance
 
@@ -31,6 +47,7 @@ namespace ILGPU.IR.Types
         {
             ElementType = elementType;
             AddressSpace = addressSpace;
+            AddFlags(elementType.Flags);
         }
 
         #endregion
@@ -86,7 +103,9 @@ namespace ILGPU.IR.Types
             TypeNode elementType,
             MemoryAddressSpace addressSpace)
             : base(elementType, addressSpace)
-        { }
+        {
+            AddFlags(TypeFlags.PointerDependent);
+        }
 
         #endregion
 
@@ -138,7 +157,9 @@ namespace ILGPU.IR.Types
             TypeNode elementType,
             MemoryAddressSpace addressSpace)
             : base(elementType, addressSpace)
-        { }
+        {
+            AddFlags(TypeFlags.ViewDependent);
+        }
 
         #endregion
 

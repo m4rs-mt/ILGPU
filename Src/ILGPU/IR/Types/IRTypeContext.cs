@@ -195,14 +195,10 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Creates a new object type.
         /// </summary>
-        /// <param name="baseType">The base type.</param>
         /// <param name="fieldTypes">The object field types.</param>
         /// <returns>The created object type.</returns>
-        public StructureType CreateStructureType(
-            StructureType baseType,
-            ImmutableArray<TypeNode> fieldTypes) =>
+        public StructureType CreateStructureType(ImmutableArray<TypeNode> fieldTypes) =>
             CreateStructureType(
-                baseType,
                 fieldTypes,
                 ImmutableArray<string>.Empty,
                 null);
@@ -210,30 +206,27 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Creates a new object type.
         /// </summary>
-        /// <param name="baseType">The base type.</param>
         /// <param name="fieldTypes">The object field types.</param>
         /// <param name="fieldNames">The object field names.</param>
         /// <param name="sourceType">The source object type.</param>
         /// <returns>The created object type.</returns>
         public StructureType CreateStructureType(
-            StructureType baseType,
             ImmutableArray<TypeNode> fieldTypes,
             ImmutableArray<string> fieldNames,
             Type sourceType)
         {
             return CreateType(new StructureType(
-                baseType,
                 fieldTypes,
                 fieldNames,
                 sourceType));
         }
 
         /// <summary>
-        /// Creates a new objact type.
+        /// Creates a new object type.
         /// </summary>
-        /// <param name="fieldTypes">The objact field types.</param>
-        /// <param name="sourceType">The source objact type.</param>
-        /// <returns>The created objact type.</returns>
+        /// <param name="fieldTypes">The object field types.</param>
+        /// <param name="sourceType">The source object type.</param>
+        /// <returns>The created object type.</returns>
         public StructureType CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes,
             StructureType sourceType)
@@ -241,7 +234,6 @@ namespace ILGPU.IR.Types
             Debug.Assert(sourceType != null, "Invalid source type");
             Debug.Assert(sourceType.NumFields == fieldTypes.Length, "Incompatible field types");
             return CreateStructureType(
-                sourceType.BaseType,
                 fieldTypes,
                 sourceType.Names,
                 sourceType.Source);
@@ -268,7 +260,6 @@ namespace ILGPU.IR.Types
             // Create the actual type
             var viewType = CreateViewType(elementType, addressSpace);
             return CreateStructureType(
-                StructureType.Root,
                 ImmutableArray.Create<TypeNode>(viewType, indexType),
                 ImmutableArray<string>.Empty,
                 managedType);
@@ -278,11 +269,11 @@ namespace ILGPU.IR.Types
         /// Creates a new array type.
         /// </summary>
         /// <param name="elementType">The element type.</param>
-        /// <param name="length">The array length.</param>
+        /// <param name="dimension">The array dimension.</param>
         /// <returns>The created array type.</returns>
-        public ArrayType CreateArrayType(TypeNode elementType, int length)
+        public ArrayType CreateArrayType(TypeNode elementType, int dimension)
         {
-            Debug.Assert(length > 0, "Invalid array length");
+            Debug.Assert(dimension > 0, "Invalid array length");
 
             // Try to resolve the managed type
             Type managedType = null;
@@ -293,43 +284,8 @@ namespace ILGPU.IR.Types
             return CreateType(
                 new ArrayType(
                     elementType,
-                    length,
+                    dimension,
                     managedType));
-        }
-
-        /// <summary>
-        /// Creates a new structure type that implements array functionality.
-        /// </summary>
-        /// <param name="elementType">The element type.</param>
-        /// <param name="dimension">The array dimension.</param>
-        /// <returns>The created implementation structure type.</returns>
-        public StructureType CreateArrayImplementationType(
-            TypeNode elementType,
-            int dimension)
-        {
-            Debug.Assert(dimension > 0, "Invalid array dimension");
-            if (!elementType.IsStructureType && !elementType.IsPrimitiveType)
-            {
-                throw new NotSupportedException(
-                    string.Format(
-                        ErrorMessages.NotSupportedArrayElementType,
-                        elementType));
-            }
-
-            // Try to resolve the managed type
-            Type managedType = null;
-            if (elementType.TryResolveManagedType(out Type managedElementType))
-                managedType = managedElementType.MakeArrayType(dimension);
-
-            var viewType = CreateViewType(elementType, MemoryAddressSpace.Local);
-            var dimensionType = CreateArrayType(
-                GetPrimitiveType(BasicValueType.Int32),
-                dimension);
-            return CreateStructureType(
-                StructureType.Root,
-                ImmutableArray.Create<TypeNode>(viewType, dimensionType),
-                ImmutableArray.Create("View", "Extent"),
-                managedType);
         }
 
         /// <summary>
@@ -350,6 +306,44 @@ namespace ILGPU.IR.Types
         {
             Debug.Assert(type != null, "Invalid type");
 
+            var primitiveType = TryCreatePrimitiveType(type, addressSpace);
+            if (primitiveType != null)
+                return primitiveType;
+
+            // TODO: Enable support for classes
+            if (type.IsClass)
+            {
+                throw new NotSupportedException(
+                    string.Format(
+                        ErrorMessages.NotSupportedClassType,
+                        type));
+            }
+
+            Debug.Assert(type.IsValueType, "Invalid structure type");
+            var typeInfo = GetTypeInfo(type);
+
+            var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(
+                typeInfo.NumFlattendedFields);
+            var fieldNames = ImmutableArray.CreateBuilder<string>(
+                typeInfo.NumFlattendedFields);
+            CreateTypeRecursive(addressSpace, typeInfo, fieldTypes, fieldNames);
+
+            var fieldTypesArray = fieldTypes.MoveToImmutable();
+            var fieldNamesArray = fieldNames.MoveToImmutable();
+            return CreateStructureType(
+                fieldTypesArray,
+                fieldNamesArray,
+                type);
+        }
+
+        /// <summary>
+        /// Tries to create a primitive type from the given .Net type.
+        /// </summary>
+        /// <param name="type">The parent type.</param>
+        /// <param name="addressSpace">The current address space.</param>
+        /// <returns>The created node or null.</returns>
+        private TypeNode TryCreatePrimitiveType(Type type, MemoryAddressSpace addressSpace)
+        {
             var basicValueType = type.GetBasicValueType();
             if (basicValueType != BasicValueType.None)
                 return GetPrimitiveType(basicValueType);
@@ -359,7 +353,7 @@ namespace ILGPU.IR.Types
             {
                 var arrayElementType = CreateType(type.GetElementType(), addressSpace);
                 var dimension = type.GetArrayRank();
-                return CreateArrayImplementationType(arrayElementType, dimension);
+                return CreateArrayType(arrayElementType, dimension);
             }
             else if (type.IsArrayViewType(out Type elementType))
                 return CreateViewType(CreateType(elementType, addressSpace), addressSpace);
@@ -373,41 +367,39 @@ namespace ILGPU.IR.Types
                     CreateType(type.GetElementType(), addressSpace),
                     addressSpace);
             }
-            else
+            return null;
+        }
+
+        /// <summary>
+        /// Creates a structure type recursively.
+        /// </summary>
+        /// <param name="addressSpace">The current address space.</param>
+        /// <param name="typeInfo">The type info builder.</param>
+        /// <param name="fieldTypes">The field types builder.</param>
+        /// <param name="fieldNames">The field names builder.</param>
+        private void CreateTypeRecursive(
+            MemoryAddressSpace addressSpace,
+            TypeInformation typeInfo,
+            ImmutableArray<TypeNode>.Builder fieldTypes,
+            ImmutableArray<string>.Builder fieldNames)
+        {
+            foreach (var fieldInfo in typeInfo.Fields)
             {
-                // Container (structure or class) type
-
-                // FIXME: Disable classes for now
-                if (type.IsClass)
+                var fieldType = TryCreatePrimitiveType(fieldInfo.FieldType, addressSpace);
+                if (fieldType != null)
                 {
-                    throw new NotSupportedException(
-                        string.Format(
-                            ErrorMessages.NotSupportedClassType,
-                            type));
-                }
-
-                Debug.Assert(type.IsValueType, "Invalid structure type");
-
-                var typeInfo = GetTypeInfo(type);
-                var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(typeInfo.NumFields);
-                var fieldNames = ImmutableArray.CreateBuilder<string>(typeInfo.NumFields);
-                foreach (var fieldInfo in typeInfo.Fields)
-                {
-                    fieldTypes.Add(CreateType(fieldInfo.FieldType, addressSpace));
+                    fieldTypes.Add(fieldType);
                     fieldNames.Add(fieldInfo.Name);
+                }    
+                else
+                {
+                    var nestedTypeInfo = GetTypeInfo(fieldInfo.FieldType);
+                    CreateTypeRecursive(
+                        addressSpace,
+                        nestedTypeInfo,
+                        fieldTypes,
+                        fieldNames);
                 }
-
-                var fieldTypesArray = fieldTypes.MoveToImmutable();
-                var fieldNamesArray = fieldNames.MoveToImmutable();
-
-                var baseType = type.IsClass ?
-                    CreateType(type.BaseType, addressSpace) as StructureType :
-                    StructureType.Root;
-                return CreateStructureType(
-                    baseType,
-                    fieldTypesArray,
-                    fieldNamesArray,
-                    type);
             }
         }
 
@@ -416,7 +408,7 @@ namespace ILGPU.IR.Types
         /// </summary>
         /// <param name="addressSpaceType">The source type.</param>
         /// <param name="addressSpace">The new address space.</param>
-        /// <returns>The created specialzized <see cref="AddressSpaceType"/>.</returns>
+        /// <returns>The created specialized <see cref="AddressSpaceType"/>.</returns>
         public AddressSpaceType SpecializeAddressSpaceType(
             AddressSpaceType addressSpaceType,
             MemoryAddressSpace addressSpace)

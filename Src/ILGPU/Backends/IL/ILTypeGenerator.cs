@@ -67,16 +67,6 @@ namespace ILGPU.Backends.IL
             {
                 var builder = Parent.Context.DefineRuntimeStruct();
 
-                // Check base type
-                if (type.BaseType != StructureType.Root)
-                {
-                    var baseType = Parent.GenerateType(type.BaseType);
-                    builder.DefineField(
-                        "Base",
-                        baseType,
-                        FieldAttributes.Public);
-                }
-
                 int fieldCounter = 0;
                 foreach (var fieldType in type.Fields)
                 {

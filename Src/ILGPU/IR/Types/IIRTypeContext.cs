@@ -84,41 +84,16 @@ namespace ILGPU.IR.Types
         /// Creates a new array type.
         /// </summary>
         /// <param name="elementType">The element type.</param>
-        /// <param name="length">The array length.</param>
-        /// <returns>The created array type.</returns>
-        ArrayType CreateArrayType(TypeNode elementType, int length);
-
-        /// <summary>
-        /// Creates a new structure type that implements array functionality.
-        /// </summary>
-        /// <param name="elementType">The element type.</param>
-        /// <param name="dimension">The array dimension.</param>
-        /// <returns>The created implementation structure type.</returns>
-        StructureType CreateArrayImplementationType(TypeNode elementType, int dimension);
+        /// <param name="dimensions">The array dimensions.</param>
+        /// <returns>The created array dimensions.</returns>
+        ArrayType CreateArrayType(TypeNode elementType, int dimensions);
 
         /// <summary>
         /// Creates a new structure type.
         /// </summary>
-        /// <param name="baseType">The base type.</param>
         /// <param name="fieldTypes">The structure field types.</param>
         /// <returns>The created structure type.</returns>
-        StructureType CreateStructureType(
-            StructureType baseType,
-            ImmutableArray<TypeNode> fieldTypes);
-
-        /// <summary>
-        /// Creates a new structure type.
-        /// </summary>
-        /// <param name="baseType">The base type.</param>
-        /// <param name="fieldTypes">The structure field types.</param>
-        /// <param name="fieldNames">The structure field names.</param>
-        /// <param name="sourceType">The source structure type.</param>
-        /// <returns>The created structure type.</returns>
-        StructureType CreateStructureType(
-            StructureType baseType,
-            ImmutableArray<TypeNode> fieldTypes,
-            ImmutableArray<string> fieldNames,
-            Type sourceType);
+        StructureType CreateStructureType(ImmutableArray<TypeNode> fieldTypes);
 
         /// <summary>
         /// Creates a new structure type.
@@ -150,7 +125,7 @@ namespace ILGPU.IR.Types
         /// </summary>
         /// <param name="addressSpaceType">The source type.</param>
         /// <param name="addressSpace">The new address space.</param>
-        /// <returns>The created specialzized <see cref="AddressSpaceType"/>.</returns>
+        /// <returns>The created specialized <see cref="AddressSpaceType"/>.</returns>
         AddressSpaceType SpecializeAddressSpaceType(
             AddressSpaceType addressSpaceType,
             MemoryAddressSpace addressSpace);

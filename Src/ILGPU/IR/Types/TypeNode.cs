@@ -14,6 +14,34 @@ using System;
 namespace ILGPU.IR.Types
 {
     /// <summary>
+    /// Special type flags that provide additional information about the
+    /// current type and all nested elements.
+    /// </summary>
+    [Flags]
+    public enum TypeFlags : int
+    {
+        /// <summary>
+        /// No special flags.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// The type is either a pointer or contains a pointer.
+        /// </summary>
+        PointerDependent = 1 << 0,
+
+        /// <summary>
+        /// The type is either a view or contains a view.
+        /// </summary>
+        ViewDependent = 1 << 1,
+
+        /// <summary>
+        /// The type is either an array or contains an array.
+        /// </summary>
+        ArrayDependent = 1 << 2,
+    }
+
+    /// <summary>
     /// Represents a type in the scope of the ILGPU IR.
     /// </summary>
     public abstract class TypeNode : Node
@@ -88,9 +116,27 @@ namespace ILGPU.IR.Types
             }
         }
 
+        /// <summary>
+        /// Returns all type flags.
+        /// </summary>
+        public TypeFlags Flags { get; private set; }
+
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns true if the given flags are set.
+        /// </summary>
+        /// <param name="typeFlags">The flags to test.</param>
+        /// <returns>True, if the given flags are set.</returns>
+        public bool HasFlags(TypeFlags typeFlags) => (Flags & typeFlags) == typeFlags;
+
+        /// <summary>
+        /// Adds the given flags to the current type.
+        /// </summary>
+        /// <param name="typeFlags">The flags to add.</param>
+        protected void AddFlags(TypeFlags typeFlags) => Flags |= typeFlags;
 
         /// <summary>
         /// Accepts a type node visitor.

@@ -16,7 +16,7 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents an array type.
     /// </summary>
-    public sealed class ArrayType : ObjectType
+    public sealed class ArrayType : ObjectType, IAddressSpaceType
     {
         #region Instance
 
@@ -24,13 +24,14 @@ namespace ILGPU.IR.Types
         /// Constructs a new array type.
         /// </summary>
         /// <param name="elementType">The element type.</param>
-        /// <param name="length">The number of elements.</param>
+        /// <param name="dimensions">The number of dimensions.</param>
         /// <param name="source">The original source type (or null).</param>
-        internal ArrayType(TypeNode elementType, int length, Type source)
+        internal ArrayType(TypeNode elementType, int dimensions, Type source)
             : base(source)
         {
             ElementType = elementType;
-            Length = length;
+            Dimensions = dimensions;
+            AddFlags(elementType.Flags | TypeFlags.ArrayDependent);
         }
 
         #endregion
@@ -43,9 +44,14 @@ namespace ILGPU.IR.Types
         public TypeNode ElementType { get; }
 
         /// <summary>
-        /// Returns the array length.
+        /// Returns the number of dimension.
         /// </summary>
-        public int Length { get; }
+        public int Dimensions { get; }
+
+        /// <summary>
+        /// Returns the associated address space.
+        /// </summary>
+        public MemoryAddressSpace AddressSpace => MemoryAddressSpace.Local;
 
         #endregion
 
@@ -62,18 +68,18 @@ namespace ILGPU.IR.Types
         protected override string ToPrefixString() => "Array";
 
         /// <summary cref="TypeNode.GetHashCode"/>
-        public override int GetHashCode() => ElementType.GetHashCode() ^ Length;
+        public override int GetHashCode() => ElementType.GetHashCode() ^ Dimensions;
 
         /// <summary cref="TypeNode.Equals(object)"/>
         public override bool Equals(object obj) =>
             obj is ArrayType arrayType &&
             arrayType.ElementType == ElementType &&
-            arrayType.Length == Length;
+            arrayType.Dimensions == Dimensions;
 
         /// <summary cref="TypeNode.ToString()"/>
         public override string ToString() =>
             ToPrefixString() + "<" + ElementType.ToString() +
-            ", " + Length + ">";
+            ", " + Dimensions + ">";
 
         #endregion
     }
