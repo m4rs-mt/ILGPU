@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
+using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
@@ -210,16 +211,16 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
-        /// Resolves the field offset of the given field in bytes.
+        /// Computes the absolute field offset in bytes for the given type and access chain.
         /// </summary>
         /// <param name="type">The enclosing type.</param>
-        /// <param name="fieldIndex">The field index.</param>
-        /// <returns>The field offset in bytes.</returns>
-        public int GetOffsetOf(TypeNode type, int fieldIndex) =>
-            GetOffsetsOf(type)[fieldIndex];
+        /// <param name="fieldAccess">The relative field access.</param>
+        /// <returns>The relative field offset in bytes.</returns>
+        public int GetOffsetOf(TypeNode type, FieldAccess fieldAccess) =>
+            GetOffsetsOf(type)[fieldAccess.Index];
 
         /// <summary>
-        /// Ressolves the native size in bytes of the given type.
+        /// Resolves the native size in bytes of the given type.
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns>The native size.</returns>
@@ -231,7 +232,7 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
-        /// Ressolves the native alignment in bytes of the given type.
+        /// Resolves the native alignment in bytes of the given type.
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns>The native alignment.</returns>
@@ -243,7 +244,7 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
-        /// Ressolves the native alignment and size in bytes of the given type.
+        /// Resolves the native alignment and size in bytes of the given type.
         /// </summary>
         /// <param name="type">The type.</param>
         /// <param name="size">The native size in bytes.</param>
@@ -262,7 +263,7 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
-        /// Computes a properly alligned offset in bytes for the given field type.
+        /// Computes a properly aligned offset in bytes for the given field type.
         /// </summary>
         /// <param name="offset">The current (and next offset).</param>
         /// <param name="type">The field type in bytes.</param>
@@ -305,7 +306,7 @@ namespace ILGPU.Backends
                         info = new ABITypeInfo(
                             ImmutableArray<int>.Empty,
                             arrayElementAlignment,
-                            arrayElementSize * arrayType.Length);
+                            arrayElementSize * arrayType.Dimensions);
                     }
                     else
                     {
