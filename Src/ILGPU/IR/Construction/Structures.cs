@@ -13,7 +13,6 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -46,7 +45,7 @@ namespace ILGPU.IR.Construction
             {
                 var rawFieldValue = typeInfo.Fields[i].GetValue(instance);
                 var fieldValue = CreateValue(rawFieldValue, typeInfo.FieldTypes[i]);
-                result = CreateSetField(result, i, fieldValue);
+                result = CreateSetField(result, new FieldAccessChain(i), fieldValue);
             }
             return result;
         }
@@ -91,7 +90,7 @@ namespace ILGPU.IR.Construction
             // Create structure instance
             var instance = CreateStructure(structureType);
             for (int i = 0, e = values.Length; i < e; ++i)
-                instance = CreateSetField(instance, i, values[i]);
+                instance = CreateSetField(instance, new FieldAccessChain(i), values[i]);
             return instance;
         }
 
@@ -99,17 +98,14 @@ namespace ILGPU.IR.Construction
         /// Creates a load operation of an object field.
         /// </summary>
         /// <param name="objectValue">The object value.</param>
-        /// <param name="fieldIndex">The field index to load.</param>
+        /// <param name="accessChain">The field index chain.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateGetField(
-            Value objectValue,
-            int fieldIndex)
+        public ValueReference CreateGetField(Value objectValue, FieldAccessChain accessChain)
         {
             Debug.Assert(objectValue != null, "Invalid object node");
 
             var structType = objectValue.Type as StructureType;
             Debug.Assert(structType != null, "Invalid object structure type");
-            Debug.Assert(fieldIndex >= 0 && fieldIndex < structType.NumFields, "Invalid field index");
 
             // Try to combine different get and set operations on the same value
             var current = objectValue;
@@ -118,12 +114,12 @@ namespace ILGPU.IR.Construction
                 switch (current)
                 {
                     case SetField setField:
-                        if (setField.FieldIndex == fieldIndex)
+                        if (setField.AccessChain == accessChain)
                             return setField.Value;
                         current = setField.ObjectValue;
                         continue;
                     case NullValue _:
-                        return CreateNull(structType.Fields[fieldIndex]);
+                        return CreateNull(structType.GetFieldType(accessChain));
                 }
 
                 // Value could not be resolved
@@ -133,52 +129,7 @@ namespace ILGPU.IR.Construction
             return Append(new GetField(
                 BasicBlock,
                 objectValue,
-                fieldIndex));
-        }
-
-        /// <summary>
-        /// Creates a load operation of an object field using
-        /// the given access chain. If the access chain is empty,
-        /// the source value is returned.
-        /// </summary>
-        /// <param name="objectValue">The object value.</param>
-        /// <param name="accessChain">The field index chain.</param>
-        /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateGetField<TAccessChain>(
-            Value objectValue,
-            in TAccessChain accessChain)
-            where TAccessChain : IReadOnlyList<int>
-        {
-            for (int i = 0, e = accessChain.Count; i < e; ++i)
-                objectValue = CreateGetField(objectValue, accessChain[i]);
-            return objectValue;
-        }
-
-        /// <summary>
-        /// Creates a store operation of an object field.
-        /// </summary>
-        /// <param name="objectValue">The object value.</param>
-        /// <param name="fieldIndex">The field index to store.</param>
-        /// <param name="value">The field value to store.</param>
-        /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateSetField(
-            Value objectValue,
-            int fieldIndex,
-            Value value)
-        {
-            Debug.Assert(objectValue != null, "Invalid object node");
-            Debug.Assert(value != null, "Invalid value node");
-
-            var structType = objectValue.Type as StructureType;
-            Debug.Assert(structType != null, "Invalid object structure type");
-            Debug.Assert(fieldIndex >= 0 && fieldIndex < structType.NumFields, "Invalid field index");
-            Debug.Assert(structType.Fields[fieldIndex] == value.Type, "Incompatible value type");
-
-            return Append(new SetField(
-                BasicBlock,
-                objectValue,
-                fieldIndex,
-                value));
+                accessChain));
         }
 
         /// <summary>
@@ -187,36 +138,28 @@ namespace ILGPU.IR.Construction
         /// the target value to set is returned.
         /// </summary>
         /// <param name="objectValue">The object value.</param>
-        /// <param name="accessChain">The field index chain.</param>
+        /// <param name="accessChain">The field access chain.</param>
         /// <param name="value">The field value to store.</param>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateSetField(
             Value objectValue,
-            ImmutableArray<int> accessChain,
+            FieldAccessChain accessChain,
             Value value)
         {
             Debug.Assert(objectValue != null, "Invalid object node");
+            Debug.Assert(value != null, "Invalid value node");
 
-            var chainLength = accessChain.Length;
+            var structType = objectValue.Type as StructureType;
+            Debug.Assert(structType != null, "Invalid object structure type");
+            Debug.Assert(
+                structType.GetFieldType(accessChain) == value.Type,
+                "Incompatible value type");
 
-            if (chainLength == 0)
-                return value;
-            if (chainLength < 2)
-                return CreateSetField(objectValue, accessChain[0], value);
-
-            var chainElements = new Value[chainLength];
-            chainElements[0] = objectValue;
-            for (int i = 0, e = chainLength - 1; i < e; ++i)
-                chainElements[i + 1] = CreateGetField(chainElements[i], accessChain[i]);
-
-            // Insert element
-            value = CreateSetField(chainElements[chainLength - 1], accessChain[chainLength - 1], value);
-
-            // Build target chain
-            for (int i = chainLength - 2; i >= 0; --i)
-                value = CreateSetField(chainElements[i], accessChain[i], value);
-
-            return value;
+            return Append(new SetField(
+                BasicBlock,
+                objectValue,
+                accessChain,
+                value));
         }
     }
 }

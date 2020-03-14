@@ -29,8 +29,8 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="initialType">The initial node type.</param>
         /// <param name="values">All child values.</param>
+        /// <param name="initialType">The initial node type.</param>
         internal MemoryValue(
             ValueKind kind,
             BasicBlock basicBlock,
@@ -170,7 +170,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
-            $"{base.ToArgString()}{Type.ToString()} [{ArrayLength.Resolve().ToString()}]";
+            $"{Type} [{ArrayLength.Resolve()}]";
 
         #endregion
     }
@@ -348,7 +348,7 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "ld";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => base.ToArgString() + Source;
+        protected override string ToArgString() => Source.ToString();
 
         #endregion
     }
@@ -431,8 +431,7 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "st";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() =>
-            $"{base.ToArgString()}{Target} -> {Value}";
+        protected override string ToArgString() => $"{Target} -> {Value}";
 
         #endregion
     }

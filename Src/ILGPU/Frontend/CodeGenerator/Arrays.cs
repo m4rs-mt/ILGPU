@@ -106,7 +106,7 @@ namespace ILGPU.Frontend
             var array = block.Pop();
             var view = builder.CreateGetArrayImplementationView(array);
             var targetView = builder.CreateViewCast(view, typeNode);
-            return builder.CreateLoadElementAddress(targetView, index);
+            return builder.CreateLoadElementAddress(targetView, index, FieldAccessChain.Empty);
         }
 
         /// <summary>

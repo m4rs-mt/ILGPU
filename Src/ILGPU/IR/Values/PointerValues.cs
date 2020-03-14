@@ -148,13 +148,12 @@ namespace ILGPU.IR.Values
         /// <param name="source">The source value.</param>
         /// <returns>The resolved type node.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            IRContext context,
-            ValueReference source)
+        private static TypeNode ComputeType(IRContext context, ValueReference source)
         {
-            var sourceType = source.Type as AddressSpaceType;
+            var sourceType = source.Type as IAddressSpaceType;
+            Debug.Assert(sourceType != null, "Invalid address space type");
             if (sourceType is PointerType)
-                return sourceType;
+                return source.Type;
             return context.CreatePointerType(
                 sourceType.ElementType,
                 sourceType.AddressSpace);
@@ -194,14 +193,24 @@ namespace ILGPU.IR.Values
         public ValueReference ElementIndex => this[1];
 
         /// <summary>
-        /// Returns true iff the current access works on a view.
+        /// Returns true if the current access works on an array.
         /// </summary>
-        public bool IsViewAccess => !IsPointerAccess;
+        public bool IsArrayAccesss => Source.Type.IsArrayType;
 
         /// <summary>
-        /// Returns true iff the current access works on a pointer.
+        /// Returns true if the current access works on a view.
+        /// </summary>
+        public bool IsViewAccess => Source.Type.IsViewType;
+
+        /// <summary>
+        /// Returns true if the current access works on a pointer.
         /// </summary>
         public bool IsPointerAccess => Source.Type.IsPointerType;
+
+        /// <summary>
+        /// Returns true if this access targets the first element.
+        /// </summary>
+        public bool AccessesFirstElement => ElementIndex.IsPrimitive(0);
 
         #endregion
 
@@ -230,9 +239,9 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString()
         {
-            if (IsViewAccess)
-                return $"{Source}[{ElementIndex}]";
-            return $"{Source} + {ElementIndex}";
+            return IsPointerAccess ?
+                $"{Source} + {ElementIndex}" :
+                $"{Source}[{ElementIndex}]";
         }
 
         #endregion
@@ -250,20 +259,19 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="context">The parent IR context.</param>
         /// <param name="source">The source value.</param>
-        /// <param name="fieldIndex">The structure field index.</param>
+        /// <param name="fieldSpan">The structure field span.</param>
         /// <returns>The resolved type node.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static TypeNode ComputeType(
             IRContext context,
             ValueReference source,
-            int fieldIndex)
+            FieldSpan fieldSpan)
         {
             var pointerType = source.Type as PointerType;
             Debug.Assert(pointerType != null, "Invalid pointer type");
-            var structureType = pointerType.ElementType as StructureType;
 
-            Debug.Assert(structureType != null, "Invalid structure type");
-            var fieldType = structureType.Fields[fieldIndex];
+            var structureType = pointerType.ElementType as StructureType;
+            var fieldType = structureType.Get(context, fieldSpan);
 
             return context.CreatePointerType(
                 fieldType,
@@ -280,18 +288,18 @@ namespace ILGPU.IR.Values
         /// <param name="context">The parent IR context.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="source">The source address.</param>
-        /// <param name="fieldIndex">The structure field index.</param>
+        /// <param name="fieldSpan">The structure field span.</param>
         internal LoadFieldAddress(
             IRContext context,
             BasicBlock basicBlock,
             ValueReference source,
-            int fieldIndex)
+            FieldSpan fieldSpan)
             : base(
                   ValueKind.LoadFieldAddress,
                   basicBlock,
-                  ComputeType(context, source, fieldIndex))
+                  ComputeType(context, source, fieldSpan))
         {
-            FieldIndex = fieldIndex;
+            FieldSpan = fieldSpan;
             Seal(ImmutableArray.Create(source));
         }
 
@@ -316,9 +324,9 @@ namespace ILGPU.IR.Values
         public TypeNode FieldType => (Type as PointerType).ElementType;
 
         /// <summary>
-        /// Returns the field index.
+        /// Returns the field span.
         /// </summary>
-        public int FieldIndex { get; }
+        public FieldSpan FieldSpan { get; }
 
         #endregion
 
@@ -326,13 +334,13 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
         protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, Source, FieldIndex);
+            ComputeType(context, Source, FieldSpan);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
             builder.CreateLoadFieldAddress(
                 rebuilder.Rebuild(Source),
-                FieldIndex);
+                FieldSpan);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -346,7 +354,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
-            $"{Source} -> {StructureType.GetName(FieldIndex)} [{FieldIndex}]";
+            $"{Source} -> {FieldSpan}";
 
         #endregion
     }

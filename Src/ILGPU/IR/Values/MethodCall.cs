@@ -97,20 +97,8 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "call";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString()
-        {
-            var result = new StringBuilder();
-            result.Append(Target.ToReferenceString());
-            result.Append('(');
-            for (int i = 0, e = NumArguments; i < e; ++i)
-            {
-                result.Append(this[i].ToString());
-                if (i + 1 < e)
-                    result.Append(", ");
-            }
-            result.Append(')');
-            return result.ToString();
-        }
+        protected override string ToArgString() =>
+            Target.ToReferenceString() + base.ToArgString();
 
         #endregion
     }

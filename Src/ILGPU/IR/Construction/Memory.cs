@@ -155,10 +155,12 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="source">The source view.</param>
         /// <param name="elementIndex">The element index to load.</param>
+        /// <param name="accessChain">The associated field access chain (if any).</param>
         /// <returns>A node that represents the element address.</returns>
         public ValueReference CreateLoadElementAddress(
             Value source,
-            Value elementIndex)
+            Value elementIndex,
+            FieldAccessChain accessChain)
         {
             Debug.Assert(source != null, "Invalid source value");
             Debug.Assert(elementIndex != null, "Invalid element index");
@@ -168,42 +170,42 @@ namespace ILGPU.IR.Construction
             Debug.Assert(elementIndex.BasicValueType == IRTypeContext.ViewIndexType, "Incompatible index type");
 
             // Fold primitive pointer arithmetic that does not change anything
-            if (source.Type is PointerType &&
-                elementIndex is PrimitiveValue value &&
-                value.RawValue == 0)
+            if (source.Type is PointerType && elementIndex.IsPrimitive(0) && accessChain.IsEmpty)
                 return source;
+
+            // Fold multiple loads with nested access chains
+            if (source is LoadElementAddress sourceLea && elementIndex.IsPrimitive(0))
+            {
+                source = sourceLea.Source;
+                elementIndex = sourceLea.ElementIndex;
+                accessChain = sourceLea.AccessChain.Access(accessChain);
+            }
 
             return Append(new LoadElementAddress(
                 Context,
                 BasicBlock,
                 source,
-                elementIndex));
+                elementIndex,
+                accessChain));
         }
 
         /// <summary>
         /// Computes the address of a single field.
         /// </summary>
         /// <param name="source">The source.</param>
-        /// <param name="fieldIndex">The field index to load.</param>
+        /// <param name="accessChain">The associated field access chain.</param>
         /// <returns>A node that represents the field address.</returns>
-        public ValueReference CreateLoadFieldAddress(
-            Value source,
-            int fieldIndex)
+        public ValueReference CreateLoadFieldAddress(Value source, FieldAccessChain accessChain)
         {
             Debug.Assert(source != null, "Invalid source value");
 
             var pointerType = source.Type as PointerType;
             Debug.Assert(pointerType != null, "Invalid source pointer type");
 
-            var structureType = pointerType.ElementType as StructureType;
-            Debug.Assert(structureType != null, "Invalid pointer to a non-struct type");
-            Debug.Assert(fieldIndex >= 0 || fieldIndex < structureType.NumFields, "Invalid field index");
-
-            return Append(new LoadFieldAddress(
-                Context,
-                BasicBlock,
+            return CreateLoadElementAddress(
                 source,
-                fieldIndex));
+                CreatePrimitiveValue(0),
+                accessChain);
         }
     }
 }

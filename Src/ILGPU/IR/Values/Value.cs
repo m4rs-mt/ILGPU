@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace ILGPU.IR
 {
@@ -100,6 +101,17 @@ namespace ILGPU.IR
         public static bool IsPrimitive<T>(this T value)
             where T : IValue =>
             value.Resolve() is PrimitiveValue;
+
+        /// <summary>
+        /// Returns true if the given value is a primitive value with the specified raw value.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        /// <param name="value">The value to test.</param>
+        /// <param name="rawValue">The expected raw value.</param>
+        /// <returns>True, if the given value is a primitive value with the specified raw value.</returns>
+        public static bool IsPrimitive<T>(this T value, long rawValue)
+            where T : IValue =>
+            value.Resolve() is PrimitiveValue primitive && primitive.RawValue == rawValue;
 
         /// <summary>
         /// Returns true iff the given value is an instantiated constant value.
@@ -431,8 +443,7 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Invalidates the current type and enfores a recomputation
-        /// of the current type.
+        /// Invalidates the current type and enforces a re-computation of the current type.
         /// </summary>
         protected void InvalidateType()
         {
@@ -537,10 +548,10 @@ namespace ILGPU.IR
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given value is the same value.
+        /// Returns true if the given value is the same value.
         /// </summary>
         /// <param name="other">The other value.</param>
-        /// <returns>True, iff the given value is the same value.</returns>
+        /// <returns>True, if the given value is the same value.</returns>
         public bool Equals(Value other) =>
             Equals(other as object);
 
@@ -562,10 +573,22 @@ namespace ILGPU.IR
         /// Returns the argument string (operation args) of this node.
         /// </summary>
         /// <returns>The argument string.</returns>
-        protected virtual string ToArgString() => null;
+        protected virtual string ToArgString()
+        {
+            var result = new StringBuilder();
+            result.Append('(');
+            for (int i = 0, e = Nodes.Length; i < e; ++i)
+            {
+                result.Append(this[i].ToString());
+                if (i + 1 < e)
+                    result.Append(", ");
+            }
+            result.Append(')');
+            return result.ToString();
+        }
 
         /// <summary>
-        /// Returns the string represetation of this node.
+        /// Returns the string representation of this node.
         /// </summary>
         /// <returns>The string representation of this node.</returns>
         public sealed override string ToString()
@@ -577,10 +600,10 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current value.
+        /// Returns true if the given object is equal to the current value.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current value.</returns>
+        /// <returns>True, if the given object is equal to the current value.</returns>
         public override bool Equals(object obj) =>
             base.Equals(obj);
 

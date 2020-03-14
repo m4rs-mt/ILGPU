@@ -176,6 +176,11 @@ namespace ILGPU.IR
         // Structures
 
         /// <summary>
+        /// A <see cref="Values.StructureValue"/> value.
+        /// </summary>
+        Structure,
+
+        /// <summary>
         /// A <see cref="Values.GetField"/> value.
         /// </summary>
         GetField,
@@ -188,14 +193,24 @@ namespace ILGPU.IR
         // Arrays
 
         /// <summary>
-        /// A <see cref="Values.GetElement"/> value.
+        /// A <see cref="Values.ArrayValue"/> value.
         /// </summary>
-        GetElement,
+        Array,
 
         /// <summary>
-        /// A <see cref="Values.SetElement"/> value.
+        /// A <see cref="Values.GetArrayExtent"/> value.
         /// </summary>
-        SetElement,
+        GetArrayExtent,
+
+        /// <summary>
+        /// A <see cref="Values.GetArrayElement"/> value.
+        /// </summary>
+        GetArrayElement,
+
+        /// <summary>
+        /// A <see cref="Values.SetArrayElement"/> value.
+        /// </summary>
+        SetArrayElement,
 
         // Views
 

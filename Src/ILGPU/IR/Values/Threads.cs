@@ -266,23 +266,71 @@ namespace ILGPU.IR.Values
     }
 
     /// <summary>
-    /// Represents a broadcast operation.
+    /// Represents a value that is used for communicating values across all threads.
     /// </summary>
-    public sealed class Broadcast : MemoryValue
+    public abstract class ThreadValue : MemoryValue
     {
         #region Static
 
         /// <summary>
-        /// Computes a broadcast node type.
+        /// Computes a node type.
         /// </summary>
-        /// <param name="variableType">The broadcast variable type.</param>
+        /// <param name="variableType">The variable type.</param>
         /// <returns>The resolved type node.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            TypeNode variableType) => variableType;
+        private static TypeNode ComputeType(TypeNode variableType) => variableType;
 
         #endregion
 
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new communication operation.
+        /// </summary>
+        /// <param name="kind">The value kind.</param>
+        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="values">The values.</param>
+        internal ThreadValue(
+            ValueKind kind,
+            BasicBlock basicBlock,
+            ImmutableArray<ValueReference> values)
+            : base(
+                  kind,
+                  basicBlock,
+                  values,
+                  ComputeType(values[0].Type))
+        { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the variable reference.
+        /// </summary>
+        public ValueReference Variable => this[0];
+
+        /// <summary>
+        /// Returns true if this communication operation works on intrinsic primitive types.
+        /// </summary>
+        public bool IsBuiltIn => BasicValueType >= BasicValueType.Int32;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.UpdateType(IRContext)"/>
+        protected sealed override TypeNode UpdateType(IRContext context) =>
+            ComputeType(Variable.Type);
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a broadcast operation.
+    /// </summary>
+    public sealed class Broadcast : ThreadValue
+    {
         #region Instance
 
         /// <summary>
@@ -300,8 +348,7 @@ namespace ILGPU.IR.Values
             : base(
                   ValueKind.Broadcast,
                   basicBlock,
-                  ImmutableArray.Create(value, origin),
-                  ComputeType(value.Type))
+                  ImmutableArray.Create(value, origin))
         {
             Kind = broadcastKind;
         }
@@ -309,11 +356,6 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Returns the variable reference.
-        /// </summary>
-        public ValueReference Variable => this[0];
 
         /// <summary>
         /// Returns the thread index origin (group or lane index).
@@ -325,19 +367,9 @@ namespace ILGPU.IR.Values
         /// </summary>
         public BroadcastKind Kind { get; }
 
-        /// <summary>
-        /// Returns true if this broadcast operation works
-        /// on intrinsic primitive types.
-        /// </summary>
-        public bool IsBuiltIn => LowerThreadIntrinsics.IsBuiltinType(BasicValueType);
-
         #endregion
 
         #region Methods
-
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected sealed override TypeNode UpdateType(IRContext context) =>
-            ComputeType(Variable.Type);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
@@ -391,21 +423,8 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a shuffle operation.
     /// </summary>
-    public abstract class ShuffleOperation : MemoryValue
+    public abstract class ShuffleOperation : ThreadValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a shuffle node type.
-        /// </summary>
-        /// <param name="variableType">The shuffle variable type.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            TypeNode variableType) => variableType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
@@ -423,8 +442,7 @@ namespace ILGPU.IR.Values
             : base(
                   kind,
                   basicBlock,
-                  values,
-                  ComputeType(values[0].Type))
+                  values)
         {
             Kind = shuffleKind;
         }
@@ -432,11 +450,6 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Returns the variable reference.
-        /// </summary>
-        public ValueReference Variable => this[0];
 
         /// <summary>
         /// Returns the shuffle origin (depends on the operation).
@@ -447,20 +460,6 @@ namespace ILGPU.IR.Values
         /// Returns the kind of the shuffle operation.
         /// </summary>
         public ShuffleKind Kind { get; }
-
-        /// <summary>
-        /// Returns true if this shuffle operation works
-        /// on intrinsic primitive types.
-        /// </summary>
-        public bool IsBuiltIn => LowerThreadIntrinsics.IsBuiltinType(BasicValueType);
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected sealed override TypeNode UpdateType(IRContext context) =>
-            ComputeType(Variable.Type);
 
         #endregion
 
