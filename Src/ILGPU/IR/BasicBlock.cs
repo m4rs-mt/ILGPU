@@ -62,6 +62,11 @@ namespace ILGPU.IR
             public Value Value => ValueReference.Resolve();
 
             /// <summary>
+            /// The direct target.
+            /// </summary>
+            public Value DirectTarget => ValueReference.DirectTarget;
+
+            /// <summary>
             /// Returns the associated basic block.
             /// </summary>
             public BasicBlock BasicBlock => Value.BasicBlock;

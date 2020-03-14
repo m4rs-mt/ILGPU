@@ -47,7 +47,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the actual parameter type.
         /// </summary>
-        public TypeNode ParameterType { get; }
+        public TypeNode ParameterType { get; private set; }
 
         /// <summary>
         /// Returns the parameter name (for debugging purposes).
@@ -62,6 +62,23 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Updates the current parameter type.
+        /// </summary>
+        /// <typeparam name="TTypeContext">The type context.</typeparam>
+        /// <typeparam name="TTypeConverter">The type converter.</typeparam>
+        /// <param name="typeContext">The type context instance.</param>
+        /// <param name="typeConverter">The type converter instance.</param>
+        internal void UpdateType<TTypeContext, TTypeConverter>(
+            TTypeContext typeContext,
+            TTypeConverter typeConverter)
+            where TTypeContext : IIRTypeContext
+            where TTypeConverter : ITypeConverter<TypeNode>
+        {
+            ParameterType = typeConverter.ConvertType(typeContext, ParameterType);
+            InvalidateType();
+        }
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
         protected override TypeNode UpdateType(IRContext context) => ParameterType;
@@ -84,17 +101,14 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => Name;
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString()
-        {
-            return Type.ToString() + " @ " + Method.ToReferenceString();
-        }
+        protected override string ToArgString() =>
+            Type.ToString() + " @ " + Method.ToReferenceString();
 
         /// <summary>
         /// Return the parameter string.
         /// </summary>
         /// <returns>The parameter string.</returns>
-        internal string ToParameterString() =>
-            $"{Type.ToString()} {ToReferenceString()}";
+        internal string ToParameterString() => $"{Type} {ToReferenceString()}";
 
         #endregion
     }

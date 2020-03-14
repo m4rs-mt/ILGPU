@@ -145,6 +145,18 @@ namespace ILGPU.IR
             }
 
             /// <summary>
+            /// Converts all parameter types.
+            /// </summary>
+            /// <typeparam name="TTypeConverter">The type converter.</typeparam>
+            /// <param name="typeConverter">The type converter instance.</param>
+            public void UpdateParameterTypes<TTypeConverter>(TTypeConverter typeConverter)
+                where TTypeConverter : ITypeConverter<TypeNode>
+            {
+                foreach (var param in parameters)
+                    param.UpdateType(Context, typeConverter);
+            }
+
+            /// <summary>
             /// Creates a new unique node marker.
             /// </summary>
             /// <returns>The new node marker.</returns>
@@ -358,6 +370,13 @@ namespace ILGPU.IR
                 if (disposing)
                 {
                     // Assign parameters and adjust their indices
+                    for (int i = 0; i < parameters.Count; )
+                    {
+                        if (parameters[i].IsReplaced)
+                            parameters.RemoveAt(i);
+                        else
+                            ++i;
+                    }
                     var @params = parameters.ToImmutable();
                     for (int i = 0, e = @params.Length; i < e; ++i)
                         @params[i].Index = i;
