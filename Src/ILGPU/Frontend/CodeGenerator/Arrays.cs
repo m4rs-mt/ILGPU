@@ -10,41 +10,14 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
-using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace ILGPU.Frontend
 {
     partial class CodeGenerator
     {
-        /// <summary>
-        /// Creates a new n-dimensional array.
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        /// <param name="extent">The array extent.</param>
-        /// <param name="elementType">The element type.</param>
-        internal ValueReference CreateArray(
-            IRBuilder builder,
-            ValueReference extent,
-            TypeNode elementType)
-        {
-            // We have to create an appropriate array view type
-            // that uses the correct index type to access all elements
-            var extentType = extent.Type as ArrayType;
-            Debug.Assert(extentType != null, "Invalid extent type");
-            var arraySize = builder.CreateArrayAccumulationMultiply(extent);
-
-            // Allocate memory and create the view
-            var memoryPtr = CreateTempAlloca(arraySize, elementType);
-            var array = builder.CreateNewView(memoryPtr, arraySize);
-
-            // Create the actual array instance
-            return builder.CreateArrayImplementation(array, extent);
-        }
-
         /// <summary>
         /// Realizes an array creation.
         /// </summary>
@@ -59,10 +32,32 @@ namespace ILGPU.Frontend
             // Resolve length and type
             var type = builder.CreateType(elementType);
             ValueReference length = block.PopInt(ConvertFlags.None);
-            var extent = builder.CreateArrayImplementationExtent(
-                ImmutableArray.Create(length),
+            var extent = builder.CreateStructure(ImmutableArray.Create(length));
+            var value = builder.CreateArray(type, 1, extent);
+            block.Push(value);
+        }
+
+        /// <summary>
+        /// Realizes an array load-element operation.
+        /// </summary>
+        /// <param name="block">The current basic block.</param>
+        /// <param name="builder">The current builder.</param>
+        /// <param name="elementType">The element type to load.</param>
+        private void MakeLoadElementAddress(
+            Block block,
+            IRBuilder builder,
+            Type elementType)
+        {
+            var typeNode = builder.CreateType(elementType);
+            ValueReference index = block.PopInt(ConvertFlags.None);
+            var array = block.Pop(typeNode, ConvertFlags.None);
+            var linearAddress = builder.ComputeArrayLinearAddress(
+                builder.CreateGetArrayExtent(array),
+                index,
                 0);
-            var value = CreateArray(builder, extent, type);
+            var value = builder.CreateLoadElementAddress(
+                array,
+                builder.CreateStructure(ImmutableArray.Create(linearAddress)));
             block.Push(value);
         }
 
@@ -78,54 +73,12 @@ namespace ILGPU.Frontend
             Type elementType)
         {
             var typeNode = builder.CreateType(elementType);
-            var address = CreateLoadElementAddress(
-                block,
-                builder,
-                typeNode);
-            var value = CreateLoad(
-                builder,
-                address,
-                typeNode,
-                ConvertFlags.None);
+            ValueReference index = block.PopInt(ConvertFlags.None);
+            var array = block.Pop(typeNode, ConvertFlags.None);
+            var value = builder.CreateGetArrayElement(
+                array,
+                builder.CreateStructure(ImmutableArray.Create(index)));
             block.Push(value);
-        }
-
-        /// <summary>
-        /// Creates a new load-element-address operation.
-        /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
-        /// <param name="typeNode">The element type to load.</param>
-        /// <returns>The loaded element address.</returns>
-        private static ValueReference CreateLoadElementAddress(
-            Block block,
-            IRBuilder builder,
-            TypeNode typeNode)
-        {
-            var index = block.PopInt(ConvertFlags.None);
-            var array = block.Pop();
-            var view = builder.CreateGetArrayImplementationView(array);
-            var targetView = builder.CreateViewCast(view, typeNode);
-            return builder.CreateLoadElementAddress(targetView, index, FieldAccessChain.Empty);
-        }
-
-        /// <summary>
-        /// Realizes an array load-element-address operation.
-        /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
-        /// <param name="elementType">The element type to load.</param>
-        private static void MakeLoadElementAddress(
-            Block block,
-            IRBuilder builder,
-            Type elementType)
-        {
-            var typeNode = builder.CreateType(elementType);
-            var address = CreateLoadElementAddress(
-                block,
-                builder,
-                typeNode);
-            block.Push(address);
         }
 
         /// <summary>
@@ -141,11 +94,12 @@ namespace ILGPU.Frontend
         {
             var typeNode = builder.CreateType(elementType);
             var value = block.Pop(typeNode, ConvertFlags.None);
-            var address = CreateLoadElementAddress(
-                block,
-                builder,
-                typeNode);
-            CreateStore(builder, address, value);
+            ValueReference index = block.PopInt(ConvertFlags.None);
+            var array = block.Pop();
+            builder.CreateSetArrayElement(
+                array,
+                builder.CreateStructure(ImmutableArray.Create(index)),
+                value);
         }
 
         /// <summary>
@@ -156,7 +110,7 @@ namespace ILGPU.Frontend
         private static void MakeLoadArrayLength(Block block, IRBuilder builder)
         {
             var array = block.Pop();
-            var length = builder.CreateGetLinearArrayImplementationLength(array);
+            var length = builder.CreateGetArrayLength(array);
             block.Push(length);
         }
     }

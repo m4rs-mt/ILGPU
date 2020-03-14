@@ -15,6 +15,7 @@ using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -253,13 +254,10 @@ namespace ILGPU.Frontend.Intrinsic
                         ErrorMessages.NotSupportedIntrinsic,
                         context.Method.Name);
             }
-            int elementSize = Marshal.SizeOf(Activator.CreateInstance(elementType));
-
-            // Load array instance
-            var builder = context.Builder;
-            var view = builder.CreateGetArrayImplementationView(target);
 
             // Convert values to IR values
+            var builder = context.Builder;
+            int elementSize = Marshal.SizeOf(Activator.CreateInstance(elementType));
             for (int i = 0, e = valueSize / elementSize; i < e; ++i)
             {
                 byte* address = data + elementSize * i;
@@ -267,10 +265,15 @@ namespace ILGPU.Frontend.Intrinsic
 
                 // Convert element to IR value
                 var irValue = builder.CreateValue(instance, elementType);
-                var targetAddress = builder.CreateLoadElementAddress(
-                    view,
-                    builder.CreatePrimitiveValue(i));
-                builder.CreateStore(targetAddress, irValue);
+
+                var targetIndex = builder.CreateStructure(
+                    ImmutableArray.Create<ValueReference>(
+                        builder.CreatePrimitiveValue(i)));
+
+                builder.CreateSetArrayElement(
+                    target,
+                    targetIndex,
+                    irValue);
             }
         }
 
@@ -284,54 +287,53 @@ namespace ILGPU.Frontend.Intrinsic
             var builder = context.Builder;
             if (context.Method is ConstructorInfo)
             {
-                var newExtent = builder.CreateArrayImplementationExtent(
-                    context.Arguments,
-                    1);
+                var newExtent = builder.CreateStructure(context.Arguments.RemoveAt(0));
                 var newElementType = builder.CreateType(
                     context.Method.DeclaringType.GetElementType());
-                var newArray = context.CodeGenerator.CreateArray(
-                    context.Builder,
-                    newExtent,
-                    newElementType);
-                return builder.CreateStore(context[0], newArray);
-
+                return builder.CreateArray(
+                    newElementType,
+                    context.NumArguments - 1,
+                    newExtent);
             }
             else
             {
                 switch (context.Method.Name)
                 {
                     case "Get":
-                        var getAddress = builder.CreateLoadArrayImplementationElementAddress(
+                        return builder.CreateGetArrayElement(
                             context[0],
-                            context.Arguments,
-                            1,
-                            context.NumArguments - 1);
-                        return builder.CreateLoad(getAddress);
+                            builder.CreateStructure(
+                                context.Arguments.RemoveAt(0)));
                     case "Set":
-                        var setAddress = builder.CreateLoadArrayImplementationElementAddress(
+                        return builder.CreateSetArrayElement(
                             context[0],
-                            context.Arguments,
-                            1,
-                            context.NumArguments - 2);
-                        return builder.CreateStore(setAddress, context[context.NumArguments - 1]);
+                            builder.CreateStructure(
+                                context.Arguments.RemoveAt(0).RemoveAt(context.NumArguments - 2)),
+                            context[context.NumArguments - 1]);
                     case "get_Length":
-                        return builder.CreateGetLinearArrayImplementationLength(context[0]);
+                        return builder.CreateGetArrayLength(context[0]);
                     case "get_LongLength":
                         return builder.CreateConvert(
-                            builder.CreateGetLinearArrayImplementationLength(context[0]),
+                            builder.CreateGetArrayLength(context[0]),
                             builder.GetPrimitiveType(BasicValueType.Int64));
                     case nameof(Array.GetLowerBound):
                         return builder.CreatePrimitiveValue(0);
                     case nameof(Array.GetUpperBound):
                         return builder.CreateArithmetic(
-                            builder.CreateGetArrayImplementationLength(context[0], context[1]),
+                            builder.CreateGetField(
+                                builder.CreateGetArrayExtent(context[0]),
+                                new FieldSpan(context[1].ResolveAs<PrimitiveValue>().Int32Value)),
                             builder.CreatePrimitiveValue(1),
                             BinaryArithmeticKind.Sub);
                     case nameof(Array.GetLength):
-                        return builder.CreateGetArrayImplementationLength(context[0], context[1]);
+                        return builder.CreateGetField(
+                            builder.CreateGetArrayExtent(context[0]),
+                            new FieldSpan(context[1].ResolveAs<PrimitiveValue>().Int32Value));
                     case nameof(Array.GetLongLength):
                         return builder.CreateConvert(
-                            builder.CreateGetArrayImplementationLength(context[0], context[1]),
+                            builder.CreateGetField(
+                                builder.CreateGetArrayExtent(context[0]),
+                                new FieldSpan(context[1].ResolveAs<PrimitiveValue>().Int32Value)),
                             builder.GetPrimitiveType(BasicValueType.Int64));
                     default:
                         throw context.GetNotSupportedException(

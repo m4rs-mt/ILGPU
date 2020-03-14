@@ -50,12 +50,15 @@ namespace ILGPU.Frontend
             else
             {
                 // Load field from value
-                var typeInfo = Context.TypeContext.GetTypeInfo(field.DeclaringType);
-                if (!typeInfo.TryResolveIndex(field, out int fieldIndex))
-                    throw this.GetInvalidILCodeException();
-                block.Push(builder.CreateGetField(
-                    fieldValue,
-                    fieldIndex));
+                var typeInfo = Context.TypeContext.GetTypeInfo(field.FieldType);
+                var parentInfo = Context.TypeContext.GetTypeInfo(field.DeclaringType);
+                int absoluteIndex = parentInfo.GetAbsoluteIndex(field);
+
+                // Check whether we have to get multiple elements
+                var getField = builder.CreateGetField(fieldValue, new FieldSpan(
+                    absoluteIndex,
+                    typeInfo.NumFlattendedFields));
+                block.Push(getField);
             }
         }
 
@@ -72,17 +75,19 @@ namespace ILGPU.Frontend
         {
             if (field == null)
                 throw this.GetInvalidILCodeException();
-            var targetType = field.DeclaringType;
+            var parentType = field.DeclaringType;
             var targetPointerType = builder.CreatePointerType(
-                builder.CreateType(targetType),
+                builder.CreateType(parentType),
                 MemoryAddressSpace.Generic);
             var address = block.Pop(targetPointerType, ConvertFlags.None);
 
-            var typeInfo = Context.TypeContext.GetTypeInfo(targetType);
-            if (!typeInfo.TryResolveIndex(field, out int fieldIndex))
-                throw this.GetInvalidILCodeException();
-            var fieldAddress = builder.CreateLoadFieldAddress(address, fieldIndex);
+            var typeInfo = Context.TypeContext.GetTypeInfo(field.FieldType);
+            var parentInfo = Context.TypeContext.GetTypeInfo(parentType);
+            int absoluteIndex = parentInfo.GetAbsoluteIndex(field);
 
+            var fieldAddress = builder.CreateLoadFieldAddress(
+                address,
+                new FieldSpan(absoluteIndex, typeInfo.NumFlattendedFields));
             block.Push(fieldAddress);
         }
 

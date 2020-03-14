@@ -104,16 +104,14 @@ namespace ILGPU.Frontend.Intrinsic
                         builder.CreatePrimitiveValue(0),
                         CompareKind.GreaterThan);
                 case ViewIntrinsicKind.GetViewExtent:
-                    return builder.CreateSetField(
-                        builder.CreateNull(builder.IndexType),
-                        0,
+                    return builder.CreateIndex(
                         builder.CreateGetViewLength(instanceValue));
                 case ViewIntrinsicKind.GetViewElementAddressByIndex:
                     return builder.CreateLoadElementAddress(
                         instanceValue,
                         builder.CreateGetField(
                             context[paramOffset++],
-                            0));
+                            new FieldAccess(0)));
                 case ViewIntrinsicKind.AsLinearView:
                     return instanceValue;
                 default:
