@@ -214,12 +214,8 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="dimension">The dimension value.</param>
         /// <returns>The created index type.</returns>
-        public ValueReference CreateIndex(ValueReference dimension)
-        {
-            var indexType = GetIndexType(0);
-            var instance = CreateNull(indexType);
-            return CreateSetField(instance, 0, dimension);
-        }
+        public ValueReference CreateIndex(ValueReference dimension) =>
+            CreateIndex(ImmutableArray.Create(dimension));
 
         /// <summary>
         /// Creates a new index structure instance.
@@ -229,10 +225,7 @@ namespace ILGPU.IR.Construction
         public ValueReference CreateIndex(ImmutableArray<ValueReference> dimensions)
         {
             var indexType = GetIndexType(dimensions.Length);
-            var instance = CreateNull(indexType);
-            for (int i = 0, e = dimensions.Length; i < e; ++i)
-                instance = CreateSetField(instance, i, dimensions[i]);
-            return instance;
+            return CreateStructure(indexType, dimensions);
         }
 
         /// <summary>

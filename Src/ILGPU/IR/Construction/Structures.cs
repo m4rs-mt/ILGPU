@@ -21,6 +21,55 @@ namespace ILGPU.IR.Construction
     partial class IRBuilder
     {
         /// <summary>
+        /// Creates a primitive value if possible.
+        /// </summary>
+        /// <param name="instance">The instance value.</param>
+        /// <param name="type">The resolved type.</param>
+        /// <returns>The primitive value reference (if any).</returns>
+        private ValueReference CreatePrimitiveObjectValue(object instance, out Type type)
+        {
+            if (instance == null)
+                throw new ArgumentNullException(nameof(instance));
+
+            type = instance.GetType();
+            if (type.IsPrimitive)
+                return CreatePrimitiveValue(instance);
+            if (type.IsEnum)
+                return CreateEnumValue(instance);
+            if (type.IsClass || type.IsArray)
+                throw new NotSupportedException(
+                    string.Format(ErrorMessages.NotSupportedClassType, type));
+
+            return default;
+        }
+
+        /// <summary>
+        /// Helper function to build new structure values.
+        /// </summary>
+        /// <param name="fields">The target field builder.</param>
+        /// <param name="instance">The instance.</param>
+        /// <param name="type">The instance type.</param>
+        private void CreateStructureValue(
+            ImmutableArray<ValueReference>.Builder fields,
+            object instance,
+            Type type)
+        {
+            var typeInfo = Context.TypeContext.GetTypeInfo(type);
+            for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
+            {
+                var rawFieldValue = typeInfo.Fields[i].GetValue(instance);
+                var fieldValue = CreatePrimitiveObjectValue(rawFieldValue, out var fieldType);
+                if (fieldValue.IsValid)
+                    fields.Add(fieldValue);
+
+                CreateStructureValue(
+                    fields,
+                    rawFieldValue,
+                    fieldType);
+            }
+        }
+
+        /// <summary>
         /// Creates a new object value.
         /// </summary>
         /// <param name="instance">The object value.</param>
@@ -30,24 +79,17 @@ namespace ILGPU.IR.Construction
             if (instance == null)
                 throw new ArgumentNullException(nameof(instance));
 
-            var type = instance.GetType();
-            if (type.IsPrimitive)
-                return CreatePrimitiveValue(instance);
-            if (type.IsEnum)
-                return CreateEnumValue(instance);
-            if (type.IsClass || type.IsArray)
-                throw new NotSupportedException(
-                    string.Format(ErrorMessages.NotSupportedClassType, type));
-            var typeInfo = Context.TypeContext.GetTypeInfo(type);
+            var primitiveValue = CreatePrimitiveObjectValue(instance, out var type);
+            if (primitiveValue.IsValid)
+                return primitiveValue;
 
-            var result = CreateNull(CreateType(type));
-            for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
-            {
-                var rawFieldValue = typeInfo.Fields[i].GetValue(instance);
-                var fieldValue = CreateValue(rawFieldValue, typeInfo.FieldTypes[i]);
-                result = CreateSetField(result, new FieldAccessChain(i), fieldValue);
-            }
-            return result;
+            var resultType = CreateType(type) as StructureType;
+            var fieldValues = resultType.CreateFieldBuilder();
+            CreateStructureValue(
+                fieldValues,
+                instance,
+                type);
+            return CreateStructure(resultType, fieldValues.MoveToImmutable());
         }
 
         /// <summary>
@@ -61,18 +103,16 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a new structure instance value.
         /// </summary>
-        /// <param name="values">The structure instance values.</param>
+        /// <param name="fieldValues">The structure instance values.</param>
         /// <returns>The created structure instance value.</returns>
-        public ValueReference CreateStructure(params ValueReference[] values)
+        public ValueReference CreateStructure(ImmutableArray<ValueReference> fieldValues)
         {
-            Debug.Assert(values == null && values.Length > 0, "Invalid values");
-
             // Construct structure type
-            var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(values.Length);
-            foreach (var value in values)
+            var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(fieldValues.Length);
+            foreach (var value in fieldValues)
                 fieldTypes.Add(value.Type);
-            var structureType = CreateStructureType(StructureType.Root, fieldTypes.MoveToImmutable());
-            return CreateStructure(structureType, values);
+            var structureType = CreateStructureType(fieldTypes.MoveToImmutable());
+            return CreateStructure(structureType, fieldValues);
         }
 
         /// <summary>
@@ -81,69 +121,55 @@ namespace ILGPU.IR.Construction
         /// <param name="structureType">The structure type.</param>
         /// <param name="values">The structure instance values.</param>
         /// <returns>The created structure instance value.</returns>
-        private ValueReference CreateStructure(StructureType structureType, params ValueReference[] values)
+        internal ValueReference CreateStructure(
+            StructureType structureType,
+            ImmutableArray<ValueReference> values)
         {
             Debug.Assert(structureType != null, "Invalid structure type");
             Debug.Assert(values != null && values.Length > 0, "Invalid values");
             Debug.Assert(values.Length == structureType.NumFields, "Invalid values or structure type");
 
-            // Create structure instance
-            var instance = CreateStructure(structureType);
-            for (int i = 0, e = values.Length; i < e; ++i)
-                instance = CreateSetField(instance, new FieldAccessChain(i), values[i]);
-            return instance;
+            return Append(new StructureValue(
+                BasicBlock,
+                structureType,
+                values));
         }
 
         /// <summary>
         /// Creates a load operation of an object field.
         /// </summary>
         /// <param name="objectValue">The object value.</param>
-        /// <param name="accessChain">The field index chain.</param>
+        /// <param name="fieldSpan">The field span.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateGetField(Value objectValue, FieldAccessChain accessChain)
+        public ValueReference CreateGetField(Value objectValue, FieldSpan fieldSpan)
         {
             Debug.Assert(objectValue != null, "Invalid object node");
 
             var structType = objectValue.Type as StructureType;
             Debug.Assert(structType != null, "Invalid object structure type");
 
-            // Try to combine different get and set operations on the same value
-            var current = objectValue;
-            for (; ; )
-            {
-                switch (current)
-                {
-                    case SetField setField:
-                        if (setField.AccessChain == accessChain)
-                            return setField.Value;
-                        current = setField.ObjectValue;
-                        continue;
-                    case NullValue _:
-                        return CreateNull(structType.GetFieldType(accessChain));
-                }
-
-                // Value could not be resolved
-                break;
-            }
+            if (objectValue is StructureValue structureValue)
+                return structureValue.Get(this, fieldSpan);
+            if (objectValue is NullValue)
+                return CreateNull(structType.Get(Context, fieldSpan));
 
             return Append(new GetField(
+                Context,
                 BasicBlock,
                 objectValue,
-                accessChain));
+                fieldSpan));
         }
 
         /// <summary>
-        /// Creates a store operation of an object field using
-        /// the given access chain. If the access chain is empty,
-        /// the target value to set is returned.
+        /// Creates a store operation of an object field using the given field access.
         /// </summary>
         /// <param name="objectValue">The object value.</param>
-        /// <param name="accessChain">The field access chain.</param>
+        /// <param name="fieldSpan">The field span.</param>
         /// <param name="value">The field value to store.</param>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateSetField(
             Value objectValue,
-            FieldAccessChain accessChain,
+            FieldSpan fieldSpan,
             Value value)
         {
             Debug.Assert(objectValue != null, "Invalid object node");
@@ -151,14 +177,27 @@ namespace ILGPU.IR.Construction
 
             var structType = objectValue.Type as StructureType;
             Debug.Assert(structType != null, "Invalid object structure type");
-            Debug.Assert(
-                structType.GetFieldType(accessChain) == value.Type,
-                "Incompatible value type");
+            Debug.Assert(structType.Get(Context, fieldSpan) == value.Type, "Incompatible value type");
+
+            // Fold structure values
+            if (objectValue is StructureValue structureValue)
+            {
+                var fieldValues = structType.CreateFieldBuilder();
+                foreach (Value fieldValue in structureValue.Nodes)
+                    fieldValues.Add(fieldValue);
+
+                for (int i = 0; i < fieldSpan.Span; ++i)
+                    fieldValues[fieldSpan.Index + i] = CreateGetField(value, new FieldSpan(i));
+
+                return CreateStructure(structType, fieldValues.MoveToImmutable());
+            }
+            if (objectValue is NullValue && fieldSpan.Span == structType.NumFields)
+                return value;
 
             return Append(new SetField(
                 BasicBlock,
                 objectValue,
-                accessChain,
+                fieldSpan,
                 value));
         }
     }
