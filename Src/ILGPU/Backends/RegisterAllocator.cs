@@ -11,6 +11,7 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Types;
+using ILGPU.IR.Values;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -125,49 +126,20 @@ namespace ILGPU.Backends
         /// <summary>
         /// Represents a compound register of a complex type.
         /// </summary>
-        public abstract class CompoundRegister : Register
+        public sealed class CompoundRegister : Register
         {
-            #region Static
-
-            /// <summary>
-            /// Creates a new compound-register instance.
-            /// </summary>
-            /// <param name="source">The source register.</param>
-            /// <param name="registers">The updated child registers.</param>
-            /// <returns>The created compound register.</returns>
-            public static CompoundRegister NewRegister(
-                CompoundRegister source,
-                ImmutableArray<Register> registers)
-            {
-                switch (source)
-                {
-                    case StructureRegister structureRegister:
-                        return new StructureRegister(
-                            structureRegister.StructureType,
-                            registers);
-                    case ArrayRegister arrayRegister:
-                        return new ArrayRegister(
-                            arrayRegister.ArrayType,
-                            registers);
-                    default:
-                        throw new InvalidCodeGenerationException();
-                }
-            }
-
-            #endregion
-
             #region Instance
 
             /// <summary>
             /// Constructs a new compound register.
             /// </summary>
-            /// <param name="typeNode">The underlying type node.</param>
+            /// <param name="type">The underlying type node.</param>
             /// <param name="registers">The child registers.</param>
             internal CompoundRegister(
-                TypeNode typeNode,
+                StructureType type,
                 ImmutableArray<Register> registers)
             {
-                Type = typeNode;
+                Type = type;
                 Children = registers;
             }
 
@@ -176,9 +148,9 @@ namespace ILGPU.Backends
             #region Properties
 
             /// <summary>
-            /// Returns the underlying type.k
+            /// Returns the underlying type.
             /// </summary>
-            public TypeNode Type { get; }
+            public StructureType Type { get; }
 
             /// <summary>
             /// Returns all child registers.
@@ -189,94 +161,6 @@ namespace ILGPU.Backends
             /// Returns the number of child registers.
             /// </summary>
             public int NumChildren => Children.Length;
-
-            #endregion
-        }
-
-        /// <summary>
-        /// Represents a compound register of a structure type.
-        /// </summary>
-        public sealed class StructureRegister : CompoundRegister
-        {
-            #region Instance
-
-            /// <summary>
-            /// Constructs a new structure register.
-            /// </summary>
-            /// <param name="structureType">The structure type.</param>
-            /// <param name="registers">The child registers.</param>
-            internal StructureRegister(
-                StructureType structureType,
-                ImmutableArray<Register> registers)
-                : base(structureType, registers)
-            { }
-
-            #endregion
-
-            #region Properties
-
-            /// <summary>
-            /// Returns the underlying structure type.
-            /// </summary>
-            public StructureType StructureType => Type as StructureType;
-
-            #endregion
-        }
-
-        /// <summary>
-        /// Represents a compound register of an array type.
-        /// </summary>
-        public sealed class ArrayRegister : CompoundRegister
-        {
-            #region Instance
-
-            /// <summary>
-            /// Constructs a new array register.
-            /// </summary>
-            /// <param name="arrayType">The array type.</param>
-            /// <param name="registers">The child registers.</param>
-            internal ArrayRegister(
-                ArrayType arrayType,
-                ImmutableArray<Register> registers)
-                : base(arrayType, registers)
-            { }
-
-            #endregion
-
-            #region Properties
-
-            /// <summary>
-            /// Returns the underlying array type.
-            /// </summary>
-            public ArrayType ArrayType => Type as ArrayType;
-
-            #endregion
-        }
-
-        /// <summary>
-        /// Represents a compound register of a view type.
-        /// </summary>
-        public abstract class ViewRegister : Register
-        {
-            #region Instance
-
-            /// <summary>
-            /// Constructs a new view register.
-            /// </summary>
-            /// <param name="viewType">The view type.</param>
-            internal ViewRegister(ViewType viewType)
-            {
-                ViewType = viewType;
-            }
-
-            #endregion
-
-            #region Properties
-
-            /// <summary>
-            /// Returns the underlying view type.
-            /// </summary>
-            public ViewType ViewType { get; }
 
             #endregion
         }
@@ -361,32 +245,6 @@ namespace ILGPU.Backends
         public abstract void FreeRegister(PrimitiveRegister primitiveRegister);
 
         /// <summary>
-        /// Allocates a new register of a view type.
-        /// </summary>
-        /// <param name="viewType">The view type to allocate.</param>
-        /// <returns>The allocated register.</returns>
-        public abstract Register AllocateViewRegister(ViewType viewType);
-
-        /// <summary>
-        /// Allocates a new register of a view type.
-        /// </summary>
-        /// <param name="viewType">The view type to allocate.</param>
-        /// <returns>The allocated register.</returns>
-        public T AllocateViewRegisterAs<T>(ViewType viewType)
-            where T : Register
-        {
-            var result = AllocateViewRegister(viewType) as T;
-            Debug.Assert(result != null, "Invalid view register");
-            return result;
-        }
-
-        /// <summary>
-        /// Frees the given view register.
-        /// </summary>
-        /// <param name="viewRegister">The view register to free.</param>
-        public abstract void FreeViewRegister(ViewRegister viewRegister);
-
-        /// <summary>
         /// Allocates a specific register kind for the given node.
         /// </summary>
         /// <param name="node">The node to allocate the register for.</param>
@@ -466,14 +324,7 @@ namespace ILGPU.Backends
                     var childRegisters = ImmutableArray.CreateBuilder<Register>(structureType.NumFields);
                     for (int i = 0, e = structureType.NumFields; i < e; ++i)
                         childRegisters.Add(AllocateType(structureType.Fields[i]));
-                    return new StructureRegister(structureType, childRegisters.MoveToImmutable());
-                case ArrayType arrayType:
-                    var arrayRegisters = ImmutableArray.CreateBuilder<Register>(arrayType.Length);
-                    for (int i = 0, e = arrayType.Length; i < e; ++i)
-                        arrayRegisters.Add(AllocateType(arrayType.ElementType));
-                    return new ArrayRegister(arrayType, arrayRegisters.MoveToImmutable());
-                case ViewType viewType:
-                    return AllocateViewRegister(viewType);
+                    return new CompoundRegister(structureType, childRegisters.MoveToImmutable());
                 case PointerType _:
                 case StringType _:
                     return AllocateType(ABI.PointerType);
@@ -483,7 +334,7 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
-        /// Regisers a register alias.
+        /// Registers a register alias.
         /// </summary>
         /// <param name="node">The node.</param>
         /// <param name="aliasNode">The alias node.</param>
@@ -561,9 +412,6 @@ namespace ILGPU.Backends
                 case CompoundRegister compoundRegister:
                     foreach (var child in compoundRegister.Children)
                         FreeRecursive(child);
-                    break;
-                case ViewRegister viewRegister:
-                    FreeViewRegister(viewRegister);
                     break;
                 default:
                     throw new InvalidCodeGenerationException();
