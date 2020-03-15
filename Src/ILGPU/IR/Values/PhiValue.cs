@@ -21,11 +21,82 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.IR.Values
 {
     /// <summary>
-    /// Represents a single control-flow dependend phi node.
+    /// Represents a single control-flow dependent phi node.
     /// </summary>
     public sealed class PhiValue : Value
     {
         #region Nested Types
+
+        /// <summary>
+        /// Remaps phi argument blocks.
+        /// </summary>
+        public interface IArgumentRemapper
+        {
+            /// <summary>
+            /// Returns true if the given blocks contain a block to remap.
+            /// </summary>
+            /// <param name="blocks">The blocks to check.</param>
+            /// <returns>True, if the given blocks contain the old block.</returns>
+            bool CanRemap(ImmutableArray<BasicBlock> blocks);
+
+            /// <summary>
+            /// Tries to remap the given block to a new one.
+            /// </summary>
+            /// <param name="block">The old block to remap.</param>
+            /// <param name="newBlock">The (possible) remapped new block.</param>
+            /// <returns>True, if the block could be remapped.</returns>
+            bool TryRemap(BasicBlock block, out BasicBlock newBlock);
+        }
+
+        /// <summary>
+        /// A simple remapper that allows to map an old block to a new block.
+        /// </summary>
+        public readonly struct BlockRemapper : IArgumentRemapper
+        {
+            /// <summary>
+            /// Constructs a new block remapper.
+            /// </summary>
+            /// <param name="oldBlock">The old block.</param>
+            /// <param name="newBlock">The new block.</param>
+            public BlockRemapper(BasicBlock oldBlock, BasicBlock newBlock)
+            {
+                OldBlock = oldBlock;
+                NewBlock = newBlock;
+            }
+
+            /// <summary>
+            /// Returns the old block.
+            /// </summary>
+            public BasicBlock OldBlock { get; }
+
+            /// <summary>
+            /// Returns the new block.
+            /// </summary>
+            public BasicBlock NewBlock { get; }
+
+            /// <summary>
+            /// Returns true if the given blocks contain the old block.
+            /// </summary>
+            /// <param name="blocks">The blocks to check.</param>
+            /// <returns>True, if the given blocks contain the old block.</returns>
+            public bool CanRemap(ImmutableArray<BasicBlock> blocks)
+            {
+                foreach (var block in blocks)
+                    if (OldBlock == block)
+                        return true;
+                return false;
+            }
+
+            /// <summary>
+            /// Tries to remap the old block to the new block.
+            /// </summary>
+            /// <returns>Returns always true.</returns>
+            public bool TryRemap(BasicBlock block, out BasicBlock newBlock)
+            {
+                newBlock = block == OldBlock ? NewBlock : block;
+                return true;
+            }
+        }
 
         /// <summary>
         /// A phi builder.
@@ -37,7 +108,7 @@ namespace ILGPU.IR.Values
             #region Instance
 
             private readonly ImmutableArray<ValueReference>.Builder arguments;
-            private readonly ImmutableArray<NodeId>.Builder argumentBlockIds;
+            private readonly ImmutableArray<BasicBlock>.Builder argumentBlocks;
 
             /// <summary>
             /// Constructs a new phi builder.
@@ -49,7 +120,7 @@ namespace ILGPU.IR.Values
                 PhiValue = phiValue;
 
                 arguments = ImmutableArray.CreateBuilder<ValueReference>();
-                argumentBlockIds = ImmutableArray.CreateBuilder<NodeId>();
+                argumentBlocks = ImmutableArray.CreateBuilder<BasicBlock>();
             }
 
             #endregion
@@ -90,16 +161,16 @@ namespace ILGPU.IR.Values
             /// <summary>
             /// Adds the given argument.
             /// </summary>
-            /// <param name="blockId">The input block associated with the argument value.</param>
+            /// <param name="predecessor">The input block associated with the argument value.</param>
             /// <param name="value">The argument value to add.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void AddArgument(NodeId blockId, Value value)
+            public void AddArgument(BasicBlock predecessor, Value value)
             {
                 Debug.Assert(value != null, "Invalid phi argument");
                 Debug.Assert(value.Type == Type, "Incompatible phi argument");
 
                 arguments.Add(value);
-                argumentBlockIds.Add(blockId);
+                argumentBlocks.Add(predecessor);
             }
 
             /// <summary>
@@ -108,7 +179,7 @@ namespace ILGPU.IR.Values
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public PhiValue Seal()
             {
-                PhiValue.SealPhiArguments(argumentBlockIds.ToImmutable(), arguments.ToImmutable());
+                PhiValue.SealPhiArguments(argumentBlocks.ToImmutable(), arguments.ToImmutable());
                 return PhiValue;
             }
 
@@ -153,14 +224,46 @@ namespace ILGPU.IR.Values
         public TypeNode PhiType { get; }
 
         /// <summary>
-        /// Returns all associated block ids.
+        /// Returns all associated blocks from which the values have to be resolved from.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-        public ImmutableArray<NodeId> NodeBlockIds { get; private set; }
+        public ImmutableArray<BasicBlock> Sources { get; private set; }
 
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Remaps the current phi arguments.
+        /// </summary>
+        /// <typeparam name="TArgumentRemaper">The argument remapper type.</typeparam>
+        /// <param name="blockBuilder">The current block builder.</param>
+        /// <param name="remapper">The remapper instance.</param>
+        /// <returns>The remapped phi value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PhiValue RemapArguments<TArgumentRemaper>(
+            BasicBlock.Builder blockBuilder,
+            TArgumentRemaper remapper)
+            where TArgumentRemaper : IArgumentRemapper
+        {
+            Debug.Assert(blockBuilder.BasicBlock == BasicBlock, "Invalid block builder");
+            if (!remapper.CanRemap(Sources))
+                return this;
+
+            var phiBuilder = blockBuilder.CreatePhi(Type);
+            for (int i = 0, e = Nodes.Length; i < e; ++i)
+            {
+                if (!remapper.TryRemap(Sources[i], out var newSource))
+                    continue;
+
+                phiBuilder.AddArgument(newSource, Nodes[i]);
+            }
+
+            var newPhi = phiBuilder.Seal();
+            Replace(newPhi);
+            blockBuilder.Remove(this);
+            return newPhi;
+        }
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
         protected override TypeNode UpdateType(IRContext context) => PhiType;
@@ -178,15 +281,15 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Seals the given phi arguments.
         /// </summary>
-        /// <param name="blockIds">The associated block ids</param>
-        /// <param name="arguments">The phi arguments</param>
+        /// <param name="sources">The associated block sources.</param>
+        /// <param name="arguments">The phi arguments.</param>
         internal void SealPhiArguments(
-            ImmutableArray<NodeId> blockIds,
+            ImmutableArray<BasicBlock> sources,
             ImmutableArray<ValueReference> arguments)
         {
-            Debug.Assert(arguments.Length == blockIds.Length);
+            Debug.Assert(arguments.Length == sources.Length);
             Seal(arguments);
-            NodeBlockIds = blockIds;
+            Sources = sources;
         }
 
         #endregion

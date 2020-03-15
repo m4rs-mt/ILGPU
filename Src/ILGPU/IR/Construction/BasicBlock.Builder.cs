@@ -16,6 +16,7 @@ using ILGPU.IR.Values;
 using ILGPU.Util;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -264,34 +265,39 @@ namespace ILGPU.IR
             }
 
             /// <summary>
-            /// Updates the phi values in the supplied blocks to expect the new block id
+            /// Updates phi values in the current block to point to the new blocks instead.
             /// </summary>
-            /// <param name="successors">The blocks containing phi values to be updated</param>
-            /// <param name="oldBlockId">The previous block id</param>
-            /// <param name="newBlockId">The replacement block id</param>
+            /// <typeparam name="TArgumentRemapper">The argument mapper type.</typeparam>
+            /// <param name="remapper">The remapper to use.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private void RemapPhiArguments(IEnumerable<BasicBlock> successors, NodeId oldBlockId, NodeId newBlockId)
+            public void RemapPhiArguments<TArgumentRemapper>(TArgumentRemapper remapper)
+                where TArgumentRemapper : PhiValue.IArgumentRemapper
             {
-                foreach (var successor in successors)
+                foreach (ValueEntry value in this)
                 {
-                    foreach (Value value in successor)
-                    {
-                        if (value is PhiValue phiValue)
-                        {
-                            var replacementPhiValue = new PhiValue(successor, value.Type);
-                            MethodBuilder.Create(replacementPhiValue);
-                            var phiBuilder = new PhiValue.Builder(replacementPhiValue);
+                    if (!(value.Value is PhiValue phiValue))
+                        continue;
+                    SetupInsertPosition(value);
+                    phiValue.RemapArguments(this, remapper);
+                }
+            }
 
-                            for (int i = 0, e = phiValue.Nodes.Length; i < e; ++i)
-                            {
-                                var replacementBlockId = phiValue.NodeBlockIds[i];
-                                if (replacementBlockId == oldBlockId)
-                                    replacementBlockId = newBlockId;
-                                phiBuilder.AddArgument(replacementBlockId, phiValue.Nodes[i]);
-                            }
-                            phiValue.Replace(phiBuilder.Seal());
-                        }
-                    }
+            /// <summary>
+            /// Updates phi values in the supplied blocks to point to the new blocks instead.
+            /// </summary>
+            /// <typeparam name="TArgumentRemapper">The argument mapper type.</typeparam>
+            /// <param name="blocks">The blocks containing phi values to be updated.</param>
+            /// <param name="remapper">The remapper to use.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void RemapPhiArguments<TArgumentRemapper>(
+                ImmutableArray<BasicBlock> blocks,
+                TArgumentRemapper remapper)
+                where TArgumentRemapper : PhiValue.IArgumentRemapper
+            {
+                foreach (var block in blocks)
+                {
+                    var blockBuilder = MethodBuilder[block];
+                    blockBuilder.RemapPhiArguments(remapper);
                 }
             }
 
@@ -347,7 +353,7 @@ namespace ILGPU.IR
                         // We require a custom phi parameter
                         var phiBuilder = tempBlock.CreatePhi(callTarget.ReturnType);
                         foreach (var (returnBuilder, returnValue) in exitBlocks)
-                            phiBuilder.AddArgument(returnBuilder.BasicBlock.Id, returnValue);
+                            phiBuilder.AddArgument(returnBuilder.BasicBlock, returnValue);
                         call.Replace(phiBuilder.PhiValue);
                         phiBuilder.Seal();
                     }
@@ -402,7 +408,9 @@ namespace ILGPU.IR
                 CreateBranch(tempBlock.BasicBlock);
 
                 // Update phi blocks
-                RemapPhiArguments(tempBlock.BasicBlock.Successors, BasicBlock.Id, tempBlock.BasicBlock.Id);
+                RemapPhiArguments(
+                    tempBlock.BasicBlock.Successors,
+                    new PhiValue.BlockRemapper(BasicBlock, tempBlock.BasicBlock));
 
                 return tempBlock;
             }
@@ -434,7 +442,9 @@ namespace ILGPU.IR
                 Terminator = other.Terminator;
 
                 // Update phi blocks
-                RemapPhiArguments(other.Successors, other.Id, BasicBlock.Id);
+                RemapPhiArguments(
+                    other.Successors,
+                    new PhiValue.BlockRemapper(other, BasicBlock));
             }
 
             /// <summary>

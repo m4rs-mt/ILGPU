@@ -177,7 +177,6 @@ namespace ILGPU.Backends
 
         #region Instance
 
-        private readonly Dictionary<NodeId, int> predecessorMapping;
         private readonly Dictionary<BasicBlock, List<(Value, PhiValue)>> phiMapping;
 
         /// <summary>
@@ -187,7 +186,6 @@ namespace ILGPU.Backends
         /// <param name="allocator">The allocator to use.</param>
         private PhiBindings(CFG cfg, TAllocator allocator)
         {
-            predecessorMapping = new Dictionary<NodeId, int>();
             phiMapping = new Dictionary<BasicBlock, List<(Value, PhiValue)>>();
 
             foreach (var cfgNode in cfg)
@@ -204,16 +202,12 @@ namespace ILGPU.Backends
 
                     // Determine predecessor mapping
                     Debug.Assert(cfgNode.NumPredecessors == phi.Nodes.Length, "Invalid phi value");
-                    predecessorMapping.Clear();
-                    for (int i = 0, e = cfgNode.NumPredecessors; i < e; ++i)
-                        predecessorMapping.Add(cfgNode.Predecessors[i].Block.Id, i);
 
                     // Assign values to their appropriate blocks
                     for (int i = 0, e = phi.Nodes.Length; i < e; ++i)
                     {
-                        var predecessorIdx = predecessorMapping[phi.NodeBlockIds[i]];
-                        var argumentBlock = cfgNode.Predecessors[predecessorIdx].Block;
-                        if (!phiMapping.TryGetValue(argumentBlock, out List<(Value, PhiValue)> arguments))
+                        var argumentBlock = phi.Sources[i];
+                        if (!phiMapping.TryGetValue(argumentBlock, out var arguments))
                         {
                             arguments = new List<(Value, PhiValue)>();
                             phiMapping.Add(argumentBlock, arguments);

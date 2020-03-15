@@ -37,12 +37,6 @@ namespace ILGPU.IR.Construction
             new Dictionary<BasicBlock, BasicBlock.Builder>();
 
         /// <summary>
-        /// Maps old block is to new block ids.
-        /// </summary>
-        private readonly Dictionary<NodeId, NodeId> blockIdMapping =
-            new Dictionary<NodeId, NodeId>();
-
-        /// <summary>
         /// Maps old phi nodes to new phi builders.
         /// </summary>
         private readonly List<(PhiValue, PhiValue.Builder)> phiMapping =
@@ -86,7 +80,6 @@ namespace ILGPU.IR.Construction
 
                 var newBlock = builder.CreateBasicBlock(block.Name);
                 blockMapping.Add(block, newBlock);
-                blockIdMapping.Add(block.Id, newBlock.BasicBlock.Id);
 
                 foreach (Value value in block)
                 {
@@ -167,8 +160,8 @@ namespace ILGPU.IR.Construction
                 for (int i = 0, e = sourcePhi.Nodes.Length; i < e; ++i)
                 {
                     var argument = sourcePhi.Nodes[i];
-                    var newBlockId = blockIdMapping[sourcePhi.NodeBlockIds[i]];
-                    targetPhiBuilder.AddArgument(newBlockId, valueMapping[argument]);
+                    var newBlock = blockMapping[sourcePhi.Sources[i]];
+                    targetPhiBuilder.AddArgument(newBlock, valueMapping[argument]);
                 }
                 targetPhiBuilder.Seal();
             }
