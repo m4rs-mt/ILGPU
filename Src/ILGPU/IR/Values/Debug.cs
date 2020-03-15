@@ -35,6 +35,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a generic debug operation.
     /// </summary>
+    [ValueKind(ValueKind.Debug)]
     public sealed class DebugOperation : MemoryValue
     {
         #region Static
@@ -65,15 +66,19 @@ namespace ILGPU.IR.Values
             DebugKind kind,
             ValueReference message)
             : base(
-                  ValueKind.Debug,
                   basicBlock,
                   ImmutableArray.Create(message),
                   ComputeType(context))
-        { }
+        {
+            Kind = kind;
+        }
 
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Debug;
 
         /// <summary>
         /// The debug operation kind.

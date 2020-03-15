@@ -9,6 +9,10 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using System;
+using System.Diagnostics;
+using System.Reflection;
+
 namespace ILGPU.IR
 {
     /// <summary>
@@ -326,6 +330,27 @@ namespace ILGPU.IR
     }
 
     /// <summary>
+    /// Marks value classes with specific value kinds.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    internal sealed class ValueKindAttribute : Attribute
+    {
+        /// <summary>
+        /// Constructs a new value kind attribute.
+        /// </summary>
+        /// <param name="kind">The value kind.</param>
+        public ValueKindAttribute(ValueKind kind)
+        {
+            Kind = kind;
+        }
+
+        /// <summary>
+        /// Returns the value kind.
+        /// </summary>
+        public ValueKind Kind { get; }
+    }
+
+    /// <summary>
     /// Utility methods for <see cref="ValueKind"/> enumeration values.
     /// </summary>
     public static class ValueKinds
@@ -334,5 +359,21 @@ namespace ILGPU.IR
         /// The number of different value kinds.
         /// </summary>
         public const int NumValueKinds = (int)ValueKind.Handle + 1;
+
+        /// <summary>
+        /// Gets the value kind of the value type specified.
+        /// </summary>
+        /// <typeparam name="TValue">The value type.</typeparam>
+        /// <returns>The determined value kind.</returns>
+        public static ValueKind GetValueKind<TValue>()
+            where TValue : Value =>
+            typeof(TValue).GetCustomAttribute<ValueKindAttribute>().Kind;
+
+        /// <summary>
+        /// Gets the value kind of the type specified.
+        /// </summary>
+        /// <returns>The determined value kind.</returns>
+        public static ValueKind? GetValueKind(Type type) =>
+            type.GetCustomAttribute<ValueKindAttribute>()?.Kind;
     }
 }

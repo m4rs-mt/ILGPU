@@ -20,6 +20,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an array value.
     /// </summary>
+    [ValueKind(ValueKind.Array)]
     public sealed class ArrayValue : ClassValue
     {
         #region Instance
@@ -34,7 +35,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ArrayType arrayTpe,
             ValueReference extent)
-            : base(ValueKind.Structure, basicBlock, arrayTpe)
+            : base(basicBlock, arrayTpe)
         {
             Debug.Assert(extent.Type is StructureType, "Invalid extent");
             Seal(ImmutableArray.Create(extent));
@@ -43,6 +44,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Array;
 
         /// <summary>
         /// Returns the array type.
@@ -94,16 +98,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract structure operation.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="values">All child values.</param>
         /// <param name="initialType">The initial node type.</param>
         internal ArrayOperationValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> values,
             TypeNode initialType)
-            : base(kind, basicBlock, values, initialType)
+            : base(basicBlock, values, initialType)
         { }
 
         #endregion
@@ -160,6 +162,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an operation to extract the extent from an array value.
     /// </summary>
+    [ValueKind(ValueKind.GetArrayExtent)]
     public sealed class GetArrayExtent : ArrayOperationValue
     {
         #region Static
@@ -191,7 +194,6 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference arrayValue)
             : base(
-                ValueKind.GetArrayElement,
                 basicBlock,
                 ImmutableArray.Create(arrayValue),
                 ComputeType(context, arrayValue.Type as ArrayType))
@@ -200,6 +202,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Methods
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.GetArrayExtent;
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
         protected override TypeNode UpdateType(IRContext context) =>
@@ -225,6 +230,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an operation to load a single element from an array.
     /// </summary>
+    [ValueKind(ValueKind.GetArrayElement)]
     public sealed class GetArrayElement : ArrayOperationValue
     {
         #region Static
@@ -253,7 +259,6 @@ namespace ILGPU.IR.Values
             ValueReference arrayValue,
             ValueReference arrayIndex)
             : base(
-                ValueKind.GetArrayElement,
                 basicBlock,
                 ImmutableArray.Create(arrayValue, arrayIndex),
                 ComputeType(arrayValue))
@@ -262,6 +267,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Methods
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.GetArrayElement;
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
         protected override TypeNode UpdateType(IRContext context) =>
@@ -289,6 +297,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an operation to store a single value into an array.
     /// </summary>
+    [ValueKind(ValueKind.SetArrayElement)]
     public sealed class SetArrayElement : ArrayOperationValue
     {
         #region Static
@@ -321,7 +330,6 @@ namespace ILGPU.IR.Values
             ValueReference arrayIndex,
             ValueReference value)
             : base(
-                ValueKind.SetArrayElement,
                 basicBlock,
                 ImmutableArray.Create(arrayValue, arrayIndex, value),
                 ComputeType(context))
@@ -330,6 +338,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.SetArrayElement;
 
         /// <summary>
         /// Returns the value to store.

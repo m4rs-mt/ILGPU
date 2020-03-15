@@ -27,16 +27,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new memory value.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="values">All child values.</param>
         /// <param name="initialType">The initial node type.</param>
         internal MemoryValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> values,
             TypeNode initialType)
-            : base(kind, basicBlock, initialType)
+            : base(basicBlock, initialType)
         {
             Seal(values);
         }
@@ -47,6 +45,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an allocation operation on the stack.
     /// </summary>
+    [ValueKind(ValueKind.Alloca)]
     public sealed class Alloca : MemoryValue
     {
         #region Static
@@ -88,7 +87,6 @@ namespace ILGPU.IR.Values
             TypeNode allocaType,
             MemoryAddressSpace addressSpace)
             : base(
-                  ValueKind.Alloca,
                   basicBlock,
                   ImmutableArray.Create(arrayLength),
                   ComputeType(context, allocaType, addressSpace))
@@ -107,6 +105,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Alloca;
 
         /// <summary>
         /// Returns the allocation type.
@@ -200,6 +201,7 @@ namespace ILGPU.IR.Values
     /// Represents a memory barrier that hinders reordering of memory operations
     /// with side effects.
     /// </summary>
+    [ValueKind(ValueKind.MemoryBarrier)]
     public sealed class MemoryBarrier : MemoryValue
     {
         #region Static
@@ -228,7 +230,6 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             MemoryBarrierKind kind)
             : base(
-                  ValueKind.MemoryBarrier,
                   basicBlock,
                   ImmutableArray<ValueReference>.Empty,
                   ComputeType(context))
@@ -239,6 +240,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.MemoryBarrier;
 
         /// <summary>
         /// Returns the kind of the barrier.
@@ -276,6 +280,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a load operation with side effects.
     /// </summary>
+    [ValueKind(ValueKind.Load)]
     public sealed class Load : MemoryValue
     {
         #region Static
@@ -307,7 +312,6 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference source)
             : base(
-                  ValueKind.Load,
                   basicBlock,
                   ImmutableArray.Create(source),
                   ComputeType(context, source.Type))
@@ -318,6 +322,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Load;
 
         /// <summary>
         /// Returns the source view.
@@ -356,6 +363,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a store operation with side effects.
     /// </summary>
+    [ValueKind(ValueKind.Store)]
     public sealed class Store : MemoryValue
     {
         #region Static
@@ -386,7 +394,6 @@ namespace ILGPU.IR.Values
             ValueReference target,
             ValueReference value)
             : base(
-                  ValueKind.Store,
                   basicBlock,
                   ImmutableArray.Create(target, value),
                   ComputeType(context))
@@ -395,6 +402,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Store;
 
         /// <summary>
         /// Returns the target view.

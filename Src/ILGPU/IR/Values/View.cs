@@ -20,6 +20,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a new view.
     /// </summary>
+    [ValueKind(ValueKind.NewView)]
     public sealed class NewView : Value
     {
         #region Static
@@ -57,10 +58,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference pointer,
             ValueReference length)
-            : base(
-                  ValueKind.NewView,
-                  basicBlock,
-                  ComputeType(context, pointer.Type))
+            : base(basicBlock, ComputeType(context, pointer.Type))
         {
             Debug.Assert(length.BasicValueType == BasicValueType.Int32, "Invalid length");
             Seal(ImmutableArray.Create(pointer, length));
@@ -69,6 +67,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.NewView;
 
         /// <summary>
         /// Returns the underlying pointer.
@@ -133,16 +134,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a view property.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
         /// <param name="view">The underlying view.</param>
         internal ViewPropertyValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             ValueReference view,
             TypeNode initialType)
-            : base(kind, basicBlock, initialType)
+            : base(basicBlock, initialType)
         {
             Seal(ImmutableArray.Create(view));
         }
@@ -170,6 +169,7 @@ namespace ILGPU.IR.Values
     /// Represents the <see cref="ArrayView{T}.Length"/> property
     /// inside the IR.
     /// </summary>
+    [ValueKind(ValueKind.GetViewLength)]
     public sealed class GetViewLength : ViewPropertyValue
     {
         #region Static
@@ -198,11 +198,17 @@ namespace ILGPU.IR.Values
             BasicBlock basicblock,
             ValueReference view)
             : base(
-                  ValueKind.GetViewLength,
                   basicblock,
                   view,
                   ComputeType(context))
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.GetViewLength;
 
         #endregion
 

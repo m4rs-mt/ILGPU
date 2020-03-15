@@ -51,8 +51,16 @@ namespace ILGPU.IR.Values
         TargetUnsigned = 4,
     }
 
+    /// <summary>
+    /// Internal conversion flags extensions.
+    /// </summary>
     internal static class ConvertFlagsExtensions
     {
+        /// <summary>
+        /// Converts the given flags into source unsigned flags.
+        /// </summary>
+        /// <param name="flags">The flags to convert.</param>
+        /// <returns>The converted flags.</returns>
         internal static ConvertFlags ToSourceUnsignedFlags(this ConvertFlags flags)
         {
             if ((flags & ConvertFlags.TargetUnsigned) != ConvertFlags.TargetUnsigned)
@@ -64,6 +72,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Converts a node into a target type.
     /// </summary>
+    [ValueKind(ValueKind.Convert)]
     public sealed class ConvertValue : Value
     {
         #region Static
@@ -93,7 +102,7 @@ namespace ILGPU.IR.Values
             ValueReference value,
             TypeNode targetType,
             ConvertFlags flags)
-            : base(ValueKind.Convert, basicBlock, ComputeType(targetType))
+            : base(basicBlock, ComputeType(targetType))
         {
             ConvertType = targetType;
             Flags = flags;
@@ -104,6 +113,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Convert;
 
         /// <summary>
         /// Returns the operand.
@@ -133,19 +145,19 @@ namespace ILGPU.IR.Values
             BasicValueType.GetArithmeticBasicValueType(IsResultUnsigned);
 
         /// <summary>
-        /// Returns true iff the operation has enabled overflow semantics.
+        /// Returns true if the operation has enabled overflow semantics.
         /// </summary>
         public bool CanOverflow => (Flags & ConvertFlags.Overflow) ==
             ConvertFlags.Overflow;
 
         /// <summary>
-        /// Returns true iff the operation has enabled unsigned semantics.
+        /// Returns true if the operation has enabled unsigned semantics.
         /// </summary>
         public bool IsSourceUnsigned => (Flags & ConvertFlags.SourceUnsigned) ==
             ConvertFlags.SourceUnsigned;
 
         /// <summary>
-        /// Returns true iff the operation has enabled unsigned semantics.
+        /// Returns true if the operation has enabled unsigned semantics.
         /// </summary>
         public bool IsResultUnsigned => (Flags & ConvertFlags.TargetUnsigned) ==
             ConvertFlags.TargetUnsigned;

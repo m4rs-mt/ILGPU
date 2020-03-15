@@ -75,6 +75,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a comparison.
     /// </summary>
+    [ValueKind(ValueKind.Compare)]
     public sealed class CompareValue : Value
     {
         #region Static
@@ -154,7 +155,7 @@ namespace ILGPU.IR.Values
             ValueReference right,
             CompareKind kind,
             CompareFlags flags)
-            : base(ValueKind.Compare, basicBlock, ComputeType(context))
+            : base(basicBlock, ComputeType(context))
         {
             Kind = kind;
             Flags = flags;
@@ -165,6 +166,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Compare;
 
         /// <summary>
         /// Returns the left operand.
@@ -187,7 +191,7 @@ namespace ILGPU.IR.Values
         public CompareFlags Flags { get; }
 
         /// <summary>
-        /// Returns true iff the operation has enabled unsigned or unordered semantics.
+        /// Returns true if the operation has enabled unsigned or unordered semantics.
         /// </summary>
         public bool IsUnsignedOrUnordered => (Flags & CompareFlags.UnsignedOrUnordered) ==
             CompareFlags.UnsignedOrUnordered;

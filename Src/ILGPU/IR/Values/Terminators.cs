@@ -31,16 +31,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new terminator value that is marked.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="targets">The associated targets.</param>
         /// <param name="initialType">The initial node type.</param>
         protected TerminatorValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<BasicBlock> targets,
             TypeNode initialType)
-            : base(kind, basicBlock, initialType)
+            : base(basicBlock, initialType)
         {
             Targets = targets;
         }
@@ -65,6 +63,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a simple return terminator.
     /// </summary>
+    [ValueKind(ValueKind.Return)]
     public sealed class ReturnTerminator : TerminatorValue
     {
         #region Static
@@ -91,7 +90,6 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference returnValue)
             : base(
-                  ValueKind.Return,
                   basicBlock,
                   ImmutableArray<BasicBlock>.Empty,
                   ComputeType(returnValue.Type))
@@ -102,6 +100,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Return;
 
         /// <summary>
         /// Returns true if the current return terminator is a void return.
@@ -166,19 +167,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new branch terminator.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="context">The parent IR context.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="targets">The jump targets.</param>
         /// <param name="arguments">The branch arguments.</param>
         internal Branch(
-            ValueKind kind,
             IRContext context,
             BasicBlock basicBlock,
             ImmutableArray<BasicBlock> targets,
             ImmutableArray<ValueReference> arguments)
             : base(
-                  kind,
                   basicBlock,
                   targets,
                   ComputeType(context))
@@ -200,6 +198,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an unconditional branch terminator.
     /// </summary>
+    [ValueKind(ValueKind.UnconditionalBranch)]
     public sealed class UnconditionalBranch : Branch
     {
         #region Instance
@@ -215,7 +214,6 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             BasicBlock target)
             : base(
-                  ValueKind.UnconditionalBranch,
                   context,
                   basicBlock,
                   ImmutableArray.Create(target),
@@ -225,6 +223,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.UnconditionalBranch;
 
         /// <summary>
         /// Returns the unconditional jump target.
@@ -266,19 +267,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new conditional branch terminator.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="context">The parent IR context.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="condition">The jump condition.</param>
         /// <param name="targets">The jump targets.</param>
         protected ConditionalBranch(
-            ValueKind kind,
             IRContext context,
             BasicBlock basicBlock,
             ValueReference condition,
             ImmutableArray<BasicBlock> targets)
             : base(
-                  kind,
                   context,
                   basicBlock,
                   targets,
@@ -333,6 +331,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an if branch terminator.
     /// </summary>
+    [ValueKind(ValueKind.IfBranch)]
     public sealed class IfBranch : ConditionalBranch
     {
         #region Instance
@@ -352,7 +351,6 @@ namespace ILGPU.IR.Values
             BasicBlock trueTarget,
             BasicBlock falseTarget)
             : base(
-                  ValueKind.IfBranch,
                   context,
                   basicBlock,
                   condition,
@@ -367,6 +365,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.IfBranch;
 
         /// <summary>
         /// Returns the true jump target.
@@ -418,6 +419,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a single switch terminator.
     /// </summary>
+    [ValueKind(ValueKind.SwitchBranch)]
     public sealed class SwitchBranch : ConditionalBranch
     {
         #region Instance
@@ -435,7 +437,6 @@ namespace ILGPU.IR.Values
             ValueReference value,
             ImmutableArray<BasicBlock> targets)
             : base(
-                  ValueKind.SwitchBranch,
                   context,
                   basicBlock,
                   value,
@@ -450,6 +451,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.SwitchBranch;
 
         /// <summary>
         /// Returns the default block.
@@ -533,6 +537,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a temporary builder terminator.
     /// </summary>
+    [ValueKind(ValueKind.BuilderTerminator)]
     public sealed class BuilderTerminator : Branch
     {
         #region Instance
@@ -548,12 +553,18 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ImmutableArray<BasicBlock> targets)
             : base(
-                  ValueKind.BuilderTerminator,
                   context,
                   basicBlock,
                   targets,
                   ImmutableArray<ValueReference>.Empty)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.BuilderTerminator;
 
         #endregion
 

@@ -19,6 +19,7 @@ namespace ILGPU.IR.Values
     /// Represents a function parameter.
     /// </summary>
     /// <remarks>Note that parameters have not associated basic block.</remarks>
+    [ValueKind(ValueKind.Parameter)]
     public sealed class Parameter : Value
     {
         #region Instance
@@ -33,7 +34,7 @@ namespace ILGPU.IR.Values
             Method method,
             TypeNode type,
             string name)
-            : base(ValueKind.Parameter, method, type)
+            : base(method, type)
         {
             ParameterType = type;
             Name = name ?? "param";
@@ -43,6 +44,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Parameter;
 
         /// <summary>
         /// Returns the actual parameter type.

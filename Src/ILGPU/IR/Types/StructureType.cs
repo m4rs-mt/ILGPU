@@ -12,8 +12,11 @@
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace ILGPU.IR.Types
@@ -21,8 +24,54 @@ namespace ILGPU.IR.Types
     /// <summary>
     /// Represents a structure type.
     /// </summary>
-    public sealed class StructureType : ObjectType
+    [SuppressMessage("Naming", "CA1710:Identifiers should have correct suffix")]
+    public sealed class StructureType : ObjectType, IEnumerable<(TypeNode, FieldAccess)>
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Returns an enumerator to enumerate all nested fields in the structure type.
+        /// </summary>
+        public struct Enumerator : IEnumerator<(TypeNode, FieldAccess)>
+        {
+            private int index;
+
+            /// <summary>
+            /// Constructs a new use enumerator.
+            /// </summary>
+            /// <param name="type">The structure type.</param>
+            internal Enumerator(StructureType type)
+            {
+                Type = type;
+                index = -1;
+            }
+
+            /// <summary>
+            /// Returns the parent structure type.
+            /// </summary>
+            public StructureType Type { get; }
+
+            /// <summary>
+            /// Returns the current use.
+            /// </summary>
+            public (TypeNode, FieldAccess) Current =>
+                (Type.Fields[index], new FieldAccess(index));
+
+            /// <summary cref="IEnumerator.Current"/>
+            object IEnumerator.Current => Current;
+
+            /// <summary cref="IDisposable.Dispose"/>
+            void IDisposable.Dispose() { }
+
+            /// <summary cref="IEnumerator.MoveNext"/>
+            public bool MoveNext() => ++index < Type.NumFields;
+
+            /// <summary cref="IEnumerator.Reset"/>
+            void IEnumerator.Reset() => throw new InvalidOperationException();
+        }
+
+        #endregion
+
         #region Static
 
         /// <summary>
@@ -173,6 +222,29 @@ namespace ILGPU.IR.Types
 
         /// <summary cref="TypeNode.Accept{T}(T)"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region IEnumerable
+
+        /// <summary>
+        /// Returns an enumerator to enumerate all fields in this type.
+        /// </summary>
+        /// <returns>The enumerator.</returns>
+        public Enumerator GetEnumerator() => new Enumerator(this);
+
+        /// <summary>
+        /// Returns an enumerator to enumerate all fields in this type.
+        /// </summary>
+        /// <returns>The enumerator.</returns>
+        IEnumerator<(TypeNode, FieldAccess)> IEnumerable<(TypeNode, FieldAccess)>.GetEnumerator() =>
+            GetEnumerator();
+
+        /// <summary>
+        /// Returns an enumerator to enumerate all fields in this type.
+        /// </summary>
+        /// <returns>The enumerator.</returns>
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         #endregion
 

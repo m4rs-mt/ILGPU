@@ -245,29 +245,25 @@ namespace ILGPU.IR
         /// <summary>
         /// Constructs a new value that is marked as replaceable.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="parentValue">The parent.</param>
         /// <param name="initialType">The initial node type.</param>
-        protected Value(ValueKind kind, ValueParent parentValue, TypeNode initialType)
-            : this(kind, parentValue, initialType, DefaultFlags)
+        protected Value(ValueParent parentValue, TypeNode initialType)
+            : this(parentValue, initialType, DefaultFlags)
         { }
 
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="valueKind">The value kind.</param>
         /// <param name="parentValue">The parent.</param>
         /// <param name="initialType">The initial node type.</param>
         /// <param name="valueFlags">Custom value flags.</param>
         protected Value(
-            ValueKind valueKind,
             ValueParent parentValue,
             TypeNode initialType,
             ValueFlags valueFlags)
         {
             Debug.Assert(initialType != null, "Invalid initialType");
 
-            ValueKind = valueKind;
             parent = parentValue;
             type = initialType;
             Nodes = ImmutableArray<ValueReference>.Empty;
@@ -283,7 +279,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the current value kind.
         /// </summary>
-        public ValueKind ValueKind { get; }
+        public abstract ValueKind ValueKind { get; }
 
         /// <summary>
         /// Returns the parent method.
@@ -552,8 +548,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="other">The other value.</param>
         /// <returns>True, if the given value is the same value.</returns>
-        public bool Equals(Value other) =>
-            Equals(other as object);
+        public bool Equals(Value other) => Equals(other as object);
 
         #endregion
 
@@ -604,15 +599,13 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current value.</returns>
-        public override bool Equals(object obj) =>
-            base.Equals(obj);
+        public override bool Equals(object obj) => base.Equals(obj);
 
         /// <summary>
         /// Returns the hash code of this value.
         /// </summary>
         /// <returns>The hash code of this value.</returns>
-        public override int GetHashCode() =>
-            base.GetHashCode();
+        public override int GetHashCode() => base.GetHashCode();
 
         #endregion
     }

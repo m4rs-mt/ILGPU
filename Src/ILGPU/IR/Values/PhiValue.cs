@@ -23,6 +23,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a single control-flow dependent phi node.
     /// </summary>
+    [ValueKind(ValueKind.Phi)]
     public sealed class PhiValue : Value
     {
         #region Nested Types
@@ -206,7 +207,7 @@ namespace ILGPU.IR.Values
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="type">The phi type.</param>
         internal PhiValue(BasicBlock basicBlock, TypeNode type)
-            : base(ValueKind.Phi, basicBlock, type)
+            : base(basicBlock, type)
         {
             Debug.Assert(type != null, "Invalid type");
             Debug.Assert(!type.IsVoidType, "Invalid void type");
@@ -217,6 +218,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Phi;
 
         /// <summary>
         /// Returns the basic phi type.

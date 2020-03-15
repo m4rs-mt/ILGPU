@@ -59,21 +59,18 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract atomic value.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="target">The target.</param>
         /// <param name="value">The value to store.</param>
         /// <param name="arguments">Additional arguments.</param>
         /// <param name="flags">The operation flags.</param>
         internal AtomicValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             ValueReference target,
             ValueReference value,
             ImmutableArray<ValueReference> arguments,
             AtomicFlags flags)
             : base(
-                  kind,
                   basicBlock,
                   ImmutableArray.Create(target, value).AddRange(arguments),
                   ComputeType(value))
@@ -168,6 +165,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a generic atomic operation.
     /// </summary>
+    [ValueKind(ValueKind.GenericAtomic)]
     public sealed class GenericAtomic : AtomicValue
     {
         #region Instance
@@ -187,7 +185,6 @@ namespace ILGPU.IR.Values
             AtomicKind kind,
             AtomicFlags flags)
             : base(
-                  ValueKind.GenericAtomic,
                   basicBlock,
                   target,
                   value,
@@ -202,6 +199,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.GenericAtomic;
 
         /// <summary>
         /// The operation kind.
@@ -239,6 +239,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an atomic compare-and-swap operation.
     /// </summary>
+    [ValueKind(ValueKind.AtomicCAS)]
     public sealed class AtomicCAS : AtomicValue
     {
         #region Instance
@@ -258,7 +259,6 @@ namespace ILGPU.IR.Values
             ValueReference compareValue,
             AtomicFlags flags)
             : base(
-                  ValueKind.AtomicCAS,
                   basicBlock,
                   target,
                   value,
@@ -272,6 +272,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.AtomicCAS;
 
         /// <summary>
         /// Returns the comparison value.

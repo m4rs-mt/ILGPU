@@ -28,16 +28,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new generic barrier operation.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="values">Additional values.</param>
         /// <param name="initialType">The initial node type.</param>
         internal BarrierOperation(
-            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> values,
             TypeNode initialType)
-            : base(kind, basicBlock, values, initialType)
+            : base(basicBlock, values, initialType)
         { }
 
         #endregion
@@ -77,6 +75,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a predicated synchronization barrier.
     /// </summary>
+    [ValueKind(ValueKind.PredicateBarrier)]
     public sealed class PredicateBarrier : BarrierOperation
     {
         #region Static
@@ -112,7 +111,6 @@ namespace ILGPU.IR.Values
             ValueReference predicate,
             PredicateBarrierKind kind)
             : base(
-                  ValueKind.PredicateBarrier,
                   basicBlock,
                   ImmutableArray.Create(predicate),
                   ComputeType(context, kind))
@@ -126,6 +124,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.PredicateBarrier;
 
         /// <summary>
         /// Returns the barrier predicate.
@@ -186,6 +187,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a synchronization barrier.
     /// </summary>
+    [ValueKind(ValueKind.Barrier)]
     public sealed class Barrier : BarrierOperation
     {
         #region Static
@@ -214,7 +216,6 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             BarrierKind barrierKind)
             : base(
-                  ValueKind.Barrier,
                   basicBlock,
                   ImmutableArray<ValueReference>.Empty,
                   ComputeType(context))
@@ -225,6 +226,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Barrier;
 
         /// <summary>
         /// Return the associated barrier kind.
@@ -287,15 +291,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new communication operation.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="values">The values.</param>
         internal ThreadValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> values)
             : base(
-                  kind,
                   basicBlock,
                   values,
                   ComputeType(values[0].Type))
@@ -329,6 +330,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a broadcast operation.
     /// </summary>
+    [ValueKind(ValueKind.Broadcast)]
     public sealed class Broadcast : ThreadValue
     {
         #region Instance
@@ -346,7 +348,6 @@ namespace ILGPU.IR.Values
             ValueReference origin,
             BroadcastKind broadcastKind)
             : base(
-                  ValueKind.Broadcast,
                   basicBlock,
                   ImmutableArray.Create(value, origin))
         {
@@ -356,6 +357,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Broadcast;
 
         /// <summary>
         /// Returns the thread index origin (group or lane index).
@@ -430,19 +434,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new shuffle operation.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="values">The values.</param>
         /// <param name="shuffleKind">The operation kind.</param>
         internal ShuffleOperation(
-            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> values,
             ShuffleKind shuffleKind)
-            : base(
-                  kind,
-                  basicBlock,
-                  values)
+            : base(basicBlock, values)
         {
             Kind = shuffleKind;
         }
@@ -474,6 +473,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a shuffle operation.
     /// </summary>
+    [ValueKind(ValueKind.WarpShuffle)]
     public sealed class WarpShuffle : ShuffleOperation
     {
         #region Instance
@@ -491,11 +491,17 @@ namespace ILGPU.IR.Values
             ValueReference origin,
             ShuffleKind kind)
             : base(
-                  ValueKind.WarpShuffle,
                   basicBlock,
                   ImmutableArray.Create(variable, origin),
                   kind)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.WarpShuffle;
 
         #endregion
 
@@ -524,6 +530,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an sub-warp shuffle operation.
     /// </summary>
+    [ValueKind(ValueKind.SubWarpShuffle)]
     public sealed class SubWarpShuffle : ShuffleOperation
     {
         #region Instance
@@ -543,7 +550,6 @@ namespace ILGPU.IR.Values
             ValueReference width,
             ShuffleKind kind)
             : base(
-                  ValueKind.SubWarpShuffle,
                   basicBlock,
                   ImmutableArray.Create(variable, origin, width),
                   kind)
@@ -552,6 +558,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.SubWarpShuffle;
 
         /// <summary>
         /// Returns the intra-warp width.

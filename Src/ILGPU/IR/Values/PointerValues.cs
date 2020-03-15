@@ -27,14 +27,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new pointer value.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
         internal PointerValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             TypeNode initialType)
-            : base(kind, basicBlock, initialType)
+            : base(basicBlock, initialType)
         { }
 
         #endregion
@@ -52,6 +50,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a value to compute a sub-view value.
     /// </summary>
+    [ValueKind(ValueKind.SubView)]
     public sealed class SubViewValue : PointerValue
     {
         #region Static
@@ -81,10 +80,7 @@ namespace ILGPU.IR.Values
             ValueReference source,
             ValueReference offset,
             ValueReference length)
-            : base(
-                  ValueKind.SubView,
-                  basicBlock,
-                  ComputeType(source))
+            : base(basicBlock, ComputeType(source))
         {
             Seal(ImmutableArray.Create(source, offset, length));
         }
@@ -92,6 +88,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.SubView;
 
         /// <summary>
         /// Returns the base offset.
@@ -137,6 +136,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Loads an element address of a view or a pointer.
     /// </summary>
+    [ValueKind(ValueKind.LoadElementAddress)]
     public sealed class LoadElementAddress : PointerValue
     {
         #region Static
@@ -175,10 +175,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference sourceView,
             ValueReference elementIndex)
-            : base(
-                  ValueKind.LoadElementAddress,
-                  basicBlock,
-                  ComputeType(context, sourceView))
+            : base(basicBlock, ComputeType(context, sourceView))
         {
             Seal(ImmutableArray.Create(sourceView, elementIndex));
         }
@@ -186,6 +183,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.LoadElementAddress;
 
         /// <summary>
         /// Returns the associated element index.
@@ -250,6 +250,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Loads a field address of an object pointer.
     /// </summary>
+    [ValueKind(ValueKind.LoadFieldAddress)]
     public sealed class LoadFieldAddress : Value
     {
         #region Static
@@ -294,10 +295,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             ValueReference source,
             FieldSpan fieldSpan)
-            : base(
-                  ValueKind.LoadFieldAddress,
-                  basicBlock,
-                  ComputeType(context, source, fieldSpan))
+            : base(basicBlock, ComputeType(context, source, fieldSpan))
         {
             FieldSpan = fieldSpan;
             Seal(ImmutableArray.Create(source));
@@ -306,6 +304,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.LoadFieldAddress;
 
         /// <summary>
         /// Returns the source address.

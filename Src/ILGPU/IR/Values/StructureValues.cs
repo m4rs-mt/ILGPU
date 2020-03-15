@@ -628,6 +628,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an immutable structure value.
     /// </summary>
+    [ValueKind(ValueKind.Structure)]
     public sealed class StructureValue : Value
     {
         #region Instance
@@ -642,7 +643,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             StructureType structureType,
             ImmutableArray<ValueReference> fieldValues)
-            : base(ValueKind.Structure, basicBlock, structureType)
+            : base(basicBlock, structureType)
         {
             Seal(fieldValues);
         }
@@ -650,6 +651,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Structure;
 
         /// <summary>
         /// Returns the structure type.
@@ -723,16 +727,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract structure operation.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="initialType">The initial node type.</param>
         /// <param name="fieldSpan">The field span.</param>
         internal StructureOperationValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             TypeNode initialType,
             FieldSpan fieldSpan)
-            : base(kind, basicBlock, initialType)
+            : base(basicBlock, initialType)
         {
             FieldSpan = fieldSpan;
         }
@@ -769,6 +771,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an operation to load a single field from an object.
     /// </summary>
+    [ValueKind(ValueKind.GetField)]
     public sealed class GetField : StructureOperationValue
     {
         #region Static
@@ -804,13 +807,19 @@ namespace ILGPU.IR.Values
             ValueReference structValue,
             FieldSpan fieldSpan)
             : base(
-                  ValueKind.GetField,
                   basicBlock,
                   ComputeType(context, structValue, fieldSpan),
                   fieldSpan)
         {
             Seal(ImmutableArray.Create(structValue));
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.GetField;
 
         #endregion
 
@@ -842,6 +851,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an operation to store a single field of an object.
     /// </summary>
+    [ValueKind(ValueKind.SetField)]
     public sealed class SetField : StructureOperationValue
     {
         #region Static
@@ -872,7 +882,6 @@ namespace ILGPU.IR.Values
             FieldSpan fieldSpan,
             ValueReference value)
             : base(
-                  ValueKind.SetField,
                   basicBlock,
                   ComputeType(structValue),
                   fieldSpan)
@@ -883,6 +892,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.SetField;
 
         /// <summary>
         /// Returns the value to store.

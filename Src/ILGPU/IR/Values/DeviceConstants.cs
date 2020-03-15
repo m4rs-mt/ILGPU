@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using ILGPU.Runtime;
 
 namespace ILGPU.IR.Values
 {
@@ -24,22 +25,21 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="constantType">The constant type node.</param>
         internal DeviceConstantValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             TypeNode constantType)
-            : base(kind, basicBlock, constantType)
+            : base(basicBlock, constantType)
         { }
 
         #endregion
     }
 
     /// <summary>
-    /// Represents the <see cref="Warp.LaneIdx"/> property.
+    /// Represents the <see cref="Accelerator.AcceleratorType"/> property.
     /// </summary>
+    [ValueKind(ValueKind.AcceleratorType)]
     public sealed class AcceleratorTypeValue : DeviceConstantValue
     {
         #region Instance
@@ -53,10 +53,16 @@ namespace ILGPU.IR.Values
             IRContext context,
             BasicBlock basicBlock)
             : base(
-                  ValueKind.AcceleratorType,
                   basicBlock,
                   context.GetPrimitiveType(BasicValueType.Int32))
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.AcceleratorType;
 
         #endregion
 
@@ -110,17 +116,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="context">The current IR context.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="dimension">The device constant dimension.</param>
         internal DeviceConstantDimensionValue(
-            ValueKind kind,
             IRContext context,
             BasicBlock basicBlock,
             DeviceConstantDimension3D dimension)
             : base(
-                  kind,
                   basicBlock,
                   context.GetPrimitiveType(BasicValueType.Int32))
         {
@@ -149,6 +152,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents the <see cref="Grid.Index"/> property.
     /// </summary>
+    [ValueKind(ValueKind.GridIndex)]
     public sealed class GridIndexValue : DeviceConstantDimensionValue
     {
         #region Instance
@@ -164,11 +168,17 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             DeviceConstantDimension3D dimension)
             : base(
-                  ValueKind.GridIndex,
                   context,
                   basicBlock,
                   dimension)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.GridIndex;
 
         #endregion
 
@@ -194,6 +204,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents the <see cref="Group.Index"/> property.
     /// </summary>
+    [ValueKind(ValueKind.GroupIndex)]
     public sealed class GroupIndexValue : DeviceConstantDimensionValue
     {
         #region Instance
@@ -209,11 +220,17 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             DeviceConstantDimension3D dimension)
             : base(
-                  ValueKind.GroupIndex,
                   context,
                   basicBlock,
                   dimension)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.GroupIndex;
 
         #endregion
 
@@ -239,6 +256,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents the <see cref="Grid.Dimension"/> property.
     /// </summary>
+    [ValueKind(ValueKind.GridDimension)]
     public sealed class GridDimensionValue : DeviceConstantDimensionValue
     {
         #region Instance
@@ -254,11 +272,17 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             DeviceConstantDimension3D dimension)
             : base(
-                  ValueKind.GridDimension,
                   context,
                   basicBlock,
                   dimension)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.GridDimension;
 
         #endregion
 
@@ -284,6 +308,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents the <see cref="Group.Dimension"/> property.
     /// </summary>
+    [ValueKind(ValueKind.GroupDimension)]
     public sealed class GroupDimensionValue : DeviceConstantDimensionValue
     {
         #region Instance
@@ -299,11 +324,17 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             DeviceConstantDimension3D dimension)
             : base(
-                  ValueKind.GroupDimension,
                   context,
                   basicBlock,
                   dimension)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.GroupDimension;
 
         #endregion
 
@@ -329,6 +360,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents the <see cref="Warp.WarpSize"/> property.
     /// </summary>
+    [ValueKind(ValueKind.WarpSize)]
     public sealed class WarpSizeValue : DeviceConstantValue
     {
         #region Instance
@@ -342,10 +374,16 @@ namespace ILGPU.IR.Values
             IRContext context,
             BasicBlock basicBlock)
             : base(
-                  ValueKind.WarpSize,
                   basicBlock,
                   context.GetPrimitiveType(BasicValueType.Int32))
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.WarpSize;
 
         #endregion
 
@@ -371,6 +409,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents the <see cref="Warp.LaneIdx"/> property.
     /// </summary>
+    [ValueKind(ValueKind.LaneIdx)]
     public sealed class LaneIdxValue : DeviceConstantValue
     {
         #region Instance
@@ -384,10 +423,16 @@ namespace ILGPU.IR.Values
             IRContext context,
             BasicBlock basicBlock)
             : base(
-                  ValueKind.LaneIdx,
                   basicBlock,
                   context.GetPrimitiveType(BasicValueType.Int32))
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.LaneIdx;
 
         #endregion
 

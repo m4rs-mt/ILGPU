@@ -27,16 +27,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The value to convert.</param>
         /// <param name="targetType">The target type to convert the value to.</param>
         internal CastValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             ValueReference value,
             TypeNode targetType)
-            : base(kind, basicBlock, targetType)
+            : base(basicBlock, targetType)
         {
             Seal(ImmutableArray.Create(value));
         }
@@ -74,16 +72,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The value to convert.</param>
         /// <param name="targetType">The target type to convert the value to.</param>
         internal BaseAddressSpaceCast(
-            ValueKind kind,
             BasicBlock basicBlock,
             ValueReference value,
             AddressSpaceType targetType)
-            : base(kind, basicBlock, value, targetType)
+            : base(basicBlock, value, targetType)
         { }
 
         #endregion
@@ -101,6 +97,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Casts the type of a pointer to a different type.
     /// </summary>
+    [ValueKind(ValueKind.PointerCast)]
     public sealed class PointerCast : BaseAddressSpaceCast
     {
         #region Static
@@ -142,7 +139,6 @@ namespace ILGPU.IR.Values
             ValueReference value,
             TypeNode targetElementType)
             : base(
-                  ValueKind.PointerCast,
                   basicBlock,
                   value,
                   ComputeType(context, value.Type, targetElementType))
@@ -153,6 +149,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.PointerCast;
 
         /// <summary>
         /// Returns the source element type.
@@ -198,6 +197,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Cast a pointer from one address space to another.
     /// </summary>
+    [ValueKind(ValueKind.AddressSpaceCast)]
     public sealed class AddressSpaceCast : BaseAddressSpaceCast
     {
         #region Static
@@ -247,7 +247,6 @@ namespace ILGPU.IR.Values
             ValueReference value,
             MemoryAddressSpace targetAddressSpace)
             : base(
-                  ValueKind.AddressSpaceCast,
                   basicBlock,
                   value,
                   ComputeType(context, value.Type, targetAddressSpace))
@@ -262,18 +261,21 @@ namespace ILGPU.IR.Values
 
         #region Properties
 
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.AddressSpaceCast;
+
         /// <summary>
         /// Returns the target address space.
         /// </summary>
         public MemoryAddressSpace TargetAddressSpace { get; }
 
         /// <summary>
-        /// Returns true iff the current access works on a view.
+        /// Returns true if the current access works on a view.
         /// </summary>
         public bool IsViewCast => !IsPointerCast;
 
         /// <summary>
-        /// Returns true iff the current access works on a pointer.
+        /// Returns true if the current access works on a pointer.
         /// </summary>
         public bool IsPointerCast => Type.IsPointerType;
 
@@ -310,6 +312,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Casts a view from one element type to another.
     /// </summary>
+    [ValueKind(ValueKind.ViewCast)]
     public sealed class ViewCast : BaseAddressSpaceCast
     {
         #region Static
@@ -351,7 +354,6 @@ namespace ILGPU.IR.Values
             ValueReference sourceView,
             TypeNode targetElementType)
             : base(
-                  ValueKind.ViewCast,
                   basicBlock,
                   sourceView,
                   ComputeType(context, sourceView.Type, targetElementType))
@@ -362,6 +364,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.ViewCast;
 
         /// <summary>
         /// Returns the source element type.
@@ -404,7 +409,7 @@ namespace ILGPU.IR.Values
     }
 
     /// <summary>
-    /// Casts from one value type ot another while reinterpreting
+    /// Casts from one value type to another while reinterpreting
     /// the value as another type.
     /// </summary>
     public abstract class BitCast : CastValue
@@ -414,16 +419,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="source">The view to cast.</param>
         /// <param name="targetType">The primitive target type.</param>
         internal BitCast(
-            ValueKind kind,
             BasicBlock basicBlock,
             ValueReference source,
             PrimitiveType targetType)
-            : base(kind, basicBlock, source, targetType)
+            : base(basicBlock, source, targetType)
         {
             Debug.Assert(source.Type.IsPrimitiveType, "Invalid primitive type");
             TargetPrimitiveType = targetType;
@@ -468,6 +471,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Casts from a float to an int while preserving bits.
     /// </summary>
+    [ValueKind(ValueKind.FloatAsIntCast)]
     public sealed class FloatAsIntCast : BitCast
     {
         #region Instance
@@ -483,7 +487,6 @@ namespace ILGPU.IR.Values
             ValueReference source,
             PrimitiveType targetType)
             : base(
-                  ValueKind.FloatAsIntCast,
                   basicBlock,
                   source,
                   targetType)
@@ -496,6 +499,13 @@ namespace ILGPU.IR.Values
                 targetType.BasicValueType == BasicValueType.Int32 ||
                 targetType.BasicValueType == BasicValueType.Int64, "Invalid primitive type");
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.FloatAsIntCast;
 
         #endregion
 
@@ -522,6 +532,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Casts from an int to a float while preserving bits.
     /// </summary>
+    [ValueKind(ValueKind.IntAsFloatCast)]
     public sealed class IntAsFloatCast : BitCast
     {
         #region Instance
@@ -537,7 +548,6 @@ namespace ILGPU.IR.Values
             ValueReference source,
             PrimitiveType targetType)
             : base(
-                  ValueKind.IntAsFloatCast,
                   basicBlock,
                   source,
                   targetType)
@@ -550,6 +560,13 @@ namespace ILGPU.IR.Values
                 targetType.BasicValueType == BasicValueType.Float32 ||
                 targetType.BasicValueType == BasicValueType.Float64, "Invalid primitive type");
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.IntAsFloatCast;
 
         #endregion
 

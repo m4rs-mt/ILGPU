@@ -275,18 +275,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new arithmetic value.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="operands">The operands.</param>
         /// <param name="flags">The operation flags.</param>
         /// <param name="initialType">The initial node type.</param>
         internal ArithmeticValue(
-            ValueKind kind,
             BasicBlock basicBlock,
             ImmutableArray<ValueReference> operands,
             ArithmeticFlags flags,
             TypeNode initialType)
-            : base(kind, basicBlock, initialType)
+            : base(basicBlock, initialType)
         {
             Flags = flags;
 
@@ -314,24 +312,24 @@ namespace ILGPU.IR.Values
             this[0].BasicValueType.GetArithmeticBasicValueType(IsUnsigned);
 
         /// <summary>
-        /// Returns true iff the operation has enabled overflow semantics.
+        /// Returns true if the operation has enabled overflow semantics.
         /// </summary>
         public bool CanOverflow => (Flags & ArithmeticFlags.Overflow) ==
             ArithmeticFlags.Overflow;
 
         /// <summary>
-        /// Returns true iff the operation has enabled unsigned semantics.
+        /// Returns true if the operation has enabled unsigned semantics.
         /// </summary>
         public bool IsUnsigned => (Flags & ArithmeticFlags.Unsigned) ==
             ArithmeticFlags.Unsigned;
 
         /// <summary>
-        /// Returns true iff the operation works on ints.
+        /// Returns true if the operation works on integers.
         /// </summary>
         public bool IsIntOperation => BasicValueType.IsInt();
 
         /// <summary>
-        /// Returns true iff the operation works on floats.
+        /// Returns true if the operation works on floats.
         /// </summary>
         public bool IsFloatOperation => BasicValueType.IsFloat();
 
@@ -339,8 +337,9 @@ namespace ILGPU.IR.Values
     }
 
     /// <summary>
-    /// Reprensents a unary arithmetic operation.
+    /// Represents a unary arithmetic operation.
     /// </summary>
+    [ValueKind(ValueKind.UnaryArithmetic)]
     public sealed class UnaryArithmeticValue : ArithmeticValue
     {
         #region Static
@@ -388,7 +387,6 @@ namespace ILGPU.IR.Values
             UnaryArithmeticKind kind,
             ArithmeticFlags flags)
             : base(
-                  ValueKind.UnaryArithmetic,
                   basicBlock,
                   ImmutableArray.Create(value),
                   flags,
@@ -400,6 +398,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.UnaryArithmetic;
 
         /// <summary>
         /// Returns the operation kind.
@@ -445,6 +446,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a binary arithmetic operation.
     /// </summary>
+    [ValueKind(ValueKind.BinaryArithmetic)]
     public sealed class BinaryArithmeticValue : ArithmeticValue
     {
         #region Static
@@ -477,7 +479,6 @@ namespace ILGPU.IR.Values
             BinaryArithmeticKind kind,
             ArithmeticFlags flags)
             : base(
-                  ValueKind.BinaryArithmetic,
                   basicBlock,
                   ImmutableArray.Create(left, right),
                   flags,
@@ -494,6 +495,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.BinaryArithmetic;
 
         /// <summary>
         /// Returns the operation kind.
@@ -545,6 +549,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a binary arithmetic operation.
     /// </summary>
+    [ValueKind(ValueKind.TernaryArithmetic)]
     public sealed class TernaryArithmeticValue : ArithmeticValue
     {
         #region Static
@@ -613,7 +618,6 @@ namespace ILGPU.IR.Values
             TernaryArithmeticKind kind,
             ArithmeticFlags flags)
             : base(
-                  ValueKind.TernaryArithmetic,
                   basicBlock,
                   ImmutableArray.Create(first, second, third),
                   flags,
@@ -629,6 +633,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.TernaryArithmetic;
 
         /// <summary>
         /// Returns the operation kind.

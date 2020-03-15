@@ -17,6 +17,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an undefined value.
     /// </summary>
+    [ValueKind(ValueKind.Undefined)]
     public sealed class UndefinedValue : Value
     {
         #region Instance
@@ -27,11 +28,17 @@ namespace ILGPU.IR.Values
         /// <param name="voidType">The void type.</param>
         internal UndefinedValue(TypeNode voidType)
             : base(
-                  ValueKind.Undefined,
                   null,
                   voidType,
                   ValueFlags.NotReplacable | ValueFlags.NoUses)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Undefined;
 
         #endregion
 

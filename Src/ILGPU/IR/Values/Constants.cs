@@ -29,14 +29,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new constant value.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="constantType">The type of the constant node.</param>
         internal ConstantNode(
-            ValueKind kind,
             BasicBlock basicBlock,
             TypeNode constantType)
-            : base(kind, basicBlock, constantType)
+            : base(basicBlock, constantType)
         {
             ConstantType = constantType;
             Seal(ImmutableArray<ValueReference>.Empty);
@@ -64,6 +62,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an immutable null value.
     /// </summary>
+    [ValueKind(ValueKind.Null)]
     public sealed class NullValue : ConstantNode
     {
         #region Instance
@@ -74,8 +73,15 @@ namespace ILGPU.IR.Values
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="type">The object type.</param>
         internal NullValue(BasicBlock basicBlock, TypeNode type)
-            : base(ValueKind.Null, basicBlock, type)
+            : base(basicBlock, type)
         { }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Null;
 
         #endregion
 
@@ -104,6 +110,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a primitive value.
     /// </summary>
+    [ValueKind(ValueKind.Primitive)]
     public sealed class PrimitiveValue : ConstantNode
     {
         #region Instance
@@ -124,7 +131,6 @@ namespace ILGPU.IR.Values
             BasicValueType basicValueType,
             long value)
             : base(
-                  ValueKind.Primitive,
                   basicBlock,
                   context.GetPrimitiveType(basicValueType))
         {
@@ -135,6 +141,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Primitive;
 
         /// <summary>
         /// Returns the associated basic type.
@@ -206,12 +215,12 @@ namespace ILGPU.IR.Values
         public double Float64Value => Unsafe.As<long, double>(ref rawValue);
 
         /// <summary>
-        /// Returns true iff the value is an integer.
+        /// Returns true if the value is an integer.
         /// </summary>
         public bool IsInt => BasicValueType.IsInt();
 
         /// <summary>
-        /// Returns true iff the value is a float.
+        /// Returns true if the value is a float.
         /// </summary>
         public bool IsFloat => BasicValueType.IsFloat();
 
@@ -285,6 +294,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an immutable string value.
     /// </summary>
+    [ValueKind(ValueKind.String)]
     public sealed class StringValue : ConstantNode
     {
         #region Instance
@@ -299,7 +309,7 @@ namespace ILGPU.IR.Values
             IRContext context,
             BasicBlock basicBlock,
             string value)
-            : base(ValueKind.String, basicBlock, context.StringType)
+            : base(basicBlock, context.StringType)
         {
             String = value;
         }
@@ -307,6 +317,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.String;
 
         /// <summary>
         /// Returns the associated type.
@@ -345,6 +358,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents the native size of a specific type.
     /// </summary>
+    [ValueKind(ValueKind.SizeOf)]
     public sealed class SizeOfValue : ConstantNode
     {
         #region Instance
@@ -360,7 +374,6 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             TypeNode targetType)
             : base(
-                  ValueKind.SizeOf,
                   basicBlock,
                   context.GetPrimitiveType(BasicValueType.Int32))
         {
@@ -370,6 +383,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.SizeOf;
 
         /// <summary>
         /// Returns the target type.

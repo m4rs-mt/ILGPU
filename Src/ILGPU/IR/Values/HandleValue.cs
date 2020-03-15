@@ -18,6 +18,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an internal .Net runtime handle value.
     /// </summary>
+    [ValueKind(ValueKind.Handle)]
     public sealed class HandleValue : Value
     {
         #region Instance
@@ -32,7 +33,7 @@ namespace ILGPU.IR.Values
             BasicBlock block,
             TypeNode handleType,
             object handle)
-            : base(ValueKind.Handle, block, handleType)
+            : base(block, handleType)
         {
             Debug.Assert(handle != null, "Invalid managed handle");
             Handle = handle;
@@ -41,6 +42,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Handle;
 
         /// <summary>
         /// Returns the underlying managed handle.

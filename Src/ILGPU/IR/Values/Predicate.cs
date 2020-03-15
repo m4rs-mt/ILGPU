@@ -41,16 +41,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new conditional node.
         /// </summary>
-        /// <param name="kind">The value kind.</param>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="condition">The condition.</param>
         /// <param name="arguments">The condition arguments.</param>
         internal Conditional(
-            ValueKind kind,
             BasicBlock basicBlock,
             ValueReference condition,
             ImmutableArray<ValueReference> arguments)
-            : base(kind, basicBlock, ComputeType(arguments))
+            : base(basicBlock, ComputeType(arguments))
         {
             Debug.Assert(
                 arguments.Length > 0,
@@ -91,6 +89,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents a single if predicate.
     /// </summary>
+    [ValueKind(ValueKind.Predicate)]
     public sealed class Predicate : Conditional
     {
         #region Instance
@@ -108,7 +107,6 @@ namespace ILGPU.IR.Values
             ValueReference trueValue,
             ValueReference falseValue)
             : base(
-                  ValueKind.Predicate,
                   basicBlock,
                   condition,
                   ImmutableArray.Create(trueValue, falseValue))
@@ -122,6 +120,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.Predicate;
 
         /// <summary>
         /// Returns the true value.

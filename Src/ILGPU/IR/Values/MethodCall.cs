@@ -21,6 +21,7 @@ namespace ILGPU.IR.Values
     /// Represents a single function call of the form
     /// x = f(a0, ..., an-1) or f(a0, ..., an-1)
     /// </summary>
+    [ValueKind(ValueKind.MethodCall)]
     public sealed class MethodCall : Value
     {
         #region Static
@@ -48,7 +49,7 @@ namespace ILGPU.IR.Values
             BasicBlock basicBlock,
             Method target,
             ImmutableArray<ValueReference> arguments)
-            : base(ValueKind.MethodCall, basicBlock, ComputeType(target))
+            : base(basicBlock, ComputeType(target))
         {
             Target = target;
             Seal(arguments);
@@ -57,6 +58,9 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.MethodCall;
 
         /// <summary>
         /// Returns the call target.
