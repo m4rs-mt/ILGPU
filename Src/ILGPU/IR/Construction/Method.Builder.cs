@@ -145,6 +145,18 @@ namespace ILGPU.IR
             }
 
             /// <summary>
+            /// Converts the return type.
+            /// </summary>
+            /// <typeparam name="TTypeConverter">The type converter.</typeparam>
+            /// <param name="typeConverter">The type converter instance.</param>
+            public void UpdateReturnType<TTypeConverter>(TTypeConverter typeConverter)
+                where TTypeConverter : ITypeConverter<TypeNode>
+            {
+                var returnType = typeConverter.ConvertType(Context, Method.ReturnType);
+                Method.Declaration = Method.Declaration.Specialize(returnType);
+            }
+
+            /// <summary>
             /// Converts all parameter types.
             /// </summary>
             /// <typeparam name="TTypeConverter">The type converter.</typeparam>

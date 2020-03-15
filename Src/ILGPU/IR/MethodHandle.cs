@@ -18,7 +18,7 @@ namespace ILGPU.IR
 {
     /// <summary>
     /// Represents a method handle to an <see cref="Method"/>
-    /// that is valid accross transformations.
+    /// that is valid across transformations.
     /// </summary>
     [Serializable]
     public readonly struct MethodHandle : IEquatable<MethodHandle>
@@ -305,8 +305,7 @@ namespace ILGPU.IR
         #region Methods
 
         /// <summary>
-        /// Specializes the current method declaration by specializing
-        /// an empty method handle.
+        /// Specializes the current method declaration by specializing an empty method handle.
         /// </summary>
         /// <param name="handle">The handle to specialize.</param>
         /// <returns>The specialized method declaration.</returns>
@@ -317,16 +316,12 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Specializes the current method declaration by specializing
-        /// the return type.
+        /// Specializes the current method declaration by specializing the return type.
         /// </summary>
         /// <param name="returnType">The return type to specialize.</param>
-        /// <returns>The specialized methomethod declaration.</returns>
-        public MethodDeclaration Specialize(TypeNode returnType)
-        {
-            Debug.Assert(returnType != null, "Invalid return type");
-            return new MethodDeclaration(Handle, returnType, Source, Flags);
-        }
+        /// <returns>The specialized method declaration.</returns>
+        public MethodDeclaration Specialize(TypeNode returnType) =>
+            new MethodDeclaration(Handle, returnType, Source, Flags);
 
         /// <summary>
         /// Returns true if this declaration has the given method flags.
@@ -377,8 +372,7 @@ namespace ILGPU.IR
         /// Returns the hash code of this declaration.
         /// </summary>
         /// <returns>The hash code of this declaration.</returns>
-        public override int GetHashCode() =>
-            Handle.GetHashCode() ^ ReturnType.GetHashCode();
+        public override int GetHashCode() => Handle.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this declaration.
@@ -403,8 +397,7 @@ namespace ILGPU.IR
         /// <param name="second">The second declaration.</param>
         /// <returns>True, iff the first and the second declaration are the same.</returns>
         public static bool operator ==(MethodDeclaration first, MethodDeclaration second) =>
-            first.Handle == second.Handle &&
-            first.ReturnType == second.ReturnType;
+            first.Handle == second.Handle;
 
         /// <summary>
         /// Returns true iff the first and the second declaration are not the same.
@@ -413,8 +406,7 @@ namespace ILGPU.IR
         /// <param name="second">The second declaration.</param>
         /// <returns>True, iff the first and the second declaration are not the same.</returns>
         public static bool operator !=(MethodDeclaration first, MethodDeclaration second) =>
-            first.Handle != second.Handle ||
-            first.ReturnType != second.ReturnType;
+            first.Handle != second.Handle;
 
         #endregion
     }
