@@ -78,32 +78,23 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
-        /// Represents a primitive register that represents an actual hardware register.
+        /// Represents a primitive register that might consume up to one hardware register.
         /// </summary>
-        public sealed class PrimitiveRegister : Register
+        public abstract class PrimitiveRegister : Register
         {
             /// <summary>
-            /// Constructs a new primitive register.
+            /// Constructs a new constant register.
             /// </summary>
             /// <param name="description">The current register description.</param>
-            /// <param name="registerValue">The associated register value.</param>
-            internal PrimitiveRegister(
-                RegisterDescription description,
-                int registerValue)
+            protected PrimitiveRegister(RegisterDescription description)
             {
                 Description = description;
-                RegisterValue = registerValue;
             }
 
             /// <summary>
             /// Returns the associated register description.
             /// </summary>
             public RegisterDescription Description { get; }
-
-            /// <summary>
-            /// Returns the register index value.
-            /// </summary>
-            public int RegisterValue { get; }
 
             /// <summary>
             /// Returns the associated basic value type.
@@ -114,13 +105,66 @@ namespace ILGPU.Backends
             /// Returns the actual register kind.
             /// </summary>
             public TKind Kind => Description.Kind;
+        }
+
+        /// <summary>
+        /// A primitive register with a constant value.
+        /// </summary>
+        public sealed class ConstantRegister : PrimitiveRegister
+        {
+            /// <summary>
+            /// Constructs a new constant register.
+            /// </summary>
+            /// <param name="description">The current register description.</param>
+            /// <param name="value">The primitive value.</param>
+            public ConstantRegister(
+                RegisterDescription description,
+                PrimitiveValue value)
+                : base(description)
+            {
+                Value = value;
+            }
+
+            /// <summary>
+            /// Returns the associated value.
+            /// </summary>
+            public PrimitiveValue Value { get; }
 
             /// <summary>
             /// Returns the string representation of the current register.
             /// </summary>
             /// <returns>The string representation of the current register.</returns>
-            public override string ToString() =>
-                $"Register {Kind}, {RegisterValue}";
+            public override string ToString() => $"Register {Kind} = {Value}";
+        }
+
+        /// <summary>
+        /// Represents a primitive register that represents an actual hardware register.
+        /// </summary>
+        public sealed class HardwareRegister : PrimitiveRegister
+        {
+            /// <summary>
+            /// Constructs a new hardware register.
+            /// </summary>
+            /// <param name="description">The current register description.</param>
+            /// <param name="registerValue">The associated register value.</param>
+            internal HardwareRegister(
+                RegisterDescription description,
+                int registerValue)
+                : base(description)
+            {
+                RegisterValue = registerValue;
+            }
+
+            /// <summary>
+            /// Returns the register index value.
+            /// </summary>
+            public int RegisterValue { get; }
+
+            /// <summary>
+            /// Returns the string representation of the current register.
+            /// </summary>
+            /// <returns>The string representation of the current register.</returns>
+            public override string ToString() => $"Register {Kind}, {RegisterValue}";
         }
 
         /// <summary>
@@ -135,9 +179,7 @@ namespace ILGPU.Backends
             /// </summary>
             /// <param name="type">The underlying type node.</param>
             /// <param name="registers">The child registers.</param>
-            internal CompoundRegister(
-                StructureType type,
-                ImmutableArray<Register> registers)
+            internal CompoundRegister(StructureType type, ImmutableArray<Register> registers)
             {
                 Type = type;
                 Children = registers;
@@ -232,17 +274,17 @@ namespace ILGPU.Backends
         protected abstract RegisterDescription ResolveRegisterDescription(TypeNode type);
 
         /// <summary>
-        /// Allocates a new primitive register of the given kind.
+        /// Allocates a new hardware register of the given kind.
         /// </summary>
         /// <param name="description">The register description used for allocation.</param>
         /// <returns>The allocated register.</returns>
-        public abstract PrimitiveRegister AllocateRegister(RegisterDescription description);
+        public abstract HardwareRegister AllocateRegister(RegisterDescription description);
 
         /// <summary>
         /// Frees the given register.
         /// </summary>
-        /// <param name="primitiveRegister">The register to free.</param>
-        public abstract void FreeRegister(PrimitiveRegister primitiveRegister);
+        /// <param name="hardwareRegister">The register to free.</param>
+        public abstract void FreeRegister(HardwareRegister hardwareRegister);
 
         /// <summary>
         /// Allocates a specific register kind for the given node.
@@ -250,7 +292,7 @@ namespace ILGPU.Backends
         /// <param name="node">The node to allocate the register for.</param>
         /// <param name="description">The register description to allocate.</param>
         /// <returns>The allocated register.</returns>
-        public PrimitiveRegister Allocate(Value node, RegisterDescription description)
+        public HardwareRegister Allocate(Value node, RegisterDescription description)
         {
             Debug.Assert(node != null, "Invalid node");
 
@@ -262,8 +304,8 @@ namespace ILGPU.Backends
                 entry = new RegisterEntry(targetRegister, node);
                 registerLookup.Add(node, entry);
             }
-            var result = entry.Register as PrimitiveRegister;
-            Debug.Assert(result != null, "Invalid primitive register");
+            var result = entry.Register as HardwareRegister;
+            Debug.Assert(result != null, "Invalid hardware register");
             return result;
         }
 
@@ -272,7 +314,7 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="node">The node to allocate the register for.</param>
         /// <returns>The allocated register.</returns>
-        public PrimitiveRegister AllocatePrimitive(Value node)
+        public HardwareRegister AllocateHardware(Value node)
         {
             var description = ResolveRegisterDescription(node.Type);
             return Allocate(node, description);
@@ -388,6 +430,18 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
+        /// Loads the allocated primitive register of the given node.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns>The allocated register.</returns>
+        public HardwareRegister LoadHardware(Value node)
+        {
+            var result = Load(node);
+            Debug.Assert(result != null, "Invalid primitive register");
+            return result as HardwareRegister;
+        }
+
+        /// <summary>
         /// Frees the given node.
         /// </summary>
         /// <param name="node">The node to free.</param>
@@ -406,15 +460,13 @@ namespace ILGPU.Backends
         {
             switch (register)
             {
-                case PrimitiveRegister primitiveRegister:
-                    FreeRegister(primitiveRegister);
+                case HardwareRegister hardwareRegister:
+                    FreeRegister(hardwareRegister);
                     break;
                 case CompoundRegister compoundRegister:
                     foreach (var child in compoundRegister.Children)
                         FreeRecursive(child);
                     break;
-                default:
-                    throw new InvalidCodeGenerationException();
             }
         }
 
