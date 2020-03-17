@@ -24,3 +24,5 @@ ReinterpretCasts: Debug, Release
 BasicIfs: Debug, Release
 BasicLoops: Debug, Release
 BasicSwitches: Debug, Release
+
+TypeGenerator: Debug, Release

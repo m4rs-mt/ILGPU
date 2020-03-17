@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
+using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
@@ -709,13 +710,39 @@ namespace ILGPU.Backends.OpenCL
 
                 var leftStructure = left as StructureType;
                 var rightStructure = right as StructureType;
-                if (leftStructure.Fields.Contains(rightStructure))
+                if (_IsStructContainsStructRecursively(leftStructure, rightStructure))
                     return 1;
-                if (rightStructure.Fields.Contains(leftStructure))
+                if (_IsStructContainsStructRecursively(rightStructure, leftStructure))
                     return -1;
                 return 0;
             });
             return result;
+        }
+
+        private static bool _IsStructContainsStructRecursively(StructureType parentStructType, StructureType targetStructType, int level = 0)
+        {
+            if (level > 1000)
+            {
+                throw new NotSupportedException(ErrorMessages.TooManyNestedStructure);
+            }
+
+            if (parentStructType.Fields.Contains(targetStructType))
+            {
+                return true;
+            }
+
+            foreach(var field in parentStructType.Fields)
+            {
+                if (field is StructureType)
+                {
+                    if (_IsStructContainsStructRecursively((StructureType)field, targetStructType, level++))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

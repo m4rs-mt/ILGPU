@@ -608,5 +608,14 @@ namespace ILGPU.Resources {
                 return ResourceManager.GetString("NoUses", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Too many nested structure or circular referernce.
+        /// </summary>
+        internal static string TooManyNestedStructure {
+            get {
+                return ResourceManager.GetString("TooManyNestedStructure", resourceCulture);
+            }
+        }
     }
 }

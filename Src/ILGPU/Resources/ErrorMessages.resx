@@ -300,4 +300,7 @@
   <data name="NotSupportedDynamicSharedMemoryAllocations" xml:space="preserve">
     <value>Dynamic shared memory allocations are not supported by this accelerator</value>
   </data>
+  <data name="TooManyNestedStructure" xml:space="preserve">
+    <value>Too many nested structure or circular referernce</value>
+  </data>
 </root>
