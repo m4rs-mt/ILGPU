@@ -9,9 +9,9 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -26,194 +26,167 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Represents an abstract value lowering.
         /// </summary>
-        /// <typeparam name="T">The user-defined lowering arguments.</typeparam>
-        private interface IValueLowering<T>
-            where T : struct
+        /// <typeparam name="TValue">The thread value type.</typeparam>
+        public interface ILoweringImplementation<TValue>
+            where TValue : ThreadValue
         {
             /// <summary>
-            /// Creates a new lowered node instance.
+            /// Lowers the given thread value.
             /// </summary>
             /// <param name="builder">The current builder.</param>
-            /// <param name="value">The current value.</param>
-            /// <param name="arguments">The user-defined arguments.</param>
+            /// <param name="source">The source value.</param>
+            /// <param name="newVariable">The new variable.</param>
             /// <returns>The created value.</returns>
-            Value Create(BasicBlock.Builder builder, Value value, T arguments);
+            ValueReference Lower(
+                BasicBlock.Builder builder,
+                TValue source,
+                Value newVariable);
         }
 
         /// <summary>
-        /// Represents a specific <see cref="Broadcast"/> lowering.
+        /// Lowers broadcast operations.
         /// </summary>
-        private readonly struct BroadcastLowering : IValueLowering<(Value, BroadcastKind)>
+        public readonly struct BroadcastLowering : ILoweringImplementation<Broadcast>
         {
-            /// <summary cref="IValueLowering{T}.Create(BasicBlock.Builder, Value, T)"/>
-            public Value Create(
-                BasicBlock.Builder builder,
-                Value value,
-                (Value, BroadcastKind) arguments) =>
-                builder.CreateBroadcast(
-                    value,
-                    arguments.Item1,
-                    arguments.Item2);
+            /// <summary>
+            /// Lowers a broadcast value by constructing a new one.
+            /// </summary>
+            public ValueReference Lower(
+                BasicBlock.Builder blockBuilder,
+                Broadcast source,
+                Value newVariable) =>
+                blockBuilder.CreateBroadcast(
+                    newVariable,
+                    source.Origin,
+                    source.Kind);
         }
 
         /// <summary>
-        /// Represents a specific <see cref="WarpShuffleLowering"/> lowering.
+        /// Lowers warp shuffle operations.
         /// </summary>
-        private readonly struct WarpShuffleLowering : IValueLowering<(Value, ShuffleKind)>
+        public readonly struct WarpShuffleLowering : ILoweringImplementation<WarpShuffle>
         {
-            /// <summary cref="IValueLowering{T}.Create(BasicBlock.Builder, Value, T)"/>
-            public Value Create(
-                BasicBlock.Builder builder,
-                Value value,
-                (Value, ShuffleKind) arguments) =>
-                builder.CreateShuffle(
-                    value,
-                    arguments.Item1,
-                    arguments.Item2);
+            /// <summary>
+            /// Lowers a warp shuffle value by constructing a new one.
+            /// </summary>
+            public ValueReference Lower(
+                BasicBlock.Builder blockBuilder,
+                WarpShuffle source,
+                Value newVariable) =>
+                blockBuilder.CreateShuffle(
+                    newVariable,
+                    source.Origin,
+                    source.Kind);
         }
 
         /// <summary>
-        /// Represents a specific <see cref="SubWarpShuffleLowering"/> lowering.
+        /// Lowers sub warp shuffle operations.
         /// </summary>
-        private readonly struct SubWarpShuffleLowering : IValueLowering<(Value, Value, ShuffleKind)>
+        public readonly struct SubWarpShuffleLowering : ILoweringImplementation<SubWarpShuffle>
         {
-            /// <summary cref="IValueLowering{T}.Create(BasicBlock.Builder, Value, T)"/>
-            public Value Create(
-                BasicBlock.Builder builder,
-                Value value,
-                (Value, Value, ShuffleKind) arguments) =>
-                builder.CreateShuffle(
-                    value,
-                    arguments.Item1,
-                    arguments.Item2,
-                    arguments.Item3);
+            /// <summary>
+            /// Lowers a sub warp shuffle value by constructing a new one.
+            /// </summary>
+            public ValueReference Lower(
+                BasicBlock.Builder blockBuilder,
+                SubWarpShuffle source,
+                Value newVariable) =>
+                blockBuilder.CreateShuffle(
+                    newVariable,
+                    source.Origin,
+                    source.Width,
+                    source.Kind);
         }
 
         #endregion
 
-        #region Helpers
+        #region Rewriter Methods
 
         /// <summary>
-        /// Returns true if the given value type is supported as built-in thread intrinsic.
+        /// Lowers a primitive type.
         /// </summary>
-        /// <param name="basicValueType">The basic value type to check.</param>
-        /// <returns>True, if the given type is a supported built-in type..</returns>
-        internal static bool IsBuiltinType(BasicValueType basicValueType) =>
-            basicValueType >= BasicValueType.Int32;
+        /// <typeparam name="TValue">The value type.</typeparam>
+        /// <typeparam name="TLoweringImplementation">The implementation type.</typeparam>
+        /// <param name="context">The current rewriter context.</param>
+        /// <param name="sourceValue">The source value to get the values from.</param>
+        /// <param name="variable">The source variable.</param>
+        /// <returns>The lowered thread value.</returns>
+        private static Value LowerPrimitive<TValue, TLoweringImplementation>(
+            RewriterContext context,
+            TValue sourceValue,
+            Value variable)
+            where TValue : ThreadValue
+            where TLoweringImplementation : struct, ILoweringImplementation<TValue>
+        {
+            var builder = context.Builder;
+            var primitiveType = variable.Type as PrimitiveType;
+            Value value = variable;
+            if (primitiveType.BasicValueType < BasicValueType.Int32)
+            {
+                value = builder.CreateConvert(
+                    value,
+                    builder.GetPrimitiveType(BasicValueType.Int32));
+            }
+
+            TLoweringImplementation loweringImplementation = default;
+            var result = loweringImplementation.Lower(
+                builder,
+                sourceValue,
+                value);
+            if (primitiveType.BasicValueType < BasicValueType.Int32)
+                result = builder.CreateConvert(result, variable.Type);
+            return result;
+        }
+
+        /// <summary>
+        /// Lowers a type.
+        /// </summary>
+        /// <typeparam name="TValue">The value type.</typeparam>
+        /// <typeparam name="TLoweringImplementation">The implementation type.</typeparam>
+        /// <param name="context">The current rewriter context.</param>
+        /// <param name="value">The source value to get the values from.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Lower<TValue, TLoweringImplementation>(
+            in RewriterContext context,
+            TValue value)
+            where TValue : ThreadValue
+            where TLoweringImplementation : struct, ILoweringImplementation<TValue>
+        {
+            var newValue = context.LowerValue(
+                value,
+                LowerPrimitive<TValue, TLoweringImplementation>);
+            context.ReplaceAndRemove(value, newValue);
+        }
+
+        #endregion
+
+        #region Rewriter
+
+        /// <summary>
+        /// The internal rewriter.
+        /// </summary>
+        private static readonly Rewriter Rewriter = new Rewriter();
+
+        /// <summary>
+        /// Registers all rewriting patterns.
+        /// </summary>
+        static LowerThreadIntrinsics()
+        {
+            Rewriter.Add<Broadcast>(
+                broadcast => !broadcast.IsBuiltIn,
+                (context, value) => Lower<Broadcast, BroadcastLowering>(context, value));
+            Rewriter.Add<WarpShuffle>(
+                shuffle => !shuffle.IsBuiltIn,
+                (context, value) => Lower<WarpShuffle, WarpShuffleLowering>(context, value));
+            Rewriter.Add<SubWarpShuffle>(
+                shuffle => !shuffle.IsBuiltIn,
+                (context, value) => Lower<SubWarpShuffle, SubWarpShuffleLowering>(context, value));
+        }
 
         #endregion
 
         /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
-        protected override bool PerformTransformation(Method.Builder builder)
-        {
-            var scope = builder.CreateScope();
-
-            foreach (Value value in scope.Values)
-            {
-                switch (value)
-                {
-                    case Broadcast broadcast when !broadcast.IsBuiltIn:
-                        LowerIntrinsic<ValueTuple<Value, BroadcastKind>, BroadcastLowering>(
-                            builder,
-                            broadcast,
-                            broadcast.Variable,
-                            (broadcast.Origin, broadcast.Kind));
-                        break;
-                    case WarpShuffle warpShuffle when !warpShuffle.IsBuiltIn:
-                        LowerIntrinsic<ValueTuple<Value, ShuffleKind>, WarpShuffleLowering>(
-                            builder,
-                            warpShuffle,
-                            warpShuffle.Variable,
-                            (warpShuffle.Origin, warpShuffle.Kind));
-                        break;
-                    case SubWarpShuffle subWarpShuffle when !subWarpShuffle.IsBuiltIn:
-                        LowerIntrinsic<ValueTuple<Value, Value, ShuffleKind>, SubWarpShuffleLowering>(
-                            builder,
-                            subWarpShuffle,
-                            subWarpShuffle.Variable,
-                            (subWarpShuffle.Origin, subWarpShuffle.Width, subWarpShuffle.Kind));
-                        break;
-                }
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Lowers the given value using the specified value lowering.
-        /// </summary>
-        /// <typeparam name="T">The user-defined argument type.</typeparam>
-        /// <typeparam name="TLowering">The lowering module.</typeparam>
-        /// <param name="methodBuilder">The current method builder.</param>
-        /// <param name="value">The source value.</param>
-        /// <param name="variable">The variable to lower.</param>
-        /// <param name="arguments">The user-defined arguments.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void LowerIntrinsic<T, TLowering>(
-            Method.Builder methodBuilder,
-            Value value,
-            Value variable,
-            T arguments)
-            where T : struct
-            where TLowering : struct, IValueLowering<T>
-        {
-            var builder = methodBuilder[value.BasicBlock];
-            builder.SetupInsertPosition(value);
-
-            var newValue = LowerValue<T, TLowering>(builder, variable, arguments);
-
-            value.Replace(newValue);
-            builder.Remove(value);
-        }
-
-        /// <summary>
-        /// Recursively lowers the given value using the specified value lowering.
-        /// </summary>
-        /// <typeparam name="T">The user-defined argument type.</typeparam>
-        /// <typeparam name="TLowering">The lowering module.</typeparam>
-        /// <param name="builder">The current block builder.</param>
-        /// <param name="sourceValue">The value to lower.</param>
-        /// <param name="arguments">The user-defined arguments.</param>
-        private static Value LowerValue<T, TLowering>(
-            BasicBlock.Builder builder,
-            Value sourceValue,
-            T arguments)
-            where T : struct
-            where TLowering : IValueLowering<T>
-        {
-            if (sourceValue.Type is PrimitiveType primitiveType)
-            {
-                Value value = sourceValue;
-                if (!IsBuiltinType(primitiveType.BasicValueType))
-                {
-                    value = builder.CreateConvert(
-                        value,
-                        builder.GetPrimitiveType(BasicValueType.Int32));
-                }
-
-                TLowering converter = default;
-                var result = converter.Create(builder, value, arguments);
-                if (!IsBuiltinType(primitiveType.BasicValueType))
-                    result = builder.CreateConvert(result, sourceValue.Type);
-
-                return result;
-            }
-            else
-            {
-                var structureType = (StructureType)sourceValue.Type;
-                var instance = builder.CreateStructure(structureType);
-
-                for (int i = 0, e = structureType.NumFields; i < e; ++i)
-                {
-                    var value = LowerValue<T, TLowering>(
-                        builder,
-                        builder.CreateGetField(sourceValue, i),
-                        arguments);
-                    instance = builder.CreateSetField(instance, i, value);
-                }
-
-                return instance;
-            }
-        }
+        protected override bool PerformTransformation(Method.Builder builder) =>
+            Rewriter.Rewrite(builder);
     }
 }
