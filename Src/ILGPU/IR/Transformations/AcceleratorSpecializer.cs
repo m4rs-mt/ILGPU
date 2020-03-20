@@ -9,37 +9,13 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
 {
-    /// <summary>
-    /// The basic configuration interface for all intrinsic specializers.
-    /// </summary>
-    public interface IAcceleratorSpecializerConfiguration
-    {
-        /// <summary>
-        /// Returns the current warp size (if any).
-        /// </summary>
-        int? WarpSize { get; }
-
-        /// <summary>
-        /// Returns the current accelerator type.
-        /// </summary>
-        AcceleratorType AcceleratorType { get; }
-
-        /// <summary>
-        /// Tries to resolve the native size in bytes of the given type.
-        /// </summary>
-        /// <param name="type">The type.</param>
-        /// <param name="size">The native size in bytes.</param>
-        /// <returns>True, if the size could be resolved.</returns>
-        bool TryGetSizeOf(TypeNode type, out int size);
-    }
-
     /// <summary>
     /// Represents a device specializer that instantiates device-specific constants
     /// and updates device-specific functionality.
@@ -47,90 +23,111 @@ namespace ILGPU.IR.Transformations
     /// <remarks>
     /// Note that this class does not perform recursive specialization operations.
     /// </remarks>
-    /// <typeparam name="TConfiguration">The actual configuration type.</typeparam>
-    public sealed class AcceleratorSpecializer<TConfiguration> : UnorderedTransformation
-        where TConfiguration : IAcceleratorSpecializerConfiguration
+    public abstract class AcceleratorSpecializer : UnorderedTransformation
     {
-        #region Nested Types
+        #region Rewriter Methods
 
         /// <summary>
-        /// Specializes device constants.
+        /// Specializes accelerator-specific values.
         /// </summary>
-        private struct Specalizer
+        private static void Specialize(
+            RewriterContext context,
+            Value value,
+            int constant)
         {
-            public Specalizer(Method.Builder builder)
-            {
-                Builder = builder;
-                Applied = false;
-            }
+            var newValue = context.Builder.CreatePrimitiveValue(constant);
+            context.ReplaceAndRemove(value, newValue);
+        }
 
-            /// <summary>
-            /// Returns the current builder.
-            /// </summary>
-            public Method.Builder Builder { get; }
+        /// <summary>
+        /// Specializes accelerator-type values.
+        /// </summary>
+        private static void Specialize(
+            RewriterContext context,
+            AcceleratorSpecializer specializer,
+            AcceleratorTypeValue value) =>
+            Specialize(context, value, (int)specializer.AcceleratorType);
 
-            /// <summary>
-            /// Returns true if the current specializer has been applied.
-            /// </summary>
-            public bool Applied { get; private set; }
+        /// <summary>
+        /// Specializes warp size values.
+        /// </summary>
+        private static void Specialize(
+            RewriterContext context,
+            AcceleratorSpecializer specializer,
+            WarpSizeValue value)
+        {
+            if (!specializer.WarpSize.HasValue)
+                return;
+            Specialize(context, value, specializer.WarpSize.Value);
+        }
 
-            /// <summary>
-            /// Specializes the given value.
-            /// </summary>
-            /// <param name="value">The value to specialize.</param>
-            /// <param name="constant">The constant to replace the value with.</param>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Specialize(Value value, int constant)
-            {
-                var blockBuilder = Builder[value.BasicBlock];
-
-                blockBuilder.SetupInsertPosition(value);
-                var primitiveSize = blockBuilder.CreatePrimitiveValue(constant);
-                value.Replace(primitiveSize);
-                blockBuilder.Remove(value);
-
-                Applied = true;
-            }
+        /// <summary>
+        /// Specializes sizeof values.
+        /// </summary>
+        private static void Specialize(
+            RewriterContext context,
+            AcceleratorSpecializer specializer,
+            SizeOfValue value)
+        {
+            if (!specializer.TryGetSizeOf(value.TargetType, out int size))
+                return;
+            Specialize(context, value, size);
         }
 
         #endregion
 
-        private readonly TConfiguration configuration;
+        #region Rewriter
+
+        /// <summary>
+        /// The internal rewriter.
+        /// </summary>
+        private static readonly Rewriter<AcceleratorSpecializer> Rewriter =
+            new Rewriter<AcceleratorSpecializer>();
+
+        /// <summary>
+        /// Registers all rewriting patterns.
+        /// </summary>
+        static AcceleratorSpecializer()
+        {
+            Rewriter.Add<AcceleratorTypeValue>(Specialize);
+            Rewriter.Add<WarpSizeValue>(Specialize);
+            Rewriter.Add<SizeOfValue>(Specialize);
+        }
+
+        #endregion
 
         /// <summary>
         /// Constructs a new device specializer.
         /// </summary>
-        public AcceleratorSpecializer(in TConfiguration specializerConfiguration)
+        /// <param name="acceleratorType">The accelerator type.</param>
+        /// <param name="warpSize">The warp size (if any).</param>
+        public AcceleratorSpecializer(AcceleratorType acceleratorType, int? warpSize)
         {
-            configuration = specializerConfiguration;
+            AcceleratorType = acceleratorType;
+            WarpSize = warpSize;
         }
+
+        /// <summary>
+        /// Returns the current accelerator type.
+        /// </summary>
+        public AcceleratorType AcceleratorType { get; }
+
+        /// <summary>
+        /// Returns the current warp size (if any).
+        /// </summary>
+        public int? WarpSize { get; }
+
+        /// <summary>
+        /// Tries to resolve the native size in bytes of the given type.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <param name="size">The native size in bytes.</param>
+        /// <returns>True, if the size could be resolved.</returns>
+        protected abstract bool TryGetSizeOf(TypeNode type, out int size);
 
         /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
-        protected override bool PerformTransformation(Method.Builder builder)
-        {
-            var scope = builder.CreateScope();
-            var specializer = new Specalizer(builder);
-
-            var nativeWarpSize = configuration.WarpSize;
-            foreach (Value value in scope.Values)
-            {
-                switch (value)
-                {
-                    case AcceleratorTypeValue _:
-                        specializer.Specialize(value, (int)configuration.AcceleratorType);
-                        break;
-                    case WarpSizeValue _ when nativeWarpSize.HasValue:
-                        specializer.Specialize(value, nativeWarpSize.Value);
-                        break;
-                    case SizeOfValue sizeOfValue when
-                        configuration.TryGetSizeOf(sizeOfValue.TargetType, out int size):
-                        specializer.Specialize(value, size);
-                        break;
-                }
-            }
-
-            return specializer.Applied;
-        }
+        protected override bool PerformTransformation(Method.Builder builder) =>
+            Rewriter.Rewrite(builder, this);
     }
 }
 
