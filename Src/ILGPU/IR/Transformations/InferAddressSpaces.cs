@@ -9,6 +9,7 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
+using ILGPU.IR.Rewriting;
 using ILGPU.IR.Values;
 using System.Diagnostics;
 
@@ -20,39 +21,10 @@ namespace ILGPU.IR.Transformations
     public sealed class InferAddressSpaces : UnorderedTransformation
     {
         /// <summary>
-        /// Constructs a new address-space inference pass.
-        /// </summary>
-        public InferAddressSpaces() { }
-
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
-        protected override bool PerformTransformation(Method.Builder builder)
-        {
-            var scope = builder.CreateScope();
-
-            bool result = false;
-            foreach (var block in scope)
-            {
-                var blockBuilder = builder[block];
-
-                foreach (var valueEntry in block)
-                {
-                    if (valueEntry.Value is AddressSpaceCast cast && IsRedundant(cast))
-                    {
-                        cast.Replace(cast.Value);
-                        blockBuilder.Remove(cast);
-                        result = true;
-                    }
-                }
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Returns true iff the given cast is redundant.
+        /// Returns true if the given cast is redundant.
         /// </summary>
         /// <param name="cast">The cast to check.</param>
-        /// <returns>True, iff the given cast is redundant.</returns>
+        /// <returns>True, if the given cast is redundant.</returns>
         private static bool IsRedundant(AddressSpaceCast cast)
         {
             Debug.Assert(cast != null, "Invalid cast");
@@ -70,20 +42,47 @@ namespace ILGPU.IR.Transformations
                         // We are not allowed to remove casts from phi node operands.
                         return false;
                     case Store _:
-                        // We are not allowed to remove casts in the case of
-                        // alloca stores
+                        // We are not allowed to remove casts in the case of alloca stores
                         if (use.Index != 0)
                             return false;
                         break;
+                    case SetArrayElement _:
+                        return false;
                     case SetField setField:
                         // We are not allowed to remove field stores to tuples
                         // with different field types
-                        if (setField.StructureType.Fields[setField.FieldIndex] != cast.SourceType)
+                        var structureType = setField.StructureType;
+                        if (structureType[setField.FieldSpan.Access] != cast.SourceType)
                             return false;
                         break;
                 }
             }
             return true;
         }
+
+        /// <summary>
+        /// The internal rewriter.
+        /// </summary>
+        private static readonly Rewriter Rewriter = new Rewriter();
+
+        /// <summary>
+        /// Registers all conversion patterns.
+        /// </summary>
+        static InferAddressSpaces()
+        {
+            // Rewrites address space casts that are not required.
+            Rewriter.Add<AddressSpaceCast>(
+                IsRedundant,
+                (context, cast) => context.ReplaceAndRemove(cast, cast.Value));
+        }
+
+        /// <summary>
+        /// Constructs a new address-space inference pass.
+        /// </summary>
+        public InferAddressSpaces() { }
+
+        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        protected override bool PerformTransformation(Method.Builder builder) =>
+            Rewriter.Rewrite(builder);
     }
 }
