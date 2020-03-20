@@ -9,7 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -30,53 +29,27 @@ namespace ILGPU.IR.Transformations
         protected override bool PerformTransformation(Method.Builder builder)
         {
             var scope = builder.CreateScope();
-            var liveValues = FindLiveValues(scope);
-
-            bool result = false;
-            foreach (Value value in scope.Values)
-            {
-                if (liveValues.Contains(value))
-                    continue;
-
-                Debug.Assert(!(value is MemoryValue), "Invalid memory value");
-                var blockBuilder = builder[value.BasicBlock];
-                blockBuilder.Remove(value);
-                result = true;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Detects all live values in the given scope.
-        /// </summary>
-        /// <param name="scope">The current scope.</param>
-        /// <returns>The resolved set of live values.</returns>
-        private static HashSet<Value> FindLiveValues(Scope scope)
-        {
-            var liveValues = new HashSet<Value>();
-
             var toProcess = new Stack<Value>();
-            foreach (var block in scope)
+
+            // Mark all terminators and their values as non dead
+            scope.ForEachTerminator<TerminatorValue>(terminator =>
             {
-                var terminator = block.Terminator.ResolveAs<TerminatorValue>();
                 foreach (var node in terminator.Nodes)
                     toProcess.Push(node);
-            }
+            });
 
-            // Mark all memory values as non dead
-            // Mark all calls as non dead
-            foreach (Value value in scope.Values)
+            // Mark all memory values as non dead (except dead loads)
+            scope.ForEachValue<MemoryValue>(value =>
             {
-                switch (value)
-                {
-                    case MemoryValue _:
-                    case MethodCall _:
-                        toProcess.Push(value);
-                        break;
-                }
-            }
+                if (value.ValueKind != ValueKind.Load)
+                    toProcess.Push(value);
+            });
 
+            // Mark all calls as non dead
+            scope.ForEachValue<MethodCall>(call => toProcess.Push(call));
+
+            // Mark all nodes as live
+            var liveValues = new HashSet<Value>();
             while (toProcess.Count > 0)
             {
                 var current = toProcess.Pop();
@@ -87,7 +60,23 @@ namespace ILGPU.IR.Transformations
                     toProcess.Push(node.Resolve());
             }
 
-            return liveValues;
+            // Remove all dead values
+            bool updated = false;
+            scope.ForEachValue<Value>(value =>
+            {
+                if (liveValues.Contains(value))
+                    return;
+
+                Debug.Assert(
+                    !(value is MemoryValue) || value.ValueKind == ValueKind.Load,
+                    "Invalid memory value");
+                var blockBuilder = builder[value.BasicBlock];
+                blockBuilder.Remove(value);
+
+                updated = true;
+            });
+
+            return updated;
         }
     }
 }
