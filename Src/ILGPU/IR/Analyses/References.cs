@@ -71,50 +71,6 @@ namespace ILGPU.IR.Analyses
             #endregion
         }
 
-        /// <summary>
-        /// Represents a specific target and argument visitor.
-        /// </summary>
-        /// <typeparam name="TPredicate">The view predicate type.</typeparam>
-        private readonly struct ReferencesVistor<TPredicate>
-            : Scope.IFunctionCallVisitor
-            where TPredicate : IMethodCollectionPredicate
-        {
-            private readonly TPredicate predicate;
-
-            public ReferencesVistor(
-                HashSet<Method> references,
-                List<Method> referencesList,
-                TPredicate currentPredicate)
-            {
-                References = references;
-                ReferencesList = referencesList;
-                predicate = currentPredicate;
-            }
-
-            /// <summary>
-            /// Returns the associated references collection.
-            /// </summary>
-            public HashSet<Method> References { get; }
-
-            /// <summary>
-            /// Returns the associated references list.
-            /// </summary>
-            public List<Method> ReferencesList { get; }
-
-            /// <summary cref="Scope.IFunctionCallVisitor.Visit(MethodCall)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool Visit(MethodCall callTarget)
-            {
-                var target = callTarget.Target;
-                if (predicate.Match(target))
-                {
-                    if (References.Add(target))
-                        ReferencesList.Add(target);
-                }
-                return true;
-            }
-        }
-
         #endregion
 
         #region Static
@@ -128,18 +84,22 @@ namespace ILGPU.IR.Analyses
         /// <returns>A references instance.</returns>
         public static References Create<TPredicate>(
             Scope scope,
-            in TPredicate predicate)
+            TPredicate predicate)
             where TPredicate : IMethodCollectionPredicate
         {
             Debug.Assert(scope != null, "Invalid scope");
 
             var references = new HashSet<Method>();
             var referencesList = new List<Method>();
-            var referencesVisitor = new ReferencesVistor<TPredicate>(
-                references,
-                referencesList,
-                predicate);
-            scope.VisitFunctionCalls(ref referencesVisitor);
+            scope.ForEachValue<MethodCall>(call =>
+            {
+                var target = call.Target;
+                if (!predicate.Match(target))
+                    return;
+
+                if (references.Add(target))
+                    referencesList.Add(target);
+            });
             return new References(scope, referencesList);
         }
 
