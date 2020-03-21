@@ -20,36 +20,6 @@ using System.Threading.Tasks;
 namespace ILGPU.Backends
 {
     /// <summary>
-    /// Represents an abstract code generator that works on a given data type.
-    /// </summary>
-    /// <typeparam name="TKernelBuilder">The data type on which this code generator can work.</typeparam>
-    public interface IBackendCodeGenerator<TKernelBuilder>
-    {
-        /// <summary>
-        /// Generates all constant definitions (if any).
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        void GenerateConstants(TKernelBuilder builder);
-
-        /// <summary>
-        /// Generates a header definition (if any).
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        void GenerateHeader(TKernelBuilder builder);
-
-        /// <summary>
-        /// Generates the actual function code.
-        /// </summary>
-        void GenerateCode();
-
-        /// <summary>
-        /// Merges all changes inside the current code generator into the given builder.
-        /// </summary>
-        /// <param name="builder">The builder to merge with.</param>
-        void Merge(TKernelBuilder builder);
-    }
-
-    /// <summary>
     /// Represents a backend that works on several code generators and kernel builders
     /// in parallel to speed up code generation.
     /// </summary>
@@ -57,7 +27,11 @@ namespace ILGPU.Backends
     /// <typeparam name="T">The main data type.</typeparam>
     /// <typeparam name="TCodeGenerator">The code-generator type.</typeparam>
     /// <typeparam name="TKernelBuilder">The kernel-builder type.</typeparam>
-    public abstract class CodeGeneratorBackend<TDelegate, T, TCodeGenerator, TKernelBuilder> : Backend<TDelegate>
+    public abstract class CodeGeneratorBackend<
+        TDelegate,
+        T,
+        TCodeGenerator,
+        TKernelBuilder> : Backend<TDelegate>
         where TDelegate : Delegate
         where TCodeGenerator : class, IBackendCodeGenerator<TKernelBuilder>
     {
@@ -89,7 +63,13 @@ namespace ILGPU.Backends
 
         #region Methods
 
-        /// <summary cref="Backend.Compile(EntryPoint, in BackendContext, in KernelSpecialization)"/>
+        /// <summary>
+        /// Compiles a new kernel using parallel processing.
+        /// </summary>
+        /// <param name="entryPoint"></param>
+        /// <param name="backendContext"></param>
+        /// <param name="specialization"></param>
+        /// <returns></returns>
         protected sealed override CompiledKernel Compile(
             EntryPoint entryPoint,
             in BackendContext backendContext,
