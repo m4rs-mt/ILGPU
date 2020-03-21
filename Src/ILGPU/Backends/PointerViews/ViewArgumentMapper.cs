@@ -33,29 +33,41 @@ namespace ILGPU.Backends.PointerViews
 
         #endregion
 
-        /// <summary cref="ArgumentMapper.MapViewType(Type, Type)"/>
-        protected sealed override Type MapViewType(Type viewType, Type elementType) =>
-            ViewImplementation.GetImplementationType(elementType);
+        #region Methods
 
-        /// <summary cref="ArgumentMapper.MapViewInstance{TILEmitter, TSource, TTarget}(in TILEmitter, TSource, TTarget)"/>
-        protected sealed override void MapViewInstance<TILEmitter, TSource, TTarget>(
+        /// <summary>
+        /// Maps an internal view type to a pointer implementation type.
+        /// </summary>
+        protected sealed override void MapViewType<TTargetCollection>(
+            Type viewType,
+            Type elementType,
+            TTargetCollection elements) =>
+            ViewImplementation.AppendImplementationTypes(elements);
+
+        /// <summary>
+        /// Maps an internal view instance to a pointer instance.
+        /// </summary>
+        protected sealed override void MapViewInstance<TILEmitter, TSource>(
             in TILEmitter emitter,
+            Type elementType,
             TSource source,
-            TTarget target)
+            ref Target target)
         {
-            var targetType = target.TargetType;
-
-            // Load target address
+            // Emit the target address and resolve the implementation type to store
+            var implType = ViewImplementation.GetImplementationType(elementType);
             target.EmitLoadTarget(emitter);
 
             // Load source and create custom view type
             source.EmitLoadSource(emitter);
             emitter.Emit(OpCodes.Ldobj, source.SourceType);
             emitter.EmitNewObject(
-                ViewImplementation.GetViewConstructor(targetType));
+                ViewImplementation.GetViewConstructor(implType));
 
-            // Store target
-            emitter.Emit(OpCodes.Stobj, target.TargetType);
+            // Store object
+            emitter.Emit(OpCodes.Stobj, implType);
+            target.NextTarget();
         }
+
+        #endregion
     }
 }

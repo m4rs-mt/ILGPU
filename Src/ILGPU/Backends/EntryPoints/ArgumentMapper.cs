@@ -11,16 +11,17 @@
 
 using ILGPU.Backends.IL;
 using ILGPU.IR.Types;
+using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ILGPU.Backends.EntryPoints
 {
@@ -53,22 +54,74 @@ namespace ILGPU.Backends.EntryPoints
         }
 
         /// <summary>
-        /// An emission target.
+        /// An internal target.
         /// </summary>
-        protected interface ITarget
+        protected struct Target
         {
+            /// <summary>
+            /// The array of all fields to write to.
+            /// </summary>
+            private readonly FieldInfo[] fields;
+
+            /// <summary>
+            /// Constructs a new internal target.
+            /// </summary>
+            /// <param name="local">The local to write to.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal Target(ILLocal local)
+            {
+                Local = local;
+                var parentType = local.VariableType;
+                fields = parentType.GetFields();
+                Array.Sort(fields, (left, right) =>
+                {
+                    var leftOffset = Marshal.OffsetOf(parentType, left.Name).ToInt32();
+                    var rightOffset = Marshal.OffsetOf(parentType, right.Name).ToInt32();
+                    return leftOffset.CompareTo(rightOffset);
+                });
+                Index = 0;
+            }
+
+            /// <summary>
+            /// Returns the local to write to.
+            /// </summary>
+            public ILLocal Local { get; }
+
+            /// <summary>
+            /// Returns the current field index.
+            /// </summary>
+            public int Index { get; private set; }
+
             /// <summary>
             /// Returns the target type.
             /// </summary>
-            Type TargetType { get; }
+            internal Type NextTargetType => TargetField.FieldType;
+
+            /// <summary>
+            /// Returns the target field.
+            /// </summary>
+            private FieldInfo TargetField => fields[Index];
 
             /// <summary>
             /// Emits a target command.
             /// </summary>
             /// <typeparam name="TILEmitter">The emitter type.</typeparam>
             /// <param name="emitter">The current emitter.</param>
-            void EmitLoadTarget<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter;
+            /// <returns>The target type to store.</returns>
+            public Type EmitLoadTarget<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : IILEmitter
+            {
+                var result = NextTargetType;
+                emitter.Emit(LocalOperation.LoadAddress, Local);
+                emitter.Emit(OpCodes.Ldflda, TargetField);
+                NextTarget();
+                return result;
+            }
+
+            /// <summary>
+            /// Moves the target to the next one.
+            /// </summary>
+            public void NextTarget() => ++Index;
         }
 
         /// <summary>
@@ -178,79 +231,6 @@ namespace ILGPU.Backends.EntryPoints
         }
 
         /// <summary>
-        /// A structure source.
-        /// </summary>
-        /// <typeparam name="TParentTarget">The parent source type.</typeparam>
-        protected readonly struct StructureTarget<TParentTarget> : ITarget
-            where TParentTarget : ITarget
-        {
-            /// <summary>
-            /// Constructs a new structure target.
-            /// </summary>
-            /// <param name="parentTarget">The parent target.</param>
-            /// <param name="targetField">The target field.</param>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public StructureTarget(in TParentTarget parentTarget, FieldInfo targetField)
-            {
-                ParentTarget = parentTarget;
-                TargetField = targetField;
-            }
-
-            /// <summary cref="ITarget.TargetType"/>
-            public Type TargetType => TargetField.FieldType;
-
-            /// <summary>
-            /// Returns the parent target.
-            /// </summary>
-            public TParentTarget ParentTarget { get; }
-
-            /// <summary>
-            /// Returns the target field.
-            /// </summary>
-            public FieldInfo TargetField { get; }
-
-            /// <summary cref="ITarget.EmitLoadTarget{TILEmitter}(in TILEmitter)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void EmitLoadTarget<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter
-            {
-                ParentTarget.EmitLoadTarget(emitter);
-                emitter.Emit(OpCodes.Ldflda, TargetField);
-            }
-        }
-
-        /// <summary>
-        /// A <see cref="ILLocal"/> target.
-        /// </summary>
-        protected readonly struct LocalTarget : ITarget
-        {
-            /// <summary>
-            /// Constructs a new local target.
-            /// </summary>
-            /// <param name="local">The current local.</param>
-            public LocalTarget(ILLocal local)
-            {
-                Local = local;
-            }
-
-            /// <summary cref="ITarget.TargetType"/>
-            public Type TargetType => Local.VariableType;
-
-            /// <summary>
-            /// Returns the associated local variable.
-            /// </summary>
-            public ILLocal Local { get; }
-
-            /// <summary cref="ITarget.EmitLoadTarget{TILEmitter}(in TILEmitter)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void EmitLoadTarget<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter
-            {
-                emitter.Emit(LocalOperation.LoadAddress, Local);
-            }
-        }
-
-        /// <summary>
         /// A view-parameter source.
         /// </summary>
         protected readonly struct ViewSource<TSource> : ISource
@@ -268,7 +248,7 @@ namespace ILGPU.Backends.EntryPoints
                 Source = source;
                 SourceType = viewParameter.ViewType;
                 ParameterType = viewParameter.ParameterType;
-                AccessChain = viewParameter.AccessChain;
+                AccessChain = viewParameter.SourceChain;
             }
 
             /// <summary>
@@ -287,7 +267,7 @@ namespace ILGPU.Backends.EntryPoints
             /// <summary>
             /// Returns the access chain to resolve the actual view instance.
             /// </summary>
-            public ImmutableArray<int> AccessChain { get; }
+            public FieldAccessChain AccessChain { get; }
 
             /// <summary cref="ISource.EmitLoadSource{TILEmitter}(in TILEmitter)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -298,8 +278,8 @@ namespace ILGPU.Backends.EntryPoints
                 var type = ParameterType;
                 foreach (var fieldIndex in AccessChain)
                 {
-                    emitter.Emit(OpCodes.Ldflda, type.Fields[fieldIndex]);
-                    type = type.GetFieldTypeInfo(fieldIndex);
+                    emitter.Emit(OpCodes.Ldflda, type.Fields[(int)fieldIndex]);
+                    type = type.GetFieldTypeInfo((int)fieldIndex);
                 }
             }
         }
@@ -392,58 +372,50 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <param name="viewType">The view type.</param>
         /// <param name="elementType">The element type.</param>
-        /// <returns>The resulting implementation type.</returns>
-        protected abstract Type MapViewType(Type viewType, Type elementType);
+        /// <param name="elements">The target element collection to add element types to.</param>
+        protected abstract void MapViewType<TTargetCollection>(
+            Type viewType,
+            Type elementType,
+            TTargetCollection elements)
+            where TTargetCollection : ICollection<Type>;
 
         /// <summary>
         /// Maps the given structure type to a compatible structure type.
         /// </summary>
         /// <param name="structType">The structure type to map.</param>
-        /// <returns>The mapped structure type.</returns>
-        protected Type MapStructType(Type structType)
+        /// <param name="elements">The target element collection to add element types to.</param>
+        protected void MapStructType<TTargetCollection>(
+            Type structType,
+            TTargetCollection elements)
+            where TTargetCollection : ICollection<Type>
         {
-            // Check all element types
             var typeInfo = TypeInformationManager.GetTypeInfo(structType);
-            var sourceFields = typeInfo.Fields;
-            if (sourceFields.Length < 1)
-                return structType;
-
-            var nestedTypes = new List<Type>(sourceFields.Length);
-            bool requireCustomType = false;
-            for (int i = 0, e = sourceFields.Length; i < e; ++i)
-            {
-                var sourceFieldType = sourceFields[i].FieldType;
-                var fieldType = MapType(sourceFieldType);
-                requireCustomType |= fieldType != sourceFieldType;
-                nestedTypes.Add(fieldType);
-            }
-            if (!requireCustomType)
-                return structType;
-
-            // We need a custom structure type and map all fields
-            var typeBuilder = Context.DefineRuntimeStruct();
-            for (int i = 0, e = sourceFields.Length; i < e; ++i)
-            {
-                typeBuilder.DefineField(
-                    "Field" + i,
-                    nestedTypes[i],
-                    FieldAttributes.Public);
-            }
-            // Build wrapper type and return it
-            return typeBuilder.CreateType();
+            foreach (var type in typeInfo.FieldTypes)
+                MapType(type, elements);
         }
 
         /// <summary>
-        /// Registers a type mapping entry and returns the mapped type.
+        /// Maps the given source type to a compatible target type.
         /// </summary>
         /// <param name="type">The source type.</param>
-        /// <param name="mappedType">The target type.</param>
-        /// <returns>The mapped type.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected Type RegisterTypeMapping(Type type, Type mappedType)
+        /// <param name="elements">The target element collection to add element types to.</param>
+        protected void MapType<TTargetCollection>(Type type, TTargetCollection elements)
+            where TTargetCollection : ICollection<Type>
         {
-            typeMapping.Add(type, mappedType);
-            return mappedType;
+            if (type.IsVoidPtr() || type == typeof(void) || type.IsByRef ||
+                type.IsPointer || type.IsDelegate() || type.IsArray || type.IsClass)
+                throw new ArgumentOutOfRangeException(nameof(type));
+
+            if (type.IsPrimitive)
+                elements.Add(type);
+            else if (type.IsPointer)
+                elements.Add(typeof(void*));
+            else if (type.IsEnum)
+                elements.Add(type.GetEnumUnderlyingType());
+            else if (type.IsArrayViewType(out Type elementType))
+                MapViewType(type, elementType, elements);
+            else
+                MapStructType(type, elements);
         }
 
         /// <summary>
@@ -451,7 +423,7 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <param name="type">The source type.</param>
         /// <returns>The compatible target type.</returns>
-        protected Type MapType(Type type)
+        private Type MapType(Type type)
         {
             Debug.Assert(type != null, "Invalid source type");
             if (typeMapping.TryGetValue(type, out Type mappedType))
@@ -461,16 +433,20 @@ namespace ILGPU.Backends.EntryPoints
                 type.IsPointer || type.IsDelegate() || type.IsArray || type.IsClass)
                 throw new ArgumentOutOfRangeException(nameof(type));
 
-            if (type.IsPrimitive)
-                return RegisterTypeMapping(type, type);
-            else if (type.IsPointer)
-                return RegisterTypeMapping(type, typeof(void*));
-            else if (type.IsEnum)
-                return RegisterTypeMapping(type, type.GetEnumUnderlyingType());
-            else if (type.IsArrayViewType(out Type elementType))
-                return RegisterTypeMapping(type, MapViewType(type, elementType));
-            else
-                return RegisterTypeMapping(type, MapStructType(type));
+            var types = new List<Type>();
+            MapType(type, types);
+            var typeBuilder = Context.DefineRuntimeStruct();
+            for (int i = 0, e = types.Count; i < e; ++i)
+            {
+                typeBuilder.DefineField(
+                    "Field" + i,
+                    types[i],
+                    FieldAttributes.Public);
+            }
+            // Build wrapper type and return it
+            var wrapperType = typeBuilder.CreateType();
+            typeMapping.Add(type, wrapperType);
+            return wrapperType;
         }
 
         /// <summary>
@@ -479,50 +455,41 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <typeparam name="TILEmitter">The emitter type.</typeparam>
         /// <typeparam name="TSource">The value source type.</typeparam>
-        /// <typeparam name="TTarget">The value target type.</typeparam>
         /// <param name="emitter">The current emitter.</param>
+        /// <param name="elementType">The element type.</param>
         /// <param name="source">The value source.</param>
         /// <param name="target">The value target.</param>
-        protected abstract void MapViewInstance<TILEmitter, TSource, TTarget>(
+        protected abstract void MapViewInstance<TILEmitter, TSource>(
             in TILEmitter emitter,
+            Type elementType,
             TSource source,
-            TTarget target)
+            ref Target target)
             where TILEmitter : IILEmitter
-            where TSource : ISource
-            where TTarget : ITarget;
+            where TSource : ISource;
 
         /// <summary>
         /// Maps a specific structure instance.
         /// </summary>
         /// <typeparam name="TILEmitter">The emitter type.</typeparam>
         /// <typeparam name="TSource">The value source type.</typeparam>
-        /// <typeparam name="TTarget">The value target type.</typeparam>
         /// <param name="emitter">The current emitter.</param>
         /// <param name="source">The value source.</param>
         /// <param name="target">The value target.</param>
-        protected void MapStructInstance<TILEmitter, TSource, TTarget>(
+        protected void MapStructInstance<TILEmitter, TSource>(
             in TILEmitter emitter,
             TSource source,
-            TTarget target)
+            ref Target target)
             where TILEmitter : IILEmitter
             where TSource : ISource
-            where TTarget : ITarget
         {
-            // Resolve type info of source and target types
-            var sourceInfo = TypeInformationManager.GetTypeInfo(source.SourceType);
-            var targetInfo = TypeInformationManager.GetTypeInfo(target.TargetType);
-            Debug.Assert(sourceInfo.NumFields == targetInfo.NumFields, "Incompatible types");
-
             // Map all field entries
+            var sourceInfo = TypeInformationManager.GetTypeInfo(source.SourceType);
             for (int i = 0, e = sourceInfo.NumFields; i < e; ++i)
             {
                 var fieldSource = new StructureSource<TSource>(
                     source,
                     sourceInfo.Fields[i]);
-                var fieldTarget = new StructureTarget<TTarget>(
-                    target,
-                    targetInfo.Fields[i]);
-                MapInstance(emitter, fieldSource, fieldTarget);
+                MapInstance(emitter, fieldSource, ref target);
             }
         }
 
@@ -531,31 +498,29 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <typeparam name="TILEmitter">The emitter type.</typeparam>
         /// <typeparam name="TSource">The value source type.</typeparam>
-        /// <typeparam name="TTarget">The value target type.</typeparam>
         /// <param name="emitter">The current emitter.</param>
         /// <param name="source">The value source.</param>
         /// <param name="target">The value target.</param>
-        protected void MapInstance<TILEmitter, TSource, TTarget>(
+        protected void MapInstance<TILEmitter, TSource>(
             in TILEmitter emitter,
             TSource source,
-            TTarget target)
+            ref Target target)
             where TILEmitter : IILEmitter
             where TSource : ISource
-            where TTarget : ITarget
         {
             var sourceType = source.SourceType;
-            if (sourceType == target.TargetType ||
+            if (sourceType == target.NextTargetType ||
                 sourceType.IsEnum)
             {
                 // Copy object from source to target
-                target.EmitLoadTarget(emitter);
+                var targetType = target.EmitLoadTarget(emitter);
                 source.EmitLoadSource(emitter);
-                emitter.Emit(OpCodes.Cpobj, target.TargetType);
+                emitter.Emit(OpCodes.Cpobj, targetType);
             }
-            else if (sourceType.IsArrayViewType(out Type _))
-                MapViewInstance(emitter, source, target);
+            else if (sourceType.IsArrayViewType(out Type elementType))
+                MapViewInstance(emitter, elementType, source, ref target);
             else
-                MapStructInstance(emitter, source, target);
+                MapStructInstance(emitter, source, ref target);
         }
 
         /// <summary>
@@ -583,26 +548,19 @@ namespace ILGPU.Backends.EntryPoints
                 // Load parameter argument and map instance
                 var parameterType = parameters.ParameterTypes[i];
                 var parameterIndex = i + Kernel.KernelParameterOffset;
-                var argumentSource = new ArgumentSource(parameterType, parameterIndex);
 
                 // Map type and check result
                 var mappedType = MapType(parameterType);
-                if (mappedType != parameterType)
-                {
-                    // Perform actual instance mapping on local
-                    var mappingLocal = emitter.DeclareLocal(mappedType);
-                    var localTarget = new LocalTarget(mappingLocal);
-                    MapInstance(emitter, argumentSource, localTarget);
+                var mappingLocal = emitter.DeclareLocal(mappedType);
 
-                    // Map an indirect argument
-                    var localSource = new LocalSource(mappingLocal);
-                    mappingHandler.MapArgument(emitter, localSource, i);
-                }
-                else
-                {
-                    // Map argument directly
-                    mappingHandler.MapArgument(emitter, argumentSource, i);
-                }
+                // Perform actual instance mapping on local
+                var argumentSource = new ArgumentSource(parameterType, parameterIndex);
+                var localTarget = new Target(mappingLocal);
+                MapInstance(emitter, argumentSource, ref localTarget);
+
+                // Map an indirect argument
+                var localSource = new LocalSource(mappingLocal);
+                mappingHandler.MapArgument(emitter, localSource, i);
             }
         }
 

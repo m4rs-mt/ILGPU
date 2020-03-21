@@ -13,7 +13,6 @@ using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.InteropServices;
 
 namespace ILGPU.Backends.EntryPoints
 {

@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace ILGPU.Backends.PointerViews
@@ -28,9 +29,21 @@ namespace ILGPU.Backends.PointerViews
         /// Returns a specialized implementation type.
         /// </summary>
         /// <param name="elementType">The view element type.</param>
-        /// <returns></returns>
+        /// <returns>The implement type.</returns>
         public static Type GetImplementationType(Type elementType) =>
             ImplementationType.MakeGenericType(elementType);
+
+        /// <summary>
+        /// Append all implementation-specific element types.
+        /// </summary>
+        /// <typeparam name="TCollection">The target collection type.</typeparam>
+        /// <param name="collection">The target element collection.</param>
+        public static void AppendImplementationTypes<TCollection>(TCollection collection)
+            where TCollection : ICollection<Type>
+        {
+            collection.Add(typeof(void*));
+            collection.Add(typeof(int));
+        }
 
         /// <summary>
         /// Returns a specialized pointer constructor.

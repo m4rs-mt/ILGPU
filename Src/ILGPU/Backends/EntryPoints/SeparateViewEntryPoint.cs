@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
+using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
@@ -36,26 +37,32 @@ namespace ILGPU.Backends.EntryPoints
         /// <summary>
         /// Represents a single view parameter in the scope of a kernel.
         /// </summary>
-        public readonly struct ViewParameter
+        public sealed class ViewParameter
         {
             #region Instance
 
             /// <summary>
             /// Constructs a new view parameter.
             /// </summary>
+            /// <param name="index">The view parameter index.</param>
             /// <param name="parameter">The parameter info.</param>
-            /// <param name="accessChain">The current access chain.</param>
+            /// <param name="sourceChain">The source access chain.</param>
+            /// <param name="targetAccess">The target access.</param>
             /// <param name="elementType">The element type of the view.</param>
             /// <param name="viewType">The source view type.</param>
             internal ViewParameter(
+                int index,
                 in (TypeInformationManager.TypeInformation, int) parameter,
-                ImmutableArray<int> accessChain,
+                FieldAccessChain sourceChain,
+                FieldAccess targetAccess,
                 Type elementType,
                 Type viewType)
             {
+                Index = index;
                 ParameterType = parameter.Item1;
                 ParameterIndex = parameter.Item2;
-                AccessChain = accessChain;
+                SourceChain = sourceChain;
+                TargetAccess = targetAccess;
                 ElementType = elementType;
                 ViewType = viewType;
             }
@@ -63,6 +70,11 @@ namespace ILGPU.Backends.EntryPoints
             #endregion
 
             #region Properties
+
+            /// <summary>
+            /// Returns the index of the i-th view entry.
+            /// </summary>
+            public int Index { get; }
 
             /// <summary>
             /// Returns the associated parameter type.
@@ -75,9 +87,14 @@ namespace ILGPU.Backends.EntryPoints
             public int ParameterIndex { get; }
 
             /// <summary>
-            /// Returns the access chain to assign the view parameter.
+            /// Returns the access to resolve the view parameter.
             /// </summary>
-            public ImmutableArray<int> AccessChain { get; }
+            public FieldAccessChain SourceChain { get; }
+
+            /// <summary>
+            /// Returns the target access.
+            /// </summary>
+            public FieldAccess TargetAccess { get; }
 
             /// <summary>
             /// Returns the underlying element type.
@@ -241,13 +258,20 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="sharedMemory">The shared memory specification.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="typeInformationManager">The information manager to use.</param>
+        /// <param name="numImplementationFieldsPerView">The number of fields per view.</param>
         public SeparateViewEntryPoint(
             EntryPointDescription description,
             in SharedMemorySpecification sharedMemory,
             in KernelSpecialization specialization,
-            TypeInformationManager typeInformationManager)
+            TypeInformationManager typeInformationManager,
+            int numImplementationFieldsPerView)
             : base(description, sharedMemory, specialization)
         {
+            if (numImplementationFieldsPerView < 1)
+                throw new ArgumentOutOfRangeException(
+                    nameof(numImplementationFieldsPerView));
+            NumImplementationFieldsPerView = numImplementationFieldsPerView;
+
             var builder = ImmutableArray.CreateBuilder<ViewParameter>(
                 Parameters.Count);
             for (int i = 0, e = Parameters.Count; i < e; ++i)
@@ -258,7 +282,8 @@ namespace ILGPU.Backends.EntryPoints
                     builder,
                     (typeInfo, i),
                     typeInfo,
-                    ImmutableArray<int>.Empty);
+                    FieldAccessChain.Empty,
+                    new FieldAccess(0));
 
                 var targetLength = builder.Count;
                 if (targetLength - sourceIndex > 0)
@@ -269,18 +294,25 @@ namespace ILGPU.Backends.EntryPoints
         }
 
         /// <summary>
+        /// Returns the number of fields per view.
+        /// </summary>
+        public int NumImplementationFieldsPerView { get; }
+
+        /// <summary>
         /// Analyzes the given parameter types and resolves all virtual
         /// view parameters that should be passed separately.
         /// </summary>
         /// <param name="builder">The target builder to append to.</param>
         /// <param name="parameter">The parameter info.</param>
         /// <param name="type">The current type.</param>
-        /// <param name="accessChain">The current access chain.</param>
+        /// <param name="sourceChain">The source access chain.</param>
+        /// <param name="targetAccess">The target field access.</param>
         private void ResolveVirtualViewParameters(
             ImmutableArray<ViewParameter>.Builder builder,
             in (TypeInformationManager.TypeInformation, int) parameter,
             TypeInformationManager.TypeInformation type,
-            ImmutableArray<int> accessChain)
+            FieldAccessChain sourceChain,
+            FieldAccess targetAccess)
         {
             // Check whether we have found an array view that has
             // to be passed separately
@@ -288,21 +320,26 @@ namespace ILGPU.Backends.EntryPoints
             {
                 // We have found an array view...
                 builder.Add(new ViewParameter(
+                    builder.Count,
                     parameter,
-                    accessChain,
+                    sourceChain,
+                    targetAccess,
                     elementType,
                     type.ManagedType));
+                targetAccess = targetAccess.Add(NumImplementationFieldsPerView);
             }
 
             // Resolve view field recursively
             for (int i = 0, e = type.NumFields; i < e; ++i)
             {
+                var fieldOffset = type.FieldOffsets[i];
                 var fieldType = type.GetFieldTypeInfo(i);
                 ResolveVirtualViewParameters(
                     builder,
                     parameter,
                     fieldType,
-                    accessChain.Add(i));
+                    sourceChain.Append(i),
+                    targetAccess.Add(fieldOffset));
             }
         }
 

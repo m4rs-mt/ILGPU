@@ -11,6 +11,7 @@
 
 using ILGPU.Util;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -33,6 +34,18 @@ namespace ILGPU.Backends.SeparateViews
         /// </summary>
         private static readonly MethodInfo CreateMethod = typeof(ViewImplementation).
             GetMethod(nameof(Create));
+
+        /// <summary>
+        /// Append all implementation-specific element types.
+        /// </summary>
+        /// <typeparam name="TCollection">The target collection type.</typeparam>
+        /// <param name="collection">The target element collection.</param>
+        public static void AppendImplementationTypes<TCollection>(TCollection collection)
+            where TCollection : ICollection<Type>
+        {
+            collection.Add(typeof(int));
+            collection.Add(typeof(int));
+        }
 
         /// <summary>
         /// Returns a specialized create method.
@@ -64,6 +77,22 @@ namespace ILGPU.Backends.SeparateViews
         public static ViewImplementation Create<T>(ArrayView<T> source)
             where T : struct =>
             new ViewImplementation(source.Index, source.Length);
+
+        /// <summary>
+        /// Returns the index field of a view implementation.
+        /// </summary>
+        /// <param name="implType">The view implementation type.</param>
+        /// <returns>The resolved field.</returns>
+        public static FieldInfo GetIndexField(Type implType) =>
+            implType.GetField(nameof(Index));
+
+        /// <summary>
+        /// Returns the length field of a view implementation.
+        /// </summary>
+        /// <param name="implType">The view implementation type.</param>
+        /// <returns>The resolved field.</returns>
+        public static FieldInfo GetLengthField(Type implType) =>
+            implType.GetField(nameof(Length));
 
         #endregion
 

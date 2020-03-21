@@ -10,13 +10,14 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.IL;
 using System;
 using System.Reflection.Emit;
 
 namespace ILGPU.Backends.SeparateViews
 {
     /// <summary>
-    /// Maps array views to seperate view implementations.
+    /// Maps array views to separate view implementations.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
     public abstract class ViewArgumentMapper : ArgumentMapper
@@ -33,17 +34,26 @@ namespace ILGPU.Backends.SeparateViews
 
         #endregion
 
-        /// <summary cref="ArgumentMapper.MapViewType(Type, Type)"/>
-        protected sealed override Type MapViewType(Type viewType, Type elementType) =>
-            typeof(ViewImplementation);
+        /// <summary>
+        /// Maps an internal view type to a pointer implementation type.
+        /// </summary>
+        protected sealed override void MapViewType<TTargetCollection>(
+            Type viewType,
+            Type elementType,
+            TTargetCollection elements) =>
+            ViewImplementation.AppendImplementationTypes(elements);
 
-        /// <summary cref="ArgumentMapper.MapViewInstance{TILEmitter, TSource, TTarget}(in TILEmitter, TSource, TTarget)"/>
-        protected sealed override void MapViewInstance<TILEmitter, TSource, TTarget>(
+        /// <summary>
+        /// Maps an internal view instance to a pointer instance.
+        /// </summary>
+        protected sealed override void MapViewInstance<TILEmitter, TSource>(
             in TILEmitter emitter,
+            Type elementType,
             TSource source,
-            TTarget target)
+            ref Target target)
         {
-            // Load target address
+            // Declare local view type
+            var implType = typeof(ViewImplementation);
             target.EmitLoadTarget(emitter);
 
             // Load source and create custom view type
@@ -52,8 +62,9 @@ namespace ILGPU.Backends.SeparateViews
             emitter.EmitCall(
                 ViewImplementation.GetCreateMethod(source.SourceType));
 
-            // Store target
-            emitter.Emit(OpCodes.Stobj, target.TargetType);
+            // Store object
+            emitter.Emit(OpCodes.Stobj, implType);
+            target.NextTarget();
         }
     }
 }
