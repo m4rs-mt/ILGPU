@@ -491,6 +491,27 @@ namespace ILGPU.IR.Construction
         /// Creates a new SSA builder.
         /// </summary>
         /// <param name="methodBuilder">The current method builder.</param>
+        /// <returns>The created SSA builder.</returns>
+        public static SSABuilder<TVariable> Create(Method.Builder methodBuilder)
+        {
+            var scope = methodBuilder.Method.CreateScope(ScopeFlags.AddAlreadyVisitedNodes);
+            var cfg = scope.CreateCFG();
+            return Create(methodBuilder, cfg);
+        }
+
+        /// <summary>
+        /// Creates a new SSA builder.
+        /// </summary>
+        /// <param name="methodBuilder">The current method builder.</param>
+        /// <param name="scope">The current scope.</param>
+        /// <returns>The created SSA builder.</returns>
+        public static SSABuilder<TVariable> Create(Method.Builder methodBuilder, Scope scope) =>
+            Create(methodBuilder, scope.CreateCFG());
+
+        /// <summary>
+        /// Creates a new SSA builder.
+        /// </summary>
+        /// <param name="methodBuilder">The current method builder.</param>
         /// <param name="cfg">The parent CFG.</param>
         /// <returns>The created SSA builder.</returns>
         public static SSABuilder<TVariable> Create(Method.Builder methodBuilder, CFG cfg) =>
@@ -540,6 +561,11 @@ namespace ILGPU.IR.Construction
         /// Returns the associated graph.
         /// </summary>
         public CFG CFG => mapping.CFG;
+
+        /// <summary>
+        /// Returns the associated scope.
+        /// </summary>
+        public Scope Scope => CFG.Scope;
 
         /// <summary>
         /// Returns the internal value container for the given node.
