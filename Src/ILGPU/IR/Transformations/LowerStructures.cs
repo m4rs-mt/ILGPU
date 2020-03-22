@@ -147,7 +147,7 @@ namespace ILGPU.IR.Transformations
             /// Seals this lowered phi.
             /// </summary>
             /// <param name="ssaBuilder">The parent SSA builder.</param>
-            public void Seal(SSABuilder<FieldRef> ssaBuilder)
+            public PhiValue Seal(SSABuilder<FieldRef> ssaBuilder)
             {
                 // Wire all phi arguments
                 for (int i = 0, e = SourcePhi.Nodes.Length; i < e; ++i)
@@ -161,7 +161,7 @@ namespace ILGPU.IR.Transformations
                 }
 
                 // Seal the internal phi value
-                PhiBuilder.Seal();
+                return PhiBuilder.Seal();
             }
         }
 
@@ -623,7 +623,10 @@ namespace ILGPU.IR.Transformations
 
             // Seal all lowered phis
             foreach (var phi in loweredPhis)
-                phi.Seal(ssaBuilder);
+            {
+                var phiValue = phi.Seal(ssaBuilder);
+                phiValue.TryRemoveTrivialPhi(builder);
+            }
 
             return applied;
         }

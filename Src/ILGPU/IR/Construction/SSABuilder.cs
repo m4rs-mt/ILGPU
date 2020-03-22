@@ -391,45 +391,7 @@ namespace ILGPU.IR.Construction
                 }
                 Debug.Assert(phiBuilder.Count == Node.Predecessors.Count, "Invalid phi configuration");
                 var phiValue = phiBuilder.Seal();
-                return TryRemoveTrivialPhi(phiValue);
-            }
-
-            /// <summary>
-            /// Tries to remove trivial phi value.
-            /// </summary>
-            /// <param name="phiValue">The phi value to check.</param>
-            /// <returns>The resolved value.</returns>
-            private Value TryRemoveTrivialPhi(PhiValue phiValue)
-            {
-                Debug.Assert(phiValue != null, "Invalid phi value to remove");
-                Value same = null;
-                foreach (Value argument in phiValue.Nodes)
-                {
-                    if (same == argument || argument == phiValue)
-                        continue;
-                    if (same != null)
-                        return phiValue;
-                    same = argument;
-                }
-
-                // Unreachable phi
-                if (same == null)
-                    return phiValue;
-
-                var uses = phiValue.Uses.Clone();
-                phiValue.Replace(same);
-
-                // Remove the phi node from the current block
-                var builder = Parent.MethodBuilder[phiValue.BasicBlock];
-                builder.Remove(phiValue);
-
-                foreach (var use in uses)
-                {
-                    if (use.Resolve() is PhiValue usedPhi)
-                        TryRemoveTrivialPhi(usedPhi);
-                }
-
-                return same;
+                return phiValue.TryRemoveTrivialPhi(Parent.MethodBuilder);
             }
 
             /// <summary>
@@ -518,6 +480,7 @@ namespace ILGPU.IR.Construction
             new SSABuilder<TVariable>(
                 methodBuilder ?? throw new ArgumentNullException(nameof(methodBuilder)),
                 cfg ?? throw new ArgumentNullException(nameof(cfg)));
+
 
         #endregion
 

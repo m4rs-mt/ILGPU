@@ -199,6 +199,53 @@ namespace ILGPU.IR.Values
 
         #endregion
 
+        #region Static
+
+        /// <summary>
+        /// Tries to remove a trivial phi value.
+        /// </summary>
+        /// <param name="methodBuilder">The current method builder.</param>
+        /// <param name="phiValue">The phi value to check.</param>
+        /// <returns>The resolved value.</returns>
+        public static Value TryRemoveTrivialPhi(Method.Builder methodBuilder, PhiValue phiValue)
+        {
+            // Implements a part of the SSA-construction algorithm from the paper:
+            // Simple and Efficient Construction of Static Single Assignment Form
+            // See also: SSABuilder.cs
+
+            Debug.Assert(phiValue != null, "Invalid phi value to remove");
+            Value same = null;
+            foreach (Value argument in phiValue.Nodes)
+            {
+                if (same == argument || argument == phiValue)
+                    continue;
+                if (same != null)
+                    return phiValue;
+                same = argument;
+            }
+
+            // Unreachable phi
+            if (same == null)
+                return phiValue;
+
+            var uses = phiValue.Uses.Clone();
+            phiValue.Replace(same);
+
+            // Remove the phi node from the current block
+            var builder = methodBuilder[phiValue.BasicBlock];
+            builder.Remove(phiValue);
+
+            foreach (var use in uses)
+            {
+                if (use.Resolve() is PhiValue usedPhi)
+                    TryRemoveTrivialPhi(methodBuilder, usedPhi);
+            }
+
+            return same;
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -295,6 +342,14 @@ namespace ILGPU.IR.Values
             Seal(arguments);
             Sources = sources;
         }
+
+        /// <summary>
+        /// Tries to remove a trivial phi value.
+        /// </summary>
+        /// <param name="methodBuilder">The current method builder.</param>
+        /// <returns>The resolved value.</returns>
+        public Value TryRemoveTrivialPhi(Method.Builder methodBuilder) =>
+            TryRemoveTrivialPhi(methodBuilder, this);
 
         #endregion
 
