@@ -123,11 +123,17 @@ namespace ILGPU.IR.Construction
             return ComputeArrayLength(extent);
         }
 
+        /// <summary>
+        /// Computes a linear array length based on an array extent.
+        /// </summary>
+        /// <param name="arrayExtent">The array extent.</param>
+        /// <returns>The linear array length.</returns>
         internal ValueReference ComputeArrayLength(Value arrayExtent)
         {
             // Compute total number of elements
             var size = CreateGetField(arrayExtent, new FieldSpan(0));
-            for (int i = 1, e = (arrayExtent.Type as ArrayType).Dimensions; i < e; ++i)
+            int dimensions = StructureType.GetNumFields(arrayExtent.Type);
+            for (int i = 1; i < dimensions; ++i)
             {
                 var element = CreateGetField(arrayExtent, new FieldSpan(i));
                 size = CreateArithmetic(
@@ -138,16 +144,25 @@ namespace ILGPU.IR.Construction
             return size;
         }
 
-        internal ValueReference ComputeArrayLinearAddress(
-            Value arrayExtent,
+        /// <summary>
+        /// Computes a linear array address.
+        /// </summary>
+        /// <param name="arrayIndex">The array index.</param>
+        /// <param name="arrayExtent">The array extent.</param>
+        /// <param name="arrayExtentOffset">The extent offset.</param>
+        /// <returns>The linear array address.</returns>
+        internal ValueReference ComputeArrayAddress(
             Value arrayIndex,
+            Value arrayExtent,
             int arrayExtentOffset)
         {
-            int dimensions = (arrayExtent.Type as ArrayType).Dimensions;
+            int dimensions = StructureType.GetNumFields(arrayExtent.Type);
             Value linearIndex = CreateGetField(arrayIndex, new FieldSpan(dimensions - 1));
             for (int i = dimensions - 2; i >= 0; --i)
             {
-                var extent = CreateGetField(arrayExtent, new FieldSpan(i + arrayExtentOffset));
+                var extent = CreateGetField(
+                    arrayExtent,
+                    new FieldSpan(i + arrayExtentOffset));
                 var index = CreateGetField(arrayIndex, new FieldSpan(i));
                 linearIndex = CreateArithmetic(
                     linearIndex,

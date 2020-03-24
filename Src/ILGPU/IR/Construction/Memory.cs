@@ -189,6 +189,10 @@ namespace ILGPU.IR.Construction
             var pointerType = source.Type as PointerType;
             Debug.Assert(pointerType != null, "Invalid source pointer type");
 
+            // Simplify pseudo-structure accesses
+            if (!pointerType.ElementType.IsStructureType && fieldSpan.Span < 2)
+                return source;
+
             // Fold nested field addresses
             if (source is LoadFieldAddress lfa)
             {

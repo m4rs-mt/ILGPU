@@ -83,13 +83,12 @@ namespace ILGPU.IR.Construction
             if (primitiveValue.IsValid)
                 return primitiveValue;
 
-            var resultType = CreateType(type) as StructureType;
-            var fieldValues = resultType.CreateFieldBuilder();
+            var fieldValues = ImmutableArray.CreateBuilder<ValueReference>();
             CreateStructureValue(
                 fieldValues,
                 instance,
                 type);
-            return CreateStructure(resultType, fieldValues.MoveToImmutable());
+            return CreateStructure(fieldValues.ToImmutable());
         }
 
         /// <summary>
@@ -107,12 +106,17 @@ namespace ILGPU.IR.Construction
         /// <returns>The created structure instance value.</returns>
         public ValueReference CreateStructure(ImmutableArray<ValueReference> fieldValues)
         {
+            if (fieldValues.Length < 1)
+                return CreateNull(CreateEmptyStructureType());
+            if (fieldValues.Length < 2)
+                return fieldValues[0];
+
             // Construct structure type
             var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(fieldValues.Length);
             foreach (var value in fieldValues)
                 fieldTypes.Add(value.Type);
             var structureType = CreateStructureType(fieldTypes.MoveToImmutable());
-            return CreateStructure(structureType, fieldValues);
+            return CreateStructure(structureType as StructureType, fieldValues);
         }
 
         /// <summary>
@@ -121,7 +125,7 @@ namespace ILGPU.IR.Construction
         /// <param name="structureType">The structure type.</param>
         /// <param name="values">The structure instance values.</param>
         /// <returns>The created structure instance value.</returns>
-        internal ValueReference CreateStructure(
+        private ValueReference CreateStructure(
             StructureType structureType,
             ImmutableArray<ValueReference> values)
         {
@@ -146,8 +150,10 @@ namespace ILGPU.IR.Construction
             Debug.Assert(objectValue != null, "Invalid object node");
 
             var structType = objectValue.Type as StructureType;
-            Debug.Assert(structType != null, "Invalid object structure type");
+            if (structType == null && fieldSpan.Span < 2)
+                return objectValue;
 
+            Debug.Assert(structType != null, "Invalid object structure type");
             if (objectValue is StructureValue structureValue)
                 return structureValue.Get(this, fieldSpan);
             if (objectValue is NullValue)
