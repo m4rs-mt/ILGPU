@@ -50,9 +50,7 @@ namespace ILGPU.IR.Rewriting
             }
 
             // Create new structure instance
-            return context.Builder.CreateStructure(
-                structureType,
-                fields.MoveToImmutable());
+            return context.Builder.CreateStructure(fields.MoveToImmutable());
         }
         /// <summary>
         /// Disassembled a structure value using the lowering provided.
