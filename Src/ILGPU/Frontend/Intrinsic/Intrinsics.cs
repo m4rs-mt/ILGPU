@@ -246,9 +246,8 @@ namespace ILGPU.Frontend.Intrinsic
             // Convert unsafe data into target chunks and emit
             // appropriate store instructions
             Value target = context[0];
-            var targetType = target.Type as StructureType;
-            var targetViewType = targetType.Fields[0] as ViewType;
-            if (!targetViewType.ElementType.TryResolveManagedType(out Type elementType))
+            var arrayType = target.Type as ArrayType;
+            if (!arrayType.ElementType.TryResolveManagedType(out Type elementType))
             {
                 throw context.GetNotSupportedException(
                         ErrorMessages.NotSupportedIntrinsic,
@@ -265,10 +264,7 @@ namespace ILGPU.Frontend.Intrinsic
 
                 // Convert element to IR value
                 var irValue = builder.CreateValue(instance, elementType);
-
-                var targetIndex = builder.CreateStructure(
-                    ImmutableArray.Create<ValueReference>(
-                        builder.CreatePrimitiveValue(i)));
+                var targetIndex = builder.CreatePrimitiveValue(i);
 
                 builder.CreateSetArrayElement(
                     target,

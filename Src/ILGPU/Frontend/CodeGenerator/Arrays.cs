@@ -31,8 +31,7 @@ namespace ILGPU.Frontend
         {
             // Resolve length and type
             var type = builder.CreateType(elementType);
-            ValueReference length = block.PopInt(ConvertFlags.None);
-            var extent = builder.CreateStructure(ImmutableArray.Create(length));
+            var extent = block.PopInt(ConvertFlags.None);
             var value = builder.CreateArray(type, 1, extent);
             block.Push(value);
         }
@@ -49,11 +48,11 @@ namespace ILGPU.Frontend
             Type elementType)
         {
             var typeNode = builder.CreateType(elementType);
-            ValueReference index = block.PopInt(ConvertFlags.None);
+            var index = block.PopInt(ConvertFlags.None);
             var array = block.Pop(typeNode, ConvertFlags.None);
-            var linearAddress = builder.ComputeArrayLinearAddress(
-                builder.CreateGetArrayExtent(array),
+            var linearAddress = builder.ComputeArrayAddress(
                 index,
+                array,
                 0);
             var value = builder.CreateLoadElementAddress(
                 array,
@@ -66,18 +65,16 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="block">The current basic block.</param>
         /// <param name="builder">The current builder.</param>
-        /// <param name="elementType">The element type to load.</param>
+        /// <param name="_">The element type to load.</param>
         private void MakeLoadElement(
             Block block,
             IRBuilder builder,
-            Type elementType)
+            Type _)
         {
-            var typeNode = builder.CreateType(elementType);
-            ValueReference index = block.PopInt(ConvertFlags.None);
-            var array = block.Pop(typeNode, ConvertFlags.None);
-            var value = builder.CreateGetArrayElement(
-                array,
-                builder.CreateStructure(ImmutableArray.Create(index)));
+            // TODO: make sure that element loads are converted properly in all cases
+            var index = block.PopInt(ConvertFlags.None);
+            var array = block.Pop();
+            var value = builder.CreateGetArrayElement(array, index);
             block.Push(value);
         }
 
@@ -94,12 +91,9 @@ namespace ILGPU.Frontend
         {
             var typeNode = builder.CreateType(elementType);
             var value = block.Pop(typeNode, ConvertFlags.None);
-            ValueReference index = block.PopInt(ConvertFlags.None);
+            var index = block.PopInt(ConvertFlags.None);
             var array = block.Pop();
-            builder.CreateSetArrayElement(
-                array,
-                builder.CreateStructure(ImmutableArray.Create(index)),
-                value);
+            builder.CreateSetArrayElement(array, index, value);
         }
 
         /// <summary>
