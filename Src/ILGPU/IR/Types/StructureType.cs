@@ -82,6 +82,16 @@ namespace ILGPU.IR.Types
             ImmutableArray<string>.Empty,
             typeof(object));
 
+        /// <summary>
+        /// Gets the number of fields of the given type.
+        /// </summary>
+        /// <param name="typeNode">The type.</param>
+        /// <returns>The number of nested fields (or 1).</returns>
+        public static int GetNumFields(TypeNode typeNode) =>
+            typeNode is StructureType structureType ?
+            structureType.NumFields :
+            1;
+
         #endregion
 
         #region Instance
@@ -168,7 +178,7 @@ namespace ILGPU.IR.Types
         /// <param name="typeContext">The type context.</param>
         /// <param name="span">The span to slice.</param>
         /// <returns>The sliced structure type.</returns>
-        public StructureType Slice<TTypeContext>(TTypeContext typeContext, FieldSpan span)
+        public TypeNode Slice<TTypeContext>(TTypeContext typeContext, FieldSpan span)
             where TTypeContext : IIRTypeContext =>
             typeContext.CreateStructureType(Slice(span));
 

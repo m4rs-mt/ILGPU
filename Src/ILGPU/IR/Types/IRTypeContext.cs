@@ -44,11 +44,6 @@ namespace ILGPU.IR.Types
         /// </summary>
         internal const BasicValueType ViewIndexType = BasicValueType.Int32;
 
-        /// <summary>
-        /// Represents a generic array view type.
-        /// </summary>
-        private static readonly Type GenericArrayViewType = typeof(ArrayView<,>);
-
         #endregion
 
         #region Instance
@@ -59,7 +54,7 @@ namespace ILGPU.IR.Types
             new Dictionary<TypeNode, TypeNode>();
         private readonly Dictionary<Type, TypeNode> typeMapping =
             new Dictionary<Type, TypeNode>();
-        private readonly StructureType[] indexTypes;
+        private readonly TypeNode[] indexTypes;
         private readonly PrimitiveType[] basicValueTypes;
 
         /// <summary>
@@ -98,11 +93,11 @@ namespace ILGPU.IR.Types
             typeMapping.Add(typeof(RuntimeTypeHandle), HandleType);
 
             // Setup index types
-            indexTypes = new StructureType[]
+            indexTypes = new TypeNode[]
             {
-                CreateType(typeof(Index1)) as StructureType,
-                CreateType(typeof(Index2)) as StructureType,
-                CreateType(typeof(Index3)) as StructureType,
+                CreateType(typeof(Index1)),
+                CreateType(typeof(Index2)),
+                CreateType(typeof(Index3)),
             };
         }
 
@@ -133,7 +128,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the main index type.
         /// </summary>
-        public StructureType IndexType => indexTypes[0];
+        public TypeNode IndexType => indexTypes[0];
 
         #endregion
 
@@ -152,12 +147,12 @@ namespace ILGPU.IR.Types
         /// </summary>
         /// <param name="dimension">The dimension of the index type.</param>
         /// <returns>The created index type.</returns>
-        public StructureType GetIndexType(int dimension)
+        public TypeNode GetIndexType(int dimension)
         {
             Debug.Assert(
-                dimension >= 0 && dimension < indexTypes.Length,
+                dimension >= 1 && dimension <= indexTypes.Length,
                 "Invalid index dimension");
-            return indexTypes[dimension];
+            return indexTypes[dimension - 1];
         }
 
         /// <summary>
@@ -193,11 +188,17 @@ namespace ILGPU.IR.Types
         }
 
         /// <summary>
+        /// Creates an empty structure type.
+        /// </summary>
+        /// <returns>The type representing an empty structure.</returns>
+        public TypeNode CreateEmptyStructureType() => GetPrimitiveType(BasicValueType.Int8);
+
+        /// <summary>
         /// Creates a new object type.
         /// </summary>
         /// <param name="fieldTypes">The object field types.</param>
         /// <returns>The created object type.</returns>
-        public StructureType CreateStructureType(ImmutableArray<TypeNode> fieldTypes) =>
+        public TypeNode CreateStructureType(ImmutableArray<TypeNode> fieldTypes) =>
             CreateStructureType(
                 fieldTypes,
                 ImmutableArray<string>.Empty,
@@ -210,11 +211,15 @@ namespace ILGPU.IR.Types
         /// <param name="fieldNames">The object field names.</param>
         /// <param name="sourceType">The source object type.</param>
         /// <returns>The created object type.</returns>
-        public StructureType CreateStructureType(
+        public TypeNode CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes,
             ImmutableArray<string> fieldNames,
             Type sourceType)
         {
+            if (fieldTypes.Length < 1)
+                return CreateEmptyStructureType();
+            if (fieldTypes.Length < 2)
+                return fieldTypes[0];
             return CreateType(new StructureType(
                 fieldTypes,
                 fieldNames,
@@ -227,7 +232,7 @@ namespace ILGPU.IR.Types
         /// <param name="fieldTypes">The object field types.</param>
         /// <param name="sourceType">The source object type.</param>
         /// <returns>The created object type.</returns>
-        public StructureType CreateStructureType(
+        public TypeNode CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes,
             StructureType sourceType)
         {
@@ -237,32 +242,6 @@ namespace ILGPU.IR.Types
                 fieldTypes,
                 sourceType.Names,
                 sourceType.Source);
-        }
-
-        /// <summary>
-        /// Creates a new generic view type that relies on an n-dimension index.
-        /// </summary>
-        /// <param name="elementType">The element type.</param>
-        /// <param name="indexType">The index type.</param>
-        /// <param name="addressSpace">The address space.</param>
-        /// <returns>The created view type.</returns>
-        public StructureType CreateGenericViewType(
-            TypeNode elementType,
-            StructureType indexType,
-            MemoryAddressSpace addressSpace)
-        {
-            // Try to resolve the managed type
-            Type managedType = null;
-            if (elementType.TryResolveManagedType(out Type managedElementType) &&
-                indexType.TryResolveManagedType(out Type managedIndexType))
-                managedType = GenericArrayViewType.MakeGenericType(managedElementType, managedIndexType);
-
-            // Create the actual type
-            var viewType = CreateViewType(elementType, addressSpace);
-            return CreateStructureType(
-                ImmutableArray.Create<TypeNode>(viewType, indexType),
-                ImmutableArray<string>.Empty,
-                managedType);
         }
 
         /// <summary>

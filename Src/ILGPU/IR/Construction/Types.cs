@@ -30,7 +30,7 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="dimension">The dimension of the index type.</param>
         /// <returns>The created index type.</returns>
-        public StructureType GetIndexType(int dimension) =>
+        public TypeNode GetIndexType(int dimension) =>
             Context.GetIndexType(dimension);
 
         /// <summary>
@@ -56,19 +56,6 @@ namespace ILGPU.IR.Construction
             Context.CreateViewType(elementType, addressSpace);
 
         /// <summary>
-        /// Creates a new generic view type that relies on an n-dimension index.
-        /// </summary>
-        /// <param name="elementType">The element type.</param>
-        /// <param name="indexType">The index type.</param>
-        /// <param name="addressSpace">The address space.</param>
-        /// <returns>The created view type.</returns>
-        public StructureType CreateGenericViewType(
-            TypeNode elementType,
-            StructureType indexType,
-            MemoryAddressSpace addressSpace) =>
-            Context.CreateGenericViewType(elementType, indexType, addressSpace);
-
-        /// <summary>
         /// Creates a new array type.
         /// </summary>
         /// <param name="elementType">The element type.</param>
@@ -78,11 +65,17 @@ namespace ILGPU.IR.Construction
             Context.CreateArrayType(elementType, dimension);
 
         /// <summary>
+        /// Creates an empty structure type.
+        /// </summary>
+        /// <returns>The type representing an empty structure.</returns>
+        public TypeNode CreateEmptyStructureType() => Context.CreateEmptyStructureType();
+
+        /// <summary>
         /// Creates a new structure type.
         /// </summary>
         /// <param name="fieldTypes">The structure field types.</param>
         /// <returns>The created structure type.</returns>
-        public StructureType CreateStructureType(ImmutableArray<TypeNode> fieldTypes) =>
+        public TypeNode CreateStructureType(ImmutableArray<TypeNode> fieldTypes) =>
             Context.CreateStructureType(fieldTypes);
 
         /// <summary>
@@ -92,7 +85,7 @@ namespace ILGPU.IR.Construction
         /// <param name="fieldNames">The structure field names.</param>
         /// <param name="sourceType">The source structure type.</param>
         /// <returns>The created structure type.</returns>
-        public StructureType CreateStructureType(
+        public TypeNode CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes,
             ImmutableArray<string> fieldNames,
             Type sourceType) =>
@@ -107,7 +100,7 @@ namespace ILGPU.IR.Construction
         /// <param name="fieldTypes">The structure field types.</param>
         /// <param name="sourceType">The source structure type.</param>
         /// <returns>The created structure type.</returns>
-        public StructureType CreateStructureType(
+        public TypeNode CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes,
             StructureType sourceType) =>
             Context.CreateStructureType(fieldTypes, sourceType);

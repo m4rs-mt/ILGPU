@@ -37,7 +37,6 @@ namespace ILGPU.IR.Values
             ValueReference extent)
             : base(basicBlock, arrayTpe)
         {
-            Debug.Assert(extent.Type is StructureType, "Invalid extent");
             Seal(ImmutableArray.Create(extent));
         }
 

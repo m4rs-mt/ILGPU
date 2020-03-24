@@ -72,7 +72,7 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Returns the current index type.
         /// </summary>
-        public StructureType IndexType => Context.IndexType;
+        public TypeNode IndexType => Context.IndexType;
 
         /// <summary>
         /// True, if the IR builder should use constant propagation.
@@ -222,11 +222,8 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="dimensions">The dimension values.</param>
         /// <returns>The created index type.</returns>
-        public ValueReference CreateIndex(ImmutableArray<ValueReference> dimensions)
-        {
-            var indexType = GetIndexType(dimensions.Length);
-            return CreateStructure(indexType, dimensions);
-        }
+        public ValueReference CreateIndex(ImmutableArray<ValueReference> dimensions) =>
+            CreateStructure(dimensions);
 
         /// <summary>
         /// Creates an instantiated phi value.

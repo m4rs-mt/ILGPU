@@ -32,7 +32,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the main index type.
         /// </summary>
-        StructureType IndexType { get; }
+        TypeNode IndexType { get; }
 
         /// <summary>
         /// Resolves the primitive type that corresponds to the given <see cref="BasicValueType"/>.
@@ -46,7 +46,7 @@ namespace ILGPU.IR.Types
         /// </summary>
         /// <param name="dimension">The dimension of the index type.</param>
         /// <returns>The created index type.</returns>
-        StructureType GetIndexType(int dimension);
+        TypeNode GetIndexType(int dimension);
 
         /// <summary>
         /// Creates a pointer type.
@@ -69,18 +69,6 @@ namespace ILGPU.IR.Types
             MemoryAddressSpace addressSpace);
 
         /// <summary>
-        /// Creates a new generic view type that relies on an n-dimension index.
-        /// </summary>
-        /// <param name="elementType">The element type.</param>
-        /// <param name="indexType">The index type.</param>
-        /// <param name="addressSpace">The address space.</param>
-        /// <returns>The created view type.</returns>
-        StructureType CreateGenericViewType(
-            TypeNode elementType,
-            StructureType indexType,
-            MemoryAddressSpace addressSpace);
-
-        /// <summary>
         /// Creates a new array type.
         /// </summary>
         /// <param name="elementType">The element type.</param>
@@ -89,11 +77,17 @@ namespace ILGPU.IR.Types
         ArrayType CreateArrayType(TypeNode elementType, int dimensions);
 
         /// <summary>
+        /// Creates an empty structure type.
+        /// </summary>
+        /// <returns>The type representing an empty structure.</returns>
+        TypeNode CreateEmptyStructureType();
+
+        /// <summary>
         /// Creates a new structure type.
         /// </summary>
         /// <param name="fieldTypes">The structure field types.</param>
         /// <returns>The created structure type.</returns>
-        StructureType CreateStructureType(ImmutableArray<TypeNode> fieldTypes);
+        TypeNode CreateStructureType(ImmutableArray<TypeNode> fieldTypes);
 
         /// <summary>
         /// Creates a new structure type.
@@ -101,7 +95,7 @@ namespace ILGPU.IR.Types
         /// <param name="fieldTypes">The structure field types.</param>
         /// <param name="sourceType">The source structure type.</param>
         /// <returns>The created structure type.</returns>
-        StructureType CreateStructureType(
+        TypeNode CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes,
             StructureType sourceType);
 
@@ -136,7 +130,7 @@ namespace ILGPU.IR.Types
         /// <param name="type">The pointer or view type.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <param name="specializedType">The specialized type.</param>
-        /// <returns>True, iff the type could be specialized.</returns>
+        /// <returns>True, if the type could be specialized.</returns>
         bool TrySpecializeAddressSpaceType(
             TypeNode type,
             MemoryAddressSpace addressSpace,

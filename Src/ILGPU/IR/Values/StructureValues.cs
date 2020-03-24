@@ -701,7 +701,7 @@ namespace ILGPU.IR.Values
             var fields = ImmutableArray.CreateBuilder<ValueReference>(NumFields);
             foreach (var value in Nodes)
                 fields.Add(rebuilder.Rebuild(value));
-            return builder.CreateStructure(StructureType, fields.MoveToImmutable());
+            return builder.CreateStructure(fields.MoveToImmutable());
         }
 
         /// <summary cref="Value.Accept" />

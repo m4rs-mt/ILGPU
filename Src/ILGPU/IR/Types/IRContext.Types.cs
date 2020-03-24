@@ -35,7 +35,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the main index type.
         /// </summary>
-        public StructureType IndexType => TypeContext.IndexType;
+        public TypeNode IndexType => TypeContext.IndexType;
 
         /// <summary>
         /// Resolves the primitive type that corresponds to the given <see cref="BasicValueType"/>.
@@ -50,7 +50,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="dimension">The dimension of the index type.</param>
         /// <returns>The created index type.</returns>
-        public StructureType GetIndexType(int dimension) =>
+        public TypeNode GetIndexType(int dimension) =>
             TypeContext.GetIndexType(dimension);
 
         /// <summary>
@@ -76,22 +76,6 @@ namespace ILGPU.IR
             TypeContext.CreateViewType(elementType, addressSpace);
 
         /// <summary>
-        /// Creates a new generic view type that relies on an n-dimension index.
-        /// </summary>
-        /// <param name="elementType">The element type.</param>
-        /// <param name="indexType">The index type.</param>
-        /// <param name="addressSpace">The address space.</param>
-        /// <returns>The created view type.</returns>
-        public StructureType CreateGenericViewType(
-            TypeNode elementType,
-            StructureType indexType,
-            MemoryAddressSpace addressSpace) =>
-            TypeContext.CreateGenericViewType(
-                elementType,
-                indexType,
-                addressSpace);
-
-        /// <summary>
         /// Creates a new array type.
         /// </summary>
         /// <param name="elementType">The element type.</param>
@@ -101,11 +85,17 @@ namespace ILGPU.IR
             TypeContext.CreateArrayType(elementType, dimension);
 
         /// <summary>
+        /// Creates an empty structure type.
+        /// </summary>
+        /// <returns>The type representing an empty structure.</returns>
+        public TypeNode CreateEmptyStructureType() => TypeContext.CreateEmptyStructureType();
+
+        /// <summary>
         /// Creates a new structure type.
         /// </summary>
         /// <param name="fieldTypes">The structure field types.</param>
         /// <returns>The created structure type.</returns>
-        public StructureType CreateStructureType(
+        public TypeNode CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes) =>
             TypeContext.CreateStructureType(fieldTypes);
 
@@ -116,7 +106,7 @@ namespace ILGPU.IR
         /// <param name="fieldNames">The structure field names.</param>
         /// <param name="sourceType">The source structure type.</param>
         /// <returns>The created structure type.</returns>
-        public StructureType CreateStructureType(
+        public TypeNode CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes,
             ImmutableArray<string> fieldNames,
             Type sourceType) =>
@@ -131,7 +121,7 @@ namespace ILGPU.IR
         /// <param name="fieldTypes">The structure field types.</param>
         /// <param name="sourceType">The source structure type.</param>
         /// <returns>The created structure type.</returns>
-        public StructureType CreateStructureType(
+        public TypeNode CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes,
             StructureType sourceType) =>
             TypeContext.CreateStructureType(
@@ -160,7 +150,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="addressSpaceType">The source type.</param>
         /// <param name="addressSpace">The new address space.</param>
-        /// <returns>The created specialzized <see cref="AddressSpaceType"/>.</returns>
+        /// <returns>The created specialized <see cref="AddressSpaceType"/>.</returns>
         public AddressSpaceType SpecializeAddressSpaceType(
             AddressSpaceType addressSpaceType,
             MemoryAddressSpace addressSpace) =>
@@ -172,7 +162,7 @@ namespace ILGPU.IR
         /// <param name="type">The pointer or view type.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <param name="specializedType">The specialized type.</param>
-        /// <returns>True, iff the type could be specialized.</returns>
+        /// <returns>True, if the type could be specialized.</returns>
         public bool TrySpecializeAddressSpaceType(
             TypeNode type,
             MemoryAddressSpace addressSpace,
