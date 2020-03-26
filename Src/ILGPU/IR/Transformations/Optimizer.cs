@@ -112,6 +112,7 @@ namespace ILGPU.IR.Transformations
             OptimizationLevel level)
         {
             // Specialize accelerator properties and views
+            builder.Add(new LowerArrays());
             builder.Add(new LowerPointerViews());
             builder.Add(acceleratorSpecializer);
 
