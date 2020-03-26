@@ -10,137 +10,245 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Construction;
+using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
 {
     /// <summary>
-    /// Lowers array values using memory operations.
+    /// Lowers array values using memory operations or structure values.
     /// </summary>
-    public sealed class LowerArrays : UnorderedTransformation
+    /// <remarks>
+    /// This transformation converts array values into tuples of the following format:
+    /// (StoragePtr, Dim1, Dim2, ..., DimN)
+    /// </remarks>
+    public sealed class LowerArrays : LowerTypes<ArrayType>
     {
+        #region Nested Types
+
         /// <summary>
-        /// Constructs a new array lowering transformation
-        /// that does not lower arrays with static indices.
+        /// Lowers array types.
         /// </summary>
-        public LowerArrays()
-            : this(false)
-        { }
+        private sealed class ArrayTypeLowering : TypeLowering<ArrayType>
+        {
+            public const int DimensionOffset = 1;
+
+            public ArrayTypeLowering(Method.Builder builder)
+                : base(builder)
+            { }
+
+            /// <summary cref="TypeConverter{TType}.GetNumFields(TType)"/>
+            protected override int GetNumFields(ArrayType type) =>
+                DimensionOffset + type.Dimensions;
+
+            /// <summary cref="TypeConverter{TType}.ConvertType{TTypeContext}(TTypeContext, TType)"/>
+            protected override TypeNode ConvertType<TTypeContext>(
+                TTypeContext typeContext,
+                ArrayType type)
+            {
+                var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(GetNumFields(type));
+                // Append storage pointer
+                fieldTypes.Add(
+                    typeContext.CreatePointerType(
+                        type.ElementType,
+                        type.AddressSpace));
+
+                // Append dimension types
+                for (int i = 0, e = type.Dimensions; i < e; ++i)
+                    fieldTypes.Add(typeContext.GetPrimitiveType(BasicValueType.Int32));
+
+                return typeContext.CreateStructureType(fieldTypes.MoveToImmutable());
+            }
+
+            /// <summary cref="TypeLowering{TType}.IsTypeDependent(TypeNode)"/>
+            public override bool IsTypeDependent(TypeNode type) =>
+                type.HasFlags(TypeFlags.ArrayDependent);
+        }
+
+        #endregion
+
+        #region Rewriter Methods
+
+        /// <summary>
+        /// Lowers new array values.
+        /// </summary>
+        private static void Lower(
+            RewriterContext context,
+            TypeLowering<ArrayType> typeLowering,
+            ArrayValue value)
+        {
+            var builder = context.Builder;
+            int currentPosition = builder.InsertPosition;
+
+            // Allocate a memory array in the entry block
+            var methodBuilder = builder.MethodBuilder;
+            var entryBlock = methodBuilder[methodBuilder.EntryBlock];
+            entryBlock.InsertPosition = 0;
+            var arrayLength = entryBlock.ComputeArrayLength(value.Extent);
+            var newArray = entryBlock.CreateAlloca(
+                arrayLength,
+                value.ArrayType.ElementType,
+                MemoryAddressSpace.Local);
+
+            // Create resulting structure in current block
+            builder.InsertPosition = currentPosition;
+            var fields = ImmutableArray.CreateBuilder<ValueReference>(
+                typeLowering.GetNumFields(value.ArrayType));
+
+            // Insert pointer field
+            fields.Add(newArray);
+
+            // Insert all dimensions
+            for (int i = 0, e = value.ArrayType.Dimensions; i < e; ++i)
+                fields.Add(builder.CreateGetField(value.Extent, new FieldSpan(i)));
+
+            var newStructure = builder.CreateStructure(fields.MoveToImmutable());
+            context.ReplaceAndRemove(value, newStructure);
+        }
+
+        /// <summary>
+        /// Lowers array extent values.
+        /// </summary>
+        private static void Lower(
+            RewriterContext context,
+            TypeLowering<ArrayType> _,
+            GetArrayExtent value)
+        {
+            var builder = context.Builder;
+
+            // Create new extent structure based on all dimension entries
+            int dimensions = value.ArrayType.Dimensions;
+            var fields = ImmutableArray.CreateBuilder<ValueReference>(dimensions);
+
+            // Insert all dimension values
+            for (int i = 0, e = value.ArrayType.Dimensions; i < e; ++i)
+                fields.Add(builder.CreateGetField(
+                    value,
+                    new FieldSpan(i + ArrayTypeLowering.DimensionOffset)));
+
+            var newStructure = builder.CreateStructure(fields.MoveToImmutable());
+            context.ReplaceAndRemove(value, newStructure);
+        }
+
+        /// <summary>
+        /// Computes a linear address for the given array and index.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Value GetLinearAddress(
+            RewriterContext context,
+            Value array,
+            Value index,
+            out Value ptr)
+        {
+            var builder = context.Builder;
+            ptr = builder.CreateGetField(array, new FieldSpan(0));
+            var extent = builder.CreateGetField(array, new FieldSpan(1));
+            return builder.ComputeArrayAddress(
+                index,
+                extent,
+                ArrayTypeLowering.DimensionOffset);
+        }
+
+        /// <summary>
+        /// Lowers get element values.
+        /// </summary>
+        private static void Lower(
+            RewriterContext context,
+            TypeLowering<ArrayType> _,
+            GetArrayElement value)
+        {
+            var linearAddress = GetLinearAddress(
+                context,
+                value.ObjectValue,
+                value.Index,
+                out var ptr);
+
+            var builder = context.Builder;
+            var address = builder.CreateLoadElementAddress(ptr, linearAddress);
+            var newLoad = builder.CreateLoad(address);
+            context.ReplaceAndRemove(value, newLoad);
+        }
+
+        /// <summary>
+        /// Lowers set element values.
+        /// </summary>
+        private static void Lower(
+            RewriterContext context,
+            TypeLowering<ArrayType> _,
+            SetArrayElement value)
+        {
+            var linearAddress = GetLinearAddress(
+                context,
+                value.ObjectValue,
+                value.Index,
+                out var ptr);
+
+            var builder = context.Builder;
+            var address = builder.CreateLoadElementAddress(ptr, linearAddress);
+            var newStore = builder.CreateStore(address, value.Value);
+            context.ReplaceAndRemove(value, newStore);
+        }
+
+        /// <summary>
+        /// Lowers address-computation values.
+        /// </summary>
+        private static void Lower(
+            RewriterContext context,
+            TypeLowering<ArrayType> _,
+            LoadElementAddress value)
+        {
+            Debug.Assert(value.IsArrayAccesss, "Invalid array access");
+            var linearAddress = GetLinearAddress(
+                context,
+                value.Source,
+                value.ElementIndex,
+                out var ptr);
+
+            var newLea = context.Builder.CreateLoadElementAddress(ptr, linearAddress);
+            context.ReplaceAndRemove(value, newLea);
+        }
+
+        #endregion
+
+        #region Rewriter
+
+        /// <summary>
+        /// The internal rewriter.
+        /// </summary>
+        private static readonly Rewriter<TypeLowering<ArrayType>> Rewriter =
+            new Rewriter<TypeLowering<ArrayType>>();
+
+        /// <summary>
+        /// Initializes all rewriter patterns.
+        /// </summary>
+        static LowerArrays()
+        {
+            Rewriter.Add<ArrayValue>(Lower);
+            Rewriter.Add<GetArrayExtent>(Lower);
+            Rewriter.Add<GetArrayElement>(Lower);
+            Rewriter.Add<SetArrayElement>(Lower);
+            Rewriter.Add<LoadElementAddress>((_, value) => value.IsArrayAccesss, Lower);
+        }
+
+        #endregion
 
         /// <summary>
         /// Constructs a new array lowering transformation.
         /// </summary>
-        public LowerArrays(bool lowerStaticIndices)
-        {
-            LowerStaticIndices = lowerStaticIndices;
-        }
+        public LowerArrays() { }
 
-        /// <summary>
-        /// Returns true if arrays with static indices should be lowered.
-        /// </summary>
-        public bool LowerStaticIndices { get; }
+        /// <summary cref="LowerTypes{TType}.CreateLoweringConverter(Method.Builder, Scope)"/>
+        protected override TypeLowering<ArrayType> CreateLoweringConverter(
+            Method.Builder builder,
+            Scope _) => new ArrayTypeLowering(builder);
 
         /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
-        protected override bool PerformTransformation(Method.Builder builder)
-        {
-            // Detect all array values and their associated operations
-            var scope = builder.CreateScope();
-            var arrays = FindConvertibleArrays(scope);
-
-            // Transform dynamic arrays that requires dynamic addresses
-            // to allocation nodes using memory operations
-            foreach (var arrayBinding in arrays)
-            {
-                var array = arrayBinding.Key;
-                var arrayType = array.Type as ArrayType;
-                var blockBuilder = builder[array.BasicBlock];
-
-                // Allocate a new raw allocation node
-                blockBuilder.InsertPosition = 0;
-                var arrayLength = blockBuilder.CreatePrimitiveValue(arrayType.Length);
-                var rawArray = blockBuilder.CreateAlloca(
-                    arrayLength,
-                    arrayType.ElementType,
-                    MemoryAddressSpace.Local);
-                blockBuilder.Remove(array);
-
-                // Convert all operations to memory operations
-                foreach (var operation in arrayBinding.Value)
-                {
-                    var currentBlockBuilder = builder[operation.BasicBlock];
-                    currentBlockBuilder.SetupInsertPosition(operation);
-
-                    var elementAddress = currentBlockBuilder.CreateLoadElementAddress(rawArray, operation.Index);
-
-                    if (operation is SetElement setElement)
-                    {
-                        currentBlockBuilder.CreateStore(elementAddress, setElement.Value);
-                        operation.Replace(rawArray);
-                    }
-                    else
-                    {
-                        var load = currentBlockBuilder.CreateLoad(elementAddress);
-                        operation.Replace(load);
-                    }
-                    currentBlockBuilder.Remove(operation);
-                }
-            }
-
-            return arrays.Count > 0;
-        }
-
-        /// <summary>
-        /// Finds all convertible array nodes.
-        /// </summary>
-        /// <param name="scope">The scope in which to search for arrays.</param>
-        /// <returns>All detected convertible array nodes.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Dictionary<Value, HashSet<ArrayOperationValue>> FindConvertibleArrays(Scope scope)
-        {
-            var result = new Dictionary<Value, HashSet<ArrayOperationValue>>();
-
-            foreach (Value value in scope.Values)
-            {
-                if (value is NullValue array && array.Type is ArrayType)
-                {
-                    Debug.Assert(!result.ContainsKey(array));
-
-                    var operations = new HashSet<ArrayOperationValue>();
-                    if (!RequiresDynamicIndexing(array, operations) & !LowerStaticIndices)
-                        continue;
-                    result.Add(array, operations);
-                }
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Returns true if the given node requires a dynamic indexing feature
-        /// which requires memory addressed instead of registers.
-        /// </summary>
-        /// <param name="node">The current node.</param>
-        /// <param name="operations">The set of associated operations that need to be transformed.</param>
-        /// <returns>
-        /// True, if the given node required dynamic indexing.
-        /// </returns>
-        private static bool RequiresDynamicIndexing(Value node, HashSet<ArrayOperationValue> operations)
-        {
-            bool result = false;
-            foreach (var use in node.Uses)
-            {
-                var operation = use.ResolveAs<ArrayOperationValue>();
-                if (operation == null || !operations.Add(operation))
-                    continue;
-
-                result |= !operation.TryResolveConstantIndex(out var _);
-                result |= RequiresDynamicIndexing(operation, operations);
-            }
-            return result;
-        }
+        protected override bool PerformTransformation(Method.Builder builder) =>
+            PerformTransformation(builder, Rewriter);
     }
 }
