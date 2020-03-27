@@ -18,14 +18,20 @@ using System.Collections.Generic;
 namespace ILGPU.IR.Transformations
 {
     /// <summary>
-    /// The basic configuration interface for all intrinsic specializers.
+    /// Flags for the <see cref="IntrinsicSpecializer{TDelegate}"/> transformation.
     /// </summary>
-    public interface IIntrinsicSpecializerConfiguration
+    [Flags]
+    public enum IntrinsicSpecializerFlags : int
     {
         /// <summary>
-        /// Returns true if assertions are enabled.
+        /// Default lowering flags.
         /// </summary>
-        bool EnableAssertions { get; }
+        None,
+
+        /// <summary>
+        /// Enables assertions.
+        /// </summary>
+        EnableAssertions = 1 << 0,
     }
 
     /// <summary>
@@ -34,25 +40,64 @@ namespace ILGPU.IR.Transformations
     /// <remarks>
     /// Note that this class does not perform recursive specialization operations.
     /// </remarks>
-    /// <typeparam name="TConfiguration">The actual configuration type.</typeparam>
     /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
-    public sealed class IntrinsicSpecializer<TConfiguration, TDelegate> : UnorderedTransformation<CachedScopeProvider>
-        where TConfiguration : IIntrinsicSpecializerConfiguration
+    public sealed class IntrinsicSpecializer<TDelegate> : UnorderedTransformation<CachedScopeProvider>
         where TDelegate : Delegate
     {
-        private readonly TConfiguration configuration;
+        #region Utility Methods
+
+        /// <summary>
+        /// Imports all detected dependencies into the current context.
+        /// </summary>
+        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <param name="targetContext">The target context.</param>
+        /// <param name="dependencies">The dependencies to import.</param>
+        /// <param name="scopeProvider">Resolves methods to scopes.</param>
+        private static void ImportDependencies<TScopeProvider>(
+            IRContext targetContext,
+            List<(Value, Method)> dependencies,
+            TScopeProvider scopeProvider)
+            where TScopeProvider : IScopeProvider
+        {
+            var importedFunctions = new Dictionary<Method, Method>();
+            for (int i = 0, e = dependencies.Count; i < e; ++i)
+            {
+                var (node, intrinsic) = dependencies[i];
+                if (!importedFunctions.TryGetValue(intrinsic, out Method imported))
+                {
+                    imported = targetContext.Import(intrinsic, scopeProvider);
+                    importedFunctions.Add(intrinsic, imported);
+                }
+                dependencies[i] = (node, imported);
+            }
+        }
+
+        #endregion
+
         private readonly IntrinsicImplementationProvider<TDelegate> provider;
 
         /// <summary>
         /// Constructs a new intrinsic specializer.
         /// </summary>
         public IntrinsicSpecializer(
-            in TConfiguration specializerConfiguration,
+            IntrinsicSpecializerFlags flags,
             IntrinsicImplementationProvider<TDelegate> implementationProvider)
         {
-            configuration = specializerConfiguration;
+            Flags = flags;
             provider = implementationProvider;
         }
+
+        /// <summary>
+        /// Returns the current flags.
+        /// </summary>
+        public IntrinsicSpecializerFlags Flags { get; }
+
+        /// <summary>
+        /// Returns true if assertions should be enabled.
+        /// </summary>
+        public bool EnableAssertions =>
+            (Flags & IntrinsicSpecializerFlags.EnableAssertions) !=
+            IntrinsicSpecializerFlags.None;
 
         /// <summary cref="UnorderedTransformation{TIntermediate}.CreateIntermediate"/>
         protected override CachedScopeProvider CreateIntermediate() => new CachedScopeProvider();
@@ -61,7 +106,9 @@ namespace ILGPU.IR.Transformations
         protected override void FinishProcessing(CachedScopeProvider intermediate) { }
 
         /// <summary cref="UnorderedTransformation{TIntermediate}.PerformTransformation(Method.Builder, TIntermediate)"/>
-        protected override bool PerformTransformation(Method.Builder builder, CachedScopeProvider scopeProvider)
+        protected override bool PerformTransformation(
+            Method.Builder builder,
+            CachedScopeProvider scopeProvider)
         {
             // Check whether we are currently processing an intrinsic method
             var scope = builder.CreateScope();
@@ -103,55 +150,24 @@ namespace ILGPU.IR.Transformations
             {
                 var blockBuilder = builder[value.BasicBlock];
 
-                switch (value)
+                if (value is DebugOperation debug)
                 {
-                    case DebugOperation debug:
-                        // Check whether we are using debug functionality
-                        if (configuration.EnableAssertions &&
-                            provider.TryGetImplementation(debug, out var debugImplementation))
-                            intrinsicFunctions.Add((debug, debugImplementation));
-                        else
-                            blockBuilder.Remove(debug);
-                        applied = true;
-                        break;
-                    default:
-                        // Check intrinsic value
-                        if (provider.TryGetImplementation(value, out var implementation))
-                        {
-                            intrinsicFunctions.Add((value, implementation));
-                            applied = true;
-                        }
-                        break;
+                    if (EnableAssertions &&
+                        provider.TryGetImplementation(debug, out var debugImplementation))
+                        intrinsicFunctions.Add((debug, debugImplementation));
+                    else
+                        blockBuilder.Remove(debug);
+                    applied = true;
+                }
+                // Check intrinsic value
+                else if (provider.TryGetImplementation(value, out var implementation))
+                {
+                    intrinsicFunctions.Add((value, implementation));
+                    applied = true;
                 }
             }
 
             return intrinsicFunctions;
-        }
-
-        /// <summary>
-        /// Imports all detected dependencies into the current context.
-        /// </summary>
-        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
-        /// <param name="targetContext">The target context.</param>
-        /// <param name="dependencies">The dependencies to import.</param>
-        /// <param name="scopeProvider">Resolves methods to scopes.</param>
-        private static void ImportDependencies<TScopeProvider>(
-            IRContext targetContext,
-            List<(Value, Method)> dependencies,
-            TScopeProvider scopeProvider)
-            where TScopeProvider : IScopeProvider
-        {
-            var importedFunctions = new Dictionary<Method, Method>();
-            for (int i = 0, e = dependencies.Count; i < e; ++i)
-            {
-                var (node, intrinsic) = dependencies[i];
-                if (!importedFunctions.TryGetValue(intrinsic, out Method imported))
-                {
-                    imported = targetContext.Import(intrinsic, scopeProvider);
-                    importedFunctions.Add(intrinsic, imported);
-                }
-                dependencies[i] = (node, imported);
-            }
         }
     }
 }
