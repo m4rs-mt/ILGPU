@@ -712,20 +712,18 @@ namespace ILGPU.Backends
         /// <summary>
         /// Initializes the associated kernel transformers.
         /// </summary>
-        /// <typeparam name="TConfiguration">The configuration type.</typeparam>
-        /// <param name="configuration">The specializer configuration.</param>
+        /// <param name="flags">The specializer flags.</param>
         /// <param name="createTransformers">The target handler.</param>
-        protected void InitializeKernelTransformers<TConfiguration>(
-            TConfiguration configuration,
+        protected void InitializeKernelTransformers(
+            IntrinsicSpecializerFlags flags,
             Action<ImmutableArray<Transformer>.Builder> createTransformers)
-            where TConfiguration : IIntrinsicSpecializerConfiguration
         {
-            InitializeKernelTransformers(builder =>
+            base.InitializeKernelTransformers(builder =>
             {
                 // Specialize intrinsic functions
                 var resolver = new IntrinsicResolver<TDelegate>(IntrinsicProvider);
-                var specializer = new IntrinsicSpecializer<TConfiguration, TDelegate>(
-                    configuration,
+                var specializer = new IntrinsicSpecializer<TDelegate>(
+                    flags,
                     IntrinsicProvider);
                 var lowerThreadIntrinsics = new LowerThreadIntrinsics();
 
