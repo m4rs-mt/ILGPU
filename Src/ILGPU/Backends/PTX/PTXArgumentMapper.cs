@@ -56,7 +56,9 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             public int ArgumentOffset { get; }
 
-            /// <summary cref="ArgumentMapper.IMappingHandler.MapArgument{TILEmitter, TSource}(in TILEmitter, TSource, int)"/>
+            /// <summary>
+            /// Maps a single PTX argument.
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void MapArgument<TILEmitter, TSource>(
                 in TILEmitter emitter,

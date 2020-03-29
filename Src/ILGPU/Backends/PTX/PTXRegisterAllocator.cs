@@ -83,7 +83,7 @@ namespace ILGPU.Backends.PTX
     /// <summary>
     /// Represents a specialized PTX register allocator.
     /// </summary>
-    public class PTXRegisterAllocator : ViewRegisterAllocator<PTXRegisterKind>
+    public class PTXRegisterAllocator : RegisterAllocator<PTXRegisterKind>
     {
         #region Constants
 
@@ -133,15 +133,15 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="register">The primitive register.</param>
         /// <returns>The corresponding device constant string value.</returns>
-        private static string ResolveDeviceConstantValue(PrimitiveRegister register) =>
+        private static string ResolveDeviceConstantValue(HardwareRegister register) =>
             ((DeviceConstantDimension3D)register.RegisterValue).ToString().ToLower();
 
         /// <summary>
-        /// Returns the string representation of the given primitive register.
+        /// Returns the string representation of the given hardware register.
         /// </summary>
         /// <param name="register">The register.</param>
         /// <returns>The string representation.</returns>
-        public static string GetStringRepresentation(PrimitiveRegister register)
+        public static string GetStringRepresentation(HardwareRegister register)
         {
             switch (register.Kind)
             {
@@ -204,7 +204,7 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="description">The resolved register.</param>
         /// <returns>The allocated register.</returns>
-        public PrimitiveRegister AllocatePlatformRegister(out RegisterDescription description)
+        public HardwareRegister AllocatePlatformRegister(out RegisterDescription description)
         {
             description = ResolveRegisterDescription(ABI.PointerBasicValueType);
             return AllocateRegister(description);
@@ -217,7 +217,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="node">The node to allocate.</param>
         /// <param name="description">The resolved register description.</param>
         /// <returns>The allocated register.</returns>
-        public PrimitiveRegister AllocatePlatformRegister(Value node, out RegisterDescription description)
+        public HardwareRegister AllocatePlatformRegister(Value node, out RegisterDescription description)
         {
             var register = AllocatePlatformRegister(out description);
             Bind(node, register);
@@ -257,29 +257,29 @@ namespace ILGPU.Backends.PTX
             return ResolveRegisterDescription(type.BasicValueType);
         }
 
-        /// <summary cref="RegisterAllocator{TKind}.FreeRegister(RegisterAllocator{TKind}.PrimitiveRegister)"/>
-        public sealed override void FreeRegister(PrimitiveRegister primitiveRegister)
+        /// <summary cref="RegisterAllocator{TKind}.FreeRegister(RegisterAllocator{TKind}.HardwareRegister)"/>
+        public sealed override void FreeRegister(HardwareRegister hardwareRegister)
         {
-            var freeRegs = freeRegisters[(int)primitiveRegister.Kind];
-            freeRegs.Push(primitiveRegister.RegisterValue);
+            var freeRegs = freeRegisters[(int)hardwareRegister.Kind];
+            freeRegs.Push(hardwareRegister.RegisterValue);
         }
 
         /// <summary>
         /// Allocates a new 32bit integer register.
         /// </summary>
         /// <returns>The allocated primitive 32bit integer register.</returns>
-        public PrimitiveRegister AllocateInt32Register() =>
+        public HardwareRegister AllocateInt32Register() =>
             AllocateRegister(
                 new RegisterDescription(BasicValueType.Int32, PTXRegisterKind.Int32));
 
         /// <summary cref="RegisterAllocator{TKind}.AllocateRegister(RegisterAllocator{TKind}.RegisterDescription)"/>
-        public sealed override PrimitiveRegister AllocateRegister(RegisterDescription description)
+        public sealed override HardwareRegister AllocateRegister(RegisterDescription description)
         {
             var freeRegs = freeRegisters[(int)description.Kind];
             var registerValue = freeRegs.Count > 0 ?
                 freeRegs.Pop() :
                 ++registerCounters[(int)description.Kind];
-            return new PrimitiveRegister(description, registerValue);
+            return new HardwareRegister(description, registerValue);
         }
 
         /// <summary>

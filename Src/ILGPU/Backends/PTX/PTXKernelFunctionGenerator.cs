@@ -47,12 +47,12 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Returns the main index register.
             /// </summary>
-            public StructureRegister IndexRegister { get; private set; }
+            public Register IndexRegister { get; private set; }
 
             /// <summary>
             /// Returns the length register of implicitly grouped kernels.
             /// </summary>
-            public StructureRegister LengthRegister { get; private set; }
+            public Register LengthRegister { get; private set; }
 
             /// <summary>
             /// Returns the associated register allocator.
@@ -63,13 +63,13 @@ namespace ILGPU.Backends.PTX
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public Register HandleIntrinsicParameter(int parameterOffset, Parameter parameter)
             {
-                IndexRegister = Parent.Allocate(parameter) as StructureRegister;
+                IndexRegister = Parent.Allocate(parameter);
 
                 if (!EntryPoint.IsExplicitlyGrouped)
                 {
                     // This is an implicitly grouped kernel that needs
                     // boundary information to avoid out-of-bounds dispatches
-                    LengthRegister = Parent.AllocateType(parameter.ParameterType) as StructureRegister;
+                    LengthRegister = Parent.AllocateType(parameter.ParameterType);
                     Debug.Assert(LengthRegister != null, "Invalid length register");
                 }
                 return LengthRegister;
@@ -230,19 +230,27 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="indexRegister">The main kernel index register.</param>
         /// <param name="lengthRegister">The length register of implicitly grouped kernels.</param>
-        private void SetupKernelIndex(
-            StructureRegister indexRegister,
-            StructureRegister lengthRegister)
+        private void SetupKernelIndex(Register indexRegister, Register lengthRegister)
         {
             // Skip this step for grouped kernels
             if (EntryPoint.IsExplicitlyGrouped)
                 return;
-            for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
-            {
+            if (EntryPoint.IndexType == IndexType.Index1D)
                 EmitImplicitKernelIndex(
-                    i,
-                    indexRegister.Children[i] as PrimitiveRegister,
-                    lengthRegister.Children[i] as PrimitiveRegister);
+                    0,
+                    indexRegister as PrimitiveRegister,
+                    lengthRegister as PrimitiveRegister);
+            else
+            {
+                var compoundIndex = indexRegister as CompoundRegister;
+                var compoundLength = lengthRegister as CompoundRegister;
+                for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
+                {
+                    EmitImplicitKernelIndex(
+                        i,
+                        compoundIndex.Children[i] as PrimitiveRegister,
+                        compoundLength.Children[i] as PrimitiveRegister);
+                }
             }
         }
 

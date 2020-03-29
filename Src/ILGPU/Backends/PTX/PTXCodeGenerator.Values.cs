@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -19,8 +20,8 @@ namespace ILGPU.Backends.PTX
 {
     partial class PTXCodeGenerator
     {
-        /// <summary cref="IValueVisitor.Visit(MethodCall)"/>
-        public void Visit(MethodCall methodCall)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(MethodCall)"/>
+        public void GenerateCode(MethodCall methodCall)
         {
             const string ReturnValueName = "callRetVal";
             const string CallParamName = "callParam";
@@ -86,8 +87,8 @@ namespace ILGPU.Backends.PTX
             Builder.AppendLine();
         }
 
-        /// <summary cref="IValueVisitor.Visit(Parameter)"/>
-        public void Visit(Parameter parameter)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Parameter)"/>
+        public void GenerateCode(Parameter parameter)
         {
             // Parameters are already assigned to registers
 #if DEBUG
@@ -95,8 +96,8 @@ namespace ILGPU.Backends.PTX
 #endif
         }
 
-        /// <summary cref="IValueVisitor.Visit(PhiValue)"/>
-        public void Visit(PhiValue phiValue)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(PhiValue)"/>
+        public void GenerateCode(PhiValue phiValue)
         {
             // Phi values are already assigned to registers
 #if DEBUG
@@ -104,11 +105,11 @@ namespace ILGPU.Backends.PTX
 #endif
         }
 
-        /// <summary cref="IValueVisitor.Visit(UnaryArithmeticValue)"/>
-        public void Visit(UnaryArithmeticValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(UnaryArithmeticValue)"/>
+        public void GenerateCode(UnaryArithmeticValue value)
         {
             var argument = LoadPrimitive(value.Value);
-            var targetRegister = AllocatePrimitive(value);
+            var targetRegister = AllocateHardware(value);
 
             using (var command = BeginCommand(
                 PTXInstructions.GetArithmeticOperation(
@@ -121,8 +122,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(BinaryArithmeticValue)"/>
-        public void Visit(BinaryArithmeticValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(BinaryArithmeticValue)"/>
+        public void GenerateCode(BinaryArithmeticValue value)
         {
             var left = LoadPrimitive(value.Left);
             var right = LoadPrimitive(value.Right);
@@ -140,8 +141,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(TernaryArithmeticValue)"/>
-        public void Visit(TernaryArithmeticValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(TernaryArithmeticValue)"/>
+        public void GenerateCode(TernaryArithmeticValue value)
         {
             var first = LoadPrimitive(value.First);
             var second = LoadPrimitive(value.Second);
@@ -161,13 +162,13 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(CompareValue)"/>
-        public void Visit(CompareValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(CompareValue)"/>
+        public void GenerateCode(CompareValue value)
         {
             var left = LoadPrimitive(value.Left);
             var right = LoadPrimitive(value.Right);
 
-            var targetRegister = AllocatePrimitive(value);
+            var targetRegister = AllocateHardware(value);
             if (left.Kind == PTXRegisterKind.Predicate)
             {
                 // Predicate registers require a special treatment
@@ -209,8 +210,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(ConvertValue)"/>
-        public void Visit(ConvertValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(ConvertValue)"/>
+        public void GenerateCode(ConvertValue value)
         {
             var sourceValue = LoadPrimitive(value.Value);
 
@@ -218,7 +219,7 @@ namespace ILGPU.Backends.PTX
                 value.SourceType,
                 value.TargetType);
 
-            var targetRegister = AllocatePrimitive(value);
+            var targetRegister = AllocateHardware(value);
             using (var command = BeginCommand(convertOperation))
             {
                 command.AppendArgument(targetRegister);
@@ -226,21 +227,21 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(PointerCast)"/>
-        public void Visit(PointerCast value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(PointerCast)"/>
+        public void GenerateCode(PointerCast value)
         {
             Alias(value, value.Value);
         }
 
-        /// <summary cref="IValueVisitor.Visit(FloatAsIntCast)"/>
-        public void Visit(FloatAsIntCast value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(FloatAsIntCast)"/>
+        public void GenerateCode(FloatAsIntCast value)
         {
-            var source = LoadPrimitive(value.Value);
+            var source = LoadHardware(value.Value);
             Debug.Assert(
                 source.Kind == PTXRegisterKind.Float32 ||
                 source.Kind == PTXRegisterKind.Float64);
 
-            var targetRegister = AllocatePrimitive(value);
+            var targetRegister = AllocateHardware(value);
             Debug.Assert(
                 targetRegister.Kind == PTXRegisterKind.Int32 ||
                 targetRegister.Kind == PTXRegisterKind.Int64);
@@ -248,15 +249,15 @@ namespace ILGPU.Backends.PTX
             Move(source, targetRegister);
         }
 
-        /// <summary cref="IValueVisitor.Visit(IntAsFloatCast)"/>
-        public void Visit(IntAsFloatCast value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(IntAsFloatCast)"/>
+        public void GenerateCode(IntAsFloatCast value)
         {
-            var source = LoadPrimitive(value.Value);
+            var source = LoadHardware(value.Value);
             Debug.Assert(
                 source.Kind == PTXRegisterKind.Int32 ||
                 source.Kind == PTXRegisterKind.Int64);
 
-            var targetRegister = AllocatePrimitive(value);
+            var targetRegister = AllocateHardware(value);
             Debug.Assert(
                 targetRegister.Kind == PTXRegisterKind.Float32 ||
                 targetRegister.Kind == PTXRegisterKind.Float64);
@@ -279,7 +280,9 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             public PrimitiveRegister PredicateRegister { get; }
 
-            /// <summary cref="IComplexCommandEmitter.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister[])"/>
+            /// <summary>
+            /// Emits nested predicates.
+            /// </summary>
             public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
             {
                 commandEmitter.AppendArgument(registers[0]);
@@ -289,8 +292,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Predicate)"/>
-        public void Visit(Predicate predicate)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Predicate)"/>
+        public void GenerateCode(Predicate predicate)
         {
             var condition = LoadPrimitive(predicate.Condition);
             var trueValue = Load(predicate.TrueValue);
@@ -305,10 +308,10 @@ namespace ILGPU.Backends.PTX
                 falseValue);
         }
 
-        /// <summary cref="IValueVisitor.Visit(GenericAtomic)"/>
-        public void Visit(GenericAtomic atomic)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GenericAtomic)"/>
+        public void GenerateCode(GenericAtomic atomic)
         {
-            var target = LoadPrimitive(atomic.Target);
+            var target = LoadHardware(atomic.Target);
             var value = LoadPrimitive(atomic.Value);
 
             var requiresResult = atomic.Uses.HasAny || atomic.Kind == AtomicKind.Exchange;
@@ -319,7 +322,7 @@ namespace ILGPU.Backends.PTX
                 atomic.Kind,
                 atomic.ArithmeticBasicValueType);
 
-            var targetRegister = requiresResult ? AllocatePrimitive(atomic) : default;
+            var targetRegister = requiresResult ? AllocateHardware(atomic) : default;
             using (var command = BeginCommand(atomicOperation))
             {
                 command.AppendNonLocalAddressSpace(
@@ -332,14 +335,14 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(AtomicCAS)"/>
-        public void Visit(AtomicCAS atomicCAS)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(AtomicCAS)"/>
+        public void GenerateCode(AtomicCAS atomicCAS)
         {
-            var target = LoadPrimitive(atomicCAS.Target);
+            var target = LoadHardware(atomicCAS.Target);
             var value = LoadPrimitive(atomicCAS.Value);
             var compare = LoadPrimitive(atomicCAS.CompareValue);
 
-            var targetRegister = AllocatePrimitive(atomicCAS);
+            var targetRegister = AllocateHardware(atomicCAS);
 
             using (var command = BeginCommand(PTXInstructions.AtomicCASOperation))
             {
@@ -353,14 +356,14 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Alloca)"/>
-        public void Visit(Alloca alloca)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Alloca)"/>
+        public void GenerateCode(Alloca alloca)
         {
             // Ignore alloca
         }
 
-        /// <summary cref="IValueVisitor.Visit(MemoryBarrier)"/>
-        public void Visit(MemoryBarrier barrier)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(MemoryBarrier)"/>
+        public void GenerateCode(MemoryBarrier barrier)
         {
             var command = PTXInstructions.GetMemoryBarrier(barrier.Kind);
             Command(command);
@@ -375,7 +378,7 @@ namespace ILGPU.Backends.PTX
             {
                 public IOEmitter(
                     PointerType sourceType,
-                    PrimitiveRegister addressRegister)
+                    HardwareRegister addressRegister)
                 {
                     SourceType = sourceType;
                     AddressRegister = addressRegister;
@@ -389,9 +392,11 @@ namespace ILGPU.Backends.PTX
                 /// <summary>
                 /// Returns the associated address register.
                 /// </summary>
-                public PrimitiveRegister AddressRegister { get; }
+                public HardwareRegister AddressRegister { get; }
 
-                /// <summary cref="IIOEmitter{T}.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, T)"/>
+                /// <summary>
+                /// Emits nested loads.
+                /// </summary>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 public void Emit(
                     PTXCodeGenerator codeGenerator,
@@ -411,7 +416,7 @@ namespace ILGPU.Backends.PTX
 
             public LoadEmitter(
                 PointerType sourceType,
-                PrimitiveRegister addressRegister)
+                HardwareRegister addressRegister)
             {
                 Emitter = new IOEmitter(sourceType, addressRegister);
             }
@@ -421,20 +426,23 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             private IOEmitter Emitter { get; }
 
-            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Emit(
                 PTXCodeGenerator codeGenerator,
                 string command,
                 PrimitiveRegister register,
                 int offset) =>
-                codeGenerator.EmitIOLoad(Emitter, command, register, offset);
+                codeGenerator.EmitIOLoad(
+                    Emitter,
+                    command,
+                    register as HardwareRegister,
+                    offset);
         }
 
-        /// <summary cref="IValueVisitor.Visit(Load)"/>
-        public void Visit(Load load)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Load)"/>
+        public void GenerateCode(Load load)
         {
-            var address = LoadPrimitive(load.Source);
+            var address = LoadHardware(load.Source);
             var sourceType = load.Source.Type as PointerType;
             var targetRegister = Allocate(load);
 
@@ -453,7 +461,7 @@ namespace ILGPU.Backends.PTX
             {
                 public IOEmitter(
                     PointerType targetType,
-                    PrimitiveRegister addressRegister)
+                    HardwareRegister addressRegister)
                 {
                     TargetType = targetType;
                     AddressRegister = addressRegister;
@@ -467,9 +475,11 @@ namespace ILGPU.Backends.PTX
                 /// <summary>
                 /// Returns the associated address register.
                 /// </summary>
-                public PrimitiveRegister AddressRegister { get; }
+                public HardwareRegister AddressRegister { get; }
 
-                /// <summary cref="IIOEmitter{T}.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, T)"/>
+                /// <summary>
+                /// Emits nested stores.
+                /// </summary>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 public void Emit(
                     PTXCodeGenerator codeGenerator,
@@ -489,7 +499,7 @@ namespace ILGPU.Backends.PTX
 
             public StoreEmitter(
                 PointerType targetType,
-                PrimitiveRegister addressRegister)
+                HardwareRegister addressRegister)
             {
                 Emitter = new IOEmitter(targetType, addressRegister);
             }
@@ -499,20 +509,23 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             private IOEmitter Emitter { get; }
 
-            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Emit(
                 PTXCodeGenerator codeGenerator,
                 string command,
                 PrimitiveRegister register,
                 int offset) =>
-                codeGenerator.EmitIOStore(Emitter, command, register, offset);
+                codeGenerator.EmitIOStore(
+                    Emitter,
+                    command,
+                    register,
+                    offset);
         }
 
-        /// <summary cref="IValueVisitor.Visit(Store)"/>
-        public void Visit(Store store)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Store)"/>
+        public void GenerateCode(Store store)
         {
-            var address = LoadPrimitive(store.Target);
+            var address = LoadHardware(store.Target);
             var targetType = store.Target.Type as PointerType;
             var value = Load(store.Value);
 
@@ -522,11 +535,11 @@ namespace ILGPU.Backends.PTX
                 value);
         }
 
-        /// <summary cref="IValueVisitor.Visit(LoadFieldAddress)"/>
-        public void Visit(LoadFieldAddress value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(LoadFieldAddress)"/>
+        public void GenerateCode(LoadFieldAddress value)
         {
             var source = LoadPrimitive(value.Source);
-            var fieldOffset = ABI.GetOffsetOf(value.StructureType, value.FieldIndex);
+            var fieldOffset = ABI.GetOffsetOf(value.StructureType, value.FieldSpan.Access);
 
             if (fieldOffset != 0)
             {
@@ -546,49 +559,15 @@ namespace ILGPU.Backends.PTX
                 Alias(value, value.Source);
         }
 
-        /// <summary cref="IValueVisitor.Visit(PrimitiveValue)"/>
-        public void Visit(PrimitiveValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(PrimitiveValue)"/>
+        public void GenerateCode(PrimitiveValue value)
         {
-            if (value.Uses.TryGetSingleUse(out Use use) && use.Resolve() is Alloca)
-                return;
-
-            var register = AllocatePrimitive(value);
-            using (var command = BeginMove())
-            {
-                command.AppendRegisterMovementSuffix(register.BasicValueType);
-                command.AppendArgument(register);
-
-                switch (value.BasicValueType)
-                {
-                    case BasicValueType.Int1:
-                        command.AppendConstant(value.Int1Value ? 1 : 0);
-                        break;
-                    case BasicValueType.Int8:
-                        command.AppendConstant(value.UInt8Value);
-                        break;
-                    case BasicValueType.Int16:
-                        command.AppendConstant(value.UInt16Value);
-                        break;
-                    case BasicValueType.Int32:
-                        command.AppendConstant(value.UInt32Value);
-                        break;
-                    case BasicValueType.Int64:
-                        command.AppendConstant(value.UInt64Value);
-                        break;
-                    case BasicValueType.Float32:
-                        command.AppendConstant(value.Float32Value);
-                        break;
-                    case BasicValueType.Float64:
-                        command.AppendConstant(value.Float64Value);
-                        break;
-                    default:
-                        throw new InvalidCodeGenerationException();
-                }
-            }
+            var description = ResolveRegisterDescription(value.Type);
+            Bind(value, new ConstantRegister(description, value));
         }
 
-        /// <summary cref="IValueVisitor.Visit(StringValue)"/>
-        public void Visit(StringValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(StringValue)"/>
+        public void GenerateCode(StringValue value)
         {
             // Check for already existing global constant
             if (!stringConstants.TryGetValue(value.String, out string stringBinding))
@@ -611,7 +590,9 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private readonly struct NullEmitter : IComplexCommandEmitter
         {
-            /// <summary cref="IComplexCommandEmitter.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister[])"/>
+            /// <summary>
+            /// Emits nested null values.
+            /// </summary>
             public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
             {
                 var primaryRegister = registers[0];
@@ -622,16 +603,13 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(NullValue)"/>
-        public void Visit(NullValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(NullValue)"/>
+        public void GenerateCode(NullValue value)
         {
             switch (value.Type)
             {
                 case VoidType _:
                     // Ignore void type nulls
-                    break;
-                case ViewType viewType:
-                    MakeNullView(value, viewType);
                     break;
                 default:
                     var targetRegister = Allocate(value);
@@ -643,123 +621,109 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(SizeOfValue)"/>
-        public void Visit(SizeOfValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(StructureValue)"/>
+        public void GenerateCode(StructureValue value)
         {
-            var register = AllocatePrimitive(value);
-            var size = ABI.GetSizeOf(value.TargetType);
-            using (var command = BeginMove())
+            var childRegisters = ImmutableArray.CreateBuilder<Register>(value.NumFields);
+            for (int i = 0, e = value.NumFields; i < e; ++i)
+                childRegisters.Add(Load(value[i]));
+            Bind(
+                value,
+                new CompoundRegister(
+                    value.StructureType,
+                    childRegisters.MoveToImmutable()));
+        }
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GetField)"/>
+        public void GenerateCode(GetField value)
+        {
+            var source = LoadAs<CompoundRegister>(value.ObjectValue);
+            if (!value.FieldSpan.HasSpan)
             {
-                command.AppendSuffix(BasicValueType.Int32);
-                command.AppendArgument(register);
-                command.AppendConstant(size);
+                Bind(value, source.Children[value.FieldSpan.Index]);
+            }
+            else
+            {
+                int span = value.FieldSpan.Span;
+                var childRegisters = ImmutableArray.CreateBuilder<Register>(span);
+                for (int i = 0; i < span; ++i)
+                    childRegisters.Add(source.Children[i + value.FieldSpan.Index]);
+                Bind(
+                    value,
+                    new CompoundRegister(
+                        value.Type as StructureType,
+                        childRegisters.MoveToImmutable()));
             }
         }
 
-        /// <summary>
-        /// Emits a new compound-register load operation.
-        /// </summary>
-        /// <param name="value">The source value.</param>
-        /// <param name="index">The child index to load.</param>
-        private void MakeCompoundRegisterLoad(ObjectOperationValue value, int index)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(SetField)"/>
+        public void GenerateCode(SetField value)
         {
             var source = LoadAs<CompoundRegister>(value.ObjectValue);
-            Bind(value, source.Children[index]);
+            var type = value.StructureType;
+            var childRegisters = ImmutableArray.CreateBuilder<Register>(type.NumFields);
+            for (int i = 0, e = type.NumFields; i < e; ++i)
+                childRegisters.Add(source.Children[i]);
+
+            if (!value.FieldSpan.HasSpan)
+            {
+                childRegisters[value.FieldSpan.Index] = Load(value.Value);
+            }
+            else
+            {
+                var structureValue = LoadAs<CompoundRegister>(value.Value);
+                for (int i = 0; i < value.FieldSpan.Span; ++i)
+                    childRegisters[i + value.FieldSpan.Index] = structureValue.Children[i];
+            }
+            Bind(
+                value,
+                new CompoundRegister(
+                    value.StructureType,
+                    childRegisters.MoveToImmutable()));
         }
 
-        /// <summary>
-        /// Emits a new compound-register store operation.
-        /// </summary>
-        /// <param name="value">The source value.</param>
-        /// <param name="index">The child index to update.</param>
-        /// <param name="valueToStore">The value to store.</param>
-        private void MakeCompoundRegisterStore(
-            ObjectOperationValue value,
-            int index,
-            Value valueToStore)
-        {
-            var source = LoadAs<CompoundRegister>(value.ObjectValue);
-            var storeValue = Load(valueToStore);
-
-            var targetChildren = source.Children.SetItem(index, storeValue);
-            var targetRegister = CompoundRegister.NewRegister(source, targetChildren);
-            Bind(value, targetRegister);
-        }
-
-        /// <summary cref="IValueVisitor.Visit(GetField)"/>
-        public void Visit(GetField value) =>
-            MakeCompoundRegisterLoad(value, value.FieldIndex);
-
-        /// <summary cref="IValueVisitor.Visit(SetField)"/>
-        public void Visit(SetField value) =>
-            MakeCompoundRegisterStore(value, value.FieldIndex, value.Value);
-
-        /// <summary cref="IValueVisitor.Visit(GetElement)"/>
-        public void Visit(GetElement value)
-        {
-            if (!value.TryResolveConstantIndex(out int index))
-                throw new InvalidCodeGenerationException();
-            MakeCompoundRegisterLoad(value, index);
-        }
-
-        /// <summary cref="IValueVisitor.Visit(SetElement)"/>
-        public void Visit(SetElement value)
-        {
-            if (!value.TryResolveConstantIndex(out int index))
-                throw new InvalidCodeGenerationException();
-            MakeCompoundRegisterStore(value, index, value.Value);
-        }
-
-        /// <summary cref="IValueVisitor.Visit(GridIndexValue)"/>
-        public void Visit(GridIndexValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GridIndexValue)"/>
+        public void GenerateCode(GridIndexValue value) =>
             MoveFromIntrinsicRegister(
                 value,
                 PTXRegisterKind.Ctaid,
                 (int)value.Dimension);
 
-        /// <summary cref="IValueVisitor.Visit(GroupIndexValue)"/>
-        public void Visit(GroupIndexValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GroupIndexValue)"/>
+        public void GenerateCode(GroupIndexValue value) =>
             MoveFromIntrinsicRegister(
                 value,
                 PTXRegisterKind.Tid,
                 (int)value.Dimension);
 
-        /// <summary cref="IValueVisitor.Visit(GridDimensionValue)"/>
-        public void Visit(GridDimensionValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GridDimensionValue)"/>
+        public void GenerateCode(GridDimensionValue value) =>
             MoveFromIntrinsicRegister(
                 value,
                 PTXRegisterKind.NctaId,
                 (int)value.Dimension);
 
-        /// <summary cref="IValueVisitor.Visit(GroupDimensionValue)"/>
-        public void Visit(GroupDimensionValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GroupDimensionValue)"/>
+        public void GenerateCode(GroupDimensionValue value) =>
             MoveFromIntrinsicRegister(
                 value,
                 PTXRegisterKind.NtId,
                 (int)value.Dimension);
 
-        /// <summary cref="IValueVisitor.Visit(WarpSizeValue)"/>
-        public void Visit(WarpSizeValue value)
-        {
-            var register = AllocatePrimitive(value);
-            using (var command = BeginMove())
-            {
-                command.AppendSuffix(BasicValueType.Int32);
-                command.AppendArgument(register);
-                command.AppendConstant(PTXBackend.WarpSize);
-            }
-        }
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(WarpSizeValue)"/>
+        public void GenerateCode(WarpSizeValue value) =>
+            throw new InvalidCodeGenerationException();
 
-        /// <summary cref="IValueVisitor.Visit(LaneIdxValue)"/>
-        public void Visit(LaneIdxValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(LaneIdxValue)"/>
+        public void GenerateCode(LaneIdxValue value) =>
             MoveFromIntrinsicRegister(
                 value,
                 PTXRegisterKind.LaneId);
 
-        /// <summary cref="IValueVisitor.Visit(PredicateBarrier)"/>
-        public void Visit(PredicateBarrier barrier)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(PredicateBarrier)"/>
+        public void GenerateCode(PredicateBarrier barrier)
         {
-            var targetRegister = AllocatePrimitive(barrier);
+            var targetRegister = AllocateHardware(barrier);
             var sourcePredicate = LoadPrimitive(barrier.Predicate);
             switch (barrier.Kind)
             {
@@ -787,8 +751,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Barrier)"/>
-        public void Visit(Barrier barrier)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Barrier)"/>
+        public void GenerateCode(Barrier barrier)
         {
             using (var command = BeginCommand(
                 PTXInstructions.GetBarrier(barrier.Kind)))
@@ -850,8 +814,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Broadcast)"/>
-        public void Visit(Broadcast broadcast) => throw new InvalidCodeGenerationException();
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Broadcast)"/>
+        public void GenerateCode(Broadcast broadcast) => throw new InvalidCodeGenerationException();
 
         /// <summary>
         /// Emits warp masks of <see cref="WarpShuffle"/> operations.
@@ -896,8 +860,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(WarpShuffle)"/>
-        public void Visit(WarpShuffle shuffle)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(WarpShuffle)"/>
+        public void GenerateCode(WarpShuffle shuffle)
         {
             EmitShuffleOperation(
                 shuffle,
@@ -931,8 +895,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(SubWarpShuffle)"/>
-        public void Visit(SubWarpShuffle shuffle)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(SubWarpShuffle)"/>
+        public void GenerateCode(SubWarpShuffle shuffle)
         {
             // Compute the actual warp mask
             var width = LoadPrimitive(shuffle.Width);
@@ -989,20 +953,10 @@ namespace ILGPU.Backends.PTX
             FreeRegister(maskRegister);
         }
 
-        /// <summary cref="IValueVisitor.Visit(UndefinedValue)"/>
-        public void Visit(UndefinedValue undefined) => throw new InvalidCodeGenerationException();
-
-        /// <summary cref="IValueVisitor.Visit(HandleValue)"/>
-        public void Visit(HandleValue handle) => throw new InvalidCodeGenerationException();
-
-        /// <summary cref="IValueVisitor.Visit(DebugOperation)"/>
-        public void Visit(DebugOperation debug)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugOperation)"/>
+        public void GenerateCode(DebugOperation debug)
         {
             Debug.Assert(false, "Invalid debug node -> should have been removed");
         }
-
-        /// <summary cref="IValueVisitor.Visit(AcceleratorTypeValue)"/>
-        public void Visit(AcceleratorTypeValue handle) =>
-            throw new InvalidCodeGenerationException();
     }
 }

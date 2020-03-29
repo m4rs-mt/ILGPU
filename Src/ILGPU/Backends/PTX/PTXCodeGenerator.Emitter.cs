@@ -124,7 +124,42 @@ namespace ILGPU.Backends.PTX
             /// Append the given register argument.
             /// </summary>
             /// <param name="argument">The register argument.</param>
-            public void AppendArgument(PrimitiveRegister argument)
+            public void AppendArgument(ConstantRegister argument)
+            {
+                var value = argument.Value;
+                switch (argument.BasicValueType)
+                {
+                    case BasicValueType.Int1:
+                        AppendConstant(value.Int1Value ? 1 : 0);
+                        break;
+                    case BasicValueType.Int8:
+                        AppendConstant(value.UInt8Value);
+                        break;
+                    case BasicValueType.Int16:
+                        AppendConstant(value.UInt16Value);
+                        break;
+                    case BasicValueType.Int32:
+                        AppendConstant(value.UInt32Value);
+                        break;
+                    case BasicValueType.Int64:
+                        AppendConstant(value.UInt64Value);
+                        break;
+                    case BasicValueType.Float32:
+                        AppendConstant(value.Float32Value);
+                        break;
+                    case BasicValueType.Float64:
+                        AppendConstant(value.Float64Value);
+                        break;
+                    default:
+                        throw new InvalidCodeGenerationException();
+                }
+            }
+
+            /// <summary>
+            /// Append the given register argument.
+            /// </summary>
+            /// <param name="argument">The register argument.</param>
+            public void AppendArgument(HardwareRegister argument)
             {
                 AppendArgument();
                 stringBuilder.Append('%');
@@ -132,10 +167,22 @@ namespace ILGPU.Backends.PTX
             }
 
             /// <summary>
+            /// Append the given register argument.
+            /// </summary>
+            /// <param name="argument">The register argument.</param>
+            public void AppendArgument(PrimitiveRegister argument)
+            {
+                if (argument is ConstantRegister constantRegister)
+                    AppendArgument(constantRegister);
+                else
+                    AppendArgument(argument as HardwareRegister);
+            }
+
+            /// <summary>
             /// Append the value given register argument.
             /// </summary>
             /// <param name="argument">The register argument.</param>
-            public void AppendArgumentValue(PrimitiveRegister argument)
+            public void AppendArgumentValue(HardwareRegister argument)
             {
                 AppendArgument();
                 stringBuilder.Append('[');
@@ -149,7 +196,7 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             /// <param name="argument">The register argument.</param>
             /// <param name="offset">The offset in bytes.</param>
-            public void AppendArgumentValue(PrimitiveRegister argument, int offset)
+            public void AppendArgumentValue(HardwareRegister argument, int offset)
             {
                 AppendArgument();
                 stringBuilder.Append('[');
@@ -323,7 +370,7 @@ namespace ILGPU.Backends.PTX
             /// <param name="predicateRegister">The predicate register to test.</param>
             /// <param name="isTrue">Branch if the predicate register is true.</param>
             public PredicateConfiguration(
-                PrimitiveRegister predicateRegister,
+                HardwareRegister predicateRegister,
                 bool isTrue)
             {
                 Debug.Assert(
@@ -336,7 +383,7 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// The predicate register.
             /// </summary>
-            public PrimitiveRegister PredicateRegister { get; }
+            public HardwareRegister PredicateRegister { get; }
 
             /// <summary>
             /// Branch if the predicate register is true.
@@ -368,7 +415,7 @@ namespace ILGPU.Backends.PTX
             /// Constructs a new predicate register.
             /// </summary>
             /// <param name="predicateRegister">The underlying predicate register.</param>
-            public PredicateScope(PrimitiveRegister predicateRegister)
+            public PredicateScope(HardwareRegister predicateRegister)
             {
                 Debug.Assert(predicateRegister != null, "Invalid register allocator");
                 Debug.Assert(
@@ -386,7 +433,7 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// The allocated predicate register.
             /// </summary>
-            public PrimitiveRegister PredicateRegister { get; }
+            public HardwareRegister PredicateRegister { get; }
 
             /// <summary>
             /// Resolves a new predicate configuration.
@@ -402,7 +449,7 @@ namespace ILGPU.Backends.PTX
             /// <param name="targetRegister">The target register to write to.</param>
             public void ConvertToValue(
                 PTXCodeGenerator codeGenerator,
-                PrimitiveRegister targetRegister) =>
+                HardwareRegister targetRegister) =>
                 codeGenerator.ConvertPredicateToValue(
                     PredicateRegister,
                     targetRegister);
@@ -418,7 +465,7 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Enapsulates a complex command emission process.
+        /// Encapsulates a complex command emission process.
         /// </summary>
         public interface IComplexCommandEmitter
         {
@@ -431,7 +478,7 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Enapsulates a complex command emission process.
+        /// Encapsulates a complex command emission process.
         /// </summary>
         public interface IComplexCommandEmitterWithOffsets
         {
@@ -499,20 +546,6 @@ namespace ILGPU.Backends.PTX
                     using (var commandEmitter = BeginCommand(command))
                         emitter.Emit(commandEmitter, primitiveRegisters);
                     break;
-                case ViewImplementationRegister _:
-                    var lengthRegisters = new PrimitiveRegister[registers.Length];
-                    var pointerRegisters = new PrimitiveRegister[registers.Length];
-                    for (int i = 0, e = registers.Length; i < e; ++i)
-                    {
-                        var currentViewRegister = registers[i] as ViewImplementationRegister;
-                        lengthRegisters[i] = currentViewRegister.Length;
-                        pointerRegisters[i] = currentViewRegister.Pointer;
-                    }
-                    using (var commandEmitter = BeginCommand(command))
-                        emitter.Emit(commandEmitter, pointerRegisters);
-                    using (var commandEmitter = BeginCommand(command))
-                        emitter.Emit(commandEmitter, lengthRegisters);
-                    break;
                 case CompoundRegister compoundRegister:
                     var elementRegisters = new Register[registers.Length];
                     for (int i = 0, e = compoundRegister.NumChildren; i < e; ++i)
@@ -550,21 +583,8 @@ namespace ILGPU.Backends.PTX
                 case PrimitiveRegister primitiveRegister:
                     emitter.Emit(this, command, primitiveRegister, offset);
                     break;
-                case ViewImplementationRegister viewRegister:
-                    // We have to emit two load operations
-                    EmitComplexCommandWithOffsets(
-                        command,
-                        emitter,
-                        viewRegister.Pointer,
-                        offset + 0);
-                    EmitComplexCommandWithOffsets(
-                        command,
-                        emitter,
-                        viewRegister.Length,
-                        offset + ABI.PointerSize);
-                    break;
-                case StructureRegister structureRegister:
-                    var structType = structureRegister.StructureType;
+                case CompoundRegister structureRegister:
+                    var structType = structureRegister.Type;
                     var offsets = ABI.GetOffsetsOf(structType);
                     for (int i = 0, e = structType.NumFields; i < e; ++i)
                     {
@@ -574,19 +594,6 @@ namespace ILGPU.Backends.PTX
                             emitter,
                             structureRegister.Children[i],
                             offset + fieldOffset);
-                    }
-                    break;
-                case ArrayRegister arrayRegister:
-                    var arrayType = arrayRegister.ArrayType;
-                    var arrayElementSize = ABI.GetSizeOf(arrayType.ElementType);
-                    for (int i = 0, e = arrayType.Length; i < e; ++i)
-                    {
-                        int fieldOffset = i * arrayElementSize;
-                        EmitComplexCommandWithOffsets(
-                            command,
-                            emitter,
-                            arrayRegister.Children[i],
-                            fieldOffset);
                     }
                     break;
                 default:
@@ -599,7 +606,7 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="register">The register to convert.</param>
         /// <returns>The created predicate scope.</returns>
-        public PredicateScope ConvertToPredicateScope(PrimitiveRegister register)
+        public PredicateScope ConvertToPredicateScope(HardwareRegister register)
         {
             if (register.Kind == PTXRegisterKind.Predicate)
                 return new PredicateScope(register);
@@ -620,7 +627,7 @@ namespace ILGPU.Backends.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ConvertPredicateToValue(
             PrimitiveRegister register,
-            PrimitiveRegister targetRegister)
+            HardwareRegister targetRegister)
         {
             Debug.Assert(
                 register.Kind == PTXRegisterKind.Predicate,
@@ -644,7 +651,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="register">The register to convert.</param>
         /// <returns>The created predicate scope.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public PrimitiveRegister ConvertValueToPredicate(PrimitiveRegister register)
+        public HardwareRegister ConvertValueToPredicate(HardwareRegister register)
         {
             if (register.Kind == PTXRegisterKind.Predicate)
                 return register;
@@ -669,7 +676,7 @@ namespace ILGPU.Backends.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ConvertValueToPredicate(
             PrimitiveRegister register,
-            PrimitiveRegister targetRegister)
+            HardwareRegister targetRegister)
         {
             Debug.Assert(
                 register.Kind == PTXRegisterKind.Int32,
@@ -703,12 +710,12 @@ namespace ILGPU.Backends.PTX
         public void EmitIOLoad<TIOEmitter, T>(
             TIOEmitter emitter,
             string command,
-            PrimitiveRegister register,
+            HardwareRegister register,
             T userState)
             where TIOEmitter : struct, IIOEmitter<T>
             where T : struct
         {
-            PrimitiveRegister originalRegister = null;
+            HardwareRegister originalRegister = null;
             // We need a temporary 32bit register for predicate conversion at this point:
             // 1) load value into temporary register
             // 2) convert loaded value into predicate
@@ -761,7 +768,7 @@ namespace ILGPU.Backends.PTX
                 // Convert predicate
                 ConvertPredicateToValue(
                     originalRegister,
-                    register);
+                    register as HardwareRegister);
             }
 
             // Emit store
@@ -769,7 +776,7 @@ namespace ILGPU.Backends.PTX
 
             // Free temp register
             if (originalRegister != null)
-                FreeRegister(register);
+                FreeRegister(register as HardwareRegister);
         }
 
         /// <summary>
@@ -798,7 +805,7 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Emits the given commmand.
+        /// Emits the given command.
         /// </summary>
         /// <param name="commandString">The command to emit.</param>
         /// <param name="predicate">The predicate under which to execute the command.</param>
@@ -816,8 +823,8 @@ namespace ILGPU.Backends.PTX
         /// <param name="target">The target register.</param>
         /// <param name="predicate">The predicate under which to execute the command.</param>
         public void Move(
-            PrimitiveRegister source,
-            PrimitiveRegister target,
+            HardwareRegister source,
+            HardwareRegister target,
             PredicateConfiguration? predicate = null)
         {
             if (source.Kind == target.Kind &&
@@ -844,22 +851,14 @@ namespace ILGPU.Backends.PTX
                 predicate);
 
         /// <summary>
-        /// Moves the value of the specified intrinsic register to the target register.
+        /// Resolves the desired hardware register.
         /// </summary>
-        /// <param name="targetRegister">The target register.</param>
-        /// <param name="registerKind">The intrinsic register kind.</param>
-        /// <param name="dimension">The register dimension (if any).</param>
-        public void MoveFromIntrinsicRegister(
-            PrimitiveRegister targetRegister,
+        public static HardwareRegister GetIntrinsicRegister(
             PTXRegisterKind registerKind,
             int dimension = 0)
         {
-            var intrinsicDescription = new RegisterDescription(
-                BasicValueType.Int32,
-                registerKind);
-            Move(
-                new PrimitiveRegister(intrinsicDescription, dimension),
-                targetRegister);
+            var desc = new RegisterDescription(BasicValueType.Int32, registerKind);
+            return new HardwareRegister(desc, dimension);
         }
 
         /// <summary>
@@ -868,19 +867,20 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="registerKind">The intrinsic register kind.</param>
         /// <param name="dimension">The register dimension (if any).</param>
-        public PrimitiveRegister MoveFromIntrinsicRegister(
+        /// <returns></returns>
+        public HardwareRegister MoveFromIntrinsicRegister(
             PTXRegisterKind registerKind,
             int dimension = 0)
         {
             var description = ResolveRegisterDescription(BasicValueType.Int32);
             var target = AllocateRegister(description);
-            MoveFromIntrinsicRegister(target, registerKind, dimension);
+            Move(GetIntrinsicRegister(registerKind, dimension), target);
             return target;
         }
 
         /// <summary>
-        /// Allocates a new target register for the given value and
-        /// moves the value of the specified intrinsic register to the target register.
+        /// Allocates a new target register and moves the value of the
+        /// specified intrinsic register to the target register.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="registerKind">The intrinsic register kind.</param>
@@ -893,6 +893,54 @@ namespace ILGPU.Backends.PTX
             var register = MoveFromIntrinsicRegister(registerKind, dimension);
             Bind(value, register);
             return register;
+        }
+
+        /// <summary>
+        /// Ensures that the given primitive register is a hardware register.
+        /// If is a constant register, its value will be moved into a newly allocated hardware register.
+        /// </summary>
+        /// <param name="register">The register to put into a hardware register.</param>
+        /// <returns>The hardware register (could be the input register).</returns>
+        public HardwareRegister EnsureHardwareRegister(PrimitiveRegister register)
+        {
+            if (register is HardwareRegister hardwareRegister)
+                return hardwareRegister;
+
+            hardwareRegister = AllocateRegister(register.Description) as HardwareRegister;
+            var value = (register as ConstantRegister).Value;
+            using (var command = BeginMove())
+            {
+                command.AppendRegisterMovementSuffix(register.BasicValueType);
+                command.AppendArgument(hardwareRegister);
+
+                switch (register.BasicValueType)
+                {
+                    case BasicValueType.Int1:
+                        command.AppendConstant(value.Int1Value ? 1 : 0);
+                        break;
+                    case BasicValueType.Int8:
+                        command.AppendConstant(value.UInt8Value);
+                        break;
+                    case BasicValueType.Int16:
+                        command.AppendConstant(value.UInt16Value);
+                        break;
+                    case BasicValueType.Int32:
+                        command.AppendConstant(value.UInt32Value);
+                        break;
+                    case BasicValueType.Int64:
+                        command.AppendConstant(value.UInt64Value);
+                        break;
+                    case BasicValueType.Float32:
+                        command.AppendConstant(value.Float32Value);
+                        break;
+                    case BasicValueType.Float64:
+                        command.AppendConstant(value.Float64Value);
+                        break;
+                    default:
+                        throw new InvalidCodeGenerationException();
+                }
+            }
+            return hardwareRegister;
         }
 
         #endregion

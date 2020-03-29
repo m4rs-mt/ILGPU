@@ -29,7 +29,6 @@ namespace ILGPU.Backends.PTX
     /// <remarks>The code needs to be prepared for this code generator.</remarks>
     public abstract partial class PTXCodeGenerator :
         PTXRegisterAllocator,
-        IValueVisitor,
         IBackendCodeGenerator<StringBuilder>
     {
         #region Constants
@@ -37,14 +36,16 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// The supported PTX instruction sets (in descending order).
         /// </summary>
-        [SuppressMessage("Microsoft.Security", "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes", Justification = "The collection is immutable")]
-        public static readonly IEnumerable<PTXInstructionSet> SupportedInstructionSets = ImmutableSortedSet.Create(
-            Comparer<PTXInstructionSet>.Create((first, second) => second.CompareTo(first)),
-            PTXInstructionSet.ISA_64,
-            PTXInstructionSet.ISA_63,
-            PTXInstructionSet.ISA_62,
-            PTXInstructionSet.ISA_61,
-            PTXInstructionSet.ISA_60);
+        [SuppressMessage("Microsoft.Security", "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes",
+            Justification = "The collection is immutable")]
+        public static readonly IEnumerable<PTXInstructionSet> SupportedInstructionSets =
+            ImmutableSortedSet.Create(
+                Comparer<PTXInstructionSet>.Create((first, second) => second.CompareTo(first)),
+                PTXInstructionSet.ISA_64,
+                PTXInstructionSet.ISA_63,
+                PTXInstructionSet.ISA_62,
+                PTXInstructionSet.ISA_61,
+                PTXInstructionSet.ISA_60);
 
         /// <summary>
         /// The name for the globally registered dynamic shared memory alloca (if any).
@@ -476,7 +477,7 @@ namespace ILGPU.Backends.PTX
                     else
                     {
                         // Emit value
-                        value.Accept(this);
+                        this.GenerateCodeFor(value);
                     }
                 }
 
@@ -500,7 +501,7 @@ namespace ILGPU.Backends.PTX
                 }
 
                 // Build terminator
-                block.Terminator.Accept(this);
+                this.GenerateCodeFor(block.Terminator);
                 Builder.AppendLine();
             }
 
@@ -639,7 +640,6 @@ namespace ILGPU.Backends.PTX
                 /// </summary>
                 public string ParamName { get; }
 
-                /// <summary cref="IIOEmitter{T}.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, T)"/>
                 public void Emit(
                     PTXCodeGenerator codeGenerator,
                     string command,
@@ -665,13 +665,16 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             private IOEmitter Emitter { get; }
 
-            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
             public void Emit(
                 PTXCodeGenerator codeGenerator,
                 string command,
                 PrimitiveRegister primitiveRegister,
                 int offset) =>
-                codeGenerator.EmitIOLoad(Emitter, command, primitiveRegister, offset);
+                codeGenerator.EmitIOLoad(
+                    Emitter,
+                    command,
+                    primitiveRegister as HardwareRegister,
+                    offset);
         }
 
         /// <summary>
@@ -710,7 +713,6 @@ namespace ILGPU.Backends.PTX
                 /// </summary>
                 public string ParamName { get; }
 
-                /// <summary cref="IIOEmitter{T}.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, T)"/>
                 public void Emit(
                     PTXCodeGenerator codeGenerator,
                     string command,
@@ -736,13 +738,16 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             private IOEmitter Emitter { get; }
 
-            /// <summary cref="IComplexCommandEmitterWithOffsets.Emit(PTXCodeGenerator, string, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister, int)"/>
             public void Emit(
                 PTXCodeGenerator codeGenerator,
                 string command,
                 PrimitiveRegister register,
                 int offset) =>
-                codeGenerator.EmitIOStore(Emitter, command, register, offset);
+                codeGenerator.EmitIOStore(
+                    Emitter,
+                    command,
+                    register,
+                    offset);
         }
 
         /// <summary>

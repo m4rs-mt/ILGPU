@@ -15,8 +15,8 @@ namespace ILGPU.Backends.PTX
 {
     partial class PTXCodeGenerator
     {
-        /// <summary cref="IValueVisitor.Visit(ReturnTerminator)"/>
-        public void Visit(ReturnTerminator returnTerminator)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(ReturnTerminator)"/>
+        public void GenerateCode(ReturnTerminator returnTerminator)
         {
             if (!returnTerminator.IsVoidReturn)
             {
@@ -26,8 +26,8 @@ namespace ILGPU.Backends.PTX
             Command(PTXInstructions.ReturnOperation);
         }
 
-        /// <summary cref="IValueVisitor.Visit(UnconditionalBranch)"/>
-        public void Visit(UnconditionalBranch branch)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(UnconditionalBranch)"/>
+        public void GenerateCode(UnconditionalBranch branch)
         {
             using (var command = BeginCommand(PTXInstructions.BranchOperation))
             {
@@ -36,10 +36,11 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(IfBranch)"/>
-        public void Visit(IfBranch branch)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(IfBranch)"/>
+        public void GenerateCode(IfBranch branch)
         {
-            var condition = LoadPrimitive(branch.Condition);
+            var primitiveCondition = LoadPrimitive(branch.Condition);
+            var condition = EnsureHardwareRegister(primitiveCondition);
             using (var command = BeginCommand(
                 PTXInstructions.BranchOperation,
                 new PredicateConfiguration(condition, true)))
@@ -56,8 +57,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(SwitchBranch)"/>
-        public void Visit(SwitchBranch branch)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(SwitchBranch)"/>
+        public void GenerateCode(SwitchBranch branch)
         {
             var idx = LoadPrimitive(branch.Condition);
             using (var lowerBoundsScope = new PredicateScope(this))

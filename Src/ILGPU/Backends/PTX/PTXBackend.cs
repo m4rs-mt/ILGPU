@@ -41,52 +41,25 @@ namespace ILGPU.Backends.PTX
         #region Nested Types
 
         /// <summary>
-        /// The kernel specializer configuration.
+        /// The PTX accelerator specializer.
         /// </summary>
-        private readonly struct IntrinsicSpecializerConfiguration : IIntrinsicSpecializerConfiguration
+        private sealed class PTXAcceleratorSpecializer : AcceleratorSpecializer
         {
-            /// <summary>
-            /// Constructs a new specializer configuration.
-            /// </summary>
-            /// <param name="flags">The associated context flags.</param>
-            public IntrinsicSpecializerConfiguration(ContextFlags flags)
-            {
-                ContextFlags = flags;
-            }
-
-            /// <summary>
-            /// Returns the associated context.
-            /// </summary>
-            public ContextFlags ContextFlags { get; }
-
-            /// <summary cref="IIntrinsicSpecializerConfiguration.EnableAssertions"/>
-            public bool EnableAssertions => ContextFlags.HasFlags(ContextFlags.EnableAssertions);
-        }
-
-        /// <summary>
-        /// The kernel specializer configuration.
-        /// </summary>
-        private readonly struct AcceleratorSpecializerConfiguration : IAcceleratorSpecializerConfiguration
-        {
-            /// <summary>
-            /// Constructs a new specializer configuration.
-            /// </summary>
-            /// <param name="abi">The ABI specification.</param>
-            public AcceleratorSpecializerConfiguration(ABI abi)
+            public PTXAcceleratorSpecializer(ABI abi)
+                : base(AcceleratorType.Cuda, PTXBackend.WarpSize)
             {
                 ABI = abi;
             }
-
-            /// <summary cref="IAcceleratorSpecializerConfiguration.WarpSize"/>
-            public int? WarpSize => PTXBackend.WarpSize;
 
             /// <summary>
             /// Returns the current ABI.
             /// </summary>
             public ABI ABI { get; }
 
-            /// <summary cref="IAcceleratorSpecializerConfiguration.TryGetSizeOf(TypeNode, out int)"/>
-            public bool TryGetSizeOf(TypeNode type, out int size)
+            /// <summary>
+            /// Resolves the size of the given type node.
+            /// </summary>
+            protected override bool TryGetSizeOf(TypeNode type, out int size)
             {
                 size = ABI.GetSizeOf(type);
                 return true;
@@ -120,29 +93,24 @@ namespace ILGPU.Backends.PTX
             InstructionSet = instructionSet;
 
             InitializeKernelTransformers(
-                new IntrinsicSpecializerConfiguration(context.Flags),
+                Context.HasFlags(ContextFlags.EnableAssertions) ?
+                IntrinsicSpecializerFlags.EnableAssertions :
+                IntrinsicSpecializerFlags.None,
                 builder =>
             {
+                var transformerBuilder = Transformer.CreateBuilder(
+                    TransformerConfiguration.Empty);
+                transformerBuilder.AddBackendOptimizations(
+                    new PTXAcceleratorSpecializer(ABI),
+                    context.OptimizationLevel);
+
                 // Append further backend specific transformations in release mode
-                var transformerBuilder = Transformer.CreateBuilder(TransformerConfiguration.Empty);
-
-                if (context.OptimizationLevel == OptimizationLevel.Release)
-                {
-                    var acceleratorConfiguration = new AcceleratorSpecializerConfiguration(ABI);
-                    transformerBuilder.Add(
-                        new AcceleratorSpecializer<AcceleratorSpecializerConfiguration>(
-                            acceleratorConfiguration));
-                }
-
                 if (!context.HasFlags(ContextFlags.NoInlining))
                     transformerBuilder.Add(new Inliner());
-
-                if (context.OptimizationLevel == OptimizationLevel.Release)
+                if (context.OptimizationLevel > OptimizationLevel.O0)
                     transformerBuilder.Add(new SimplifyControlFlow());
 
-                var transformer = transformerBuilder.ToTransformer();
-                if (transformer.Length > 0)
-                    builder.Add(transformer);
+                builder.Add(transformerBuilder.ToTransformer());
             });
         }
 
