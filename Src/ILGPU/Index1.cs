@@ -142,8 +142,10 @@ namespace ILGPU
         public Index1 Subtract(Index1 rhs) => this - rhs;
 
         /// <summary cref="IGenericIndex{TIndex}.ComputedCastedExtent(TIndex, int, int)"/>
-        public Index1 ComputedCastedExtent(Index1 extent, int elementSize, int newElementSize) =>
-            (extent.Size * elementSize) / newElementSize;
+        public Index1 ComputedCastedExtent(
+            Index1 extent,
+            int elementSize,
+            int newElementSize) => (extent.Size * elementSize) / newElementSize;
 
         #endregion
 

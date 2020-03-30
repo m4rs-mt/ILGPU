@@ -176,7 +176,7 @@ namespace ILGPU
         /// <summary>
         /// Reconstructs a 2D index from a linear index.
         /// </summary>
-        /// <param name="linearIndex">The lienar index.</param>
+        /// <param name="linearIndex">The linear index.</param>
         /// <returns>The reconstructed 2D index.</returns>
         public Index2 ReconstructIndex(int linearIndex) =>
             ReconstructIndex(linearIndex, this);
@@ -188,11 +188,14 @@ namespace ILGPU
         public Index2 Subtract(Index2 rhs) => this - rhs;
 
         /// <summary cref="IGenericIndex{TIndex}.ComputedCastedExtent(TIndex, int, int)"/>
-        public Index2 ComputedCastedExtent(Index2 extent, int elementSize, int newElementSize)
+        public Index2 ComputedCastedExtent(
+            Index2 extent,
+            int elementSize,
+            int newElementSize)
         {
-            var yExtent = (extent.Y * elementSize) / newElementSize;
-            Debug.Assert(yExtent > 0, "OutOfBounds cast");
-            return new Index2(extent.X, yExtent);
+            var xExtent = (extent.X * elementSize) / newElementSize;
+            Debug.Assert(xExtent > 0, "OutOfBounds cast");
+            return new Index2(xExtent, extent.Y);
         }
 
         #endregion
