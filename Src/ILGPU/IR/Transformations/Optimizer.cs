@@ -136,6 +136,7 @@ namespace ILGPU.IR.Transformations
             builder.AddBasicOptimizations(contextFlags);
             builder.Add(new SSAConstruction());
             builder.Add(new DeadCodeElimination());
+            builder.Add(new InferAddressSpaces());
         }
 
         /// <summary>
