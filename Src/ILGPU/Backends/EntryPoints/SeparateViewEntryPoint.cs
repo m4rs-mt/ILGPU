@@ -381,6 +381,20 @@ namespace ILGPU.Backends.EntryPoints
             return true;
         }
 
+        /// <summary>
+        /// Get view parameters for the given kernel-parameter index.
+        /// </summary>
+        /// <param name="parameterIndex">The kernel-parameter index.</param>
+        /// <returns>The collection of view parameters.</returns>
+        public ViewParameterCollection GetViewParameters(int parameterIndex)
+        {
+            var viewInterval = viewParameterMapping[parameterIndex];
+            return new ViewParameterCollection(
+                this,
+                viewInterval.Item1,
+                viewInterval.Item2);
+        }
+
         #endregion
     }
 }

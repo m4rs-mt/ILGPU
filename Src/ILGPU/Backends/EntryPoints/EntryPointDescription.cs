@@ -80,11 +80,11 @@ namespace ILGPU.Backends.EntryPoints
 
             parameters = parameters ?? methodSource.GetParameters();
 
-            var kernelIndexParamOffset = IndexType == IndexType.KernelConfig ? 0 : 1;
-            int maxNumParameters = parameters.Length - kernelIndexParamOffset +
+            KernelIndexParameterOffset = IndexType == IndexType.KernelConfig ? 0 : 1;
+            int maxNumParameters = parameters.Length - KernelIndexParameterOffset +
                 (!methodSource.IsStatic ? 1 : 0);
             var parameterTypes = ImmutableArray.CreateBuilder<Type>(maxNumParameters);
-            for (int i = kernelIndexParamOffset, e = parameters.Length; i < e; ++i)
+            for (int i = KernelIndexParameterOffset, e = parameters.Length; i < e; ++i)
             {
                 var type = parameters[i].ParameterType;
                 if (type.IsPointer || type.IsPassedViaPtr())
@@ -113,6 +113,12 @@ namespace ILGPU.Backends.EntryPoints
         /// Returns all parameters.
         /// </summary>
         public ParameterCollection Parameters { get; }
+
+        /// <summary>
+        /// Returns the offset for the actual parameter values while taking an implicit
+        /// index argument into account.
+        /// </summary>
+        public int KernelIndexParameterOffset { get; }
 
         /// <summary>
         /// Returns true if this entry point uses specialized parameters.

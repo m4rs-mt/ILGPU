@@ -64,6 +64,12 @@ namespace ILGPU.Backends.EntryPoints
         public IndexType IndexType => Description.IndexType;
 
         /// <summary>
+        /// Returns the offset for the actual parameter values while taking an implicit
+        /// index argument into account.
+        /// </summary>
+        public int KernelIndexParameterOffset => Description.KernelIndexParameterOffset;
+
+        /// <summary>
         /// Returns true if the entry point represents an explicitly grouped kernel.
         /// </summary>
         public bool IsExplicitlyGrouped => IndexType == IndexType.KernelConfig;
