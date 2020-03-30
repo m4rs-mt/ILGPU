@@ -139,7 +139,11 @@ namespace ILGPU.Runtime
                 var targetValues = ImmutableArray.CreateBuilder<ValueReference>(
                     kernelMethod.NumParameters);
                 var specializedParameters = Entry.Parameters.SpecializedParameters;
-                for (int i = 0, specialParamIdx = 0, e = kernelMethod.NumParameters; i < e; ++i)
+                int paramOffset = Entry.KernelIndexParameterOffset;
+                for (
+                    int i = 0, specialParamIdx = 0, e = kernelMethod.NumParameters;
+                    i < e;
+                    ++i)
                 {
                     var param = kernelMethod.Parameters[i];
                     // Append parameter in all cases to ensure compatibility
@@ -149,7 +153,7 @@ namespace ILGPU.Runtime
 
                     // Check for a specialized parameter
                     if (specialParamIdx < specializedParameters.Length &&
-                        specializedParameters[specialParamIdx].Index == i)
+                        specializedParameters[specialParamIdx].Index == i - paramOffset)
                     {
                         // Resolve the managed argument -> note that this object cannot be null
                         var managedArgument = args.GetSpecializedArg(specialParamIdx);
