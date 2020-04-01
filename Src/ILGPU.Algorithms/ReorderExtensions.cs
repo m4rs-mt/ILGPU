@@ -32,7 +32,7 @@ namespace ILGPU.Algorithms
         AcceleratorStream stream,
         ArrayView<TSource> source,
         ArrayView<TTarget> target,
-        ArrayView<Index> reorderView,
+        ArrayView<Index1> reorderView,
         TTransformer transformer)
         where TSource : struct
         where TTarget : struct
@@ -54,7 +54,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        readonly struct ReorderTransformWrapper<TSource, TTarget, TTransformer> : ITransformer<Index, TTarget>
+        readonly struct ReorderTransformWrapper<TSource, TTarget, TTransformer> : ITransformer<Index1, TTarget>
             where TSource : struct
             where TTarget : struct
             where TTransformer : ITransformer<TSource, TTarget>
@@ -91,7 +91,7 @@ namespace ILGPU.Algorithms
             #region ITransformer
 
             /// <summary cref="ITransformer{TSource, TTarget}.Transform(TSource)"/>
-            public TTarget Transform(Index value)
+            public TTarget Transform(Index1 value)
             {
                 var sourceValue = SourceView[value];
                 return Transformer.Transform(sourceValue);
@@ -113,13 +113,19 @@ namespace ILGPU.Algorithms
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
-        public static ReorderTransformer<TSource, TTarget, TTransformer> CreateReorderTransformer<TSource, TTarget, TTransformer>(
+        public static ReorderTransformer<TSource, TTarget, TTransformer> CreateReorderTransformer<
+            TSource,
+            TTarget,
+            TTransformer>(
             this Accelerator accelerator)
             where TSource : struct
             where TTarget : struct
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
-            var baseTransformer = accelerator.CreateTransformer<Index, TTarget, ReorderTransformWrapper<TSource, TTarget, TTransformer>>();
+            var baseTransformer = accelerator.CreateTransformer<
+                Index1,
+                TTarget,
+                ReorderTransformWrapper<TSource, TTarget, TTransformer>>();
             return (stream, source, target, reorderView, transformer) =>
             {
                 if (!source.IsValid)
@@ -150,7 +156,7 @@ namespace ILGPU.Algorithms
             AcceleratorStream stream,
             ArrayView<T> source,
             ArrayView<T> target,
-            ArrayView<Index> reorderView)
+            ArrayView<Index1> reorderView)
             where T : struct
         {
             accelerator.ReorderTransform<T, IdentityTransformer<T>>(
@@ -178,7 +184,7 @@ namespace ILGPU.Algorithms
             AcceleratorStream stream,
             ArrayView<T> source,
             ArrayView<T> target,
-            ArrayView<Index> reorderView,
+            ArrayView<Index1> reorderView,
             TTransformer transformer)
             where T : struct
             where TTransformer : struct, ITransformer<T, T>
@@ -209,7 +215,7 @@ namespace ILGPU.Algorithms
             AcceleratorStream stream,
             ArrayView<TSource> source,
             ArrayView<TTarget> target,
-            ArrayView<Index> reorderView,
+            ArrayView<Index1> reorderView,
             TTransformer transformer)
             where TSource : struct
             where TTarget : struct

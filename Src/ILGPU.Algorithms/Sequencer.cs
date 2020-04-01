@@ -25,16 +25,16 @@ namespace ILGPU.Algorithms.Sequencers
         /// </summary>
         /// <param name="sequenceIndex">The sequence index for the computation of the corresponding value.</param>
         /// <returns>The computed sequence value.</returns>
-        T ComputeSequenceElement(Index sequenceIndex);
+        T ComputeSequenceElement(Index1 sequenceIndex);
     }
 
     /// <summary>
     /// Represents an identity implementation of an index sequencer.
     /// </summary>
-    public readonly struct IndexSequencer : ISequencer<Index>
+    public readonly struct IndexSequencer : ISequencer<Index1>
     {
-        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index)" />
-        public Index ComputeSequenceElement(Index sequenceIndex) => sequenceIndex;
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)" />
+        public Index1 ComputeSequenceElement(Index1 sequenceIndex) => sequenceIndex;
     }
 
     /// <summary>
@@ -42,8 +42,8 @@ namespace ILGPU.Algorithms.Sequencers
     /// </summary>
     public readonly struct FloatSequencer : ISequencer<float>
     {
-        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index)" />
-        public float ComputeSequenceElement(Index sequenceIndex) => sequenceIndex;
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)" />
+        public float ComputeSequenceElement(Index1 sequenceIndex) => sequenceIndex;
     }
 
     /// <summary>
@@ -51,7 +51,7 @@ namespace ILGPU.Algorithms.Sequencers
     /// </summary>
     public readonly struct DoubleSequencer : ISequencer<double>
     {
-        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index)" />
-        public double ComputeSequenceElement(Index sequenceIndex) => sequenceIndex;
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)" />
+        public double ComputeSequenceElement(Index1 sequenceIndex) => sequenceIndex;
     }
 }

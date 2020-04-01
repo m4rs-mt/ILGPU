@@ -35,8 +35,8 @@ namespace ILGPU.Algorithms.Sequencers
 <#      } #>
     public readonly struct <#= type.Name #>Sequencer : ISequencer<<#= type.Type #>>
     {
-        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index)" />
-        public <#= type.Type #> ComputeSequenceElement(Index sequenceIndex) => (<#= type.Type #>)sequenceIndex.X;
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)" />
+        public <#= type.Type #> ComputeSequenceElement(Index1 sequenceIndex) => (<#= type.Type #>)sequenceIndex.X;
     }
 
 <# } #>

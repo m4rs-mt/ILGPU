@@ -111,7 +111,7 @@ namespace ILGPU.Algorithms
         /// <param name="target"></param>
         /// <param name="transformer"></param>
         internal static void TransformKernel<TSource, TTarget, TTransformer>(
-            Index index,
+            Index1 index,
             ArrayView<TSource> source,
             ArrayView<TTarget> target,
             TTransformer transformer)
@@ -134,14 +134,23 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="minDataSize">The minimum data size for maximum occupancy.</param>
         /// <returns>The loaded transformer.</returns>
-        private static Action<AcceleratorStream, Index, ArrayView<TSource>, ArrayView<TTarget>, TTransformer> CreateRawTransformer<TSource, TTarget, TTransformer>(
+        private static Action<
+            AcceleratorStream,
+            Index1,
+            ArrayView<TSource>,
+            ArrayView<TTarget>,
+            TTransformer> CreateRawTransformer<TSource, TTarget, TTransformer>(
             this Accelerator accelerator,
-            out Index minDataSize)
+            out Index1 minDataSize)
             where TSource : struct
             where TTarget : struct
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
-            var result = accelerator.LoadAutoGroupedKernel<Index, ArrayView<TSource>, ArrayView<TTarget>, TTransformer>(
+            var result = accelerator.LoadAutoGroupedKernel<
+                Index1,
+                ArrayView<TSource>,
+                ArrayView<TTarget>,
+                TTransformer>(
                 TransformKernel,
                 out int groupSize,
                 out int minGridSize);
@@ -160,13 +169,17 @@ namespace ILGPU.Algorithms
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
-        public static Transformer<TSource, TTarget, TTransformer> CreateTransformer<TSource, TTarget, TTransformer>(
+        public static Transformer<TSource, TTarget, TTransformer>
+            CreateTransformer<TSource, TTarget, TTransformer>(
             this Accelerator accelerator)
             where TSource : struct
             where TTarget : struct
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
-            var rawTransformer = accelerator.CreateRawTransformer<TSource, TTarget, TTransformer>(out Index minDataSize);
+            var rawTransformer = accelerator.CreateRawTransformer<
+                TSource,
+                TTarget,
+                TTransformer>(out Index1 minDataSize);
             return (stream, source, target, transformer) =>
             {
                 if (!source.IsValid)
@@ -176,8 +189,15 @@ namespace ILGPU.Algorithms
                 if (!target.IsValid)
                     throw new ArgumentNullException(nameof(source));
                 if (target.Length < source.Length)
-                    throw new ArgumentOutOfRangeException(nameof(target), "The source view is larger than the target view");
-                rawTransformer(stream, Math.Min(source.Length, minDataSize), source, target, transformer);
+                    throw new ArgumentOutOfRangeException(
+                        nameof(target),
+                        "The source view is larger than the target view");
+                rawTransformer(
+                    stream,
+                    Math.Min(source.Length, minDataSize),
+                    source,
+                    target,
+                    transformer);
             };
         }
 

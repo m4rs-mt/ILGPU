@@ -41,7 +41,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Reset()
         {
-            if (Group.IndexX == Index.Zero)
+            if (Group.IsFirstThread)
                 Atomic.Exchange(ref address.Value, 0);
         }
 
@@ -54,10 +54,10 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Wait()
         {
-            if (Group.IndexX == Index.Zero)
+            if (Group.IsFirstThread)
             {
                 do { }
-                while (Atomic.CompareExchange(ref address.Value, int.MaxValue, 0) < Grid.IndexX);
+                while (Atomic.CompareExchange(ref address.Value, int.MaxValue, 0) < Grid.IdxX);
             }
             Group.Barrier();
         }
@@ -68,7 +68,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Release()
         {
-            if (Group.IndexX == Index.Zero)
+            if (Group.IsFirstThread)
                 Atomic.Add(ref address.Value, 1);
         }
 
@@ -76,7 +76,7 @@ namespace ILGPU.Algorithms
     }
 
     /// <summary>
-    /// Realizes a seqential group-execution pattern via a device-wide barrier
+    /// Realizes a sequential group-execution pattern via a device-wide barrier
     /// that can pass an element of type <typeparamref name="T"/> to another group.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
@@ -128,7 +128,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Release(T value)
         {
-            if (Group.IndexX == Index.Zero)
+            if (Group.IsFirstThread)
             {
                 address.Value = value;
                 MemoryFence.DeviceLevel();

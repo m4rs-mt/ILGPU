@@ -35,11 +35,9 @@ namespace ILGPU.Algorithms.PTX
             // A fixed number of memory banks to distribute the workload
             // of the atomic operations in shared memory.
             const int NumMemoryBanks = 4;
-
-            int groupIdx = Group.IndexX;
             var sharedMemory = SharedMemory.Allocate<T>(NumMemoryBanks);
 
-            var warpIdx = Warp.ComputeWarpIdx(groupIdx);
+            var warpIdx = Warp.ComputeWarpIdx(Group.IdxX);
             var laneIdx = Warp.LaneIdx;
 
             TReduction reduction = default;
@@ -181,16 +179,15 @@ namespace ILGPU.Algorithms.PTX
             const int SharedMemoryLength = 32;
             sharedMemory = SharedMemory.Allocate<T>(SharedMemoryLength);
 
-            int groupIdx = Group.IndexX;
             int warpIdx = Warp.WarpIdx;
 
             TScanOperation scanOperation = default;
 
             // Initialize
-            if (Group.DimensionX / Warp.WarpSize < SharedMemoryLength)
+            if (Group.DimX / Warp.WarpSize < SharedMemoryLength)
             {
                 if (warpIdx < 1)
-                    sharedMemory[groupIdx] = scanOperation.Identity;
+                    sharedMemory[Group.IdxX] = scanOperation.Identity;
                 Group.Barrier();
             }
 
@@ -203,7 +200,7 @@ namespace ILGPU.Algorithms.PTX
             // Reduce results again in the first warp
             if (warpIdx < 1)
             {
-                ref T sharedBoundary = ref sharedMemory[groupIdx];
+                ref T sharedBoundary = ref sharedMemory[Group.IdxX];
                 sharedBoundary = PTXWarpExtensions.InclusiveScan<T, TScanOperation>(sharedBoundary);
             }
             Group.Barrier();

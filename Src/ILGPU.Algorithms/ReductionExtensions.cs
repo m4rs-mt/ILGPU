@@ -46,7 +46,7 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The grouped reduction dimension for reduction-kernel dispatch.</returns>
-        private static Index ComputeReductionGroupSize(Accelerator accelerator)
+        private static Index1 ComputeReductionGroupSize(Accelerator accelerator)
         {
             var warpSize = accelerator.WarpSize;
             return Math.Max(warpSize, (accelerator.MaxNumThreadsPerGroup / warpSize) * warpSize);
@@ -58,11 +58,13 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="dataLength">The number of data elements to reduce.</param>
         /// <returns>The grouped reduction dimension for reduction-kernel dispatch.</returns>
-        private static GroupedIndex ComputeReductionDimension(Accelerator accelerator, Index dataLength)
+        private static (Index1, Index1) ComputeReductionDimension(
+            Accelerator accelerator,
+            Index1 dataLength)
         {
-            var groupSize = ComputeReductionGroupSize(accelerator);
-            var gridSize = Math.Min((dataLength + groupSize - 1) / groupSize, groupSize);
-            return new GroupedIndex(gridSize, groupSize);
+            var groupDim = ComputeReductionGroupSize(accelerator);
+            var gridDim = Math.Min((dataLength + groupDim - 1) / groupDim, groupDim);
+            return (gridDim, groupDim);
         }
 
         /// <summary>
@@ -70,11 +72,9 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <typeparam name="T">The underlying type of the reduction.</typeparam>
         /// <typeparam name="TReduction">The type of the reduction logic.</typeparam>
-        /// <param name="index">The current thread index.</param>
         /// <param name="input">The input view.</param>
         /// <param name="output">The output view.</param>
         internal static void ReductionKernel<T, TReduction>(
-            GroupedIndex index,
             ArrayView<T> input,
             ArrayView<T> output)
             where T : struct
@@ -85,12 +85,12 @@ namespace ILGPU.Algorithms
             TReduction reduction = default;
 
             var reduced = reduction.Identity;
-            for (var idx = index.ComputeGlobalIndex(); idx < input.Length; idx += stride)
+            for (var idx = Grid.GlobalIndex.X; idx < input.Length; idx += stride)
                 reduced = reduction.Apply(reduced, input[idx]);
 
             reduced = GroupExtensions.Reduce<T, TReduction>(reduced);
 
-            if (index.GroupIdx.IsFirst)
+            if (Group.IsFirstThread)
                 reduction.AtomicApply(ref output[0], reduced);
         }
 
@@ -107,7 +107,8 @@ namespace ILGPU.Algorithms
             where TReduction : struct, IScanReduceOperation<T>
         {
             var initializer = accelerator.CreateInitializer<T>();
-            var kernel = accelerator.LoadKernel<GroupedIndex, ArrayView<T>, ArrayView<T>>(ReductionKernel<T, TReduction>);
+            var kernel = accelerator.LoadKernel<ArrayView<T>, ArrayView<T>>(
+                ReductionKernel<T, TReduction>);
             return (stream, input, output) =>
             {
                 if (!input.IsValid)

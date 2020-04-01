@@ -115,7 +115,7 @@ namespace ILGPU.Algorithms.CL
             var scanned = GroupExtensions.ExclusiveScan<T, TScanOperation>(value);
             boundaries = new ScanBoundaries<T>(
                 Group.Broadcast(scanned, 0),
-                Group.Broadcast(scanned, Group.DimensionX - 1));
+                Group.Broadcast(scanned, Group.DimX - 1));
             return scanned;
         }
 
@@ -128,7 +128,7 @@ namespace ILGPU.Algorithms.CL
             var scanned = GroupExtensions.InclusiveScan<T, TScanOperation>(value);
             boundaries = new ScanBoundaries<T>(
                 Group.Broadcast(scanned, 0),
-                Group.Broadcast(scanned, Group.DimensionX - 1));
+                Group.Broadcast(scanned, Group.DimX - 1));
             return scanned;
         }
 

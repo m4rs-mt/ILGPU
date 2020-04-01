@@ -42,7 +42,7 @@ namespace ILGPU.Algorithms
         /// <param name="index">The current thread index.</param>
         /// <param name="view">The target view.</param>
         /// <param name="value">The value.</param>
-        internal static void InitializeKernel<T>(Index index, ArrayView<T> view, T value)
+        internal static void InitializeKernel<T>(Index1 index, ArrayView<T> view, T value)
             where T : struct
         {
             var stride = GridExtensions.GridStrideLoopStride;
@@ -57,13 +57,13 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="minDataSize">The minimum data size for maximum occupancy.</param>
         /// <returns>The loaded initializer.</returns>
-        private static Action<AcceleratorStream, Index, ArrayView<T>, T> CreateRawInitializer<T>(
+        private static Action<AcceleratorStream, Index1, ArrayView<T>, T> CreateRawInitializer<T>(
             this Accelerator accelerator,
-            out Index minDataSize)
+            out Index1 minDataSize)
             where T : struct
         {
             var result = accelerator.LoadAutoGroupedKernel(
-                (Action<Index, ArrayView<T>, T>)InitializeKernel,
+                (Action<Index1, ArrayView<T>, T>)InitializeKernel,
                 out int groupSize,
                 out int minGridSize);
             minDataSize = groupSize * minGridSize;
@@ -80,7 +80,7 @@ namespace ILGPU.Algorithms
             this Accelerator accelerator)
             where T : struct
         {
-            var rawInitializer = accelerator.CreateRawInitializer<T>(out Index minDataSize);
+            var rawInitializer = accelerator.CreateRawInitializer<T>(out Index1 minDataSize);
             return (stream, view, value) =>
             {
                 if (!view.IsValid)

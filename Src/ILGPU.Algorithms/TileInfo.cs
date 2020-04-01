@@ -23,48 +23,35 @@ namespace ILGPU.Algorithms
         /// <summary>
         /// Constructs a new tile information instance.
         /// </summary>
-        /// <param name="index">The current grouped index.</param>
         /// <param name="input">The input view.</param>
         /// <param name="numIterationsPerGroup">The number of iterations per group to compute the tile size.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TileInfo(GroupedIndex index, ArrayView<T> input, Index numIterationsPerGroup)
+        public TileInfo(ArrayView<T> input, Index1 numIterationsPerGroup)
         {
-            GroupIndex = index.GroupIdx;
-            GroupDim = Group.DimensionX;
-            TileSize = GroupDim * numIterationsPerGroup;
-            StartIndex = index.GridIdx * TileSize + index.GroupIdx;
-            EndIndex = (index.GridIdx + Index.One) * TileSize;
+            TileSize = Group.DimX * numIterationsPerGroup;
+            StartIndex = Grid.IdxX * TileSize + Group.IdxX;
+            EndIndex = (Grid.IdxX + Index1.One) * TileSize;
             MaxLength = XMath.Min(input.Length, EndIndex);
         }
 
         /// <summary>
-        /// Returns the current group index.
-        /// </summary>
-        public Index GroupIndex { get; }
-
-        /// <summary>
-        /// Returns the current group dimension.
-        /// </summary>
-        public Index GroupDim { get; }
-
-        /// <summary>
         /// Returns the tile size.
         /// </summary>
-        public Index TileSize { get; }
+        public Index1 TileSize { get; }
 
         /// <summary>
         /// Returns the start index of the current thread (inclusive).
         /// </summary>
-        public Index StartIndex { get; }
+        public Index1 StartIndex { get; }
 
         /// <summary>
         /// Returns the end index of all threads in the group (exclusive).
         /// </summary>
-        public Index EndIndex { get; }
+        public Index1 EndIndex { get; }
 
         /// <summary>
         /// Returns the maximum data length to avoid out-of-bounds accesses.
         /// </summary>
-        public Index MaxLength { get; }
+        public Index1 MaxLength { get; }
     }
 }

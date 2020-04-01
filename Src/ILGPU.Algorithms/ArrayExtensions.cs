@@ -26,7 +26,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="array">The source array.</param>
         /// <returns>The extent of an one-dimensional array.</returns>
-        public static Index GetExtent<T>(this T[] array)
+        public static Index1 GetExtent<T>(this T[] array)
         {
             Debug.Assert(array != null, "Invalid array");
             return array.Length;
@@ -70,7 +70,7 @@ namespace ILGPU.Algorithms
         /// <param name="array">The source array.</param>
         /// <param name="index">The element index.</param>
         /// <returns>The value at the given index.</returns>
-        public static T GetValue<T>(this T[] array, Index index) =>
+        public static T GetValue<T>(this T[] array, Index1 index) =>
             array[index];
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace ILGPU.Algorithms
         /// <param name="array">The target array.</param>
         /// <param name="value">The value to set.</param>
         /// <param name="index">The element index.</param>
-        public static void SetValue<T>(this T[] array, T value, Index index) =>
+        public static void SetValue<T>(this T[] array, T value, Index1 index) =>
             array[index] = value;
 
         /// <summary>

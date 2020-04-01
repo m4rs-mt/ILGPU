@@ -38,7 +38,7 @@ namespace ILGPU.Algorithms.IL
             ref var sharedMemory = ref SharedMemory.Allocate<T>();
 
             TReduction reduction = default;
-            if (Group.IndexX == 0)
+            if (Group.IsFirstThread)
                 sharedMemory = reduction.Identity;
             Group.Barrier();
 
@@ -78,10 +78,9 @@ namespace ILGPU.Algorithms.IL
             where T : struct
             where TScanOperation : struct, IScanReduceOperation<T>
         {
-            int groupIdx = Group.IndexX;
-            var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(groupIdx, value);
-            boundaries = new ScanBoundaries<T>(sharedMemory[0], sharedMemory[Group.DimensionX - 1]);
-            return groupIdx < 1 ? default : sharedMemory[groupIdx - 1];
+            var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(value);
+            boundaries = new ScanBoundaries<T>(sharedMemory[0], sharedMemory[Group.DimX - 1]);
+            return Group.IsFirstThread ? default : sharedMemory[Group.IdxX - 1];
         }
 
         /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
@@ -90,10 +89,9 @@ namespace ILGPU.Algorithms.IL
             where T : struct
             where TScanOperation : struct, IScanReduceOperation<T>
         {
-            int groupIdx = Group.IndexX;
-            var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(groupIdx, value);
-            boundaries = new ScanBoundaries<T>(sharedMemory[0], sharedMemory[Group.DimensionX - 1]);
-            return sharedMemory[groupIdx];
+            var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(value);
+            boundaries = new ScanBoundaries<T>(sharedMemory[0], sharedMemory[Group.DimX - 1]);
+            return sharedMemory[Group.IdxX];
         }
 
         /// <summary>
@@ -101,27 +99,24 @@ namespace ILGPU.Algorithms.IL
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
-        /// <param name="groupIdx">The group index.</param>
         /// <param name="value">The value to scan.</param>
         /// <returns>The resulting value for the current lane.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ArrayView<T> InclusiveScanImplementation<T, TScanOperation>(int groupIdx, T value)
+        private static ArrayView<T> InclusiveScanImplementation<T, TScanOperation>(T value)
             where T : struct
             where TScanOperation : struct, IScanReduceOperation<T>
         {
-            var groupSize = Group.DimensionX;
-
             // Load values into shared memory
             var sharedMemory = SharedMemory.Allocate<T>(MaxNumThreadsPerGroup);
-            Debug.Assert(groupSize <= MaxNumThreadsPerGroup, "Invalid group size");
-            sharedMemory[groupIdx] = value;
+            Debug.Assert(Group.DimX <= MaxNumThreadsPerGroup, "Invalid group size");
+            sharedMemory[Group.IdxX] = value;
             Group.Barrier();
 
             // First thread performs all operations
-            if (groupIdx == 0)
+            if (Group.IsFirstThread)
             {
                 TScanOperation scanOperation = default;
-                for (int i = 1; i < groupSize; ++i)
+                for (int i = 1; i < Group.DimX; ++i)
                     sharedMemory[i] = scanOperation.Apply(sharedMemory[i - 1], sharedMemory[i]);
             }
             Group.Barrier();

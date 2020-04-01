@@ -50,7 +50,7 @@ namespace ILGPU.Algorithms
     public delegate void BatchedSequencer<T, TSequencer>(
         AcceleratorStream stream,
         ArrayView<T> view,
-        Index sequenceBatchLength,
+        Index1 sequenceBatchLength,
         TSequencer sequencer)
         where T : struct
         where TSequencer : struct, ISequencer<T>;
@@ -71,7 +71,7 @@ namespace ILGPU.Algorithms
     public delegate void RepeatedSequencer<T, TSequencer>(
         AcceleratorStream stream,
         ArrayView<T> view,
-        Index sequenceLength,
+        Index1 sequenceLength,
         TSequencer sequencer)
         where T : struct
         where TSequencer : struct, ISequencer<T>;
@@ -99,8 +99,8 @@ namespace ILGPU.Algorithms
     public delegate void RepeatedBatchedSequencer<T, TSequencer>(
         AcceleratorStream stream,
         ArrayView<T> view,
-        Index sequenceLength,
-        Index sequenceBatchLength,
+        Index1 sequenceLength,
+        Index1 sequenceBatchLength,
         TSequencer sequencer)
         where T : struct
         where TSequencer : struct, ISequencer<T>;
@@ -125,10 +125,10 @@ namespace ILGPU.Algorithms
         /// <param name="sequenceBatchLength">The length of a single batch within a sequence.</param>
         /// <param name="sequencer">The sequencer instance.</param>
         internal static void SequenceKernel<T, TSequencer>(
-            Index index,
+            Index1 index,
             ArrayView<T> view,
-            Index sequenceLength,
-            Index sequenceBatchLength,
+            Index1 sequenceLength,
+            Index1 sequenceBatchLength,
             TSequencer sequencer)
             where T : struct
             where TSequencer : struct, ISequencer<T>
@@ -148,14 +148,20 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="minDataSize">The minimum data size for maximum occupancy.</param>
         /// <returns>The loaded sequencer.</returns>
-        private static Action<AcceleratorStream, Index, ArrayView<T>, Index, Index, TSequencer> CreateRawSequencer<T, TSequencer>(
+        private static Action<
+            AcceleratorStream,
+            Index1,
+            ArrayView<T>,
+            Index1,
+            Index1,
+            TSequencer> CreateRawSequencer<T, TSequencer>(
             this Accelerator accelerator,
-            out Index minDataSize)
+            out Index1 minDataSize)
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
             var result = accelerator.LoadAutoGroupedKernel(
-                (Action<Index, ArrayView<T>, Index, Index, TSequencer>)SequenceKernel,
+                (Action<Index1, ArrayView<T>, Index1, Index1, TSequencer>)SequenceKernel,
                 out int groupSize,
                 out int minGridSize);
             minDataSize = groupSize * minGridSize;
@@ -176,14 +182,20 @@ namespace ILGPU.Algorithms
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
+            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(
+                out Index1 minDataSize);
             return (stream, view, sequencer) =>
             {
                 if (!view.IsValid)
                     throw new ArgumentNullException(nameof(view));
                 if (view.Length < 1)
                     throw new ArgumentOutOfRangeException(nameof(view));
-                rawSequencer(stream, Math.Min(view.Length, minDataSize), view, view.Length, 1, sequencer);
+                rawSequencer(
+                    stream,
+                    Math.Min(view.Length, minDataSize),
+                    view,
+                    view.Length,
+                    1, sequencer);
             };
         }
 
@@ -199,7 +211,8 @@ namespace ILGPU.Algorithms
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
+            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(
+                out Index1 minDataSize);
             return (stream, view, sequenceBatchLength, sequencer) =>
             {
                 if (!view.IsValid)
@@ -208,7 +221,13 @@ namespace ILGPU.Algorithms
                     throw new ArgumentOutOfRangeException(nameof(view));
                 if (sequenceBatchLength < 1)
                     throw new ArgumentOutOfRangeException(nameof(sequenceBatchLength));
-                rawSequencer(stream, view.Length, view, view.Length, sequenceBatchLength, sequencer);
+                rawSequencer(
+                    stream,
+                    view.Length,
+                    view,
+                    view.Length,
+                    sequenceBatchLength,
+                    sequencer);
             };
         }
 
@@ -224,7 +243,8 @@ namespace ILGPU.Algorithms
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
+            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(
+                out var minDataSize);
             return (stream, view, sequenceLength, sequencer) =>
             {
                 if (!view.IsValid)
@@ -250,7 +270,8 @@ namespace ILGPU.Algorithms
             where T : struct
             where TSequencer : struct, ISequencer<T>
         {
-            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(out Index minDataSize);
+            var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(
+                out Index1 minDataSize);
             return (stream, view, sequenceLength, sequenceBatchLength, sequencer) =>
             {
                 if (!view.IsValid)
@@ -261,7 +282,13 @@ namespace ILGPU.Algorithms
                     throw new ArgumentOutOfRangeException(nameof(sequenceLength));
                 if (sequenceBatchLength < 1)
                     throw new ArgumentOutOfRangeException(nameof(sequenceBatchLength));
-                rawSequencer(stream, view.Length, view, sequenceLength, sequenceBatchLength, sequencer);
+                rawSequencer(
+                    stream,
+                    view.Length,
+                    view,
+                    sequenceLength,
+                    sequenceBatchLength,
+                    sequencer);
             };
         }
 
@@ -307,7 +334,7 @@ namespace ILGPU.Algorithms
             this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> view,
-            Index sequenceLength,
+            Index1 sequenceLength,
             TSequencer sequencer)
             where T : struct
             where TSequencer : struct, ISequencer<T>
@@ -337,7 +364,7 @@ namespace ILGPU.Algorithms
             this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> view,
-            Index sequenceBatchLength,
+            Index1 sequenceBatchLength,
             TSequencer sequencer)
             where T : struct
             where TSequencer : struct, ISequencer<T>
@@ -374,8 +401,8 @@ namespace ILGPU.Algorithms
             this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> view,
-            Index sequenceLength,
-            Index sequenceBatchLength,
+            Index1 sequenceLength,
+            Index1 sequenceBatchLength,
             TSequencer sequencer)
             where T : struct
             where TSequencer : struct, ISequencer<T>

@@ -24,7 +24,7 @@ namespace ILGPU.Algorithms
         /// Executes this loop body using the given index.
         /// </summary>
         /// <param name="linearIndex">The current global element index.</param>
-        void Execute(Index linearIndex);
+        void Execute(Index1 linearIndex);
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ namespace ILGPU.Algorithms
         /// <param name="linearIndex">The current global element index.</param>
         /// <param name="input">The intermediate input value.</param>
         /// <returns>The resulting intermediate value for the next iteration.</returns>
-        T Execute(Index linearIndex, T input);
+        T Execute(Index1 linearIndex, T input);
     }
 
     /// <summary>
@@ -51,45 +51,25 @@ namespace ILGPU.Algorithms
         /// <summary>
         /// Returns the loop stride for a grid-stride loop.
         /// </summary>
-        public static Index GridStrideLoopStride => Grid.Dimension.X * Group.Dimension.X;
+        public static Index1 GridStrideLoopStride => Grid.DimX * Group.DimX;
 
         /// <summary>
         /// Performs a grid-stride loop.
         /// </summary>
         /// <typeparam name="TLoopBody">The type of the loop body.</typeparam>
-        /// <param name="index">The global start index.</param>
         /// <param name="length">The global length.</param>
         /// <param name="loopBody">The loop body.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void GridStrideLoop<TLoopBody>(
-            Index index,
-            Index length,
-            ref TLoopBody loopBody)
+        public static void GridStrideLoop<TLoopBody>(Index1 length, ref TLoopBody loopBody)
             where TLoopBody : struct, IGridStrideLoopBody
         {
-            var stride = Grid.Dimension.X * Group.Dimension.X;
-            for (var idx = index; idx < length; idx += stride)
+            for (
+                Index1 idx = Grid.GlobalIndex.X, stride = GridStrideLoopStride;
+                idx < length;
+                idx += stride)
+            {
                 loopBody.Execute(idx);
-        }
-
-        /// <summary>
-        /// Performs a grid-stride loop.
-        /// </summary>
-        /// <typeparam name="TLoopBody">The type of the loop body.</typeparam>
-        /// <param name="index">The global start index.</param>
-        /// <param name="length">The global length.</param>
-        /// <param name="loopBody">The loop body.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void GridStrideLoop<TLoopBody>(
-            GroupedIndex index,
-            Index length,
-            ref TLoopBody loopBody)
-            where TLoopBody : struct, IGridStrideLoopBody
-        {
-            GridStrideLoop(
-                index.ComputeGlobalIndex(),
-                length,
-                ref loopBody);
+            }
         }
 
         /// <summary>
@@ -97,50 +77,26 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <typeparam name="T">The element type of the intermediate values.</typeparam>
         /// <typeparam name="TLoopBody">The type of the loop body.</typeparam>
-        /// <param name="index">The global start index.</param>
         /// <param name="length">The global length.</param>
         /// <param name="input">The initial input value.</param>
         /// <param name="loopBody">The loop body.</param>
         /// <returns>The last intermediate value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T GridStrideLoop<T, TLoopBody>(
-            Index index,
-            Index length,
+            Index1 length,
             T input,
             TLoopBody loopBody)
             where T : struct
             where TLoopBody : struct, IGridStrideLoopBody<T>
         {
-            var stride = Grid.Dimension.X * Group.Dimension.X;
-            for (var idx = index; idx < length; idx += stride)
+            for (
+                Index1 idx = Grid.GlobalIndex.X, stride = GridStrideLoopStride;
+                idx < length;
+                idx += stride)
+            {
                 input = loopBody.Execute(idx, input);
+            }
             return input;
-        }
-
-        /// <summary>
-        /// Performs a functional grid-stride loop.
-        /// </summary>
-        /// <typeparam name="T">The element type of the intermediate values.</typeparam>
-        /// <typeparam name="TLoopBody">The type of the loop body.</typeparam>
-        /// <param name="index">The global start index.</param>
-        /// <param name="length">The global length.</param>
-        /// <param name="input">The initial input value.</param>
-        /// <param name="loopBody">The loop body.</param>
-        /// <returns>The last intermediate value.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T GridStrideLoop<T, TLoopBody>(
-            GroupedIndex index,
-            Index length,
-            T input,
-            TLoopBody loopBody)
-            where T : struct
-            where TLoopBody : struct, IGridStrideLoopBody<T>
-        {
-            return GridStrideLoop(
-                index.ComputeGlobalIndex(),
-                length,
-                input,
-                loopBody);
         }
 
         /// <summary>
@@ -150,7 +106,9 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="numDataElements">The number of parallel data elements to process.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static GroupedIndex ComputeGridStrideLoopExtent(this Accelerator accelerator, Index numDataElements) =>
+        public static (Index1, Index1) ComputeGridStrideLoopExtent(
+            this Accelerator accelerator,
+            Index1 numDataElements) =>
             accelerator.ComputeGridStrideLoopExtent(
                 numDataElements,
                 out var _);
@@ -163,19 +121,19 @@ namespace ILGPU.Algorithms
         /// <param name="numDataElements">The number of parallel data elements to process.</param>
         /// <param name="numIterationsPerGroup">The number of loop iterations per group.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static GroupedIndex ComputeGridStrideLoopExtent(
+        public static (Index1, Index1) ComputeGridStrideLoopExtent(
             this Accelerator accelerator,
-            Index numDataElements,
+            Index1 numDataElements,
             out int numIterationsPerGroup)
         {
-            GroupedIndex extent = accelerator.MaxNumGroupsExtent;
+            var (gridDim, groupDim) = accelerator.MaxNumGroupsExtent;
 
-            var numParallelGroups = XMath.DivRoundUp(numDataElements, extent.GroupIdx);
-            var dimension = XMath.Min(extent.GridIdx, numParallelGroups);
+            var numParallelGroups = XMath.DivRoundUp(numDataElements, groupDim);
+            var dimension = XMath.Min(gridDim, numParallelGroups);
 
-            numIterationsPerGroup = XMath.DivRoundUp(numDataElements, dimension * extent.GroupIdx);
+            numIterationsPerGroup = XMath.DivRoundUp(numDataElements, dimension * groupDim);
 
-            return new GroupedIndex(dimension, extent.GroupIdx);
+            return (dimension, groupDim);
         }
     }
 }
