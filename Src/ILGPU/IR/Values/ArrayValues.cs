@@ -29,14 +29,15 @@ namespace ILGPU.IR.Values
         /// Constructs a new array value.
         /// </summary>
         /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="arrayTpe">The associated array type.</param>
+        /// <param name="arrayType">The associated array type.</param>
         /// <param name="extent">The array length.</param>
         internal ArrayValue(
             BasicBlock basicBlock,
-            ArrayType arrayTpe,
+            ArrayType arrayType,
             ValueReference extent)
-            : base(basicBlock, arrayTpe)
+            : base(basicBlock, arrayType)
         {
+            ArrayType = arrayType;
             Seal(ImmutableArray.Create(extent));
         }
 
@@ -50,7 +51,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the array type.
         /// </summary>
-        public ArrayType ArrayType => Type as ArrayType;
+        public ArrayType ArrayType { get; }
 
         /// <summary>
         /// Returns the number of array dimensions.
@@ -67,7 +68,7 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) => Type;
+        protected override TypeNode UpdateType(IRContext context) => ArrayType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>

@@ -10,12 +10,10 @@
 // -----------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
-using ILGPU.IR.Construction;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -202,7 +200,6 @@ namespace ILGPU.IR.Transformations
             TypeLowering<ArrayType> _,
             LoadElementAddress value)
         {
-            Debug.Assert(value.IsArrayAccesss, "Invalid array access");
             var linearAddress = GetLinearAddress(
                 context,
                 value.Source,

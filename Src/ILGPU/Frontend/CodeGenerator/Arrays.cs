@@ -12,7 +12,6 @@
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
 using System;
-using System.Collections.Immutable;
 
 namespace ILGPU.Frontend
 {
@@ -41,22 +40,20 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="block">The current basic block.</param>
         /// <param name="builder">The current builder.</param>
-        /// <param name="elementType">The element type to load.</param>
+        /// <param name="_">The element type to load.</param>
         private void MakeLoadElementAddress(
             Block block,
             IRBuilder builder,
-            Type elementType)
+            Type _)
         {
-            var typeNode = builder.CreateType(elementType);
+            // TODO: make sure that element loads are converted properly in all cases
             var index = block.PopInt(ConvertFlags.None);
-            var array = block.Pop(typeNode, ConvertFlags.None);
+            var array = block.Pop();
             var linearAddress = builder.ComputeArrayAddress(
                 index,
                 array,
                 0);
-            var value = builder.CreateLoadElementAddress(
-                array,
-                builder.CreateStructure(ImmutableArray.Create(linearAddress)));
+            var value = builder.CreateLoadElementAddress(array, linearAddress);
             block.Push(value);
         }
 

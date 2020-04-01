@@ -161,7 +161,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(source != null, "Invalid source value");
             Debug.Assert(elementIndex != null, "Invalid element index");
 
-            var addressSpaceType = source.Type as AddressSpaceType;
+            var addressSpaceType = source.Type as IAddressSpaceType;
             Debug.Assert(addressSpaceType != null, "Invalid address space type");
             Debug.Assert(elementIndex.BasicValueType == IRTypeContext.ViewIndexType, "Incompatible index type");
 

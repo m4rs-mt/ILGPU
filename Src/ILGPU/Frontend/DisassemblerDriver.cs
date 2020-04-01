@@ -545,13 +545,14 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Ldelem, 2, 1, typeof(double));
                     return true;
                 case ILOpCode.Ldelem_Ref:
+                case ILOpCode.Ldelem:
                     AppendInstruction(ILInstructionType.Ldelem, 2, 1, ReadTypeArg());
                     return true;
                 case ILOpCode.Ldelem_I:
                     AppendInstruction(ILInstructionType.Ldelem, 2, 1, NativePtrType);
                     return true;
                 case ILOpCode.Ldelema:
-                    AppendInstruction(ILInstructionType.Ldelema, 2, 1);
+                    AppendInstruction(ILInstructionType.Ldelema, 2, 1, ReadTypeArg());
                     return true;
                 case ILOpCode.Stelem_I1:
                     AppendInstruction(ILInstructionType.Stelem, 3, 0, typeof(sbyte));
@@ -572,9 +573,10 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Stelem, 3, 0, typeof(double));
                     return true;
                 case ILOpCode.Stelem_I:
-                    AppendInstruction(ILInstructionType.Stelem, 3, 0, typeof(void).MakePointerType());
+                    AppendInstruction(ILInstructionType.Stelem, 3, 0, NativePtrType);
                     return true;
                 case ILOpCode.Stelem_Ref:
+                case ILOpCode.Stelem:
                     AppendInstruction(ILInstructionType.Stelem, 3, 0, ReadTypeArg());
                     return true;
 
