@@ -28,7 +28,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// The OpenCL C version 1.1.
         /// </summary>
-        public static readonly CLCVersion CL11 = new CLCVersion(1, 2);
+        public static readonly CLCVersion CL11 = new CLCVersion(1, 1);
 
         /// <summary>
         /// The OpenCL C version 1.2.
@@ -43,7 +43,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// The internal regex that is used to parse OpenCL C versions.
         /// </summary>
-        private static readonly Regex VersionRegex = new Regex("\\s*(CL|OpenCL C)?\\s*([0-9]+).([0.9]+)");
+        private static readonly Regex VersionRegex = new Regex("\\s*(CL|OpenCL C)?\\s*([0-9]+).([0-9]+)");
 
         /// <summary>
         /// Tries to parse the given string expression into an OpenCL C version.
