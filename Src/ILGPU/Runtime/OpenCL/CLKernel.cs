@@ -36,7 +36,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="kernelPtr">The created kernel pointer.</param>
         /// <param name="errorLog">The error log (if any).</param>
         /// <returns>True, if the program and the kernel could be loaded successfully.</returns>
-        internal static CLError LoadKernel(
+        public static CLError LoadKernel(
             CLAccelerator accelerator,
             string source,
             CLCVersion version,
@@ -80,6 +80,36 @@ namespace ILGPU.Runtime.OpenCL
                 out kernelPtr);
         }
 
+        /// <summary>
+        /// Loads the binary representation of the given OpenCL kernel.
+        /// </summary>
+        /// <param name="program">The program pointer.</param>
+        /// <returns>The binary representation of the underlying kernel.</returns>
+        public static unsafe byte[] LoadBinaryRepresentation(IntPtr program)
+        {
+            IntPtr kernelSize;
+            CLException.ThrowIfFailed(
+                CLAPI.GetProgramInfo(
+                    program,
+                    CLProgramInfo.CL_PROGRAM_BINARY_SIZES,
+                    new IntPtr(IntPtr.Size),
+                    &kernelSize,
+                    out var _));
+
+            var programBinary = new byte[kernelSize.ToInt32()];
+            fixed (byte* binPtr = &programBinary[0])
+            {
+                CLException.ThrowIfFailed(
+                    CLAPI.GetProgramInfo(
+                        program,
+                        CLProgramInfo.CL_PROGRAM_BINARIES,
+                        new IntPtr(IntPtr.Size),
+                        &binPtr,
+                        out var _));
+            }
+            return programBinary;
+        }
+
         #endregion
 
         #region Instance
@@ -97,7 +127,7 @@ namespace ILGPU.Runtime.OpenCL
         private IntPtr kernelPtr;
 
         /// <summary>
-        /// Loads a compiled kernel into the given Cuda context as kernel program.
+        /// Loads a compiled kernel into the given OpenCL context as kernel program.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="kernel">The source kernel.</param>
@@ -152,6 +182,16 @@ namespace ILGPU.Runtime.OpenCL
         /// Returns the OpenCL kernel ptr.
         /// </summary>
         public IntPtr KernelPtr => kernelPtr;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Loads the binary representation of the underlying OpenCL kernel.
+        /// </summary>
+        /// <returns>The binary representation of the underlying kernel.</returns>
+        public byte[] LoadBinaryRepresentation() => LoadBinaryRepresentation(ProgramPtr);
 
         #endregion
 

@@ -426,6 +426,29 @@ namespace ILGPU.Runtime.OpenCL.API
         }
 
         /// <summary>
+        /// Resolves program information.
+        /// </summary>
+        /// <param name="program">The program pointer.</param>
+        /// <param name="paramName">The param name to query.</param>
+        /// <param name="paramValueSize">The size of the parameter value.</param>
+        /// <param name="paramValue">The parameter value to use.</param>
+        /// <param name="paramValueSizeRet">The resulting parameter value size.</param>
+        /// <returns>The error code.</returns>
+        [CLSCompliant(false)]
+        public static CLError GetProgramInfo(
+            IntPtr program,
+            CLProgramInfo paramName,
+            IntPtr paramValueSize,
+            void* paramValue,
+            out IntPtr paramValueSizeRet) =>
+            NativeMethods.GetProgramInfo(
+                program,
+                paramName,
+                paramValueSize,
+                paramValue,
+                out paramValueSizeRet);
+
+        /// <summary>
         /// Resolves program build information.
         /// </summary>
         /// <param name="program">The program pointer.</param>
