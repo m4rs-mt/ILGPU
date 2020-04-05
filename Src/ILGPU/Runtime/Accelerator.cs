@@ -42,10 +42,15 @@ namespace ILGPU.Runtime
     }
 
     /// <summary>
+    /// Represents an abstract accelerator extension that can store additional data.
+    /// </summary>
+    public abstract class AcceleratorExtension : CachedExtension { }
+
+    /// <summary>
     /// Represents a general abstract accelerator.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract partial class Accelerator : DisposeBase, ICache
+    public abstract partial class Accelerator : CachedExtensionBase<AcceleratorExtension>
     {
         #region Static
 
@@ -234,7 +239,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the primary backend of this accelerator.
         /// </summary>
-        public Backend Backend { get; protected set; }
+        public Backend Backend { get; private set; }
 
         /// <summary>
         /// Returns the default memory-buffer cache that can be used by several operations.
@@ -258,13 +263,29 @@ namespace ILGPU.Runtime
         #region Methods
 
         /// <summary>
+        /// Initializes the current accelerator instance.
+        /// </summary>
+        /// <param name="backend">The backend to use.</param>
+        protected void Init(Backend backend)
+        {
+            Backend = backend;
+            OnAcceleratorCreated();
+        }
+
+        /// <summary>
+        /// Invoked when the accelerator instance has been created.
+        /// </summary>
+        protected void OnAcceleratorCreated() => Context.OnAcceleratorCreated(this);
+
+        /// <summary>
         /// Creates a new accelerator extension using the given provider.
         /// </summary>
         /// <typeparam name="TExtension">The type of the extension to create.</typeparam>
         /// <typeparam name="TExtensionProvider">The extension provided type to create the extension.</typeparam>
         /// <param name="provider">The extension provided to create the extension.</param>
         /// <returns>The created extension.</returns>
-        public abstract TExtension CreateExtension<TExtension, TExtensionProvider>(TExtensionProvider provider)
+        public abstract TExtension CreateExtension<TExtension, TExtensionProvider>(
+            TExtensionProvider provider)
             where TExtensionProvider : IAcceleratorExtensionProvider<TExtension>;
 
         /// <summary>
@@ -399,12 +420,13 @@ namespace ILGPU.Runtime
         /// Clears all internal caches.
         /// </summary>
         /// <param name="mode">The clear mode.</param>
-        public void ClearCache(ClearCacheMode mode)
+        public override void ClearCache(ClearCacheMode mode)
         {
             lock (syncRoot)
             {
                 Backend.ClearCache(mode);
                 ClearKernelCache_SyncRoot();
+                base.ClearCache(mode);
             }
         }
 

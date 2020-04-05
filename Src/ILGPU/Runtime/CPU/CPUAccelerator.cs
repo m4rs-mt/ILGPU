@@ -115,9 +115,9 @@ namespace ILGPU.Runtime.CPU
             MaxConstantMemory = int.MaxValue;
             NumMultiprocessors = 1;
             MaxNumThreadsPerMultiprocessor = NumThreads;
-            Backend = context.DefautltILBackend;
 
             Bind();
+            Init(context.DefautltILBackend);
         }
 
         #endregion

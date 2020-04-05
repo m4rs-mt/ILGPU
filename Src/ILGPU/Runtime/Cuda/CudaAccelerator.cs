@@ -162,7 +162,10 @@ namespace ILGPU.Runtime.Cuda
             : base(context, AcceleratorType.Cuda)
         {
             CudaException.ThrowIfFailed(
-                CurrentAPI.CreateContext(out contextPtr, acceleratorFlags, deviceId));
+                CurrentAPI.CreateContext(
+                    out contextPtr,
+                    acceleratorFlags,
+                    deviceId));
             DeviceId = deviceId;
 
             SetupAccelerator();
@@ -193,7 +196,11 @@ namespace ILGPU.Runtime.Cuda
                 throw new ArgumentNullException(nameof(d3d11Device));
 
             CudaException.ThrowIfFailed(
-                CurrentAPI.CreateContextD3D11(out contextPtr, out int deviceId, acceleratorFlags, d3d11Device));
+                CurrentAPI.CreateContextD3D11(
+                    out contextPtr,
+                    out int deviceId,
+                    acceleratorFlags,
+                    d3d11Device));
             DeviceId = deviceId;
 
             SetupAccelerator();
@@ -275,7 +282,11 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetDriverVersion(out var driverVersion));
             InstructionSet = GetInstructionSet(Architecture, driverVersion);
-            base.Backend = new PTXBackend(Context, Architecture, InstructionSet, Backends.Backend.OSPlatform);
+            Init(new PTXBackend(
+                Context,
+                Architecture,
+                InstructionSet,
+                Backends.Backend.OSPlatform));
         }
 
         /// <summary>

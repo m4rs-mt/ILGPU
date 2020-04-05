@@ -18,6 +18,7 @@ using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.Resources;
+using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -31,10 +32,15 @@ using System.Threading.Tasks;
 namespace ILGPU
 {
     /// <summary>
+    /// Represents an abstract context extensions that can store additional data.
+    /// </summary>
+    public abstract class ContextExtension : CachedExtension { }
+
+    /// <summary>
     /// Represents the main ILGPU context.
     /// </summary>
-    /// <remarks>Members of this class are thread safe.</remarks>
-    public sealed partial class Context : DisposeBase, ICache
+    /// <remarks>Members of this class are thread-safe.</remarks>
+    public sealed partial class Context : CachedExtensionBase<ContextExtension>
     {
         #region Static
 
@@ -110,6 +116,15 @@ namespace ILGPU
             /// <returns>The emitted method.</returns>
             public MethodInfo Finish() => Method;
         }
+
+        #endregion
+
+        #region Events
+
+        /// <summary>
+        /// Will be called when a new accelerator has been created.
+        /// </summary>
+        public event EventHandler<Accelerator> AcceleratorCreated;
 
         #endregion
 
@@ -357,7 +372,7 @@ namespace ILGPU
         /// <remarks>
         /// This method is not thread-safe.
         /// </remarks>
-        public void ClearCache(ClearCacheMode mode)
+        public override void ClearCache(ClearCacheMode mode)
         {
             IRContext.ClearCache(mode);
             TypeContext.ClearCache(mode);
@@ -365,7 +380,15 @@ namespace ILGPU
             DefautltILBackend.ClearCache(mode);
 
             ReloadAssemblyBuilder();
+            base.ClearCache(mode);
         }
+
+        /// <summary>
+        /// Raises the corresponding <see cref="AcceleratorCreated"/> event.
+        /// </summary>
+        /// <param name="accelerator">The new accelerator.</param>
+        internal void OnAcceleratorCreated(Accelerator accelerator) =>
+            AcceleratorCreated?.Invoke(this, accelerator);
 
         #endregion
 

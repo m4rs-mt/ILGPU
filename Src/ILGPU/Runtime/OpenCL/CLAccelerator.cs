@@ -280,7 +280,10 @@ namespace ILGPU.Runtime.OpenCL
 
             Bind();
             DefaultStream = CreateStreamInternal();
-            base.Backend = new CLBackend(Context, Backends.Backend.OSPlatform, Vendor);
+            Init(new CLBackend(
+                Context,
+                Backends.Backend.OSPlatform,
+                Vendor));
         }
 
         /// <summary>

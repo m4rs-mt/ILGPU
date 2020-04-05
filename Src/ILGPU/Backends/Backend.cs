@@ -23,7 +23,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends
@@ -78,9 +77,14 @@ namespace ILGPU.Backends
     }
 
     /// <summary>
+    /// Represents an abstract backend extensions that can store additional data.
+    /// </summary>
+    public abstract class BackendExtension : CachedExtension { }
+
+    /// <summary>
     /// Represents a general ILGPU backend.
     /// </summary>
-    public abstract class Backend : DisposeBase, ICache
+    public abstract class Backend : CachedExtensionBase<BackendExtension>
     {
         #region Nested Types
 
@@ -374,7 +378,7 @@ namespace ILGPU.Backends
             Environment.Is64BitOperatingSystem ? TargetPlatform.X64 : TargetPlatform.X86;
 
         /// <summary>
-        /// Returns true iff the current runtime platform is equal to the OS platform.
+        /// Returns true if the current runtime platform is equal to the OS platform.
         /// </summary>
         public static bool RunningOnNativePlatform => RuntimePlatform == OSPlatform;
 
@@ -502,20 +506,20 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
-        /// Precompiles the given entry point description into an IR method.
+        /// Pre-compiles the given entry point description into an IR method.
         /// </summary>
         /// <param name="entry">The desired entry point.</param>
-        /// <returns>The pre compiled IR method.</returns>
+        /// <returns>The pre-compiled IR method.</returns>
         public Method PreCompileKernelMethod(in EntryPointDescription entry) =>
             PreCompileKernelMethod(entry, new NoHook());
 
         /// <summary>
-        /// Precompiles the given entry point description into an IR method.
+        /// Pre-compiles the given entry point description into an IR method.
         /// </summary>
         /// <typeparam name="TBackendHook">The backend hook type.</typeparam>
         /// <param name="entry">The desired entry point.</param>
         /// <param name="backendHook">The backend hook.</param>
-        /// <returns>The pre compiled IR method.</returns>
+        /// <returns>The pre-compiled IR method.</returns>
         public Method PreCompileKernelMethod<TBackendHook>(
             in EntryPointDescription entry,
             TBackendHook backendHook)
@@ -660,9 +664,10 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="mode">The clear mode.</param>
         /// <remarks>This method is not thread-safe.</remarks>
-        public virtual void ClearCache(ClearCacheMode mode)
+        public override void ClearCache(ClearCacheMode mode)
         {
             ArgumentMapper?.ClearCache(mode);
+            base.ClearCache(mode);
         }
 
         #endregion
