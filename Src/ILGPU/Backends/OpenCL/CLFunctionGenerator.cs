@@ -11,7 +11,6 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
-using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Text;
 
@@ -38,13 +37,13 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// A specialized function setup logic for parameters.
         /// </summary>
-        private readonly struct FunctionParameterSetupLoggic : IParametersSetupLogic
+        private readonly struct FunctionParameterSetupLogic : IParametersSetupLogic
         {
             /// <summary>
             /// Constructs a new specialized function setup logic.
             /// </summary>
             /// <param name="typeGenerator">The parent type generator.</param>
-            public FunctionParameterSetupLoggic(CLTypeGenerator typeGenerator)
+            public FunctionParameterSetupLogic(CLTypeGenerator typeGenerator)
             {
                 TypeGenerator = typeGenerator;
             }
@@ -54,11 +53,17 @@ namespace ILGPU.Backends.OpenCL
             /// </summary>
             public CLTypeGenerator TypeGenerator { get; }
 
-            /// <summary cref="CLCodeGenerator.IParametersSetupLogic.GetOrCreateType(TypeNode)"/>
-            public string GetOrCreateType(TypeNode typeNode) => TypeGenerator[typeNode];
+            /// <summary>
+            /// Returns the internal type for the given parameter.
+            /// </summary>
+            public string GetParameterType(Parameter parameter) =>
+                TypeGenerator[parameter.ParameterType];
 
-            /// <summary cref="CLCodeGenerator.IParametersSetupLogic.HandleIntrinsicParameter(int, Parameter)"/>
-            public Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter) => null;
+            /// <summary>
+            /// This setup logic does not support intrinsic parameters.
+            /// </summary>
+            public Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter) =>
+                null;
         }
 
         #endregion
@@ -92,7 +97,7 @@ namespace ILGPU.Backends.OpenCL
             builder.Append(' ');
             builder.Append(GetMethodName(Method));
             builder.AppendLine("(");
-            var setupLogic = new FunctionParameterSetupLoggic(TypeGenerator);
+            var setupLogic = new FunctionParameterSetupLogic(TypeGenerator);
             SetupParameters(builder, ref setupLogic, 0);
             builder.AppendLine(")");
         }

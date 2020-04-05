@@ -43,6 +43,16 @@ namespace ILGPU.Backends.OpenCL
         public const string SelectOperation2 = ":";
 
         /// <summary>
+        /// A structure type prefix.
+        /// </summary>
+        public const string StructTypePrefix = "struct";
+
+        /// <summary>
+        /// A typedef statement.
+        /// </summary>
+        public const string TypeDefStatement = "typedef";
+
+        /// <summary>
         /// An if statement.
         /// </summary>
         public const string IfStatement = "if";

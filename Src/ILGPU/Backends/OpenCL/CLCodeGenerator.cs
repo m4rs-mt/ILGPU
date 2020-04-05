@@ -13,7 +13,6 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
-using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
@@ -28,7 +27,6 @@ namespace ILGPU.Backends.OpenCL
     /// <remarks>The code needs to be prepared for this code generator.</remarks>
     public abstract partial class CLCodeGenerator :
         CLVariableAllocator,
-        IValueVisitor,
         IBackendCodeGenerator<StringBuilder>
     {
         #region Nested Types
@@ -48,6 +46,7 @@ namespace ILGPU.Backends.OpenCL
                 TypeGenerator = typeGenerator;
                 EntryPoint = entryPoint;
                 ABI = abi;
+                KernelTypeGenerator = new CLKernelTypeGenerator(typeGenerator, entryPoint);
             }
 
             /// <summary>
@@ -69,6 +68,11 @@ namespace ILGPU.Backends.OpenCL
             /// Returns the associated ABI.
             /// </summary>
             public ABI ABI { get; }
+
+            /// <summary>
+            /// Returns the current kernel-type generator.
+            /// </summary>
+            internal CLKernelTypeGenerator KernelTypeGenerator { get; }
         }
 
         /// <summary>
@@ -122,11 +126,11 @@ namespace ILGPU.Backends.OpenCL
         protected interface IParametersSetupLogic
         {
             /// <summary>
-            /// Gets or creates the given type in OpenCL code.
+            /// Gets the corresponding OpenCL type for the given parameter.
             /// </summary>
-            /// <param name="typeNode">The type node.</param>
+            /// <param name="parameter">The parameter.</param>
             /// <returns>The resulting OpenCL type representation.</returns>
-            string GetOrCreateType(TypeNode typeNode);
+            string GetParameterType(Parameter parameter);
 
             /// <summary>
             /// Handles an intrinsic parameter and returns the
@@ -393,7 +397,7 @@ namespace ILGPU.Backends.OpenCL
                     targetBuilder.AppendLine(",");
 
                 targetBuilder.Append('\t');
-                targetBuilder.Append(logic.GetOrCreateType(param.Type));
+                targetBuilder.Append(logic.GetParameterType(param));
                 targetBuilder.Append(' ');
                 targetBuilder.Append(variable.VariableName);
 
@@ -405,9 +409,12 @@ namespace ILGPU.Backends.OpenCL
         /// Setups local or shared allocations.
         /// </summary>
         /// <param name="allocas">The allocations to setup.</param>
-        /// <param name="addressSpacePrefix">The source address-space prefix (like .local).</param>
-        private void SetupAllocations(AllocaKindInformation allocas, string addressSpacePrefix)
+        /// <param name="addressSpace">The source address space.local).</param>
+        private void SetupAllocations(
+            AllocaKindInformation allocas,
+            MemoryAddressSpace addressSpace)
         {
+            var addressSpacePrefix = CLInstructions.GetAddressSpacePrefix(addressSpace);
             foreach (var allocaInfo in allocas)
             {
                 var allocationVariable = AllocateType(allocaInfo.ElementType);
@@ -416,6 +423,7 @@ namespace ILGPU.Backends.OpenCL
                 // Declare alloca using element-type information
                 AppendIndent();
                 Builder.Append(addressSpacePrefix);
+                Builder.Append(' ');
                 Builder.Append(TypeGenerator[allocaInfo.ElementType]);
                 Builder.Append(' ');
                 Builder.Append(allocationVariable.VariableName);
@@ -448,8 +456,8 @@ namespace ILGPU.Backends.OpenCL
         protected void GenerateCodeInternal()
         {
             // Setup allocations
-            SetupAllocations(Allocas.LocalAllocations, string.Empty);
-            SetupAllocations(Allocas.SharedAllocations, "local ");
+            SetupAllocations(Allocas.LocalAllocations, MemoryAddressSpace.Local);
+            SetupAllocations(Allocas.SharedAllocations, MemoryAddressSpace.Shared);
 
             if (Allocas.DynamicSharedAllocations.Length > 0)
                 throw new NotSupportedException(
@@ -490,7 +498,7 @@ namespace ILGPU.Backends.OpenCL
                     else
                     {
                         // Emit value
-                        value.Accept(this);
+                        this.GenerateCodeFor(value);
                     }
                 }
 
@@ -507,7 +515,7 @@ namespace ILGPU.Backends.OpenCL
                 }
 
                 // Build terminator
-                block.Terminator.Accept(this);
+                this.GenerateCodeFor(block.Terminator);
                 Builder.AppendLine();
             }
         }

@@ -13,15 +13,14 @@ using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
-using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ILGPU.Backends.OpenCL
 {
     partial class CLCodeGenerator
     {
-        /// <summary cref="IValueVisitor.Visit(MethodCall)"/>
-        public void Visit(MethodCall methodCall)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(MethodCall)"/>
+        public void GenerateCode(MethodCall methodCall)
         {
             var target = methodCall.Target;
             var returnType = target.ReturnType;
@@ -49,20 +48,20 @@ namespace ILGPU.Backends.OpenCL
             statementEmitter.Dispose();
         }
 
-        /// <summary cref="IValueVisitor.Visit(Parameter)"/>
-        public void Visit(Parameter parameter)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Parameter)"/>
+        public void GenerateCode(Parameter parameter)
         {
             // Parameters are already assigned to variables
         }
 
-        /// <summary cref="IValueVisitor.Visit(PhiValue)"/>
-        public void Visit(PhiValue phiValue)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(PhiValue)"/>
+        public void GenerateCode(PhiValue phiValue)
         {
             // Phi values are already assigned to variables
         }
 
-        /// <summary cref="IValueVisitor.Visit(UnaryArithmeticValue)"/>
-        public void Visit(UnaryArithmeticValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(UnaryArithmeticValue)"/>
+        public void GenerateCode(UnaryArithmeticValue value)
         {
             var argument = Load(value.Value);
             var target = Allocate(value, value.ArithmeticBasicValueType);
@@ -87,8 +86,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(BinaryArithmeticValue)"/>
-        public void Visit(BinaryArithmeticValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(BinaryArithmeticValue)"/>
+        public void GenerateCode(BinaryArithmeticValue value)
         {
             var left = Load(value.Left);
             var right = Load(value.Right);
@@ -127,8 +126,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(TernaryArithmeticValue)"/>
-        public void Visit(TernaryArithmeticValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(TernaryArithmeticValue)"/>
+        public void GenerateCode(TernaryArithmeticValue value)
         {
             if (!CLInstructions.TryGetArithmeticOperation(
                 value.Kind,
@@ -163,8 +162,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(CompareValue)"/>
-        public void Visit(CompareValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(CompareValue)"/>
+        public void GenerateCode(CompareValue value)
         {
             var left = Load(value.Left);
             var right = Load(value.Right);
@@ -182,8 +181,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(ConvertValue)"/>
-        public void Visit(ConvertValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(ConvertValue)"/>
+        public void GenerateCode(ConvertValue value)
         {
             var sourceValue = Load(value.Value);
 
@@ -196,8 +195,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(PointerCast)"/>
-        public void Visit(PointerCast value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(PointerCast)"/>
+        public void GenerateCode(PointerCast value)
         {
             var sourceValue = Load(value.Value);
 
@@ -209,8 +208,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(FloatAsIntCast)"/>
-        public void Visit(FloatAsIntCast value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(FloatAsIntCast)"/>
+        public void GenerateCode(FloatAsIntCast value)
         {
             var source = Load(value.Value);
             var target = Allocate(value);
@@ -227,8 +226,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(IntAsFloatCast)"/>
-        public void Visit(IntAsFloatCast value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(IntAsFloatCast)"/>
+        public void GenerateCode(IntAsFloatCast value)
         {
             var source = Load(value.Value);
             var target = Allocate(value);
@@ -245,8 +244,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Predicate)"/>
-        public void Visit(Predicate predicate)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Predicate)"/>
+        public void GenerateCode(Predicate predicate)
         {
             var condition = Load(predicate.Condition);
             var trueValue = Load(predicate.TrueValue);
@@ -263,8 +262,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(GenericAtomic)"/>
-        public void Visit(GenericAtomic atomic)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GenericAtomic)"/>
+        public void GenerateCode(GenericAtomic atomic)
         {
             var target = Load(atomic.Target);
             var value = Load(atomic.Value);
@@ -281,8 +280,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(AtomicCAS)"/>
-        public void Visit(AtomicCAS atomicCAS)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(AtomicCAS)"/>
+        public void GenerateCode(AtomicCAS atomicCAS)
         {
             var target = Load(atomicCAS.Target);
             var value = Load(atomicCAS.Value);
@@ -296,7 +295,7 @@ namespace ILGPU.Backends.OpenCL
                 statement.BeginArguments();
                 statement.AppendAtomicCast(atomicCAS.ArithmeticBasicValueType);
                 statement.AppendArgument(target);
-                statement.AppendArgumentAddressWithCast(value, $"{CLInstructions.GetAddressSpacePrefix(MemoryAddressSpace.Generic)} {CLTypeGenerator.GetBasicValueType(atomicCAS.ArithmeticBasicValueType)} {CLInstructions.DereferenceOperation}");
+                statement.AppendArgumentAddressWithCast(value, atomicCAS.Target.Type);
                 statement.AppendArgument(compare);
                 statement.EndArguments();
             }
@@ -320,14 +319,14 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Alloca)"/>
-        public void Visit(Alloca alloca)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Alloca)"/>
+        public void GenerateCode(Alloca alloca)
         {
             // Ignore alloca
         }
 
-        /// <summary cref="IValueVisitor.Visit(MemoryBarrier)"/>
-        public void Visit(MemoryBarrier barrier)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(MemoryBarrier)"/>
+        public void GenerateCode(MemoryBarrier barrier)
         {
             var fenceFlags = CLInstructions.GetMemoryFenceFlags(true);
             var command = CLInstructions.GetMemoryBarrier(
@@ -347,8 +346,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Load)"/>
-        public void Visit(Load load)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Load)"/>
+        public void GenerateCode(Load load)
         {
             var address = Load(load.Source);
             var target = Allocate(load);
@@ -360,8 +359,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Store)"/>
-        public void Visit(Store store)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Store)"/>
+        public void GenerateCode(Store store)
         {
             var address = Load(store.Target);
             var value = Load(store.Value);
@@ -375,8 +374,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(LoadFieldAddress)"/>
-        public void Visit(LoadFieldAddress value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(LoadFieldAddress)"/>
+        public void GenerateCode(LoadFieldAddress value)
         {
             var source = Load(value.Source);
             var target = Allocate(value);
@@ -385,12 +384,12 @@ namespace ILGPU.Backends.OpenCL
             {
                 statement.AppendCommand(CLInstructions.AddressOfOperation);
                 statement.AppendArgument(source);
-                statement.AppendFieldViaPtr(value.FieldIndex);
+                statement.AppendFieldViaPtr(value.FieldSpan.Access);
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(PrimitiveValue)"/>
-        public void Visit(PrimitiveValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(PrimitiveValue)"/>
+        public void GenerateCode(PrimitiveValue value)
         {
             if (value.Uses.TryGetSingleUse(out Use use) && use.Resolve() is Alloca)
                 return;
@@ -427,77 +426,86 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(StringValue)"/>
-        public void Visit(StringValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(StringValue)"/>
+        public void GenerateCode(StringValue value)
         {
             // Ignore string values for now
         }
 
-        /// <summary>
-        /// Emits a new null constant of the given type.
-        /// </summary>
-        /// <param name="variable">The target variable to write to.</param>
-        /// <param name="type">The current type.</param>
-        /// <param name="accessChain">The access chain to use.</param>
-        private void EmitNull(
-            Variable variable,
-            TypeNode type,
-            ImmutableArray<int> accessChain)
-        {
-            switch (type)
-            {
-                case ViewType viewType:
-                    MakeNullView(variable, viewType, accessChain);
-                    break;
-                case StructureType structureType:
-                    for (int i = 0, e = structureType.NumFields; i < e; ++i)
-                        EmitNull(variable, structureType.Fields[i], accessChain.Add(i));
-                    break;
-                default:
-                    using (var statement = BeginStatement(variable, accessChain))
-                    {
-                        statement.AppendCast(type);
-                        statement.AppendConstant(0);
-                    }
-                    break;
-            }
-        }
-
-        /// <summary cref="IValueVisitor.Visit(NullValue)"/>
-        public void Visit(NullValue value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(NullValue)"/>
+        public void GenerateCode(NullValue value)
         {
             if (value.Type.IsVoidType)
                 return;
             var target = Allocate(value);
             Declare(target);
-            EmitNull(target, value.Type, ImmutableArray<int>.Empty);
-        }
 
-        /// <summary cref="IValueVisitor.Visit(SizeOfValue)"/>
-        public void Visit(SizeOfValue value)
-        {
-            var target = Allocate(value);
-            var size = ABI.GetSizeOf(value.TargetType);
-            using (var statement = BeginStatement(target))
+            if (value.Type is StructureType structureType)
             {
-                statement.AppendConstant(size);
+                for (int i = 0, e = structureType.NumFields; i < e; ++i)
+                {
+                    using (var statement = BeginStatement(target, i))
+                    {
+                        statement.AppendCast(structureType[i]);
+                        statement.AppendConstant(0);
+                    }
+                }
+            }
+            else
+            {
+                using (var statement = BeginStatement(target))
+                {
+                    statement.AppendCast(value.Type);
+                    statement.AppendConstant(0);
+                }
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(GetField)"/>
-        public void Visit(GetField value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(StructureValue)"/>
+        public void GenerateCode(StructureValue value)
+        {
+            var target = Allocate(value);
+            Declare(target);
+            for (int i = 0, e = value.NumFields; i < e; ++i)
+            {
+                using (var statement = BeginStatement(target, i))
+                    statement.AppendArgument(Load(value[i]));
+            }
+        }
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GetField)"/>
+        public void GenerateCode(GetField value)
         {
             var source = Load(value.ObjectValue);
             var target = Allocate(value);
-            using (var statement = BeginStatement(target))
+
+            var span = value.FieldSpan;
+            if (!span.HasSpan)
             {
-                statement.AppendArgument(source);
-                statement.AppendField(value.FieldIndex);
+                // Extract primitive value from the given target
+                using (var statement = BeginStatement(target))
+                {
+                    statement.AppendArgument(source);
+                    statement.AppendField(span.Access);
+                }
+            }
+            else
+            {
+                // Result is a structure type
+                Declare(target);
+                for (int i = 0; i < span.Span; ++i)
+                {
+                    using (var statement = BeginStatement(target, i))
+                    {
+                        statement.AppendArgument(source);
+                        statement.AppendField(span.Access.Add(i));
+                    }
+                }
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(SetField)"/>
-        public void Visit(SetField value)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(SetField)"/>
+        public void GenerateCode(SetField value)
         {
             var source = Load(value.ObjectValue);
             var set = Load(value.Value);
@@ -507,42 +515,24 @@ namespace ILGPU.Backends.OpenCL
             using (var statement = BeginStatement(target))
                 statement.AppendArgument(source);
 
-            // Update field value
-            using (var statement = BeginStatement(target, value.FieldIndex))
-                statement.AppendArgument(set);
-        }
-
-        /// <summary cref="IValueVisitor.Visit(GetElement)"/>
-        public void Visit(GetElement value)
-        {
-            var source = Load(value.ObjectValue);
-            var index = Load(value.Index);
-            var target = Allocate(value);
-
-            using (var statement = BeginStatement(target))
+            var span = value.FieldSpan;
+            if (!span.HasSpan)
             {
-                statement.AppendArgument(source);
-                statement.AppendIndexer(index);
+                // Update field value
+                using (var statement = BeginStatement(target, span.Access))
+                    statement.AppendArgument(set);
             }
-        }
-
-        /// <summary cref="IValueVisitor.Visit(SetElement)"/>
-        public void Visit(SetElement value)
-        {
-            var source = Load(value.ObjectValue);
-            var index = Load(value.Index);
-            var set = Load(value.Value);
-            var target = Allocate(value);
-
-            // Copy value
-            using (var statement = BeginStatement(target))
-                statement.AppendArgument(source);
-
-            // Update array value
-            using (var statement = BeginStatement(target, index))
+            else
             {
-                statement.AppendCommand(CLInstructions.AssignmentOperation);
-                statement.AppendArgument(set);
+                // Update field values
+                for (int i = 0; i < span.Span; ++i)
+                {
+                    using (var statement = BeginStatement(target, i))
+                    {
+                        statement.AppendArgument(set);
+                        statement.AppendField(span.Access.Add(i));
+                    }
+                }
             }
         }
 
@@ -573,48 +563,48 @@ namespace ILGPU.Backends.OpenCL
                 operation,
                 ((int)dimension).ToString());
 
-        /// <summary cref="IValueVisitor.Visit(GridIndexValue)"/>
-        public void Visit(GridIndexValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GridIndexValue)"/>
+        public void GenerateCode(GridIndexValue value) =>
             MakeIntrinsicValue(
                 value,
                 CLInstructions.GetGridIndex,
                 value.Dimension);
 
-        /// <summary cref="IValueVisitor.Visit(GroupIndexValue)"/>
-        public void Visit(GroupIndexValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GroupIndexValue)"/>
+        public void GenerateCode(GroupIndexValue value) =>
             MakeIntrinsicValue(
                 value,
                 CLInstructions.GetGroupIndex,
                 value.Dimension);
 
-        /// <summary cref="IValueVisitor.Visit(GridDimensionValue)"/>
-        public void Visit(GridDimensionValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GridDimensionValue)"/>
+        public void GenerateCode(GridDimensionValue value) =>
             MakeIntrinsicValue(
                 value,
                 CLInstructions.GetGridSize,
                 value.Dimension);
 
-        /// <summary cref="IValueVisitor.Visit(GroupDimensionValue)"/>
-        public void Visit(GroupDimensionValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(GroupDimensionValue)"/>
+        public void GenerateCode(GroupDimensionValue value) =>
             MakeIntrinsicValue(
                 value,
                 CLInstructions.GetGroupSize,
                 value.Dimension);
 
-        /// <summary cref="IValueVisitor.Visit(WarpSizeValue)"/>
-        public void Visit(WarpSizeValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(WarpSizeValue)"/>
+        public void GenerateCode(WarpSizeValue value) =>
             MakeIntrinsicValue(
                 value,
                 CLInstructions.GetWarpSize);
 
-        /// <summary cref="IValueVisitor.Visit(LaneIdxValue)"/>
-        public void Visit(LaneIdxValue value) =>
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(LaneIdxValue)"/>
+        public void GenerateCode(LaneIdxValue value) =>
             MakeIntrinsicValue(
                 value,
                 CLInstructions.GetLaneIndexOperation);
 
-        /// <summary cref="IValueVisitor.Visit(PredicateBarrier)"/>
-        public void Visit(PredicateBarrier barrier)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(PredicateBarrier)"/>
+        public void GenerateCode(PredicateBarrier barrier)
         {
             var sourcePredicate = Load(barrier.Predicate);
             var target = Allocate(barrier);
@@ -635,8 +625,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Barrier)"/>
-        public void Visit(Barrier barrier)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Barrier)"/>
+        public void GenerateCode(Barrier barrier)
         {
             using (var statement = BeginStatement(
                 CLInstructions.GetBarrier(barrier.Kind)))
@@ -648,8 +638,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(Broadcast)"/>
-        public void Visit(Broadcast broadcast)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Broadcast)"/>
+        public void GenerateCode(Broadcast broadcast)
         {
             var source = Load(broadcast.Variable);
             var origin = Load(broadcast.Origin);
@@ -667,8 +657,8 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(WarpShuffle)"/>
-        public void Visit(WarpShuffle shuffle)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(WarpShuffle)"/>
+        public void GenerateCode(WarpShuffle shuffle)
         {
             if (!CLInstructions.TryGetShuffleOperation(
                 Backend.Vendor,
@@ -699,23 +689,13 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(SubWarpShuffle)"/>
-        public void Visit(SubWarpShuffle shuffle) => throw new InvalidCodeGenerationException();
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(SubWarpShuffle)"/>
+        public void GenerateCode(SubWarpShuffle shuffle) => throw new InvalidCodeGenerationException();
 
-        /// <summary cref="IValueVisitor.Visit(UndefinedValue)"/>
-        public void Visit(UndefinedValue undefined) => throw new InvalidCodeGenerationException();
-
-        /// <summary cref="IValueVisitor.Visit(HandleValue)"/>
-        public void Visit(HandleValue handle) => throw new InvalidCodeGenerationException();
-
-        /// <summary cref="IValueVisitor.Visit(DebugOperation)"/>
-        public void Visit(DebugOperation debug)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugOperation)"/>
+        public void GenerateCode(DebugOperation debug)
         {
             Debug.Assert(false, "Invalid debug node -> should have been removed");
         }
-
-        /// <summary cref="IValueVisitor.Visit(AcceleratorTypeValue)"/>
-        public void Visit(AcceleratorTypeValue handle) =>
-            throw new InvalidCodeGenerationException();
     }
 }

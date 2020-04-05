@@ -9,8 +9,6 @@
 // Illinois Open Source License. See LICENSE.txt for details
 // -----------------------------------------------------------------------------
 
-using ILGPU.Backends.SeparateViews;
-using ILGPU.IR.Types;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -19,7 +17,7 @@ namespace ILGPU.Backends.OpenCL
     /// <summary>
     /// Represents a specialized OpenCL variable allocator.
     /// </summary>
-    public class CLVariableAllocator : ViewVariableAllocator
+    public class CLVariableAllocator : VariableAllocator
     {
         #region Instance
 
@@ -45,14 +43,6 @@ namespace ILGPU.Backends.OpenCL
 
         #region Methods
 
-        /// <summary cref="VariableAllocator.AllocateViewVariable(int, ViewType)"/>
-        protected override ViewVariable AllocateViewVariable(int variableId, ViewType viewType) =>
-            new ViewImplementationVariable(
-                variableId,
-                viewType,
-                CLTypeGenerator.ViewPointerFieldIndex,
-                CLTypeGenerator.ViewLengthFieldIndex);
-
         /// <summary>
         /// Resolves the type name of the given variable.
         /// </summary>
@@ -64,15 +54,8 @@ namespace ILGPU.Backends.OpenCL
             switch (variable)
             {
                 case PrimitiveVariable primitiveVariable:
-                    return CLTypeGenerator.GetBasicValueType(primitiveVariable.BasicValueType);
-                case PointerVariable pointerType:
-                    {
-                        var addressSpacePrefix = CLInstructions.GetAddressSpacePrefix(pointerType.AddressSpace);
-                        var elementTypeName = TypeGenerator[pointerType.ElementType];
-                        if (!string.IsNullOrEmpty(addressSpacePrefix))
-                            elementTypeName = addressSpacePrefix + " " + elementTypeName;
-                        return elementTypeName + CLInstructions.DereferenceOperation;
-                    }
+                    return CLTypeGenerator.GetBasicValueType(
+                        primitiveVariable.BasicValueType);
                 case TypedVariable typedVariable:
                     return TypeGenerator[typedVariable.Type];
                 default:

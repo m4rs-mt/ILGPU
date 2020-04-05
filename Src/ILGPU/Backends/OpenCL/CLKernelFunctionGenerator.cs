@@ -13,7 +13,6 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
 
@@ -67,11 +66,15 @@ namespace ILGPU.Backends.OpenCL
             /// </summary>
             public CLKernelFunctionGenerator Parent { get; }
 
-            /// <summary cref="CLCodeGenerator.IParametersSetupLogic.GetOrCreateType(TypeNode)"/>
-            public string GetOrCreateType(TypeNode typeNode) =>
-                Parent.TypeGenerator.GetKernelArgumentType(typeNode);
+            /// <summary>
+            /// Returns the associated kernel type.
+            /// </summary>
+            public string GetParameterType(Parameter parameter) =>
+                Parent.KernelTypeGenerator[parameter];
 
-            /// <summary cref="CLCodeGenerator.IParametersSetupLogic.HandleIntrinsicParameter(int, Parameter)"/>
+            /// <summary>
+            /// Updates index and length variables.
+            /// </summary>
             public Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter)
             {
                 if (!Parent.EntryPoint.IsExplicitlyGrouped)
@@ -104,10 +107,11 @@ namespace ILGPU.Backends.OpenCL
             : base(args, scope, allocas)
         {
             EntryPoint = args.EntryPoint;
+            KernelTypeGenerator = args.KernelTypeGenerator;
 
             // Analyze and create required kernel interop types first
             foreach (var param in Method.Parameters)
-                TypeGenerator.GetKernelArgumentType(param.Type);
+                KernelTypeGenerator.Register(param);
         }
 
         #endregion
@@ -118,6 +122,11 @@ namespace ILGPU.Backends.OpenCL
         /// Returns the associated entry point.
         /// </summary>
         public SeparateViewEntryPoint EntryPoint { get; }
+
+        /// <summary>
+        /// The current kernel type generator.
+        /// </summary>
+        public CLKernelTypeGenerator KernelTypeGenerator { get; }
 
         #endregion
 
@@ -160,19 +169,17 @@ namespace ILGPU.Backends.OpenCL
             }
 
             // Emit all parameter declarations
-            int paramOffset = EntryPoint.IsExplicitlyGrouped ? 0 : 1;
             var setupLogic = new KernelParameterSetupLogic(this);
             SetupParameters(
                 Builder,
                 ref setupLogic,
-                paramOffset);
+                EntryPoint.KernelIndexParameterOffset);
             Builder.AppendLine(")");
 
             // Emit code that moves view arguments into their appropriate targets
             Builder.AppendLine("{");
             PushIndent();
-            var paramVariables = GenerateArgumentMapping(paramOffset);
-            GenerateViewWiring(paramVariables, paramOffset);
+            GenerateArgumentMapping();
 
             // Emit index computation
 #if DEBUG
@@ -189,125 +196,89 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary>
-        /// Generates a set of instructions to copy input information to its
-        /// internal structure representation.
-        /// </summary>
-        /// <param name="source">The source variable to copy from.</param>
-        /// <param name="target">The target variable to copy to.</param>
-        /// <param name="typeNode">The current type.</param>
-        /// <param name="accessChain">The current access chain.</param>
-        private void GenerateArgumentMappingAssignment(
-            Variable source,
-            Variable target,
-            TypeNode typeNode,
-            ImmutableArray<int> accessChain)
-        {
-            if (TypeGenerator.RequiresKernelArgumentMapping(typeNode, out var structureType))
-            {
-                // We have to emit mapping code in this case
-                for (int i = 0, e = structureType.NumFields; i < e; ++i)
-                {
-                    GenerateArgumentMappingAssignment(
-                        source,
-                        target,
-                        structureType.Fields[i],
-                        accessChain.Add(i));
-                }
-            }
-            else if (typeNode is ViewType)
-            {
-                // Ignore views here -> will be mapped afterwards
-            }
-            else
-            {
-                // Copy the contents to target
-                using (var statement = BeginStatement(
-                    target,
-                    accessChain))
-                {
-                    statement.Append(source);
-                    statement.AppendField(accessChain);
-                }
-            }
-        }
-
-        /// <summary>
         /// Generates code that wires kernel-specific arguments into internal arguments.
         /// </summary>
-        /// <param name="paramOffset">The parameter offset.</param>
-        private Variable[] GenerateArgumentMapping(int paramOffset)
+        private void GenerateArgumentMapping()
         {
 #if DEBUG
             Builder.AppendLine("\t// Map parameters");
             Builder.AppendLine();
 #endif
+            int paramOffset = EntryPoint.KernelIndexParameterOffset;
             var parameters = Method.Parameters;
-            var oldVariables = new Variable[parameters.Count];
-
-            for (int i = paramOffset, e = parameters.Count; i < e; ++i)
+            for (
+                int paramIdx = paramOffset, numParams = parameters.Count;
+                paramIdx < numParams;
+                ++paramIdx)
             {
-                var param = parameters[i];
+                var param = parameters[paramIdx];
                 var sourceVariable = Load(param);
+
+                // Check whether we need to create a custom mapping
+                if (!EntryPoint.TryGetViewParameters(
+                    param.Index - paramOffset,
+                    out var viewMapping))
+                    continue;
+                Debug.Assert(viewMapping.Count > 0, "There must be at least one view entry");
+
+                // We require a custom mapping step
                 var targetVariable = AllocateType(param.Type);
                 Declare(targetVariable);
-
-                GenerateArgumentMappingAssignment(
-                    sourceVariable,
-                    targetVariable,
-                    param.Type,
-                    ImmutableArray<int>.Empty);
-
-                oldVariables[i] = sourceVariable;
                 Bind(param, targetVariable);
-            }
 
-            return oldVariables;
-        }
+                // The current type must be a structure type
+                var structureType = param.Type as StructureType;
+                Debug.Assert(structureType != null, "Param must have a structure type");
 
-        /// <summary>
-        /// Generates code that wires custom view parameters and all other data structures
-        /// that are passed to a kernel.
-        /// </summary>
-        /// <param name="oldVariables">All old variables that have the be bound.</param>
-        /// <param name="paramOffset">The parameter offset.</param>
-        private void GenerateViewWiring(Variable[] oldVariables, int paramOffset)
-        {
-#if DEBUG
-            Builder.AppendLine();
-            Builder.AppendLine("\t// Assign views");
-            Builder.AppendLine();
-#endif
-            var viewParams = EntryPoint.ViewParameters;
-            for (int i = 0, e = viewParams.Length; i < e; ++i)
-            {
-                var viewParam = viewParams[i];
-                // Load the associated parameter and generate a field-access chain
-                var param = Method.Parameters[viewParam.ParameterIndex + paramOffset];
-                var sourceVariable = oldVariables[viewParam.ParameterIndex + paramOffset];
-                var targetVariable = Load(param);
-
-                // Wire the view pointer and the passed structure
-                var pointerChain = viewParam.AccessChain.Add(CLTypeGenerator.ViewPointerFieldIndex);
-                using (var statement = BeginStatement(targetVariable, pointerChain))
+                // Map each field
+                for (int i = 0, specialParamIdx = 0, e = structureType.NumFields; i < e; ++i)
                 {
-                    statement.AppendOperation(
-                        string.Format(KernelViewNameFormat, i.ToString()));
-                    statement.AppendOperation(
-                        CLInstructions.GetArithmeticOperation(
-                            BinaryArithmeticKind.Add,
-                            false,
-                            out var _));
+                    var access = new FieldAccess(i);
+                    // Check whether the current field is a nested view pointer
+                    if (specialParamIdx < viewMapping.Count &&
+                        viewMapping[specialParamIdx].TargetAccess.Index == i)
+                    {
+                        var viewIndex = viewMapping[specialParamIdx].Index;
 
-                    statement.Append(sourceVariable);
-                    statement.AppendField(pointerChain);
-                }
+                        // Map the view pointer
+                        using (var statement = BeginStatement(targetVariable, access))
+                        {
+                            statement.AppendCast(structureType[access]);
+                            statement.AppendOperation(
+                                string.Format(
+                                    KernelViewNameFormat,
+                                    viewIndex.ToString()));
+                            statement.AppendOperation(
+                                CLInstructions.GetArithmeticOperation(
+                                    BinaryArithmeticKind.Add,
+                                    false,
+                                    out var _));
 
-                // Wire the length and the passed structure
-                var lengthChain = viewParam.AccessChain.Add(CLTypeGenerator.ViewLengthFieldIndex);
-                using (var statement = BeginStatement(targetVariable, lengthChain))
-                {
-                    statement.Append(sourceVariable);
-                    statement.AppendField(lengthChain);
+                            statement.Append(sourceVariable);
+                            statement.AppendField(access);
+                        }
+
+                        // Map the length
+                        var lengthAccess = access.Add(1);
+                        using (var statement = BeginStatement(targetVariable, lengthAccess))
+                        {
+                            statement.Append(sourceVariable);
+                            statement.AppendField(lengthAccess);
+                        }
+
+                        // Move special index and field index (since we have assigned two fields)
+                        ++specialParamIdx;
+                        ++i;
+                    }
+                    else
+                    {
+                        // Map the field
+                        using (var statement = BeginStatement(targetVariable, access))
+                        {
+                            statement.Append(sourceVariable);
+                            statement.AppendField(access);
+                        }
+                    }
                 }
             }
         }
@@ -317,16 +288,16 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="indexVariable">The index variable to write to.</param>
         /// <param name="boundsVariable">The associated bounds variable.</param>
-        /// <param name="accessChain">The access chain to use.</param>
+        /// <param name="fieldAccess">The access chain to use.</param>
         /// <param name="dimension">The parameter dimension.</param>
         private void EmitImplicitKernelIndex(
             Variable indexVariable,
             Variable boundsVariable,
-            ImmutableArray<int> accessChain,
+            FieldAccess? fieldAccess,
             int dimension)
         {
             // Assign global id
-            using (var statement = BeginStatement(indexVariable, accessChain))
+            using (var statement = BeginStatement(indexVariable, fieldAccess))
             {
                 statement.AppendOperation(CLInstructions.GetGlobalId);
                 statement.BeginArguments();
@@ -339,13 +310,13 @@ namespace ILGPU.Backends.OpenCL
             using (var statement = BeginStatement(tempCondition))
             {
                 statement.Append(indexVariable);
-                statement.AppendField(accessChain);
+                statement.AppendField(fieldAccess);
 
                 statement.AppendOperation(
                     CLInstructions.GetCompareOperation(CompareKind.GreaterEqual));
 
                 statement.Append(boundsVariable);
-                statement.AppendField(accessChain);
+                statement.AppendField(fieldAccess);
             }
 
             // TODO: refactor if-block generation into a separate emitter
@@ -368,16 +339,27 @@ namespace ILGPU.Backends.OpenCL
         {
             if (EntryPoint.IsExplicitlyGrouped)
                 return;
-
             Debug.Assert(indexVariable != null, "Invalid index variable");
-            Declare(indexVariable);
-            for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
+
+            if (EntryPoint.IndexType == IndexType.Index1D)
             {
                 EmitImplicitKernelIndex(
                     indexVariable,
                     lengthVariable,
-                    ImmutableArray.Create(i),
-                    i);
+                    null,
+                    0);
+            }
+            else
+            {
+                Declare(indexVariable);
+                for (int i = 0, e = (int)EntryPoint.IndexType; i < e; ++i)
+                {
+                    EmitImplicitKernelIndex(
+                        indexVariable,
+                        lengthVariable,
+                        new FieldAccess(i),
+                        i);
+                }
             }
         }
 

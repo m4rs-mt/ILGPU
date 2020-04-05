@@ -13,6 +13,7 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
+using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using System.Text;
@@ -32,26 +33,29 @@ namespace ILGPU.Backends.OpenCL
         #region Nested Types
 
         /// <summary>
-        /// The kernel specializer configuration.
+        /// The OpenCL accelerator specializer.
         /// </summary>
-        private readonly struct IntrinsicSpecializerConfiguration : IIntrinsicSpecializerConfiguration
+        private sealed class CLAcceleratorSpecializer : AcceleratorSpecializer
         {
-            /// <summary>
-            /// Constructs a new specializer configuration.
-            /// </summary>
-            /// <param name="flags">The associated context flags.</param>
-            public IntrinsicSpecializerConfiguration(ContextFlags flags)
+            public CLAcceleratorSpecializer(ABI abi)
+                : base(AcceleratorType.OpenCL, null)
             {
-                ContextFlags = flags;
+                ABI = abi;
             }
 
             /// <summary>
-            /// Returns the associated context.
+            /// Returns the current ABI.
             /// </summary>
-            public ContextFlags ContextFlags { get; }
+            public ABI ABI { get; }
 
-            /// <summary cref="IIntrinsicSpecializerConfiguration.EnableAssertions"/>
-            public bool EnableAssertions => false;
+            /// <summary>
+            /// Resolves the size of the given type node.
+            /// </summary>
+            protected override bool TryGetSizeOf(TypeNode type, out int size)
+            {
+                size = ABI.GetSizeOf(type);
+                return true;
+            }
         }
 
         #endregion
@@ -87,8 +91,16 @@ namespace ILGPU.Backends.OpenCL
             Vendor = vendor;
 
             InitializeKernelTransformers(
-                new IntrinsicSpecializerConfiguration(context.Flags),
-                builder => { });
+                IntrinsicSpecializerFlags.None,
+                builder =>
+                {
+                    var transformerBuilder = Transformer.CreateBuilder(
+                        TransformerConfiguration.Empty);
+                    transformerBuilder.AddBackendOptimizations(
+                        new CLAcceleratorSpecializer(ABI),
+                        context.OptimizationLevel);
+                    builder.Add(transformerBuilder.ToTransformer());
+                });
         }
 
         #endregion
@@ -118,7 +130,8 @@ namespace ILGPU.Backends.OpenCL
                 entry,
                 backendContext.SharedMemorySpecification,
                 specialization,
-                Context.TypeContext);
+                Context.TypeContext,
+                2);
 
         /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernelBuilder(EntryPoint, in BackendContext, in KernelSpecialization, out T)"/>
         protected override StringBuilder CreateKernelBuilder(
@@ -131,7 +144,7 @@ namespace ILGPU.Backends.OpenCL
             backendContext.EnsureIntrinsicImplementations(IntrinsicProvider);
 
             var builder = new StringBuilder();
-            var typeGenerator = new CLTypeGenerator(Context.TypeContext, ABI.TargetPlatform);
+            var typeGenerator = new CLTypeGenerator(Context.TypeContext);
 
             data = new CLCodeGenerator.GeneratorArgs(
                 this,
@@ -166,7 +179,10 @@ namespace ILGPU.Backends.OpenCL
         {
             var typeBuilder = new StringBuilder();
             data.TypeGenerator.GenerateTypeDeclarations(typeBuilder);
+            data.KernelTypeGenerator.GenerateTypeDeclarations(typeBuilder);
+
             data.TypeGenerator.GenerateTypeDefinitions(typeBuilder);
+            data.KernelTypeGenerator.GenerateTypeDefinitions(typeBuilder);
 
             builder.Insert(0, typeBuilder.ToString());
 

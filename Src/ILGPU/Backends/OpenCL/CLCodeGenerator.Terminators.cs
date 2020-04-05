@@ -15,8 +15,8 @@ namespace ILGPU.Backends.OpenCL
 {
     partial class CLCodeGenerator
     {
-        /// <summary cref="IValueVisitor.Visit(ReturnTerminator)"/>
-        public void Visit(ReturnTerminator returnTerminator)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(ReturnTerminator)"/>
+        public void GenerateCode(ReturnTerminator returnTerminator)
         {
             using (var statement = BeginStatement(CLInstructions.ReturnStatement))
             {
@@ -28,14 +28,14 @@ namespace ILGPU.Backends.OpenCL
             }
         }
 
-        /// <summary cref="IValueVisitor.Visit(UnconditionalBranch)"/>
-        public void Visit(UnconditionalBranch branch)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(UnconditionalBranch)"/>
+        public void GenerateCode(UnconditionalBranch branch)
         {
             GotoStatement(branch.Target);
         }
 
-        /// <summary cref="IValueVisitor.Visit(IfBranch)"/>
-        public void Visit(IfBranch branch)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(IfBranch)"/>
+        public void GenerateCode(IfBranch branch)
         {
             // TODO: refactor if-block generation into a separate emitter
             // See also EmitImplicitKernelIndex
@@ -51,8 +51,8 @@ namespace ILGPU.Backends.OpenCL
             GotoStatement(branch.FalseTarget);
         }
 
-        /// <summary cref="IValueVisitor.Visit(SwitchBranch)"/>
-        public void Visit(SwitchBranch branch)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(SwitchBranch)"/>
+        public void GenerateCode(SwitchBranch branch)
         {
             var condition = Load(branch.Condition);
             AppendIndent();

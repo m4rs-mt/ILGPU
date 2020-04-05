@@ -11,8 +11,8 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Types;
+using ILGPU.IR.Values;
 using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
 
@@ -112,24 +112,11 @@ namespace ILGPU.Backends.OpenCL
             /// Appends a field target.
             /// </summary>
             /// <param name="target">The target.</param>
-            /// <param name="fieldIndex">The field index.</param>
-            internal void AppendFieldTarget(Variable target, int fieldIndex)
+            /// <param name="fieldSpan">The field span.</param>
+            internal void AppendFieldTarget(Variable target, FieldSpan fieldSpan)
             {
                 BeginAppendTarget(target, false);
-                AppendField(fieldIndex);
-                stringBuilder.Append(" = ");
-            }
-
-            /// <summary>
-            /// Appends a field target via an access chain.
-            /// </summary>
-            /// <param name="target">The target.</param>
-            /// <param name="accessChain">The field access chain.</param>
-            internal void AppendFieldTarget(Variable target, ImmutableArray<int> accessChain)
-            {
-                BeginAppendTarget(target, false);
-                foreach (var fieldIndex in accessChain)
-                    AppendField(fieldIndex);
+                AppendField(fieldSpan);
                 stringBuilder.Append(" = ");
             }
 
@@ -223,60 +210,51 @@ namespace ILGPU.Backends.OpenCL
             }
 
             /// <summary>
-            /// Tries to append a pointer-field accessor (if possible).
-            /// </summary>
-            /// <param name="variable">The variable.</param>
-            public void TryAppendViewPointerField(Variable variable)
-            {
-                // Test for a view variable
-                if (variable is ViewImplementationVariable viewVariable)
-                {
-                    // Add the field suffix
-                    AppendField(viewVariable.PointerFieldIndex);
-                }
-                else
-                {
-                    Append(variable);
-                }
-            }
-
-            /// <summary>
             /// Appends the specified field name.
             /// </summary>
             /// <param name="fieldIndex">The field index.</param>
             private void AppendFieldName(int fieldIndex)
             {
-                var fieldName = string.Format(
-                    CLTypeGenerator.FieldNameFormat,
-                    fieldIndex.ToString());
+                var fieldName = CLTypeGenerator.GetFieldName(fieldIndex);
                 stringBuilder.Append(fieldName);
             }
 
             /// <summary>
             /// Appends the referenced field accessor.
             /// </summary>
-            /// <param name="fieldIndex">The field index.</param>
-            public void AppendFieldViaPtr(int fieldIndex)
+            /// <param name="fieldAccess">The field access.</param>
+            public void AppendFieldViaPtr(FieldAccess fieldAccess)
             {
                 stringBuilder.Append("->");
-                AppendFieldName(fieldIndex);
+                AppendFieldName(fieldAccess.Index);
             }
 
             /// <summary>
             /// Appends the referenced field accessor.
             /// </summary>
-            /// <param name="fieldIndex">The field index.</param>
-            public void AppendField(int fieldIndex)
+            /// <param name="fieldAccess">The field access.</param>
+            public void AppendField(FieldSpan? fieldAccess)
+            {
+                if (!fieldAccess.HasValue)
+                    return;
+                AppendField(fieldAccess.Value);
+            }
+
+            /// <summary>
+            /// Appends the referenced field accessor.
+            /// </summary>
+            /// <param name="fieldAccess">The field access.</param>
+            public void AppendField(FieldSpan fieldAccess)
             {
                 stringBuilder.Append('.');
-                AppendFieldName(fieldIndex);
+                AppendFieldName(fieldAccess.Index);
             }
 
             /// <summary>
             /// Appends a referenced field via an access chain.
             /// </summary>
             /// <param name="accessChain">The field access chain.</param>
-            public void AppendField(ImmutableArray<int> accessChain)
+            public void AppendField(FieldAccessChain accessChain)
             {
                 foreach (var fieldIndex in accessChain)
                     AppendField(fieldIndex);
@@ -360,17 +338,17 @@ namespace ILGPU.Backends.OpenCL
             /// Appends the address of the given register argument with a cast.
             /// </summary>
             /// <param name="argument">The argument to append.</param>
-            /// <param name="typeExpression">Appends an unsafe cast expression</param>
-            public void AppendArgumentAddressWithCast(Variable argument, string typeExpression)
+            /// <param name="type">The target type to cast to.</param>
+            public void AppendArgumentAddressWithCast(Variable argument, TypeNode type)
             {
                 AppendArgument();
-                AppendCast(typeExpression);
+                AppendCast(type);
                 AppendCommand(CLInstructions.AddressOfOperation);
                 Append(argument);
             }
 
             /// <summary>
-            /// Append ths given operation.
+            /// Append the given operation.
             /// </summary>
             /// <param name="operation">The operation to append.</param>
             public void AppendOperation(string operation)
@@ -534,25 +512,25 @@ namespace ILGPU.Backends.OpenCL
         /// Begins a new statement.
         /// </summary>
         /// <param name="target">The target variable to assign to.</param>
-        /// <param name="fieldIndex">The field index to use.</param>
+        /// <param name="fieldAccess">The field access to use.</param>
         /// <returns>The created statement emitter.</returns>
-        public StatementEmitter BeginStatement(Variable target, int fieldIndex)
+        public StatementEmitter BeginStatement(Variable target, FieldAccess? fieldAccess)
         {
-            var emitter = new StatementEmitter(this);
-            emitter.AppendFieldTarget(target, fieldIndex);
-            return emitter;
+            if (!fieldAccess.HasValue)
+                return BeginStatement(target);
+            return BeginStatement(target, fieldAccess.Value);
         }
 
         /// <summary>
         /// Begins a new statement.
         /// </summary>
         /// <param name="target">The target variable to assign to.</param>
-        /// <param name="fieldIndices">The field indices to use.</param>
+        /// <param name="fieldAccess">The field access to use.</param>
         /// <returns>The created statement emitter.</returns>
-        public StatementEmitter BeginStatement(Variable target, ImmutableArray<int> fieldIndices)
+        public StatementEmitter BeginStatement(Variable target, FieldAccess fieldAccess)
         {
             var emitter = new StatementEmitter(this);
-            emitter.AppendFieldTarget(target, fieldIndices);
+            emitter.AppendFieldTarget(target, fieldAccess);
             return emitter;
         }
 
