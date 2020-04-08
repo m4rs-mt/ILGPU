@@ -14,6 +14,7 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace ILGPU.Backends.OpenCL
@@ -52,7 +53,7 @@ namespace ILGPU.Backends.OpenCL
             #region Properties
 
             /// <summary>
-            /// Returns the associated codegenerator.
+            /// Returns the associated code generator.
             /// </summary>
             public CLCodeGenerator CodeGenerator { get; }
 
@@ -384,7 +385,8 @@ namespace ILGPU.Backends.OpenCL
             public void AppendConstant(float value)
             {
                 AppendArgument();
-                stringBuilder.Append(value);
+                stringBuilder.Append(
+                    value.ToString(CultureInfo.InvariantCulture));
                 if (value % 1.0f == 0.0f)
                     stringBuilder.Append(".0f");
                 else
@@ -398,7 +400,8 @@ namespace ILGPU.Backends.OpenCL
             public void AppendConstant(double value)
             {
                 AppendArgument();
-                stringBuilder.Append(value);
+                stringBuilder.Append(
+                    value.ToString(CultureInfo.InvariantCulture));
             }
 
             #endregion
