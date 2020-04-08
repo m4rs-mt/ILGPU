@@ -368,9 +368,12 @@ namespace ILGPU.IR.Transformations
                     // Get value from the source value
                     value = setField.Value;
                     if (value.Type is StructureType)
+                    {
+                        var getFieldAccess = fieldAccess.Subtract(setField.FieldSpan.Index);
                         value = context.GetValue(
                             context.Block,
-                            new FieldRef(value, fieldAccess));
+                            new FieldRef(value, getFieldAccess));
+                    }
                 }
                 else
                 {

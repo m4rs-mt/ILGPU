@@ -60,6 +60,17 @@ namespace ILGPU.IR.Values
             return new FieldAccess(Index + offset);
         }
 
+        /// <summary>
+        /// Subtracts the given field offset from the current index.
+        /// </summary>
+        /// <param name="offset">The offset to subtract.</param>
+        /// <returns>The adapted field access.</returns>
+        public FieldAccess Subtract(int offset)
+        {
+            Debug.Assert(offset >= 0, "Invalid offset");
+            return new FieldAccess(Index - offset);
+        }
+
         #endregion
 
         #region IEquatable
