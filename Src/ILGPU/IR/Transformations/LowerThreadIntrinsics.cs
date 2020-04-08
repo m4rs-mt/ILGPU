@@ -154,6 +154,7 @@ namespace ILGPU.IR.Transformations
         {
             var newValue = context.LowerValue(
                 value,
+                value.Variable,
                 LowerPrimitive<TValue, TLoweringImplementation>);
             context.ReplaceAndRemove(value, newValue);
         }

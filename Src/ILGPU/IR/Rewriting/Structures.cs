@@ -91,31 +91,33 @@ namespace ILGPU.IR.Rewriting
         /// <typeparam name="T">The rewriter context type.</typeparam>
         /// <typeparam name="TValue">The value type.</typeparam>
         /// <param name="context">The current rewriter context instance.</param>
-        /// <param name="value">The source value.</param>
+        /// <param name="source">The source value.</param>
+        /// <param name="variable">The variable value.</param>
         /// <param name="lowering">The lowering functionality.</param>
         /// <returns>The assembled structure value holding the result value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Value LowerValue<T, TValue>(
             this T context,
-            TValue value,
+            TValue source,
+            Value variable,
             Func<T, TValue, Value, Value> lowering)
             where T : IRewriterContext
             where TValue : Value
         {
-            if (value.Type is PrimitiveType)
-                return lowering(context, value, value);
+            if (source.Type is PrimitiveType)
+                return lowering(context, source, source);
             else
             {
-                var structureType = (StructureType)value.Type;
+                var structureType = (StructureType)source.Type;
                 return AssembleStructure(
                     context,
                     structureType,
-                    value,
-                    (ctx, source, access) =>
+                    source,
+                    (ctx, _, access) =>
                     {
                         // Extract field information
                         var getField = ctx.Builder.CreateGetField(
-                            value,
+                            variable,
                             new FieldSpan(access));
                         var result = lowering(ctx, source, getField);
 
