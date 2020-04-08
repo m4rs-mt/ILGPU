@@ -44,7 +44,7 @@ namespace ILGPU.Algorithms.PTX
                 codeGenerator.FastMath);
 
             var argument = codeGenerator.LoadPrimitive(arithmeticValue.Value);
-            var targetRegister = codeGenerator.AllocatePrimitive(arithmeticValue);
+            var targetRegister = codeGenerator.AllocateHardware(arithmeticValue);
             using (var command = codeGenerator.BeginCommand(instruction))
             {
                 command.AppendArgument(targetRegister);
