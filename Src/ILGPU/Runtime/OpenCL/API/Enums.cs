@@ -227,6 +227,9 @@ namespace ILGPU.Runtime.OpenCL.API
         CL_DEVICE_GPU_OVERLAP_NV = 0x4004,
         CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV = 0x4005,
         CL_DEVICE_INTEGRATED_MEMORY_NV = 0x4006,
+        CL_DEVICE_ATTRIBUTE_ASYNC_ENGINE_COUNT_NV = 0x4007,
+        CL_DEVICE_PCI_BUS_ID_NV = 0x4008,
+        CL_DEVICE_PCI_SLOT_ID_NV = 0x4009,
     }
 
     [SuppressMessage("Design", "CA1028:Enum Storage should be Int32",

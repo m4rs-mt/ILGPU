@@ -117,6 +117,25 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <summary>
+        /// Resolves device information as typed structure value of type <typeparamref name="T"/>
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <param name="type">The information type.</param>
+        /// <param name="value">The resolved value.</param>
+        /// <returns>The error code.</returns>
+        public CLError GetDeviceInfo<T>(CLDeviceInfoType type, out T value)
+            where T : struct => CLAPI.GetDeviceInfo(DeviceId, type, out value);
+
+        /// <summary>
+        /// Resolves device information as typed structure value of type <typeparamref name="T"/>
+        /// </summary>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <param name="type">The information type.</param>
+        /// <returns>The resolved value.</returns>
+        public T GetDeviceInfo<T>(CLDeviceInfoType type)
+            where T : struct => CLAPI.GetDeviceInfo<T>(DeviceId, type);
+
+        /// <summary>
         /// Returns true if the given extension is supported.
         /// </summary>
         /// <param name="extension">The extension to look for.</param>
@@ -226,10 +245,10 @@ namespace ILGPU.Runtime.OpenCL
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current accelerator id.
+        /// Returns true if the given object is equal to the current accelerator id.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current accelerator id.</returns>
+        /// <returns>True, if the given object is equal to the current accelerator id.</returns>
         public override bool Equals(object obj) =>
             obj is CLAcceleratorId acceleratorId &&
             acceleratorId.PlatformId == PlatformId &&
@@ -247,7 +266,7 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         /// <returns>The string representation of this accelerator id.</returns>
         public override string ToString() =>
-            $"Platform {PlatformId}, Device {DeviceId}, {base.ToString()}";
+            $"Platform {PlatformId}, Device {DeviceId}, " + base.ToString();
 
         #endregion
     }
