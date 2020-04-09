@@ -45,8 +45,7 @@ namespace ILGPU.Frontend
                 convertFlags |= ConvertFlags.SourceUnsigned;
                 convertFlags |= ConvertFlags.TargetUnsigned;
             }
-            var type = targetType.GetBasicValueType();
-            var targetTypeNode = block.Builder.GetPrimitiveType(type);
+            var targetTypeNode = block.Builder.CreateType(targetType);
             block.Push(CreateConversion(
                 builder,
                 value,
@@ -55,7 +54,7 @@ namespace ILGPU.Frontend
         }
 
         /// <summary>
-        /// Conerts the given value to the target type.
+        /// Coverts the given value to the target type.
         /// </summary>
         /// <param name="builder">The current builder.</param>
         /// <param name="value">The value.</param>
@@ -67,17 +66,13 @@ namespace ILGPU.Frontend
             TypeNode targetType,
             ConvertFlags flags)
         {
-            if (value.Type is AddressSpaceType pointerType)
+            if (value.Type is AddressSpaceType)
             {
                 var otherType = targetType as AddressSpaceType;
-                if (otherType.AddressSpace == pointerType.AddressSpace)
-                    return builder.CreatePointerCast(
-                        value,
-                        otherType.ElementType);
-                else
-                    return builder.CreateAddressSpaceCast(
-                        value,
-                        otherType.AddressSpace);
+                value = builder.CreateAddressSpaceCast(value, otherType.AddressSpace);
+                return otherType is ViewType
+                    ? (Value)builder.CreateViewCast(value, otherType.ElementType)
+                    : (Value)builder.CreatePointerCast(value, otherType.ElementType);
             }
             else if (
                 targetType is PointerType targetPointerType &&
