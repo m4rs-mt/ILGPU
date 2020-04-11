@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: DebugArrayView.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
@@ -45,6 +45,9 @@ namespace ILGPU.Runtime
 
         #region Properties
 
+        /// <summary>
+        /// The buffer data.
+        /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public T[] Data
         {
@@ -52,15 +55,11 @@ namespace ILGPU.Runtime
             {
                 if (data == null)
                 {
-                    if (view.IsValid)
-                    {
-                        if (view.AcceleratorType == AcceleratorType.CPU)
-                            data = LoadCPUData();
-                        else
-                            data = LoadDeviceData();
-                    }
-                    else
-                        data = Array.Empty<T>();
+                    data = view.IsValid
+                        ? view.AcceleratorType == AcceleratorType.CPU
+                            ? LoadCPUData()
+                            : LoadDeviceData()
+                        : Array.Empty<T>();
                 }
                 return data;
             }
@@ -70,6 +69,10 @@ namespace ILGPU.Runtime
 
         #region Methods
 
+        /// <summary>
+        /// Loads data from the CPU.
+        /// </summary>
+        /// <returns></returns>
         private T[] LoadCPUData()
         {
             var result = new T[view.Length];
@@ -78,6 +81,10 @@ namespace ILGPU.Runtime
             return result;
         }
 
+        /// <summary>
+        /// Loads raw data from the underlying device.
+        /// </summary>
+        /// <returns>The loaded data.</returns>
         private unsafe T[] LoadDeviceData()
         {
             var elementSize = ArrayView<T>.ElementSize;

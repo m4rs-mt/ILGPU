@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Arithmetic.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -78,7 +78,7 @@ namespace ILGPU.IR.Values
         IsNaNF,
 
         /// <summary>
-        /// The is-infitity operation.
+        /// The is-infinity operation.
         /// </summary>
         IsInfF,
 
@@ -421,7 +421,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, Value, Kind);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateArithmetic(
                 rebuilder.Rebuild(Value),
                 Kind,
@@ -486,7 +488,8 @@ namespace ILGPU.IR.Values
         {
             Debug.Assert(
                 left.Type == right.Type ||
-                (kind == BinaryArithmeticKind.Shl || kind == BinaryArithmeticKind.Shr) &&
+                (kind == BinaryArithmeticKind.Shl ||
+                    kind == BinaryArithmeticKind.Shr) &&
                 right.BasicValueType == BasicValueType.Int32, "Invalid types");
 
             Kind = kind;
@@ -523,7 +526,9 @@ namespace ILGPU.IR.Values
             ComputeType(Left);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateArithmetic(
                 rebuilder.Rebuild(Left),
                 rebuilder.Rebuild(Right),
@@ -569,7 +574,8 @@ namespace ILGPU.IR.Values
         /// <param name="kind">The arithmetic kind.</param>
         /// <returns>The resolved binary operation.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BinaryArithmeticKind GetLeftBinaryKind(TernaryArithmeticKind kind)
+        public static BinaryArithmeticKind GetLeftBinaryKind(
+            TernaryArithmeticKind kind)
         {
             switch (kind)
             {
@@ -586,7 +592,8 @@ namespace ILGPU.IR.Values
         /// <param name="kind">The arithmetic kind.</param>
         /// <returns>The resolved binary operation.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BinaryArithmeticKind GetRightBinaryKind(TernaryArithmeticKind kind)
+        public static BinaryArithmeticKind GetRightBinaryKind(
+            TernaryArithmeticKind kind)
         {
             switch (kind)
             {
@@ -666,7 +673,9 @@ namespace ILGPU.IR.Values
             ComputeType(First);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateArithmetic(
                 rebuilder.Rebuild(First),
                 rebuilder.Rebuild(Second),
@@ -685,7 +694,8 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "arith.ter." + Kind.ToString();
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => $"{First}, {Second}, {Third} [{Flags}]";
+        protected override string ToArgString() =>
+            $"{First}, {Second}, {Third} [{Flags}]";
 
         #endregion
     }

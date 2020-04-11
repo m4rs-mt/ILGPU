@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLMemoryBuffer.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
 using ILGPU.Runtime.OpenCL.API;
@@ -49,7 +49,8 @@ namespace ILGPU.Runtime.OpenCL
 
         #region Methods
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(AcceleratorStream, ArrayView{T}, Index1)"/>
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(
+        /// AcceleratorStream, ArrayView{T}, Index1)"/>
         protected internal unsafe override void CopyToView(
             AcceleratorStream stream,
             ArrayView<T> target,
@@ -80,11 +81,13 @@ namespace ILGPU.Runtime.OpenCL
                             new IntPtr(target.LengthInBytes)));
                     break;
                 default:
-                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                    throw new NotSupportedException(
+                        RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
         }
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(AcceleratorStream, ArrayView{T}, Index1)"/>
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(
+        /// AcceleratorStream, ArrayView{T}, Index1)"/>
         protected internal unsafe override void CopyFromView(
             AcceleratorStream stream,
             ArrayView<T> source,
@@ -115,13 +118,13 @@ namespace ILGPU.Runtime.OpenCL
                             new IntPtr(source.LengthInBytes)));
                     break;
                 default:
-                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                    throw new NotSupportedException(
+                        RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
         }
 
         /// <summary cref="MemoryBuffer.MemSetToZero(AcceleratorStream)"/>
-        public override void MemSetToZero(AcceleratorStream stream)
-        {
+        public override void MemSetToZero(AcceleratorStream stream) =>
             CLException.ThrowIfFailed(
                 CLAPI.FillBuffer<byte>(
                     ((CLStream)stream).CommandQueue,
@@ -129,7 +132,6 @@ namespace ILGPU.Runtime.OpenCL
                     0,
                     IntPtr.Zero,
                     new IntPtr(LengthInBytes)));
-        }
 
         #endregion
 

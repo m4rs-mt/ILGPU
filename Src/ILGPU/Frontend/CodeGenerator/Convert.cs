@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Convert.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Construction;
@@ -59,7 +59,9 @@ namespace ILGPU.Frontend
         /// <param name="builder">The current builder.</param>
         /// <param name="value">The value.</param>
         /// <param name="targetType">The target type.</param>
-        /// <param name="flags">True, if the comparison should be forced to be unsigned.</param>
+        /// <param name="flags">
+        /// True, if the comparison should be forced to be unsigned.
+        /// </param>
         public static Value CreateConversion(
             IRBuilder builder,
             Value value,

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IntrinsicImplementation.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using ILGPU.Resources;
@@ -108,7 +108,9 @@ namespace ILGPU.IR.Intrinsics
         /// Determines whether the attribute is compatible with the given backend.
         /// </summary>
         /// <param name="backend">The current backend.</param>
-        /// <returns>True, if the attribute is compatible with the given backend.</returns>
+        /// <returns>
+        /// True, if the attribute is compatible with the given backend.
+        /// </returns>
         public bool CanHandle(Backend backend) =>
             backend.BackendType == BackendType && CanHandleBackend(backend);
 
@@ -116,7 +118,9 @@ namespace ILGPU.IR.Intrinsics
         /// Determines whether the attribute is compatible with the given backend.
         /// </summary>
         /// <param name="backend">The current backend.</param>
-        /// <returns>True, if the attribute is compatible with the given backend.</returns>
+        /// <returns>
+        /// True, if the attribute is compatible with the given backend.
+        /// </returns>
         protected internal abstract bool CanHandleBackend(Backend backend);
 
         /// <summary>
@@ -132,7 +136,8 @@ namespace ILGPU.IR.Intrinsics
     }
 
     /// <summary>
-    /// Marks methods that rely on an intrinsic-implementation provider during backend specialization.
+    /// Marks methods that rely on an intrinsic-implementation provider during backend
+    /// specialization.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     [CLSCompliant(false)]

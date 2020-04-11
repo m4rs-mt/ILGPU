@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ContextFlags.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 
@@ -40,7 +40,9 @@ namespace ILGPU
         /// <summary>
         /// Enables inline source-code annotations when generating kernels.
         /// </summary>
-        /// <remarks>Note that this is only supported if debug information is activated.</remarks>
+        /// <remarks>
+        /// Note that this is only supported if debug information is activated.
+        /// </remarks>
         EnableInlineSourceAnnotations = 1 << 1,
 
         /// <summary>
@@ -60,7 +62,7 @@ namespace ILGPU
 
         /// <summary>
         /// Loads from mutable static fields are rejected by default.
-        /// However, their current values can be inlined during jit
+        /// However, their current values can be inlined during JIT
         /// compilation. Adding this flags causes values from mutable
         /// static fields to be inlined instead of rejected.
         /// </summary>
@@ -99,7 +101,7 @@ namespace ILGPU
         /// Skips the internal IR code generation phase for CPU kernels (debug flag).
         /// </summary>
         /// <remarks>
-        /// Caution: this avoids general kernel code-analysis and verfication checks.
+        /// Caution: this avoids general kernel code-analysis and verification checks.
         /// </remarks>
         SkipCPUCodeGeneration = 1 << 17,
 
@@ -134,30 +136,33 @@ namespace ILGPU
         DisableKernelCaching = 1 << 24,
 
         /// <summary>
-        /// Disables automatic disposal of memory buffers in the scope of ILGPU GC threads.
+        /// Disables automatic disposal of memory buffers in the scope of ILGPU GC
+        /// threads.
         /// It should only be used by experienced users.
         /// </summary>
         /// <remarks>
-        /// In theory, allocated memory buffers will be disposed automatically by the .Net GC.
-        /// However, disposing accelerator objects before their associated memory buffers have been
-        /// freed will end up in exceptions and sometimes driver crashes on different systems.
-        /// If you disable automatic buffer disposal, you have to ensure that all accelerator
-        /// child objects have been freed manually before disposing the associated accelerator object.
+        /// In theory, allocated memory buffers will be disposed automatically by the
+        /// .Net GC. However, disposing accelerator objects before their associated
+        /// memory buffers have been freed will end up in exceptions and sometimes
+        /// driver crashes on different systems. If you disable automatic buffer
+        /// disposal, you have to ensure that all accelerator child objects have been
+        /// freed manually before disposing the associated accelerator object.
         /// </remarks>
         DisableAutomaticBufferDisposal = 1 << 25,
 
         /// <summary>
-        /// Disables automatic disposal of kernels in the scope of ILGPU GC threads.  This is dangerous as the
-        /// 'default' kernel-loading methods do not return <see cref="Runtime.Kernel"/> instances that can
-        /// be disposed manually.
+        /// Disables automatic disposal of kernels in the scope of ILGPU GC threads.
+        /// This is dangerous as the 'default' kernel-loading methods do not return
+        /// <see cref="Runtime.Kernel"/> instances that can be disposed manually.
         /// It should only be used by experienced users.
         /// </summary>
         /// <remarks>
-        /// In theory, allocated accelerator kernels will be disposed automatically by the .Net GC.
-        /// However, disposing accelerator objects before their associated kernels have been
-        /// freed will end up in exceptions and sometimes driver crashes on different systems.
-        /// If you disable automatic kernel disposal, you have to ensure that all accelerator
-        /// child objects have been freed manually before disposing the associated accelerator object.
+        /// In theory, allocated accelerator kernels will be disposed automatically by
+        /// the .Net GC. However, disposing accelerator objects before their
+        /// associated kernels have been freed will end up in exceptions and sometimes
+        /// driver crashes on different systems. If you disable automatic kernel
+        /// disposal, you have to ensure that all accelerator child objects have been
+        /// freed manually before disposing the associated accelerator object.
         /// </remarks>
         DisableAutomaticKernelDisposal = 1 << 26,
 
@@ -182,11 +187,13 @@ namespace ILGPU
         /// <param name="flags">The current flags.</param>
         /// <param name="flagsToCheck">The flags to check.</param>
         /// <returns>True, the requested bits are set.</returns>
-        public static bool HasFlags(this ContextFlags flags, ContextFlags flagsToCheck) =>
+        public static bool HasFlags(
+            this ContextFlags flags,
+            ContextFlags flagsToCheck) =>
             (flags & flagsToCheck) == flagsToCheck;
 
         /// <summary>
-        /// Prepares the given flags by toggeling convenient flag combinations.
+        /// Prepares the given flags by toggling convenient flag combinations.
         /// </summary>
         /// <param name="flags">The flags to prepare.</param>
         /// <returns>The prepared flags.</returns>

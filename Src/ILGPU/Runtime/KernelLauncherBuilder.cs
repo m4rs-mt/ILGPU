@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: KernelLauncherArgument.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.IL;
@@ -27,7 +27,8 @@ namespace ILGPU.Runtime
         #region Methods
 
         /// <summary>
-        /// Stores all getter methods to resolve all index values of an <see cref="Index3"/>.
+        /// Stores all getter methods to resolve all index values of an
+        /// <see cref="Index3"/>.
         /// </summary>
         private static readonly MethodInfo[] Index3ValueGetter =
         {
@@ -45,22 +46,26 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Resolves the main constructor of the given index type.
         /// </summary>
-        /// <param name="indexType">The index type (can be Index, Index2 or Index3).</param>
+        /// <param name="indexType">
+        /// The index type (can be Index, Index2 or Index3).
+        /// </param>
         /// <returns>The main constructor.</returns>
-        private static ConstructorInfo GetMainIndexConstructor(Type indexType)
-        {
-            return (ConstructorInfo)indexType.GetField(
+        private static ConstructorInfo GetMainIndexConstructor(Type indexType) =>
+            (ConstructorInfo)indexType.GetField(
                 nameof(Index1.MainConstructor),
                 BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
-        }
 
         /// <summary>
         /// Emits code to convert an Index3 to a specific target type.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
-        /// <param name="indexType">The index type (can be Index, Index2 or Index3).</param>
+        /// <param name="indexType">
+        /// The index type (can be Index, Index2 or Index3).
+        /// </param>
         /// <param name="emitter">The target IL emitter.</param>
-        /// <param name="loadIdx">A callback to load the referenced index value onto the stack.</param>
+        /// <param name="loadIdx">
+        /// A callback to load the referenced index value onto the stack.
+        /// </param>
         public static void EmitConvertIndex3ToTargetType<TEmitter>(
             IndexType indexType,
             in TEmitter emitter,
@@ -69,7 +74,11 @@ namespace ILGPU.Runtime
         {
             var numValues = (int)indexType;
             if (numValues > 3)
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedIndexType);
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedIndexType);
+            }
+
             var idxLocal = emitter.DeclareLocal(typeof(Index3));
             for (int i = 0; i < numValues; ++i)
             {
@@ -88,9 +97,13 @@ namespace ILGPU.Runtime
         /// Emits code to convert a linear index to a specific target type.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
-        /// <param name="indexType">The index type (can be Index, Index2 or Index3).</param>
+        /// <param name="indexType">
+        /// The index type (can be Index, Index2 or Index3).
+        /// </param>
         /// <param name="emitter">The target IL emitter.</param>
-        /// <param name="loadDimension">A callback to load the referenced dimension value onto the stack.</param>
+        /// <param name="loadDimension">
+        /// A callback to load the referenced dimension value onto the stack.
+        /// </param>
         public static void EmitConvertFrom1DIndexToTargetIndexType<TEmitter>(
             IndexType indexType,
             in TEmitter emitter,
@@ -120,7 +133,8 @@ namespace ILGPU.Runtime
                             BindingFlags.Public | BindingFlags.Static));
                     break;
                 default:
-                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedIndexType);
+                    throw new NotSupportedException(
+                        RuntimeErrorMessages.NotSupportedIndexType);
             }
         }
 
@@ -128,26 +142,34 @@ namespace ILGPU.Runtime
         /// Emits code to load a 3D dimension of a grid or a group index.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
-        /// <param name="indexType">The index type (can be Index, Index2 or Index3).</param>
+        /// <param name="indexType">
+        /// The index type (can be Index, Index2 or Index3).
+        /// </param>
         /// <param name="emitter">The target IL emitter.</param>
-        /// <param name="loadIdx">A callback to load the referenced index value onto the stack.</param>
+        /// <param name="loadIdx">
+        /// A callback to load the referenced index value onto the stack.
+        /// </param>
         private static void EmitLoadDimensions<TEmitter>(
             Type indexType,
             in TEmitter emitter,
             Action loadIdx)
-            where TEmitter : IILEmitter
-        {
+            where TEmitter : IILEmitter =>
             EmitLoadDimensions(indexType, emitter, loadIdx, offset => { });
-        }
 
         /// <summary>
         /// Emits code to load a 3D dimension of a grid or a group index.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
-        /// <param name="indexType">The index type (can be Index, Index2 or Index3).</param>
+        /// <param name="indexType">
+        /// The index type (can be Index, Index2 or Index3).
+        /// </param>
         /// <param name="emitter">The target IL emitter.</param>
-        /// <param name="loadIdx">A callback to load the referenced index value onto the stack.</param>
-        /// <param name="manipulateIdx">A callback to manipulate the loaded index of a given dimension.</param>
+        /// <param name="loadIdx">
+        /// A callback to load the referenced index value onto the stack.
+        /// </param>
+        /// <param name="manipulateIdx">
+        /// A callback to manipulate the loaded index of a given dimension.
+        /// </param>
         private static void EmitLoadDimensions<TEmitter>(
             Type indexType,
             in TEmitter emitter,
@@ -205,15 +227,20 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Emits a kernel-dimension configuration. In the case of an ungrouped index type, all arguments
-        /// will be transformed into a <see cref="KernelConfig"/> instance. Otherwise, the passed kernel
-        /// configuration will be used without any modifications.
+        /// Emits a kernel-dimension configuration. In the case of an ungrouped index
+        /// type, all arguments will be transformed into a <see cref="KernelConfig"/>
+        /// instance. Otherwise, the passed kernel configuration will be used without
+        /// any modifications.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="entryPoint">The entry point.</param>
         /// <param name="emitter">The target IL emitter.</param>
-        /// <param name="dimensionIdx">The argument index of the provided launch-dimension index.</param>
-        /// <param name="customGroupSize">The custom group size used for automatic blocking.</param>
+        /// <param name="dimensionIdx">
+        /// The argument index of the provided launch-dimension index.
+        /// </param>
+        /// <param name="customGroupSize">
+        /// The custom group size used for automatic blocking.
+        /// </param>
         public static void EmitLoadKernelConfig<TEmitter>(
             EntryPoint entryPoint,
             TEmitter emitter,
@@ -265,8 +292,12 @@ namespace ILGPU.Runtime
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <param name="entryPoint">The entry point.</param>
         /// <param name="emitter">The target IL emitter.</param>
-        /// <param name="dimensionIdx">The argument index of the provided launch-dimension index.</param>
-        /// <param name="customGroupSize">The custom group size used for automatic blocking.</param>
+        /// <param name="dimensionIdx">
+        /// The argument index of the provided launch-dimension index.
+        /// </param>
+        /// <param name="customGroupSize">
+        /// The custom group size used for automatic blocking.
+        /// </param>
         public static void EmitLoadRuntimeKernelConfig<TEmitter>(
             EntryPoint entryPoint,
             TEmitter emitter,
@@ -289,7 +320,9 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
         /// <typeparam name="T">The kernel type.</typeparam>
-        /// <param name="kernelArgumentIndex">The index of the launcher parameter.</param>
+        /// <param name="kernelArgumentIndex">
+        /// The index of the launcher parameter.
+        /// </param>
         /// <param name="emitter">The target IL emitter.</param>
         public static void EmitLoadKernelArgument<T, TEmitter>(
             int kernelArgumentIndex,
@@ -305,7 +338,8 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Emits code for loading a typed accelerator stream from a generic accelerator-stream instance.
+        /// Emits code for loading a typed accelerator stream from a generic
+        /// accelerator-stream instance.
         /// </summary>
         /// <typeparam name="T">The kernel type.</typeparam>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>

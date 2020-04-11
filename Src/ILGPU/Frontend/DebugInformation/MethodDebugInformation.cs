@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MethodDebugInformation.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System.Collections.Immutable;
 using System.Reflection;
@@ -25,9 +25,13 @@ namespace ILGPU.Frontend.DebugInformation
         /// <summary>
         /// Constructs method debug information.
         /// </summary>
-        /// <param name="assemblyDebugInformation">The parent assembly debug information</param>
+        /// <param name="assemblyDebugInformation">
+        /// The parent assembly debug information
+        /// </param>
         /// <param name="methodBase">The target method.</param>
-        /// <param name="debugInformationHandle">The debug handle of the given method.</param>
+        /// <param name="debugInformationHandle">
+        /// The debug handle of the given method.
+        /// </param>
         internal MethodDebugInformation(
             AssemblyDebugInformation assemblyDebugInformation,
             MethodBase methodBase,
@@ -61,7 +65,8 @@ namespace ILGPU.Frontend.DebugInformation
         /// <summary>
         /// Returns the associated metadata reader.
         /// </summary>
-        internal MetadataReader MetadataReader => AssemblyDebugInformation.MetadataReader;
+        internal MetadataReader MetadataReader =>
+            AssemblyDebugInformation.MetadataReader;
 
         /// <summary>
         /// Returns the associated the method debug-information handle.
@@ -80,7 +85,8 @@ namespace ILGPU.Frontend.DebugInformation
             if (SequencePoints.Length > 0)
                 return;
 
-            var debugInformation = MetadataReader.GetMethodDebugInformation(DebugInformationHandle);
+            var debugInformation = MetadataReader
+                .GetMethodDebugInformation(DebugInformationHandle);
 
             // Gather sequence points
             var sequencePointsCollection = debugInformation.GetSequencePoints();
@@ -93,7 +99,8 @@ namespace ILGPU.Frontend.DebugInformation
                     continue;
                 ++numSequencePoints;
             }
-            var sequencePoints = ImmutableArray.CreateBuilder<SequencePoint>(numSequencePoints);
+            var sequencePoints = ImmutableArray.CreateBuilder<SequencePoint>(
+                numSequencePoints);
             sequencePointEnumerator = sequencePointsCollection.GetEnumerator();
             while (sequencePointEnumerator.MoveNext())
             {

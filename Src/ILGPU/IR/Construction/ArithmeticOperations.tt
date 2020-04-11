@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ArithmeticOperations.tt/ArithmeticOperations.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ assembly name="System.Core" #>
@@ -79,6 +79,10 @@ var binaryOperations = new []
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
+
+// disable: max_line_length
+#pragma warning disable IDE0046 // Convert to conditional expression
+#pragma warning disable IDE0047 // Remove unnecessary parentheses
 
 namespace ILGPU.IR.Construction
 {
@@ -202,3 +206,6 @@ namespace ILGPU.IR.Construction
 <#    } #>
     }
 }
+
+#pragma warning restore IDE0046 // Convert to conditional expression
+#pragma warning restore IDE0047 // Remove unnecessary parentheses

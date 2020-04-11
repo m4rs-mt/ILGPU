@@ -1,15 +1,14 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXRegisterAllocator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
-using ILGPU.Backends.PointerViews;
 using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -95,18 +94,35 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Maps basic types to PTX register kinds.
         /// </summary>
-        private static readonly ImmutableArray<PTXRegisterKind> RegisterTypeMapping = ImmutableArray.Create(
-            default, PTXRegisterKind.Predicate,
-            PTXRegisterKind.Int16, PTXRegisterKind.Int16, PTXRegisterKind.Int32, PTXRegisterKind.Int64,
-            PTXRegisterKind.Float32, PTXRegisterKind.Float64);
+        private static readonly ImmutableArray<PTXRegisterKind> RegisterTypeMapping =
+            ImmutableArray.Create(
+                default, PTXRegisterKind.Predicate,
+                PTXRegisterKind.Int16, PTXRegisterKind.Int16,
+                PTXRegisterKind.Int32, PTXRegisterKind.Int64,
+                PTXRegisterKind.Float32, PTXRegisterKind.Float64);
 
         /// <summary>
         /// Maps basic value types to their PTX-specific parameter-type counterparts.
         /// </summary>
-        private static readonly ImmutableArray<BasicValueType> ParameterTypeRemapping = ImmutableArray.Create(
-            default, BasicValueType.Int32,
-            BasicValueType.Int8, BasicValueType.Int16, BasicValueType.Int32, BasicValueType.Int64,
-            BasicValueType.Float32, BasicValueType.Float64);
+        private static readonly ImmutableArray<BasicValueType> ParameterTypeRemapping =
+            ImmutableArray.Create(
+                default, BasicValueType.Int32,
+                BasicValueType.Int8, BasicValueType.Int16,
+                BasicValueType.Int32, BasicValueType.Int64,
+                BasicValueType.Float32, BasicValueType.Float64);
+
+        /// <summary>
+        /// Declares all register kinds for which register declarations have to be
+        /// generated.
+        /// </summary>
+        private static readonly ImmutableArray<(string, string, PTXRegisterKind)>
+            RegisterDeclarations = ImmutableArray.Create(
+                (".pred", "p", PTXRegisterKind.Predicate),
+                (".b16", "rs", PTXRegisterKind.Int16),
+                (".b32", "r", PTXRegisterKind.Int32),
+                (".b64", "rd", PTXRegisterKind.Int64),
+                (".f32", "f", PTXRegisterKind.Float32),
+                (".f64", "fd", PTXRegisterKind.Float64));
 
         #endregion
 
@@ -125,7 +141,8 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="basicValueType">The basic value type.</param>
         /// <returns>The resolved register kind.</returns>
-        public static BasicValueType ResolveParameterBasicValueType(BasicValueType basicValueType) =>
+        public static BasicValueType ResolveParameterBasicValueType(
+            BasicValueType basicValueType) =>
             ParameterTypeRemapping[(int)basicValueType];
 
         /// <summary>
@@ -204,7 +221,8 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="description">The resolved register.</param>
         /// <returns>The allocated register.</returns>
-        public HardwareRegister AllocatePlatformRegister(out RegisterDescription description)
+        public HardwareRegister AllocatePlatformRegister(
+            out RegisterDescription description)
         {
             description = ResolveRegisterDescription(ABI.PointerBasicValueType);
             return AllocateRegister(description);
@@ -217,7 +235,9 @@ namespace ILGPU.Backends.PTX
         /// <param name="node">The node to allocate.</param>
         /// <param name="description">The resolved register description.</param>
         /// <returns>The allocated register.</returns>
-        public HardwareRegister AllocatePlatformRegister(Value node, out RegisterDescription description)
+        public HardwareRegister AllocatePlatformRegister(
+            Value node,
+            out RegisterDescription description)
         {
             var register = AllocatePlatformRegister(out description);
             Bind(node, register);
@@ -229,7 +249,8 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="basicValueType">The basic value type to resolve.</param>
         /// <returns>The resolved register description.</returns>
-        protected static RegisterDescription ResolveRegisterDescription(BasicValueType basicValueType) =>
+        protected static RegisterDescription ResolveRegisterDescription(
+            BasicValueType basicValueType) =>
             new RegisterDescription(
                 basicValueType,
                 GetRegisterKind(basicValueType));
@@ -249,15 +270,18 @@ namespace ILGPU.Backends.PTX
             return ResolveRegisterDescription(remapped);
         }
 
-        /// <summary cref="RegisterAllocator{TKind}.ResolveRegisterDescription(TypeNode)"/>
-        protected sealed override RegisterDescription ResolveRegisterDescription(TypeNode type)
-        {
-            if (type.IsPointerType || type.IsStringType)
-                return ResolveRegisterDescription(ABI.PointerBasicValueType);
-            return ResolveRegisterDescription(type.BasicValueType);
-        }
+        /// <summary>
+        /// Resolves a new PTX compatible register description.
+        /// </summary>
+        protected sealed override RegisterDescription ResolveRegisterDescription(
+            TypeNode type) =>
+            type.IsPointerType || type.IsStringType
+            ? ResolveRegisterDescription(ABI.PointerBasicValueType)
+            : ResolveRegisterDescription(type.BasicValueType);
 
-        /// <summary cref="RegisterAllocator{TKind}.FreeRegister(RegisterAllocator{TKind}.HardwareRegister)"/>
+        /// <summary>
+        /// Frees the given hardware register.
+        /// </summary>
         public sealed override void FreeRegister(HardwareRegister hardwareRegister)
         {
             var freeRegs = freeRegisters[(int)hardwareRegister.Kind];
@@ -272,8 +296,11 @@ namespace ILGPU.Backends.PTX
             AllocateRegister(
                 new RegisterDescription(BasicValueType.Int32, PTXRegisterKind.Int32));
 
-        /// <summary cref="RegisterAllocator{TKind}.AllocateRegister(RegisterAllocator{TKind}.RegisterDescription)"/>
-        public sealed override HardwareRegister AllocateRegister(RegisterDescription description)
+        /// <summary>
+        /// Allocates a register that is compatible with the given description.
+        /// </summary>
+        public sealed override HardwareRegister AllocateRegister(
+            RegisterDescription description)
         {
             var freeRegs = freeRegisters[(int)description.Kind];
             var registerValue = freeRegs.Count > 0 ?
@@ -321,19 +348,16 @@ namespace ILGPU.Backends.PTX
         internal string GenerateRegisterInformation(string prefix)
         {
             var builder = new StringBuilder();
-
-            AppendRegisterDeclaration(builder, prefix, ".pred", "p", PTXRegisterKind.Predicate);
-
-            AppendRegisterDeclaration(builder, prefix, ".b16", "rs", PTXRegisterKind.Int16);
-
-            AppendRegisterDeclaration(builder, prefix, ".b32", "r", PTXRegisterKind.Int32);
-            AppendRegisterDeclaration(builder, prefix, ".b64", "rd", PTXRegisterKind.Int64);
-
-            AppendRegisterDeclaration(builder, prefix, ".f32", "f", PTXRegisterKind.Float32);
-            AppendRegisterDeclaration(builder, prefix, ".f64", "fd", PTXRegisterKind.Float64);
-
+            foreach (var (typeName, name, kind) in RegisterDeclarations)
+            {
+                AppendRegisterDeclaration(
+                    builder,
+                    prefix,
+                    typeName,
+                    name,
+                    kind);
+            }
             builder.AppendLine();
-
             return builder.ToString();
         }
 

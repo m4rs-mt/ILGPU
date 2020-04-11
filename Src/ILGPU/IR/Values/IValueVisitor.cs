@@ -1,15 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
-// File: INodeVisitor.cs
+// File: IValueVisitor.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
-
-using System.Diagnostics;
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 namespace ILGPU.IR.Values
 {
@@ -355,28 +353,5 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="branch">The node.</param>
         void Visit(SwitchBranch branch);
-    }
-
-    /// <summary>
-    /// Extensions for a <see cref="IValueVisitor"/>.
-    /// </summary>
-    public static class ValueVisitorExtensions
-    {
-        /// <summary>
-        /// Visits all child nodes.
-        /// </summary>
-        /// <typeparam name="T">The visitor type.</typeparam>
-        /// <param name="visitor">The visitor instance.</param>
-        /// <param name="node">The current node to visit.</param>
-        public static void VisitChildren<T>(this T visitor, Value node)
-            where T : IValueVisitor
-        {
-            Debug.Assert(node != null, "Invalid node");
-            foreach (var childNode in node)
-                childNode.Accept(visitor);
-
-            foreach (var childNode in node)
-                visitor.VisitChildren(childNode);
-        }
     }
 }

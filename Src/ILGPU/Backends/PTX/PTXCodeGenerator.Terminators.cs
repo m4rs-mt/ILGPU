@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Terminators.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 
@@ -87,7 +87,9 @@ namespace ILGPU.Backends.PTX
                     }
                     using (var command = BeginCommand(
                         PTXInstructions.BranchOperation,
-                        new PredicateConfiguration(upperBoundsScope.PredicateRegister, true)))
+                        new PredicateConfiguration(
+                            upperBoundsScope.PredicateRegister,
+                            true)))
                     {
                         var defaultTarget = blockLookup[branch.DefaultBlock];
                         command.AppendLabel(defaultTarget);

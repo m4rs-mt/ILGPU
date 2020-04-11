@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: TypeInformationManager.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
 using System;
@@ -160,10 +160,7 @@ namespace ILGPU.IR.Types
             /// Returns the string representation of this type.
             /// </summary>
             /// <returns>The string representation of this type.</returns>
-            public override string ToString()
-            {
-                return ManagedType.Name;
-            }
+            public override string ToString() => ManagedType.Name;
 
             #endregion
         }
@@ -296,7 +293,9 @@ namespace ILGPU.IR.Types
             }
             // Check for opaque view types
             else if (type.IsArrayViewType(out Type _))
+            {
                 result = AddTypeInfo(type, false);
+            }
             else
             {
                 result = CreateCompoundTypeInfo(type);

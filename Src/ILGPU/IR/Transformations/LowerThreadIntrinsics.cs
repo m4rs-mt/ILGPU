@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: LowerThreadIntrinsics.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
@@ -46,7 +46,8 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Lowers broadcast operations.
         /// </summary>
-        public readonly struct BroadcastLowering : ILoweringImplementation<Broadcast>
+        public readonly struct BroadcastLowering :
+            ILoweringImplementation<Broadcast>
         {
             /// <summary>
             /// Lowers a broadcast value by constructing a new one.
@@ -64,7 +65,8 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Lowers warp shuffle operations.
         /// </summary>
-        public readonly struct WarpShuffleLowering : ILoweringImplementation<WarpShuffle>
+        public readonly struct WarpShuffleLowering :
+            ILoweringImplementation<WarpShuffle>
         {
             /// <summary>
             /// Lowers a warp shuffle value by constructing a new one.
@@ -82,7 +84,8 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Lowers sub warp shuffle operations.
         /// </summary>
-        public readonly struct SubWarpShuffleLowering : ILoweringImplementation<SubWarpShuffle>
+        public readonly struct SubWarpShuffleLowering :
+            ILoweringImplementation<SubWarpShuffle>
         {
             /// <summary>
             /// Lowers a sub warp shuffle value by constructing a new one.
@@ -106,7 +109,9 @@ namespace ILGPU.IR.Transformations
         /// Lowers a primitive type.
         /// </summary>
         /// <typeparam name="TValue">The value type.</typeparam>
-        /// <typeparam name="TLoweringImplementation">The implementation type.</typeparam>
+        /// <typeparam name="TLoweringImplementation">
+        /// The implementation type.
+        /// </typeparam>
         /// <param name="context">The current rewriter context.</param>
         /// <param name="sourceValue">The source value to get the values from.</param>
         /// <param name="variable">The source variable.</param>
@@ -142,7 +147,9 @@ namespace ILGPU.IR.Transformations
         /// Lowers a type.
         /// </summary>
         /// <typeparam name="TValue">The value type.</typeparam>
-        /// <typeparam name="TLoweringImplementation">The implementation type.</typeparam>
+        /// <typeparam name="TLoweringImplementation">
+        /// The implementation type.
+        /// </typeparam>
         /// <param name="context">The current rewriter context.</param>
         /// <param name="value">The source value to get the values from.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -175,19 +182,28 @@ namespace ILGPU.IR.Transformations
         {
             Rewriter.Add<Broadcast>(
                 broadcast => !broadcast.IsBuiltIn,
-                (context, value) => Lower<Broadcast, BroadcastLowering>(context, value));
+                (context, value) =>
+                    Lower<Broadcast, BroadcastLowering>(context, value));
             Rewriter.Add<WarpShuffle>(
                 shuffle => !shuffle.IsBuiltIn,
-                (context, value) => Lower<WarpShuffle, WarpShuffleLowering>(context, value));
+                (context, value) =>
+                    Lower<WarpShuffle, WarpShuffleLowering>(context, value));
             Rewriter.Add<SubWarpShuffle>(
                 shuffle => !shuffle.IsBuiltIn,
-                (context, value) => Lower<SubWarpShuffle, SubWarpShuffleLowering>(context, value));
+                (context, value) =>
+                    Lower<SubWarpShuffle, SubWarpShuffleLowering>(context, value));
         }
 
         #endregion
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        #region Methods
+
+        /// <summary>
+        /// Applies the lowering of thread intrinsics transformation.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder) =>
             Rewriter.Rewrite(builder);
+
+        #endregion
     }
 }

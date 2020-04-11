@@ -1,17 +1,18 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MethodHandle.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace ILGPU.IR
@@ -60,7 +61,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Constructs a new method handle.
         /// </summary>
-        /// <param name="id">The unique id of the refernce.</param>
+        /// <param name="id">The unique id of the reference.</param>
         /// <param name="name">The name of the method reference.</param>
         internal MethodHandle(long id, string name)
         {
@@ -106,10 +107,10 @@ namespace ILGPU.IR
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given handle is equal to this handle.
+        /// Returns true if the given handle is equal to this handle.
         /// </summary>
         /// <param name="other">The other handle.</param>
-        /// <returns>True, iff the given handle is equal to this handle.</returns>
+        /// <returns>True, if the given handle is equal to this handle.</returns>
         public bool Equals(MethodHandle other) => this == other;
 
         #endregion
@@ -117,24 +118,24 @@ namespace ILGPU.IR
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to this handle.
+        /// Returns true if the given object is equal to this handle.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to this handle.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is MethodHandle handle)
-                return handle == this;
-            return false;
-        }
+        /// <returns>True, if the given object is equal to this handle.</returns>
+        public override bool Equals(object obj) =>
+            obj is MethodHandle handle && handle == this;
 
         /// <summary>
         /// Returns the hash code of this handle.
         /// </summary>
         /// <returns>The hash code of this handle.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1307:Specify StringComparison",
-            Justification = "string.GetHashCode(StringComparison) not available in net47")]
-        public override int GetHashCode() => Id.GetHashCode() ^ Name?.GetHashCode() ?? 0;
+        [SuppressMessage(
+            "Globalization",
+            "CA1307:Specify StringComparison",
+            Justification = "string.GetHashCode(StringComparison) not " +
+            "available in net47")]
+        public override int GetHashCode() =>
+            Id.GetHashCode() ^ Name?.GetHashCode() ?? 0;
 
         /// <summary>
         /// Returns the string representation of this handle.
@@ -147,26 +148,24 @@ namespace ILGPU.IR
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first and the second handle are the same.
+        /// Returns true if the first and the second handle are the same.
         /// </summary>
         /// <param name="first">The first handle.</param>
         /// <param name="second">The second handle.</param>
-        /// <returns>True, iff the first and the second handle are the same.</returns>
-        public static bool operator ==(MethodHandle first, MethodHandle second)
-        {
-            return first.Id == second.Id && first.Name == second.Name;
-        }
+        /// <returns>True, if the first and the second handle are the same.</returns>
+        public static bool operator ==(MethodHandle first, MethodHandle second) =>
+            first.Id == second.Id && first.Name == second.Name;
 
         /// <summary>
-        /// Returns true iff the first and the second handle are not the same.
+        /// Returns true if the first and the second handle are not the same.
         /// </summary>
         /// <param name="first">The first handle.</param>
         /// <param name="second">The second handle.</param>
-        /// <returns>True, iff the first and the second handle are not the same.</returns>
-        public static bool operator !=(MethodHandle first, MethodHandle second)
-        {
-            return first.Id != second.Id || first.Name != second.Name;
-        }
+        /// <returns>
+        /// True, if the first and the second handle are not the same.
+        /// </returns>
+        public static bool operator !=(MethodHandle first, MethodHandle second) =>
+            !(first == second);
 
         #endregion
     }
@@ -253,7 +252,8 @@ namespace ILGPU.IR
             MethodFlags flags)
         {
             Handle = handle;
-            ReturnType = returnType ?? throw new ArgumentNullException(nameof(returnType));
+            ReturnType = returnType
+                ?? throw new ArgumentNullException(nameof(returnType));
             Source = source;
             Flags = flags;
 
@@ -305,7 +305,8 @@ namespace ILGPU.IR
         #region Methods
 
         /// <summary>
-        /// Specializes the current method declaration by specializing an empty method handle.
+        /// Specializes the current method declaration by specializing an empty
+        /// method handle.
         /// </summary>
         /// <param name="handle">The handle to specialize.</param>
         /// <returns>The specialized method declaration.</returns>
@@ -350,10 +351,12 @@ namespace ILGPU.IR
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given declaration is equal to this declaration.
+        /// Returns true if the given declaration is equal to this declaration.
         /// </summary>
         /// <param name="other">The other declaration.</param>
-        /// <returns>True, iff the given declaration is equal to this declaration.</returns>
+        /// <returns>
+        /// True, if the given declaration is equal to this declaration.
+        /// </returns>
         public bool Equals(MethodDeclaration other) => this == other;
 
         #endregion
@@ -361,10 +364,10 @@ namespace ILGPU.IR
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to this declaration.
+        /// Returns true if the given object is equal to this declaration.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to this declaration.</returns>
+        /// <returns>True, if the given object is equal to this declaration.</returns>
         public override bool Equals(object obj) =>
             obj is MethodDeclaration declaration && declaration == this;
 
@@ -391,22 +394,30 @@ namespace ILGPU.IR
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first and the second declaration are the same.
+        /// Returns true if the first and the second declaration are the same.
         /// </summary>
         /// <param name="first">The first declaration.</param>
         /// <param name="second">The second declaration.</param>
-        /// <returns>True, iff the first and the second declaration are the same.</returns>
-        public static bool operator ==(MethodDeclaration first, MethodDeclaration second) =>
+        /// <returns>
+        /// True, if the first and the second declaration are the same.
+        /// </returns>
+        public static bool operator ==(
+            MethodDeclaration first,
+            MethodDeclaration second) =>
             first.Handle == second.Handle;
 
         /// <summary>
-        /// Returns true iff the first and the second declaration are not the same.
+        /// Returns true if the first and the second declaration are not the same.
         /// </summary>
         /// <param name="first">The first declaration.</param>
         /// <param name="second">The second declaration.</param>
-        /// <returns>True, iff the first and the second declaration are not the same.</returns>
-        public static bool operator !=(MethodDeclaration first, MethodDeclaration second) =>
-            first.Handle != second.Handle;
+        /// <returns>
+        /// True, if the first and the second declaration are not the same.
+        /// </returns>
+        public static bool operator !=(
+            MethodDeclaration first,
+            MethodDeclaration second) =>
+            !(first == second);
 
         #endregion
     }

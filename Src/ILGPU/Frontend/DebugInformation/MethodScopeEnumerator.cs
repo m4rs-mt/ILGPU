@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MethodScopeEnumerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
@@ -27,7 +27,10 @@ namespace ILGPU.Frontend.DebugInformation
         /// <summary>
         /// Represents an empty scope enumerator.
         /// </summary>
-        [SuppressMessage("Microsoft.Security", "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes", Justification = "The empty scope-enumerator is immutable")]
+        [SuppressMessage(
+            "Microsoft.Security",
+            "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes",
+            Justification = "The empty scope-enumerator is immutable")]
         public static readonly MethodScopeEnumerator Empty = new MethodScopeEnumerator();
 
         #endregion
@@ -44,12 +47,17 @@ namespace ILGPU.Frontend.DebugInformation
         /// <summary>
         /// Constructs a new scope enumerator.
         /// </summary>
-        /// <param name="methodDebugInformation">The referenced method debug information.</param>
+        /// <param name="methodDebugInformation">
+        /// The referenced method debug information.
+        /// </param>
         internal MethodScopeEnumerator(MethodDebugInformation methodDebugInformation)
         {
-            Debug.Assert(methodDebugInformation != null, "Invalid method debug information");
+            Debug.Assert(
+                methodDebugInformation != null,
+                "Invalid method debug information");
             MetadataReader = methodDebugInformation.MetadataReader;
-            var localScopes = MetadataReader.GetLocalScopes(methodDebugInformation.DebugInformationHandle).GetEnumerator();
+            var localScopes = MetadataReader.GetLocalScopes(
+                methodDebugInformation.DebugInformationHandle).GetEnumerator();
             if (!localScopes.MoveNext())
                 return;
             scopes.Push(MetadataReader.GetLocalScope(localScopes.Current));
@@ -68,7 +76,9 @@ namespace ILGPU.Frontend.DebugInformation
         /// Returns the current scope.
         /// </summary>
         public MethodScope Current =>
-            scopes.Count < 1 ? MethodScope.Invalid : new MethodScope(scopes.Peek(), MetadataReader);
+            scopes.Count < 1
+            ? MethodScope.Invalid
+            : new MethodScope(scopes.Peek(), MetadataReader);
 
         #endregion
 
@@ -78,7 +88,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// Tries to move the scope enumerator to the given offset in bytes.
         /// </summary>
         /// <param name="offset">The target instruction offset in bytes.</param>
-        /// <returns>True, iff the enumerator could be moved to the next scope.</returns>
+        /// <returns>True, if the enumerator could be moved to the next scope.</returns>
         public bool MoveTo(int offset)
         {
             if (offset < 0)

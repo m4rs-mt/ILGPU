@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXArchitecture.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
 using System;
@@ -94,7 +94,8 @@ namespace ILGPU.Backends
         #region Static
 
         /// <summary>
-        /// Maps major and minor versions of Cuda devices to their corresponding PTX architecture.
+        /// Maps major and minor versions of Cuda devices to their corresponding PTX
+        /// architecture.
         /// </summary>
         private static readonly Dictionary<long, PTXArchitecture> ArchitectureLookup =
             new Dictionary<long, PTXArchitecture>
@@ -125,8 +126,12 @@ namespace ILGPU.Backends
         /// <returns>The resolved PTX version.</returns>
         public static PTXArchitecture GetArchitecture(int major, int minor)
         {
-            if (!ArchitectureLookup.TryGetValue(((long)major << 32) | (uint)minor, out PTXArchitecture result))
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedPTXArchitecture);
+            if (!ArchitectureLookup.TryGetValue(
+                ((long)major << 32) | (uint)minor, out PTXArchitecture result))
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedPTXArchitecture);
+            }
             return result;
         }
 

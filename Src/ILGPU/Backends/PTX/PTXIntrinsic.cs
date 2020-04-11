@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXIntrinsic.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Intrinsics;
@@ -160,17 +160,14 @@ namespace ILGPU.Backends.PTX
         #region Methods
 
         /// <summary cref="IntrinsicImplementation.CanHandleBackend(Backend)"/>
-        protected internal override bool CanHandleBackend(Backend backend)
-        {
-            if (!(backend is PTXBackend ptxBackend))
-                return false;
-
-            if (MinArchitecture.HasValue && ptxBackend.Architecture < MinArchitecture.Value)
-                return false;
-            if (MaxArchitecture.HasValue && ptxBackend.Architecture > MaxArchitecture.Value)
-                return false;
-            return true;
-        }
+        protected internal override bool CanHandleBackend(Backend backend) =>
+            backend is PTXBackend ptxBackend
+            ? MinArchitecture.HasValue &&
+                ptxBackend.Architecture < MinArchitecture.Value
+                ? false
+                : !MaxArchitecture.HasValue ||
+                    ptxBackend.Architecture <= MaxArchitecture.Value
+            : false;
 
         #endregion
     }

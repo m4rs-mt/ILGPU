@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MemoryBuffers.tt/MemoryBuffers.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ assembly name="System.Core" #>
@@ -15,7 +15,6 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
-
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
@@ -34,7 +33,8 @@ namespace ILGPU.Runtime
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed partial class <#= typeName #><T> : MemoryBuffer, IMemoryBuffer<T, <#= indexType #>>
+    public sealed partial class <#= typeName #><T> :
+        MemoryBuffer, IMemoryBuffer<T, <#= indexType #>>
         where T : struct
     {
         #region Constants
@@ -165,21 +165,21 @@ namespace ILGPU.Runtime
             buffer.GetAsArray(stream, offset, extent);
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="offset">The starting offset.</param>
-        /// <returns>The new subview.</returns>
+        /// <returns>The new sub view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Obsolete("Use View.GetSubView(TIndex, Index1) instead")]
         public ArrayView<T, <#= indexType #>> GetSubView(<#= indexType #> offset) =>
             View.GetSubView(offset);
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="offset">The starting offset.</param>
-        /// <param name="subViewExtent">The extent of the new subview.</param>
-        /// <returns>The new subview.</returns>
+        /// <param name="subViewExtent">The extent of the new sub view.</param>
+        /// <returns>The new sub view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Obsolete("Use View.GetSubView(TIndex, Index1) instead")]
         public ArrayView<T, <#= indexType #>> GetSubView(
@@ -385,7 +385,8 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 <#      if (obsoleteCopyMethods) { #>
-        [Obsolete("Use CopyTo(AcceleratorStream, <#= typeName #><T>, TIndex, TIndex, Index1) instead")]
+        [Obsolete("Use CopyTo(AcceleratorStream, <#= typeName #><T>, TIndex, TIndex, " +
+            "Index1) instead")]
 <#      } #>
         public void CopyTo(
             AcceleratorStream stream,
@@ -554,7 +555,8 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 <#      if (obsoleteCopyMethods) { #>
-        [Obsolete("Use CopyFrom(AcceleratorStream, <#= typeName #><T>, TIndex, TIndex, Index1) instead")]
+        [Obsolete("Use CopyFrom(AcceleratorStream, <#= typeName #><T>, TIndex, TIndex, " + 
+            "Index1) instead")]
 <#      } #>
         public void CopyFrom(
             AcceleratorStream stream,

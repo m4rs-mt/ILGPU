@@ -117,7 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="CannotEnablePeerAccessToDifferentAcceleratorKind" xml:space="preserve">
+  <data name="CannotEnablePeerAccessToOtherAccelerator" xml:space="preserve">
     <value>Cannot enable peer access to an accelerator of a different kind</value>
   </data>
   <data name="CannotResolveErrorString" xml:space="preserve">

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ArgumentMapper.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.IL;
 using ILGPU.IR.Types;
@@ -67,7 +67,6 @@ namespace ILGPU.Backends.EntryPoints
             /// Constructs a new internal target.
             /// </summary>
             /// <param name="local">The local to write to.</param>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal Target(ILLocal local)
             {
                 Local = local;
@@ -148,13 +147,12 @@ namespace ILGPU.Backends.EntryPoints
             /// </summary>
             public int ArgumentIndex { get; }
 
-            /// <summary cref="ISource.EmitLoadSource{TILEmitter}(in TILEmitter)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            /// <summary>
+            /// Emits the address of an argument.
+            /// </summary>
             public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter
-            {
+                where TILEmitter : IILEmitter =>
                 emitter.Emit(ArgumentOperation.LoadAddress, ArgumentIndex);
-            }
         }
 
         /// <summary>
@@ -179,13 +177,12 @@ namespace ILGPU.Backends.EntryPoints
             /// </summary>
             public ILLocal Local { get; }
 
-            /// <summary cref="ISource.EmitLoadSource{TILEmitter}(in TILEmitter)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            /// <summary>
+            /// Emits the address of a local variable.
+            /// </summary>
             public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter
-            {
+                where TILEmitter : IILEmitter =>
                 emitter.Emit(LocalOperation.LoadAddress, Local);
-            }
         }
 
         /// <summary>
@@ -200,7 +197,6 @@ namespace ILGPU.Backends.EntryPoints
             /// </summary>
             /// <param name="parentSource">The parent source.</param>
             /// <param name="sourceField">The source field.</param>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public StructureSource(in TParentSource parentSource, FieldInfo sourceField)
             {
                 ParentSource = parentSource;
@@ -220,8 +216,9 @@ namespace ILGPU.Backends.EntryPoints
             /// </summary>
             public FieldInfo SourceField { get; }
 
-            /// <summary cref="ISource.EmitLoadSource{TILEmitter}(in TILEmitter)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            /// <summary>
+            /// Emits the address of a structure field.
+            /// </summary>
             public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
                 where TILEmitter : IILEmitter
             {
@@ -336,7 +333,8 @@ namespace ILGPU.Backends.EntryPoints
         /// <summary>
         /// The internal type mapping (from old to new types).
         /// </summary>
-        private readonly Dictionary<Type, Type> typeMapping = new Dictionary<Type, Type>();
+        private readonly Dictionary<Type, Type> typeMapping =
+            new Dictionary<Type, Type>();
 
         /// <summary>
         /// Constructs a new argument mapper.
@@ -372,7 +370,9 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <param name="viewType">The view type.</param>
         /// <param name="elementType">The element type.</param>
-        /// <param name="elements">The target element collection to add element types to.</param>
+        /// <param name="elements">
+        /// The target element collection to add element types to.
+        /// </param>
         protected abstract void MapViewType<TTargetCollection>(
             Type viewType,
             Type elementType,
@@ -383,7 +383,9 @@ namespace ILGPU.Backends.EntryPoints
         /// Maps the given structure type to a compatible structure type.
         /// </summary>
         /// <param name="structType">The structure type to map.</param>
-        /// <param name="elements">The target element collection to add element types to.</param>
+        /// <param name="elements">
+        /// The target element collection to add element types to.
+        /// </param>
         protected void MapStructType<TTargetCollection>(
             Type structType,
             TTargetCollection elements)
@@ -398,13 +400,17 @@ namespace ILGPU.Backends.EntryPoints
         /// Maps the given source type to a compatible target type.
         /// </summary>
         /// <param name="type">The source type.</param>
-        /// <param name="elements">The target element collection to add element types to.</param>
+        /// <param name="elements">
+        /// The target element collection to add element types to.
+        /// </param>
         protected void MapType<TTargetCollection>(Type type, TTargetCollection elements)
             where TTargetCollection : ICollection<Type>
         {
             if (type.IsVoidPtr() || type == typeof(void) || type.IsByRef ||
                 type.IsPointer || type.IsDelegate() || type.IsArray || type.IsClass)
+            {
                 throw new ArgumentOutOfRangeException(nameof(type));
+            }
 
             if (type.IsPrimitive)
                 elements.Add(type);
@@ -428,10 +434,6 @@ namespace ILGPU.Backends.EntryPoints
             Debug.Assert(type != null, "Invalid source type");
             if (typeMapping.TryGetValue(type, out Type mappedType))
                 return mappedType;
-
-            if (type.IsVoidPtr() || type == typeof(void) || type.IsByRef ||
-                type.IsPointer || type.IsDelegate() || type.IsArray || type.IsClass)
-                throw new ArgumentOutOfRangeException(nameof(type));
 
             var types = new List<Type>();
             MapType(type, types);
@@ -518,9 +520,13 @@ namespace ILGPU.Backends.EntryPoints
                 emitter.Emit(OpCodes.Cpobj, targetType);
             }
             else if (sourceType.IsArrayViewType(out Type elementType))
+            {
                 MapViewInstance(emitter, elementType, source, ref target);
+            }
             else
+            {
                 MapStructInstance(emitter, source, ref target);
+            }
         }
 
         /// <summary>
@@ -543,7 +549,10 @@ namespace ILGPU.Backends.EntryPoints
             for (int i = 0, e = parameters.Count; i < e; ++i)
             {
                 if (parameters.IsByRef(i))
-                    throw new NotSupportedException(ErrorMessages.InvalidEntryPointParameter);
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.InvalidEntryPointParameter);
+                }
 
                 // Load parameter argument and map instance
                 var parameterType = parameters.ParameterTypes[i];
@@ -565,7 +574,8 @@ namespace ILGPU.Backends.EntryPoints
         }
 
         /// <summary>
-        /// Creates code that maps (potentially nested) views of kernel arguments separately.
+        /// Creates code that maps (potentially nested) views of kernel arguments
+        /// separately.
         /// </summary>
         /// <typeparam name="TILEmitter">The emitter type.</typeparam>
         /// <typeparam name="TMappingHandler">The handler type.</typeparam>
@@ -587,7 +597,10 @@ namespace ILGPU.Backends.EntryPoints
             for (int i = 0, e = specification.Count; i < e; ++i)
             {
                 if (specification.IsByRef(i))
-                    throw new NotSupportedException(ErrorMessages.InvalidEntryPointParameter);
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.InvalidEntryPointParameter);
+                }
 
                 // Check for matching view specifications
                 if (!entryPoint.TryGetViewParameters(i, out var views))

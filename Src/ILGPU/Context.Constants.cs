@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IRContext.Constants.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 namespace ILGPU
 {
@@ -52,7 +52,9 @@ namespace ILGPU
         /// Represents the default debug flags of a new context.
         /// </summary>
         public static readonly ContextFlags DefaultDebug =
-            DefaultFlags | ContextFlags.EnableDebugInformation | ContextFlags.EnableAssertions;
+            DefaultFlags |
+            ContextFlags.EnableDebugInformation |
+            ContextFlags.EnableAssertions;
 
         /// <summary>
         /// Represents the default flags of a new context.

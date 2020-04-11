@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Memory.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -25,25 +25,29 @@ namespace ILGPU.IR.Construction
         /// <param name="type">The type of the allocation.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <returns>A node that represents the alloca operation.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateAlloca(
             TypeNode type,
-            MemoryAddressSpace addressSpace)
-        {
-            return CreateAlloca(
+            MemoryAddressSpace addressSpace) =>
+            CreateAlloca(
                 CreatePrimitiveValue(1),
                 type,
                 addressSpace);
-        }
 
         /// <summary>
         /// Creates a local allocation.
         /// </summary>
-        /// <param name="arrayLength">The array length (number of elements to allocate).</param>
+        /// <param name="arrayLength">
+        /// The array length (number of elements to allocate).
+        /// </param>
         /// <param name="type">The type of the allocation.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <returns>A node that represents the alloca operation.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateAlloca(
             Value arrayLength,
             TypeNode type,
@@ -74,7 +78,9 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="source">The source address.</param>
         /// <returns>A node that represents the load operation.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateLoad(Value source)
         {
             Debug.Assert(source != null, "Invalid source value");
@@ -92,13 +98,16 @@ namespace ILGPU.IR.Construction
         /// <param name="target">The target address.</param>
         /// <param name="value">The value to store.</param>
         /// <returns>A node that represents the store operation.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateStore(Value target, Value value)
         {
             Debug.Assert(target != null, "Invalid target value");
             Debug.Assert(target.Type.IsPointerType, "Invalid target pointer type");
             Debug.Assert(
-                target.Type is PointerType pointerType && pointerType.ElementType == value.Type,
+                target.Type is PointerType pointerType &&
+                pointerType.ElementType == value.Type,
                 "Not compatible element types");
 
             return Append(new Store(
@@ -113,15 +122,14 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="kind">The type of the memory barrier.</param>
         /// <returns>A node that represents the memory barrier.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters")]
-        public ValueReference CreateMemoryBarrier(
-            MemoryBarrierKind kind)
-        {
-            return Append(new MemoryBarrier(
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        public ValueReference CreateMemoryBarrier(MemoryBarrierKind kind) =>
+            Append(new MemoryBarrier(
                 Context,
                 BasicBlock,
                 kind));
-        }
 
         /// <summary>
         /// Computes a new sub view from a given view.
@@ -140,8 +148,12 @@ namespace ILGPU.IR.Construction
             Debug.Assert(length != null, "Invalid length value");
 
             Debug.Assert(source.Type.IsViewType, "Invalid source view type");
-            Debug.Assert(offset.BasicValueType == IRTypeContext.ViewIndexType, "Invalid offset type");
-            Debug.Assert(length.BasicValueType == IRTypeContext.ViewIndexType, "Invalid length type");
+            Debug.Assert(
+                offset.BasicValueType == IRTypeContext.ViewIndexType,
+                "Invalid offset type");
+            Debug.Assert(
+                length.BasicValueType == IRTypeContext.ViewIndexType,
+                "Invalid length type");
 
             return Append(new SubViewValue(
                 BasicBlock,
@@ -163,17 +175,18 @@ namespace ILGPU.IR.Construction
 
             var addressSpaceType = source.Type as IAddressSpaceType;
             Debug.Assert(addressSpaceType != null, "Invalid address space type");
-            Debug.Assert(elementIndex.BasicValueType == IRTypeContext.ViewIndexType, "Incompatible index type");
+            Debug.Assert(
+                elementIndex.BasicValueType == IRTypeContext.ViewIndexType,
+                "Incompatible index type");
 
             // Fold primitive pointer arithmetic that does not change anything
-            if (source.Type is PointerType && elementIndex.IsPrimitive(0))
-                return source;
-
-            return Append(new LoadElementAddress(
-                Context,
-                BasicBlock,
-                source,
-                elementIndex));
+            return source.Type is PointerType && elementIndex.IsPrimitive(0)
+                ? (ValueReference)source
+                : Append(new LoadElementAddress(
+                    Context,
+                    BasicBlock,
+                    source,
+                    elementIndex));
         }
 
         /// <summary>
@@ -194,18 +207,15 @@ namespace ILGPU.IR.Construction
                 return source;
 
             // Fold nested field addresses
-            if (source is LoadFieldAddress lfa)
-            {
-                return CreateLoadFieldAddress(
+            return source is LoadFieldAddress lfa
+                ? CreateLoadFieldAddress(
                     lfa.Source,
-                    lfa.FieldSpan.Narrow(fieldSpan));
-            }
-
-            return Append(new LoadFieldAddress(
-                Context,
-                BasicBlock,
-                source,
-                fieldSpan));
+                    lfa.FieldSpan.Narrow(fieldSpan))
+                : Append(new LoadFieldAddress(
+                    Context,
+                    BasicBlock,
+                    source,
+                    fieldSpan));
         }
     }
 }

@@ -1,14 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MethodMapping.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
-
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections;
@@ -20,7 +19,8 @@ using System.Reflection;
 namespace ILGPU.IR
 {
     /// <summary>
-    /// Represents an object that can be managed in the scope of a <see cref="MethodMapping{T}"/>
+    /// Represents an object that can be managed in the scope of a
+    /// <see cref="MethodMapping{T}"/>
     /// </summary>
     public interface IMethodMappingObject
     {
@@ -132,7 +132,7 @@ namespace ILGPU.IR
             /// </summary>
             /// <param name="method">The method to resolve.</param>
             /// <param name="handle">The resolved function handle (if any).</param>
-            /// <returns>True, iff the requested function could be resolved.</returns>
+            /// <returns>True, if the requested function could be resolved.</returns>
             public bool TryGetHandle(MethodBase method, out MethodHandle handle) =>
                 Parent.TryGetHandle(method, out handle);
 
@@ -141,7 +141,7 @@ namespace ILGPU.IR
             /// </summary>
             /// <param name="handle">The function handle to resolve.</param>
             /// <param name="data">The resolved data (if any).</param>
-            /// <returns>True, iff the requested function could be resolved.</returns>
+            /// <returns>True, if the requested function could be resolved.</returns>
             public bool TryGetFunction(MethodHandle handle, out T data) =>
                 Parent.TryGetData(handle, out data);
 
@@ -214,7 +214,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="method">The method to resolve.</param>
         /// <param name="handle">The resolved function handle (if any).</param>
-        /// <returns>True, iff the requested function could be resolved.</returns>
+        /// <returns>True, if the requested function could be resolved.</returns>
         public bool TryGetHandle(MethodBase method, out MethodHandle handle) =>
             managedMethods.TryGetValue(method, out handle);
 
@@ -223,7 +223,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="method">The method to resolve.</param>
         /// <param name="data">The resolved data (if any).</param>
-        /// <returns>True, iff the requested function could be resolved.</returns>
+        /// <returns>True, if the requested function could be resolved.</returns>
         public bool TryGetData(MethodHandle method, out T data)
         {
             if (!methods.TryGetValue(method, out int index))

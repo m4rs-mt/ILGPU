@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Group.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
@@ -96,7 +96,9 @@ namespace ILGPU
         /// <returns>The X thread dimension for a single group.</returns>
         public static int DimX
         {
-            [GridIntrinsic(GridIntrinsicKind.GetGroupDimension, DeviceConstantDimension3D.X)]
+            [GridIntrinsic(
+                GridIntrinsicKind.GetGroupDimension,
+                DeviceConstantDimension3D.X)]
             get => CPURuntimeThreadContext.GroupDimension.X;
         }
 
@@ -115,7 +117,9 @@ namespace ILGPU
         /// <returns>The Y thread dimension for a single group.</returns>
         public static int DimY
         {
-            [GridIntrinsic(GridIntrinsicKind.GetGroupDimension, DeviceConstantDimension3D.Y)]
+            [GridIntrinsic(
+                GridIntrinsicKind.GetGroupDimension,
+                DeviceConstantDimension3D.Y)]
             get => CPURuntimeThreadContext.GroupDimension.Y;
         }
 
@@ -134,7 +138,9 @@ namespace ILGPU
         /// <returns>The Z thread dimension for a single group.</returns>
         public static int DimZ
         {
-            [GridIntrinsic(GridIntrinsicKind.GetGroupDimension, DeviceConstantDimension3D.Z)]
+            [GridIntrinsic(
+                GridIntrinsicKind.GetGroupDimension,
+                DeviceConstantDimension3D.Z)]
             get => CPURuntimeThreadContext.GroupDimension.Z;
         }
 
@@ -146,7 +152,8 @@ namespace ILGPU
         public static Index3 Dimension => new Index3(DimX, DimY, DimZ);
 
         /// <summary>
-        /// Returns the linear thread index of the current thread within the current thread group.
+        /// Returns the linear thread index of the current thread within the current
+        /// thread group.
         /// </summary>
         public static int LinearIndex => Index.ComputeLinearIndex(Dimension);
 
@@ -154,6 +161,11 @@ namespace ILGPU
         /// Returns true if the current thread is the first in the group.
         /// </summary>
         public static bool IsFirstThread => IdxX == 0;
+
+        /// <summary>
+        /// Returns true if the current thread is the last in the group.
+        /// </summary>
+        public static bool IsLastThread => IdxX == DimX - 1;
 
         #endregion
 
@@ -171,27 +183,29 @@ namespace ILGPU
         /// the predicate evaluated to true.
         /// </summary>
         /// <param name="predicate">The predicate to check.</param>
-        /// <returns>The number of threads for which the predicate evaluated to true.</returns>
+        /// <returns>
+        /// The number of threads for which the predicate evaluated to true.
+        /// </returns>
         [GroupIntrinsic(GroupIntrinsicKind.BarrierPopCount)]
         public static int BarrierPopCount(bool predicate) =>
             CPURuntimeGroupContext.Current.BarrierPopCount(predicate);
 
         /// <summary>
-        /// Executes a thread barrier and returns true iff all threads in a block
-        /// fullfills the predicate.
+        /// Executes a thread barrier and returns true if all threads in a block
+        /// fulfills the predicate.
         /// </summary>
         /// <param name="predicate">The predicate to check.</param>
-        /// <returns>True, iff all threads in a block fullfills the predicate.</returns>
+        /// <returns>True, if all threads in a block fulfills the predicate.</returns>
         [GroupIntrinsic(GroupIntrinsicKind.BarrierAnd)]
         public static bool BarrierAnd(bool predicate) =>
             CPURuntimeGroupContext.Current.BarrierAnd(predicate);
 
         /// <summary>
-        /// Executes a thread barrier and returns true iff any thread in a block
-        /// fullfills the predicate.
+        /// Executes a thread barrier and returns true if any thread in a block
+        /// fulfills the predicate.
         /// </summary>
         /// <param name="predicate">The predicate to check.</param>
-        /// <returns>True, iff any thread in a block fullfills the predicate.</returns>
+        /// <returns>True, if any thread in a block fulfills the predicate.</returns>
         [GroupIntrinsic(GroupIntrinsicKind.BarrierOr)]
         public static bool BarrierOr(bool predicate) =>
             CPURuntimeGroupContext.Current.BarrierOr(predicate);
@@ -207,7 +221,8 @@ namespace ILGPU
         /// <param name="value">The value to broadcast.</param>
         /// <param name="groupIndex">The source thread index within the group.</param>
         /// <remarks>
-        /// Note that the group index must be the same for all threads in the group.</remarks>
+        /// Note that the group index must be the same for all threads in the group.
+        /// </remarks>
         [GroupIntrinsic(GroupIntrinsicKind.Broadcast)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Broadcast<T>(T value, int groupIndex)

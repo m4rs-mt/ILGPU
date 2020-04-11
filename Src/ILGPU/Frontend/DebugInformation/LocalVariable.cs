@@ -1,15 +1,16 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: LocalVariable.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Frontend.DebugInformation
 {
@@ -52,78 +53,72 @@ namespace ILGPU.Frontend.DebugInformation
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given local variable is equal to the current local variable.
+        /// Returns true if the given local variable is equal to the current local
+        /// variable.
         /// </summary>
         /// <param name="other">The other local variable.</param>
-        /// <returns>True, iff the given index is equal to the current local variable.</returns>
-        public bool Equals(LocalVariable other)
-        {
-            return other == this;
-        }
+        /// <returns>
+        /// True, if the given index is equal to the current local variable.
+        /// </returns>
+        public bool Equals(LocalVariable other) => other == this;
 
         #endregion
 
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current local variable.
+        /// Returns true if the given object is equal to the current local variable.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current local variable.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is LocalVariable localVariable)
-                return Equals(localVariable);
-            return false;
-        }
+        /// <returns>
+        /// True, if the given object is equal to the current local variable.
+        /// </returns>
+        public override bool Equals(object obj) =>
+            obj is LocalVariable localVariable && Equals(localVariable);
 
         /// <summary>
         /// Returns the hash code of this index.
         /// </summary>
         /// <returns>The hash code of this index.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1307:Specify StringComparison",
-            Justification = "string.GetHashCode(StringComparison) not available in net47")]
-        public override int GetHashCode()
-        {
-            return Index.GetHashCode() ^ Name.GetHashCode();
-        }
+        [SuppressMessage(
+            "Globalization",
+            "CA1307:Specify StringComparison",
+            Justification = "string.GetHashCode(StringComparison) " +
+            "not available in net47")]
+        public override int GetHashCode() => Index.GetHashCode() ^ Name.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this local variable.
         /// </summary>
         /// <returns>The string representation of this local variable.</returns>
-        public override string ToString()
-        {
-            return Index.ToString() + ": " + Name.ToString();
-        }
+        public override string ToString() => Index.ToString() + ": " + Name.ToString();
 
         #endregion
 
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first and second local variable are the same.
+        /// Returns true if the first and second local variable are the same.
         /// </summary>
         /// <param name="first">The first local variable.</param>
         /// <param name="second">The second local variable.</param>
-        /// <returns>True, iff the first and second local variable are the same.</returns>
-        public static bool operator ==(LocalVariable first, LocalVariable second)
-        {
-            return first.Index == second.Index &&
-                first.Name == second.Name;
-        }
+        /// <returns>
+        /// True, if the first and second local variable are the same.
+        /// </returns>
+        public static bool operator ==(LocalVariable first, LocalVariable second) =>
+            first.Index == second.Index &&
+            first.Name == second.Name;
 
         /// <summary>
-        /// Returns true iff the first and second local variable are not the same.
+        /// Returns true if the first and second local variable are not the same.
         /// </summary>
         /// <param name="first">The first local variable.</param>
         /// <param name="second">The second local variable.</param>
-        /// <returns>True, iff the first and second local variable are not the same.</returns>
-        public static bool operator !=(LocalVariable first, LocalVariable second)
-        {
-            return first.Index != second.Index ||
-                first.Name != second.Name;
-        }
+        /// <returns>
+        /// True, if the first and second local variable are not the same.
+        /// </returns>
+        public static bool operator !=(LocalVariable first, LocalVariable second) =>
+            !(first == second);
 
         #endregion
     }

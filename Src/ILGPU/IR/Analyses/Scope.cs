@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Scope.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using ILGPU.Util;
@@ -41,7 +41,9 @@ namespace ILGPU.IR.Analyses
     /// <summary>
     /// Represents a collection of all basic blocks.
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of this program analysis")]
     public sealed class Scope : IReadOnlyList<BasicBlock>
     {
@@ -171,10 +173,7 @@ namespace ILGPU.IR.Analyses
                 object IEnumerator.Current => Current;
 
                 /// <summary cref="IDisposable.Dispose"/>
-                public void Dispose()
-                {
-                    functionEnumerator.Dispose();
-                }
+                public void Dispose() => functionEnumerator.Dispose();
 
                 /// <summary cref="IEnumerator.MoveNext"/>
                 public bool MoveNext()
@@ -230,7 +229,8 @@ namespace ILGPU.IR.Analyses
             public Enumerator GetEnumerator() => new Enumerator(FunctionScope);
 
             /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            IEnumerator<BasicBlock.ValueEntry> IEnumerable<BasicBlock.ValueEntry>.GetEnumerator() => GetEnumerator();
+            IEnumerator<BasicBlock.ValueEntry>
+                IEnumerable<BasicBlock.ValueEntry>.GetEnumerator() => GetEnumerator();
 
             /// <summary cref="IEnumerable.GetEnumerator"/>
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -274,7 +274,8 @@ namespace ILGPU.IR.Analyses
             public PostOrderEnumerator GetEnumerator() => new PostOrderEnumerator(Scope);
 
             /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            IEnumerator<BasicBlock> IEnumerable<BasicBlock>.GetEnumerator() => GetEnumerator();
+            IEnumerator<BasicBlock> IEnumerable<BasicBlock>.GetEnumerator() =>
+                GetEnumerator();
 
             /// <summary cref="IEnumerable.GetEnumerator"/>
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -300,22 +301,27 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         private readonly struct DefaultPostOrderHandler : IPostOrderNodeHandler
         {
-            /// <summary cref="IPostOrderNodeHandler.AddAlreadyVisitedNode(List{BasicBlock}, BasicBlock)"/>
+            /// <summary cref="IPostOrderNodeHandler.AddAlreadyVisitedNode(
+            /// List{BasicBlock}, BasicBlock)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void AddAlreadyVisitedNode(List<BasicBlock> target, BasicBlock block) { }
+            public void AddAlreadyVisitedNode(
+                List<BasicBlock> target,
+                BasicBlock block) { }
         }
 
         /// <summary>
         /// Adds already visited nodes to the post oder list.
         /// </summary>
-        private readonly struct AddAlreadyVisitedNodesPostOrderHandler : IPostOrderNodeHandler
+        private readonly struct AddAlreadyVisitedNodesPostOrderHandler :
+            IPostOrderNodeHandler
         {
-            /// <summary cref="IPostOrderNodeHandler.AddAlreadyVisitedNode(List{BasicBlock}, BasicBlock)"/>
+            /// <summary cref="IPostOrderNodeHandler.AddAlreadyVisitedNode(
+            /// List{BasicBlock}, BasicBlock)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void AddAlreadyVisitedNode(List<BasicBlock> target, BasicBlock block)
-            {
+            public void AddAlreadyVisitedNode(
+                List<BasicBlock> target,
+                BasicBlock block) =>
                 target.Add(block);
-            }
         }
 
         #endregion
@@ -414,15 +420,19 @@ namespace ILGPU.IR.Analyses
             ScopeFlags = scopeFlags;
 
             if ((scopeFlags & ScopeFlags.AddAlreadyVisitedNodes) != ScopeFlags.None)
+            {
                 ComputePostOrder<AddAlreadyVisitedNodesPostOrderHandler>(
                     method.EntryBlock,
                     out postOrder,
                     out contained);
+            }
             else
+            {
                 ComputePostOrder<DefaultPostOrderHandler>(
                     method.EntryBlock,
                     out postOrder,
                     out contained);
+            }
         }
 
         #endregion
@@ -508,7 +518,8 @@ namespace ILGPU.IR.Analyses
         /// <typeparam name="TTerminatorValue">The terminator value to match.</typeparam>
         /// <param name="visitor">The visitor.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ForEachTerminator<TTerminatorValue>(ValueVisitor<TTerminatorValue> visitor)
+        public void ForEachTerminator<TTerminatorValue>(
+            ValueVisitor<TTerminatorValue> visitor)
             where TTerminatorValue : TerminatorValue
         {
             foreach (var block in this)
@@ -541,7 +552,8 @@ namespace ILGPU.IR.Analyses
         public Enumerator GetEnumerator() => new Enumerator(this);
 
         /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-        IEnumerator<BasicBlock> IEnumerable<BasicBlock>.GetEnumerator() => GetEnumerator();
+        IEnumerator<BasicBlock> IEnumerable<BasicBlock>.GetEnumerator() =>
+            GetEnumerator();
 
         /// <summary cref="IEnumerable.GetEnumerator"/>
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CPURuntimeGroupContext.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
 using ILGPU.Util;
@@ -59,7 +59,9 @@ namespace ILGPU.Runtime.CPU
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                Debug.Assert(currentContext != null, ErrorMessages.InvalidKernelOperation);
+                Debug.Assert(
+                    currentContext != null,
+                    ErrorMessages.InvalidKernelOperation);
                 return currentContext;
             }
         }
@@ -116,8 +118,9 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         /// <remarks>
         /// Note that this buffer is only required for debug CPU builds. In
-        /// these cases, we cannot move nested <see cref="SharedMemory.Allocate{T}(int)"/>
-        /// instructions out of nested loops to provide the best debugging experience.
+        /// these cases, we cannot move nested
+        /// <see cref="SharedMemory.Allocate{T}(int)"/> instructions out of nested loops
+        /// to provide the best debugging experience.
         /// </remarks>
         private readonly List<MemoryBuffer<byte>> advancedSharedMemoryBuffer =
             new List<MemoryBuffer<byte>>();
@@ -171,7 +174,9 @@ namespace ILGPU.Runtime.CPU
                 // We can allocate the required memory
                 if (sharedMemoryOffset + sizeInBytes <= SharedMemory.Length)
                 {
-                    currentSharedMemoryView = SharedMemory.GetSubView(sharedMemoryOffset, sizeInBytes);
+                    currentSharedMemoryView = SharedMemory.GetSubView(
+                        sharedMemoryOffset,
+                        sizeInBytes);
                     sharedMemoryOffset += sizeInBytes;
                     return;
                 }
@@ -185,7 +190,9 @@ namespace ILGPU.Runtime.CPU
                 var buffer = advancedSharedMemoryBuffer[advancedSharedMemoryBufferIndex];
                 if (sharedMemoryOffset + sizeInBytes <= buffer.Length)
                 {
-                    currentSharedMemoryView = buffer.View.GetSubView(sharedMemoryOffset, sizeInBytes);
+                    currentSharedMemoryView = buffer.View.GetSubView(
+                        sharedMemoryOffset,
+                        sizeInBytes);
                     sharedMemoryOffset += sizeInBytes;
                     return;
                 }
@@ -193,7 +200,8 @@ namespace ILGPU.Runtime.CPU
             }
 
             // We need a new dynamically-chunk of shared memory
-            var tempBuffer = Accelerator.Allocate<byte>(IntrinsicMath.Max(sizeInBytes, SharedMemoryChunkSize));
+            var tempBuffer = Accelerator.Allocate<byte>(
+                IntrinsicMath.Max(sizeInBytes, SharedMemoryChunkSize));
             advancedSharedMemoryBuffer.Add(tempBuffer);
             currentSharedMemoryView = tempBuffer.View.GetSubView(0, sizeInBytes);
 
@@ -219,7 +227,8 @@ namespace ILGPU.Runtime.CPU
         public ArrayView<T> AllocateSharedMemory<T>(int extent)
             where T : struct
         {
-            var isMainThread = Interlocked.CompareExchange(ref sharedMemoryLock, 1, 0) == 0;
+            var isMainThread = Interlocked.CompareExchange(
+                ref sharedMemoryLock, 1, 0) == 0;
             if (isMainThread)
                 AllocateSharedMemoryInternal<T>(extent);
             Barrier();
@@ -227,7 +236,9 @@ namespace ILGPU.Runtime.CPU
             if (isMainThread)
                 Interlocked.Exchange(ref sharedMemoryLock, 0);
             Barrier();
-            Debug.Assert(result.Length >= extent * Interop.SizeOf<T>(), "Invalid shared memory allocation");
+            Debug.Assert(
+                result.Length >= extent * Interop.SizeOf<T>(),
+                "Invalid shared memory allocation");
             return result.Cast<T>();
         }
 
@@ -283,7 +294,9 @@ namespace ILGPU.Runtime.CPU
         /// the predicate evaluated to true.
         /// </summary>
         /// <param name="predicate">The predicate to check.</param>
-        /// <returns>The number of threads for which the predicate evaluated to true.</returns>
+        /// <returns>
+        /// The number of threads for which the predicate evaluated to true.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int BarrierPopCount(bool predicate)
         {
@@ -298,34 +311,32 @@ namespace ILGPU.Runtime.CPU
         }
 
         /// <summary>
-        /// Executes a thread barrier and returns true iff all threads in a block
-        /// fullfills the predicate.
+        /// Executes a thread barrier and returns true if all threads in a block
+        /// fulfills the predicate.
         /// </summary>
         /// <param name="predicate">The predicate to check.</param>
-        /// <returns>True, iff all threads in a block fullfills the predicate.</returns>
+        /// <returns>True, if all threads in a block fulfills the predicate.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool BarrierAnd(bool predicate)
-        {
-            return BarrierPopCount(predicate) == groupBarrier.ParticipantCount;
-        }
+        public bool BarrierAnd(bool predicate) =>
+            BarrierPopCount(predicate) == groupBarrier.ParticipantCount;
 
         /// <summary>
-        /// Executes a thread barrier and returns true iff any thread in a block
-        /// fullfills the predicate.
+        /// Executes a thread barrier and returns true if any thread in a block
+        /// fulfills the predicate.
         /// </summary>
         /// <param name="predicate">The predicate to check.</param>
-        /// <returns>True, iff any thread in a block fullfills the predicate.</returns>
+        /// <returns>True, if any thread in a block fulfills the predicate.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool BarrierOr(bool predicate)
-        {
-            return BarrierPopCount(predicate) > 0;
-        }
+        public bool BarrierOr(bool predicate) =>
+            BarrierPopCount(predicate) > 0;
 
         /// <summary>
         /// Initializes this context.
         /// </summary>
         /// <param name="groupDimension">The group dimension.</param>
-        /// <param name="sharedMemoryConfig">The current shared memory configuration.</param>
+        /// <param name="sharedMemoryConfig">
+        /// The current shared memory configuration.
+        /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Initialize(
             Index3 groupDimension,
@@ -343,12 +354,11 @@ namespace ILGPU.Runtime.CPU
             else if (currentBarrierCount < groupSize)
                 groupBarrier.AddParticipants(groupSize - currentBarrierCount);
 
-            if (sharedMemoryConfig.HasSharedMemory)
-                SharedMemory = sharedMemoryBuffer.Allocate<byte>(
+            SharedMemory = sharedMemoryConfig.HasSharedMemory
+                ? sharedMemoryBuffer.Allocate<byte>(
                     sharedMemoryConfig.StaticSize +
-                    sharedMemoryConfig.DynamicArraySize);
-            else
-                SharedMemory = new ArrayView<byte>();
+                    sharedMemoryConfig.DynamicArraySize)
+                : new ArrayView<byte>();
             if (SharedMemory.Length > SharedMemorySize)
                 throw new InvalidKernelOperationException();
             currentSharedMemoryView = default;
@@ -370,10 +380,7 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// Makes the current context the active one for this thread.
         /// </summary>
-        internal void MakeCurrent()
-        {
-            currentContext = this;
-        }
+        internal void MakeCurrent() => currentContext = this;
 
         #endregion
 

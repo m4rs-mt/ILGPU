@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MemoryBuffer.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using System;
@@ -90,7 +90,8 @@ namespace ILGPU.Runtime
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TIndex">The index type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract class MemoryBuffer<T, TIndex> : MemoryBuffer, IMemoryBuffer<T, TIndex>
+    public abstract class MemoryBuffer<T, TIndex> :
+        MemoryBuffer, IMemoryBuffer<T, TIndex>
         where T : struct
         where TIndex : struct, IIndex, IGenericIndex<TIndex>
     {
@@ -325,7 +326,8 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
-        [Obsolete("Use CopyTo(AcceleratorStream, MemoryBuffer<T, TIndex>, TIndex, TIndex, Index1) instead")]
+        [Obsolete("Use CopyTo(AcceleratorStream, MemoryBuffer<T, TIndex>, TIndex, " +
+            "TIndex, Index1) instead")]
         public void CopyTo(
             AcceleratorStream stream,
             MemoryBuffer<T, TIndex> target,
@@ -386,7 +388,9 @@ namespace ILGPU.Runtime
             var linearSourceIndex = sourceOffset.ComputeLinearIndex(Extent);
             if (linearSourceIndex + extent > Length ||
                 targetOffset.ComputeLinearIndex(target.Extent) + extent > Length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(extent));
+            }
 
             CopyToView(
                 stream,
@@ -517,7 +521,8 @@ namespace ILGPU.Runtime
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [Obsolete("Use CopyFrom(MemoryBuffer<T, TIndex>, TIndex, TIndex, Index) instead")]
+        [Obsolete("Use CopyFrom(MemoryBuffer<T, TIndex>, TIndex, TIndex, Index) " +
+            "instead")]
         public void CopyFrom(
             MemoryBuffer<T, TIndex> source,
             TIndex sourceOffset,
@@ -539,7 +544,8 @@ namespace ILGPU.Runtime
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [Obsolete("Use CopyFrom(AcceleratorStream, MemoryBuffer<T, TIndex>, TIndex, TIndex, Index) instead")]
+        [Obsolete("Use CopyFrom(AcceleratorStream, MemoryBuffer<T, TIndex>, TIndex, " +
+            "TIndex, Index) instead")]
         public void CopyFrom(
             AcceleratorStream stream,
             MemoryBuffer<T, TIndex> source,
@@ -763,7 +769,8 @@ namespace ILGPU.Runtime
             return result;
         }
 
-        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index1, Index1)"/>
+        /// <summary cref="ArrayViewSource.GetAsRawArray(
+        /// AcceleratorStream, Index1, Index1)"/>
         protected internal sealed override unsafe ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
             Index1 byteOffset,
@@ -802,21 +809,21 @@ namespace ILGPU.Runtime
             GetAsRawArray(stream, Index1.Zero, LengthInBytes).Array;
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="offset">The starting offset.</param>
-        /// <returns>The new subview.</returns>
+        /// <returns>The new sub view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Obsolete("Use View.GetSubView(TIndex, Index) instead")]
         public ArrayView<T, TIndex> GetSubView(TIndex offset) =>
             View.GetSubView(offset);
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="offset">The starting offset.</param>
-        /// <param name="subViewExtent">The extent of the new subview.</param>
-        /// <returns>The new subview.</returns>
+        /// <param name="subViewExtent">The extent of the new sub view.</param>
+        /// <returns>The new sub view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Obsolete("Use View.GetSubView(TIndex, Index) instead")]
         public ArrayView<T, TIndex> GetSubView(TIndex offset, TIndex subViewExtent) =>
@@ -838,7 +845,8 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator ArrayView<T, TIndex>(MemoryBuffer<T, TIndex> buffer)
+        public static implicit operator ArrayView<T, TIndex>(
+            MemoryBuffer<T, TIndex> buffer)
         {
             Debug.Assert(buffer != null, "Invalid buffer");
             return buffer.View;

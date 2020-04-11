@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXInstructionSet.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
@@ -18,7 +18,9 @@ namespace ILGPU.Backends
     /// Represents a PTX ISA (Instruction Set Architecture).
     /// </summary>
     [DebuggerDisplay("ISA {Major}.{Minor}")]
-    public readonly struct PTXInstructionSet : IEquatable<PTXInstructionSet>, IComparable<PTXInstructionSet>
+    public readonly struct PTXInstructionSet :
+        IEquatable<PTXInstructionSet>,
+        IComparable<PTXInstructionSet>
     {
         #region Constants
 
@@ -102,10 +104,12 @@ namespace ILGPU.Backends
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given instruction set is equal to this instruction set.
+        /// Returns true if the given instruction set is equal to this instruction set.
         /// </summary>
         /// <param name="other">The other instruction set.</param>
-        /// <returns>True, iff the given instruction set is equal to this instruction set.</returns>
+        /// <returns>
+        /// True, if the given instruction set is equal to this instruction set.
+        /// </returns>
         public bool Equals(PTXInstructionSet other) => this == other;
 
         #endregion
@@ -146,25 +150,19 @@ namespace ILGPU.Backends
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to this instruction set.
+        /// Returns true if the given object is equal to this instruction set.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to this instruction set.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is PTXInstructionSet instructionSet)
-                return instructionSet == this;
-            return false;
-        }
+        /// <returns>True,
+        /// if the given object is equal to this instruction set.</returns>
+        public override bool Equals(object obj) =>
+            obj is PTXInstructionSet instructionSet && instructionSet == this;
 
         /// <summary>
         /// Returns the hash code of this instruction set.
         /// </summary>
         /// <returns>The hash code of this instruction set.</returns>
-        public override int GetHashCode()
-        {
-            return Major.GetHashCode() ^ Minor.GetHashCode();
-        }
+        public override int GetHashCode() => Major.GetHashCode() ^ Minor.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of the instruction set.
@@ -177,86 +175,94 @@ namespace ILGPU.Backends
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first and the second instruction set are the same.
+        /// Returns true if the first and the second instruction set are the same.
         /// </summary>
         /// <param name="first">The first instruction set.</param>
         /// <param name="second">The second instruction set.</param>
-        /// <returns>True, iff the first and the second instruction set are the same.</returns>
-        public static bool operator ==(PTXInstructionSet first, PTXInstructionSet second) =>
+        /// <returns>
+        /// True, if the first and the second instruction set are the same.
+        /// </returns>
+        public static bool operator ==(
+            PTXInstructionSet first,
+            PTXInstructionSet second) =>
             first.Major == second.Major && first.Minor == second.Minor;
 
         /// <summary>
-        /// Returns true iff the first and the second instruction set are not the same.
+        /// Returns true if the first and the second instruction set are not the same.
         /// </summary>
         /// <param name="first">The first instruction set.</param>
         /// <param name="second">The second instruction set.</param>
-        /// <returns>True, iff the first and the second instruction set are not the same.</returns>
-        public static bool operator !=(PTXInstructionSet first, PTXInstructionSet second) =>
+        /// <returns>
+        /// True, if the first and the second instruction set are not the same.
+        /// </returns>
+        public static bool operator !=(
+            PTXInstructionSet first,
+            PTXInstructionSet second) =>
             first.Major != second.Major || first.Minor != second.Minor;
 
         /// <summary>
-        /// Returns true iff the first instruction set is smaller than the second one.
+        /// Returns true if the first instruction set is smaller than the second one.
         /// </summary>
         /// <param name="first">The first instruction set.</param>
         /// <param name="second">The second instruction set.</param>
-        /// <returns>True, iff the first instruction set is smaller than the second one.</returns>
-        public static bool operator <(PTXInstructionSet first, PTXInstructionSet second)
-        {
-            if (first.Major < second.Major)
-                return true;
-            else if (first.Major == second.Major && first.Minor < second.Minor)
-                return true;
-            else
-                return false;
-        }
+        /// <returns>
+        /// True, if the first instruction set is smaller than the second one.
+        /// </returns>
+        public static bool operator <(
+            PTXInstructionSet first,
+            PTXInstructionSet second) =>
+            first.Major < second.Major
+            ? true
+            : first.Major == second.Major && first.Minor < second.Minor;
 
         /// <summary>
-        /// Returns true iff the first instruction set is less than or equal to the second instruction set.
+        /// Returns true if the first instruction set is less than or equal to the
+        /// second instruction set.
         /// </summary>
         /// <param name="first">The first instruction set.</param>
         /// <param name="second">The second instruction set.</param>
-        /// <returns>True, iff the first instruction set is less or equal to the second instruction set.</returns>
-        public static bool operator <=(PTXInstructionSet first, PTXInstructionSet second)
-        {
-            if (first.Major < second.Major)
-                return true;
-            else if (first.Major == second.Major && first.Minor <= second.Minor)
-                return true;
-            else
-                return false;
-        }
+        /// <returns>
+        /// True, if the first instruction set is less or equal to the second instruction
+        /// set.
+        /// </returns>
+        public static bool operator <=(
+            PTXInstructionSet first,
+            PTXInstructionSet second) =>
+            first.Major < second.Major
+            ? true
+            : first.Major == second.Major && first.Minor <= second.Minor;
 
         /// <summary>
-        /// Returns true iff the first instruction set is greater than the second one.
+        /// Returns true if the first instruction set is greater than the second one.
         /// </summary>
         /// <param name="first">The first instruction set.</param>
         /// <param name="second">The second instruction set.</param>
-        /// <returns>True, iff the first instruction set is greater than the second one.</returns>
-        public static bool operator >(PTXInstructionSet first, PTXInstructionSet second)
-        {
-            if (first.Major > second.Major)
-                return true;
-            else if (first.Major == second.Major && first.Minor > second.Minor)
-                return true;
-            else
-                return false;
-        }
+        /// <returns>
+        /// True, if the first instruction set is greater than the second one.
+        /// </returns>
+        public static bool operator >(
+            PTXInstructionSet first,
+            PTXInstructionSet second) =>
+            first.Major > second.Major
+            ? true
+            : first.Major == second.Major && first.Minor > second.Minor;
 
         /// <summary>
-        /// Returns true iff the first instruction set is greater than or equal to the second instruction set.
+        /// Returns true if the first instruction set is greater than or equal to the
+        /// second instruction set.
         /// </summary>
         /// <param name="first">The first instruction set.</param>
         /// <param name="second">The second instruction set.</param>
-        /// <returns>True, iff the first instruction set is greater or equal to the second instruction set.</returns>
-        public static bool operator >=(PTXInstructionSet first, PTXInstructionSet second)
-        {
-            if (first.Major > second.Major)
-                return true;
-            else if (first.Major == second.Major && first.Minor >= second.Minor)
-                return true;
-            else
-                return false;
-        }
+        /// <returns>
+        /// True, if the first instruction set is greater or equal to the second
+        /// instruction set.
+        /// </returns>
+        public static bool operator >=(
+            PTXInstructionSet first,
+            PTXInstructionSet second) =>
+            first.Major > second.Major
+            ? true
+            : first.Major == second.Major && first.Minor >= second.Minor;
 
         #endregion
     }

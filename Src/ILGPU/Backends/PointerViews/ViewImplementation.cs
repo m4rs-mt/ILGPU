@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ViewImplementation.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -31,16 +31,23 @@ namespace ILGPU.Backends.PointerViews
         /// <summary>
         /// The base pointer.
         /// </summary>
-        [SuppressMessage("Microsoft.Design", "CA1051: DoNotDeclareVisibleInstanceFields",
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1051: DoNotDeclareVisibleInstanceFields",
             Justification = "Implementation type that simplifies code generation")]
-        [SuppressMessage("Microsoft.Security", "CA2104: DoNotDeclareReadOnlyMutableReferenceTypes",
-            Justification = "This structure is used for marshalling purposes only. The reference will not be accessed using this structure.")]
+        [SuppressMessage(
+            "Microsoft.Security",
+            "CA2104: DoNotDeclareReadOnlyMutableReferenceTypes",
+            Justification = "This structure is used for marshaling purposes only. " +
+            "The reference will not be accessed using this structure.")]
         public readonly void* Ptr;
 
         /// <summary>
         /// The length.
         /// </summary>
-        [SuppressMessage("Microsoft.Design", "CA1051: DoNotDeclareVisibleInstanceFields",
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1051: DoNotDeclareVisibleInstanceFields",
             Justification = "Implementation type that simplifies code generation")]
         public readonly int Length;
 
@@ -61,7 +68,11 @@ namespace ILGPU.Backends.PointerViews
         /// <param name="source">The abstract source view.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ViewImplementation(ArrayView<T> source)
-            : this(source.IsValid ? source.LoadEffectiveAddress() : null, source.Length)
+            : this(
+                  source.IsValid
+                  ? source.LoadEffectiveAddress()
+                  : null,
+                  source.Length)
         { }
 
         #endregion
@@ -93,11 +104,11 @@ namespace ILGPU.Backends.PointerViews
             ref Unsafe.Add(ref Unsafe.AsRef<T>(Ptr), index);
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="offset">The starting offset.</param>
-        /// <param name="length">The extent of the new subview.</param>
-        /// <returns>The new subview.</returns>
+        /// <param name="length">The extent of the new sub view.</param>
+        /// <returns>The new sub view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ViewImplementation<T> GetSubView(Index1 offset, Index1 length) =>
             new ViewImplementation<T>(

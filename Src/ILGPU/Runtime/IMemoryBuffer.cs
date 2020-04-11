@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IMemoryBuffer.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 namespace ILGPU.Runtime
 {
@@ -104,18 +104,18 @@ namespace ILGPU.Runtime
             TIndex targetOffset);
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="offset">The starting offset.</param>
-        /// <returns>The new subview.</returns>
+        /// <returns>The new sub view.</returns>
         ArrayView<T, TIndex> GetSubView(TIndex offset);
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="offset">The starting offset.</param>
-        /// <param name="subViewExtent">The extent of the new subview.</param>
-        /// <returns>The new subview.</returns>
+        /// <param name="subViewExtent">The extent of the new sub view.</param>
+        /// <returns>The new sub view.</returns>
         ArrayView<T, TIndex> GetSubView(TIndex offset, TIndex subViewExtent);
 
         /// <summary>

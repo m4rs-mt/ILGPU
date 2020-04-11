@@ -1,17 +1,18 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: TypeExtensions.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
 
@@ -26,13 +27,18 @@ namespace ILGPU.Util
         /// Checks whether the given type is an array view type.
         /// </summary>
         /// <param name="type">The source type.</param>
-        /// <param name="elementType">The resolved element type in case of an array view.</param>
+        /// <param name="elementType">
+        /// The resolved element type in case of an array view.
+        /// </param>
         /// <returns>True, in case of an array view.</returns>
         public static bool IsArrayViewType(this Type type, out Type elementType)
         {
             elementType = null;
-            if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(ArrayView<>))
+            if (!type.IsGenericType ||
+                type.GetGenericTypeDefinition() != typeof(ArrayView<>))
+            {
                 return false;
+            }
             var args = type.GetGenericArguments();
             elementType = args[0];
             return true;
@@ -42,13 +48,18 @@ namespace ILGPU.Util
         /// Checks whether the given type is a specialized type.
         /// </summary>
         /// <param name="type">The source type.</param>
-        /// <param name="nestedType">The resolved element type in case of an array view.</param>
+        /// <param name="nestedType">
+        /// The resolved element type in case of an array view.
+        /// </param>
         /// <returns>True, in case of an array view.</returns>
         public static bool IsSpecializedType(this Type type, out Type nestedType)
         {
             nestedType = null;
-            if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(SpecializedValue<>))
+            if (!type.IsGenericType ||
+                type.GetGenericTypeDefinition() != typeof(SpecializedValue<>))
+            {
                 return false;
+            }
             var args = type.GetGenericArguments();
             nestedType = args[0];
             return true;
@@ -78,9 +89,10 @@ namespace ILGPU.Util
         public static MethodInfo GetDelegateInvokeMethod(this Type type)
         {
             const string InvokeMethodName = "Invoke";
-            if (!type.IsDelegate())
-                return null;
-            return type.GetMethod(InvokeMethodName, BindingFlags.Public | BindingFlags.Instance);
+            return !type.IsDelegate()
+                ? null
+                : type.GetMethod(
+                    InvokeMethodName, BindingFlags.Public | BindingFlags.Instance);
         }
 
         /// <summary>
@@ -88,24 +100,20 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="method">The method base.</param>
         /// <returns>The resolved return type.</returns>
-        public static Type GetReturnType(this MethodBase method)
-        {
-            if (method is MethodInfo methodInfo)
-                return methodInfo.ReturnType;
-            return typeof(void);
-        }
+        public static Type GetReturnType(this MethodBase method) =>
+            method is MethodInfo methodInfo
+            ? methodInfo.ReturnType
+            : typeof(void);
 
         /// <summary>
         /// Returns true if the given type is a void pointer.
         /// </summary>
         /// <param name="type">The source type.</param>
         /// <returns>True, if the given type is a void pointer.</returns>
-        public static bool IsVoidPtr(this Type type)
-        {
-            return type == typeof(IntPtr) ||
-                type == typeof(UIntPtr) ||
-                (type.IsPointer && type.GetElementType() == typeof(void));
-        }
+        public static bool IsVoidPtr(this Type type) =>
+            type == typeof(IntPtr) ||
+            type == typeof(UIntPtr) ||
+            type.IsPointer && type.GetElementType() == typeof(void);
 
         /// <summary>
         /// Returns true if the given type is passed via reference.
@@ -127,10 +135,10 @@ namespace ILGPU.Util
             type.IsPointer || type.IsByRef;
 
         /// <summary>
-        /// Returns true iff the given type represents a signed int.
+        /// Returns true if the given type represents a signed int.
         /// </summary>
         /// <param name="type">The source type.</param>
-        /// <returns>True, iff the given type represents a signed int.</returns>
+        /// <returns>True, if the given type represents a signed int.</returns>
         public static bool IsSignedInt(this Type type)
         {
             switch (Type.GetTypeCode(type))
@@ -146,10 +154,10 @@ namespace ILGPU.Util
         }
 
         /// <summary>
-        /// Returns true iff the given type represents an unsigned int.
+        /// Returns true if the given type represents an unsigned int.
         /// </summary>
         /// <param name="type">The source type.</param>
-        /// <returns>True, iff the given type represents an unsigned int.</returns>
+        /// <returns>True, if the given type represents an unsigned int.</returns>
         public static bool IsUnsignedInt(this Type type)
         {
             switch (Type.GetTypeCode(type))
@@ -230,7 +238,8 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="type">The source type.</param>
         /// <returns>The resolved basic-value type.</returns>
-        public static ArithmeticBasicValueType GetArithmeticBasicValueType(this Type type)
+        public static ArithmeticBasicValueType GetArithmeticBasicValueType(
+            this Type type)
         {
             switch (Type.GetTypeCode(type))
             {
@@ -266,7 +275,8 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="type">The source type.</param>
         /// <returns>The resolved basic-value type.</returns>
-        public static BasicValueType GetBasicValueType(this ArithmeticBasicValueType type)
+        public static BasicValueType GetBasicValueType(
+            this ArithmeticBasicValueType type)
         {
             switch (type)
             {
@@ -297,7 +307,9 @@ namespace ILGPU.Util
         /// Resolves the basic-value type for the given type.
         /// </summary>
         /// <param name="type">The source type.</param>
-        /// <param name="isUnsigned">True, if the basic value type should be interpreted as unsigned.</param>
+        /// <param name="isUnsigned">
+        /// True, if the basic value type should be interpreted as unsigned.
+        /// </param>
         /// <returns>The resolved basic-value type.</returns>
         public static ArithmeticBasicValueType GetArithmeticBasicValueType(
             this BasicValueType type,
@@ -308,13 +320,21 @@ namespace ILGPU.Util
                 case BasicValueType.Int1:
                     return ArithmeticBasicValueType.UInt1;
                 case BasicValueType.Int8:
-                    return isUnsigned ? ArithmeticBasicValueType.UInt8 : ArithmeticBasicValueType.Int8;
+                    return isUnsigned
+                        ? ArithmeticBasicValueType.UInt8
+                        : ArithmeticBasicValueType.Int8;
                 case BasicValueType.Int16:
-                    return isUnsigned ? ArithmeticBasicValueType.UInt16 : ArithmeticBasicValueType.Int16;
+                    return isUnsigned
+                        ? ArithmeticBasicValueType.UInt16
+                        : ArithmeticBasicValueType.Int16;
                 case BasicValueType.Int32:
-                    return isUnsigned ? ArithmeticBasicValueType.UInt32 : ArithmeticBasicValueType.Int32;
+                    return isUnsigned
+                        ? ArithmeticBasicValueType.UInt32
+                        : ArithmeticBasicValueType.Int32;
                 case BasicValueType.Int64:
-                    return isUnsigned ? ArithmeticBasicValueType.UInt64 : ArithmeticBasicValueType.Int64;
+                    return isUnsigned
+                        ? ArithmeticBasicValueType.UInt64
+                        : ArithmeticBasicValueType.Int64;
                 case BasicValueType.Float32:
                     return ArithmeticBasicValueType.Float32;
                 case BasicValueType.Float64:
@@ -325,18 +345,18 @@ namespace ILGPU.Util
         }
 
         /// <summary>
-        /// Returns true iff the given type represents an int.
+        /// Returns true if the given type represents an int.
         /// </summary>
         /// <param name="type">The source type.</param>
-        /// <returns>True, iff the given type represents an int.</returns>
+        /// <returns>True, if the given type represents an int.</returns>
         public static bool IsInt(this Type type) =>
             type.GetBasicValueType().IsInt();
 
         /// <summary>
-        /// Returns true iff the given basic-value type represents an int.
+        /// Returns true if the given basic-value type represents an int.
         /// </summary>
         /// <param name="value">The basic-value type.</param>
-        /// <returns>True, iff the given basic-value type represents an int.</returns>
+        /// <returns>True, if the given basic-value type represents an int.</returns>
         public static bool IsInt(this BasicValueType value)
         {
             switch (value)
@@ -353,18 +373,18 @@ namespace ILGPU.Util
         }
 
         /// <summary>
-        /// Returns true iff the given type represents a float.
+        /// Returns true if the given type represents a float.
         /// </summary>
         /// <param name="type">The source type.</param>
-        /// <returns>True, iff the given type represents a float.</returns>
+        /// <returns>True, if the given type represents a float.</returns>
         public static bool IsFloat(this Type type) =>
             type.GetBasicValueType().IsFloat();
 
         /// <summary>
-        /// Returns true iff the given basic-value type represents a float.
+        /// Returns true if the given basic-value type represents a float.
         /// </summary>
         /// <param name="value">The basic-value type.</param>
-        /// <returns>True, iff the given basic-value type represents a float.</returns>
+        /// <returns>True, if the given basic-value type represents a float.</returns>
         public static bool IsFloat(this BasicValueType value)
         {
             switch (value)
@@ -389,9 +409,12 @@ namespace ILGPU.Util
         /// Returns the string representation of the given type.
         /// </summary>
         /// <param name="type">The type to convert to a string.</param>
-        /// <returns>The string represenation of the given type.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1307:Specify StringComparison",
-            Justification = "string.IndexOf(char, StringComparison) not available in net47")]
+        /// <returns>The string representation of the given type.</returns>
+        [SuppressMessage(
+            "Globalization",
+            "CA1307:Specify StringComparison",
+            Justification = "string.IndexOf(char, StringComparison) not " +
+            "available in net47")]
         public static string GetStringRepresentation(this Type type)
         {
             var result = new StringBuilder();
@@ -401,7 +424,9 @@ namespace ILGPU.Util
             {
                 var args = type.GetGenericArguments();
                 if (args.Length < 1)
+                {
                     result.Append(type.Name);
+                }
                 else
                 {
                     result.Append(type.Name.Substring(0, type.Name.IndexOf('`')));
@@ -416,7 +441,9 @@ namespace ILGPU.Util
                 }
             }
             else
+            {
                 result.Append(type.Name);
+            }
             return result.ToString();
         }
     }

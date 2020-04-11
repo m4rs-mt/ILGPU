@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: AcceleratorSpecializer.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
@@ -62,7 +62,7 @@ namespace ILGPU.IR.Transformations
         }
 
         /// <summary>
-        /// Specializes sizeof values.
+        /// Specializes size-of values.
         /// </summary>
         private static void Specialize(
             RewriterContext context,
@@ -96,6 +96,8 @@ namespace ILGPU.IR.Transformations
 
         #endregion
 
+        #region Instance
+
         /// <summary>
         /// Constructs a new device specializer.
         /// </summary>
@@ -107,6 +109,10 @@ namespace ILGPU.IR.Transformations
             WarpSize = warpSize;
         }
 
+        #endregion
+
+        #region Properties
+
         /// <summary>
         /// Returns the current accelerator type.
         /// </summary>
@@ -117,6 +123,10 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         public int? WarpSize { get; }
 
+        #endregion
+
+        #region Methods
+
         /// <summary>
         /// Tries to resolve the native size in bytes of the given type.
         /// </summary>
@@ -125,9 +135,13 @@ namespace ILGPU.IR.Transformations
         /// <returns>True, if the size could be resolved.</returns>
         protected abstract bool TryGetSizeOf(TypeNode type, out int size);
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        /// <summary>
+        /// Applies an accelerator-specialization transformation.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder) =>
             Rewriter.Rewrite(builder, this);
+
+        #endregion
     }
 }
 

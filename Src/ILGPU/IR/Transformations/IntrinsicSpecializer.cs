@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IntrinsicSpecializer.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
@@ -41,7 +41,8 @@ namespace ILGPU.IR.Transformations
     /// Note that this class does not perform recursive specialization operations.
     /// </remarks>
     /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
-    public sealed class IntrinsicSpecializer<TDelegate> : UnorderedTransformation<CachedScopeProvider>
+    public sealed class IntrinsicSpecializer<TDelegate> :
+        UnorderedTransformation<CachedScopeProvider>
         where TDelegate : Delegate
     {
         #region Utility Methods
@@ -49,7 +50,9 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Imports all detected dependencies into the current context.
         /// </summary>
-        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <typeparam name="TScopeProvider">
+        /// The provider to resolve methods to scopes.
+        /// </typeparam>
         /// <param name="targetContext">The target context.</param>
         /// <param name="dependencies">The dependencies to import.</param>
         /// <param name="scopeProvider">Resolves methods to scopes.</param>
@@ -99,13 +102,17 @@ namespace ILGPU.IR.Transformations
             (Flags & IntrinsicSpecializerFlags.EnableAssertions) !=
             IntrinsicSpecializerFlags.None;
 
-        /// <summary cref="UnorderedTransformation{TIntermediate}.CreateIntermediate"/>
-        protected override CachedScopeProvider CreateIntermediate() => new CachedScopeProvider();
+        /// <summary cref="UnorderedTransformation{TIntermediate}.
+        /// CreateIntermediate"/>
+        protected override CachedScopeProvider CreateIntermediate() =>
+            new CachedScopeProvider();
 
-        /// <summary cref="UnorderedTransformation{TIntermediate}.FinishProcessing(TIntermediate)"/>
+        /// <summary cref="UnorderedTransformation{TIntermediate}.
+        /// FinishProcessing(TIntermediate)"/>
         protected override void FinishProcessing(CachedScopeProvider intermediate) { }
 
-        /// <summary cref="UnorderedTransformation{TIntermediate}.PerformTransformation(Method.Builder, TIntermediate)"/>
+        /// <summary cref="UnorderedTransformation{TIntermediate}.
+        /// PerformTransformation(Method.Builder, TIntermediate)"/>
         protected override bool PerformTransformation(
             Method.Builder builder,
             CachedScopeProvider scopeProvider)
@@ -120,7 +127,8 @@ namespace ILGPU.IR.Transformations
             // Import all dependencies
             ImportDependencies(builder.Context, dependencies, scopeProvider);
 
-            // Replace every node with a function call to the given implementation function
+            // Replace every node with a function call to the given
+            // implementation function
             foreach (var (node, method) in dependencies)
             {
                 var blockBuilder = builder[node.BasicBlock];
@@ -135,7 +143,9 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         /// <param name="builder">The current builder.</param>
         /// <param name="scope">The current scope.</param>
-        /// <param name="applied">True, if the transformation transformed something.</param>
+        /// <param name="applied">
+        /// True, if the transformation transformed something.
+        /// </param>
         /// <returns>The imported dependency functions.</returns>
         private List<(Value, Method)> FindDependencies(
             Method.Builder builder,
@@ -153,10 +163,17 @@ namespace ILGPU.IR.Transformations
                 if (value is DebugOperation debug)
                 {
                     if (EnableAssertions &&
-                        provider.TryGetImplementation(debug, out var debugImplementation))
+                        provider.TryGetImplementation(
+                            debug,
+                            out var debugImplementation))
+                    {
                         intrinsicFunctions.Add((debug, debugImplementation));
+                    }
                     else
+                    {
                         blockBuilder.Remove(debug);
+                    }
+
                     applied = true;
                 }
                 // Check intrinsic value

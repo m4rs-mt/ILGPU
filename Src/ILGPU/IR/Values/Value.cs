@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Value.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -93,42 +93,48 @@ namespace ILGPU.IR
     public static class ValueExtensions
     {
         /// <summary>
-        /// Returns true iff the given value is a primitive value.
+        /// Returns true if the given value is a primitive value.
         /// </summary>
         /// <typeparam name="T">The value type.</typeparam>
         /// <param name="value">The value to test.</param>
-        /// <returns>True, iff the given value is a primitive value.</returns>
+        /// <returns>True, if the given value is a primitive value.</returns>
         public static bool IsPrimitive<T>(this T value)
             where T : IValue =>
             value.Resolve() is PrimitiveValue;
 
         /// <summary>
-        /// Returns true if the given value is a primitive value with the specified raw value.
+        /// Returns true if the given value is a primitive value with the specified raw
+        /// value.
         /// </summary>
         /// <typeparam name="T">The value type.</typeparam>
         /// <param name="value">The value to test.</param>
         /// <param name="rawValue">The expected raw value.</param>
-        /// <returns>True, if the given value is a primitive value with the specified raw value.</returns>
+        /// <returns>
+        /// True, if the given value is a primitive value with the specified raw value.
+        /// </returns>
         public static bool IsPrimitive<T>(this T value, long rawValue)
             where T : IValue =>
-            value.Resolve() is PrimitiveValue primitive && primitive.RawValue == rawValue;
+            value.Resolve() is PrimitiveValue primitive &&
+            primitive.RawValue == rawValue;
 
         /// <summary>
-        /// Returns true iff the given value is an instantiated constant value.
+        /// Returns true if the given value is an instantiated constant value.
         /// </summary>
         /// <typeparam name="T">The value type.</typeparam>
         /// <param name="value">The value to test.</param>
-        /// <returns>True, iff the given value is an instantiated constant value.</returns>
+        /// <returns>
+        /// True, if the given value is an instantiated constant value.
+        /// </returns>
         public static bool IsInstantiatedConstant<T>(this T value)
             where T : IValue =>
             value.Resolve() is ConstantNode;
 
         /// <summary>
-        /// Returns true iff the given value is a device constant value.
+        /// Returns true if the given value is a device constant value.
         /// </summary>
         /// <typeparam name="T">The value type.</typeparam>
         /// <param name="value">The value to test.</param>
-        /// <returns>True, iff the given value is a device constant value.</returns>
+        /// <returns>True, if the given value is a device constant value.</returns>
         public static bool IsDeviceConstant<T>(this T value)
             where T : IValue =>
             value.Resolve() is DeviceConstantValue;
@@ -221,7 +227,6 @@ namespace ILGPU.IR
 
         #endregion
 
-
         #region Instance
 
         /// <summary>
@@ -284,15 +289,10 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the parent method.
         /// </summary>
-        public Method Method
-        {
-            get
-            {
-                if (parent is BasicBlock basicBlock)
-                    return basicBlock.Method;
-                return parent as Method;
-            }
-        }
+        public Method Method =>
+            parent is BasicBlock basicBlock
+            ? basicBlock.Method
+            : parent as Method;
 
         /// <summary>
         /// Returns the parent basic block.
@@ -349,7 +349,7 @@ namespace ILGPU.IR
         public Value Replacement { get; private set; }
 
         /// <summary>
-        /// Returns true iff the current value has been replaced.
+        /// Returns true if the current value has been replaced.
         /// </summary>
         public bool IsReplaced => CanBeReplaced & Replacement != this;
 
@@ -439,12 +439,10 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Invalidates the current type and enforces a re-computation of the current type.
+        /// Invalidates the current type and enforces a re-computation of the current
+        /// type.
         /// </summary>
-        protected void InvalidateType()
-        {
-            type = null;
-        }
+        protected void InvalidateType() => type = null;
 
         /// <summary>
         /// Computes the current type.
@@ -467,7 +465,9 @@ namespace ILGPU.IR
         /// <param name="builder">The builder to use.</param>
         /// <param name="rebuilder">The rebuilder to use.</param>
         /// <returns>The rebuilt value.</returns>
-        protected internal abstract Value Rebuild(IRBuilder builder, IRRebuilder rebuilder);
+        protected internal abstract Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder);
 
         /// <summary>
         /// Seals this value.
@@ -515,10 +515,7 @@ namespace ILGPU.IR
         /// Invoked when an attached node is replaced.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void OnReplacedNode()
-        {
-            InvalidateType();
-        }
+        private void OnReplacedNode() => InvalidateType();
 
         /// <summary>
         /// Resolves the actual value with respect to replacement information.
@@ -565,7 +562,7 @@ namespace ILGPU.IR
         #region Object
 
         /// <summary>
-        /// Returns the argument string (operation args) of this node.
+        /// Returns the argument string (operation arguments) of this node.
         /// </summary>
         /// <returns>The argument string.</returns>
         protected virtual string ToArgString()
@@ -589,9 +586,9 @@ namespace ILGPU.IR
         public sealed override string ToString()
         {
             var argString = ToArgString();
-            if (string.IsNullOrEmpty(argString))
-                return ToReferenceString();
-            return ToReferenceString() + ": " + argString;
+            return string.IsNullOrEmpty(argString)
+                ? ToReferenceString()
+                : ToReferenceString() + ": " + argString;
         }
 
         /// <summary>

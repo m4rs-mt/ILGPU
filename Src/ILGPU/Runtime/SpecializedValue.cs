@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SpecializedValue.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Runtime.CompilerServices;
@@ -16,7 +16,8 @@ using System.Runtime.InteropServices;
 namespace ILGPU.Runtime
 {
     /// <summary>
-    /// Provides static helper functions for the structure <see cref="SpecializedValue{T}"/>.
+    /// Provides static helper functions for the structure
+    /// <see cref="SpecializedValue{T}"/>.
     /// </summary>
     public static class SpecializedValue
     {
@@ -69,7 +70,9 @@ namespace ILGPU.Runtime
         /// Returns true if the other specialized value is equal to this value.
         /// </summary>
         /// <param name="other">The other specialized value.</param>
-        /// <returns>True, if the other specialized value is equal to this value.</returns>
+        /// <returns>
+        /// True, if the other specialized value is equal to this value.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(SpecializedValue<T> other) => Value.Equals(other.Value);
 
@@ -108,7 +111,9 @@ namespace ILGPU.Runtime
         /// <param name="second">The second value.</param>
         /// <returns>True, if the first and second value are the same.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(SpecializedValue<T> first, SpecializedValue<T> second) =>
+        public static bool operator ==(
+            SpecializedValue<T> first,
+            SpecializedValue<T> second) =>
             first.Equals(second);
 
         /// <summary>
@@ -118,11 +123,14 @@ namespace ILGPU.Runtime
         /// <param name="second">The second value.</param>
         /// <returns>True, if the first and second value are not the same.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(SpecializedValue<T> first, SpecializedValue<T> second) =>
+        public static bool operator !=(
+            SpecializedValue<T> first,
+            SpecializedValue<T> second) =>
             !first.Equals(second);
 
         /// <summary>
-        /// Converts the given <see cref="SpecializedValue{T}"/> instance into its underlying value.
+        /// Converts the given <see cref="SpecializedValue{T}"/> instance into its
+        /// underlying value.
         /// </summary>
         /// <param name="value">The value to convert.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

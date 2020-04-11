@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Structures.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -15,6 +15,7 @@ using ILGPU.Resources;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.IR.Construction
 {
@@ -26,7 +27,9 @@ namespace ILGPU.IR.Construction
         /// <param name="instance">The instance value.</param>
         /// <param name="type">The resolved type.</param>
         /// <returns>The primitive value reference (if any).</returns>
-        private ValueReference CreatePrimitiveObjectValue(object instance, out Type type)
+        private ValueReference CreatePrimitiveObjectValue(
+            object instance,
+            out Type type)
         {
             if (instance == null)
                 throw new ArgumentNullException(nameof(instance));
@@ -36,11 +39,10 @@ namespace ILGPU.IR.Construction
                 return CreatePrimitiveValue(instance);
             if (type.IsEnum)
                 return CreateEnumValue(instance);
-            if (type.IsClass || type.IsArray)
-                throw new NotSupportedException(
-                    string.Format(ErrorMessages.NotSupportedClassType, type));
-
-            return default;
+            if (!type.IsClass && !type.IsArray)
+                return default;
+            throw new NotSupportedException(
+                string.Format(ErrorMessages.NotSupportedClassType, type));
         }
 
         /// <summary>
@@ -58,7 +60,9 @@ namespace ILGPU.IR.Construction
             for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
             {
                 var rawFieldValue = typeInfo.Fields[i].GetValue(instance);
-                var fieldValue = CreatePrimitiveObjectValue(rawFieldValue, out var fieldType);
+                var fieldValue = CreatePrimitiveObjectValue(
+                    rawFieldValue,
+                    out var fieldType);
                 if (fieldValue.IsValid)
                     fields.Add(fieldValue);
 
@@ -104,7 +108,8 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="fieldValues">The structure instance values.</param>
         /// <returns>The created structure instance value.</returns>
-        public ValueReference CreateStructure(ImmutableArray<ValueReference> fieldValues)
+        public ValueReference CreateStructure(
+            ImmutableArray<ValueReference> fieldValues)
         {
             if (fieldValues.Length < 1)
                 return CreateNull(CreateEmptyStructureType());
@@ -131,7 +136,9 @@ namespace ILGPU.IR.Construction
         {
             Debug.Assert(structureType != null, "Invalid structure type");
             Debug.Assert(values != null && values.Length > 0, "Invalid values");
-            Debug.Assert(values.Length == structureType.NumFields, "Invalid values or structure type");
+            Debug.Assert(
+                values.Length == structureType.NumFields,
+                "Invalid values or structure type");
 
             return Append(new StructureValue(
                 BasicBlock,
@@ -139,12 +146,17 @@ namespace ILGPU.IR.Construction
                 values));
         }
 
+
         /// <summary>
         /// Creates a load operation of an object field.
         /// </summary>
         /// <param name="objectValue">The object value.</param>
         /// <param name="fieldSpan">The field span.</param>
         /// <returns>A reference to the requested value.</returns>
+        [SuppressMessage(
+            "Style",
+            "IDE0046:Convert to conditional expression",
+            Justification = "Avoid nested if conditionals")]
         public ValueReference CreateGetField(Value objectValue, FieldSpan fieldSpan)
         {
             Debug.Assert(objectValue != null, "Invalid object node");
@@ -156,14 +168,14 @@ namespace ILGPU.IR.Construction
             Debug.Assert(structType != null, "Invalid object structure type");
             if (objectValue is StructureValue structureValue)
                 return structureValue.Get(this, fieldSpan);
-            if (objectValue is NullValue)
-                return CreateNull(structType.Get(Context, fieldSpan));
 
-            return Append(new GetField(
-                Context,
-                BasicBlock,
-                objectValue,
-                fieldSpan));
+            return objectValue is NullValue
+                ? CreateNull(structType.Get(Context, fieldSpan))
+                : Append(new GetField(
+                    Context,
+                    BasicBlock,
+                    objectValue,
+                    fieldSpan));
         }
 
         /// <summary>
@@ -183,7 +195,9 @@ namespace ILGPU.IR.Construction
 
             var structType = objectValue.Type as StructureType;
             Debug.Assert(structType != null, "Invalid object structure type");
-            Debug.Assert(structType.Get(Context, fieldSpan) == value.Type, "Incompatible value type");
+            Debug.Assert(
+                structType.Get(Context,
+                fieldSpan) == value.Type, "Incompatible value type");
 
             // Fold structure values
             if (objectValue is StructureValue structureValue)
@@ -193,18 +207,22 @@ namespace ILGPU.IR.Construction
                     fieldValues.Add(fieldValue);
 
                 for (int i = 0; i < fieldSpan.Span; ++i)
-                    fieldValues[fieldSpan.Index + i] = CreateGetField(value, new FieldSpan(i));
+                {
+                    fieldValues[fieldSpan.Index + i] = CreateGetField(
+                        value,
+                        new FieldSpan(i));
+                }
 
                 return CreateStructure(structType, fieldValues.MoveToImmutable());
             }
-            if (objectValue is NullValue && fieldSpan.Span == structType.NumFields)
-                return value;
 
-            return Append(new SetField(
-                BasicBlock,
-                objectValue,
-                fieldSpan,
-                value));
+            return objectValue is NullValue && fieldSpan.Span == structType.NumFields
+                ? (ValueReference)value
+                : Append(new SetField(
+                    BasicBlock,
+                    objectValue,
+                    fieldSpan,
+                    value));
         }
     }
 }

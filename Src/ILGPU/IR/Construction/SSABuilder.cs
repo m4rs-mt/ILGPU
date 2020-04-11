@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SSABuilder.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
@@ -59,22 +59,13 @@ namespace ILGPU.IR.Construction
             object IEnumerator.Current => Current;
 
             /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose()
-            {
-                enumerator.Dispose();
-            }
+            public void Dispose() => enumerator.Dispose();
 
             /// <summary cref="IEnumerator.MoveNext"/>
-            public bool MoveNext()
-            {
-                return enumerator.MoveNext();
-            }
+            public bool MoveNext() => enumerator.MoveNext();
 
             /// <summary cref="IEnumerator.Reset"/>
-            public void Reset()
-            {
-                enumerator = set.GetEnumerator();
-            }
+            public void Reset() => enumerator = set.GetEnumerator();
         }
 
         /// <summary>
@@ -105,11 +96,11 @@ namespace ILGPU.IR.Construction
             /// <summary>
             /// Applies the internal marker value to the given target.
             /// </summary>
-            /// <param name="targetMarkerValue">The target marker value reference.</param>
-            public void Apply(ref int targetMarkerValue)
-            {
+            /// <param name="targetMarkerValue">
+            /// The target marker value reference.
+            /// </param>
+            public void Apply(ref int targetMarkerValue) =>
                 targetMarkerValue = MarkerValue;
-            }
         }
 
         /// <summary>
@@ -171,10 +162,12 @@ namespace ILGPU.IR.Construction
             /// <summary>
             /// Value cache for SSA GetValue and SetValue functionality.
             /// </summary>
-            private readonly Dictionary<TVariable, Value> values = new Dictionary<TVariable, Value>();
+            private readonly Dictionary<TVariable, Value> values =
+                new Dictionary<TVariable, Value>();
 
             /// <summary>
-            /// Container for incomplete "phis" that have to be wired during block sealing.
+            /// Container for incomplete "phis" that have to be wired during block
+            /// sealing.
             /// </summary>
             private readonly Dictionary<TVariable, IncompletePhi> incompletePhis =
                 new Dictionary<TVariable, IncompletePhi>();
@@ -219,12 +212,12 @@ namespace ILGPU.IR.Construction
             }
 
             /// <summary>
-            /// Returns True iff this block is sealed.
+            /// Returns True if this block is sealed.
             /// </summary>
             public bool IsSealed { get; private set; }
 
             /// <summary>
-            /// Returns true iff this block can be sealed.
+            /// Returns true if this block can be sealed.
             /// </summary>
             public bool CanSeal
             {
@@ -237,14 +230,16 @@ namespace ILGPU.IR.Construction
                         var valueContainer = Parent[predecessor];
                         if (!valueContainer.IsProcessed &&
                             !valueContainer.IsSealed)
+                        {
                             return false;
+                        }
                     }
                     return true;
                 }
             }
 
             /// <summary>
-            /// Returns true iff this block has been processed.
+            /// Returns true if this block has been processed.
             /// </summary>
             public bool IsProcessed { get; set; }
 
@@ -257,23 +252,19 @@ namespace ILGPU.IR.Construction
             /// </summary>
             /// <param name="newMarker">The new value to apply.</param>
             /// <returns>
-            /// True, iff the old marker was not equal to the new marker
+            /// True, if the old marker was not equal to the new marker
             /// (the block was not marked with the new marker value).
             /// </returns>
-            public bool Mark(int newMarker)
-            {
-                return Interlocked.Exchange(ref markerValue, newMarker) != newMarker;
-            }
+            public bool Mark(int newMarker) =>
+                Interlocked.Exchange(ref markerValue, newMarker) != newMarker;
 
             /// <summary>
             /// Sets the given variable to the given value.
             /// </summary>
             /// <param name="var">The variable reference.</param>
             /// <param name="value">The value to set.</param>
-            public void SetValue(TVariable var, Value value)
-            {
+            public void SetValue(TVariable var, Value value) =>
                 values[var] = value;
-            }
 
             /// <summary>
             /// Returns the value of the given variable.
@@ -281,22 +272,16 @@ namespace ILGPU.IR.Construction
             /// <param name="var">The variable reference.</param>
             /// <param name="markerProvider">A provider of new marker values.</param>
             /// <returns>The value of the given variable.</returns>
-            public Value GetValue(TVariable var, ref MarkerProvider markerProvider)
-            {
-                if (values.TryGetValue(var, out Value value))
-                    return value;
-                return GetValueRecursive(var, ref markerProvider);
-            }
+            public Value GetValue(TVariable var, ref MarkerProvider markerProvider) =>
+                values.TryGetValue(var, out Value value)
+                ? value
+                : GetValueRecursive(var, ref markerProvider);
 
             /// <summary>
             /// Removes the value of the given variable.
             /// </summary>
             /// <param name="var">The variable reference.</param>
-            public void RemoveValue(TVariable var)
-            {
-                values.Remove(var);
-            }
-
+            public void RemoveValue(TVariable var) => values.Remove(var);
 
             /// <summary>
             /// Peeks a value recursively. This method only retrieves a value
@@ -322,8 +307,8 @@ namespace ILGPU.IR.Construction
             }
 
             //
-            // Implements an adapted version of the SSA-construction algorithm from the paper:
-            // Simple and Efficient Construction of Static Single Assignment Form
+            // Implements an adapted version of the SSA-construction algorithm from the
+            // paper: Simple and Efficient Construction of Static Single Assignment Form
             //
 
             /// <summary>
@@ -333,7 +318,9 @@ namespace ILGPU.IR.Construction
             /// <param name="var">The variable reference.</param>
             /// <param name="markerProvider">A provider of new marker values.</param>
             /// <returns>The value of the given variable.</returns>
-            private Value GetValueRecursive(TVariable var, ref MarkerProvider markerProvider)
+            private Value GetValueRecursive(
+                TVariable var,
+                ref MarkerProvider markerProvider)
             {
                 Debug.Assert(Node.NumPredecessors > 0);
                 Value value;
@@ -356,7 +343,9 @@ namespace ILGPU.IR.Construction
                         value = SetupPhiArguments(incompletePhi, ref markerProvider);
                     }
                     else
+                    {
                         incompletePhis[var] = incompletePhi;
+                    }
                 }
                 SetValue(var, value);
                 return value;
@@ -369,7 +358,9 @@ namespace ILGPU.IR.Construction
             /// </summary>
             /// <param name="incompletePhi">An incomplete phi node to complete.</param>
             /// <param name="markerProvider">A provider of new marker values.</param>
-            private Value SetupPhiArguments(in IncompletePhi incompletePhi, ref MarkerProvider markerProvider)
+            private Value SetupPhiArguments(
+                in IncompletePhi incompletePhi,
+                ref MarkerProvider markerProvider)
             {
                 var phiBuilder = incompletePhi.PhiBuilder;
                 foreach (var predecessor in Node.Predecessors)
@@ -377,19 +368,25 @@ namespace ILGPU.IR.Construction
                     var valueContainer = Parent[predecessor];
 
                     // Get the related predecessor value
-                    var value = valueContainer.GetValue(incompletePhi.VariableRef, ref markerProvider);
+                    var value = valueContainer.GetValue(
+                        incompletePhi.VariableRef,
+                        ref markerProvider);
 
                     // Convert the value into the target type
                     if (incompletePhi.PhiType is PrimitiveType primitiveType)
                     {
                         // Use the predecessor block to convert the value
-                        value = valueContainer.Builder.CreateConvert(value, primitiveType);
+                        value = valueContainer.Builder.CreateConvert(
+                            value,
+                            primitiveType);
                     }
 
                     // Set argument value
                     phiBuilder.AddArgument(predecessor.Block, value);
                 }
-                Debug.Assert(phiBuilder.Count == Node.Predecessors.Count, "Invalid phi configuration");
+                Debug.Assert(
+                    phiBuilder.Count == Node.Predecessors.Count,
+                    "Invalid phi configuration");
                 var phiValue = phiBuilder.Seal();
                 return phiValue.TryRemoveTrivialPhi(Parent.MethodBuilder);
             }
@@ -424,7 +421,8 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a <see cref="ValueContainer"/> for every <see cref="CFG.Node"/>.
         /// </summary>
-        private readonly struct ValueContainerProvider : CFG.INodeMappingValueProvider<ValueContainer>
+        private readonly struct ValueContainerProvider :
+            CFG.INodeMappingValueProvider<ValueContainer>
         {
             /// <summary>
             /// Constructs a new value provider.
@@ -456,7 +454,8 @@ namespace ILGPU.IR.Construction
         /// <returns>The created SSA builder.</returns>
         public static SSABuilder<TVariable> Create(Method.Builder methodBuilder)
         {
-            var scope = methodBuilder.Method.CreateScope(ScopeFlags.AddAlreadyVisitedNodes);
+            var scope = methodBuilder.Method.CreateScope(
+                ScopeFlags.AddAlreadyVisitedNodes);
             var cfg = scope.CreateCFG();
             return Create(methodBuilder, cfg);
         }
@@ -467,7 +466,9 @@ namespace ILGPU.IR.Construction
         /// <param name="methodBuilder">The current method builder.</param>
         /// <param name="scope">The current scope.</param>
         /// <returns>The created SSA builder.</returns>
-        public static SSABuilder<TVariable> Create(Method.Builder methodBuilder, Scope scope) =>
+        public static SSABuilder<TVariable> Create(
+            Method.Builder methodBuilder,
+            Scope scope) =>
             Create(methodBuilder, scope.CreateCFG());
 
         /// <summary>
@@ -476,7 +477,9 @@ namespace ILGPU.IR.Construction
         /// <param name="methodBuilder">The current method builder.</param>
         /// <param name="cfg">The parent CFG.</param>
         /// <returns>The created SSA builder.</returns>
-        public static SSABuilder<TVariable> Create(Method.Builder methodBuilder, CFG cfg) =>
+        public static SSABuilder<TVariable> Create(
+            Method.Builder methodBuilder,
+            CFG cfg) =>
             new SSABuilder<TVariable>(
                 methodBuilder ?? throw new ArgumentNullException(nameof(methodBuilder)),
                 cfg ?? throw new ArgumentNullException(nameof(cfg)));
@@ -493,7 +496,7 @@ namespace ILGPU.IR.Construction
         /// Constructs a new SSA builder.
         /// </summary>
         /// <param name="methodBuilder">The current method builder.</param>
-        /// <param name="cfg">The cfg.</param>
+        /// <param name="cfg">The CFG.</param>
         private SSABuilder(Method.Builder methodBuilder, CFG cfg)
         {
             MethodBuilder = methodBuilder;
@@ -533,7 +536,7 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Returns the internal value container for the given node.
         /// </summary>
-        /// <param name="node">The cfg node.</param>
+        /// <param name="node">The CFG node.</param>
         /// <returns>The resolved value container.</returns>
         private ValueContainer this[CFG.Node node] => mapping[node];
 
@@ -627,9 +630,9 @@ namespace ILGPU.IR.Construction
         public bool Process(CFG.Node node)
         {
             var block = this[node];
-            if (block.IsProcessed)
-                return false;
-            return block.IsProcessed = true;
+            return block.IsProcessed
+                ? false
+                : block.IsProcessed = true;
         }
 
         /// <summary>
@@ -684,15 +687,15 @@ namespace ILGPU.IR.Construction
         /// to seal the given node.
         /// </summary>
         /// <param name="node">The target node.</param>
-        /// <returns>True, iff the node has not been processed.</returns>
+        /// <returns>True, if the node has not been processed.</returns>
         public bool ProcessAndSeal(CFG.Node node)
         {
             var valueContainer = this[node];
             if (valueContainer.CanSeal)
                 Seal(valueContainer);
-            if (valueContainer.IsProcessed)
-                return false;
-            return valueContainer.IsProcessed = true;
+            return valueContainer.IsProcessed
+                ? false
+                : valueContainer.IsProcessed = true;
         }
 
         /// <summary>
@@ -700,7 +703,7 @@ namespace ILGPU.IR.Construction
         /// to seal the given block.
         /// </summary>
         /// <param name="basicBlock">The basic block.</param>
-        /// <returns>True, iff the node has not been processed.</returns>
+        /// <returns>True, if the node has not been processed.</returns>
         public bool ProcessAndSeal(BasicBlock basicBlock)
         {
             var cfgNode = CFG[basicBlock];

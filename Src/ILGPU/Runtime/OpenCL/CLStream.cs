@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLStream.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
@@ -19,7 +19,9 @@ namespace ILGPU.Runtime.OpenCL
     /// <summary>
     /// Represents an OpenCL stream.
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
     public sealed class CLStream : AcceleratorStream
     {
         #region Instance
@@ -50,11 +52,9 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <summary cref="AcceleratorStream.Synchronize"/>
-        public override void Synchronize()
-        {
+        public override void Synchronize() =>
             CLException.ThrowIfFailed(
                 CLAPI.FinishCommandQueue(queuePtr));
-        }
 
         #endregion
 

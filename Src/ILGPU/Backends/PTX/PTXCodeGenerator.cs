@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
@@ -18,7 +18,6 @@ using ILGPU.IR.Values;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -36,11 +35,14 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// The supported PTX instruction sets (in descending order).
         /// </summary>
-        [SuppressMessage("Microsoft.Security", "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes",
+        [SuppressMessage(
+            "Microsoft.Security",
+            "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes",
             Justification = "The collection is immutable")]
         public static readonly IEnumerable<PTXInstructionSet> SupportedInstructionSets =
             ImmutableSortedSet.Create(
-                Comparer<PTXInstructionSet>.Create((first, second) => second.CompareTo(first)),
+                Comparer<PTXInstructionSet>.Create((first, second) =>
+                    second.CompareTo(first)),
                 PTXInstructionSet.ISA_64,
                 PTXInstructionSet.ISA_63,
                 PTXInstructionSet.ISA_62,
@@ -148,7 +150,9 @@ namespace ILGPU.Backends.PTX
             /// Handles an intrinsic parameter and returns the
             /// associated allocated register (if any).
             /// </summary>
-            /// <param name="parameterOffset">The current intrinsic parameter index.</param>
+            /// <param name="parameterOffset">
+            /// The current intrinsic parameter index.
+            /// </param>
             /// <param name="parameter">The intrinsic parameter.</param>
             /// <returns>The allocated register (if any).</returns>
             Register HandleIntrinsicParameter(int parameterOffset, Parameter parameter);
@@ -159,8 +163,12 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         protected readonly struct EmptyParameterSetupLogic : IParameterSetupLogic
         {
-            /// <summary cref="IParameterSetupLogic.HandleIntrinsicParameter(int, Parameter)"/>
-            public Register HandleIntrinsicParameter(int parameterOffset, Parameter parameter) =>
+            /// <summary>
+            /// Does not handle intrinsic parameters.
+            /// </summary>
+            public Register HandleIntrinsicParameter(
+                int parameterOffset,
+                Parameter parameter) =>
                 null;
         }
 
@@ -198,18 +206,22 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Maps basic types to basic PTX suffixes.
         /// </summary>
-        private static readonly ImmutableArray<string> BasicSuffixes = ImmutableArray.Create(
-            default, "pred",
-            "b8", "b16", "b32", "b64",
-            "f32", "f64");
+        private static readonly ImmutableArray<string> BasicSuffixes =
+            ImmutableArray.Create(
+                default, "pred",
+                "b8", "b16", "b32", "b64",
+                "f32", "f64");
 
         /// <summary>
         /// Maps basic types to constant-loading target basic types.
         /// </summary>
-        private static readonly ImmutableArray<BasicValueType> RegisterMovementTypeRemapping = ImmutableArray.Create(
-            default, BasicValueType.Int1,
-            BasicValueType.Int16, BasicValueType.Int16, BasicValueType.Int32, BasicValueType.Int64,
-            BasicValueType.Float32, BasicValueType.Float64);
+        private static readonly ImmutableArray<BasicValueType>
+            RegisterMovementTypeRemapping =
+            ImmutableArray.Create(
+                default, BasicValueType.Int1,
+                BasicValueType.Int16, BasicValueType.Int16,
+                BasicValueType.Int32, BasicValueType.Int64,
+                BasicValueType.Float32, BasicValueType.Float64);
 
         /// <summary>
         /// Resolves the PTX suffix for the given basic value type.
@@ -224,7 +236,8 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="basicValueType">The basic value type.</param>
         /// <returns>The remapped type.</returns>
-        private static BasicValueType ResolveRegisterMovementType(BasicValueType basicValueType) =>
+        private static BasicValueType ResolveRegisterMovementType(
+            BasicValueType basicValueType) =>
             RegisterMovementTypeRemapping[(int)basicValueType];
 
         /// <summary>
@@ -253,9 +266,9 @@ namespace ILGPU.Backends.PTX
         protected static string GetMethodName(Method method)
         {
             var handleName = method.Handle.Name;
-            if (method.HasFlags(MethodFlags.External))
-                return handleName;
-            return GetCompatibleName(handleName + "_", method.Id);
+            return method.HasFlags(MethodFlags.External)
+                ? handleName
+                : GetCompatibleName(handleName + "_", method.Id);
         }
 
         /// <summary>
@@ -288,7 +301,7 @@ namespace ILGPU.Backends.PTX
         {
             Backend = args.Backend;
             Scope = scope;
-            DebugInfoGenerator = args.DebugInfoGenerator;
+            DebugInfoGenerator = args.DebugInfoGenerator.BeginScope();
             ImplementationProvider = Backend.IntrinsicProvider;
             Allocas = allocas;
 
@@ -334,12 +347,13 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns the associated debug information generator.
         /// </summary>
-        public PTXDebugInfoGenerator DebugInfoGenerator { get; }
+        public PTXDebugInfoGeneratorScope DebugInfoGenerator { get; }
 
         /// <summary>
         /// Returns the current intrinsic provider for code-generation purposes.
         /// </summary>
-        public IntrinsicImplementationProvider<PTXIntrinsic.Handler> ImplementationProvider { get; }
+        public IntrinsicImplementationProvider<PTXIntrinsic.Handler>
+            ImplementationProvider { get; }
 
         /// <summary>
         /// Returns true if fast math is active.
@@ -379,16 +393,12 @@ namespace ILGPU.Backends.PTX
         /// Generates PTX constant declarations.
         /// </summary>
         /// <param name="builder">The target builder.</param>
-        public void GenerateConstants(StringBuilder builder)
-        {
+        public void GenerateConstants(StringBuilder builder) =>
             builder.Append(GenerateConstantDeclarations());
-        }
 
         /// <summary cref="IBackendCodeGenerator{TKernelBuilder}.Merge(TKernelBuilder)"/>
-        public void Merge(StringBuilder builder)
-        {
+        public void Merge(StringBuilder builder) =>
             builder.Append(Builder.ToString());
-        }
 
         #endregion
 
@@ -416,12 +426,17 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private readonly struct PhiMoveEmitter : IComplexCommandEmitter
         {
-            /// <summary cref="IComplexCommandEmitter.Emit(CommandEmitter, RegisterAllocator{PTXRegisterKind}.PrimitiveRegister[])"/>
-            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
+            /// <summary>
+            /// Emits phi-based move instructions.
+            /// </summary>
+            public void Emit(
+                CommandEmitter commandEmitter,
+                PrimitiveRegister[] registers)
             {
                 var primaryRegister = registers[0];
 
-                commandEmitter.AppendRegisterMovementSuffix(primaryRegister.BasicValueType);
+                commandEmitter.AppendRegisterMovementSuffix(
+                    primaryRegister.BasicValueType);
                 commandEmitter.AppendArgument(primaryRegister);
                 commandEmitter.AppendArgument(registers[1]);
             }
@@ -514,7 +529,9 @@ namespace ILGPU.Backends.PTX
         /// Setups local or shared allocations.
         /// </summary>
         /// <param name="allocas">The allocations to setup.</param>
-        /// <param name="addressSpacePrefix">The source address-space prefix (like .local).</param>
+        /// <param name="addressSpacePrefix">
+        /// The source address-space prefix (like .local).
+        /// </param>
         /// <param name="namePrefix">The name prefix.</param>
         /// <param name="result">The resulting list of allocations.</param>
         protected void SetupAllocations<TCollection>(
@@ -558,8 +575,14 @@ namespace ILGPU.Backends.PTX
         internal List<(Alloca, string)> SetupAllocations()
         {
             var result = new List<(Alloca, string)>();
-            SetupAllocations(Allocas.LocalAllocations, ".local ", "__local_depot", result);
-            SetupAllocations(Allocas.SharedAllocations, ".shared ", "__shared_alloca", result);
+            SetupAllocations(
+                Allocas.LocalAllocations,
+                ".local ", "__local_depot",
+                result);
+            SetupAllocations(
+                Allocas.SharedAllocations,
+                ".shared ", "__shared_alloca",
+                result);
 
             // Register a common name for all dynamic shared memory allocations
             foreach (var alloca in Allocas.DynamicSharedAllocations)
@@ -571,7 +594,9 @@ namespace ILGPU.Backends.PTX
         /// Setups all method parameters.
         /// </summary>
         /// <typeparam name="TSetupLogic">The specific setup logic.</typeparam>
-        /// <param name="targetBuilder">The target builder to append the information to.</param>
+        /// <param name="targetBuilder">
+        /// The target builder to append the information to.
+        /// </param>
         /// <param name="logic">The current logic.</param>
         /// <param name="paramOffset">The intrinsic parameter offset.</param>
         /// <returns>A list of mapped parameters.</returns>
@@ -581,7 +606,8 @@ namespace ILGPU.Backends.PTX
             int paramOffset)
             where TSetupLogic : IParameterSetupLogic
         {
-            var parameters = new List<MappedParameter>(Method.NumParameters - paramOffset);
+            var parameters = new List<MappedParameter>(
+                Method.NumParameters - paramOffset);
             bool attachComma = false;
             int offset = 0;
 
@@ -594,7 +620,9 @@ namespace ILGPU.Backends.PTX
                     offset++;
                 }
                 else
+                {
                     register = Allocate(param);
+                }
 
                 if (register == null)
                     continue;
@@ -621,7 +649,7 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// Emits complex load params instructions.
+        /// Emits complex load parameter instructions.
         /// </summary>
         private readonly struct LoadParamEmitter : IComplexCommandEmitterWithOffsets
         {
@@ -683,18 +711,15 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="paramName">The parameter name.</param>
         /// <param name="register">The source register.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void EmitLoadParam(string paramName, Register register)
-        {
+        protected void EmitLoadParam(string paramName, Register register) =>
             EmitComplexCommandWithOffsets(
                 PTXInstructions.LoadParamOperation,
                 new LoadParamEmitter(paramName),
                 register,
                 0);
-        }
 
         /// <summary>
-        /// Emits complex store params instructions.
+        /// Emits complex store parameter instructions.
         /// </summary>
         private readonly struct StoreParamEmitter : IComplexCommandEmitterWithOffsets
         {
@@ -756,15 +781,12 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="paramName">The parameter name.</param>
         /// <param name="register">The target register.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void EmitStoreParam(string paramName, Register register)
-        {
+        protected void EmitStoreParam(string paramName, Register register) =>
             EmitComplexCommandWithOffsets(
                 PTXInstructions.StoreParamOperation,
                 new StoreParamEmitter(paramName),
                 register,
                 0);
-        }
 
         /// <summary>
         /// Binds the given mapped parameters.
@@ -779,7 +801,9 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Binds the given list of allocations.
         /// </summary>
-        /// <param name="allocations">A list associating alloca nodes with their local names.</param>
+        /// <param name="allocations">
+        /// A list associating alloca nodes with their local names.
+        /// </param>
         internal void BindAllocations(List<(Alloca, string)> allocations)
         {
             foreach (var allocaEntry in allocations)
@@ -824,7 +848,9 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Appends parameter information.
         /// </summary>
-        /// <param name="targetBuilder">The target builder to append the information to.</param>
+        /// <param name="targetBuilder">
+        /// The target builder to append the information to.
+        /// </param>
         /// <param name="paramType">The param type.</param>
         /// <param name="paramName">The name of the param argument.</param>
         protected void AppendParamDeclaration(
@@ -838,8 +864,10 @@ namespace ILGPU.Backends.PTX
                 case PrimitiveType _:
                 case StringType _:
                 case PointerType _:
-                    var registerDescription = ResolveParameterRegisterDescription(paramType);
-                    targetBuilder.Append(GetBasicSuffix(registerDescription.BasicValueType));
+                    var registerDescription =
+                        ResolveParameterRegisterDescription(paramType);
+                    targetBuilder.Append(
+                        GetBasicSuffix(registerDescription.BasicValueType));
                     targetBuilder.Append(' ');
                     targetBuilder.Append(paramName);
                     break;

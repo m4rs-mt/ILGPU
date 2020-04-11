@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLBackend.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
@@ -115,13 +115,16 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Returns the associated <see cref="Backend.ArgumentMapper"/>.
         /// </summary>
-        public new CLArgumentMapper ArgumentMapper => base.ArgumentMapper as CLArgumentMapper;
+        public new CLArgumentMapper ArgumentMapper =>
+            base.ArgumentMapper as CLArgumentMapper;
 
         #endregion
 
         #region Methods
 
-        /// <summary cref="Backend.CreateEntryPoint(in EntryPointDescription, in BackendContext, in KernelSpecialization)"/>
+        /// <summary>
+        /// Creates a new <see cref="SeparateViewEntryPoint"/> instance.
+        /// </summary>
         protected override EntryPoint CreateEntryPoint(
             in EntryPointDescription entry,
             in BackendContext backendContext,
@@ -133,7 +136,10 @@ namespace ILGPU.Backends.OpenCL
                 Context.TypeContext,
                 2);
 
-        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernelBuilder(EntryPoint, in BackendContext, in KernelSpecialization, out T)"/>
+        /// <summary>
+        /// Creates a new <see cref="StringBuilder"/> and configures a
+        /// <see cref="CLCodeGenerator.GeneratorArgs"/> instance.
+        /// </summary>
         protected override StringBuilder CreateKernelBuilder(
             EntryPoint entryPoint,
             in BackendContext backendContext,
@@ -154,7 +160,9 @@ namespace ILGPU.Backends.OpenCL
             return builder;
         }
 
-        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateFunctionCodeGenerator(Method, Scope, Allocas, T)"/>
+        /// <summary>
+        /// Creates a new <see cref="CLFunctionGenerator"/>.
+        /// </summary>
         protected override CLCodeGenerator CreateFunctionCodeGenerator(
             Method method,
             Scope scope,
@@ -162,7 +170,9 @@ namespace ILGPU.Backends.OpenCL
             CLCodeGenerator.GeneratorArgs data) =>
             new CLFunctionGenerator(data, scope, allocas);
 
-        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernelCodeGenerator(in AllocaKindInformation, Method, Scope, Allocas, T)"/>
+        /// <summary>
+        /// Generates a new <see cref="CLKernelFunctionGenerator"/>.
+        /// </summary>
         protected override CLCodeGenerator CreateKernelCodeGenerator(
             in AllocaKindInformation sharedAllocations,
             Method method,
@@ -171,7 +181,9 @@ namespace ILGPU.Backends.OpenCL
             CLCodeGenerator.GeneratorArgs data) =>
             new CLKernelFunctionGenerator(data, scope, allocas);
 
-        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernel(EntryPoint, TKernelBuilder, T)"/>
+        /// <summary>
+        /// Creates a new <see cref="CLCompiledKernel"/>.
+        /// </summary>
         protected override CompiledKernel CreateKernel(
             EntryPoint entryPoint,
             StringBuilder builder,

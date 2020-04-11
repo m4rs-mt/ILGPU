@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SCCs.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using System;
@@ -23,7 +23,9 @@ namespace ILGPU.IR.Analyses
     /// <summary>
     /// An analysis to detect strongly-connected components.
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of this program analysis")]
     public sealed class SCCs : IReadOnlyList<SCCs.SCC>
     {
@@ -32,8 +34,11 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Represents a single strongly-connected component.
         /// </summary>
-        [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
-            Justification = "This is a single SCC object; adding a collection suffix would be misleading")]
+        [SuppressMessage(
+            "Microsoft.Naming",
+            "CA1710: IdentifiersShouldHaveCorrectSuffix",
+            Justification = "This is a single SCC object; adding a collection suffix " +
+            "would be misleading")]
         public readonly struct SCC : IReadOnlyList<CFG.Node>, IEquatable<SCC>
         {
             #region Nested Types
@@ -247,12 +252,10 @@ namespace ILGPU.IR.Analyses
             /// <param name="block">The block to map to an SCC.</param>
             /// <returns>True, if the node belongs to this SCC.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool Contains(BasicBlock block)
-            {
-                if (!Parent.TryGetSCC(block, out SCC scc))
-                    return false;
-                return scc == this;
-            }
+            public bool Contains(BasicBlock block) =>
+                !Parent.TryGetSCC(block, out SCC scc)
+                ? false
+                : scc == this;
 
             /// <summary>
             /// Checks whether the given node belongs to this SCC.
@@ -288,8 +291,7 @@ namespace ILGPU.IR.Analyses
                     // Check for exit targets
                     foreach (var succ in node.Successors)
                     {
-                        if (!Contains(succ) &&
-                            !visited.Add(succ.Block))
+                        if (!Contains(succ) && !visited.Add(succ.Block))
                             result.Add(succ.Block);
                     }
                 }
@@ -304,7 +306,8 @@ namespace ILGPU.IR.Analyses
             /// Returns a new value enumerator.
             /// </summary>
             /// <returns>The resolved value enumerator.</returns>
-            public ValueEnumerator GetValueEnumerator() => new ValueEnumerator(GetEnumerator());
+            public ValueEnumerator GetValueEnumerator() =>
+                new ValueEnumerator(GetEnumerator());
 
             /// <summary>
             /// Returns an enumerator that iterates over all members
@@ -314,7 +317,8 @@ namespace ILGPU.IR.Analyses
             public Enumerator GetEnumerator() => new Enumerator(nodes);
 
             /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            IEnumerator<CFG.Node> IEnumerable<CFG.Node>.GetEnumerator() => GetEnumerator();
+            IEnumerator<CFG.Node> IEnumerable<CFG.Node>.GetEnumerator() =>
+                GetEnumerator();
 
             /// <summary cref="IEnumerable.GetEnumerator"/>
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -369,7 +373,8 @@ namespace ILGPU.IR.Analyses
                 first.Equals(second);
 
             /// <summary>
-            /// Returns true if the first and the second SCCs do not refer to the same SCC.
+            /// Returns true if the first and the second SCCs do not refer to the same
+            /// SCC.
             /// </summary>
             /// <param name="first">The first SCC.</param>
             /// <param name="second">The second SCC.</param>
@@ -487,7 +492,8 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// A data provider for Tarjan's algorithm.
         /// </summary>
-        private readonly struct NodeDataProvider : CFG.INodeMappingValueProvider<NodeData>
+        private readonly struct NodeDataProvider :
+            CFG.INodeMappingValueProvider<NodeData>
         {
             /// <summary cref="CFG.INodeMappingValueProvider{T}.GetValue(CFG.Node)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]

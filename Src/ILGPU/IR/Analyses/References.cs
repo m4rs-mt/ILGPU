@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: References.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using System;
@@ -193,7 +193,9 @@ namespace ILGPU.IR.Analyses
         /// Computes method references to all methods recursively.
         /// </summary>
         /// <typeparam name="TPredicate">The predicate type.</typeparam>
-        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <typeparam name="TScopeProvider">
+        /// The provider to resolve methods to scopes.
+        /// </typeparam>
         /// <param name="sourceMethod">The source method.</param>
         /// <param name="predicate">The current predicate.</param>
         /// <param name="scopeProvider">Resolves methods to scopes.</param>
@@ -210,7 +212,9 @@ namespace ILGPU.IR.Analyses
         /// Computes method references to all methods recursively.
         /// </summary>
         /// <typeparam name="TPredicate">The predicate type.</typeparam>
-        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <typeparam name="TScopeProvider">
+        /// The provider to resolve methods to scopes.
+        /// </typeparam>
         /// <param name="sourceScope">The source scope.</param>
         /// <param name="predicate">The current predicate.</param>
         /// <param name="scopeProvider">Resolves methods to scopes.</param>
@@ -253,7 +257,9 @@ namespace ILGPU.IR.Analyses
                             break;
                     }
                     else
+                    {
                         current = toProcess.Pop();
+                    }
                 }
             }
             mainEnumerator.Dispose();
@@ -268,7 +274,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Constructs a new references instance.
         /// </summary>
-        /// <param name="mapping">The underyling mapping.</param>
+        /// <param name="mapping">The underlying mapping.</param>
         private AllReferences(Dictionary<Method, References> mapping)
         {
             Debug.Assert(mapping != null, "Invalid mapping");
@@ -299,7 +305,8 @@ namespace ILGPU.IR.Analyses
         /// Returns an enumerator to enumerate all method references.
         /// </summary>
         /// <returns>An enumerator to enumerate all method references.</returns>
-        public Dictionary<Method, References>.Enumerator GetEnumerator() => Mapping.GetEnumerator();
+        public Dictionary<Method, References>.Enumerator GetEnumerator() =>
+            Mapping.GetEnumerator();
 
         #endregion
     }

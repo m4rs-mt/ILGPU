@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ViewImplementation.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
 using System;
@@ -101,14 +101,18 @@ namespace ILGPU.Backends.SeparateViews
         /// <summary>
         /// The linear index into the view.
         /// </summary>
-        [SuppressMessage("Microsoft.Design", "CA1051: DoNotDeclareVisibleInstanceFields",
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1051: DoNotDeclareVisibleInstanceFields",
             Justification = "Implementation type that simplifies code generation")]
         public readonly int Index;
 
         /// <summary>
         /// The length.
         /// </summary>
-        [SuppressMessage("Microsoft.Design", "CA1051: DoNotDeclareVisibleInstanceFields",
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1051: DoNotDeclareVisibleInstanceFields",
             Justification = "Implementation type that simplifies code generation")]
         public readonly int Length;
 

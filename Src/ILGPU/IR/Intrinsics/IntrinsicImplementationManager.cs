@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IntrinsicImplementationManager.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using System;
@@ -29,14 +29,16 @@ namespace ILGPU.IR.Intrinsics
         /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
         /// <param name="backend">The backend.</param>
         /// <returns>The created implementation provider.</returns>
-        IntrinsicImplementationProvider<TDelegate> CreateProvider<TDelegate>(Backend backend)
+        IntrinsicImplementationProvider<TDelegate> CreateProvider<TDelegate>(
+            Backend backend)
             where TDelegate : Delegate;
     }
 
     /// <summary>
-    /// Represents an intrinisc manager that caches intrinsic methods.
+    /// Represents an intrinsic manager that caches intrinsic methods.
     /// </summary>
-    public sealed partial class IntrinsicImplementationManager : IIntrinsicImplementationManager
+    public sealed partial class IntrinsicImplementationManager :
+        IIntrinsicImplementationManager
     {
         #region Nested Types
 
@@ -44,7 +46,8 @@ namespace ILGPU.IR.Intrinsics
         /// Represents a single entry that is associated with a matcher.
         /// It stores several possible intrinsic implementations for specific backends.
         /// </summary>
-        internal sealed class ImplementationEntry : IIntrinsicImplementation, IEnumerable<IntrinsicImplementation>
+        internal sealed class ImplementationEntry :
+            IIntrinsicImplementation, IEnumerable<IntrinsicImplementation>
         {
             #region Nested Types
 
@@ -86,7 +89,8 @@ namespace ILGPU.IR.Intrinsics
 
             #region Instance
 
-            private readonly HashSet<IntrinsicImplementation> implementations = new HashSet<IntrinsicImplementation>();
+            private readonly HashSet<IntrinsicImplementation> implementations =
+                new HashSet<IntrinsicImplementation>();
 
             #endregion
 
@@ -96,10 +100,10 @@ namespace ILGPU.IR.Intrinsics
             /// Registers the given implementation with the current entry.
             /// </summary>
             /// <param name="implementation">The implementation to register.</param>
-            public void Register(IntrinsicImplementation implementation)
-            {
-                implementations.Add(implementation ?? throw new ArgumentNullException(nameof(implementation)));
-            }
+            public void Register(IntrinsicImplementation implementation) =>
+                implementations.Add(
+                    implementation
+                    ?? throw new ArgumentNullException(nameof(implementation)));
 
             #endregion
 
@@ -112,7 +116,8 @@ namespace ILGPU.IR.Intrinsics
             public Enumerator GetEnumerator() => new Enumerator(implementations);
 
             /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            IEnumerator<IntrinsicImplementation> IEnumerable<IntrinsicImplementation>.GetEnumerator() =>
+            IEnumerator<IntrinsicImplementation>
+                IEnumerable<IntrinsicImplementation>.GetEnumerator() =>
                 GetEnumerator();
 
             /// <summary cref="IEnumerable.GetEnumerator"/>
@@ -148,11 +153,12 @@ namespace ILGPU.IR.Intrinsics
             #region Properties
 
             /// <summary>
-            /// Returns teh associated intrinsic matcher.
+            /// Returns the associated intrinsic matcher.
             /// </summary>
             /// <param name="kind">The matcher kind.</param>
             /// <returns>The resolved intrinsic matcher.</returns>
-            public IntrinsicMatcher<ImplementationEntry> this[IntrinsicMatcher.MatcherKind kind] =>
+            public IntrinsicMatcher<ImplementationEntry> this[
+                IntrinsicMatcher.MatcherKind kind] =>
                 matchers[(int)kind];
 
             #endregion
@@ -170,7 +176,9 @@ namespace ILGPU.IR.Intrinsics
                 TTransformer transformer,
                 IntrinsicMatcher<TOther>[] otherMatchers)
                 where TOther : class, IIntrinsicImplementation
-                where TTransformer : struct, IIntrinsicImplementationTransformer<ImplementationEntry, TOther>
+                where TTransformer :
+                    struct,
+                    IIntrinsicImplementationTransformer<ImplementationEntry, TOther>
             {
                 if (otherMatchers == null)
                     throw new ArgumentNullException(nameof(otherMatchers));
@@ -213,7 +221,8 @@ namespace ILGPU.IR.Intrinsics
         /// </summary>
         /// <param name="backendType">The backend type.</param>
         /// <returns>The resolved intrinsic container.</returns>
-        private BackendContainer this[BackendType backendType] => containers[(int)backendType];
+        private BackendContainer this[BackendType backendType] =>
+            containers[(int)backendType];
 
         #endregion
 
@@ -243,7 +252,9 @@ namespace ILGPU.IR.Intrinsics
         /// </summary>
         /// <param name="method">The method information.</param>
         /// <param name="implementation">The intrinsic implementation.</param>
-        public void RegisterMethod(MethodInfo method, IntrinsicImplementation implementation)
+        public void RegisterMethod(
+            MethodInfo method,
+            IntrinsicImplementation implementation)
         {
             var matcher = ResolveMatcher<IntrinsicMethodMatcher<ImplementationEntry>>(
                 IntrinsicMatcher.MatcherKind.Method,
@@ -262,7 +273,8 @@ namespace ILGPU.IR.Intrinsics
         /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
         /// <param name="backend">The backend.</param>
         /// <returns>The created implementation provider.</returns>
-        public IntrinsicImplementationProvider<TDelegate> CreateProvider<TDelegate>(Backend backend)
+        public IntrinsicImplementationProvider<TDelegate> CreateProvider<TDelegate>(
+            Backend backend)
             where TDelegate : Delegate
         {
             if (backend == null)

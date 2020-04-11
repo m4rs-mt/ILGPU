@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Atomics.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -26,7 +26,9 @@ namespace ILGPU.IR.Construction
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
         /// <returns>A node that represents the atomic operation.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public MemoryValue CreateAtomic(
             Value target,
             Value value,
@@ -54,8 +56,12 @@ namespace ILGPU.IR.Construction
         /// <param name="value">The target value.</param>
         /// <param name="compareValue">The comparison value.</param>
         /// <param name="flags">The operation flags.</param>
-        /// <returns>A node that represents the atomic compare-and-swap operation.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        /// <returns>
+        /// A node that represents the atomic compare-and-swap operation.
+        /// </returns>
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public MemoryValue CreateAtomicCAS(
             Value target,
             Value value,

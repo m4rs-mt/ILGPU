@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: LowerTypes.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Rewriting;
@@ -22,7 +22,8 @@ namespace ILGPU.IR.Transformations
     /// Converts structure values into distinct values.
     /// </summary>
     /// <remarks>
-    /// This transformation does not change function parameters and calls to other functions.
+    /// This transformation does not change function parameters and calls to other
+    /// functions.
     /// </remarks>
     public abstract class LowerTypes<TType> : UnorderedTransformation
         where TType : TypeNode
@@ -68,7 +69,9 @@ namespace ILGPU.IR.Transformations
                     }
                 }
                 else
+                {
                     fields.Add(value[i]);
+                }
             }
 
             var newValue = builder.CreateStructure(fields.ToImmutable());
@@ -93,7 +96,8 @@ namespace ILGPU.IR.Transformations
             if (typeConverter[getValue] is TType)
             {
                 // We have to extract multiple elements from this structure
-                var fieldValues = ImmutableArray.CreateBuilder<ValueReference>(span.Span);
+                var fieldValues = ImmutableArray.CreateBuilder<ValueReference>(
+                    span.Span);
                 for (int i = 0; i < span.Span; ++i)
                 {
                     var viewField = builder.CreateGetField(
@@ -130,7 +134,9 @@ namespace ILGPU.IR.Transformations
             {
                 for (int i = 0; i < span.Span; ++i)
                 {
-                    var viewField = builder.CreateGetField(setValue.Value, new FieldSpan(i));
+                    var viewField = builder.CreateGetField(
+                        setValue.Value,
+                        new FieldSpan(i));
                     targetValue = builder.CreateSetField(
                         targetValue,
                         new FieldSpan(span.Index + i),
@@ -158,7 +164,9 @@ namespace ILGPU.IR.Transformations
         {
             // Compute the alloca type
             var newType = typeConverter.ConvertType(alloca);
-            var newAlloca = context.Builder.CreateAlloca(newType, alloca.AddressSpace);
+            var newAlloca = context.Builder.CreateAlloca(
+                newType,
+                alloca.AddressSpace);
             context.ReplaceAndRemove(alloca, newAlloca);
         }
 
@@ -213,7 +221,8 @@ namespace ILGPU.IR.Transformations
             typeConverter.Register(value, type);
 
         /// <summary>
-        /// Returns true if the type is type dependent and registers a type-mapping entry.
+        /// Returns true if the type is type dependent and registers a type-mapping
+        /// entry.
         /// </summary>
         private static bool IsTypeDependent<TValue>(
             TypeLowering<TType> typeConverter,
@@ -222,7 +231,8 @@ namespace ILGPU.IR.Transformations
             IsTypeDependent(typeConverter, value, value.Type);
 
         /// <summary>
-        /// Returns true if the type is type dependent and registers a type-mapping entry.
+        /// Returns true if the type is type dependent and registers a type-mapping
+        /// entry.
         /// </summary>
         private static bool IsTypeDependent<TValue>(
             TypeLowering<TType> typeConverter,
@@ -240,26 +250,36 @@ namespace ILGPU.IR.Transformations
             rewriter.Add<NullValue>(IsTypeDependent, Lower);
             rewriter.Add<StructureValue>(IsTypeDependent, Lower);
             rewriter.Add<GetField>(
-                (typeConverter, value) => IsTypeDependent(typeConverter, value, value.StructureType),
+                (typeConverter, value) =>
+                    IsTypeDependent(typeConverter, value, value.StructureType),
                 Lower);
             rewriter.Add<SetField>(IsTypeDependent, Lower);
             rewriter.Add<Alloca>(
-                (typeConverter, value) => IsTypeDependent(typeConverter, value, value.AllocaType),
+                (typeConverter, value) =>
+                    IsTypeDependent(typeConverter, value, value.AllocaType),
                 Lower);
             rewriter.Add<PointerCast>(
-                (typeConverter, value) => IsTypeDependent(typeConverter, value, value.TargetType),
+                (typeConverter, value) =>
+                    IsTypeDependent(typeConverter, value, value.TargetType),
                 Lower);
             rewriter.Add<LoadFieldAddress>(
-                (typeConverter, value) => IsTypeDependent(typeConverter, value, value.StructureType),
+                (typeConverter, value) =>
+                    IsTypeDependent(typeConverter, value, value.StructureType),
                 Lower);
         }
 
         #endregion
 
+        #region Instance
+
         /// <summary>
         /// Constructs a new type conversion pass.
         /// </summary>
         public LowerTypes() { }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Creates a new type lowering converter.
@@ -290,7 +310,9 @@ namespace ILGPU.IR.Transformations
                 builder,
                 typeConverter,
                 out var rewriting))
+            {
                 return false;
+            }
 
             // Update return type
             if (typeConverter.IsTypeDependent(builder.Method.ReturnType))
@@ -302,5 +324,7 @@ namespace ILGPU.IR.Transformations
             // Apply the lowering logic
             return rewriting.Rewrite();
         }
+
+        #endregion
     }
 }

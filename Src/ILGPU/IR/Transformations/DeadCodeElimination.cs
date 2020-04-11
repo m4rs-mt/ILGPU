@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: DeadCodeElimination.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using System.Collections.Generic;
@@ -20,12 +20,20 @@ namespace ILGPU.IR.Transformations
     /// </summary>
     public sealed class DeadCodeElimination : UnorderedTransformation
     {
+        #region Instance
+
         /// <summary>
         /// Constructs a new DCE transformation.
         /// </summary>
         public DeadCodeElimination() { }
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Applies a DCE transformation.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
             var scope = builder.CreateScope();
@@ -78,5 +86,7 @@ namespace ILGPU.IR.Transformations
 
             return updated;
         }
+
+        #endregion
     }
 }

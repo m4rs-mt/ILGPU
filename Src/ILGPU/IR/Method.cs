@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Method.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
@@ -47,7 +47,7 @@ namespace ILGPU.IR
         External = 1 << 1,
 
         /// <summary>
-        /// An intrinisc method that requires a backend-specific implementation.
+        /// An intrinsic method that requires a backend-specific implementation.
         /// </summary>
         Intrinsic = 1 << 2,
     }
@@ -170,7 +170,8 @@ namespace ILGPU.IR
             /// Returns an enumerator to enumerator all actual (not replaced) parameters.
             /// </summary>
             /// <returns>The enumerator.</returns>
-            IEnumerator<Parameter> IEnumerable<Parameter>.GetEnumerator() => GetEnumerator();
+            IEnumerator<Parameter> IEnumerable<Parameter>.GetEnumerator() =>
+                GetEnumerator();
 
             /// <summary>
             /// Returns an enumerator to enumerator all actual (not replaced) parameters.
@@ -198,7 +199,9 @@ namespace ILGPU.IR
                 ImmutableArray<ValueReference> arguments)
             {
                 Debug.Assert(method != null, "Invalid method");
-                Debug.Assert(arguments.Length == method.Parameters.Count, "Invalid arguments");
+                Debug.Assert(
+                    arguments.Length == method.Parameters.Count,
+                    "Invalid arguments");
 
                 Method = method;
                 Arguments = arguments;
@@ -267,12 +270,9 @@ namespace ILGPU.IR
             public Method this[Method source]
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get
-                {
-                    if (mapping != null && mapping.TryGetValue(source, out Method target))
-                        return target;
-                    return source;
-                }
+                get => mapping != null && mapping.TryGetValue(source, out Method target)
+                    ? target
+                    : source;
             }
 
             #endregion
@@ -300,9 +300,12 @@ namespace ILGPU.IR
             Debug.Assert(methodBase != null, "Invalid method base");
 
             // Check general method flags
-            if ((methodBase.MethodImplementationFlags & MethodImplAttributes.InternalCall) ==
+            if ((methodBase.MethodImplementationFlags &
+                MethodImplAttributes.InternalCall) ==
                 MethodImplAttributes.InternalCall)
+            {
                 return MethodFlags.External;
+            }
 
             // Check for custom intrinsic implementations
             if (methodBase.IsDefined(typeof(IntrinsicImplementationAttribute)))
@@ -395,14 +398,16 @@ namespace ILGPU.IR
         public TypeNode ReturnType => Declaration.ReturnType;
 
         /// <summary>
-        /// Returns true iff the return type of the method is void.
+        /// Returns true if the return type of the method is void.
         /// </summary>
         public bool IsVoid => ReturnType.IsVoidType;
 
         /// <summary>
-        /// Returns true if this method has an implementation (no intrinsic or external method).
+        /// Returns true if this method has an implementation
+        /// (no intrinsic or external method).
         /// </summary>
-        public bool HasImplementation => !HasFlags(MethodFlags.Intrinsic | MethodFlags.External);
+        public bool HasImplementation =>
+            !HasFlags(MethodFlags.Intrinsic | MethodFlags.External);
 
         /// <summary>
         /// Returns the current transformation flags.
@@ -466,7 +471,9 @@ namespace ILGPU.IR
         public ParameterMapping CreateParameterMapping(
             ImmutableArray<ValueReference> arguments)
         {
-            Debug.Assert(arguments.Length == Parameters.Count, "Invalid number of arguments");
+            Debug.Assert(
+                arguments.Length == Parameters.Count,
+                "Invalid number of arguments");
             return new ParameterMapping(this, arguments);
         }
 
@@ -481,7 +488,8 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="scopeFlags">The scope flags.</param>
         /// <returns>A new method scope.</returns>
-        public Scope CreateScope(ScopeFlags scopeFlags) => Scope.Create(this, scopeFlags);
+        public Scope CreateScope(ScopeFlags scopeFlags) =>
+            Scope.Create(this, scopeFlags);
 
         /// <summary>
         /// Dumps this method to the console output.
@@ -492,17 +500,19 @@ namespace ILGPU.IR
         /// <summary>
         /// Dumps this method to the console output.
         /// </summary>
-        /// <param name="ignoreDeadValues">True, if dead values should be ignored.</param>
-        public void DumpToConsole(bool ignoreDeadValues)
-        {
+        /// <param name="ignoreDeadValues">
+        /// True, if dead values should be ignored.
+        /// </param>
+        public void DumpToConsole(bool ignoreDeadValues) =>
             Dump(Console.Out, false);
-        }
 
         /// <summary>
         /// Dumps this method to the given text writer.
         /// </summary>
         /// <param name="textWriter">The text writer.</param>
-        /// <param name="ignoreDeadValues">True, if dead values should be ignored.</param>
+        /// <param name="ignoreDeadValues">
+        /// True, if dead values should be ignored.
+        /// </param>
         public void Dump(TextWriter textWriter, bool ignoreDeadValues)
         {
             if (textWriter == null)
@@ -579,10 +589,10 @@ namespace ILGPU.IR
             Declaration = Declaration.RemoveFlags(flags);
 
         /// <summary>
-        /// Returns true iff this method has the given transformation flags.
+        /// Returns true if this method has the given transformation flags.
         /// </summary>
         /// <param name="flags">The flags to check.</param>
-        /// <returns>True, iff this method has the given transformation flags.</returns>
+        /// <returns>True, if this method has the given transformation flags.</returns>
         public bool HasTransformationFlags(MethodTransformationFlags flags) =>
             (transformationFlags & flags) == flags;
 

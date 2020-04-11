@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Block.CFGBuilder.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
@@ -42,7 +42,9 @@ namespace ILGPU.Frontend
             /// <param name="codeGenerator">The current code generator.</param>
             /// <param name="methodBuilder">The current method builder.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal CFGBuilder(CodeGenerator codeGenerator, Method.Builder methodBuilder)
+            internal CFGBuilder(
+                CodeGenerator codeGenerator,
+                Method.Builder methodBuilder)
             {
                 Debug.Assert(codeGenerator != null, "Invalid code generator");
                 Debug.Assert(methodBuilder != null, "Invalid method builder");
@@ -115,7 +117,9 @@ namespace ILGPU.Frontend
             /// Adds a new successor to the current block.
             /// </summary>
             /// <param name="current">The current block.</param>
-            /// <param name="successor">The successor to add to the current block.</param>
+            /// <param name="successor">
+            /// The successor to add to the current block.
+            /// </param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private void AddSuccessor(Block current, Block successor)
             {
@@ -124,7 +128,9 @@ namespace ILGPU.Frontend
                     successors = new List<Block>();
                     successorMapping.Add(current, successors);
                 }
-                Debug.Assert(!successors.Contains(successor), "Invalid successor setup");
+                Debug.Assert(
+                    !successors.Contains(successor),
+                    "Invalid successor setup");
                 successors.Add(successor);
             }
 
@@ -166,7 +172,10 @@ namespace ILGPU.Frontend
                 var disassembledMethod = CodeGenerator.DisassembledMethod;
                 current.InstructionOffset = instructionIdx;
                 var stackCounter = current.StackCounter;
-                for (int e = disassembledMethod.Count; instructionIdx < e; ++instructionIdx)
+                for (
+                    int e = disassembledMethod.Count;
+                    instructionIdx < e;
+                    ++instructionIdx)
                 {
                     var instruction = disassembledMethod[instructionIdx];
                     // Handle implicit cases: jumps to blocks without a jump instruction
@@ -182,23 +191,34 @@ namespace ILGPU.Frontend
                     else
                     {
                         // Update the current block
-                        stackCounter += (instruction.PushCount - instruction.PopCount);
+                        stackCounter += instruction.PushCount - instruction.PopCount;
                         current.InstructionCount += 1;
 
                         if (instruction.IsTerminator)
                         {
-                            if (instruction.Argument is ILInstructionBranchTargets targets)
+                            if (instruction.Argument is
+                                ILInstructionBranchTargets targets)
                             {
                                 // Create appropriate temp targets
                                 var targetOffsets = targets.GetTargetOffsets();
                                 if (targetOffsets.Length > 1)
                                 {
                                     foreach (var target in targetOffsets)
-                                        SetupBasicBlock(nodeMarker, current, stackCounter, target);
+                                    {
+                                        SetupBasicBlock(
+                                            nodeMarker,
+                                            current,
+                                            stackCounter,
+                                            target);
+                                    }
                                 }
                                 else
                                 {
-                                    SetupBasicBlock(nodeMarker, current, stackCounter, targetOffsets[0]);
+                                    SetupBasicBlock(
+                                        nodeMarker,
+                                        current,
+                                        stackCounter,
+                                        targetOffsets[0]);
                                 }
                             }
                             break;
@@ -228,7 +248,10 @@ namespace ILGPU.Frontend
                 foreach (var block in blockMapping.Values)
                 {
                     if (!successorMapping.ContainsKey(block))
-                        block.Builder.CreateBuilderTerminator(ImmutableArray<BasicBlock>.Empty);
+                    {
+                        block.Builder.CreateBuilderTerminator(
+                            ImmutableArray<BasicBlock>.Empty);
+                    }
                 }
             }
 
@@ -266,8 +289,7 @@ namespace ILGPU.Frontend
             /// </summary>
             /// <param name="basicBlock">The source basic block.</param>
             /// <returns>The resolved frontend block.</returns>
-            public Block this[BasicBlock basicBlock] =>
-                basicBlockMapping[basicBlock];
+            public Block this[BasicBlock basicBlock] => basicBlockMapping[basicBlock];
 
             #endregion
         }

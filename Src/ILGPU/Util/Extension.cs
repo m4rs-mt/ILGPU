@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Extension.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
@@ -172,13 +172,8 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="mode">The clear mode.</param>
         /// <remarks>This method is not thread-safe.</remarks>
-        public virtual void ClearCache(ClearCacheMode mode)
-        {
-            ForEachExtension(extension =>
-            {
-                extension.ClearCache(mode);
-            });
-        }
+        public virtual void ClearCache(ClearCacheMode mode) =>
+            ForEachExtension(extension => extension.ClearCache(mode));
 
         #endregion
     }

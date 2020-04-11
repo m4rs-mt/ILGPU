@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IntrinsicMatchers.tt/IntrinsicMatchers.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ assembly name="System.Core" #>
@@ -56,16 +56,14 @@ namespace ILGPU.IR.Intrinsics
         /// </summary>
         /// <typeparam name="T">The matcher value type.</typeparam>
         internal static IntrinsicMatcher<T>[] CreateMatchers<T>()
-            where T : class, IIntrinsicImplementation
-        {
-            return new IntrinsicMatcher<T>[]
+            where T : class, IIntrinsicImplementation =>
+            new IntrinsicMatcher<T>[]
             {
                 new IntrinsicMethodMatcher<T>(),
 <# foreach (var (name, matcher, kind) in allMatchers) { #>
                 new <#= name #>Matcher<T>(),
 <# } #>
             };
-        }
     }
 
     partial class IntrinsicImplementationManager
@@ -75,7 +73,7 @@ namespace ILGPU.IR.Intrinsics
         /// Registers the given intrinsic implementation.
         /// </summary>
         /// <param name="kind">The kind.</param>
-        /// <param name="implementation">The intrinisc implementation.</param>
+        /// <param name="implementation">The intrinsic implementation.</param>
         public void Register<#= name #>(
             <#= kind #> kind,
             IntrinsicImplementation implementation)
@@ -98,7 +96,7 @@ namespace ILGPU.IR.Intrinsics
         /// Registers the given intrinsic implementation.
         /// </summary>
         /// <param name="kind">The kind.</param>
-        /// <param name="implementation">The intrinisc implementation.</param>
+        /// <param name="implementation">The intrinsic implementation.</param>
         public void Register<#= name #>(
             <#= kind #> kind,
             IntrinsicImplementation implementation)
@@ -112,7 +110,7 @@ namespace ILGPU.IR.Intrinsics
         /// </summary>
         /// <param name="kind">The kind.</param>
         /// <param name="basicValueType">The basic value type.</param>
-        /// <param name="implementation">The intrinisc implementation.</param>
+        /// <param name="implementation">The intrinsic implementation.</param>
         public void Register<#= name #>(
             <#= kind #> kind,
             BasicValueType basicValueType,
@@ -151,11 +149,12 @@ namespace ILGPU.IR.Intrinsics
         /// Registers the given implementation with the current matcher.
         /// </summary>
         /// <param name="kind">The value kind.</param>
-        /// <param name="implementation">The intrinsic implementation to register.</param>
-        public void Register(<#= kind #> kind, T implementation)
-        {
-            this[(int)kind] = implementation ?? throw new ArgumentNullException(nameof(implementation));
-        }
+        /// <param name="implementation">
+        /// The intrinsic implementation to register.
+        /// </param>
+        public void Register(<#= kind #> kind, T implementation) =>
+            this[(int)kind] = implementation
+                ?? throw new ArgumentNullException(nameof(implementation));
 
         /// <summary>
         /// Tries to resolve an intrinsic implementation.
@@ -169,7 +168,8 @@ namespace ILGPU.IR.Intrinsics
             return implementation != null;
         }
 
-        /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(TMatchedValue, out T)"/>
+        /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(
+        /// TMatchedValue, out T)"/>
         public override bool TryGetImplementation(Value value, out T implementation)
         {
             var targetValue = value as <#= matcher #>;
@@ -183,7 +183,8 @@ namespace ILGPU.IR.Intrinsics
     /// <summary>
     /// Matches typed <#= name #> values.
     /// </summary>
-    sealed class <#= name #>Matcher<T> : TypedIntrinsicValueMatcher<T, <#= kind #>>
+    sealed class <#= name #>Matcher<T> :
+        TypedIntrinsicValueMatcher<T, <#= kind #>>
         where T : class, IIntrinsicImplementation
     {
         public <#= name #>Matcher()
@@ -195,14 +196,15 @@ namespace ILGPU.IR.Intrinsics
         /// </summary>
         /// <param name="kind">The value kind.</param>
         /// <param name="basicValueType">The basic value type.</param>
-        /// <param name="implementation">The intrinsic implementation to register.</param>
+        /// <param name="implementation">
+        /// The intrinsic implementation to register.
+        /// </param>
         public void Register(
             <#= kind #> kind,
             BasicValueType basicValueType,
-            T implementation)
-        {
-            this[(int)kind, basicValueType] = implementation ?? throw new ArgumentNullException(nameof(implementation));
-        }
+            T implementation) =>
+            this[(int)kind, basicValueType] = implementation
+                ?? throw new ArgumentNullException(nameof(implementation));
 
         /// <summary>
         /// Tries to resolve an intrinsic implementation.
@@ -211,18 +213,25 @@ namespace ILGPU.IR.Intrinsics
         /// <param name="basicValueType">The basic value type.</param>
         /// <param name="implementation">The resolved implementation (if any).</param>
         /// <returns>True, if an implementation could be resolved.</returns>
-        public bool TryGetImplementation(<#= kind #> kind, BasicValueType basicValueType, out T implementation)
+        public bool TryGetImplementation(
+            <#= kind #> kind,
+            BasicValueType basicValueType,
+            out T implementation)
         {
             implementation = this[(int)kind, basicValueType];
             return implementation != null;
         }
 
-        /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(TMatchedValue, out T)"/>
+        /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(
+        /// TMatchedValue, out T)"/>
         public override bool TryGetImplementation(Value value, out T implementation)
         {
             var targetValue = value as <#= matcher #>;
             Debug.Assert(targetValue != null, "Invalid target value");
-            return TryGetImplementation(targetValue.Kind, targetValue.BasicValueType, out implementation);
+            return TryGetImplementation(
+                targetValue.Kind,
+                targetValue.BasicValueType,
+                out implementation);
         }
     }
 

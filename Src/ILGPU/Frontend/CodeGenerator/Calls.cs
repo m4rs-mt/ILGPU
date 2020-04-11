@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Calls.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Construction;
@@ -34,7 +34,12 @@ namespace ILGPU.Frontend
             MethodBase method,
             ImmutableArray<ValueReference> arguments)
         {
-            var intrinsicContext = new InvocationContext(this, block, Method, method, arguments);
+            var intrinsicContext = new InvocationContext(
+                this,
+                block,
+                Method,
+                method,
+                arguments);
 
             // Check for internal remappings first
             RemappedIntrinsics.RemapIntrinsic(ref intrinsicContext);
@@ -43,7 +48,7 @@ namespace ILGPU.Frontend
             VerifyNotRuntimeMethod(intrinsicContext.Method);
 
             // Handle device functions
-            if (!Intrinsics.HandleIntrinsic(intrinsicContext, out ValueReference result))
+            if (!Intrinsics.HandleIntrinsic(intrinsicContext, out var result))
             {
                 var targetFunction = DeclareMethod(intrinsicContext.Method);
 
@@ -78,15 +83,25 @@ namespace ILGPU.Frontend
         /// Resolves the virtual call target of the given virtual (or abstract) method.
         /// </summary>
         /// <param name="target">The virtual method to call.</param>
-        /// <param name="constrainedType">The constrained type of the virtual call.</param>
+        /// <param name="constrainedType">
+        /// The constrained type of the virtual call.
+        /// </param>
         /// <returns>The resolved call target.</returns>
-        private MethodInfo ResolveVirtualCallTarget(MethodInfo target, Type constrainedType)
+        private MethodInfo ResolveVirtualCallTarget(
+            MethodInfo target,
+            Type constrainedType)
         {
+            const BindingFlags ConstraintMethodFlags = BindingFlags.Instance |
+                BindingFlags.Public | BindingFlags.NonPublic;
+
             if (!target.IsVirtual)
                 return target;
             if (constrainedType == null)
+            {
                 throw this.GetNotSupportedException(
-                    ErrorMessages.NotSupportedVirtualMethodCallToUnconstrainedInstance, target.Name);
+                    ErrorMessages.NotSupportedVirtualMethodCallToUnconstrainedInstance,
+                    target.Name);
+            }
             var sourceGenerics = target.GetGenericArguments();
             // This can only happen in constrained generic cases like:
             // Val GetVal<T>(T instance) where T : IValProvider
@@ -106,24 +121,31 @@ namespace ILGPU.Frontend
                     types[i] = @params[i].ParameterType;
                 actualTarget = constrainedType.GetMethod(
                     target.Name,
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    ConstraintMethodFlags,
                     null,
                     types,
                     null);
-                if (actualTarget != null && actualTarget.DeclaringType != constrainedType)
+                if (actualTarget != null &&
+                    actualTarget.DeclaringType != constrainedType)
+                {
                     throw this.GetNotSupportedException(
                         ErrorMessages.NotSupportedVirtualMethodCallToObject,
                         target.Name,
                         actualTarget.DeclaringType,
                         constrainedType);
+                }
             }
             else
             {
                 // Resolve the actual call target
                 if (sourceGenerics.Length > 0)
                     target = target.GetGenericMethodDefinition();
-                var interfaceMapping = constrainedType.GetInterfaceMap(target.DeclaringType);
-                for (int i = 0, e = interfaceMapping.InterfaceMethods.Length; i < e; ++i)
+                var interfaceMapping = constrainedType.GetInterfaceMap(
+                    target.DeclaringType);
+                for (
+                    int i = 0, e = interfaceMapping.InterfaceMethods.Length;
+                    i < e;
+                    ++i)
                 {
                     if (interfaceMapping.InterfaceMethods[i] != target)
                         continue;
@@ -132,12 +154,14 @@ namespace ILGPU.Frontend
                 }
             }
             if (actualTarget == null)
+            {
                 throw this.GetNotSupportedException(
-                    ErrorMessages.NotSupportedVirtualMethodCall, target.Name);
-            if (sourceGenerics.Length > 0)
-                return actualTarget.MakeGenericMethod(sourceGenerics);
-            else
-                return actualTarget;
+                    ErrorMessages.NotSupportedVirtualMethodCall,
+                    target.Name);
+            }
+            return sourceGenerics.Length > 0
+                ? actualTarget.MakeGenericMethod(sourceGenerics)
+                : actualTarget;
         }
 
         /// <summary>
@@ -153,9 +177,17 @@ namespace ILGPU.Frontend
         {
             var method = instruction.GetArgumentAs<MethodInfo>();
             if (instruction.HasFlags(ILInstructionFlags.Constrained))
-                MakeVirtualCall(block, builder, method, instruction.FlagsContext.Argument as Type);
+            {
+                MakeVirtualCall(
+                    block,
+                    builder,
+                    method,
+                    instruction.FlagsContext.Argument as Type);
+            }
             else
+            {
                 MakeVirtualCall(block, builder, method, null);
+            }
         }
 
         /// <summary>
@@ -164,7 +196,9 @@ namespace ILGPU.Frontend
         /// <param name="block">The current basic block.</param>
         /// <param name="builder">The current builder.</param>
         /// <param name="target">The target method to invoke.</param>
-        /// <param name="constrainedType">The target type on which to invoke the method.</param>
+        /// <param name="constrainedType">
+        /// The target type on which to invoke the method.
+        /// </param>
         private void MakeVirtualCall(
             Block block,
             IRBuilder builder,
@@ -179,20 +213,18 @@ namespace ILGPU.Frontend
         /// Realizes an indirect call instruction.
         /// </summary>
         /// <param name="signature">The target signature.</param>
-        private void MakeCalli(object signature)
-        {
+        private void MakeCalli(object signature) =>
             throw this.GetNotSupportedException(
-                ErrorMessages.NotSupportedIndirectMethodCall, signature);
-        }
+                ErrorMessages.NotSupportedIndirectMethodCall,
+                signature);
 
         /// <summary>
         /// Realizes a jump instruction.
         /// </summary>
         /// <param name="target">The target method to invoke.</param>
-        private void MakeJump(MethodBase target)
-        {
+        private void MakeJump(MethodBase target) =>
             throw this.GetNotSupportedException(
-                ErrorMessages.NotSupportedMethodJump, target.Name);
-        }
+                ErrorMessages.NotSupportedMethodJump,
+                target.Name);
     }
 }

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ArrayViewSource.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
 using System;
@@ -58,12 +58,10 @@ namespace ILGPU.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal unsafe ref byte LoadEffectiveAddress(
             Index1 index,
-            int elementSize)
-        {
-            return ref Unsafe.AddByteOffset(
+            int elementSize) =>
+            ref Unsafe.AddByteOffset(
                 ref Unsafe.AsRef<byte>(NativePtr.ToPointer()),
                 new IntPtr(index * elementSize));
-        }
 
         /// <summary>
         /// Copies the current contents into a new byte array.
@@ -71,7 +69,9 @@ namespace ILGPU.Runtime
         /// <param name="byteOffset">The offset in bytes.</param>
         /// <param name="byteExtent">The extent in bytes (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
-        internal ArraySegment<byte> GetAsDebugRawArray(Index1 byteOffset, Index1 byteExtent) =>
+        internal ArraySegment<byte> GetAsDebugRawArray(
+            Index1 byteOffset,
+            Index1 byteExtent) =>
             GetAsRawArray(Accelerator.DefaultStream, byteOffset, byteExtent);
 
         /// <summary>
@@ -125,7 +125,8 @@ namespace ILGPU.Runtime
             NativePtr = ptr;
         }
 
-        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index1, Index1)"/>
+        /// <summary cref="ArrayViewSource.GetAsRawArray(
+        /// AcceleratorStream, Index1, Index1)"/>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
             Index1 byteOffset,
@@ -150,7 +151,8 @@ namespace ILGPU.Runtime
             : base(Marshal.AllocHGlobal(sizeInBytes))
         { }
 
-        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index1, Index1)"/>
+        /// <summary cref="ArrayViewSource.GetAsRawArray(
+        /// AcceleratorStream, Index1, Index1)"/>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
             Index1 byteOffset,
@@ -183,7 +185,7 @@ namespace ILGPU.Runtime
         /// Creates a new array wrapper.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="handle">The gc handle of the fixed array.</param>
+        /// <param name="handle">The GC handle of the fixed array.</param>
         /// <returns>An unsafe array view source.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ViewArrayWrapper Create<T>(GCHandle handle)
@@ -202,7 +204,8 @@ namespace ILGPU.Runtime
         /// </summary>
         public int ElementSize { get; }
 
-        /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index1, Index1)"/>
+        /// <summary cref="ArrayViewSource.GetAsRawArray(
+        /// AcceleratorStream, Index1, Index1)"/>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
             Index1 byteOffset,

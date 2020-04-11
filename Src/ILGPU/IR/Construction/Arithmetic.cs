@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Arithmetic.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -50,13 +50,17 @@ namespace ILGPU.IR.Construction
                 if (node is PrimitiveValue value)
                     return UnaryArithmeticFoldConstants(value, kind);
 
-                var isUnsigned = (flags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
+                var isUnsigned = (flags & ArithmeticFlags.Unsigned) ==
+                    ArithmeticFlags.Unsigned;
                 switch (kind)
                 {
                     case UnaryArithmeticKind.Not:
                         if (node is UnaryArithmeticValue otherValue &&
                             otherValue.Kind == UnaryArithmeticKind.Not)
+                        {
                             return otherValue.Value;
+                        }
+
                         if (node is CompareValue compareValue)
                         {
                             return CreateCompare(
@@ -145,7 +149,8 @@ namespace ILGPU.IR.Construction
 
             // TODO: remove the following hard-coded rules
             if (right is PrimitiveValue rightValue &&
-                left.BasicValueType.IsInt() && Utilities.IsPowerOf2(rightValue.RawValue))
+                left.BasicValueType.IsInt() &&
+                Utilities.IsPowerOf2(rightValue.RawValue))
             {
                 if (kind == BinaryArithmeticKind.Div || kind == BinaryArithmeticKind.Mul)
                 {
@@ -173,17 +178,23 @@ namespace ILGPU.IR.Construction
                 case BinaryArithmeticKind.Or:
                 case BinaryArithmeticKind.Xor:
                     if (left.BasicValueType.IsFloat())
+                    {
                         throw new NotSupportedException(string.Format(
                             ErrorMessages.NotSupportedArithmeticArgumentType,
                             left.BasicValueType));
+                    }
+
                     break;
 
                 case BinaryArithmeticKind.Atan2F:
                 case BinaryArithmeticKind.PowF:
                     if (!left.BasicValueType.IsFloat())
+                    {
                         throw new NotSupportedException(string.Format(
                             ErrorMessages.NotSupportedArithmeticArgumentType,
                             left.BasicValueType));
+                    }
+
                     break;
             }
 

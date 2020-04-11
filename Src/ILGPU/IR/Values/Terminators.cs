@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Terminators.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -124,7 +124,9 @@ namespace ILGPU.IR.Values
             ComputeType(ReturnValue.Type);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateReturn(
                 rebuilder.Rebuild(ReturnValue));
 
@@ -237,7 +239,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateBranch(
                 rebuilder.LookupTarget(Target));
 
@@ -312,9 +316,9 @@ namespace ILGPU.IR.Values
         public Branch Fold(IRBuilder builder)
         {
             var condition = Condition.ResolveAs<PrimitiveValue>();
-            if (condition == null)
-                return this;
-            return FoldBranch(builder, condition);
+            return condition == null
+                ? this
+                : FoldBranch(builder, condition);
         }
 
         /// <summary>
@@ -323,7 +327,9 @@ namespace ILGPU.IR.Values
         /// <param name="builder">The builder to use.</param>
         /// <param name="condition">The constant condition value.</param>
         /// <returns>The folded branch.</returns>
-        protected abstract Branch FoldBranch(IRBuilder builder, PrimitiveValue condition);
+        protected abstract Branch FoldBranch(
+            IRBuilder builder,
+            PrimitiveValue condition);
 
         #endregion
     }
@@ -384,7 +390,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="ConditionalBranch.FoldBranch(IRBuilder, PrimitiveValue)"/>
-        protected override Branch FoldBranch(IRBuilder builder, PrimitiveValue condition)
+        protected override Branch FoldBranch(
+            IRBuilder builder,
+            PrimitiveValue condition)
         {
             var target = condition.Int1Value ?
                 TrueTarget :
@@ -393,7 +401,9 @@ namespace ILGPU.IR.Values
         }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateIfBranch(
                 rebuilder.Rebuild(Condition),
                 rebuilder.LookupTarget(TrueTarget),
@@ -411,7 +421,8 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
-            $"{Condition} ? {TrueTarget.ToReferenceString()} : {FalseTarget.ToReferenceString()}";
+            $"{Condition} ? {TrueTarget.ToReferenceString()} : " +
+            FalseTarget.ToReferenceString();
 
         #endregion
     }
@@ -474,7 +485,9 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="i">The index of the i-th case.</param>
         /// <returns>The resulting jump target.</returns>
-        [SuppressMessage("Microsoft.Usage", "CA2233: OperationsShouldNotOverflow",
+        [SuppressMessage(
+            "Microsoft.Usage",
+            "CA2233: OperationsShouldNotOverflow",
             Justification = "Exception checks avoided for performance reasons")]
         public BasicBlock GetCaseTarget(int i)
         {
@@ -483,7 +496,9 @@ namespace ILGPU.IR.Values
         }
 
         /// <summary cref="ConditionalBranch.FoldBranch(IRBuilder, PrimitiveValue)"/>
-        protected override Branch FoldBranch(IRBuilder builder, PrimitiveValue condition)
+        protected override Branch FoldBranch(
+            IRBuilder builder,
+            PrimitiveValue condition)
         {
             int caseValue = condition.Int32Value;
             var target = caseValue < 0 || caseValue >= NumCasesWithoutDefault ?
@@ -493,7 +508,9 @@ namespace ILGPU.IR.Values
         }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder)
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder)
         {
             var targets = ImmutableArray.CreateBuilder<BasicBlock>(Targets.Length);
             foreach (var target in Targets)
@@ -571,7 +588,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             throw new InvalidOperationException();
 
         /// <summary cref="Value.Accept"/>

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLNativeMethods.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 #pragma warning disable IDE1006 // Naming Styles
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -96,11 +96,11 @@ namespace ILGPU.Runtime.OpenCL.API
         Justification = "Interop enum")]
     public enum CLDeviceType : int
     {
-        CL_DEVICE_TYPE_DEFAULT = (1 << 0),
-        CL_DEVICE_TYPE_CPU = (1 << 1),
-        CL_DEVICE_TYPE_GPU = (1 << 2),
-        CL_DEVICE_TYPE_ACCELERATOR = (1 << 3),
-        CL_DEVICE_TYPE_CUSTOM = (1 << 4),
+        CL_DEVICE_TYPE_DEFAULT = 1 << 0,
+        CL_DEVICE_TYPE_CPU = 1 << 1,
+        CL_DEVICE_TYPE_GPU = 1 << 2,
+        CL_DEVICE_TYPE_ACCELERATOR = 1 << 3,
+        CL_DEVICE_TYPE_CUSTOM = 1 << 4,
         CL_DEVICE_TYPE_ALL = -1
     }
 

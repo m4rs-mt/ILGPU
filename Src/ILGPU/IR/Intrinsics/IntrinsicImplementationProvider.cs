@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IntrinsicImplementationProvider.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using ILGPU.Frontend;
@@ -22,7 +22,8 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.IR.Intrinsics
 {
     /// <summary>
-    /// Represents an intrinsic provider that caches intrinsic remappings and implementations.
+    /// Represents an intrinsic provider that caches intrinsic remappings and
+    /// implementations.
     /// </summary>
     /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
     public sealed class IntrinsicImplementationProvider<TDelegate> : DisposeBase, ICache
@@ -31,18 +32,24 @@ namespace ILGPU.IR.Intrinsics
         #region Nested Types
 
         /// <summary>
-        /// Represents an implementation transformer to convert high-level intrinsic values
-        /// into instantiated intrinsic mappings.
+        /// Represents an implementation transformer to convert high-level intrinsic
+        /// values into instantiated intrinsic mappings.
         /// </summary>
-        private readonly struct ImplementationTransformer
-            : IIntrinsicImplementationTransformer<IntrinsicImplementationManager.ImplementationEntry, IntrinsicMapping<TDelegate>>
+        private readonly struct ImplementationTransformer :
+            IIntrinsicImplementationTransformer<
+                IntrinsicImplementationManager.ImplementationEntry,
+                IntrinsicMapping<TDelegate>>
         {
-            private readonly Dictionary<IntrinsicImplementation, IntrinsicMapping<TDelegate>> mappings;
+            private readonly Dictionary<
+                IntrinsicImplementation,
+                IntrinsicMapping<TDelegate>> mappings;
 
             public ImplementationTransformer(Backend backend)
             {
                 Debug.Assert(backend != null, "Invalid backend");
-                mappings = new Dictionary<IntrinsicImplementation, IntrinsicMapping<TDelegate>>();
+                mappings = new Dictionary<
+                    IntrinsicImplementation,
+                    IntrinsicMapping<TDelegate>>();
                 Backend = backend;
             }
 
@@ -51,10 +58,13 @@ namespace ILGPU.IR.Intrinsics
             /// </summary>
             public Backend Backend { get; }
 
-            /// <summary cref="IIntrinsicImplementationTransformer{TFirst, TSecond}.Transform(TFirst)"/>
-            public IntrinsicMapping<TDelegate> Transform(IntrinsicImplementationManager.ImplementationEntry entry)
+            /// <summary cref="IIntrinsicImplementationTransformer{TFirst, TSecond}.
+            /// Transform(TFirst)"/>
+            public IntrinsicMapping<TDelegate> Transform(
+                IntrinsicImplementationManager.ImplementationEntry entry)
             {
-                if (entry != null && CheckImplementations(Backend, entry, out var mainImplementation))
+                if (entry != null &&
+                    CheckImplementations(Backend, entry, out var mainImplementation))
                 {
                     if (!mappings.TryGetValue(mainImplementation, out var mapping))
                     {
@@ -70,9 +80,15 @@ namespace ILGPU.IR.Intrinsics
             /// Checks the given intrinsic implementations.
             /// </summary>
             /// <param name="backend">The current backend.</param>
-            /// <param name="implementations">The availabled intrinsic implementations.</param>
-            /// <param name="mainImplementation">The resolved main implementation.</param>
-            /// <returns>True, if at least a single implementation could be resolved.</returns>
+            /// <param name="implementations">
+            /// The available intrinsic implementations.
+            /// </param>
+            /// <param name="mainImplementation">
+            /// The resolved main implementation.
+            /// </param>
+            /// <returns>
+            /// True, if at least a single implementation could be resolved.
+            /// </returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static bool CheckImplementations(
                 Backend backend,
@@ -102,7 +118,9 @@ namespace ILGPU.IR.Intrinsics
             /// </summary>
             /// <param name="mapping">The parent mapping.</param>
             /// <param name="mappingKey">The current mapping key.</param>
-            /// <param name="codeGenerationResult">The intermediate code-generation result.</param>
+            /// <param name="codeGenerationResult">
+            /// The intermediate code-generation result.
+            /// </param>
             public MappingEntry(
                 IntrinsicMapping<TDelegate> mapping,
                 IntrinsicMapping.MappingKey mappingKey,
@@ -131,10 +149,8 @@ namespace ILGPU.IR.Intrinsics
             /// <summary>
             /// Applies the code-generation result to the underlying mapping.
             /// </summary>
-            public void Apply()
-            {
+            public void Apply() =>
                 Mapping.ProvideImplementation(MappingKey, CodeGenerationResult.Result);
-            }
         }
 
         /// <summary>
@@ -158,7 +174,8 @@ namespace ILGPU.IR.Intrinsics
 
                 Provider = provider;
                 contextCodeGenerationPhase = currentPhase;
-                codeGenerationPhase = contextCodeGenerationPhase.BeginFrontendCodeGeneration();
+                codeGenerationPhase = contextCodeGenerationPhase
+                    .BeginFrontendCodeGeneration();
 
                 mappings = new Dictionary<MethodInfo, MappingEntry>();
             }
@@ -179,7 +196,9 @@ namespace ILGPU.IR.Intrinsics
             /// <summary>
             /// Internal method to register an intrinsic.
             /// </summary>
-            /// <typeparam name="TResolver">The generic argument resolver type.</typeparam>
+            /// <typeparam name="TResolver">
+            /// The generic argument resolver type.
+            /// </typeparam>
             /// <param name="resolver">The argument resolver.</param>
             /// <param name="mapping">The current mapping instance.</param>
             /// <returns>True, if the intrinsic could be registered.</returns>
@@ -194,11 +213,15 @@ namespace ILGPU.IR.Intrinsics
 
                 lock (mappings)
                 {
-                    var redirect = mapping.ResolveRedirect(resolver, out var genericMapping);
+                    var redirect = mapping.ResolveRedirect(
+                        resolver,
+                        out var genericMapping);
                     if (!mappings.ContainsKey(redirect))
                     {
                         var result = codeGenerationPhase.GenerateCode(redirect);
-                        mappings.Add(redirect, new MappingEntry(mapping, genericMapping, result));
+                        mappings.Add(
+                            redirect,
+                            new MappingEntry(mapping, genericMapping, result));
                     }
                 }
                 return true;
@@ -249,7 +272,8 @@ namespace ILGPU.IR.Intrinsics
 
         /// <summary>
         /// Represents an abstract data provider. It can be used in combination
-        /// with the <see cref="TryGetData{TResult, TDataProvider}(Value, out TResult)"/> method.
+        /// with the <see cref="TryGetData{TResult, TDataProvider}(
+        /// Value, out TResult)"/> method.
         /// </summary>
         /// <typeparam name="TResult">The result type.</typeparam>
         private interface IDataProvider<TResult>
@@ -260,13 +284,15 @@ namespace ILGPU.IR.Intrinsics
             IntrinsicImplementationMode Mode { get; }
 
             /// <summary>
-            /// Gets data from the given intrinisc mapping.
+            /// Gets data from the given intrinsic mapping.
             /// </summary>
             /// <typeparam name="TResolver">The resolver type.</typeparam>
             /// <param name="mapping">The mapping instance.</param>
             /// <param name="resolver">The resolver instance.</param>
             /// <returns>The resolved result.</returns>
-            TResult GetData<TResolver>(IntrinsicMapping<TDelegate> mapping, TResolver resolver)
+            TResult GetData<TResolver>(
+                IntrinsicMapping<TDelegate> mapping,
+                TResolver resolver)
                 where TResolver : struct, IntrinsicMapping.IGenericArgumentResolver;
         }
 
@@ -276,10 +302,14 @@ namespace ILGPU.IR.Intrinsics
         private readonly struct ImplementationProvider : IDataProvider<Method>
         {
             /// <summary cref="IDataProvider{TResult}.Mode"/>
-            public IntrinsicImplementationMode Mode => IntrinsicImplementationMode.Redirect;
+            public IntrinsicImplementationMode Mode =>
+                IntrinsicImplementationMode.Redirect;
 
-            /// <summary cref="IDataProvider{TResult}.GetData{TResolver}(IntrinsicMapping{TDelegate}, TResolver)"/>
-            public Method GetData<TResolver>(IntrinsicMapping<TDelegate> mapping, TResolver resolver)
+            /// <summary cref="IDataProvider{TResult}.GetData{TResolver}(
+            /// IntrinsicMapping{TDelegate}, TResolver)"/>
+            public Method GetData<TResolver>(
+                IntrinsicMapping<TDelegate> mapping,
+                TResolver resolver)
                 where TResolver : struct, IntrinsicMapping.IGenericArgumentResolver =>
                 mapping.ResolveImplementation(resolver);
         }
@@ -290,10 +320,14 @@ namespace ILGPU.IR.Intrinsics
         private readonly struct CodeGeneratorProvider : IDataProvider<TDelegate>
         {
             /// <summary cref="IDataProvider{TResult}.Mode"/>
-            public IntrinsicImplementationMode Mode => IntrinsicImplementationMode.GenerateCode;
+            public IntrinsicImplementationMode Mode =>
+                IntrinsicImplementationMode.GenerateCode;
 
-            /// <summary cref="IDataProvider{TResult}.GetData{TResolver}(IntrinsicMapping{TDelegate}, TResolver)"/>
-            public TDelegate GetData<TResolver>(IntrinsicMapping<TDelegate> mapping, TResolver resolver)
+            /// <summary cref="IDataProvider{TResult}.GetData{TResolver}(
+            /// IntrinsicMapping{TDelegate}, TResolver)"/>
+            public TDelegate GetData<TResolver>(
+                IntrinsicMapping<TDelegate> mapping,
+                TResolver resolver)
                 where TResolver : struct, IntrinsicMapping.IGenericArgumentResolver =>
                 mapping.ResolveCodeGenerator(resolver);
         }
@@ -302,8 +336,10 @@ namespace ILGPU.IR.Intrinsics
 
         #region Instance
 
-        private readonly IntrinsicMethodMatcher<IntrinsicMapping<TDelegate>> methodMatcher;
-        private readonly BaseIntrinsicValueMatcher<IntrinsicMapping<TDelegate>>[] valueMatchers;
+        private readonly IntrinsicMethodMatcher<
+            IntrinsicMapping<TDelegate>> methodMatcher;
+        private readonly BaseIntrinsicValueMatcher<
+            IntrinsicMapping<TDelegate>>[] valueMatchers;
         private readonly IRContext intrinsicContext;
 
         /// <summary>
@@ -320,17 +356,22 @@ namespace ILGPU.IR.Intrinsics
             Context = backend.Context;
             intrinsicContext = new IRContext(Context);
 
-            var allMatchers = IntrinsicMatcher.CreateMatchers<IntrinsicMapping<TDelegate>>();
+            var allMatchers = IntrinsicMatcher.CreateMatchers<
+                IntrinsicMapping<TDelegate>>();
             container.TransformTo(new ImplementationTransformer(backend), allMatchers);
             methodMatcher = allMatchers[(int)IntrinsicMatcher.MatcherKind.Method]
                 as IntrinsicMethodMatcher<IntrinsicMapping<TDelegate>>;
 
             // Build a fast value-kind specific lookup
-            valueMatchers = new BaseIntrinsicValueMatcher<IntrinsicMapping<TDelegate>>[ValueKinds.NumValueKinds];
+            valueMatchers = new BaseIntrinsicValueMatcher<
+                IntrinsicMapping<TDelegate>>[ValueKinds.NumValueKinds];
             foreach (var matcher in allMatchers)
             {
-                if (matcher is BaseIntrinsicValueMatcher<IntrinsicMapping<TDelegate>> valueMatcher)
+                if (matcher is BaseIntrinsicValueMatcher<
+                    IntrinsicMapping<TDelegate>> valueMatcher)
+                {
                     valueMatchers[(int)valueMatcher.ValueKind] = valueMatcher;
+                }
             }
         }
 
@@ -362,14 +403,18 @@ namespace ILGPU.IR.Intrinsics
         /// <param name="method">The method to resolve an implementation for.</param>
         /// <param name="mapping">The resolved mapping.</param>
         /// <returns>True, if the given method could be resolved to a mapping.</returns>
-        public bool TryGetMapping(Method method, out IntrinsicMapping<TDelegate> mapping) =>
+        public bool TryGetMapping(
+            Method method,
+            out IntrinsicMapping<TDelegate> mapping) =>
             TryGetMapping(method, out var _, out mapping);
 
         /// <summary>
         /// Resolves the intrinsic mapping for the given method.
         /// </summary>
         /// <param name="method">The method to resolve an implementation for.</param>
-        /// <param name="methodInfo">The resolved method information object (if any).</param>
+        /// <param name="methodInfo">
+        /// The resolved method information object (if any).
+        /// </param>
         /// <param name="mapping">The resolved mapping.</param>
         /// <returns>True, if the given method could be resolved to a mapping.</returns>
         public bool TryGetMapping(
@@ -378,10 +423,10 @@ namespace ILGPU.IR.Intrinsics
             out IntrinsicMapping<TDelegate> mapping)
         {
             mapping = default;
-            if ((methodInfo = method.Source as MethodInfo) == null ||
-                !method.HasFlags(MethodFlags.Intrinsic))
-                return false;
-            return TryGetMapping(methodInfo, out mapping);
+            return (methodInfo = method.Source as MethodInfo) == null ||
+                !method.HasFlags(MethodFlags.Intrinsic)
+                ? false
+                : TryGetMapping(methodInfo, out mapping);
         }
 
         /// <summary>
@@ -418,7 +463,9 @@ namespace ILGPU.IR.Intrinsics
         /// <typeparam name="TDataProvider">The resolver type.</typeparam>
         /// <param name="value">The value to resolve.</param>
         /// <param name="result">The resulting value.</param>
-        /// <returns>True, if the value could be resolved to an intrinsic value.</returns>
+        /// <returns>
+        /// True, if the value could be resolved to an intrinsic value.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryGetData<TResult, TDataProvider>(Value value, out TResult result)
             where TResult : class
@@ -432,7 +479,9 @@ namespace ILGPU.IR.Intrinsics
             {
                 if (!TryGetMapping(call.Target, out var methodInfo, out mapping) ||
                     mapping.Mode != dataProvider.Mode)
+                {
                     return false;
+                }
 
                 // Resolve method-specific code-generator
                 result = dataProvider.GetData(
@@ -455,7 +504,9 @@ namespace ILGPU.IR.Intrinsics
         /// </summary>
         /// <param name="value">The value to resolve an implementation for.</param>
         /// <param name="irImplementation">The resolved IR implementation.</param>
-        /// <returns>True, if the given method could be resolved to an IR implementation.</returns>
+        /// <returns>
+        /// True, if the given method could be resolved to an IR implementation.
+        /// </returns>
         public bool TryGetImplementation(Value value, out Method irImplementation) =>
             TryGetData<Method, ImplementationProvider>(value, out irImplementation);
 
@@ -464,7 +515,9 @@ namespace ILGPU.IR.Intrinsics
         /// </summary>
         /// <param name="value">The value to resolve an implementation for.</param>
         /// <param name="codeGenerator">The resolved code generator.</param>
-        /// <returns>True, if the given method could be resolved to a code generator.</returns>
+        /// <returns>
+        /// True, if the given method could be resolved to a code generator.
+        /// </returns>
         public bool TryGetCodeGenerator(Value value, out TDelegate codeGenerator) =>
             TryGetData<TDelegate, CodeGeneratorProvider>(value, out codeGenerator);
 

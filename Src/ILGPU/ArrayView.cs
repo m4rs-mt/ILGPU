@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ArrayView.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.Runtime;
@@ -27,7 +27,7 @@ namespace ILGPU
         where TIndex : struct, IIndex, IGenericIndex<TIndex>
     {
         /// <summary>
-        /// Returns true iff this view points to a valid location.
+        /// Returns true if this view points to a valid location.
         /// </summary>
         bool IsValid { get; }
 
@@ -64,7 +64,9 @@ namespace ILGPU
     /// Represents an abstract array view.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    [SuppressMessage("Microsoft.Design", "CA1040: AvoidEmptyInterfaces",
+    [SuppressMessage(
+        "Microsoft.Design",
+        "CA1040: AvoidEmptyInterfaces",
         Justification = "Can be used in generic constraints")]
     public interface IArrayView<T> : IArrayView<T, Index1>
         where T : struct
@@ -100,8 +102,8 @@ namespace ILGPU
         public ArrayView(ArrayViewSource source, Index1 index, Index1 length)
         {
             Debug.Assert(source != null, "Invalid source buffer");
-            Debug.Assert(index >= 0, "Index of of range");
-            Debug.Assert(length > 0, "Length of of range");
+            Debug.Assert(index >= 0, "Index out of range");
+            Debug.Assert(length > 0, "Length out of range");
             Source = source;
             Index = index;
             Length = length;
@@ -122,7 +124,7 @@ namespace ILGPU
         internal AcceleratorType AcceleratorType => Source.AcceleratorType;
 
         /// <summary>
-        /// Returns true iff this view points to a valid location.
+        /// Returns true if this view points to a valid location.
         /// </summary>
         public bool IsValid
         {
@@ -209,31 +211,31 @@ namespace ILGPU
             Unsafe.AsPointer(ref Source.LoadEffectiveAddress(Index, ElementSize));
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="index">The starting offset.</param>
-        /// <returns>The new subview.</returns>
+        /// <returns>The new sub view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [ViewIntrinsic(ViewIntrinsicKind.GetSubViewImplicitLength)]
         public ArrayView<T> GetSubView(int index)
         {
-            Debug.Assert(index >= 0 && index < Length, "Offset ouf of bounds");
+            Debug.Assert(index >= 0 && index < Length, "Offset out of bounds");
             return GetSubView(index, Length - index);
         }
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="index">The starting offset.</param>
-        /// <param name="subViewLength">The extent of the new subview.</param>
-        /// <returns>The new subview.</returns>
+        /// <param name="subViewLength">The extent of the new sub view.</param>
+        /// <returns>The new sub view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [ViewIntrinsic(ViewIntrinsicKind.GetSubView)]
         public ArrayView<T> GetSubView(int index, int subViewLength)
         {
             Debug.Assert(index >= 0 && index < Length, "Index out of bounds");
-            Debug.Assert(index < Length, "Index ouf of bounds");
-            Debug.Assert(index + subViewLength <= Length, "Subview out of range");
+            Debug.Assert(index < Length, "Index out of bounds");
+            Debug.Assert(index + subViewLength <= Length, "Sub view out of range");
             index += Index;
             return new ArrayView<T>(Source, index, subViewLength);
         }
@@ -272,10 +274,7 @@ namespace ILGPU
         /// Returns the string representation of this view.
         /// </summary>
         /// <returns>The string representation of this view.</returns>
-        public override string ToString()
-        {
-            return $"{Index} [{Length}]";
-        }
+        public override string ToString() => $"{Index} [{Length}]";
 
         #endregion
 
@@ -285,19 +284,15 @@ namespace ILGPU
         /// Converts a linear view to its explicit form.
         /// </summary>
         /// <param name="view">The view to convert.</param>
-        public static implicit operator ArrayView<T, Index1>(ArrayView<T> view)
-        {
-            return new ArrayView<T, Index1>(view, view.Length);
-        }
+        public static implicit operator ArrayView<T, Index1>(ArrayView<T> view) =>
+            new ArrayView<T, Index1>(view, view.Length);
 
         /// <summary>
         /// Converts a linear view from its explicit form.
         /// </summary>
         /// <param name="view">The view to convert.</param>
-        public static implicit operator ArrayView<T>(ArrayView<T, Index1> view)
-        {
-            return view.AsLinearView();
-        }
+        public static implicit operator ArrayView<T>(ArrayView<T, Index1> view) =>
+            view.AsLinearView();
 
         #endregion
     }

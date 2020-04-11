@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: DeviceConstants.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -69,7 +69,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateAcceleratorTypeValue();
 
         /// <summary cref="Value.Accept" />
@@ -185,7 +187,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateGridIndexValue(Dimension);
 
         /// <summary cref="Value.Accept" />
@@ -237,7 +241,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateGroupIndexValue(Dimension);
 
         /// <summary cref="Value.Accept" />
@@ -289,7 +295,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateGridDimensionValue(Dimension);
 
         /// <summary cref="Value.Accept" />
@@ -341,7 +349,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateGroupDimensionValue(Dimension);
 
         /// <summary cref="Value.Accept" />
@@ -390,7 +400,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateWarpSizeValue();
 
         /// <summary cref="Value.Accept" />
@@ -439,7 +451,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateLaneIdxValue();
 
         /// <summary cref="Value.Accept" />

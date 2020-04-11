@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SSAConstruction.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
@@ -99,7 +99,8 @@ namespace ILGPU.IR.Transformations
                 ConvertedValues.TryGetValue(value, out fieldRef);
 
             /// <summary>
-            /// Adds the given value and the field reference to the mapping of converted values.
+            /// Adds the given value and the field reference to the mapping of
+            /// converted values.
             /// </summary>
             /// <param name="value">The value to register.</param>
             /// <param name="fieldRef">The field reference.</param>
@@ -242,7 +243,9 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         public SSAConstruction() { }
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        /// <summary>
+        /// Applies the SSA construction transformation.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
             // Create scope and try to find SSA-convertible alloca nodes
@@ -255,7 +258,10 @@ namespace ILGPU.IR.Transformations
                 if (alloca.IsArrayAllocation ||
                     alloca.AddressSpace != MemoryAddressSpace.Local ||
                     RequiresAddress(alloca))
+                {
                     return;
+                }
+
                 allocas.Add(alloca);
             });
             if (allocas.Count < 1)

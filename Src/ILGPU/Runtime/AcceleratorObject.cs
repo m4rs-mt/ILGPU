@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: AcceleratorObject.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
 using System;
@@ -37,7 +37,8 @@ namespace ILGPU.Runtime
     /// Represents the base class for all accelerator-dependent objects.
     /// </summary>
     /// <remarks>
-    /// Note that accelerator objects are destroyed when their parent accelerator object is destroyed.
+    /// Note that accelerator objects are destroyed when their parent accelerator
+    /// object is destroyed.
     /// </remarks>
     public abstract class AcceleratorObject : DisposeBase, IAcceleratorObject
     {
@@ -93,7 +94,9 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Minimum number of child objects before we apply GC.
         /// </summary>
-        /// <remarks>Should be less or equal to <see cref="NumberNewChildObjectsUntilGC"/></remarks>
+        /// <remarks>
+        /// Should be less or equal to <see cref="NumberNewChildObjectsUntilGC"/>.
+        /// </remarks>
         private const int MinNumberOfChildObjectsInGC = 1024;
 
         #endregion
@@ -117,7 +120,8 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <remarks>
         /// Note that this number is affected by the flags
-        /// <see cref="ContextFlags.DisableAutomaticBufferDisposal"/> and <see cref="ContextFlags.DisableAutomaticKernelDisposal"/>.
+        /// <see cref="ContextFlags.DisableAutomaticBufferDisposal"/> and
+        /// <see cref="ContextFlags.DisableAutomaticKernelDisposal"/>.
         /// </remarks>
         public int NumberChildObjects
         {
@@ -129,11 +133,12 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// True, iff a GC run is requested to clean disposed child objects.
+        /// True, if a GC run is requested to clean disposed child objects.
         /// </summary>
-        /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
+        /// <remarks>This method is invoked in the scope of the locked
+        /// <see cref="syncRoot"/> object.</remarks>
         private bool RequestChildObjectsGC_SyncRoot =>
-            (childObjects.Count % NumberNewChildObjectsUntilGC) == 0;
+            childObjects.Count % NumberNewChildObjectsUntilGC == 0;
 
         #endregion
 
@@ -150,7 +155,9 @@ namespace ILGPU.Runtime
             if (!GCEnabled ||
                 !AutomaticBufferDisposalEnabled && child is MemoryBuffer ||
                 !AutomaticKernelDisposalEnabled && child is Kernel)
+            {
                 return;
+            }
 
             var objRef = new WeakReference<AcceleratorObject>(child);
             lock (syncRoot)
@@ -184,7 +191,8 @@ namespace ILGPU.Runtime
         /// <summary>
         /// GC method to clean disposed child objects.
         /// </summary>
-        /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
+        /// <remarks>This method is invoked in the scope of the locked
+        /// <see cref="syncRoot"/> object.</remarks>
         private void ChildObjectsGC_SyncRoot()
         {
             if (childObjects.Count < MinNumberOfChildObjectsInGC)

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: LowerArrays.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Rewriting;
@@ -27,7 +27,7 @@ namespace ILGPU.IR.Transformations
     /// </remarks>
     public sealed class LowerArrays : LowerTypes<ArrayType>
     {
-        #region Nested Types
+        #region Type Lowering
 
         /// <summary>
         /// Lowers array types.
@@ -40,16 +40,21 @@ namespace ILGPU.IR.Transformations
                 : base(builder)
             { }
 
-            /// <summary cref="TypeConverter{TType}.GetNumFields(TType)"/>
+            /// <summary>
+            /// Returns the number of fields per array type.
+            /// </summary>
             protected override int GetNumFields(ArrayType type) =>
                 DimensionOffset + type.Dimensions;
 
-            /// <summary cref="TypeConverter{TType}.ConvertType{TTypeContext}(TTypeContext, TType)"/>
+            /// <summary>
+            /// Converts the given array type into a structure with two elements.
+            /// </summary>
             protected override TypeNode ConvertType<TTypeContext>(
                 TTypeContext typeContext,
                 ArrayType type)
             {
-                var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(GetNumFields(type));
+                var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(
+                    GetNumFields(type));
                 // Append storage pointer
                 fieldTypes.Add(
                     typeContext.CreatePointerType(
@@ -58,7 +63,10 @@ namespace ILGPU.IR.Transformations
 
                 // Append dimension types
                 for (int i = 0, e = type.Dimensions; i < e; ++i)
-                    fieldTypes.Add(typeContext.GetPrimitiveType(BasicValueType.Int32));
+                {
+                    fieldTypes.Add(
+                        typeContext.GetPrimitiveType(BasicValueType.Int32));
+                }
 
                 return typeContext.CreateStructureType(fieldTypes.MoveToImmutable());
             }
@@ -125,9 +133,11 @@ namespace ILGPU.IR.Transformations
 
             // Insert all dimension values
             for (int i = 0, e = value.ArrayType.Dimensions; i < e; ++i)
+            {
                 fields.Add(builder.CreateGetField(
                     value,
                     new FieldSpan(i + ArrayTypeLowering.DimensionOffset)));
+            }
 
             var newStructure = builder.CreateStructure(fields.MoveToImmutable());
             context.ReplaceAndRemove(value, newStructure);
@@ -234,18 +244,30 @@ namespace ILGPU.IR.Transformations
 
         #endregion
 
+        #region Instance
+
         /// <summary>
         /// Constructs a new array lowering transformation.
         /// </summary>
         public LowerArrays() { }
 
-        /// <summary cref="LowerTypes{TType}.CreateLoweringConverter(Method.Builder, Scope)"/>
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Creates a new <see cref="ArrayTypeLowering"/> converter.
+        /// </summary>
         protected override TypeLowering<ArrayType> CreateLoweringConverter(
             Method.Builder builder,
             Scope _) => new ArrayTypeLowering(builder);
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        /// <summary>
+        /// Applies the array lowering transformation.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder) =>
             PerformTransformation(builder, Rewriter);
+
+        #endregion
     }
 }

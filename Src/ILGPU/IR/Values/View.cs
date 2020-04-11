@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: View.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -60,7 +60,9 @@ namespace ILGPU.IR.Values
             ValueReference length)
             : base(basicBlock, ComputeType(context, pointer.Type))
         {
-            Debug.Assert(length.BasicValueType == BasicValueType.Int32, "Invalid length");
+            Debug.Assert(
+                length.BasicValueType == BasicValueType.Int32,
+                "Invalid length");
             Seal(ImmutableArray.Create(pointer, length));
         }
 
@@ -100,16 +102,15 @@ namespace ILGPU.IR.Values
             ComputeType(context, Pointer.Type);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateNewView(
                 rebuilder.Rebuild(Pointer),
                 rebuilder.Rebuild(Length));
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -219,15 +220,14 @@ namespace ILGPU.IR.Values
             ComputeType(context);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateGetViewLength(
                 rebuilder.Rebuild(View));
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 

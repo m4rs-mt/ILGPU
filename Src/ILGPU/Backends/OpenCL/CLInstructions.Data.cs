@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLInstructions.Data.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using ILGPU.Runtime.OpenCL;
@@ -205,13 +205,27 @@ namespace ILGPU.Backends.OpenCL
             "work_group_broadcast",
         };
 
-        private static readonly Dictionary<(CLAcceleratorVendor, ShuffleKind), string> ShuffleOperations =
+        private static readonly Dictionary<
+            (CLAcceleratorVendor, ShuffleKind),
+            string> ShuffleOperations =
             new Dictionary<(CLAcceleratorVendor, ShuffleKind), string>()
             {
-                { (CLAcceleratorVendor.Intel, ShuffleKind.Generic), "intel_sub_group_shuffle" },
-                { (CLAcceleratorVendor.Intel, ShuffleKind.Down), "intel_sub_group_shuffle_down" },
-                { (CLAcceleratorVendor.Intel, ShuffleKind.Up), "intel_sub_group_shuffle_up" },
-                { (CLAcceleratorVendor.Intel, ShuffleKind.Xor), "intel_sub_group_shuffle_xor" },
+                {
+                    (CLAcceleratorVendor.Intel, ShuffleKind.Generic),
+                    "intel_sub_group_shuffle"
+                },
+                {
+                    (CLAcceleratorVendor.Intel, ShuffleKind.Down),
+                    "intel_sub_group_shuffle_down"
+                },
+                {
+                    (CLAcceleratorVendor.Intel, ShuffleKind.Up),
+                    "intel_sub_group_shuffle_up"
+                },
+                {
+                    (CLAcceleratorVendor.Intel, ShuffleKind.Xor),
+                    "intel_sub_group_shuffle_xor"
+                },
             };
 
         private static readonly string[] CompareOperations =
@@ -224,7 +238,9 @@ namespace ILGPU.Backends.OpenCL
             ">="
         };
 
-        private static readonly Dictionary<(UnaryArithmeticKind, bool), (string, bool)> UnaryArithmeticOperations =
+        private static readonly Dictionary<
+            (UnaryArithmeticKind, bool),
+            (string, bool)> UnaryArithmeticOperations =
             new Dictionary<(UnaryArithmeticKind, bool), (string, bool)>()
             {
                 // Basic arithmetic
@@ -268,7 +284,9 @@ namespace ILGPU.Backends.OpenCL
                 { (UnaryArithmeticKind.CeilingF, true), ("ceil", true) },
             };
 
-        private static readonly Dictionary<(BinaryArithmeticKind, bool), (string, bool)> BinaryArithmeticOperations =
+        private static readonly Dictionary<
+            (BinaryArithmeticKind, bool),
+            (string, bool)> BinaryArithmeticOperations =
             new Dictionary<(BinaryArithmeticKind, bool), (string, bool)>()
             {
 
@@ -304,7 +322,9 @@ namespace ILGPU.Backends.OpenCL
                 { (BinaryArithmeticKind.PowF, true), ("pow", true) },
             };
 
-        private static readonly Dictionary<(TernaryArithmeticKind, bool), string> TernaryArithmeticOperations =
+        private static readonly Dictionary<
+            (TernaryArithmeticKind, bool),
+            string> TernaryArithmeticOperations =
             new Dictionary<(TernaryArithmeticKind, bool), string>()
             {
                 { (TernaryArithmeticKind.MultiplyAdd, true), "fma" },

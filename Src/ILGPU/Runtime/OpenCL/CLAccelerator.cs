@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLAccelerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.IL;
 using ILGPU.Backends.OpenCL;
@@ -65,18 +65,21 @@ namespace ILGPU.Runtime.OpenCL
         #region Static
 
         /// <summary>
-        /// Represents the <see cref="CLAPI.LaunchKernelWithStreamBinding(CLStream, CLKernel, RuntimeKernelConfig)"/> method.
+        /// Represents the <see cref="CLAPI.LaunchKernelWithStreamBinding(
+        /// CLStream, CLKernel, RuntimeKernelConfig)"/> method.
         /// </summary>
-        private static readonly MethodInfo LaunchKernelMethod = typeof(CLAPI).GetMethod(
-            nameof(CLAPI.LaunchKernelWithStreamBinding),
-            BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly MethodInfo LaunchKernelMethod =
+            typeof(CLAPI).GetMethod(
+                nameof(CLAPI.LaunchKernelWithStreamBinding),
+                BindingFlags.NonPublic | BindingFlags.Static);
 
         /// <summary>
         /// Represents the <see cref="CLException.ThrowIfFailed(CLError)" /> method.
         /// </summary>
-        internal static readonly MethodInfo ThrowIfFailedMethod = typeof(CLException).GetMethod(
-            nameof(CLException.ThrowIfFailed),
-            BindingFlags.Public | BindingFlags.Static);
+        internal static readonly MethodInfo ThrowIfFailedMethod =
+            typeof(CLException).GetMethod(
+                nameof(CLException.ThrowIfFailed),
+                BindingFlags.Public | BindingFlags.Static);
 
         /// <summary>
         /// The first dummy kernel that is compiled during accelerator initialization.
@@ -103,17 +106,22 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// All subgroup extensions.
         /// </summary>
-        private readonly ImmutableArray<string> SubGroupExtensions = ImmutableArray.Create(
-            "cl_khr_subgroups",
-            "cl_intel_subgroups");
+        private readonly ImmutableArray<string> SubGroupExtensions =
+            ImmutableArray.Create(
+                "cl_khr_subgroups",
+                "cl_intel_subgroups");
 
         /// <summary>
         /// Detects all OpenCL accelerators.
         /// </summary>
-        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline",
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1810:InitializeReferenceTypeStaticFieldsInline",
             Justification = "Complex initialization logic is required in this case")]
-        [SuppressMessage("Microsoft.Design", "CA1031:Do not catch general exception types",
-            Justification = "Must be catched to ignore external driver errors")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1031:Do not catch general exception types",
+            Justification = "Must be caught to ignore external driver errors")]
         static CLAccelerator()
         {
             var accelerators = ImmutableArray.CreateBuilder<CLAcceleratorId>();
@@ -125,11 +133,16 @@ namespace ILGPU.Runtime.OpenCL
                 // Resolve all platforms
                 if (CLAPI.GetNumPlatforms(out int numPlatforms) != CLError.CL_SUCCESS ||
                     numPlatforms < 1)
+                {
                     return;
+                }
 
                 var platforms = new IntPtr[numPlatforms];
-                if (CLAPI.GetPlatforms(platforms, out numPlatforms) != CLError.CL_SUCCESS)
+                if (CLAPI.GetPlatforms(platforms, out numPlatforms) !=
+                    CLError.CL_SUCCESS)
+                {
                     return;
+                }
 
                 foreach (var platform in platforms)
                 {
@@ -142,7 +155,9 @@ namespace ILGPU.Runtime.OpenCL
                         CLDeviceType.CL_DEVICE_TYPE_ALL,
                         devices,
                         out numDevices) != CLError.CL_SUCCESS)
+                    {
                         continue;
+                    }
 
                     for (int i = 0; i < numDevices; ++i)
                     {
@@ -155,7 +170,9 @@ namespace ILGPU.Runtime.OpenCL
                         if (CLAPI.GetDeviceInfo<int>(
                             device,
                             CLDeviceInfoType.CL_DEVICE_AVAILABLE) == 0)
+                        {
                             continue;
+                        }
 
                         var acceleratorId = new CLAcceleratorId(platform, device);
                         allAccelerators.Add(acceleratorId);
@@ -289,8 +306,11 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Initializes major vendor features.
         /// </summary>
-        [SuppressMessage("Globalization", "CA1307:Specify StringComparison",
-            Justification = "string.Contains(string, StringComparison) not available in net47 and netcoreapp2.0")]
+        [SuppressMessage(
+            "Globalization",
+            "CA1307:Specify StringComparison",
+            Justification = "string.Contains(string, StringComparison) not available " +
+            "in net47 and netcoreapp2.0")]
         private void InitVendorFeatures()
         {
             // Check major vendor features
@@ -341,7 +361,8 @@ namespace ILGPU.Runtime.OpenCL
                     WarpSize = CLAPI.GetKernelWorkGroupInfo<IntPtr>(
                         kernelPtr,
                         DeviceId,
-                        CLKernelWorkGroupInfoType.CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE).ToInt32();
+                        CLKernelWorkGroupInfoType
+                            .CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE).ToInt32();
                 }
                 finally
                 {
@@ -357,8 +378,10 @@ namespace ILGPU.Runtime.OpenCL
         /// Initializes support for sub groups.
         /// </summary>
         /// <param name="acceleratorId">The current accelerator id.</param>
-        [SuppressMessage("Microsoft.Design", "CA1031:Do not catch general exception types",
-            Justification = "Must be catched to setup internal flags")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1031:Do not catch general exception types",
+            Justification = "Must be caught to setup internal flags")]
         private void InitSubGroupSupport(CLAcceleratorId acceleratorId)
         {
             // Check sub group support
@@ -379,11 +402,15 @@ namespace ILGPU.Runtime.OpenCL
                 // sub-group feature is not supported
                 try
                 {
-                    var localGroupSizes = new IntPtr[] { new IntPtr(MaxNumThreadsPerGroup) };
+                    var localGroupSizes = new IntPtr[]
+                    {
+                        new IntPtr(MaxNumThreadsPerGroup)
+                    };
                     SubGroupSupport = acceleratorId.TryGetKernelSubGroupInfo(
                         kernelPtr,
                         DeviceId,
-                        CLKernelSubGroupInfoType.CL_KERNEL_MAX_SUB_GROUP_SIZE_FOR_NDRANGE_KHR,
+                        CLKernelSubGroupInfoType
+                            .CL_KERNEL_MAX_SUB_GROUP_SIZE_FOR_NDRANGE_KHR,
                         localGroupSizes,
                         out IntPtr subGroupSize);
                     WarpSize = subGroupSize.ToInt32();
@@ -468,26 +495,38 @@ namespace ILGPU.Runtime.OpenCL
 
         #region Methods
 
-        /// <summary cref="Accelerator.CreateExtension{TExtension, TExtensionProvider}(TExtensionProvider)"/>
-        public override TExtension CreateExtension<TExtension, TExtensionProvider>(TExtensionProvider provider) =>
+        /// <summary cref="Accelerator.CreateExtension{TExtension, TExtensionProvider}(
+        /// TExtensionProvider)"/>
+        public override TExtension CreateExtension<TExtension, TExtensionProvider>(
+            TExtensionProvider provider) =>
             provider.CreateOpenCLExtension(this);
 
         /// <summary cref="Accelerator.AllocateInternal{T, TIndex}(TIndex)"/>
-        protected override MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(TIndex extent) =>
+        protected override MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(
+            TIndex extent) =>
             new CLMemoryBuffer<T, TIndex>(this, extent);
 
-        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(TCompiledKernel)"/>
+        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(
+        /// TCompiledKernel)"/>
         protected override CLKernel CreateKernel(CLCompiledKernel compiledKernel)
         {
             // Verify OpenCL C version
             if (compiledKernel.CVersion > CVersion)
+            {
                 throw new NotSupportedException(
-                    string.Format(RuntimeErrorMessages.NotSupportedOpenCLCVersion, compiledKernel.CVersion));
+                    string.Format(
+                        RuntimeErrorMessages.NotSupportedOpenCLCVersion,
+                        compiledKernel.CVersion));
+            }
+
             return new CLKernel(this, compiledKernel, null);
         }
 
-        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(TCompiledKernel, MethodInfo)"/>
-        protected override CLKernel CreateKernel(CLCompiledKernel compiledKernel, MethodInfo launcher) =>
+        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.CreateKernel(
+        /// TCompiledKernel, MethodInfo)"/>
+        protected override CLKernel CreateKernel(
+            CLCompiledKernel compiledKernel,
+            MethodInfo launcher) =>
             new CLKernel(this, compiledKernel, launcher);
 
         /// <summary cref="Accelerator.CreateStream"/>
@@ -509,29 +548,37 @@ namespace ILGPU.Runtime.OpenCL
         #region Peer Access
 
         /// <summary cref="Accelerator.CanAccessPeerInternal(Accelerator)"/>
-        protected override bool CanAccessPeerInternal(Accelerator otherAccelerator) => false;
+        protected override bool CanAccessPeerInternal(Accelerator otherAccelerator) =>
+            false;
 
         /// <summary cref="Accelerator.EnablePeerAccessInternal(Accelerator)"/>
         protected override void EnablePeerAccessInternal(Accelerator otherAccelerator) =>
             throw new InvalidOperationException(
-                RuntimeErrorMessages.CannotEnablePeerAccessToDifferentAcceleratorKind);
+                RuntimeErrorMessages.CannotEnablePeerAccessToOtherAccelerator);
 
         /// <summary cref="Accelerator.DisablePeerAccessInternal(Accelerator)"/>
-        protected override void DisablePeerAccessInternal(Accelerator otherAccelerator) { }
+        protected override void DisablePeerAccessInternal(Accelerator otherAccelerator)
+        { }
 
         #endregion
 
         #region General Launch Methods
 
-        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}.GenerateKernelLauncherMethod(TCompiledKernel, int)"/>
-        protected override MethodInfo GenerateKernelLauncherMethod(CLCompiledKernel kernel, int customGroupSize)
+        /// <summary cref="KernelAccelerator{TCompiledKernel, TKernel}
+        /// .GenerateKernelLauncherMethod(TCompiledKernel, int)"/>
+        protected override MethodInfo GenerateKernelLauncherMethod(
+            CLCompiledKernel kernel,
+            int customGroupSize)
         {
             var entryPoint = kernel.EntryPoint;
             AdjustAndVerifyKernelGroupSize(ref customGroupSize, entryPoint);
 
             // Add support for by ref parameters
             if (entryPoint.HasByRefParameters)
-                throw new NotSupportedException(ErrorMessages.NotSupportedByRefKernelParameters);
+            {
+                throw new NotSupportedException(
+                    ErrorMessages.NotSupportedByRefKernelParameters);
+            }
 
             var launcher = entryPoint.CreateLauncherMethod(Context);
             var emitter = new ILEmitter(launcher.ILGenerator);
@@ -578,20 +625,25 @@ namespace ILGPU.Runtime.OpenCL
 
         #region Occupancy
 
-        /// <summary cref="Accelerator.EstimateMaxActiveGroupsPerMultiprocessor(Kernel, int, int)"/>
+        /// <summary cref="Accelerator.EstimateMaxActiveGroupsPerMultiprocessor(
+        /// Kernel, int, int)"/>
         protected override int EstimateMaxActiveGroupsPerMultiprocessorInternal(
             Kernel kernel,
             int groupSize,
             int dynamicSharedMemorySizeInBytes)
         {
             if (dynamicSharedMemorySizeInBytes > 0)
-                throw new ArgumentOutOfRangeException(nameof(dynamicSharedMemorySizeInBytes));
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(dynamicSharedMemorySizeInBytes));
+            }
 
             groupSize = IntrinsicMath.Min(groupSize, MaxNumThreadsPerGroup);
             return MaxNumThreadsPerGroup / groupSize;
         }
 
-        /// <summary cref="Accelerator.EstimateGroupSizeInternal(Kernel, Func{int, int}, int, out int)"/>
+        /// <summary cref="Accelerator.EstimateGroupSizeInternal(
+        /// Kernel, Func{int, int}, int, out int)"/>
         protected override int EstimateGroupSizeInternal(
             Kernel kernel,
             Func<int, int> computeSharedMemorySize,
@@ -599,7 +651,8 @@ namespace ILGPU.Runtime.OpenCL
             out int minGridSize) =>
             throw new NotSupportedException();
 
-        /// <summary cref="Accelerator.EstimateGroupSizeInternal(Kernel, int, int, out int)"/>
+        /// <summary cref="Accelerator.EstimateGroupSizeInternal(
+        /// Kernel, int, int, out int)"/>
         protected override int EstimateGroupSizeInternal(
             Kernel kernel,
             int dynamicSharedMemorySizeInBytes,
@@ -607,7 +660,11 @@ namespace ILGPU.Runtime.OpenCL
             out int minGridSize)
         {
             if (dynamicSharedMemorySizeInBytes > 0)
-                throw new ArgumentOutOfRangeException(nameof(dynamicSharedMemorySizeInBytes));
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(dynamicSharedMemorySizeInBytes));
+            }
+
             if (maxGroupSize < 1)
                 maxGroupSize = MaxNumThreadsPerGroup;
 

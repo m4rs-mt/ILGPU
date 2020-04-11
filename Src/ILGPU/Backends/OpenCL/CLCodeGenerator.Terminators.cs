@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.Terminators.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 
@@ -29,10 +29,8 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(UnconditionalBranch)"/>
-        public void GenerateCode(UnconditionalBranch branch)
-        {
+        public void GenerateCode(UnconditionalBranch branch) =>
             GotoStatement(branch.Target);
-        }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(IfBranch)"/>
         public void GenerateCode(IfBranch branch)

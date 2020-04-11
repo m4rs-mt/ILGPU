@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ILFrontend.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
@@ -85,7 +85,9 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Constructs a new frontend with two threads.
         /// </summary>
-        /// <param name="debugInformationManager">The associated debug information manager.</param>
+        /// <param name="debugInformationManager">
+        /// The associated debug information manager.
+        /// </param>
         public ILFrontend(DebugInformationManager debugInformationManager)
             : this(debugInformationManager, 2)
         { }
@@ -94,9 +96,13 @@ namespace ILGPU.Frontend
         /// Constructs a new frontend that uses the given number of
         /// threads for code generation.
         /// </summary>
-        /// <param name="debugInformationManager">The associated debug information manager.</param>
+        /// <param name="debugInformationManager">
+        /// The associated debug information manager.
+        /// </param>
         /// <param name="numThreads">The number of threads.</param>
-        public ILFrontend(DebugInformationManager debugInformationManager, int numThreads)
+        public ILFrontend(
+            DebugInformationManager debugInformationManager,
+            int numThreads)
         {
             if (numThreads < 1)
                 throw new ArgumentOutOfRangeException(nameof(numThreads));
@@ -149,7 +155,9 @@ namespace ILGPU.Frontend
                     current = processing.Pop();
                 }
 
-                Debug.Assert(codeGenerationPhase != null, "Invalid processing state");
+                Debug.Assert(
+                    codeGenerationPhase != null,
+                    "Invalid processing state");
 
                 detectedMethods.Clear();
                 codeGenerationPhase.GenerateCodeInternal(
@@ -168,7 +176,9 @@ namespace ILGPU.Frontend
                         processing.Push(new ProcessingEntry(detectedMethod, null));
 
                     if (detectedMethods.Count > 0)
+                    {
                         Monitor.PulseAll(processingSyncObject);
+                    }
                     else
                     {
                         if (activeThreads == 0 && processing.Count < 1)
@@ -205,8 +215,13 @@ namespace ILGPU.Frontend
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
             var newPhase = new CodeGenerationPhase(this, context);
-            if (Interlocked.CompareExchange(ref codeGenerationPhase, newPhase, null) != null)
+            if (Interlocked.CompareExchange(
+                ref codeGenerationPhase,
+                newPhase,
+                null) != null)
+            {
                 throw new InvalidOperationException();
+            }
             driverNotifier.Reset();
             return newPhase;
         }
@@ -218,13 +233,19 @@ namespace ILGPU.Frontend
         internal void FinishCodeGeneration(CodeGenerationPhase phase)
         {
             Debug.Assert(phase != null, "Invalid phase");
-
-            Debug.WriteLineIf(!phase.HadWorkToDo, "This code generation phase had nothing to do");
+            Debug.WriteLineIf(
+                !phase.HadWorkToDo,
+                "This code generation phase had nothing to do");
             if (phase.HadWorkToDo)
                 driverNotifier.Wait();
 
-            if (Interlocked.CompareExchange(ref codeGenerationPhase, null, phase) != phase)
+            if (Interlocked.CompareExchange(
+                ref codeGenerationPhase,
+                null,
+                phase) != phase)
+            {
                 throw new InvalidOperationException();
+            }
         }
 
         #endregion
@@ -356,7 +377,7 @@ namespace ILGPU.Frontend
         /// Declares a method.
         /// </summary>
         /// <param name="methodDeclaration">The method declaration.</param>
-        /// <param name="created">True, iff the method has been created.</param>
+        /// <param name="created">True, if the method has been created.</param>
         /// <returns>The declared method.</returns>
         internal Method DeclareMethod(
             MethodDeclaration methodDeclaration,
@@ -364,10 +385,12 @@ namespace ILGPU.Frontend
             Context.Declare(methodDeclaration, out created);
 
         /// <summary>
-        /// Performs the actual (async) code generation.
+        /// Performs the actual (asynchronous) code generation.
         /// </summary>
         /// <param name="method">The method.</param>
-        /// <param name="isExternalRequest">True, if processing of this method was requested by a user.</param>
+        /// <param name="isExternalRequest">
+        /// True, if processing of this method was requested by a user.
+        /// </param>
         /// <param name="detectedMethods">The set of newly detected methods.</param>
         /// <param name="generatedMethod">The resolved IR method.</param>
         internal void GenerateCodeInternal(
@@ -381,7 +404,8 @@ namespace ILGPU.Frontend
                 return;
 
             SequencePointEnumerator sequencePoints =
-                DebugInformationManager?.LoadSequencePoints(method) ?? SequencePointEnumerator.Empty;
+                DebugInformationManager?.LoadSequencePoints(method)
+                ?? SequencePointEnumerator.Empty;
             var disassembler = new Disassembler(method, sequencePoints);
             var disassembledMethod = disassembler.Disassemble();
 

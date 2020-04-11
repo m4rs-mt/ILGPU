@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PointerValue.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -111,7 +111,9 @@ namespace ILGPU.IR.Values
             ComputeType(Source);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateSubViewValue(
                 rebuilder.Rebuild(Source),
                 rebuilder.Rebuild(Offset),
@@ -152,11 +154,12 @@ namespace ILGPU.IR.Values
         {
             var sourceType = source.Type as IAddressSpaceType;
             Debug.Assert(sourceType != null, "Invalid address space type");
-            if (sourceType is PointerType)
-                return source.Type;
-            return context.CreatePointerType(
-                sourceType.ElementType,
-                sourceType.AddressSpace);
+
+            return sourceType is PointerType
+                ? source.Type
+                : context.CreatePointerType(
+                    sourceType.ElementType,
+                    sourceType.AddressSpace);
         }
 
         #endregion
@@ -221,7 +224,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, Source);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateLoadElementAddress(
                 rebuilder.Rebuild(Source),
                 rebuilder.Rebuild(ElementIndex));
@@ -237,12 +242,10 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "lea.";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString()
-        {
-            return IsPointerAccess ?
-                $"{Source} + {ElementIndex}" :
-                $"{Source}[{ElementIndex}]";
-        }
+        protected override string ToArgString() =>
+            IsPointerAccess
+            ? $"{Source} + {ElementIndex}"
+            : $"{Source}[{ElementIndex}]";
 
         #endregion
     }
@@ -256,7 +259,7 @@ namespace ILGPU.IR.Values
         #region Static
 
         /// <summary>
-        /// Computes a lfa value node type.
+        /// Computes a LFA value node type.
         /// </summary>
         /// <param name="context">The parent IR context.</param>
         /// <param name="source">The source value.</param>
@@ -338,7 +341,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, Source, FieldSpan);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateLoadFieldAddress(
                 rebuilder.Rebuild(Source),
                 FieldSpan);

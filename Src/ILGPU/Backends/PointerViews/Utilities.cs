@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Utilities.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
@@ -50,27 +50,23 @@ namespace ILGPU.Backends.PointerViews
         /// </summary>
         /// <param name="implType">The view implementation type.</param>
         /// <returns>The resolved pointer constructor.</returns>
-        public static ConstructorInfo GetPointerConstructor(Type implType)
-        {
-            return implType.GetConstructor(new Type[]
+        public static ConstructorInfo GetPointerConstructor(Type implType) =>
+            implType.GetConstructor(new Type[]
             {
                 typeof(void).MakePointerType(),
                 typeof(Index1),
             });
-        }
 
         /// <summary>
         /// Returns a specialized view constructor.
         /// </summary>
         /// <param name="implType">The view implementation type.</param>
         /// <returns>The resolved view constructor.</returns>
-        public static ConstructorInfo GetViewConstructor(Type implType)
-        {
-            return implType.GetConstructor(new Type[]
+        public static ConstructorInfo GetViewConstructor(Type implType) =>
+            implType.GetConstructor(new Type[]
             {
                 typeof(ArrayView<>).MakeGenericType(implType.GetGenericArguments()[0])
             });
-        }
 
         /// <summary>
         /// Returns the pointer field of a view implementation.

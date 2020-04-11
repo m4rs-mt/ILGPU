@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CudaAcceleratorId.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 
@@ -47,10 +47,12 @@ namespace ILGPU.Runtime.Cuda
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current accelerator id.
+        /// Returns true if the given object is equal to the current accelerator id.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current accelerator id.</returns>
+        /// <returns>
+        /// True, if the given object is equal to the current accelerator id.
+        /// </returns>
         public override bool Equals(object obj) =>
             obj is CudaAcceleratorId acceleratorId &&
             acceleratorId.DeviceId == DeviceId;
@@ -66,8 +68,7 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the string representation of this accelerator id.
         /// </summary>
         /// <returns>The string representation of this accelerator id.</returns>
-        public override string ToString() =>
-            $"Device {DeviceId}, {base.ToString()}";
+        public override string ToString() => $"Device {DeviceId}, " + base.ToString();
 
         #endregion
     }

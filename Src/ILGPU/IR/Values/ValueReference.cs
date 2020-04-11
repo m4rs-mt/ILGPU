@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ValueReference.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR.Types;
@@ -50,13 +50,13 @@ namespace ILGPU.IR.Values
         public ValueKind ValueKind => Resolve().ValueKind;
 
         /// <summary>
-        /// Returns the node that is directly stored in the reference struct
+        /// Returns the node that is directly stored in the reference structure
         /// without using any replacement information.
         /// </summary>
         public Value DirectTarget { get; private set; }
 
         /// <summary>
-        /// Returns true iff the reference points to a valid node.
+        /// Returns true if the reference points to a valid node.
         /// </summary>
         public bool IsValid => DirectTarget != null;
 
@@ -115,21 +115,22 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="newMarker">The new value to apply.</param>
         /// <returns>
-        /// True, iff the old marker was not equal to the new marker
+        /// True, if the old marker was not equal to the new marker
         /// (the node was not marked with the new marker value).
         /// </returns>
         public bool Mark(NodeMarker newMarker) => Resolve().Mark(newMarker);
 
         /// <summary>
-        /// Returns true iff the reference marker is less or equal to the
+        /// Returns true if the reference marker is less or equal to the
         /// current marker value.
         /// </summary>
         /// <param name="referenceMarker">The reference marker.</param>
         /// <returns>
-        /// True, iff the reference marker is less or equal to
+        /// True, if the reference marker is less or equal to
         /// the current marker value.
         /// </returns>
-        public bool IsMarked(NodeMarker referenceMarker) => Resolve().IsMarked(referenceMarker);
+        public bool IsMarked(NodeMarker referenceMarker) =>
+            Resolve().IsMarked(referenceMarker);
 
         /// <summary>
         /// Returns an enumerator to enumerate all child nodes.
@@ -144,19 +145,14 @@ namespace ILGPU.IR.Values
         /// <param name="visitor">The visitor.</param>
         /// <returns>The resulting value.</returns>
         public void Accept<T>(T visitor)
-            where T : IValueVisitor
-        {
+            where T : IValueVisitor =>
             Resolve().Accept(visitor);
-        }
 
         /// <summary>
         /// Replaces this node with the given node.
         /// </summary>
         /// <param name="other">The other node.</param>
-        public void Replace(Value other)
-        {
-            Resolve().Replace(other);
-        }
+        public void Replace(Value other) => Resolve().Replace(other);
 
         /// <summary>
         /// Resolves the actual node with respect to
@@ -181,11 +177,11 @@ namespace ILGPU.IR.Values
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given node reference points to the
+        /// Returns true if the given node reference points to the
         /// same node.
         /// </summary>
         /// <param name="other">The other reference.</param>
-        /// <returns>True, iff the given reference points to the same node.</returns>
+        /// <returns>True, if the given reference points to the same node.</returns>
         public bool Equals(ValueReference other) => this == other;
 
         #endregion
@@ -193,37 +189,26 @@ namespace ILGPU.IR.Values
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is a node reference that
+        /// Returns true if the given object is a node reference that
         /// points to the same node.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object points to the same node.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is ValueReference other)
-                return Equals(other);
-            return false;
-        }
+        /// <returns>True, if the given object points to the same node.</returns>
+        public override bool Equals(object obj) =>
+            obj is ValueReference other && Equals(other);
 
         /// <summary>
         /// Returns the hash code of the directly associated node.
         /// </summary>
         /// <returns>The hash code of the directly associated node</returns>
-        public override int GetHashCode()
-        {
-            return DirectTarget.GetHashCode();
-        }
+        public override int GetHashCode() => DirectTarget.GetHashCode();
 
         /// <summary>
-        /// Returns the string represention of this reference.
+        /// Returns the string representation of this reference.
         /// </summary>
         /// <returns>The string representation of this reference.</returns>
-        public override string ToString()
-        {
-            if (!IsValid)
-                return "<null>";
-            return Resolve().ToReferenceString();
-        }
+        public override string ToString() =>
+            !IsValid ? "<null>" : Resolve().ToReferenceString();
 
         #endregion
 
@@ -233,42 +218,34 @@ namespace ILGPU.IR.Values
         /// Converts the given node implicitly to a node reference.
         /// </summary>
         /// <param name="node">The node to convert.</param>
-        public static implicit operator ValueReference(Value node)
-        {
-            return new ValueReference(node);
-        }
+        public static implicit operator ValueReference(Value node) =>
+            new ValueReference(node);
 
         /// <summary>
         /// Converts the given reference to the latest node information.
         /// </summary>
         /// <param name="reference">The reference to convert.</param>
-        public static implicit operator Value(ValueReference reference)
-        {
-            return reference.Resolve();
-        }
+        public static implicit operator Value(ValueReference reference) =>
+            reference.Resolve();
 
         /// <summary>
-        /// Returns true iff the both node references point to the
+        /// Returns true if the both node references point to the
         /// same node.
         /// </summary>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The first reference.</param>
-        /// <returns>True, iff both node references point to the same node.</returns>
-        public static bool operator ==(ValueReference first, ValueReference second)
-        {
-            return first.Resolve() == second.Resolve();
-        }
+        /// <returns>True, if both node references point to the same node.</returns>
+        public static bool operator ==(ValueReference first, ValueReference second) =>
+            first.Resolve() == second.Resolve();
 
         /// <summary>
-        /// Returns true iff the both node references point to different nodes.
+        /// Returns true if the both node references point to different nodes.
         /// </summary>
         /// <param name="first">The first reference.</param>
         /// <param name="second">The first reference.</param>
-        /// <returns>True, iff both node references point to different nodes.</returns>
-        public static bool operator !=(ValueReference first, ValueReference second)
-        {
-            return first.Resolve() != second.Resolve();
-        }
+        /// <returns>True, if both node references point to different nodes.</returns>
+        public static bool operator !=(ValueReference first, ValueReference second) =>
+            first.Resolve() != second.Resolve();
 
         #endregion
     }

@@ -1,18 +1,18 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CPUAcceleratorTask.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
-using ILGPU.Backends.EntryPoints;
 using ILGPU.Resources;
 using System;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime.CPU
@@ -22,9 +22,13 @@ namespace ILGPU.Runtime.CPU
     /// </summary>
     /// <param name="task">The referenced task.</param>
     /// <param name="groupContext">The current group context.</param>
-    /// <param name="runtimeThreadOffset">The thread offset within the current group (WarpId * WarpSize + WarpThreadIdx).</param>
-    /// <param name="groupSize">The group size in the scope of the runtime system.</param>
-    /// <param name="chunkSize">The size of a grid-idx chunk to process.</param>
+    /// <param name="runtimeThreadOffset">
+    /// The thread offset within the current group (WarpId * WarpSize + WarpThreadIdx).
+    /// </param>
+    /// <param name="groupSize">
+    /// The group size in the scope of the runtime system.
+    /// </param>
+    /// <param name="chunkSize">The size of a grid-index chunk to process.</param>
     /// <param name="chunkOffset">The offset of the current processing chunk.</param>
     /// <param name="targetDimension">The target kernel dimension.</param>
     public delegate void CPUKernelExecutionHandler(
@@ -74,6 +78,18 @@ namespace ILGPU.Runtime.CPU
             typeof(int)                     // targetDimension
         };
 
+        /// <summary>
+        /// Gets a task-specific constructor.
+        /// </summary>
+        /// <param name="taskType">The task type.</param>
+        /// <returns>The constructor to create a new task instance.</returns>
+        public static ConstructorInfo GetTaskConstructor(Type taskType) =>
+            taskType.GetConstructor(
+                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance,
+                null,
+                ConstructorParameterTypes,
+                null);
+
         #endregion
 
         #region Instance
@@ -90,15 +106,22 @@ namespace ILGPU.Runtime.CPU
             KernelConfig userConfig,
             RuntimeKernelConfig config)
         {
-            Debug.Assert(kernelExecutionDelegate != null, "Invalid execution delegate");
+            Debug.Assert(
+                kernelExecutionDelegate != null,
+                "Invalid execution delegate");
             if (!userConfig.IsValid)
+            {
                 throw new ArgumentOutOfRangeException(
                     nameof(userConfig),
                     RuntimeErrorMessages.InvalidGridDimension);
+            }
+
             if (!config.IsValid)
+            {
                 throw new ArgumentOutOfRangeException(
                     nameof(config),
                     RuntimeErrorMessages.InvalidGridDimension);
+            }
 
             KernelExecutionDelegate = kernelExecutionDelegate;
             UserGridDim = userConfig.GridDim;
@@ -165,10 +188,17 @@ namespace ILGPU.Runtime.CPU
         /// Executes this task inside the runtime system.
         /// </summary>
         /// <param name="groupContext">The current group context.</param>
-        /// <param name="runtimeThreadOffset">The thread offset within the current group (WarpId * WarpSize + WarpThreadIdx).</param>
-        /// <param name="groupSize">The group size in the scope of the runtime system.</param>
-        /// <param name="chunkSize">The size of a grid-idx chunk to process.</param>
-        /// <param name="chunkOffset">The offset of the current processing chunk.</param>
+        /// <param name="runtimeThreadOffset">
+        /// The thread offset within the current group
+        /// (WarpId * WarpSize + WarpThreadIdx).
+        /// </param>
+        /// <param name="groupSize">
+        /// The group size in the scope of the runtime system.
+        /// </param>
+        /// <param name="chunkSize">The size of a grid-index chunk to process.</param>
+        /// <param name="chunkOffset">
+        /// The offset of the current processing chunk.
+        /// </param>
         /// <param name="targetDimension">The target kernel dimension.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Execute(
@@ -177,8 +207,7 @@ namespace ILGPU.Runtime.CPU
             int groupSize,
             int chunkSize,
             int chunkOffset,
-            int targetDimension)
-        {
+            int targetDimension) =>
             KernelExecutionDelegate(
                 this,
                 groupContext,
@@ -187,7 +216,6 @@ namespace ILGPU.Runtime.CPU
                 chunkSize,
                 chunkOffset,
                 targetDimension);
-        }
 
         #endregion
     }

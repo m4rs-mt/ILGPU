@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Accelerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using ILGPU.Frontend.Intrinsic;
@@ -50,14 +50,17 @@ namespace ILGPU.Runtime
     /// Represents a general abstract accelerator.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public abstract partial class Accelerator : CachedExtensionBase<AcceleratorExtension>
+    public abstract partial class Accelerator :
+        CachedExtensionBase<AcceleratorExtension>
     {
         #region Static
 
         /// <summary>
-        /// Detectes all accelerators.
+        /// Detects all accelerators.
         /// </summary>
-        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline",
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1810:InitializeReferenceTypeStaticFieldsInline",
             Justification = "Complex initialization logic is required in this case")]
         static Accelerator()
         {
@@ -93,14 +96,18 @@ namespace ILGPU.Runtime
                 case OpenCL.CLAcceleratorId clId:
                     return new OpenCL.CLAccelerator(context, clId);
                 default:
-                    throw new ArgumentException(RuntimeErrorMessages.NotSupportedTargetAccelerator, nameof(acceleratorId));
+                    throw new ArgumentException(
+                        RuntimeErrorMessages.NotSupportedTargetAccelerator,
+                        nameof(acceleratorId));
             }
         }
 
         /// <summary>
         /// Returns the current accelerator type.
         /// </summary>
-        /// <remarks>Note that this static property is also accessible within kernels.</remarks>
+        /// <remarks>
+        /// Note that this static property is also accessible within kernels.
+        /// </remarks>
         public static AcceleratorType CurrentType
         {
             [AcceleratorIntrinsic(AcceleratorIntrinsicKind.CurrentType)]
@@ -112,7 +119,7 @@ namespace ILGPU.Runtime
         #region Events
 
         /// <summary>
-        /// Will be raised iff the accelerator is disposed.
+        /// Will be raised if the accelerator is disposed.
         /// </summary>
         public event EventHandler Disposed;
 
@@ -229,11 +236,13 @@ namespace ILGPU.Runtime
         public int MaxNumThreads => NumMultiprocessors * MaxNumThreadsPerMultiprocessor;
 
         /// <summary>
-        /// Returns a kernel extent (a grouped index) with the maximum number of groups using the
-        /// maximum number of threads per group to launch common grid-stride loop kernels.
+        /// Returns a kernel extent (a grouped index) with the maximum number of groups
+        /// using the maximum number of threads per group to launch common grid-stride
+        /// loop kernels.
         /// </summary>
         public (Index1, Index1) MaxNumGroupsExtent =>
-            (NumMultiprocessors * (MaxNumThreadsPerMultiprocessor / MaxNumThreadsPerGroup),
+            (NumMultiprocessors *
+                (MaxNumThreadsPerMultiprocessor / MaxNumThreadsPerGroup),
             MaxNumThreadsPerGroup);
 
         /// <summary>
@@ -242,18 +251,21 @@ namespace ILGPU.Runtime
         public Backend Backend { get; private set; }
 
         /// <summary>
-        /// Returns the default memory-buffer cache that can be used by several operations.
+        /// Returns the default memory-buffer cache that can be used by several
+        /// operations.
         /// </summary>
         public MemoryBufferCache MemoryCache => memoryCache;
 
         /// <summary>
-        /// See <see cref="ContextFlags.DisableAutomaticBufferDisposal"/> for more information.
+        /// See <see cref="ContextFlags.DisableAutomaticBufferDisposal"/> for more
+        /// information.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool AutomaticBufferDisposalEnabled { get; }
 
         /// <summary>
-        /// See <see cref="ContextFlags.DisableAutomaticKernelDisposal"/> for more information.
+        /// See <see cref="ContextFlags.DisableAutomaticKernelDisposal"/> for more
+        /// information.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool AutomaticKernelDisposalEnabled { get; }
@@ -281,8 +293,12 @@ namespace ILGPU.Runtime
         /// Creates a new accelerator extension using the given provider.
         /// </summary>
         /// <typeparam name="TExtension">The type of the extension to create.</typeparam>
-        /// <typeparam name="TExtensionProvider">The extension provided type to create the extension.</typeparam>
-        /// <param name="provider">The extension provided to create the extension.</param>
+        /// <typeparam name="TExtensionProvider">
+        /// The extension provided type to create the extension.
+        /// </typeparam>
+        /// <param name="provider">
+        /// The extension provided to create the extension.
+        /// </param>
         /// <returns>The created extension.</returns>
         public abstract TExtension CreateExtension<TExtension, TExtensionProvider>(
             TExtensionProvider provider)
@@ -321,61 +337,59 @@ namespace ILGPU.Runtime
         /// <typeparam name="TIndex">The index type.</typeparam>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated buffer on the this accelerator.</returns>
-        protected abstract MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(TIndex extent)
+        protected abstract MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(
+            TIndex extent)
             where T : struct
             where TIndex : struct, IIndex, IGenericIndex<TIndex>;
 
         /// <summary>
-        /// Allocates a 1D buffer with the specified number of elements on this accelerator.
+        /// Allocates a 1D buffer with the specified number of elements on this
+        /// accelerator.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated 1D buffer on the this accelerator.</returns>
         public MemoryBuffer<T> Allocate<T>(int extent)
-            where T : struct
-        {
-            return new MemoryBuffer<T>(Allocate<T, Index1>(extent));
-        }
+            where T : struct =>
+            new MemoryBuffer<T>(Allocate<T, Index1>(extent));
 
         /// <summary>
-        /// Allocates a 2D buffer with the specified number of elements on this accelerator.
+        /// Allocates a 2D buffer with the specified number of elements on this
+        /// accelerator.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated 2D buffer on the this accelerator.</returns>
         public MemoryBuffer2D<T> Allocate<T>(Index2 extent)
-            where T : struct
-        {
-            return new MemoryBuffer2D<T>(Allocate<T, Index2>(extent));
-        }
+            where T : struct =>
+            new MemoryBuffer2D<T>(Allocate<T, Index2>(extent));
 
         /// <summary>
-        /// Allocates a 2D buffer with the specified number of elements on this accelerator.
+        /// Allocates a 2D buffer with the specified number of elements on this
+        /// accelerator.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="width">The width of the 2D buffer.</param>
         /// <param name="height">The height of the 2D buffer.</param>
         /// <returns>An allocated 2D buffer on the this accelerator.</returns>
         public MemoryBuffer2D<T> Allocate<T>(int width, int height)
-            where T : struct
-        {
-            return Allocate<T>(new Index2(width, height));
-        }
+            where T : struct =>
+            Allocate<T>(new Index2(width, height));
 
         /// <summary>
-        /// Allocates a 3D buffer with the specified number of elements on this accelerator.
+        /// Allocates a 3D buffer with the specified number of elements on this
+        /// accelerator.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated 3D buffer on the this accelerator.</returns>
         public MemoryBuffer3D<T> Allocate<T>(Index3 extent)
-            where T : struct
-        {
-            return new MemoryBuffer3D<T>(Allocate<T, Index3>(extent));
-        }
+            where T : struct =>
+            new MemoryBuffer3D<T>(Allocate<T, Index3>(extent));
 
         /// <summary>
-        /// Allocates a 2D buffer with the specified number of elements on this accelerator.
+        /// Allocates a 2D buffer with the specified number of elements on this
+        /// accelerator.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="width">The width of the 3D buffer.</param>
@@ -383,10 +397,8 @@ namespace ILGPU.Runtime
         /// <param name="depth">The depth of the 3D buffer.</param>
         /// <returns>An allocated 2D buffer on the this accelerator.</returns>
         public MemoryBuffer3D<T> Allocate<T>(int width, int height, int depth)
-            where T : struct
-        {
-            return Allocate<T>(new Index3(width, height, depth));
-        }
+            where T : struct =>
+            Allocate<T>(new Index3(width, height, depth));
 
         /// <summary>
         /// Creates a new accelerator stream.
@@ -435,36 +447,45 @@ namespace ILGPU.Runtime
         #region Occupancy
 
         /// <summary>
-        /// Estimates the occupancy of the given kernel with the given group size of a single multiprocessor.
+        /// Estimates the occupancy of the given kernel with the given group size of a
+        /// single multiprocessor.
         /// </summary>
         /// <typeparam name="TIndex">The index type of the group dimension.</typeparam>
         /// <param name="kernel">The kernel used for the estimation.</param>
         /// <param name="groupDim">The group dimension.</param>
-        /// <returns>The estimated occupancy in percent [0.0, 1.0] of a single multiprocessor.</returns>
-        public float EstimateOccupancyPerMultiprocessor<TIndex>(Kernel kernel, TIndex groupDim)
-            where TIndex : IIndex
-        {
-            return EstimateOccupancyPerMultiprocessor(kernel, groupDim.Size);
-        }
+        /// <returns>
+        /// The estimated occupancy in percent [0.0, 1.0] of a single multiprocessor.
+        /// </returns>
+        public float EstimateOccupancyPerMultiprocessor<TIndex>(
+            Kernel kernel,
+            TIndex groupDim)
+            where TIndex : IIndex =>
+            EstimateOccupancyPerMultiprocessor(kernel, groupDim.Size);
 
         /// <summary>
-        /// Estimates the occupancy of the given kernel with the given group size of a single multiprocessor.
+        /// Estimates the occupancy of the given kernel with the given group size of a
+        /// single multiprocessor.
         /// </summary>
         /// <param name="kernel">The kernel used for the estimation.</param>
         /// <param name="groupSize">The number of threads per group.</param>
-        /// <returns>The estimated occupancy in percent [0.0, 1.0] of a single multiprocessor.</returns>
-        public float EstimateOccupancyPerMultiprocessor(Kernel kernel, int groupSize)
-        {
-            return EstimateOccupancyPerMultiprocessor(kernel, groupSize, 0);
-        }
+        /// <returns>
+        /// The estimated occupancy in percent [0.0, 1.0] of a single multiprocessor.
+        /// </returns>
+        public float EstimateOccupancyPerMultiprocessor(Kernel kernel, int groupSize) =>
+            EstimateOccupancyPerMultiprocessor(kernel, groupSize, 0);
 
         /// <summary>
-        /// Estimates the occupancy of the given kernel with the given group size of a single multiprocessor.
+        /// Estimates the occupancy of the given kernel with the given group size of a
+        /// single multiprocessor.
         /// </summary>
         /// <param name="kernel">The kernel used for the estimation.</param>
         /// <param name="groupSize">The number of threads per group.</param>
-        /// <param name="dynamicSharedMemorySizeInBytes">The required dynamic shared-memory size in bytes.</param>
-        /// <returns>The estimated occupancy in percent [0.0, 1.0] of a single multiprocessor.</returns>
+        /// <param name="dynamicSharedMemorySizeInBytes">
+        /// The required dynamic shared-memory size in bytes.
+        /// </param>
+        /// <returns>
+        /// The estimated occupancy in percent [0.0, 1.0] of a single multiprocessor.
+        /// </returns>
         public float EstimateOccupancyPerMultiprocessor(
             Kernel kernel,
             int groupSize,
@@ -478,36 +499,50 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Estimates the maximum number of active groups per multiprocessor for the given kernel.
+        /// Estimates the maximum number of active groups per multiprocessor for the
+        /// given kernel.
         /// </summary>
         /// <typeparam name="TIndex">The index type of the group dimension.</typeparam>
-        /// <param name="kernel">The kernel used for the computation of the maximum number of active groups.</param>
+        /// <param name="kernel">The kernel used for the computation of the maximum
+        /// number of active groups.</param>
         /// <param name="groupDim">The group dimension.</param>
-        /// <returns>The maximum number of active groups per multiprocessor for the given kernel.</returns>
-        public int EstimateMaxActiveGroupsPerMultiprocessor<TIndex>(Kernel kernel, TIndex groupDim)
-            where TIndex : IIndex
-        {
-            return EstimateMaxActiveGroupsPerMultiprocessor(kernel, groupDim.Size);
-        }
+        /// <returns>
+        /// The maximum number of active groups per multiprocessor for the given kernel.
+        /// </returns>
+        public int EstimateMaxActiveGroupsPerMultiprocessor<TIndex>(
+            Kernel kernel,
+            TIndex groupDim)
+            where TIndex : IIndex =>
+            EstimateMaxActiveGroupsPerMultiprocessor(kernel, groupDim.Size);
 
         /// <summary>
-        /// Estimates the maximum number of active groups per multiprocessor for the given kernel.
+        /// Estimates the maximum number of active groups per multiprocessor for the
+        /// given kernel.
         /// </summary>
-        /// <param name="kernel">The kernel used for the computation of the maximum number of active groups.</param>
+        /// <param name="kernel">The kernel used for the computation of the maximum
+        /// number of active groups.</param>
         /// <param name="groupSize">The number of threads per group.</param>
-        /// <returns>The maximum number of active groups per multiprocessor for the given kernel.</returns>
-        public int EstimateMaxActiveGroupsPerMultiprocessor(Kernel kernel, int groupSize)
-        {
-            return EstimateMaxActiveGroupsPerMultiprocessor(kernel, groupSize, 0);
-        }
+        /// <returns>
+        /// The maximum number of active groups per multiprocessor for the given kernel.
+        /// </returns>
+        public int EstimateMaxActiveGroupsPerMultiprocessor(
+            Kernel kernel,
+            int groupSize) =>
+            EstimateMaxActiveGroupsPerMultiprocessor(kernel, groupSize, 0);
 
         /// <summary>
-        /// Estimates the maximum number of active groups per multiprocessor for the given kernel.
+        /// Estimates the maximum number of active groups per multiprocessor for the
+        /// given kernel.
         /// </summary>
-        /// <param name="kernel">The kernel used for the computation of the maximum number of active groups.</param>
+        /// <param name="kernel">The kernel used for the computation of the maximum
+        /// number of active groups.</param>
         /// <param name="groupSize">The number of threads per group.</param>
-        /// <param name="dynamicSharedMemorySizeInBytes">The required dynamic shared-memory size in bytes.</param>
-        /// <returns>The maximum number of active groups per multiprocessor for the given kernel.</returns>
+        /// <param name="dynamicSharedMemorySizeInBytes">
+        /// The required dynamic shared-memory size in bytes.
+        /// </param>
+        /// <returns>
+        /// The maximum number of active groups per multiprocessor for the given kernel.
+        /// </returns>
         public int EstimateMaxActiveGroupsPerMultiprocessor(
             Kernel kernel,
             int groupSize,
@@ -518,7 +553,10 @@ namespace ILGPU.Runtime
             if (groupSize < 1)
                 throw new ArgumentNullException(nameof(groupSize));
             if (dynamicSharedMemorySizeInBytes < 0)
-                throw new ArgumentOutOfRangeException(nameof(dynamicSharedMemorySizeInBytes));
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(dynamicSharedMemorySizeInBytes));
+            }
             Bind();
             return EstimateMaxActiveGroupsPerMultiprocessorInternal(
                 kernel,
@@ -527,13 +565,22 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Estimates the maximum number of active groups per multiprocessor for the given kernel.
+        /// Estimates the maximum number of active groups per multiprocessor for the
+        /// given kernel.
         /// </summary>
-        /// <param name="kernel">The kernel used for the computation of the maximum number of active groups.</param>
+        /// <param name="kernel">The kernel used for the computation of the maximum
+        /// number of active groups.</param>
         /// <param name="groupSize">The number of threads per group.</param>
-        /// <param name="dynamicSharedMemorySizeInBytes">The required dynamic shared-memory size in bytes.</param>
-        /// <remarks>Note that the arguments do not have to be verified since they are already verified.</remarks>
-        /// <returns>The maximum number of active groups per multiprocessor for the given kernel.</returns>
+        /// <param name="dynamicSharedMemorySizeInBytes">
+        /// The required dynamic shared-memory size in bytes.
+        /// </param>
+        /// <remarks>
+        /// Note that the arguments do not have to be verified since they are already
+        /// verified.
+        /// </remarks>
+        /// <returns>
+        /// The maximum number of active groups per multiprocessor for the given kernel.
+        /// </returns>
         protected abstract int EstimateMaxActiveGroupsPerMultiprocessorInternal(
             Kernel kernel,
             int groupSize,
@@ -543,69 +590,89 @@ namespace ILGPU.Runtime
         /// Estimates a group size to gain maximum occupancy on this device.
         /// </summary>
         /// <param name="kernel">The kernel used for the estimation.</param>
-        /// <returns>An estimated group size to gain maximum occupancy on this device.</returns>
-        public int EstimateGroupSize(Kernel kernel)
-        {
-            return EstimateGroupSize(kernel, 0, 0, out var _);
-        }
+        /// <returns>
+        /// An estimated group size to gain maximum occupancy on this device.
+        /// </returns>
+        public int EstimateGroupSize(Kernel kernel) =>
+            EstimateGroupSize(kernel, 0, 0, out var _);
 
         /// <summary>
         /// Estimates a group size to gain maximum occupancy on this device.
         /// </summary>
         /// <param name="kernel">The kernel used for the estimation.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
-        /// <returns>An estimated group size to gain maximum occupancy on this device.</returns>
-        public int EstimateGroupSize(Kernel kernel, out int minGridSize)
-        {
-            return EstimateGroupSize(kernel, 0, 0, out minGridSize);
-        }
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
+        /// <returns>
+        /// An estimated group size to gain maximum occupancy on this device.
+        /// </returns>
+        public int EstimateGroupSize(Kernel kernel, out int minGridSize) =>
+            EstimateGroupSize(kernel, 0, 0, out minGridSize);
 
         /// <summary>
         /// Estimates a group size to gain maximum occupancy on this device.
         /// </summary>
         /// <param name="kernel">The kernel used for the estimation.</param>
-        /// <param name="dynamicSharedMemorySizeInBytes">The required dynamic shared-memory size in bytes.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
-        /// <returns>An estimated group size to gain maximum occupancy on this device.</returns>
+        /// <param name="dynamicSharedMemorySizeInBytes">
+        /// The required dynamic shared-memory size in bytes.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
+        /// <returns>
+        /// An estimated group size to gain maximum occupancy on this device.
+        /// </returns>
         public int EstimateGroupSize(
             Kernel kernel,
             int dynamicSharedMemorySizeInBytes,
-            out int minGridSize)
-        {
-            return EstimateGroupSize(
+            out int minGridSize) =>
+            EstimateGroupSize(
                 kernel,
                 dynamicSharedMemorySizeInBytes,
                 0,
                 out minGridSize);
-        }
 
         /// <summary>
         /// Estimates a group size to gain maximum occupancy on this device.
         /// </summary>
         /// <param name="kernel">The kernel used for the estimation.</param>
-        /// <param name="computeSharedMemorySize">A callback to compute the required amount of shared memory in bytes for a given group size.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
-        /// <returns>An estimated group size to gain maximum occupancy on this device.</returns>
+        /// <param name="computeSharedMemorySize">
+        /// A callback to compute the required amount of shared memory in bytes for a
+        /// given group size.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
+        /// <returns>
+        /// An estimated group size to gain maximum occupancy on this device.
+        /// </returns>
         public int EstimateGroupSize(
             Kernel kernel,
             Func<int, int> computeSharedMemorySize,
-            out int minGridSize)
-        {
-            return EstimateGroupSize(
+            out int minGridSize) =>
+            EstimateGroupSize(
                 kernel,
                 computeSharedMemorySize,
                 0,
                 out minGridSize);
-        }
 
         /// <summary>
         /// Estimates a group size to gain maximum occupancy on this device.
         /// </summary>
         /// <param name="kernel">The kernel used for the estimation.</param>
-        /// <param name="computeSharedMemorySize">A callback to compute the required amount of shared memory in bytes for a given group size.</param>
-        /// <param name="maxGroupSize">The maximum group-size limit on a single multiprocessor.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
-        /// <returns>An estimated group size to gain maximum occupancy on this device.</returns>
+        /// <param name="computeSharedMemorySize">
+        /// A callback to compute the required amount of shared memory in bytes for a
+        /// given group size.
+        /// </param>
+        /// <param name="maxGroupSize">
+        /// The maximum group-size limit on a single multiprocessor.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
+        /// <returns>
+        /// An estimated group size to gain maximum occupancy on this device.
+        /// </returns>
         public int EstimateGroupSize(
             Kernel kernel,
             Func<int, int> computeSharedMemorySize,
@@ -630,11 +697,23 @@ namespace ILGPU.Runtime
         /// Estimates a group size to gain maximum occupancy on this device.
         /// </summary>
         /// <param name="kernel">The kernel used for the estimation.</param>
-        /// <param name="computeSharedMemorySize">A callback to compute the required amount of shared memory in bytes for a given group size.</param>
-        /// <param name="maxGroupSize">The maximum group-size limit on a single multiprocessor.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
-        /// <remarks>Note that the arguments do not have to be verified since they are already verified.</remarks>
-        /// <returns>An estimated group size to gain maximum occupancy on this device.</returns>
+        /// <param name="computeSharedMemorySize">
+        /// A callback to compute the required amount of shared memory in bytes for a
+        /// given group size.
+        /// </param>
+        /// <param name="maxGroupSize">
+        /// The maximum group-size limit on a single multiprocessor.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
+        /// <remarks>
+        /// Note that the arguments do not have to be verified since they are already
+        /// verified.
+        /// </remarks>
+        /// <returns>
+        /// An estimated group size to gain maximum occupancy on this device.
+        /// </returns>
         protected abstract int EstimateGroupSizeInternal(
             Kernel kernel,
             Func<int, int> computeSharedMemorySize,
@@ -645,10 +724,18 @@ namespace ILGPU.Runtime
         /// Estimates a group size to gain maximum occupancy on this device.
         /// </summary>
         /// <param name="kernel">The kernel used for the estimation.</param>
-        /// <param name="dynamicSharedMemorySizeInBytes">The required dynamic shared-memory size in bytes.</param>
-        /// <param name="maxGroupSize">The maximum group-size limit on a single multiprocessor.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
-        /// <returns>An estimated group size to gain maximum occupancy on this device.</returns>
+        /// <param name="dynamicSharedMemorySizeInBytes">
+        /// The required dynamic shared-memory size in bytes.
+        /// </param>
+        /// <param name="maxGroupSize">
+        /// The maximum group-size limit on a single multiprocessor.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
+        /// <returns>
+        /// An estimated group size to gain maximum occupancy on this device.
+        /// </returns>
         public int EstimateGroupSize(
             Kernel kernel,
             int dynamicSharedMemorySizeInBytes,
@@ -657,10 +744,13 @@ namespace ILGPU.Runtime
         {
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
-            if (dynamicSharedMemorySizeInBytes < 0)
-                throw new ArgumentOutOfRangeException(nameof(dynamicSharedMemorySizeInBytes));
             if (maxGroupSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(maxGroupSize));
+            if (dynamicSharedMemorySizeInBytes < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(dynamicSharedMemorySizeInBytes));
+            }
             Bind();
             return EstimateGroupSizeInternal(
                 kernel,
@@ -673,11 +763,22 @@ namespace ILGPU.Runtime
         /// Estimates a group size to gain maximum occupancy on this device.
         /// </summary>
         /// <param name="kernel">The kernel used for the estimation.</param>
-        /// <param name="dynamicSharedMemorySizeInBytes">The required dynamic shared-memory size in bytes.</param>
-        /// <param name="maxGroupSize">The maximum group-size limit on a single multiprocessor.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
-        /// <remarks>Note that the arguments do not have to be verified since they are already verified.</remarks>
-        /// <returns>An estimated group size to gain maximum occupancy on this device.</returns>
+        /// <param name="dynamicSharedMemorySizeInBytes">
+        /// The required dynamic shared-memory size in bytes.
+        /// </param>
+        /// <param name="maxGroupSize">
+        /// The maximum group-size limit on a single multiprocessor.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
+        /// <remarks>
+        /// Note that the arguments do not have to be verified since they are already
+        /// verified.
+        /// </remarks>
+        /// <returns>
+        /// An estimated group size to gain maximum occupancy on this device.
+        /// </returns>
         protected abstract int EstimateGroupSizeInternal(
             Kernel kernel,
             int dynamicSharedMemorySizeInBytes,
@@ -716,10 +817,10 @@ namespace ILGPU.Runtime
         /// Returns the string representation of this accelerator.
         /// </summary>
         /// <returns>The string representation of this accelerator.</returns>
-        public override string ToString()
-        {
-            return $"{Name} [WarpSize: {WarpSize}, MaxNumThreadsPerGroup: {MaxNumThreadsPerGroup}, MemorySize: {MemorySize}]";
-        }
+        public override string ToString() =>
+            $"{Name} [WarpSize: {WarpSize}, " +
+            $"MaxNumThreadsPerGroup: {MaxNumThreadsPerGroup}, " +
+            $"MemorySize: {MemorySize}]";
 
         #endregion
     }

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: InvocationContext.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Construction;
@@ -23,7 +23,9 @@ namespace ILGPU.Frontend
     /// Represents an invocation context for compiler-known methods
     /// that are supported in the scope of ILGPU programs.
     /// </summary>
-    public readonly struct InvocationContext : ICodeGenerationContext, IEquatable<InvocationContext>
+    public readonly struct InvocationContext :
+        ICodeGenerationContext,
+        IEquatable<InvocationContext>
     {
         #region Instance
 
@@ -122,7 +124,17 @@ namespace ILGPU.Frontend
         public Type[] GetTypeGenericArguments() =>
             Method.DeclaringType.GetGenericArguments();
 
-        /// <summary cref="ICodeGenerationContext.GetException{TException}(string, object[])"/>
+        /// <summary>
+        /// Constructs a new exception of the given type based on the given
+        /// message, the formatting arguments and the current general compilation
+        /// information.
+        /// </summary>
+        /// <typeparam name="TException">The exception type.</typeparam>
+        /// <param name="message">The main content of the error message.</param>
+        /// <param name="args">The formatting arguments.</param>
+        /// <returns>
+        /// A new exception of type <typeparamref name="TException"/>.
+        /// </returns>
         public TException GetException<TException>(
             string message,
             params object[] args)
@@ -166,10 +178,14 @@ namespace ILGPU.Frontend
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given invocation context is equal to the current invocation context.
+        /// Returns true if the given invocation context is equal to the current
+        /// invocation context.
         /// </summary>
         /// <param name="other">The other invocation context.</param>
-        /// <returns>True, iff the given invocation context is equal to the current invocation context.</returns>
+        /// <returns>
+        /// True, if the given invocation context is equal to the current invocation
+        /// context.
+        /// </returns>
         public bool Equals(InvocationContext other) => this == other;
 
         #endregion
@@ -177,10 +193,12 @@ namespace ILGPU.Frontend
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current invocation context.
+        /// Returns true if the given object is equal to the current invocation context.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current invocation context.</returns>
+        /// <returns>
+        /// True, if the given object is equal to the current invocation context.
+        /// </returns>
         public override bool Equals(object obj) =>
             obj is InvocationContext context && Equals(context);
 
@@ -218,12 +236,16 @@ namespace ILGPU.Frontend
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first and second invocation contexts are the same.
+        /// Returns true if the first and second invocation contexts are the same.
         /// </summary>
         /// <param name="first">The first invocation context.</param>
         /// <param name="second">The second invocation context.</param>
-        /// <returns>True, iff the first and second invocation contexts are the same.</returns>
-        public static bool operator ==(InvocationContext first, InvocationContext second)
+        /// <returns>
+        /// True, if the first and second invocation contexts are the same.
+        /// </returns>
+        public static bool operator ==(
+            InvocationContext first,
+            InvocationContext second)
         {
             if (first.Method != second.Method)
                 return false;
@@ -239,25 +261,17 @@ namespace ILGPU.Frontend
         }
 
         /// <summary>
-        /// Returns true iff the first and second invocation contexts are not the same.
+        /// Returns true if the first and second invocation contexts are not the same.
         /// </summary>
         /// <param name="first">The first invocation context.</param>
         /// <param name="second">The second invocation context.</param>
-        /// <returns>True, iff the first and second invocation contexts are not the same.</returns>
-        public static bool operator !=(InvocationContext first, InvocationContext second)
-        {
-            if (first.Method != second.Method)
-                return true;
-            var firstLength = first.Arguments.Length;
-            if (firstLength != second.Arguments.Length)
-                return true;
-            for (int i = 0; i < firstLength; ++i)
-            {
-                if (first.Arguments[i] != second.Arguments[i])
-                    return true;
-            }
-            return false;
-        }
+        /// <returns>
+        /// True, if the first and second invocation contexts are not the same.
+        /// </returns>
+        public static bool operator !=(
+            InvocationContext first,
+            InvocationContext second) =>
+            !(first == second);
 
         #endregion
     }

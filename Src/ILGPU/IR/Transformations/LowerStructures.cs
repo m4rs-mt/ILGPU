@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: LowerStructures.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Rewriting;
@@ -41,7 +41,8 @@ namespace ILGPU.IR.Transformations
     /// Converts structure values into separate values.
     /// </summary>
     /// <remarks>
-    /// This transformation does not change function parameters and calls to other functions.
+    /// This transformation does not change function parameters and calls to other
+    /// functions.
     /// </remarks>
     public sealed class LowerStructures : UnorderedTransformation
     {
@@ -58,12 +59,8 @@ namespace ILGPU.IR.Transformations
                 structureType,
                 value,
                 (ctx, source, fieldAccess) =>
-                {
                     // Load the currently registered SSA value
-                    return ctx.GetValue(
-                        ctx.Block,
-                        new FieldRef(source, fieldAccess));
-                });
+                    ctx.GetValue(ctx.Block, new FieldRef(source, fieldAccess)));
 
         /// <summary>
         /// Registers all structure values in the current SSA builder.
@@ -76,13 +73,14 @@ namespace ILGPU.IR.Transformations
                 structureType,
                 value,
                 (ctx, source, getField, fieldAccess) =>
-                {
                     ctx.SetValue(
                         ctx.Block,
                         new FieldRef(value, fieldAccess),
-                        getField);
-                });
+                        getField));
 
+        /// <summary>
+        /// Lowers a thread value.
+        /// </summary>
         private static void LowerThreadValue<TValue, TLoweringImplementation>(
             SSARewriterContext<FieldRef> context,
             StructureType structureType,
@@ -92,7 +90,10 @@ namespace ILGPU.IR.Transformations
                 LowerThreadIntrinsics.ILoweringImplementation<TValue>
         {
             // We require a single input
-            var variable = AssembleStructure(context, structureType, value.Variable);
+            var variable = AssembleStructure(
+                context,
+                structureType,
+                value.Variable);
 
             // Build a new thread value using the assembled structure
             TLoweringImplementation implementation = default;
@@ -369,7 +370,8 @@ namespace ILGPU.IR.Transformations
                     value = setField.Value;
                     if (value.Type is StructureType)
                     {
-                        var getFieldAccess = fieldAccess.Subtract(setField.FieldSpan.Index);
+                        var getFieldAccess = fieldAccess.Subtract(
+                            setField.FieldSpan.Index);
                         value = context.GetValue(
                             context.Block,
                             new FieldRef(value, getFieldAccess));
@@ -589,16 +591,24 @@ namespace ILGPU.IR.Transformations
             Rewriter.Add<Store>((_, value) => value.Value.Type.IsStructureType, Keep);
 
             AddRewriters(LoadStoreRewriter);
-            LoadStoreRewriter.Add<Load>((_, value) => value.Type.IsStructureType, Lower);
-            LoadStoreRewriter.Add<Store>((_, value) => value.Value.Type.IsStructureType, Lower);
+            LoadStoreRewriter.Add<Load>(
+                (_, value) => value.Type.IsStructureType, Lower);
+            LoadStoreRewriter.Add<Store>(
+                (_, value) => value.Value.Type.IsStructureType, Lower);
         }
 
         #endregion
+
+        #region Instance
 
         /// <summary>
         /// Constructs a new structure conversion pass.
         /// </summary>
         public LowerStructures() { }
+
+        #endregion
+
+        #region Properties
 
         /// <summary>
         /// Returns the current flags.
@@ -611,18 +621,22 @@ namespace ILGPU.IR.Transformations
         public bool LowerLoadStores =>
             (Flags & LowerStructureFlags.LowerLoadStores) != LowerStructureFlags.None;
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Applies the structure lowering transformation.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
             var ssaBuilder = SSABuilder<FieldRef>.Create(builder);
             var loweredPhis = new List<LoweredPhi>();
             var loweringData = new LoweringData(loweredPhis);
 
-            bool applied;
-            if (LowerLoadStores)
-                applied = LoadStoreRewriter.Rewrite(ssaBuilder, loweringData);
-            else
-                applied = Rewriter.Rewrite(ssaBuilder, loweringData);
+            bool applied = LowerLoadStores
+                ? LoadStoreRewriter.Rewrite(ssaBuilder, loweringData)
+                : Rewriter.Rewrite(ssaBuilder, loweringData);
 
             // Seal all lowered phis
             foreach (var phi in loweredPhis)
@@ -633,5 +647,7 @@ namespace ILGPU.IR.Transformations
 
             return applied;
         }
+
+        #endregion
     }
 }

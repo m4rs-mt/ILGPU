@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLAcceleratorId.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.OpenCL;
 using ILGPU.Runtime.OpenCL.API;
@@ -80,7 +80,8 @@ namespace ILGPU.Runtime.OpenCL
             CVersion = version;
 
             // Resolve extension method
-            getKernelSubGroupInfo = CLAPI.GetExtension<clGetKernelSubGroupInfoKHR>(platformId);
+            getKernelSubGroupInfo = CLAPI.GetExtension<clGetKernelSubGroupInfoKHR>(
+                platformId);
         }
 
         #endregion
@@ -117,7 +118,8 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <summary>
-        /// Resolves device information as typed structure value of type <typeparamref name="T"/>
+        /// Resolves device information as typed structure value of type
+        /// <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="type">The information type.</param>
@@ -127,7 +129,8 @@ namespace ILGPU.Runtime.OpenCL
             where T : struct => CLAPI.GetDeviceInfo(DeviceId, type, out value);
 
         /// <summary>
-        /// Resolves device information as typed structure value of type <typeparamref name="T"/>
+        /// Resolves device information as typed structure value of type
+        /// <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="type">The information type.</param>
@@ -176,7 +179,8 @@ namespace ILGPU.Runtime.OpenCL
         }
 
         /// <summary>
-        /// Tries to resolves kernel sub-group information as typed structure value of type <typeparamref name="T"/>
+        /// Tries to resolves kernel sub-group information as typed structure value of
+        /// type <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="kernel">The kernel.</param>
@@ -210,7 +214,8 @@ namespace ILGPU.Runtime.OpenCL
         }
 
         /// <summary>
-        /// Resolves kernel sub-group information as typed structure value of type <typeparamref name="T"/>
+        /// Resolves kernel sub-group information as typed structure value of type
+        /// <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="kernel">The kernel.</param>
@@ -248,7 +253,9 @@ namespace ILGPU.Runtime.OpenCL
         /// Returns true if the given object is equal to the current accelerator id.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, if the given object is equal to the current accelerator id.</returns>
+        /// <returns>
+        /// True, if the given object is equal to the current accelerator id.
+        /// </returns>
         public override bool Equals(object obj) =>
             obj is CLAcceleratorId acceleratorId &&
             acceleratorId.PlatformId == PlatformId &&

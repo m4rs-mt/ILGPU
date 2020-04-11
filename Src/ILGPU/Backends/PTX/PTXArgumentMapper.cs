@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXArgumentMapper.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.IL;
@@ -103,7 +103,9 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <typeparam name="TILEmitter">The emitter type.</typeparam>
         /// <param name="emitter">The target emitter to write to.</param>
-        /// <param name="argumentBuffer">The current local holding the native argument pointers.</param>
+        /// <param name="argumentBuffer">
+        /// The current local holding the native argument pointers.
+        /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void StoreKernelLength<TILEmitter>(
             in TILEmitter emitter,

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Emitter.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Values;
@@ -290,7 +290,7 @@ namespace ILGPU.Backends.PTX
                 if (offset < 1)
                     return;
 
-                Debug.Assert(argMode, "Invalid arg mode");
+                Debug.Assert(argMode, "Invalid argument mode");
                 stringBuilder.Append('+');
                 stringBuilder.Append(offset);
             }
@@ -457,11 +457,9 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Frees the allocated predicate register.
             /// </summary>
-            public void Dispose()
-            {
+            public void Dispose() =>
                 // Release the predicate register
                 RegisterAllocator?.FreeRegister(PredicateRegister);
-            }
         }
 
         /// <summary>
@@ -551,7 +549,10 @@ namespace ILGPU.Backends.PTX
                     for (int i = 0, e = compoundRegister.NumChildren; i < e; ++i)
                     {
                         for (int j = 0, e2 = registers.Length; j < e2; ++j)
-                            elementRegisters[j] = (registers[j] as CompoundRegister).Children[i];
+                        {
+                            elementRegisters[j] =
+                                (registers[j] as CompoundRegister).Children[i];
+                        }
                         EmitComplexCommand(command, emitter, elementRegisters);
                     }
                     break;
@@ -561,8 +562,9 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
-        /// A specialized version of <see cref="EmitComplexCommand{TEmitter}(string, in TEmitter, RegisterAllocator{PTXRegisterKind}.Register[])"/>.
-        /// This version uses a single register and uses internal ABI-specific offset computations
+        /// A specialized version of <see cref="EmitComplexCommand{TEmitter}(string,
+        /// in TEmitter, RegisterAllocator{PTXRegisterKind}.Register[])"/>. This version
+        /// uses a single register and uses internal ABI-specific offset computations
         /// to resolve the correct offset in bytes within a structure.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
@@ -783,7 +785,9 @@ namespace ILGPU.Backends.PTX
         /// Begins a new command.
         /// </summary>
         /// <param name="commandString">The command to begin.</param>
-        /// <param name="predicate">The predicate under which to execute the command.</param>
+        /// <param name="predicate">
+        /// The predicate under which to execute the command.
+        /// </param>
         /// <returns>The created command emitter.</returns>
         public CommandEmitter BeginCommand(
             string commandString,
@@ -797,7 +801,8 @@ namespace ILGPU.Backends.PTX
                 if (!predicateValue.IsTrue)
                     Builder.Append('!');
                 Builder.Append('%');
-                Builder.Append(GetStringRepresentation(predicateValue.PredicateRegister));
+                Builder.Append(
+                    GetStringRepresentation(predicateValue.PredicateRegister));
                 Builder.Append(' ');
             }
             Builder.Append(commandString);
@@ -808,7 +813,9 @@ namespace ILGPU.Backends.PTX
         /// Emits the given command.
         /// </summary>
         /// <param name="commandString">The command to emit.</param>
-        /// <param name="predicate">The predicate under which to execute the command.</param>
+        /// <param name="predicate">
+        /// The predicate under which to execute the command.
+        /// </param>
         public void Command(
             string commandString,
             PredicateConfiguration? predicate = null)
@@ -821,7 +828,9 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="source">The source register.</param>
         /// <param name="target">The target register.</param>
-        /// <param name="predicate">The predicate under which to execute the command.</param>
+        /// <param name="predicate">
+        /// The predicate under which to execute the command.
+        /// </param>
         public void Move(
             HardwareRegister source,
             HardwareRegister target,
@@ -829,7 +838,9 @@ namespace ILGPU.Backends.PTX
         {
             if (source.Kind == target.Kind &&
                 source.RegisterValue == target.RegisterValue)
+            {
                 return;
+            }
 
             using (var emitter = BeginMove(predicate))
             {
@@ -842,7 +853,9 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Begins a new move command.
         /// </summary>
-        /// <param name="predicate">The predicate under which to execute the command.</param>
+        /// <param name="predicate">
+        /// The predicate under which to execute the command.
+        /// </param>
         /// <returns>The created command emitter.</returns>
         public CommandEmitter BeginMove(
             PredicateConfiguration? predicate = null) =>
@@ -897,7 +910,8 @@ namespace ILGPU.Backends.PTX
 
         /// <summary>
         /// Ensures that the given primitive register is a hardware register.
-        /// If is a constant register, its value will be moved into a newly allocated hardware register.
+        /// If is a constant register, its value will be moved into a newly allocated
+        /// hardware register.
         /// </summary>
         /// <param name="register">The register to put into a hardware register.</param>
         /// <returns>The hardware register (could be the input register).</returns>
@@ -906,7 +920,8 @@ namespace ILGPU.Backends.PTX
             if (register is HardwareRegister hardwareRegister)
                 return hardwareRegister;
 
-            hardwareRegister = AllocateRegister(register.Description) as HardwareRegister;
+            hardwareRegister =
+                AllocateRegister(register.Description) as HardwareRegister;
             var value = (register as ConstantRegister).Value;
             using (var command = BeginMove())
             {

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXBackend.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
@@ -74,8 +74,8 @@ namespace ILGPU.Backends.PTX
         /// Constructs a new Cuda backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
-        /// <param name="architecture">The target gpu architecture.</param>
-        /// <param name="instructionSet">The target gpu instruction set.</param>
+        /// <param name="architecture">The target GPU architecture.</param>
+        /// <param name="instructionSet">The target GPU instruction set.</param>
         /// <param name="platform">The target platform.</param>
         public PTXBackend(
             Context context,
@@ -131,13 +131,17 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns the associated <see cref="Backend.ArgumentMapper"/>.
         /// </summary>
-        public new PTXArgumentMapper ArgumentMapper => base.ArgumentMapper as PTXArgumentMapper;
+        public new PTXArgumentMapper ArgumentMapper =>
+            base.ArgumentMapper as PTXArgumentMapper;
 
         #endregion
 
         #region Methods
 
-        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernelBuilder(EntryPoint, in BackendContext, in KernelSpecialization, out T)"/>
+        /// <summary>
+        /// Creates a new PTX-compatible kernel builder and initializes a
+        /// <see cref="PTXCodeGenerator.GeneratorArgs"/> instance.
+        /// </summary>
         protected override StringBuilder CreateKernelBuilder(
             EntryPoint entryPoint,
             in BackendContext backendContext,
@@ -151,9 +155,10 @@ namespace ILGPU.Backends.PTX
             PTXDebugInfoGenerator debugInfoGenerator = PTXNoDebugInfoGenerator.Empty;
             if (useDebugInfo)
             {
-                debugInfoGenerator = Context.HasFlags(ContextFlags.EnableInlineSourceAnnotations) ?
-                    new PTXDebugSourceLineInfoGenerator() :
-                    new PTXDebugLineInfoGenerator();
+                debugInfoGenerator =
+                    Context.HasFlags(ContextFlags.EnableInlineSourceAnnotations)
+                    ? new PTXDebugSourceLineInfoGenerator()
+                    : new PTXDebugLineInfoGenerator();
             }
 
             var builder = new StringBuilder();
@@ -185,7 +190,9 @@ namespace ILGPU.Backends.PTX
             return builder;
         }
 
-        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateFunctionCodeGenerator(Method, Scope, Allocas, T)"/>
+        /// <summary>
+        /// Creates a new <see cref="PTXFunctionGenerator"/>.
+        /// </summary>
         protected override PTXCodeGenerator CreateFunctionCodeGenerator(
             Method method,
             Scope scope,
@@ -193,7 +200,9 @@ namespace ILGPU.Backends.PTX
             PTXCodeGenerator.GeneratorArgs data) =>
             new PTXFunctionGenerator(data, scope, allocas);
 
-        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernelCodeGenerator(in AllocaKindInformation, Method, Scope, Allocas, T)"/>
+        /// <summary>
+        /// Creates a new <see cref="PTXFunctionGenerator"/>.
+        /// </summary>
         protected override PTXCodeGenerator CreateKernelCodeGenerator(
             in AllocaKindInformation sharedAllocations,
             Method method,
@@ -202,7 +211,10 @@ namespace ILGPU.Backends.PTX
             PTXCodeGenerator.GeneratorArgs data) =>
             new PTXKernelFunctionGenerator(data, scope, allocas);
 
-        /// <summary cref="CodeGeneratorBackend{TDelegate, T, TCodeGenerator, TKernelBuilder}.CreateKernel(EntryPoint, TKernelBuilder, T)"/>
+        /// <summary>
+        /// Creates a new <see cref="PTXCompiledKernel"/> and initializes all debug
+        /// information sections.
+        /// </summary>
         protected override CompiledKernel CreateKernel(
             EntryPoint entryPoint,
             StringBuilder builder,

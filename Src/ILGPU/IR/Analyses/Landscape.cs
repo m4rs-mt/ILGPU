@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Landscape.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections;
@@ -124,7 +124,9 @@ namespace ILGPU.IR.Analyses
             /// Returns an enumerator to enumerate all method entries that
             /// depend on this one (backward edges).
             /// </summary>
-            /// <returns>An enumerator to enumerate all depending method entries.</returns>
+            /// <returns>
+            /// An enumerator to enumerate all depending method entries.
+            /// </returns>
             internal List<Method>.Enumerator GetEnumerator() => uses.GetEnumerator();
 
             /// <summary>
@@ -143,7 +145,9 @@ namespace ILGPU.IR.Analyses
             /// Resolves custom entry information for the given node.
             /// </summary>
             /// <param name="scope">The current scope.</param>
-            /// <param name="methodReferences">All references to other methods.</param>
+            /// <param name="methodReferences">
+            /// All references to other methods.
+            /// </param>
             /// <returns>The resolved custom data.</returns>
             T GetData(Scope scope, References methodReferences);
         }
@@ -190,10 +194,7 @@ namespace ILGPU.IR.Analyses
             #region Methods
 
             /// <summary cref="IEnumerator.MoveNext" />
-            public bool MoveNext()
-            {
-                return --index >= 0;
-            }
+            public bool MoveNext() => --index >= 0;
 
             /// <summary cref="IEnumerator.Reset" />
             void IEnumerator.Reset() => throw new InvalidOperationException();
@@ -259,7 +260,9 @@ namespace ILGPU.IR.Analyses
             where TDataProvider : IDataProvider
         {
             var result = new Landscape<T>();
-            result.Init<TFunctionView, TPredicate, TDataProvider>(functionView, dataProvider);
+            result.Init<TFunctionView, TPredicate, TDataProvider>(
+                functionView,
+                dataProvider);
             return result;
         }
 
@@ -267,7 +270,8 @@ namespace ILGPU.IR.Analyses
 
         #region Instance
 
-        private readonly Dictionary<Method, Entry> entries = new Dictionary<Method, Entry>();
+        private readonly Dictionary<Method, Entry> entries =
+            new Dictionary<Method, Entry>();
         private readonly List<Entry> sinks = new List<Entry>();
         private readonly List<Entry> postOrder = new List<Entry>();
 
@@ -370,10 +374,14 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         private void ComputeOrder()
         {
-            var toProcess = new Stack<(Entry, List<Method>.Enumerator, bool)>(entries.Count - sinks.Count);
+            var toProcess = new Stack<(Entry, List<Method>.Enumerator, bool)>(
+                entries.Count - sinks.Count);
             var visited = new HashSet<Entry>();
             var currentSink = 0;
-            var current = (Fun: sinks[0], Enumerator: sinks[0].GetEnumerator(), Init: true);
+            var current = (
+                Fun: sinks[0],
+                Enumerator: sinks[0].GetEnumerator(),
+                Init: true);
 
             while (true)
             {
@@ -408,7 +416,9 @@ namespace ILGPU.IR.Analyses
                     current = (nextSink, nextSink.GetEnumerator(), true);
                 }
                 else
+                {
                     current = toProcess.Pop();
+                }
             }
         }
 
@@ -417,9 +427,12 @@ namespace ILGPU.IR.Analyses
         #region IEnumerable
 
         /// <summary>
-        /// Returns an enumerator that enumerates all functions in the call graph in post order.
+        /// Returns an enumerator that enumerates all functions in the call graph in
+        /// post order.
         /// </summary>
-        /// <returns>An enumerator that enumerates all functions in the call graph.</returns>
+        /// <returns>
+        /// An enumerator that enumerates all functions in the call graph.
+        /// </returns>
         public Enumerator GetEnumerator() => new Enumerator(this);
 
         #endregion
@@ -453,12 +466,15 @@ namespace ILGPU.IR.Analyses
         /// <typeparam name="TPredicate">The view predicate.</typeparam>
         /// <param name="functionView">The source function view.</param>
         /// <returns>The created function structure object.</returns>
-        public static Landscape Create<TFunctionView, TPredicate>(in TFunctionView functionView)
+        public static Landscape Create<TFunctionView, TPredicate>(
+            in TFunctionView functionView)
             where TFunctionView : IMethodCollection<TPredicate>
             where TPredicate : IMethodCollectionPredicate
         {
             var landscape = new Landscape();
-            landscape.Init<TFunctionView, TPredicate, DataProvider>(functionView, new DataProvider());
+            landscape.Init<TFunctionView, TPredicate, DataProvider>(
+                functionView,
+                new DataProvider());
             return landscape;
         }
 
@@ -478,7 +494,9 @@ namespace ILGPU.IR.Analyses
             where TFunctionView : IMethodCollection<TPredicate>
             where TPredicate : IMethodCollectionPredicate
             where TDataProvider : Landscape<T>.IDataProvider =>
-            Landscape<T>.Create<TFunctionView, TPredicate, TDataProvider>(functionView, dataProvider);
+            Landscape<T>.Create<TFunctionView, TPredicate, TDataProvider>(
+                functionView,
+                dataProvider);
 
         #endregion
 

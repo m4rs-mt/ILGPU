@@ -1,16 +1,17 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SequencePoint.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Frontend.DebugInformation
@@ -39,6 +40,10 @@ namespace ILGPU.Frontend.DebugInformation
         /// <param name="first">The first sequence point to merge.</param>
         /// <param name="second">The second sequence point to merge.</param>
         /// <returns>The merged sequence point</returns>
+        [SuppressMessage(
+            "Style",
+            "IDE0046:Convert to conditional expression",
+            Justification = "Avoid nested if conditionals")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SequencePoint Merge(
             in SequencePoint first,
@@ -99,7 +104,7 @@ namespace ILGPU.Frontend.DebugInformation
         #region Properties
 
         /// <summary>
-        /// Returns true iff the current sequence point might represent
+        /// Returns true if the current sequence point might represent
         /// a valid point within a file.
         /// </summary>
         public bool IsValid => !string.IsNullOrEmpty(FileName);
@@ -139,10 +144,13 @@ namespace ILGPU.Frontend.DebugInformation
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given sequence point is equal to the current sequence point.
+        /// Returns true if the given sequence point is equal to the current sequence
+        /// point.
         /// </summary>
         /// <param name="other">The other sequence point.</param>
-        /// <returns>True, iff the given sequence point is equal to the current sequence point.</returns>
+        /// <returns>
+        /// True, if the given sequence point is equal to the current sequence point.
+        /// </returns>
         public bool Equals(SequencePoint other) => other == this;
 
         #endregion
@@ -150,10 +158,12 @@ namespace ILGPU.Frontend.DebugInformation
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current sequence point.
+        /// Returns true if the given object is equal to the current sequence point.
         /// </summary>
         /// <param name="obj">The other sequence object.</param>
-        /// <returns>True, iff the given object is equal to the current sequence point.</returns>
+        /// <returns>
+        /// True, if the given object is equal to the current sequence point.
+        /// </returns>
         public override bool Equals(object obj) =>
             obj is SequencePoint other && Equals(other);
 
@@ -165,37 +175,29 @@ namespace ILGPU.Frontend.DebugInformation
             StartColumn ^ EndColumn ^ StartLine ^ EndLine;
 
         /// <summary>
-        /// Returns the location information of this sequence point in VS format.
-        /// </summary>
-        /// <returns>The location information string that represents this sequence point.</returns>
-        public string ToVisualStudioErrorString()
-        {
-            if (IsValid)
-                return $"{FileName}({StartLine}, {StartColumn}, {EndLine}, {EndColumn})";
-            return "<Unknown>";
-        }
-
-        /// <summary>
         /// Returns the location information of this sequence point.
         /// </summary>
-        /// <returns>The location information string that represents this sequence point.</returns>
-        public override string ToString()
-        {
-            if (IsValid)
-                return $"{FileName}: ({StartLine}, {StartColumn}) - ({EndLine}, {EndColumn})";
-            return "<Unknown>";
-        }
+        /// <returns>
+        /// The location information string that represents this sequence point.
+        /// </returns>
+        public override string ToString() =>
+            IsValid
+            ? $"{FileName}({StartLine}, {StartColumn}, {EndLine}, {EndColumn})"
+            : "<Unknown>";
 
         #endregion
 
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first sequence point and the second sequence point are the same.
+        /// Returns true if the first sequence point and the second sequence point are
+        /// the same.
         /// </summary>
         /// <param name="first">The first sequence point.</param>
         /// <param name="second">The second sequence point.</param>
-        /// <returns>True, iff the first and the second sequence point are the same.</returns>
+        /// <returns>
+        /// True, if the first and the second sequence point are the same.
+        /// </returns>
         public static bool operator ==(SequencePoint first, SequencePoint second) =>
             first.FileName == second.FileName &&
             first.Offset == second.Offset &&
@@ -205,18 +207,16 @@ namespace ILGPU.Frontend.DebugInformation
             first.EndLine == second.EndLine;
 
         /// <summary>
-        /// Returns true iff the first sequence point and the second sequence point are not the same.
+        /// Returns true if the first sequence point and the second sequence point are
+        /// not the same.
         /// </summary>
         /// <param name="first">The first sequence point.</param>
         /// <param name="second">The second sequence point.</param>
-        /// <returns>True, iff the first and the second sequence point are not the same.</returns>
+        /// <returns>
+        /// True, if the first and the second sequence point are not the same.
+        /// </returns>
         public static bool operator !=(SequencePoint first, SequencePoint second) =>
-            first.FileName != second.FileName ||
-            first.Offset != second.Offset ||
-            first.StartColumn != second.StartColumn ||
-            first.EndColumn != second.EndColumn ||
-            first.StartLine != second.StartLine ||
-            first.EndLine != second.EndLine;
+            !(first == second);
 
         #endregion
     }

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IntrinsicMath.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
@@ -413,7 +413,9 @@ namespace ILGPU
         /// </summary>
         /// <param name="numerator">The numerator.</param>
         /// <param name="denominator">The denominator.</param>
-        /// <returns>The numerator divided by the denominator rounded up (away from zero).</returns>
+        /// <returns>
+        /// The numerator divided by the denominator rounded up (away from zero).
+        /// </returns>
         public static int DivRoundUp(int numerator, int denominator) =>
             (numerator + denominator - 1) / denominator;
 
@@ -435,7 +437,9 @@ namespace ILGPU
         /// </summary>
         /// <param name="numerator">The numerator.</param>
         /// <param name="denominator">The denominator.</param>
-        /// <returns>The numerator divided by the denominator rounded up (away from zero).</returns>
+        /// <returns>
+        /// The numerator divided by the denominator rounded up (away from zero).
+        /// </returns>
         public static long DivRoundUp(long numerator, long denominator) =>
             (numerator + denominator - 1L) / denominator;
 

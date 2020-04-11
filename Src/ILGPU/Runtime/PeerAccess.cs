@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PeerAccess.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
@@ -24,7 +24,8 @@ namespace ILGPU.Runtime
         /// Contains a collection of all peer accelerators.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly HashSet<Accelerator> storedPeerAccelerators = new HashSet<Accelerator>();
+        private readonly HashSet<Accelerator> storedPeerAccelerators =
+            new HashSet<Accelerator>();
 
         #endregion
 
@@ -57,7 +58,8 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Returns true iff peer access between the current and the given accelerator has been enabled.
+        /// Returns true if peer access between the current and the given accelerator
+        /// has been enabled.
         /// </summary>
         /// <param name="otherAccelerator">The target accelerator.</param>
         /// <returns></returns>
@@ -70,11 +72,11 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Returns true iff the current accelerator can directly access the memory
+        /// Returns true if the current accelerator can directly access the memory
         /// of the given accelerator.
         /// </summary>
         /// <param name="otherAccelerator">The other accelerator.</param>
-        /// <returns>True, iff the current accelerator can directly access the memory
+        /// <returns>True, if the current accelerator can directly access the memory
         /// of the given accelerator.</returns>
         public bool CanAccessPeer(Accelerator otherAccelerator)
         {
@@ -88,11 +90,11 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Returns true iff the current accelerator can directly access the memory
+        /// Returns true if the current accelerator can directly access the memory
         /// of the given accelerator.
         /// </summary>
         /// <param name="otherAccelerator">The other accelerator.</param>
-        /// <returns>True, iff the current accelerator can directly access the memory
+        /// <returns>True, if the current accelerator can directly access the memory
         /// of the given accelerator.</returns>
         protected abstract bool CanAccessPeerInternal(Accelerator otherAccelerator);
 

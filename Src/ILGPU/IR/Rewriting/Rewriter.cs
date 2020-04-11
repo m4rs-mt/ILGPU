@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Rewriter.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using System;
@@ -48,8 +48,12 @@ namespace ILGPU.IR.Rewriting
     /// A rewriter class to rewrite IR nodes.
     /// </summary>
     /// <typeparam name="TContext">The rewriter context type.</typeparam>
-    /// <typeparam name="TContextProvider">The provider type for new context providers.</typeparam>
-    /// <typeparam name="TContextData">The context specific data to build new rewriter contexts.</typeparam>
+    /// <typeparam name="TContextProvider">
+    /// The provider type for new context providers.
+    /// </typeparam>
+    /// <typeparam name="TContextData">
+    /// The context specific data to build new rewriter contexts.
+    /// </typeparam>
     /// <typeparam name="T">The user-defined data type.</typeparam>
     public abstract class Rewriter<TContext, TContextProvider, TContextData, T>
         where TContext : struct, IRewriterContext
@@ -110,7 +114,11 @@ namespace ILGPU.IR.Rewriting
             /// <summary>
             /// Returns the underlying rewriter.
             /// </summary>
-            public Rewriter<TContext, TContextProvider, TContextData, T> Rewriter { get; }
+            public Rewriter<
+                TContext,
+                TContextProvider,
+                TContextData,
+                T> Rewriter { get; }
 
             /// <summary>
             /// Returns the current context data.
@@ -170,7 +178,11 @@ namespace ILGPU.IR.Rewriting
             /// <summary>
             /// Returns the underlying rewriter.
             /// </summary>
-            public Rewriter<TContext, TContextProvider, TContextData, T> Rewriter { get; }
+            public Rewriter<
+                TContext,
+                TContextProvider,
+                TContextData,
+                T> Rewriter { get; }
 
             /// <summary>
             /// Returns the current context data.
@@ -237,7 +249,11 @@ namespace ILGPU.IR.Rewriting
             /// <summary>
             /// Returns the parent rewriter.
             /// </summary>
-            public Rewriter<TContext, TContextProvider, TContextData, T> Rewriter { get; }
+            public Rewriter<
+                TContext,
+                TContextProvider,
+                TContextData,
+                T> Rewriter { get; }
 
             /// <summary>
             /// Returns the parent scope.
@@ -553,7 +569,8 @@ namespace ILGPU.IR.Rewriting
     /// <summary>
     /// A rewriter class that does not work on user-defined context instances.
     /// </summary>
-    public class Rewriter<T> : Rewriter<RewriterContext, RewriterContextProvider<object>, object, T>
+    public class Rewriter<T> :
+        Rewriter<RewriterContext, RewriterContextProvider<object>, object, T>
     {
         /// <summary>
         /// Adds a new rewriter converter.
@@ -573,12 +590,10 @@ namespace ILGPU.IR.Rewriting
         public void Add<TValue>(
             RewritePredicate<T, TValue> predicate,
             RewriteConverter<T, TValue> converter)
-            where TValue : Value
-        {
+            where TValue : Value =>
             Add(
                 predicate,
                 new RewriteConverter<RewriterContext, T, TValue>(converter));
-        }
 
         /// <summary>
         /// Tries to rewrite the given scope using the method builder provided.
@@ -661,12 +676,10 @@ namespace ILGPU.IR.Rewriting
         public void Add<TValue>(
             RewritePredicate<TValue> predicate,
             RewriteConverter<TValue> converter)
-            where TValue : Value
-        {
+            where TValue : Value =>
             Add<TValue>(
                 (_, value) => predicate(value),
                 (context, data, value) => converter(context, value));
-        }
 
         /// <summary>
         /// Tries to rewrite the given scope using the method builder provided.

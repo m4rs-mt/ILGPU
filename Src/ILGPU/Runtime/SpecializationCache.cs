@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SpecializationCache.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
@@ -23,8 +23,9 @@ using System.Threading;
 namespace ILGPU.Runtime
 {
     /// <summary>
-    /// The base interface for all automatically generated specialization argument structures
-    /// that are used in combination with the <see cref="SpecializationCache{TLoader, TArgs, TDelegate}"/>.
+    /// The base interface for all automatically generated specialization argument
+    /// structures that are used in combination with the
+    /// <see cref="SpecializationCache{TLoader, TArgs, TDelegate}"/>.
     /// </summary>
     internal interface ISpecializationCacheArgs
     {
@@ -155,7 +156,8 @@ namespace ILGPU.Runtime
                     if (specialParamIdx < specializedParameters.Length &&
                         specializedParameters[specialParamIdx].Index == i - paramOffset)
                     {
-                        // Resolve the managed argument -> note that this object cannot be null
+                        // Resolve the managed argument -> note that this object cannot
+                        // be null
                         var managedArgument = args.GetSpecializedArg(specialParamIdx);
                         var irValue = blockBuilder.CreateValue(
                             managedArgument,
@@ -165,7 +167,9 @@ namespace ILGPU.Runtime
                         ++specialParamIdx;
                     }
                     else
+                    {
                         targetValues.Add(newParam);
+                    }
                 }
                 blockBuilder.CreateCall(kernelMethod, targetValues.MoveToImmutable());
                 blockBuilder.CreateReturn();

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: UseDistribution.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
@@ -20,9 +20,14 @@ namespace ILGPU.IR.Values
     /// An analysis class to resolve information about the global use-relation
     /// within a given context.
     /// </summary>
-    /// <remarks>This class is typically used for internal debugging and tracking of memory allocations.</remarks>
+    /// <remarks>
+    /// This class is typically used for internal debugging and tracking of memory
+    /// allocations.
+    /// </remarks>
     public sealed class UseDistribution
     {
+        #region Instance
+
         /// <summary>
         /// Constructs a new use distribution.
         /// </summary>
@@ -51,8 +56,9 @@ namespace ILGPU.IR.Values
                     var type = value.GetType();
                     lock (usesPerType)
                     {
-                        if (!usesPerType.TryGetValue(type, out ValueTuple<int, int> entry))
+                        if (!usesPerType.TryGetValue(type, out var entry))
                             entry = (0, 0);
+
                         usesPerType[type] =
                             (IntrinsicMath.Max(value.AllNumUses, entry.Item1),
                             entry.Item2 + 1);
@@ -68,14 +74,19 @@ namespace ILGPU.IR.Values
 
             var groupedUsesPerTypeList = new List<(int, Type, int)>(usesPerType.Count);
             foreach (var entry in usesPerType)
-                groupedUsesPerTypeList.Add((entry.Value.Item1, entry.Key, entry.Value.Item2));
+            {
+                groupedUsesPerTypeList.Add(
+                    (entry.Value.Item1, entry.Key, entry.Value.Item2));
+            }
             groupedUsesPerTypeList.Sort((x, y) => y.Item1.CompareTo(x.Item1));
 
             Uses = groupedUsesList.ToImmutableArray();
             UsesPerType = groupedUsesPerTypeList.ToImmutableArray();
         }
 
-        #region Properies
+        #endregion
+
+        #region Properties
 
         /// <summary>
         /// Returns the use distribution of all global nodes.
@@ -86,7 +97,9 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the use distribution of all node types.
         /// </summary>
-        /// <remarks>Tuple layout: (max number of uses, type, number of nodes with this type).</remarks>
+        /// <remarks>
+        /// Tuple layout: (max number of uses, type, number of nodes with this type).
+        /// </remarks>
         public ImmutableArray<(int, Type, int)> UsesPerType { get; }
 
         #endregion

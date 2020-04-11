@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Predicate.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -55,7 +55,8 @@ namespace ILGPU.IR.Values
                 "Invalid condition arguments");
             Arguments = arguments;
 
-            var builder = ImmutableArray.CreateBuilder<ValueReference>(arguments.Length + 1);
+            var builder = ImmutableArray.CreateBuilder<ValueReference>(
+                arguments.Length + 1);
             builder.Add(condition);
             builder.AddRange(arguments);
             Seal(builder.MoveToImmutable());
@@ -139,17 +140,16 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreatePredicate(
                 rebuilder.Rebuild(Condition),
                 rebuilder.Rebuild(TrueValue),
                 rebuilder.Rebuild(FalseValue));
 
         /// <summary cref="Value.Accept" />
-        public override void Accept<T>(T visitor)
-        {
-            visitor.Visit(this);
-        }
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
 
         #endregion
 
@@ -159,7 +159,8 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "pred";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() => $"{Condition} ? {TrueValue} : {FalseValue}";
+        protected override string ToArgString() =>
+            $"{Condition} ? {TrueValue} : {FalseValue}";
 
         #endregion
     }

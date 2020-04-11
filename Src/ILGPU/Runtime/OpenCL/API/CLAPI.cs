@@ -1,14 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLAPI.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
-
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
@@ -76,13 +75,14 @@ namespace ILGPU.Runtime.OpenCL.API
                 stringValue,
                 new IntPtr(&size)));
             int intSize = size.ToInt32();
-            if (intSize > 0 && intSize < MaxStringLength)
-                return new string(stringValue, 0, intSize - 1);
-            return string.Empty;
+            return intSize > 0 && intSize < MaxStringLength
+                ? new string(stringValue, 0, intSize - 1)
+                : string.Empty;
         }
 
         /// <summary>
-        /// Resolves platform information as typed structure value of type <typeparamref name="T"/>
+        /// Resolves platform information as typed structure value of type
+        /// <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="platform">The platform.</param>
@@ -171,13 +171,14 @@ namespace ILGPU.Runtime.OpenCL.API
                 stringValue,
                 new IntPtr(&size)));
             int intSize = size.ToInt32();
-            if (intSize > 0 && intSize < MaxStringLength)
-                return new string(stringValue, 0, intSize - 1);
-            return string.Empty;
+            return intSize > 0 && intSize < MaxStringLength
+                ? new string(stringValue, 0, intSize - 1)
+                : string.Empty;
         }
 
         /// <summary>
-        /// Resolves device information as typed structure value of type <typeparamref name="T"/>
+        /// Resolves device information as typed structure value of type
+        /// <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="device">The device.</param>
@@ -194,14 +195,18 @@ namespace ILGPU.Runtime.OpenCL.API
         }
 
         /// <summary>
-        /// Resolves device information as typed structure value of type <typeparamref name="T"/>
+        /// Resolves device information as typed structure value of type
+        /// <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="device">The device.</param>
         /// <param name="type">The information type.</param>
         /// <param name="value">The resolved value.</param>
         /// <returns>The error code.</returns>
-        public static CLError GetDeviceInfo<T>(IntPtr device, CLDeviceInfoType type, out T value)
+        public static CLError GetDeviceInfo<T>(
+            IntPtr device,
+            CLDeviceInfoType type,
+            out T value)
             where T : struct
         {
             value = default;
@@ -214,14 +219,18 @@ namespace ILGPU.Runtime.OpenCL.API
         }
 
         /// <summary>
-        /// Resolves device information as array of typed structure values of type <typeparamref name="T"/>
+        /// Resolves device information as array of typed structure values of type
+        /// <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="device">The device.</param>
         /// <param name="type">The information type.</param>
         /// <param name="elements">The elements to fill.</param>
         /// <returns>The resolved value.</returns>
-        public static void GetDeviceInfo<T>(IntPtr device, CLDeviceInfoType type, T[] elements)
+        public static void GetDeviceInfo<T>(
+            IntPtr device,
+            CLDeviceInfoType type,
+            T[] elements)
             where T : struct
         {
             var handle = GCHandle.Alloc(elements, GCHandleType.Pinned);
@@ -260,10 +269,12 @@ namespace ILGPU.Runtime.OpenCL.API
         public static T GetExtension<T>(IntPtr platform, string name)
             where T : Delegate
         {
-            var address = NativeMethods.GetExtensionFunctionAddressForPlatform(platform, name);
-            if (address == IntPtr.Zero)
-                return null;
-            return Marshal.GetDelegateForFunctionPointer<T>(address);
+            var address = NativeMethods.GetExtensionFunctionAddressForPlatform(
+                platform,
+                name);
+            return address == IntPtr.Zero
+                ? null
+                : Marshal.GetDelegateForFunctionPointer<T>(address);
         }
 
         /// <summary>
@@ -367,7 +378,9 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="program">The program to build.</param>
         /// <param name="device">The associated device.</param>
-        /// <param name="options">The program build options (refer to the OpenCL specification).</param>
+        /// <param name="options">
+        /// The program build options (refer to the OpenCL specification).
+        /// </param>
         /// <returns>The error code.</returns>
         public static CLError BuildProgram(
             IntPtr program,
@@ -387,7 +400,9 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="program">The program to build.</param>
         /// <param name="devices">The associated devices.</param>
         /// <param name="numDevices">The number of associated devices.</param>
-        /// <param name="options">The program build options (refer to the OpenCL specification).</param>
+        /// <param name="options">
+        /// The program build options (refer to the OpenCL specification).
+        /// </param>
         /// <returns>The error code.</returns>
         [CLSCompliant(false)]
         public static CLError BuildProgram(
@@ -408,7 +423,9 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="program">The program to build.</param>
         /// <param name="devices">The associated devices.</param>
-        /// <param name="options">The program build options (refer to the OpenCL specification).</param>
+        /// <param name="options">
+        /// The program build options (refer to the OpenCL specification).
+        /// </param>
         /// <returns>The error code.</returns>
         public static CLError BuildProgram(
             IntPtr program,
@@ -499,11 +516,14 @@ namespace ILGPU.Runtime.OpenCL.API
                     out IntPtr logLength);
                 buildLog = string.Empty;
                 if (error == CLError.CL_SUCCESS)
+                {
                     buildLog = new string(
                         logPtr,
                         0,
                         logLength.ToInt32(),
                         System.Text.Encoding.ASCII);
+                }
+
                 return error;
             }
         }
@@ -710,7 +730,8 @@ namespace ILGPU.Runtime.OpenCL.API
         }
 
         /// <summary>
-        /// Resolves kernel work-group information as typed structure value of type <typeparamref name="T"/>
+        /// Resolves kernel work-group information as typed structure value of type
+        /// <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="kernel">The kernel.</param>
@@ -735,7 +756,8 @@ namespace ILGPU.Runtime.OpenCL.API
         }
 
         /// <summary>
-        /// Resolves kernel work-group information as typed array of values of type <typeparamref name="T"/>.
+        /// Resolves kernel work-group information as typed array of values of type
+        /// <typeparamref name="T"/>.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="kernel">The kernel.</param>
@@ -809,7 +831,9 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="queue">The queue.</param>
         /// <param name="buffer">The source buffer to read from.</param>
-        /// <param name="blockingRead">True, if the operation blocks until completion.</param>
+        /// <param name="blockingRead">
+        /// True, if the operation blocks until completion.
+        /// </param>
         /// <param name="offset">The source offset in bytes.</param>
         /// <param name="size">The data size in bytes.</param>
         /// <param name="ptr">The target pointer in host memory.</param>
@@ -838,7 +862,9 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="queue">The queue.</param>
         /// <param name="buffer">The target buffer to write to.</param>
-        /// <param name="blockingWrite">True, if the operation blocks until completion.</param>
+        /// <param name="blockingWrite">
+        /// True, if the operation blocks until completion.
+        /// </param>
         /// <param name="offset">The target offset in bytes.</param>
         /// <param name="size">The data size in bytes.</param>
         /// <param name="ptr">The source pointer in host memory.</param>
@@ -868,7 +894,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <typeparam name="T">The data type used for filling.</typeparam>
         /// <param name="queue">The queue.</param>
         /// <param name="buffer">The target buffer to fill.</param>
-        /// <param name="pattern">The pattern value used for filling.j</param>
+        /// <param name="pattern">The pattern value used for filling.</param>
         /// <param name="offset">The target offset in bytes.</param>
         /// <param name="size">The size in bytes to fill.</param>
         /// <returns>The error code.</returns>
@@ -897,8 +923,12 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="queue">The queue.</param>
         /// <param name="sourceBuffer">The source buffer.</param>
         /// <param name="targetBuffer">The target buffer.</param>
-        /// <param name="sourceOffset">The source offset inside the source buffer.</param>
-        /// <param name="targetOffset">The target offset inside the target buffer.</param>
+        /// <param name="sourceOffset">
+        /// The source offset inside the source buffer.
+        /// </param>
+        /// <param name="targetOffset">
+        /// The target offset inside the target buffer.
+        /// </param>
         /// <param name="size">The size to copy in bytes.</param>
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: LowerPointerViews.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
@@ -24,6 +24,8 @@ namespace ILGPU.Backends.PointerViews
     /// </summary>
     public sealed class LowerPointerViews : LowerViews
     {
+        #region Type Lowering
+
         /// <summary>
         /// Converts view types into pointer-based structure types.
         /// </summary>
@@ -33,10 +35,14 @@ namespace ILGPU.Backends.PointerViews
                 : base(builder)
             { }
 
-            /// <summary cref="TypeConverter{TType}.GetNumFields(TType)"/>
+            /// <summary>
+            /// Returns the number of fields per view type.
+            /// </summary>
             protected override int GetNumFields(ViewType type) => 2;
 
-            /// <summary cref="TypeConverter{TType}.ConvertType{TTypeContext}(TTypeContext, TType)"/>
+            /// <summary>
+            /// Converts the given view type into a structure with two elements.
+            /// </summary>
             protected override TypeNode ConvertType<TTypeContext>(
                 TTypeContext typeContext,
                 ViewType type)
@@ -49,8 +55,12 @@ namespace ILGPU.Backends.PointerViews
                 return typeContext.CreateStructureType(
                     ImmutableArray.Create<TypeNode>(pointerType, lengthType));
             }
-
         }
+
+        #endregion
+
+        #region Rewriter Methods
+
         /// <summary>
         /// Lowers set field operations into separate SSA values.
         /// </summary>
@@ -109,7 +119,9 @@ namespace ILGPU.Backends.PointerViews
             var pointer = builder.CreateGetField(value.Value, new FieldSpan(0));
             var length = builder.CreateGetField(value.Value, new FieldSpan(1));
 
-            var newPointer = builder.CreateAddressSpaceCast(pointer, value.TargetAddressSpace);
+            var newPointer = builder.CreateAddressSpaceCast(
+                pointer,
+                value.TargetAddressSpace);
             var newInstance = builder.CreateStructure(
                 ImmutableArray.Create(newPointer, length));
             context.ReplaceAndRemove(value, newInstance);
@@ -130,12 +142,16 @@ namespace ILGPU.Backends.PointerViews
             // New pointer
             var newPointer = builder.CreatePointerCast(pointer, value.TargetElementType);
 
-            // Compute new length: newLength = length * sourceElementSize / targetElementSize;
+            // Compute new length:
+            // newLength = length * sourceElementSize / targetElementSize;
             var sourceElementType = (typeLowering[value] as ViewType).ElementType;
             var sourceElementSize = builder.CreateSizeOf(sourceElementType);
             var targetElementSize = builder.CreateSizeOf(value.TargetElementType);
             var newLength = builder.CreateArithmetic(
-                builder.CreateArithmetic(length, sourceElementSize, BinaryArithmeticKind.Mul),
+                builder.CreateArithmetic(
+                    length,
+                    sourceElementSize,
+                    BinaryArithmeticKind.Mul),
                 targetElementSize, BinaryArithmeticKind.Div);
 
             var newInstance = builder.CreateStructure(
@@ -156,6 +172,10 @@ namespace ILGPU.Backends.PointerViews
             var newLea = builder.CreateLoadElementAddress(pointer, value.ElementIndex);
             context.ReplaceAndRemove(value, newLea);
         }
+
+        #endregion
+
+        #region Rewriter
 
         /// <summary>
         /// The internal rewriter.
@@ -178,14 +198,33 @@ namespace ILGPU.Backends.PointerViews
                 Lower);
         }
 
-        /// <summary cref="LowerTypes{TType}.CreateLoweringConverter(Method.Builder, Scope)"/>
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new pointer view lowering transformation.
+        /// </summary>
+        public LowerPointerViews() { }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Creates a new <see cref="PointerViewLowering"/> converter.
+        /// </summary>
         protected override TypeLowering<ViewType> CreateLoweringConverter(
             Method.Builder builder,
             Scope _) =>
             new PointerViewLowering(builder);
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        /// <summary>
+        /// Applies the pointer view lowering transformation.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder) =>
             PerformTransformation(builder, Rewriter);
+
+        #endregion
     }
 }

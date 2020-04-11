@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: NodeId.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 
@@ -52,10 +52,10 @@ namespace ILGPU.IR
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given id is equal to this id.
+        /// Returns true if the given id is equal to this id.
         /// </summary>
         /// <param name="other">The other id.</param>
-        /// <returns>True, iff the given id is equal to this id.</returns>
+        /// <returns>True, if the given id is equal to this id.</returns>
         public bool Equals(NodeId other) => this == other;
 
         #endregion
@@ -74,16 +74,12 @@ namespace ILGPU.IR
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to this id.
+        /// Returns true if the given object is equal to this id.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to this id.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is NodeId nodeId)
-                return nodeId == this;
-            return false;
-        }
+        /// <returns>True, if the given object is equal to this id.</returns>
+        public override bool Equals(object obj) =>
+            obj is NodeId nodeId && nodeId == this;
 
         /// <summary>
         /// Returns the hash code of this id.
@@ -108,56 +104,60 @@ namespace ILGPU.IR
         public static implicit operator long(NodeId nodeId) => nodeId.Value;
 
         /// <summary>
-        /// Returns true iff the first and the second id are the same.
+        /// Returns true if the first and the second id are the same.
         /// </summary>
         /// <param name="first">The first id.</param>
         /// <param name="second">The second id.</param>
-        /// <returns>True, iff the first and the second id are the same.</returns>
+        /// <returns>True, if the first and the second id are the same.</returns>
         public static bool operator ==(NodeId first, NodeId second) =>
             first.Value == second.Value;
 
         /// <summary>
-        /// Returns true iff the first and the second id are not the same.
+        /// Returns true if the first and the second id are not the same.
         /// </summary>
         /// <param name="first">The first id.</param>
         /// <param name="second">The second id.</param>
-        /// <returns>True, iff the first and the second id are not the same.</returns>
+        /// <returns>True, if the first and the second id are not the same.</returns>
         public static bool operator !=(NodeId first, NodeId second) =>
             first.Value != second.Value;
 
         /// <summary>
-        /// Returns true iff the first id is smaller than the second one.
+        /// Returns true if the first id is smaller than the second one.
         /// </summary>
         /// <param name="first">The first id.</param>
         /// <param name="second">The second id.</param>
-        /// <returns>True, iff the first id is smaller than the second one.</returns>
+        /// <returns>True, if the first id is smaller than the second one.</returns>
         public static bool operator <(NodeId first, NodeId second) =>
             first.Value < second.Value;
 
         /// <summary>
-        /// Returns true iff the first id is smaller than or equal to the second one.
+        /// Returns true if the first id is smaller than or equal to the second one.
         /// </summary>
         /// <param name="first">The first id.</param>
         /// <param name="second">The second id.</param>
-        /// <returns>True, iff the first id is smaller than or equal to the second one.</returns>
+        /// <returns>
+        /// True, if the first id is smaller than or equal to the second one.
+        /// </returns>
         public static bool operator <=(NodeId first, NodeId second) =>
             first.Value <= second.Value;
 
         /// <summary>
-        /// Returns true iff the first id is greater than the second one.
+        /// Returns true if the first id is greater than the second one.
         /// </summary>
         /// <param name="first">The first id.</param>
         /// <param name="second">The second id.</param>
-        /// <returns>True, iff the first id is greater than the second one.</returns>
+        /// <returns>True, if the first id is greater than the second one.</returns>
         public static bool operator >(NodeId first, NodeId second) =>
             first.Value > second.Value;
 
         /// <summary>
-        /// Returns true iff the first id is greater than or equal to the second one.
+        /// Returns true if the first id is greater than or equal to the second one.
         /// </summary>
         /// <param name="first">The first id.</param>
         /// <param name="second">The second id.</param>
-        /// <returns>True, iff the first id is greater than or equal to the second one.</returns>
+        /// <returns>
+        /// True, if the first id is greater than or equal to the second one.
+        /// </returns>
         public static bool operator >=(NodeId first, NodeId second) =>
             first.Value >= second.Value;
 

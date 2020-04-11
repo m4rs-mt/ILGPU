@@ -1,15 +1,14 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Values.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
-using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Immutable;
@@ -91,18 +90,12 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(Parameter parameter)
         {
             // Parameters are already assigned to registers
-#if DEBUG
-            Load(parameter);
-#endif
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PhiValue)"/>
         public void GenerateCode(PhiValue phiValue)
         {
             // Phi values are already assigned to registers
-#if DEBUG
-            Load(phiValue);
-#endif
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(UnaryArithmeticValue)"/>
@@ -228,10 +221,7 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PointerCast)"/>
-        public void GenerateCode(PointerCast value)
-        {
-            Alias(value, value.Value);
-        }
+        public void GenerateCode(PointerCast value) => Alias(value, value.Value);
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(FloatAsIntCast)"/>
         public void GenerateCode(FloatAsIntCast value)
@@ -283,7 +273,9 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Emits nested predicates.
             /// </summary>
-            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
+            public void Emit(
+                CommandEmitter commandEmitter,
+                PrimitiveRegister[] registers)
             {
                 commandEmitter.AppendArgument(registers[0]);
                 commandEmitter.AppendArgument(registers[1]);
@@ -314,7 +306,9 @@ namespace ILGPU.Backends.PTX
             var target = LoadHardware(atomic.Target);
             var value = LoadPrimitive(atomic.Value);
 
-            var requiresResult = atomic.Uses.HasAny || atomic.Kind == AtomicKind.Exchange;
+            var requiresResult =
+                atomic.Uses.HasAny ||
+                atomic.Kind == AtomicKind.Exchange;
             var atomicOperation = PTXInstructions.GetAtomicOperation(
                 atomic.Kind,
                 requiresResult);
@@ -539,11 +533,15 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(LoadFieldAddress value)
         {
             var source = LoadPrimitive(value.Source);
-            var fieldOffset = ABI.GetOffsetOf(value.StructureType, value.FieldSpan.Access);
+            var fieldOffset = ABI.GetOffsetOf(
+                value.StructureType,
+                value.FieldSpan.Access);
 
             if (fieldOffset != 0)
             {
-                var targetRegister = AllocatePlatformRegister(value, out RegisterDescription _);
+                var targetRegister = AllocatePlatformRegister(
+                    value,
+                    out RegisterDescription _);
                 using (var command = BeginCommand(
                     PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Add,
@@ -556,7 +554,9 @@ namespace ILGPU.Backends.PTX
                 }
             }
             else
+            {
                 Alias(value, value.Source);
+            }
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PrimitiveValue)"/>
@@ -576,7 +576,9 @@ namespace ILGPU.Backends.PTX
                 stringConstants.Add(value.String, stringBinding);
             }
 
-            var register = AllocatePlatformRegister(value, out RegisterDescription description);
+            var register = AllocatePlatformRegister(
+                value,
+                out RegisterDescription description);
             using (var command = BeginMove())
             {
                 command.AppendSuffix(description.BasicValueType);
@@ -593,11 +595,14 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Emits nested null values.
             /// </summary>
-            public void Emit(CommandEmitter commandEmitter, PrimitiveRegister[] registers)
+            public void Emit(
+                CommandEmitter commandEmitter,
+                PrimitiveRegister[] registers)
             {
                 var primaryRegister = registers[0];
 
-                commandEmitter.AppendRegisterMovementSuffix(primaryRegister.BasicValueType);
+                commandEmitter.AppendRegisterMovementSuffix(
+                    primaryRegister.BasicValueType);
                 commandEmitter.AppendArgument(primaryRegister);
                 commandEmitter.AppendNull(primaryRegister.Kind);
             }
@@ -673,7 +678,10 @@ namespace ILGPU.Backends.PTX
             {
                 var structureValue = LoadAs<CompoundRegister>(value.Value);
                 for (int i = 0; i < value.FieldSpan.Span; ++i)
-                    childRegisters[i + value.FieldSpan.Index] = structureValue.Children[i];
+                {
+                    childRegisters[i + value.FieldSpan.Index] =
+                        structureValue.Children[i];
+                }
             }
             Bind(
                 value,
@@ -760,7 +768,8 @@ namespace ILGPU.Backends.PTX
                 switch (barrier.Kind)
                 {
                     case BarrierKind.WarpLevel:
-                        command.AppendConstant(PTXInstructions.AllThreadsInAWarpMemberMask);
+                        command.AppendConstant(
+                            PTXInstructions.AllThreadsInAWarpMemberMask);
                         break;
                     case BarrierKind.GroupLevel:
                         command.AppendConstant(0);
@@ -815,7 +824,8 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Broadcast)"/>
-        public void GenerateCode(Broadcast broadcast) => throw new InvalidCodeGenerationException();
+        public void GenerateCode(Broadcast broadcast) =>
+            throw new InvalidCodeGenerationException();
 
         /// <summary>
         /// Emits warp masks of <see cref="WarpShuffle"/> operations.
@@ -824,8 +834,8 @@ namespace ILGPU.Backends.PTX
         {
             /// <summary>
             /// The basic mask that has be combined with an 'or' command
-            /// in case of a <see cref="ShuffleKind.Xor"/> or a <see cref="ShuffleKind.Down"/>
-            /// shuffle instruction.
+            /// in case of a <see cref="ShuffleKind.Xor"/> or a
+            /// <see cref="ShuffleKind.Down"/> shuffle instruction.
             /// </summary>
             public const int XorDownMask = 0x1f;
 
@@ -861,12 +871,10 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(WarpShuffle)"/>
-        public void GenerateCode(WarpShuffle shuffle)
-        {
+        public void GenerateCode(WarpShuffle shuffle) =>
             EmitShuffleOperation(
                 shuffle,
                 new WarpShuffleEmitter(shuffle.Kind));
-        }
 
         /// <summary>
         /// Emits warp masks of <see cref="SubWarpShuffle"/> operations.
@@ -889,10 +897,8 @@ namespace ILGPU.Backends.PTX
 
             /// <summary cref="IShuffleEmitter.EmitWarpMask(CommandEmitter)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void EmitWarpMask(CommandEmitter commandEmitter)
-            {
+            public void EmitWarpMask(CommandEmitter commandEmitter) =>
                 commandEmitter.AppendArgument(WarpMaskRegister);
-            }
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(SubWarpShuffle)"/>
@@ -954,9 +960,7 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugOperation)"/>
-        public void GenerateCode(DebugOperation debug)
-        {
+        public void GenerateCode(DebugOperation debug) =>
             Debug.Assert(false, "Invalid debug node -> should have been removed");
-        }
     }
 }

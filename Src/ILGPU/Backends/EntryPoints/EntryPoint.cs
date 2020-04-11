@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: EntryPoint.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
 using System;
@@ -87,7 +87,8 @@ namespace ILGPU.Backends.EntryPoints
         public Type KernelIndexType { get; }
 
         /// <summary>
-        /// Returns the parameter specification of arguments that are passed to the kernel.
+        /// Returns the parameter specification of arguments that are passed to the
+        /// kernel.
         /// </summary>
         public ParameterCollection Parameters => Description.Parameters;
 
@@ -108,7 +109,7 @@ namespace ILGPU.Backends.EntryPoints
 
         /// <summary>
         /// Returns the number of index parameters when all structures
-        /// are flattended into scalar parameters.
+        /// are flattened into scalar parameters.
         /// </summary>
         public int NumFlattendedIndexParameters
         {
@@ -178,7 +179,9 @@ namespace ILGPU.Backends.EntryPoints
         /// Constructs a new shared memory specification.
         /// </summary>
         /// <param name="staticSize">The static shared memory size.</param>
-        /// <param name="hasDynamicMemory">True, if this specification requires dynamic shared memory..</param>
+        /// <param name="hasDynamicMemory">
+        /// True, if this specification requires dynamic shared memory.
+        /// </param>
         public SharedMemorySpecification(int staticSize, bool hasDynamicMemory)
         {
             Debug.Assert(staticSize >= 0, "Invalid static memory size");

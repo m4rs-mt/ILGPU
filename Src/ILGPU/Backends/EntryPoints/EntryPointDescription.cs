@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: EntryPointDescription.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
 using ILGPU.Runtime;
@@ -27,34 +27,41 @@ namespace ILGPU.Backends.EntryPoints
         #region Static
 
         /// <summary>
-        /// Creates a new entry point description from the given method source that is compatible
-        /// with explicitly grouped kernels.
+        /// Creates a new entry point description from the given method source that is
+        /// compatible with explicitly grouped kernels.
         /// </summary>
         /// <param name="methodSource">The kernel method source.</param>
         /// <returns>The created entry point description.</returns>
-        public static EntryPointDescription FromExplicitlyGroupedKernel(MethodInfo methodSource) =>
+        public static EntryPointDescription FromExplicitlyGroupedKernel(
+            MethodInfo methodSource) =>
             new EntryPointDescription(methodSource, null, IndexType.KernelConfig);
 
         /// <summary>
-        /// Creates a new entry point description from the given method source that is compatible
-        /// with implicitly grouped kernels.
+        /// Creates a new entry point description from the given method source that is
+        /// compatible with implicitly grouped kernels.
         /// </summary>
         /// <param name="methodSource">The kernel method source.</param>
         /// <returns>The created entry point description.</returns>
-        public static EntryPointDescription FromImplicitlyGroupedKernel(MethodInfo methodSource)
+        public static EntryPointDescription FromImplicitlyGroupedKernel(
+            MethodInfo methodSource)
         {
             if (methodSource == null)
                 throw new ArgumentNullException(nameof(methodSource));
             var parameters = methodSource.GetParameters();
             if (parameters.Length < 1)
-                throw new NotSupportedException(ErrorMessages.InvalidEntryPointIndexParameter);
+            {
+                throw new NotSupportedException(
+                    ErrorMessages.InvalidEntryPointIndexParameter);
+            }
 
             // Try to get index type from first parameter
             var firstParamType = parameters[0].ParameterType;
             var indexType = firstParamType.GetIndexType();
             if (indexType == IndexType.None)
+            {
                 throw new NotSupportedException(
                     ErrorMessages.InvalidEntryPointIndexParameterOfWrongType);
+            }
             return new EntryPointDescription(methodSource, parameters, indexType);
         }
 
@@ -75,7 +82,8 @@ namespace ILGPU.Backends.EntryPoints
         {
             if (indexType == IndexType.None)
                 throw new ArgumentOutOfRangeException(nameof(indexType));
-            MethodSource = methodSource ?? throw new ArgumentNullException(nameof(methodSource));
+            MethodSource = methodSource ??
+                throw new ArgumentNullException(nameof(methodSource));
             IndexType = indexType;
 
             parameters = parameters ?? methodSource.GetParameters();
@@ -88,8 +96,10 @@ namespace ILGPU.Backends.EntryPoints
             {
                 var type = parameters[i].ParameterType;
                 if (type.IsPointer || type.IsPassedViaPtr())
+                {
                     throw new NotSupportedException(string.Format(
                         ErrorMessages.NotSupportedKernelParameterType, i));
+                }
                 parameterTypes.Add(type);
             }
             Parameters = new ParameterCollection(parameterTypes.MoveToImmutable());
@@ -130,17 +140,26 @@ namespace ILGPU.Backends.EntryPoints
         #region Methods
 
         /// <summary>
-        /// Validates this object and throws a <see cref="NotSupportedException"/> in the case
-        /// of a not supported kernel configuration.
+        /// Validates this object and throws a <see cref="NotSupportedException"/> in
+        /// the case of an unsupported kernel configuration.
         /// </summary>
         public void Validate()
         {
             if (MethodSource == null)
-                throw new NotSupportedException(ErrorMessages.InvalidEntryPointWithoutDotNetMethod);
+            {
+                throw new NotSupportedException(
+                    ErrorMessages.InvalidEntryPointWithoutDotNetMethod);
+            }
             if (!MethodSource.IsStatic)
-                throw new NotSupportedException(ErrorMessages.InvalidEntryPointInstanceKernelMethod);
+            {
+                throw new NotSupportedException(
+                    ErrorMessages.InvalidEntryPointInstanceKernelMethod);
+            }
             if (IndexType == IndexType.None)
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedKernel);
+            }
         }
 
         /// <summary>
@@ -154,12 +173,16 @@ namespace ILGPU.Backends.EntryPoints
             Type instanceType = null)
         {
             Debug.Assert(context != null, "Invalid context");
-            var parameterTypes = new Type[Parameters.Count + Kernel.KernelParameterOffset];
+            var parameterTypes = new Type[
+                Parameters.Count + Kernel.KernelParameterOffset];
 
             // Launcher(Kernel, AcceleratorStream, [Index], ...)
-            parameterTypes[Kernel.KernelInstanceParamIdx] = instanceType ?? typeof(Kernel);
-            parameterTypes[Kernel.KernelStreamParamIdx] = typeof(AcceleratorStream);
-            parameterTypes[Kernel.KernelParamDimensionIdx] = IndexType.GetManagedIndexType();
+            parameterTypes[Kernel.KernelInstanceParamIdx] =
+                instanceType ?? typeof(Kernel);
+            parameterTypes[Kernel.KernelStreamParamIdx] =
+                typeof(AcceleratorStream);
+            parameterTypes[Kernel.KernelParamDimensionIdx] =
+                IndexType.GetManagedIndexType();
             Parameters.CopyTo(parameterTypes, Kernel.KernelParameterOffset);
 
             var result = context.DefineRuntimeMethod(typeof(void), parameterTypes);
@@ -221,7 +244,9 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="left">The left description.</param>
         /// <param name="right">The right description.</param>
         /// <returns>True, if the left and right descriptions are the same.</returns>
-        public static bool operator ==(EntryPointDescription left, EntryPointDescription right) =>
+        public static bool operator ==(
+            EntryPointDescription left,
+            EntryPointDescription right) =>
             left.Equals(right);
 
         /// <summary>
@@ -230,7 +255,9 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="left">The left description.</param>
         /// <param name="right">The right description.</param>
         /// <returns>True, if the left and right descriptions are not the same.</returns>
-        public static bool operator !=(EntryPointDescription left, EntryPointDescription right) =>
+        public static bool operator !=(
+            EntryPointDescription left,
+            EntryPointDescription right) =>
             !(left == right);
 
         #endregion

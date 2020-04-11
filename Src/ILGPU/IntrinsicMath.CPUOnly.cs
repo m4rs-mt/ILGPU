@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IntrinsicMath.CPUOnly.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using System;
@@ -24,37 +24,37 @@ namespace ILGPU
             #region General
 
             /// <summary>
-            /// Returns true iff the given value is NaN.
+            /// Returns true if the given value is NaN.
             /// </summary>
             /// <param name="value">The value.</param>
-            /// <returns>True, iff the given value is NaN.</returns>
+            /// <returns>True, if the given value is NaN.</returns>
             [MathIntrinsic(MathIntrinsicKind.IsNaNF)]
             public static bool IsNaN(double value) =>
                 double.IsNaN(value);
 
             /// <summary>
-            /// Returns true iff the given value is NaN.
+            /// Returns true if the given value is NaN.
             /// </summary>
             /// <param name="value">The value.</param>
-            /// <returns>True, iff the given value is NaN.</returns>
+            /// <returns>True, if the given value is NaN.</returns>
             [MathIntrinsic(MathIntrinsicKind.IsNaNF)]
             public static bool IsNaN(float value) =>
                 float.IsNaN(value);
 
             /// <summary>
-            /// Returns true iff the given value is infinity.
+            /// Returns true if the given value is infinity.
             /// </summary>
             /// <param name="value">The value.</param>
-            /// <returns>True, iff the given value is infinity.</returns>
+            /// <returns>True, if the given value is infinity.</returns>
             [MathIntrinsic(MathIntrinsicKind.IsInfF)]
             public static bool IsInfinity(double value) =>
                 double.IsInfinity(value);
 
             /// <summary>
-            /// Returns true iff the given value is infinity.
+            /// Returns true if the given value is infinity.
             /// </summary>
             /// <param name="value">The value.</param>
-            /// <returns>True, iff the given value is infinity.</returns>
+            /// <returns>True, if the given value is infinity.</returns>
             [MathIntrinsic(MathIntrinsicKind.IsInfF)]
             public static bool IsInfinity(float value) =>
                 float.IsInfinity(value);

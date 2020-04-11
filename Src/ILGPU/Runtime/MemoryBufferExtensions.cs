@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MemoryBufferExtensions.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -113,8 +113,14 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the input array will stored as a transposed array to match the target layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "source")]
+        /// <remarks>
+        /// Note that the input array will stored as a transposed array to match the
+        /// target layout.
+        /// </remarks>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "source")]
         public void CopyFrom(
             T[,] source,
             Index2 sourceOffset,
@@ -135,8 +141,14 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the input array will stored as a transposed array to match the target layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "source")]
+        /// <remarks>
+        /// Note that the input array will stored as a transposed array to match the
+        /// target layout.
+        /// </remarks>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "source")]
         public void CopyFrom(
             AcceleratorStream stream,
             T[,] source,
@@ -149,11 +161,15 @@ namespace ILGPU.Runtime
 
             if (extent.X < 0 || extent.Y < 0 ||
                 extent.X > source.GetLength(0) || extent.Y > source.GetLength(1))
+            {
                 throw new ArgumentOutOfRangeException(nameof(extent));
+            }
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 ||
                 sourceOffset.X >= extent.X || sourceOffset.Y >= extent.Y)
+            {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
 
             var tempBuffer = new T[extent.Size];
 
@@ -162,7 +178,8 @@ namespace ILGPU.Runtime
                 for (int j = 0; j < extent.Y; ++j)
                 {
                     var targetIdx = new Index2(i, j).ComputeLinearIndex(extent);
-                    tempBuffer[targetIdx] = source[i + sourceOffset.X, j + sourceOffset.Y];
+                    tempBuffer[targetIdx] =
+                        source[i + sourceOffset.X, j + sourceOffset.Y];
                 }
             }
 
@@ -182,7 +199,10 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the input array will stored as a transposed array to match the target layout.</remarks>
+        /// <remarks>
+        /// Note that the input array will stored as a transposed array to match the
+        /// target layout.
+        /// </remarks>
         [CLSCompliant(false)]
         public void CopyFrom(
             T[][] source,
@@ -198,16 +218,19 @@ namespace ILGPU.Runtime
 
         /// <summary>
         /// Copies the contents to this buffer from the given jagged array.
-        /// Note that child arrays that are not initialized or do not have the appropriate
-        /// length specified by <paramref name="extent"/> will be skipped and the values
-        /// will have their default value.
+        /// Note that child arrays that are not initialized or do not have the
+        /// appropriate length specified by <paramref name="extent"/> will be skipped
+        /// and the values will have their default value.
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="source">The source array.</param>
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the input array will stored as a transposed array to match the target layout.</remarks>
+        /// <remarks>
+        /// Note that the input array will stored as a transposed array to match the
+        /// target layout.
+        /// </remarks>
         [CLSCompliant(false)]
         public void CopyFrom(
             AcceleratorStream stream,
@@ -221,11 +244,15 @@ namespace ILGPU.Runtime
 
             if (extent.X < 0 || extent.Y < 0 ||
                 extent.X > source.Length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(extent));
+            }
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 ||
                 sourceOffset.X >= extent.X || sourceOffset.Y >= extent.Y)
+            {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
 
             var tempBuffer = new T[extent.Size];
 
@@ -236,7 +263,10 @@ namespace ILGPU.Runtime
                     continue;
 
                 // Skip entries that are out of bounds
-                for (int j = 0, e = IntrinsicMath.Min(subData.Length, extent.Y); j < e; ++j)
+                for (
+                    int j = 0, e = IntrinsicMath.Min(subData.Length, extent.Y);
+                    j < e;
+                    ++j)
                 {
                     var targetIdx = new Index2(i, j).ComputeLinearIndex(extent);
                     tempBuffer[targetIdx] = subData[j + sourceOffset.Y];
@@ -259,8 +289,14 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the output array will contain the data as a transposed array to match the source layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "target")]
+        /// <remarks>
+        /// Note that the output array will contain the data as a transposed array to
+        /// match the source layout.
+        /// </remarks>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "target")]
         public void CopyTo(
             T[,] target,
             Index2 sourceOffset,
@@ -281,8 +317,14 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the output array will contain the data as a transposed array to match the source layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "target")]
+        /// <remarks>
+        /// Note that the output array will contain the data as a transposed array to
+        /// match the source layout.
+        /// </remarks>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "target")]
         public void CopyTo(
             AcceleratorStream stream,
             T[,] target,
@@ -295,11 +337,15 @@ namespace ILGPU.Runtime
 
             if (extent.X < 0 || extent.Y < 0 ||
                 extent.X > target.GetLength(0) || extent.Y > target.GetLength(1))
+            {
                 throw new ArgumentOutOfRangeException(nameof(extent));
+            }
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 ||
                 sourceOffset.X >= Extent.X || sourceOffset.Y >= Extent.Y)
+            {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
 
             var tempBuffer = new T[extent.Size];
             buffer.CopyTo(stream, tempBuffer, sourceOffset, 0, extent);
@@ -309,7 +355,8 @@ namespace ILGPU.Runtime
                 for (int j = 0; j < extent.Y; ++j)
                 {
                     var sourceIdx = new Index2(i, j).ComputeLinearIndex(extent);
-                    target[i + targetOffset.X, j + targetOffset.Y] = tempBuffer[sourceIdx];
+                    target[i + targetOffset.X, j + targetOffset.Y] =
+                        tempBuffer[sourceIdx];
                 }
             }
         }
@@ -317,13 +364,17 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Copies the contents of this buffer to the given jagged array using
         /// the default accelerator stream.
-        /// Note that child arrays that are not initialized will be skipped during the copy operation.
+        /// Note that child arrays that are not initialized will be skipped during the
+        /// copy operation.
         /// </summary>
         /// <param name="target">The target array.</param>
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the output array will contain the data as a transposed array to match the source layout.</remarks>
+        /// <remarks>
+        /// Note that the output array will contain the data as a transposed array to
+        /// match the source layout.
+        /// </remarks>
         [CLSCompliant(false)]
         public void CopyTo(
             T[][] target,
@@ -339,14 +390,18 @@ namespace ILGPU.Runtime
 
         /// <summary>
         /// Copies the contents of this buffer to the given jagged array.
-        /// Note that child arrays that are not initialized will be skipped during the copy operation.
+        /// Note that child arrays that are not initialized will be skipped during the
+        /// copy operation.
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="target">The target array.</param>
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the output array will contain the data as a transposed array to match the source layout.</remarks>
+        /// <remarks>
+        /// Note that the output array will contain the data as a transposed array to
+        /// match the source layout.
+        /// </remarks>
         [CLSCompliant(false)]
         public void CopyTo(
             AcceleratorStream stream,
@@ -363,7 +418,9 @@ namespace ILGPU.Runtime
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 ||
                 sourceOffset.X >= Extent.X || sourceOffset.Y >= Extent.Y)
+            {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
 
             var tempBuffer = new T[extent.Size];
             buffer.CopyTo(stream, tempBuffer, sourceOffset, 0, extent);
@@ -387,7 +444,9 @@ namespace ILGPU.Runtime
         /// the default accelerator stream.
         /// </summary>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,] GetAs2DArray() => GetAs2DArray(Accelerator.DefaultStream);
 
         /// <summary>
@@ -395,7 +454,9 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,] GetAs2DArray(AcceleratorStream stream) =>
             GetAs2DArray(stream, default, Extent);
 
@@ -406,7 +467,9 @@ namespace ILGPU.Runtime
         /// <param name="offset">The offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,] GetAs2DArray(Index2 offset, Index2 extent) =>
             GetAs2DArray(Accelerator.DefaultStream, offset, extent);
 
@@ -417,7 +480,9 @@ namespace ILGPU.Runtime
         /// <param name="offset">The offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,] GetAs2DArray(AcceleratorStream stream, Index2 offset, Index2 extent)
         {
             if (extent.X < 1 || extent.Y < 1)
@@ -480,8 +545,14 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the input array will stored as a transposed array to match the target layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "source")]
+        /// <remarks>
+        /// Note that the input array will stored as a transposed array to match the
+        /// target layout.
+        /// </remarks>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "source")]
         public void CopyFrom(
             T[,,] source,
             Index3 sourceOffset,
@@ -502,8 +573,14 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the input array will stored as a transposed array to match the target layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "source")]
+        /// <remarks>
+        /// Note that the input array will stored as a transposed array to match the
+        /// target layout.
+        /// </remarks>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "source")]
         public void CopyFrom(
             AcceleratorStream stream,
             T[,,] source,
@@ -515,13 +592,17 @@ namespace ILGPU.Runtime
                 extent.X > source.GetLength(0) ||
                 extent.Y > source.GetLength(1) ||
                 extent.Z > source.GetLength(2))
+            {
                 throw new ArgumentOutOfRangeException(nameof(extent));
+            }
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 || sourceOffset.Z < 0 ||
                 sourceOffset.X >= extent.X ||
                 sourceOffset.Y >= extent.Y ||
                 sourceOffset.Z >= extent.Z)
+            {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
 
             var tempBuffer = new T[extent.Size];
 
@@ -549,14 +630,17 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Copies the contents of this buffer from the given jagged array using
-        /// the default accelerator stream.
+        /// Copies the contents of this buffer from the given jagged array using the
+        /// default accelerator stream.
         /// </summary>
         /// <param name="source">The source array.</param>
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the input array will stored as a transposed array to match the target layout.</remarks>
+        /// <remarks>
+        /// Note that the input array will stored as a transposed array to match the
+        /// target layout.
+        /// </remarks>
         [CLSCompliant(false)]
         public void CopyFrom(
             T[][][] source,
@@ -578,7 +662,10 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the input array will stored as a transposed array to match the target layout.</remarks>
+        /// <remarks>
+        /// Note that the input array will stored as a transposed array to match the
+        /// target layout.
+        /// </remarks>
         [CLSCompliant(false)]
         public void CopyFrom(
             AcceleratorStream stream,
@@ -589,13 +676,17 @@ namespace ILGPU.Runtime
         {
             if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
                 extent.X > source.Length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(extent));
+            }
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 || sourceOffset.Z < 0 ||
                 sourceOffset.X >= extent.X ||
                 sourceOffset.Y >= extent.Y ||
                 sourceOffset.Z >= extent.Z)
+            {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
 
             var tempBuffer = new T[extent.Size];
 
@@ -612,7 +703,10 @@ namespace ILGPU.Runtime
                         continue;
 
                     // Skip entries that are out of bounds
-                    for (int k = 0, e = IntrinsicMath.Min(subSubData.Length, extent.Z); k < e; ++k)
+                    for (
+                        int k = 0, e = IntrinsicMath.Min(subSubData.Length, extent.Z);
+                        k < e;
+                        ++k)
                     {
                         var targetIdx = new Index3(i, j, k).ComputeLinearIndex(extent);
                         tempBuffer[targetIdx] = subSubData[k + sourceOffset.Z];
@@ -636,8 +730,14 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the output array will contain the data as a transposed array to match the source layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "target")]
+        /// <remarks>
+        /// Note that the output array will contain the data as a transposed array to
+        /// match the source layout.
+        /// </remarks>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "target")]
         public void CopyTo(
             T[,,] target,
             Index3 sourceOffset,
@@ -658,8 +758,14 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the output array will contain the data as a transposed array to match the source layout.</remarks>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional", Target = "target")]
+        /// <remarks>
+        /// Note that the output array will contain the data as a transposed array to
+        /// match the source layout.
+        /// </remarks>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "target")]
         public void CopyTo(
             AcceleratorStream stream,
             T[,,] target,
@@ -674,13 +780,17 @@ namespace ILGPU.Runtime
                 extent.X > target.GetLength(0) ||
                 extent.Y > target.GetLength(1) ||
                 extent.Z > target.GetLength(2))
+            {
                 throw new ArgumentOutOfRangeException(nameof(extent));
+            }
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 || sourceOffset.Z < 0 ||
                 sourceOffset.X >= Extent.X ||
                 sourceOffset.Y >= Extent.Y ||
                 sourceOffset.Z >= Extent.Z)
+            {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
 
             var tempBuffer = new T[extent.Size];
             buffer.CopyTo(stream, tempBuffer, sourceOffset, 0, extent);
@@ -702,15 +812,19 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Copies the contents of this buffer to the given jagged array using
-        /// the default accelerator stream.
-        /// Note that child arrays that are not initialized will be skipped during the copy operation.
+        /// Copies the contents of this buffer to the given jagged array using the
+        /// default accelerator stream.
+        /// Note that child arrays that are not initialized will be skipped during the
+        /// copy operation.
         /// </summary>
         /// <param name="target">The target array.</param>
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the output array will contain the data as a transposed array to match the source layout.</remarks>
+        /// <remarks>
+        /// Note that the output array will contain the data as a transposed array to
+        /// match the source layout.
+        /// </remarks>
         [CLSCompliant(false)]
         public void CopyTo(
             T[][][] target,
@@ -726,14 +840,18 @@ namespace ILGPU.Runtime
 
         /// <summary>
         /// Copies the contents of this buffer to the given jagged array.
-        /// Note that child arrays that are not initialized will be skipped during the copy operation.
+        /// Note that child arrays that are not initialized will be skipped during the
+        /// copy operation.
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <param name="target">The target array.</param>
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The length.</param>
-        /// <remarks>Note that the output array will contain the data as a transposed array to match the source layout.</remarks>
+        /// <remarks>
+        /// Note that the output array will contain the data as a transposed array to
+        /// match the source layout.
+        /// </remarks>
         [CLSCompliant(false)]
         public void CopyTo(
             AcceleratorStream stream,
@@ -747,11 +865,16 @@ namespace ILGPU.Runtime
 
             if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
                 extent.X > target.Length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(extent));
+            }
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 || sourceOffset.Z < 0 ||
-                sourceOffset.X >= Extent.X || sourceOffset.Y >= Extent.Y || sourceOffset.Z >= Extent.Z)
+                sourceOffset.X >= Extent.X || sourceOffset.Y >= Extent.Y ||
+                sourceOffset.Z >= Extent.Z)
+            {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
 
             var tempBuffer = new T[extent.Size];
             buffer.CopyTo(
@@ -785,7 +908,9 @@ namespace ILGPU.Runtime
         /// the default accelerator stream.
         /// </summary>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,,] GetAs3DArray() => GetAs3DArray(Accelerator.DefaultStream);
 
         /// <summary>
@@ -793,7 +918,9 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,,] GetAs3DArray(AcceleratorStream stream) =>
             GetAs3DArray(stream, default, Extent);
 
@@ -804,7 +931,9 @@ namespace ILGPU.Runtime
         /// <param name="offset">The offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,,] GetAs3DArray(Index3 offset, Index3 extent) =>
             GetAs3DArray(Accelerator.DefaultStream, offset, extent);
 
@@ -815,7 +944,9 @@ namespace ILGPU.Runtime
         /// <param name="offset">The offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional")]
         public T[,,] GetAs3DArray(AcceleratorStream stream, Index3 offset, Index3 extent)
         {
             if (extent.X < 1 || extent.Y < 1 || extent.Z < 1)

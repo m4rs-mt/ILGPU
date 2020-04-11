@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Disassembler.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.Resources;
@@ -40,7 +40,7 @@ namespace ILGPU.Frontend
         #region Instance
 
         /// <summary>
-        /// The current il byte code.
+        /// The current IL byte code.
         /// </summary>
         private readonly byte[] il;
 
@@ -78,23 +78,30 @@ namespace ILGPU.Frontend
         /// Constructs a new disassembler.
         /// </summary>
         /// <param name="methodBase">The target method.</param>
-        /// <param name="sequencePointEnumerator">The assocated sequence-point enumerator.</param>
-        public Disassembler(MethodBase methodBase, SequencePointEnumerator sequencePointEnumerator)
+        /// <param name="sequencePointEnumerator">
+        /// The associated sequence-point enumerator.
+        /// </param>
+        public Disassembler(
+            MethodBase methodBase,
+            SequencePointEnumerator sequencePointEnumerator)
         {
-            MethodBase = methodBase ?? throw new ArgumentNullException(nameof(methodBase));
-            if (MethodBase is MethodInfo)
-                MethodGenericArguments = MethodBase.GetGenericArguments();
-            else
-                MethodGenericArguments = Array.Empty<Type>();
+            MethodBase = methodBase
+                ?? throw new ArgumentNullException(nameof(methodBase));
+            MethodGenericArguments = MethodBase is MethodInfo
+                ? MethodBase.GetGenericArguments()
+                : Array.Empty<Type>();
             TypeGenericArguments = MethodBase.DeclaringType.GetGenericArguments();
             MethodBody = MethodBase.GetMethodBody();
             if (MethodBody == null)
+            {
                 throw new NotSupportedException(string.Format(
                     ErrorMessages.NativeMethodNotSupported,
                     MethodBase.Name));
+            }
             il = MethodBody.GetILAsByteArray();
             instructions = ImmutableArray.CreateBuilder<ILInstruction>(il.Length);
-            debugInformationEnumerator = sequencePointEnumerator ?? SequencePointEnumerator.Empty;
+            debugInformationEnumerator = sequencePointEnumerator
+                ?? SequencePointEnumerator.Empty;
         }
 
         #endregion
@@ -186,10 +193,12 @@ namespace ILGPU.Frontend
                         }
                     }
                     else
+                    {
                         throw new NotSupportedException(string.Format(
                             ErrorMessages.NotSupportedILInstruction,
                             MethodBase.ToString(),
                             opCode));
+                    }
                 }
             }
 
@@ -225,7 +234,9 @@ namespace ILGPU.Frontend
                 }
                 else
                 {
-                    Debug.Assert(type == ILInstructionType.Call, "Invalid constructor call");
+                    Debug.Assert(
+                        type == ILInstructionType.Call,
+                        "Invalid constructor call");
                     popCount += 1;
                 }
             }
@@ -236,38 +247,41 @@ namespace ILGPU.Frontend
         /// Adds the given flags to the current instruction flags.
         /// </summary>
         /// <param name="flagsToAdd">The flags to be added.</param>
-        private void AddFlags(ILInstructionFlags flagsToAdd)
-        {
-            flags |= flagsToAdd;
-        }
+        private void AddFlags(ILInstructionFlags flagsToAdd) => flags |= flagsToAdd;
 
         /// <summary>
         /// Appends an instruction to the current instruction list.
         /// </summary>
         /// <param name="type">The instruction type.</param>
-        /// <param name="popCount">The number of elements to pop from the stack.</param>
-        /// <param name="pushCount">The number of elements to push onto the stack.</param>
+        /// <param name="popCount">
+        /// The number of elements to pop from the stack.
+        /// </param>
+        /// <param name="pushCount">
+        /// The number of elements to push onto the stack.
+        /// </param>
         /// <param name="argument">The argument of the instruction.</param>
         private void AppendInstruction(
             ILInstructionType type,
             ushort popCount,
             ushort pushCount,
-            object argument = null)
-        {
+            object argument = null) =>
             AppendInstructionWithFlags(
                 type,
                 popCount,
                 pushCount,
                 ILInstructionFlags.None,
                 argument);
-        }
 
         /// <summary>
         /// Appends an instruction to the current instruction list.
         /// </summary>
         /// <param name="type">The instruction type.</param>
-        /// <param name="popCount">The number of elements to pop from the stack.</param>
-        /// <param name="pushCount">The number of elements to push onto the stack.</param>
+        /// <param name="popCount">
+        /// The number of elements to pop from the stack.
+        /// </param>
+        /// <param name="pushCount">
+        /// The number of elements to push onto the stack.
+        /// </param>
         /// <param name="additionalFlags">Additional instruction flags.</param>
         /// <param name="argument">The argument of the instruction.</param>
         private void AppendInstructionWithFlags(
@@ -275,18 +289,18 @@ namespace ILGPU.Frontend
             ushort popCount,
             ushort pushCount,
             ILInstructionFlags additionalFlags,
-            object argument = null)
-        {
+            object argument = null) =>
             // Merge with current flags
             instructions.Add(new ILInstruction(
                 instructionOffset,
                 type,
-                new ILInstructionFlagsContext(additionalFlags | flags, flagsArgument),
+                new ILInstructionFlagsContext(
+                    additionalFlags | flags,
+                    flagsArgument),
                 popCount,
                 pushCount,
                 argument,
                 CurrentSequencePoint));
-        }
 
         #region Metadata
 
@@ -296,13 +310,11 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="token">The token of the type to resolve.</param>
         /// <returns>The resolved type.</returns>
-        private Type ResolveType(int token)
-        {
-            return AssociatedModule.ResolveType(
+        private Type ResolveType(int token) =>
+            AssociatedModule.ResolveType(
                 token,
                 TypeGenericArguments,
                 MethodGenericArguments);
-        }
 
         /// <summary>
         /// Resolves the method for the given token using
@@ -310,13 +322,11 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="token">The token of the method to resolve.</param>
         /// <returns>The resolved method.</returns>
-        private MethodBase ResolveMethod(int token)
-        {
-            return AssociatedModule.ResolveMethod(
+        private MethodBase ResolveMethod(int token) =>
+            AssociatedModule.ResolveMethod(
                 token,
                 TypeGenericArguments,
                 MethodGenericArguments);
-        }
 
         /// <summary>
         /// Resolves the field for the given token using
@@ -324,13 +334,11 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="token">The token of the field to resolve.</param>
         /// <returns>The resolved field.</returns>
-        private FieldInfo ResolveField(int token)
-        {
-            return AssociatedModule.ResolveField(
+        private FieldInfo ResolveField(int token) =>
+            AssociatedModule.ResolveField(
                 token,
                 TypeGenericArguments,
                 MethodGenericArguments);
-        }
 
         #endregion
 
@@ -364,28 +372,19 @@ namespace ILGPU.Frontend
         /// Reads a short branch target from the current instruction data.
         /// </summary>
         /// <returns>The decoded short branch target.</returns>
-        private int ReadShortBranchTarget()
-        {
-            return ReadSByteArg() + ilOffset;
-        }
+        private int ReadShortBranchTarget() => ReadSByteArg() + ilOffset;
 
         /// <summary>
         /// Reads a branch target from the current instruction data.
         /// </summary>
         /// <returns>The decoded branch target.</returns>
-        private int ReadBranchTarget()
-        {
-            return ReadIntArg() + ilOffset;
-        }
+        private int ReadBranchTarget() => ReadIntArg() + ilOffset;
 
         /// <summary>
         /// Reads a byte from the current instruction data.
         /// </summary>
         /// <returns>The decoded byte.</returns>
-        private int ReadByteArg()
-        {
-            return il[ilOffset++];
-        }
+        private int ReadByteArg() => il[ilOffset++];
 
         /// <summary>
         /// Reads a type reference from the current instruction data.

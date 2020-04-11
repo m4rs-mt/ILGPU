@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IBackendCodeGenerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Values;
@@ -17,7 +17,9 @@ namespace ILGPU.Backends
     /// <summary>
     /// Represents an abstract code generator that works on a given data type.
     /// </summary>
-    /// <typeparam name="TKernelBuilder">The data type on which this code generator can work.</typeparam>
+    /// <typeparam name="TKernelBuilder">
+    /// The data type on which this code generator can work.
+    /// </typeparam>
     public interface IBackendCodeGenerator<TKernelBuilder> : IBackendCodeGenerator
     {
         /// <summary>
@@ -335,150 +337,196 @@ namespace ILGPU.Backends
             public TCodeGenerator CodeGenerator { get; }
 
             /// <summary cref="IValueVisitor.Visit(MethodCall)"/>
-            public void Visit(MethodCall methodCall) => CodeGenerator.GenerateCode(methodCall);
+            public void Visit(MethodCall methodCall) =>
+                CodeGenerator.GenerateCode(methodCall);
 
             /// <summary cref="IValueVisitor.Visit(PhiValue)"/>
-            public void Visit(PhiValue phiValue) => CodeGenerator.GenerateCode(phiValue);
+            public void Visit(PhiValue phiValue) =>
+                CodeGenerator.GenerateCode(phiValue);
 
             /// <summary cref="IValueVisitor.Visit(Parameter)"/>
-            public void Visit(Parameter parameter) => CodeGenerator.GenerateCode(parameter);
+            public void Visit(Parameter parameter) =>
+                CodeGenerator.GenerateCode(parameter);
 
             /// <summary cref="IValueVisitor.Visit(UnaryArithmeticValue)"/>
-            public void Visit(UnaryArithmeticValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(UnaryArithmeticValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(BinaryArithmeticValue)"/>
-            public void Visit(BinaryArithmeticValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(BinaryArithmeticValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(TernaryArithmeticValue)"/>
-            public void Visit(TernaryArithmeticValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(TernaryArithmeticValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(CompareValue)"/>
-            public void Visit(CompareValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(CompareValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(ConvertValue)"/>
-            public void Visit(ConvertValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(ConvertValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(PointerCast)"/>
-            public void Visit(PointerCast value) => CodeGenerator.GenerateCode(value);
+            public void Visit(PointerCast value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(AddressSpaceCast)"/>
-            public void Visit(AddressSpaceCast value) => CodeGenerator.GenerateCode(value);
+            public void Visit(AddressSpaceCast value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(ViewCast)"/>
-            public void Visit(ViewCast value) => throw new InvalidCodeGenerationException();
+            public void Visit(ViewCast value) =>
+                throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(FloatAsIntCast)"/>
-            public void Visit(FloatAsIntCast value) => CodeGenerator.GenerateCode(value);
+            public void Visit(FloatAsIntCast value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(IntAsFloatCast)"/>
-            public void Visit(IntAsFloatCast value) => CodeGenerator.GenerateCode(value);
+            public void Visit(IntAsFloatCast value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(Predicate)"/>
-            public void Visit(Predicate predicate) => CodeGenerator.GenerateCode(predicate);
+            public void Visit(Predicate predicate) =>
+                CodeGenerator.GenerateCode(predicate);
 
             /// <summary cref="IValueVisitor.Visit(GenericAtomic)"/>
-            public void Visit(GenericAtomic atomic) => CodeGenerator.GenerateCode(atomic);
+            public void Visit(GenericAtomic atomic) =>
+                CodeGenerator.GenerateCode(atomic);
 
             /// <summary cref="IValueVisitor.Visit(AtomicCAS)"/>
-            public void Visit(AtomicCAS atomicCAS) => CodeGenerator.GenerateCode(atomicCAS);
+            public void Visit(AtomicCAS atomicCAS) =>
+                CodeGenerator.GenerateCode(atomicCAS);
 
             /// <summary cref="IValueVisitor.Visit(Alloca)"/>
-            public void Visit(Alloca alloca) => CodeGenerator.GenerateCode(alloca);
+            public void Visit(Alloca alloca) =>
+                CodeGenerator.GenerateCode(alloca);
 
             /// <summary cref="IValueVisitor.Visit(MemoryBarrier)"/>
-            public void Visit(MemoryBarrier barrier) => CodeGenerator.GenerateCode(barrier);
+            public void Visit(MemoryBarrier barrier) =>
+                CodeGenerator.GenerateCode(barrier);
 
             /// <summary cref="IValueVisitor.Visit(Load)"/>
-            public void Visit(Load load) => CodeGenerator.GenerateCode(load);
+            public void Visit(Load load) =>
+                CodeGenerator.GenerateCode(load);
 
             /// <summary cref="IValueVisitor.Visit(Store)"/>
-            public void Visit(Store store) => CodeGenerator.GenerateCode(store);
+            public void Visit(Store store) =>
+                CodeGenerator.GenerateCode(store);
 
             /// <summary cref="IValueVisitor.Visit(SubViewValue)"/>
-            public void Visit(SubViewValue value) => throw new InvalidCodeGenerationException();
+            public void Visit(SubViewValue value) =>
+                throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(LoadElementAddress)"/>
-            public void Visit(LoadElementAddress value) => CodeGenerator.GenerateCode(value);
+            public void Visit(LoadElementAddress value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(LoadElementAddress)"/>
-            public void Visit(LoadFieldAddress value) => CodeGenerator.GenerateCode(value);
+            public void Visit(LoadFieldAddress value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(NewView)"/>
-            public void Visit(NewView value) => throw new InvalidCodeGenerationException();
+            public void Visit(NewView value) =>
+                throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(GetViewLength)"/>
-            public void Visit(GetViewLength value) => throw new InvalidCodeGenerationException();
+            public void Visit(GetViewLength value) =>
+                throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(PrimitiveValue)"/>
-            public void Visit(PrimitiveValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(PrimitiveValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(StringValue)"/>
-            public void Visit(StringValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(StringValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(NullValue)"/>
-            public void Visit(NullValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(NullValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(SizeOfValue)"/>
             public void Visit(SizeOfValue value) =>
                 throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(StructureValue)"/>
-            public void Visit(StructureValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(StructureValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(GetField)"/>
-            public void Visit(GetField value) => CodeGenerator.GenerateCode(value);
+            public void Visit(GetField value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(SetField)"/>
-            public void Visit(SetField value) => CodeGenerator.GenerateCode(value);
+            public void Visit(SetField value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(ArrayValue)"/>
-            public void Visit(ArrayValue value) => throw new InvalidCodeGenerationException();
+            public void Visit(ArrayValue value) =>
+                throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(GetArrayExtent)"/>
-            public void Visit(GetArrayExtent value) => throw new InvalidCodeGenerationException();
+            public void Visit(GetArrayExtent value) =>
+                throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(GetArrayElement)"/>
-            public void Visit(GetArrayElement value) => throw new InvalidCodeGenerationException();
+            public void Visit(GetArrayElement value) =>
+                throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(SetArrayElement)"/>
-            public void Visit(SetArrayElement value) => throw new InvalidCodeGenerationException();
+            public void Visit(SetArrayElement value) =>
+                throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(AcceleratorTypeValue)"/>
             public void Visit(AcceleratorTypeValue value) =>
                 throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(GridIndexValue)"/>
-            public void Visit(GridIndexValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(GridIndexValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(GroupIndexValue)"/>
-            public void Visit(GroupIndexValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(GroupIndexValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(GridDimensionValue)"/>
-            public void Visit(GridDimensionValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(GridDimensionValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(GroupDimensionValue)"/>
-            public void Visit(GroupDimensionValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(GroupDimensionValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(WarpSizeValue)"/>
-            public void Visit(WarpSizeValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(WarpSizeValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(LaneIdxValue)"/>
-            public void Visit(LaneIdxValue value) => CodeGenerator.GenerateCode(value);
+            public void Visit(LaneIdxValue value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(PredicateBarrier)"/>
-            public void Visit(PredicateBarrier barrier) => CodeGenerator.GenerateCode(barrier);
+            public void Visit(PredicateBarrier barrier) =>
+                CodeGenerator.GenerateCode(barrier);
 
             /// <summary cref="IValueVisitor.Visit(Barrier)"/>
-            public void Visit(Barrier barrier) => CodeGenerator.GenerateCode(barrier);
+            public void Visit(Barrier barrier) =>
+                CodeGenerator.GenerateCode(barrier);
 
             /// <summary cref="IValueVisitor.Visit(Broadcast)"/>
-            public void Visit(Broadcast broadcast) => CodeGenerator.GenerateCode(broadcast);
+            public void Visit(Broadcast broadcast) =>
+                CodeGenerator.GenerateCode(broadcast);
 
             /// <summary cref="IValueVisitor.Visit(WarpShuffle)"/>
-            public void Visit(WarpShuffle shuffle) => CodeGenerator.GenerateCode(shuffle);
+            public void Visit(WarpShuffle shuffle) =>
+                CodeGenerator.GenerateCode(shuffle);
 
             /// <summary cref="IValueVisitor.Visit(SubWarpShuffle)"/>
-            public void Visit(SubWarpShuffle shuffle) => CodeGenerator.GenerateCode(shuffle);
+            public void Visit(SubWarpShuffle shuffle) =>
+                CodeGenerator.GenerateCode(shuffle);
 
             /// <summary cref="IValueVisitor.Visit(UndefinedValue)"/>
             public void Visit(UndefinedValue undefined) =>
@@ -489,20 +537,24 @@ namespace ILGPU.Backends
                 throw new InvalidCodeGenerationException();
 
             /// <summary cref="IValueVisitor.Visit(DebugOperation)"/>
-            public void Visit(DebugOperation debug) => CodeGenerator.GenerateCode(debug);
+            public void Visit(DebugOperation debug) =>
+                CodeGenerator.GenerateCode(debug);
 
             /// <summary cref="IValueVisitor.Visit(ReturnTerminator)"/>
             public void Visit(ReturnTerminator returnTerminator) =>
                 CodeGenerator.GenerateCode(returnTerminator);
 
             /// <summary cref="IValueVisitor.Visit(UnconditionalBranch)"/>
-            public void Visit(UnconditionalBranch branch) => CodeGenerator.GenerateCode(branch);
+            public void Visit(UnconditionalBranch branch) =>
+                CodeGenerator.GenerateCode(branch);
 
             /// <summary cref="IValueVisitor.Visit(IfBranch)"/>
-            public void Visit(IfBranch branch) => CodeGenerator.GenerateCode(branch);
+            public void Visit(IfBranch branch) =>
+                CodeGenerator.GenerateCode(branch);
 
             /// <summary cref="IValueVisitor.Visit(SwitchBranch)"/>
-            public void Visit(SwitchBranch branch) => CodeGenerator.GenerateCode(branch);
+            public void Visit(SwitchBranch branch) =>
+                CodeGenerator.GenerateCode(branch);
         }
 
         /// <summary>
@@ -520,5 +572,4 @@ namespace ILGPU.Backends
             value.Accept(visitor);
         }
     }
-
 }

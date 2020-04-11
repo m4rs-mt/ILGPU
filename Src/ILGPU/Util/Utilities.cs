@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Utilities.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
@@ -54,7 +54,9 @@ namespace ILGPU.Util
         /// Selects between the two given values.
         /// </summary>
         /// <typeparam name="T">The value type.</typeparam>
-        /// <param name="takeFirst">True, if the <paramref name="first"/> value should be taken.</param>
+        /// <param name="takeFirst">
+        /// True, if the
+        /// <paramref name="first"/> value should be taken.</param>
         /// <param name="first">The first value.</param>
         /// <param name="second">The second value.</param>
         /// <returns>The selected value.</returns>

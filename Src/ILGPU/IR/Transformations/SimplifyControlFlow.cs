@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SimplyControlFlow.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using System.Collections.Generic;
@@ -20,30 +20,7 @@ namespace ILGPU.IR.Transformations
     /// </summary>
     public sealed class SimplifyControlFlow : UnorderedTransformation
     {
-        /// <summary>
-        /// Constructs a new transformation to merge sequential jump chains.
-        /// </summary>
-        public SimplifyControlFlow() { }
-
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
-        protected override bool PerformTransformation(Method.Builder builder)
-        {
-            var scope = builder.CreateScope();
-            var cfg = scope.CreateCFG();
-
-            bool result = false;
-
-            var mergedNodes = new HashSet<CFG.Node>();
-            foreach (var cfgNode in cfg)
-            {
-                if (mergedNodes.Contains(cfgNode))
-                    continue;
-
-                result |= MergeChain(builder, cfgNode, mergedNodes);
-            }
-
-            return result;
-        }
+        #region Static
 
         /// <summary>
         /// Tries to merge a sequence of jumps.
@@ -82,5 +59,42 @@ namespace ILGPU.IR.Transformations
 
             return result;
         }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new transformation to merge sequential jump chains.
+        /// </summary>
+        public SimplifyControlFlow() { }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Applies the control-flow simplification transformation.
+        /// </summary>
+        protected override bool PerformTransformation(Method.Builder builder)
+        {
+            var scope = builder.CreateScope();
+            var cfg = scope.CreateCFG();
+
+            bool result = false;
+
+            var mergedNodes = new HashSet<CFG.Node>();
+            foreach (var cfgNode in cfg)
+            {
+                if (mergedNodes.Contains(cfgNode))
+                    continue;
+
+                result |= MergeChain(builder, cfgNode, mergedNodes);
+            }
+
+            return result;
+        }
+
+        #endregion
     }
 }

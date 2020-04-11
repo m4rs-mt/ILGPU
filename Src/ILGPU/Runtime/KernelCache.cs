@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: KernelCache.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using ILGPU.Backends.EntryPoints;
@@ -32,7 +32,9 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Minimum number of kernel objects before we apply GC.
         /// </summary>
-        /// <remarks>Should be less or equal to <see cref="NumberNewKernelsUntilGC"/></remarks>
+        /// <remarks>
+        /// Should be less or equal to <see cref="NumberNewKernelsUntilGC"/>.
+        /// </remarks>
         private const int MinNumberOfKernelsInGC = 128;
 
         #endregion
@@ -42,7 +44,8 @@ namespace ILGPU.Runtime
         /// <summary>
         /// A cached kernel key.
         /// </summary>
-        private readonly struct CachedCompiledKernelKey : IEquatable<CachedCompiledKernelKey>
+        private readonly struct CachedCompiledKernelKey :
+            IEquatable<CachedCompiledKernelKey>
         {
             #region Instance
 
@@ -81,7 +84,9 @@ namespace ILGPU.Runtime
             /// Returns true if the given cached key is equal to the current one.
             /// </summary>
             /// <param name="other">The other key.</param>
-            /// <returns>True, if the given cached key is equal to the current one.</returns>
+            /// <returns>
+            /// True, if the given cached key is equal to the current one.
+            /// </returns>
             public bool Equals(CachedCompiledKernelKey other) =>
                 other.Entry == Entry &&
                 other.Specialization.Equals(Specialization);
@@ -94,7 +99,9 @@ namespace ILGPU.Runtime
             /// Returns true if the given object is equal to the current one.
             /// </summary>
             /// <param name="obj">The other object.</param>
-            /// <returns>True, if the given object is equal to the current one.</returns>
+            /// <returns>
+            /// True, if the given object is equal to the current one.
+            /// </returns>
             public override bool Equals(object obj) =>
                 obj is CachedCompiledKernelKey other && Equals(other);
 
@@ -125,9 +132,15 @@ namespace ILGPU.Runtime
             /// <summary>
             /// Constructs a new kernel key.
             /// </summary>
-            /// <param name="compiledKernelKey">The compiled kernel key for lookup purposes.</param>
-            /// <param name="implicitGroupSize">The implicit group size (if any).</param>
-            public CachedKernelKey(CachedCompiledKernelKey compiledKernelKey, int implicitGroupSize)
+            /// <param name="compiledKernelKey">
+            /// The compiled kernel key for lookup purposes.
+            /// </param>
+            /// <param name="implicitGroupSize">
+            /// The implicit group size (if any).
+            /// </param>
+            public CachedKernelKey(
+                CachedCompiledKernelKey compiledKernelKey,
+                int implicitGroupSize)
             {
                 CompiledKernelKey = compiledKernelKey;
                 ImplicitGroupSize = implicitGroupSize;
@@ -155,7 +168,9 @@ namespace ILGPU.Runtime
             /// Returns true if the given cached key is equal to the current one.
             /// </summary>
             /// <param name="other">The other key.</param>
-            /// <returns>True, if the given cached key is equal to the current one.</returns>
+            /// <returns>
+            /// True, if the given cached key is equal to the current one.
+            /// </returns>
             public bool Equals(CachedKernelKey other) =>
                 other.CompiledKernelKey.Equals(CompiledKernelKey) &&
                 other.ImplicitGroupSize == ImplicitGroupSize;
@@ -241,10 +256,9 @@ namespace ILGPU.Runtime
                 where T : class
             {
                 kernel = null;
-                if (!kernelReference.TryGetTarget(out var temp))
-                    return false;
-
-                return (kernel = temp as T) != null;
+                return !kernelReference.TryGetTarget(out var temp)
+                    ? false
+                    : (kernel = temp as T) != null;
             }
 
             /// <summary>
@@ -252,7 +266,9 @@ namespace ILGPU.Runtime
             /// pointing to the given target.
             /// </summary>
             /// <param name="target">The new target kernel.</param>
-            /// <returns>An updated weak reference that points to the given target.</returns>
+            /// <returns>
+            /// An updated weak reference that points to the given target.
+            /// </returns>
             public WeakReference<object> UpdateReference<T>(T target)
                 where T : class
             {
@@ -284,16 +300,21 @@ namespace ILGPU.Runtime
             /// <summary>
             /// Loads the given kernel using the given accelerator.
             /// </summary>
-            /// <param name="accelerator">The target accelerator for the loading operation.</param>
+            /// <param name="accelerator">
+            /// The target accelerator for the loading operation.
+            /// </param>
             /// <param name="compiledKernel">The compiled kernel to load.</param>
             /// <returns>The loaded kernel.</returns>
-            Kernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel);
+            Kernel LoadKernel(
+                Accelerator accelerator,
+                CompiledKernel compiledKernel);
         }
 
         /// <summary>
         /// Represents an internal cached kernel loader.
         /// </summary>
-        private delegate T CachedKernelLoader<T, TKernelLoader>(ref TKernelLoader kernelLoader)
+        private delegate T CachedKernelLoader<T, TKernelLoader>(
+            ref TKernelLoader kernelLoader)
             where T : class
             where TKernelLoader : struct, IKernelLoader;
 
@@ -305,7 +326,9 @@ namespace ILGPU.Runtime
         /// A cache for compiled kernel objects.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private Dictionary<CachedCompiledKernelKey, WeakReference<CompiledKernel>> compiledKernelCache;
+        private Dictionary<
+            CachedCompiledKernelKey,
+            WeakReference<CompiledKernel>> compiledKernelCache;
 
         /// <summary>
         /// A cache for loaded kernel objects.
@@ -321,7 +344,9 @@ namespace ILGPU.Runtime
             if (Context.HasFlags(ContextFlags.DisableKernelCaching))
                 return;
 
-            compiledKernelCache = new Dictionary<CachedCompiledKernelKey, WeakReference<CompiledKernel>>();
+            compiledKernelCache = new Dictionary<
+                CachedCompiledKernelKey,
+                WeakReference<CompiledKernel>>();
             kernelCache = new Dictionary<CachedKernelKey, CachedKernel>();
         }
 
@@ -337,11 +362,14 @@ namespace ILGPU.Runtime
         /// <summary>
         /// True, if a GC run is requested to clean disposed child kernels.
         /// </summary>
-        /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
+        /// <remarks>
+        /// This method is invoked in the scope of the locked <see cref="syncRoot"/>
+        /// object.
+        /// </remarks>
         private bool RequestKernelCacheGC_SyncRoot =>
             KernelCacheEnabled &&
-            ((compiledKernelCache.Count % NumberNewKernelsUntilGC) == 0 ||
-            (kernelCache.Count % NumberNewKernelsUntilGC) == 0);
+            (compiledKernelCache.Count % NumberNewKernelsUntilGC == 0 ||
+            kernelCache.Count % NumberNewKernelsUntilGC == 0);
 
         #endregion
 
@@ -368,8 +396,12 @@ namespace ILGPU.Runtime
         {
             if (KernelCacheEnabled)
             {
-                var cachedCompiledKernelKey = new CachedCompiledKernelKey(entry, specialization);
-                var cachedKey = new CachedKernelKey(cachedCompiledKernelKey, kernelLoader.GroupSize);
+                var cachedCompiledKernelKey = new CachedCompiledKernelKey(
+                    entry,
+                    specialization);
+                var cachedKey = new CachedKernelKey(
+                    cachedCompiledKernelKey,
+                    kernelLoader.GroupSize);
                 lock (syncRoot)
                 {
                     if (!kernelCache.TryGetValue(cachedKey, out CachedKernel cached) ||
@@ -399,7 +431,9 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Loads a kernel specified by the given method without using internal caches.
         /// </summary>
-        /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
+        /// <typeparam name="TKernelLoader">
+        /// The type of the custom kernel loader.
+        /// </typeparam>
         /// <param name="entry">The entry point to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
@@ -464,7 +498,9 @@ namespace ILGPU.Runtime
         /// Loads a kernel specified by the given method.
         /// </summary>
         /// <typeparam name="TDelegate">The delegate type.</typeparam>
-        /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
+        /// <typeparam name="TKernelLoader">
+        /// The type of the custom kernel loader.
+        /// </typeparam>
         /// <param name="entry">The entry point to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
@@ -489,7 +525,9 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Compiles the given method into a <see cref="CompiledKernel"/>.
         /// </summary>
-        /// <param name="entry">The entry point to compile into a <see cref="CompiledKernel"/>.</param>
+        /// <param name="entry">
+        /// The entry point to compile into a
+        /// <see cref="CompiledKernel"/>.</param>
         /// <returns>The compiled kernel.</returns>
         public CompiledKernel CompileKernel(in EntryPointDescription entry) =>
             CompileKernel(entry, KernelSpecialization.Empty);
@@ -498,7 +536,9 @@ namespace ILGPU.Runtime
         /// Compiles the given method into a <see cref="CompiledKernel"/> using the given
         /// kernel specialization.
         /// </summary>
-        /// <param name="entry">The entry point to compile into a <see cref="CompiledKernel"/>.</param>
+        /// <param name="entry">
+        /// The entry point to compile into a
+        /// <see cref="CompiledKernel"/>.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The compiled kernel.</returns>
         public CompiledKernel CompileKernel(
@@ -507,8 +547,10 @@ namespace ILGPU.Runtime
         {
             // Check for compatibility
             if (!specialization.IsCompatibleWith(this))
+            {
                 throw new NotSupportedException(
                     RuntimeErrorMessages.NotSupportedKernelSpecialization);
+            }
 
             if (KernelCacheEnabled)
             {
@@ -516,21 +558,31 @@ namespace ILGPU.Runtime
                 var cachedKey = new CachedCompiledKernelKey(entry, specialization);
                 lock (syncRoot)
                 {
-                    if (!compiledKernelCache.TryGetValue(cachedKey, out WeakReference<CompiledKernel> cached) ||
+                    if (!compiledKernelCache.TryGetValue(
+                        cachedKey,
+                        out WeakReference<CompiledKernel> cached) ||
                         !cached.TryGetTarget(out CompiledKernel result))
                     {
                         result = Backend.Compile(entry, specialization);
                         if (cached == null)
-                            compiledKernelCache.Add(cachedKey, new WeakReference<CompiledKernel>(result));
+                        {
+                            compiledKernelCache.Add(
+                                cachedKey,
+                                new WeakReference<CompiledKernel>(result));
+                        }
                         else
+                        {
                             cached.SetTarget(result);
+                        }
                     }
                     RequestGC_SyncRoot();
                     return result;
                 }
             }
             else
+            {
                 return Backend.Compile(entry, specialization);
+            }
         }
 
         /// <summary>
@@ -547,7 +599,10 @@ namespace ILGPU.Runtime
         /// <summary>
         /// GC method to clean disposed kernels.
         /// </summary>
-        /// <remarks>This method is invoked in the scope of the locked <see cref="syncRoot"/> object.</remarks>
+        /// <remarks>
+        /// This method is invoked in the scope of the locked <see cref="syncRoot"/>
+        /// object.
+        /// </remarks>
         private void KernelCacheGC_SyncRoot()
         {
             if (!KernelCacheEnabled)

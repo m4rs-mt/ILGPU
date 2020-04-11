@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IRBuilder.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -90,7 +90,8 @@ namespace ILGPU.IR.Construction
         public NodeMarker NewNodeMarker() => Context.NewNodeMarker();
 
         /// <summary>
-        /// Creates a node that represents an <see cref="Accelerator.CurrentType"/> property.
+        /// Creates a node that represents an <see cref="Accelerator.CurrentType"/>
+        /// property.
         /// </summary>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateAcceleratorTypeValue() =>
@@ -118,7 +119,8 @@ namespace ILGPU.IR.Construction
         public ValueReference CreateGridIndexValue(DeviceConstantDimension3D dimension)
         {
             Debug.Assert(
-                dimension >= DeviceConstantDimension3D.X && dimension <= DeviceConstantDimension3D.Z,
+                dimension >= DeviceConstantDimension3D.X &&
+                dimension <= DeviceConstantDimension3D.Z,
                 "Invalid dimension value");
             return Append(new GridIndexValue(
                 Context,
@@ -134,7 +136,8 @@ namespace ILGPU.IR.Construction
         public ValueReference CreateGroupIndexValue(DeviceConstantDimension3D dimension)
         {
             Debug.Assert(
-                dimension >= DeviceConstantDimension3D.X && dimension <= DeviceConstantDimension3D.Z,
+                dimension >= DeviceConstantDimension3D.X &&
+                dimension <= DeviceConstantDimension3D.Z,
                 "Invalid dimension value");
             return Append(new GroupIndexValue(
                 Context,
@@ -147,10 +150,12 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="dimension">The constant dimension.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateGridDimensionValue(DeviceConstantDimension3D dimension)
+        public ValueReference CreateGridDimensionValue(
+            DeviceConstantDimension3D dimension)
         {
             Debug.Assert(
-                dimension >= DeviceConstantDimension3D.X && dimension <= DeviceConstantDimension3D.Z,
+                dimension >= DeviceConstantDimension3D.X &&
+                dimension <= DeviceConstantDimension3D.Z,
                 "Invalid dimension value");
             return Append(new GridDimensionValue(
                 Context,
@@ -163,10 +168,12 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="dimension">The constant dimension.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateGroupDimensionValue(DeviceConstantDimension3D dimension)
+        public ValueReference CreateGroupDimensionValue(
+            DeviceConstantDimension3D dimension)
         {
             Debug.Assert(
-                dimension >= DeviceConstantDimension3D.X && dimension <= DeviceConstantDimension3D.Z,
+                dimension >= DeviceConstantDimension3D.X &&
+                dimension <= DeviceConstantDimension3D.Z,
                 "Invalid dimension value");
             return Append(new GroupDimensionValue(
                 Context,

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ILCompiledKernel.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Runtime.CPU;
@@ -32,7 +32,9 @@ namespace ILGPU.Backends.IL
         /// <param name="kernelMethod">The main kernel method.</param>
         /// <param name="taskType">The custom task type.</param>
         /// <param name="taskConstructor">The custom task constructor.</param>
-        /// <param name="taskArgumentMapping">Mapping of argument indices to fields.</param>
+        /// <param name="taskArgumentMapping">
+        /// Mapping of argument indices to fields.
+        /// </param>
         internal ILCompiledKernel(
             Context context,
             EntryPoint entryPoint,

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CFG.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections;
@@ -21,8 +21,10 @@ namespace ILGPU.IR.Analyses
     /// <summary>
     /// Represents a control flow graph.
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1710:IdentifiersShouldHaveCorrectSuffix",
-        Justification = "CFG stands for Control Flow Graph and not CFGCollection or something else")]
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1710:IdentifiersShouldHaveCorrectSuffix",
+        Justification = "CFG stands for Control Flow Graph and not CFGCollection")]
     public sealed class CFG : IReadOnlyCollection<CFG.Node>
     {
         #region Nested Types
@@ -77,7 +79,7 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Constructs a new node mapping.
             /// </summary>
-            /// <param name="cfg">The parent cfg.</param>
+            /// <param name="cfg">The parent CFG.</param>
             private NodeMapping(CFG cfg)
             {
                 CFG = cfg ?? throw new ArgumentNullException(nameof(cfg));
@@ -241,16 +243,10 @@ namespace ILGPU.IR.Analyses
                 #region Methods
 
                 /// <summary cref="IDisposable.Dispose"/>
-                public void Dispose()
-                {
-                    enumerator.Dispose();
-                }
+                public void Dispose() => enumerator.Dispose();
 
                 /// <summary cref="IEnumerator.MoveNext"/>
-                public bool MoveNext()
-                {
-                    return enumerator.MoveNext();
-                }
+                public bool MoveNext() => enumerator.MoveNext();
 
                 /// <summary cref="IEnumerator.Reset"/>
                 void IEnumerator.Reset() => throw new InvalidOperationException();
@@ -283,7 +279,7 @@ namespace ILGPU.IR.Analyses
             #region Properties
 
             /// <summary>
-            /// Returns the parent cfg.
+            /// Returns the parent CFG.
             /// </summary>
             public CFG Parent { get; }
 
@@ -389,16 +385,10 @@ namespace ILGPU.IR.Analyses
             #region Methods
 
             /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose()
-            {
-                functionEnumerator.Dispose();
-            }
+            public void Dispose() => functionEnumerator.Dispose();
 
             /// <summary cref="IEnumerator.MoveNext"/>
-            public bool MoveNext()
-            {
-                return functionEnumerator.MoveNext();
-            }
+            public bool MoveNext() => functionEnumerator.MoveNext();
 
             /// <summary cref="IEnumerator.Reset"/>
             void IEnumerator.Reset() => throw new InvalidOperationException();
@@ -411,7 +401,7 @@ namespace ILGPU.IR.Analyses
         #region Static
 
         /// <summary>
-        /// Creates a new cfg.
+        /// Creates a new CFG.
         /// </summary>
         /// <param name="scope">The parent scope.</param>
         public static CFG Create(Scope scope)
@@ -494,7 +484,7 @@ namespace ILGPU.IR.Analyses
         public int Count => Scope.Count;
 
         /// <summary>
-        /// Resolves the cfg node for the given basic block.
+        /// Resolves the CFG node for the given basic block.
         /// </summary>
         /// <param name="block">The basic block to resolve.</param>
         /// <returns>The resolved basic block.</returns>
@@ -528,6 +518,10 @@ namespace ILGPU.IR.Analyses
             where TProvider : INodeMappingValueProvider<T> =>
             NodeMapping<T>.Create(this, provider);
 
+        #endregion
+
+        #region IEnumerable
+
         /// <summary>
         /// Returns a node enumerator to iterate over all nodes
         /// stored in this graph in reverse post order.
@@ -535,21 +529,11 @@ namespace ILGPU.IR.Analyses
         /// <returns>The resulting node enumerator.</returns>
         public Enumerator GetEnumerator() => new Enumerator(this);
 
-        #endregion
-
-        #region IEnumerable
-
         /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-        IEnumerator<Node> IEnumerable<Node>.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator<Node> IEnumerable<Node>.GetEnumerator() => GetEnumerator();
 
         /// <summary cref="IEnumerable.GetEnumerator"/>
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         #endregion
     }

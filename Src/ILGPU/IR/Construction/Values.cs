@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Values.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -28,15 +28,15 @@ namespace ILGPU.IR.Construction
         {
             Debug.Assert(type != null, "Invalid type node");
 
-            if (type is PrimitiveType primitiveType)
-                return CreatePrimitiveValue(primitiveType.BasicValueType, 0);
-            return Append(new NullValue(
-                BasicBlock,
-                type));
+            return type is PrimitiveType primitiveType
+                ? CreatePrimitiveValue(primitiveType.BasicValueType, 0)
+                : (ValueReference)Append(new NullValue(
+                    BasicBlock,
+                    type));
         }
 
         /// <summary>
-        /// Creates a new primitive enum constant.
+        /// Creates a new primitive <see cref="Enum"/> constant.
         /// </summary>
         /// <param name="value">The object value.</param>
         /// <returns>A reference to the requested value.</returns>
@@ -108,14 +108,12 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(bool value)
-        {
-            return Append(new PrimitiveValue(
+        public PrimitiveValue CreatePrimitiveValue(bool value) =>
+            Append(new PrimitiveValue(
                 Context,
                 BasicBlock,
                 BasicValueType.Int1,
                 value ? 1 : 0));
-        }
 
         /// <summary>
         /// Creates a primitive <see cref="sbyte"/> value.
@@ -123,14 +121,12 @@ namespace ILGPU.IR.Construction
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
         [CLSCompliant(false)]
-        public PrimitiveValue CreatePrimitiveValue(sbyte value)
-        {
-            return Append(new PrimitiveValue(
+        public PrimitiveValue CreatePrimitiveValue(sbyte value) =>
+            Append(new PrimitiveValue(
                 Context,
                 BasicBlock,
                 BasicValueType.Int8,
                 value));
-        }
 
         /// <summary>
         /// Creates a primitive <see cref="byte"/> value.
@@ -145,14 +141,12 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(short value)
-        {
-            return Append(new PrimitiveValue(
+        public PrimitiveValue CreatePrimitiveValue(short value) =>
+            Append(new PrimitiveValue(
                 Context,
                 BasicBlock,
                 BasicValueType.Int16,
                 value));
-        }
 
         /// <summary>
         /// Creates a primitive <see cref="ushort"/> value.
@@ -168,14 +162,12 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(int value)
-        {
-            return Append(new PrimitiveValue(
+        public PrimitiveValue CreatePrimitiveValue(int value) =>
+            Append(new PrimitiveValue(
                 Context,
                 BasicBlock,
                 BasicValueType.Int32,
                 value));
-        }
 
         /// <summary>
         /// Creates a primitive <see cref="uint"/> value.
@@ -191,14 +183,12 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(long value)
-        {
-            return Append(new PrimitiveValue(
+        public PrimitiveValue CreatePrimitiveValue(long value) =>
+            Append(new PrimitiveValue(
                 Context,
                 BasicBlock,
                 BasicValueType.Int64,
                 value));
-        }
 
         /// <summary>
         /// Creates a primitive <see cref="ulong"/> value.
@@ -214,31 +204,26 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(float value)
-        {
-            return Append(new PrimitiveValue(
+        public PrimitiveValue CreatePrimitiveValue(float value) =>
+            Append(new PrimitiveValue(
                 Context,
                 BasicBlock,
                 BasicValueType.Float32,
                 Unsafe.As<float, int>(ref value)));
-        }
 
         /// <summary>
         /// Creates a primitive <see cref="double"/> value.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(double value)
-        {
-            if (Context.HasFlags(ContextFlags.Force32BitFloats))
-                return CreatePrimitiveValue((float)value);
-
-            return Append(new PrimitiveValue(
+        public PrimitiveValue CreatePrimitiveValue(double value) =>
+            Context.HasFlags(ContextFlags.Force32BitFloats)
+            ? CreatePrimitiveValue((float)value)
+            : Append(new PrimitiveValue(
                 Context,
                 BasicBlock,
                 BasicValueType.Float64,
                 Unsafe.As<double, long>(ref value)));
-        }
 
         /// <summary>
         /// Creates a primitive value.
@@ -246,14 +231,14 @@ namespace ILGPU.IR.Construction
         /// <param name="type">The value type.</param>
         /// <param name="rawValue">The raw value (sign-extended to long).</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(BasicValueType type, long rawValue)
-        {
-            return Append(new PrimitiveValue(
+        public PrimitiveValue CreatePrimitiveValue(
+            BasicValueType type,
+            long rawValue) =>
+            Append(new PrimitiveValue(
                 Context,
                 BasicBlock,
                 type,
                 rawValue));
-        }
 
         /// <summary>
         /// Creates a generic value.
@@ -292,9 +277,9 @@ namespace ILGPU.IR.Construction
                 case TypeCode.Double:
                     return CreatePrimitiveValue(Convert.ToDouble(value));
                 default:
-                    return value == null ?
-                        CreateNull(CreateType(type)) :
-                        CreateObjectValue(value);
+                    return value == null
+                        ? CreateNull(CreateType(type))
+                        : CreateObjectValue(value);
             }
         }
     }

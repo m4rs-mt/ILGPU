@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ExchangeBuffer.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.Cuda.API;
@@ -25,12 +25,13 @@ namespace ILGPU.Runtime
     public static class ExchangeBuffer
     {
         /// <summary>
-        /// Allocates a new exchange buffer that allocates the specified amount of elements
-        /// on the current accelerator. Furthermore, it keeps a buffer of the same size in pinned
-        /// CPU memory to enable async memory transfers between the CPU and the GPU.
+        /// Allocates a new exchange buffer that allocates the specified amount of
+        /// elements on the current accelerator. Furthermore, it keeps a buffer of the
+        /// same size in pinned CPU memory to enable asynchronous memory transfers
+        /// between the CPU and the GPU.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="accelerator">The associated acclerator to use.</param>
+        /// <param name="accelerator">The associated accelerator to use.</param>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>The allocated exchange buffer.</returns>
         /// <remarks>
@@ -46,12 +47,12 @@ namespace ILGPU.Runtime
                 ExchangeBufferMode.PreferPagedLockedMemory);
 
         /// <summary>
-        /// Allocates a new exchange buffer that allocates the specified amount of elements
-        /// on the current accelerator. Furthermore, it keeps a buffer of the same size in pinned
-        /// CPU memory to enable async memory transfers between the CPU and the GPU.
+        /// Allocates a new exchange buffer that allocates the specified amount of
+        /// elements on the current accelerator. Furthermore, it keeps a buffer of the
+        /// same size in pinned CPU memory to enable asynchronous memory transfers
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="accelerator">The associated acclerator to use.</param>
+        /// <param name="accelerator">The associated accelerator to use.</param>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <param name="mode">The current allocation mode.</param>
         /// <returns>The allocated exchange buffer.</returns>
@@ -83,9 +84,9 @@ namespace ILGPU.Runtime
     }
 
     /// <summary>
-    /// A buffer that stores a specified amount of elements on the associated accelerator instance.
-    /// Furthermore, it keeps a buffer of the same size in pinned CPU memory to enable async memory
-    /// transfers between the CPU and the GPU.
+    /// A buffer that stores a specified amount of elements on the associated accelerator
+    /// instance. Furthermore, it keeps a buffer of the same size in pinned CPU memory
+    /// to enable asynchronous memory transfers between the CPU and the GPU.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
@@ -104,7 +105,8 @@ namespace ILGPU.Runtime
         #region Nested Types
 
         /// <summary>
-        /// Represents a view source that allocates native memory in page-locked CPU memory.
+        /// Represents a view source that allocates native memory in page-locked CPU
+        /// memory.
         /// </summary>
         sealed class CudaViewSource : ViewPointerWrapper
         {
@@ -131,7 +133,8 @@ namespace ILGPU.Runtime
                 : base(nativePtr)
             { }
 
-            /// <summary cref="ArrayViewSource.GetAsRawArray(AcceleratorStream, Index1, Index1)"/>
+            /// <summary cref="ArrayViewSource.GetAsRawArray(
+            /// AcceleratorStream, Index1, Index1)"/>
             protected internal override ArraySegment<byte> GetAsRawArray(
                 AcceleratorStream stream,
                 Index1 byteOffset,
@@ -178,11 +181,11 @@ namespace ILGPU.Runtime
             : base(buffer.Accelerator, buffer.Extent.Size)
         {
             // Allocate CPU memory
-            if (Accelerator is CudaAccelerator &&
-                mode == ExchangeBufferMode.PreferPagedLockedMemory)
-                cpuMemory = CudaViewSource.Create(buffer.LengthInBytes);
-            else
-                cpuMemory = UnmanagedMemoryViewSource.Create(buffer.LengthInBytes);
+            cpuMemory = Accelerator is CudaAccelerator &&
+                mode == ExchangeBufferMode.PreferPagedLockedMemory
+                ? CudaViewSource.Create(buffer.LengthInBytes)
+                : (ViewPointerWrapper)UnmanagedMemoryViewSource.Create(
+                    buffer.LengthInBytes);
 
             cpuMemoryPointer = cpuMemory.NativePtr.ToPointer();
             CPUView = new ArrayView<T>(cpuMemory, 0, buffer.Length);

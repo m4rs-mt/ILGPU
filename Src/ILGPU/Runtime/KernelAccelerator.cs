@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: KernelAccelerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using ILGPU.Resources;
@@ -52,7 +52,8 @@ namespace ILGPU.Runtime
                 GenerateKernelLauncherMethod(compiledKernel, 0));
         }
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(CompiledKernel, int)"/>
+        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(
+        /// CompiledKernel, int)"/>
         protected sealed override Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
             int customGroupSize)
@@ -64,13 +65,18 @@ namespace ILGPU.Runtime
             if (!(kernel is TCompiledKernel compiledKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
             if (kernel.EntryPoint.IsExplicitlyGrouped)
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
+            }
+
             return CreateKernel(
                 compiledKernel,
                 GenerateKernelLauncherMethod(compiledKernel, customGroupSize));
         }
 
-        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
+        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(
+        /// CompiledKernel, out int, out int)"/>
         protected sealed override Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
             out int groupSize,
@@ -81,7 +87,10 @@ namespace ILGPU.Runtime
             if (!(kernel is TCompiledKernel compiledKernel))
                 throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
             if (kernel.EntryPoint.IsExplicitlyGrouped)
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
+            }
 
             var result = CreateKernel(compiledKernel);
             groupSize = EstimateGroupSizeInternal(result, 0, 0, out minGridSize);
@@ -96,9 +105,13 @@ namespace ILGPU.Runtime
         /// can be avoided.
         /// </summary>
         /// <param name="kernel">The kernel to generate a launcher for.</param>
-        /// <param name="customGroupSize">The custom group size used for automatic blocking.</param>
+        /// <param name="customGroupSize">
+        /// The custom group size used for automatic blocking.
+        /// </param>
         /// <returns>The generated launcher method.</returns>
-        protected abstract MethodInfo GenerateKernelLauncherMethod(TCompiledKernel kernel, int customGroupSize);
+        protected abstract MethodInfo GenerateKernelLauncherMethod(
+            TCompiledKernel kernel,
+            int customGroupSize);
 
         /// <summary>
         /// Creates an abstract kernel without an initialized launcher.
@@ -111,7 +124,9 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="compiledKernel">The compiled kernel.</param>
         /// <param name="launcher">The actual kernel launcher method.</param>
-        protected abstract TKernel CreateKernel(TCompiledKernel compiledKernel, MethodInfo launcher);
+        protected abstract TKernel CreateKernel(
+            TCompiledKernel compiledKernel,
+            MethodInfo launcher);
 
         #endregion
     }

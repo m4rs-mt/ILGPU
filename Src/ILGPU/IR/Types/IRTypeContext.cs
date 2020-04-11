@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IRTypeContext.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
 using ILGPU.Util;
@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace ILGPU.IR.Types
@@ -135,7 +136,8 @@ namespace ILGPU.IR.Types
         #region Methods
 
         /// <summary>
-        /// Resolves the primitive type that corresponds to the given <see cref="BasicValueType"/>.
+        /// Resolves the primitive type that corresponds to the given
+        /// <see cref="BasicValueType"/>.
         /// </summary>
         /// <param name="basicValueType">The basic value type.</param>
         /// <returns>The created primitive type.</returns>
@@ -191,7 +193,8 @@ namespace ILGPU.IR.Types
         /// Creates an empty structure type.
         /// </summary>
         /// <returns>The type representing an empty structure.</returns>
-        public TypeNode CreateEmptyStructureType() => GetPrimitiveType(BasicValueType.Int8);
+        public TypeNode CreateEmptyStructureType() =>
+            GetPrimitiveType(BasicValueType.Int8);
 
         /// <summary>
         /// Creates a new object type.
@@ -211,6 +214,10 @@ namespace ILGPU.IR.Types
         /// <param name="fieldNames">The object field names.</param>
         /// <param name="sourceType">The source object type.</param>
         /// <returns>The created object type.</returns>
+        [SuppressMessage(
+            "Style",
+            "IDE0046:Convert to conditional expression",
+            Justification = "Avoid nested if conditionals")]
         public TypeNode CreateStructureType(
             ImmutableArray<TypeNode> fieldTypes,
             ImmutableArray<string> fieldNames,
@@ -218,12 +225,13 @@ namespace ILGPU.IR.Types
         {
             if (fieldTypes.Length < 1)
                 return CreateEmptyStructureType();
-            if (fieldTypes.Length < 2)
-                return fieldTypes[0];
-            return CreateType(new StructureType(
-                fieldTypes,
-                fieldNames,
-                sourceType));
+
+            return fieldTypes.Length < 2
+                ? fieldTypes[0]
+                : CreateType(new StructureType(
+                    fieldTypes,
+                    fieldNames,
+                    sourceType));
         }
 
         /// <summary>
@@ -237,7 +245,9 @@ namespace ILGPU.IR.Types
             StructureType sourceType)
         {
             Debug.Assert(sourceType != null, "Invalid source type");
-            Debug.Assert(sourceType.NumFields == fieldTypes.Length, "Incompatible field types");
+            Debug.Assert(
+                sourceType.NumFields == fieldTypes.Length,
+                "Incompatible field types");
             return CreateStructureType(
                 fieldTypes,
                 sourceType.Names,
@@ -321,25 +331,41 @@ namespace ILGPU.IR.Types
         /// <param name="type">The parent type.</param>
         /// <param name="addressSpace">The current address space.</param>
         /// <returns>The created node or null.</returns>
-        private TypeNode TryCreatePrimitiveType(Type type, MemoryAddressSpace addressSpace)
+        private TypeNode TryCreatePrimitiveType(
+            Type type,
+            MemoryAddressSpace addressSpace)
         {
             var basicValueType = type.GetBasicValueType();
             if (basicValueType != BasicValueType.None)
+            {
                 return GetPrimitiveType(basicValueType);
+            }
             else if (type.IsEnum)
+            {
                 return CreateType(type.GetEnumUnderlyingType(), addressSpace);
+            }
             else if (type.IsArray)
             {
-                var arrayElementType = CreateType(type.GetElementType(), addressSpace);
+                var arrayElementType = CreateType(
+                    type.GetElementType(),
+                    addressSpace);
                 var dimension = type.GetArrayRank();
                 return CreateArrayType(arrayElementType, dimension);
             }
             else if (type.IsArrayViewType(out Type elementType))
-                return CreateViewType(CreateType(elementType, addressSpace), addressSpace);
+            {
+                return CreateViewType(
+                    CreateType(elementType, addressSpace),
+                    addressSpace);
+            }
             else if (type.IsVoidPtr())
+            {
                 return CreatePointerType(VoidType, addressSpace);
+            }
             else if (typeMapping.TryGetValue(type, out TypeNode typeNode))
+            {
                 return typeNode;
+            }
             else if (type.IsByRef || type.IsPointer)
             {
                 return CreatePointerType(
@@ -364,7 +390,9 @@ namespace ILGPU.IR.Types
         {
             foreach (var fieldInfo in typeInfo.Fields)
             {
-                var fieldType = TryCreatePrimitiveType(fieldInfo.FieldType, addressSpace);
+                var fieldType = TryCreatePrimitiveType(
+                    fieldInfo.FieldType,
+                    addressSpace);
                 if (fieldType != null)
                 {
                     fieldTypes.Add(fieldType);
@@ -383,7 +411,7 @@ namespace ILGPU.IR.Types
         }
 
         /// <summary>
-        /// Specializes the address space of the given <seeVoidType cref="AddressSpaceType"/>.
+        /// Specializes the address space of the given <see cref="AddressSpaceType"/>.
         /// </summary>
         /// <param name="addressSpaceType">The source type.</param>
         /// <param name="addressSpace">The new address space.</param>
@@ -395,9 +423,11 @@ namespace ILGPU.IR.Types
             Debug.Assert(addressSpaceType != null, "Invalid address space type");
 
             if (addressSpaceType is PointerType pointerType)
+            {
                 return CreatePointerType(
                     pointerType.ElementType,
                     addressSpace);
+            }
             else
             {
                 var viewType = addressSpaceType as ViewType;
@@ -413,7 +443,7 @@ namespace ILGPU.IR.Types
         /// <param name="type">The pointer or view type.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <param name="specializedType">The specialized type.</param>
-        /// <returns>True, iff the type could be specialized.</returns>
+        /// <returns>True, if the type could be specialized.</returns>
         public bool TrySpecializeAddressSpaceType(
             TypeNode type,
             MemoryAddressSpace addressSpace,
@@ -421,12 +451,9 @@ namespace ILGPU.IR.Types
         {
             Debug.Assert(type != null, "Invalid type");
 
-            if (type is AddressSpaceType addressSpaceType)
-                specializedType = SpecializeAddressSpaceType(
-                    addressSpaceType,
-                    addressSpace);
-            else
-                specializedType = null;
+            specializedType = type is AddressSpaceType addressSpaceType
+                ? SpecializeAddressSpaceType(addressSpaceType, addressSpace)
+                : null;
             return specializedType != null;
         }
 

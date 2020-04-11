@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLKernelFunctionGenerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR.Analyses;
@@ -75,14 +75,17 @@ namespace ILGPU.Backends.OpenCL
             /// <summary>
             /// Updates index and length variables.
             /// </summary>
-            public Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter)
+            public Variable HandleIntrinsicParameter(
+                int parameterOffset,
+                Parameter parameter)
             {
                 if (!Parent.EntryPoint.IsExplicitlyGrouped)
                 {
                     IndexVariable = Parent.Allocate(parameter);
 
-                    // This is an implicitly grouped kernel that needs boundary information
-                    // to avoid out-of-bounds dispatches (See also PTXKernelFunctionGenerator)
+                    // This is an implicitly grouped kernel that needs boundary
+                    // information to avoid out-of-bounds dispatches
+                    // (See also PTXKernelFunctionGenerator)
                     LengthVariable = Parent.AllocateType(parameter.ParameterType);
                 }
 
@@ -218,8 +221,12 @@ namespace ILGPU.Backends.OpenCL
                 if (!EntryPoint.TryGetViewParameters(
                     param.Index - paramOffset,
                     out var viewMapping))
+                {
                     continue;
-                Debug.Assert(viewMapping.Count > 0, "There must be at least one view entry");
+                }
+                Debug.Assert(
+                    viewMapping.Count > 0,
+                    "There must be at least one view entry");
 
                 // We require a custom mapping step
                 var targetVariable = AllocateType(param.Type);
@@ -231,7 +238,10 @@ namespace ILGPU.Backends.OpenCL
                 Debug.Assert(structureType != null, "Param must have a structure type");
 
                 // Map each field
-                for (int i = 0, specialParamIdx = 0, e = structureType.NumFields; i < e; ++i)
+                for (
+                    int i = 0, specialParamIdx = 0, e = structureType.NumFields;
+                    i < e;
+                    ++i)
                 {
                     var access = new FieldAccess(i);
                     // Check whether the current field is a nested view pointer
@@ -260,13 +270,16 @@ namespace ILGPU.Backends.OpenCL
 
                         // Map the length
                         var lengthAccess = access.Add(1);
-                        using (var statement = BeginStatement(targetVariable, lengthAccess))
+                        using (var statement = BeginStatement(
+                            targetVariable,
+                            lengthAccess))
                         {
                             statement.Append(sourceVariable);
                             statement.AppendField(lengthAccess);
                         }
 
-                        // Move special index and field index (since we have assigned two fields)
+                        // Move special index and field index
+                        // (since we have assigned two fields)
                         ++specialParamIdx;
                         ++i;
                     }
@@ -334,7 +347,9 @@ namespace ILGPU.Backends.OpenCL
         /// Setups the current kernel indices.
         /// </summary>
         /// <param name="indexVariable">The main kernel index variable.</param>
-        /// <param name="lengthVariable">The length variable of implicitly grouped kernels.</param>
+        /// <param name="lengthVariable">
+        /// The length variable of implicitly grouped kernels.
+        /// </param>
         private void SetupKernelIndex(Variable indexVariable, Variable lengthVariable)
         {
             if (EntryPoint.IsExplicitlyGrouped)

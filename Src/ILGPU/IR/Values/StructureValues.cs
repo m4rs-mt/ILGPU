@@ -1,19 +1,20 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: StructureValues.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -79,7 +80,9 @@ namespace ILGPU.IR.Values
         /// Returns true if the given field access is equal to the current one.
         /// </summary>
         /// <param name="other">The other field reference.</param>
-        /// <returns>True, if the given field access is equal to the current one.</returns>
+        /// <returns>
+        /// True, if the given field access is equal to the current one.
+        /// </returns>
         public bool Equals(FieldAccess other) => Index == other.Index;
 
         #endregion
@@ -90,8 +93,11 @@ namespace ILGPU.IR.Values
         /// Returns true if the given object is equal to the current one.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, if the given field access is equal to the current one.</returns>
-        public override bool Equals(object obj) => obj is FieldAccess other && Equals(other);
+        /// <returns>
+        /// True, if the given field access is equal to the current one.
+        /// </returns>
+        public override bool Equals(object obj) =>
+            obj is FieldAccess other && Equals(other);
 
         /// <summary>
         /// Returns the hash code of this field access.
@@ -128,16 +134,22 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="first">The first field access.</param>
         /// <param name="second">The second field access.</param>
-        /// <returns>True, if the first and second field access are the same.</returns>
-        public static bool operator ==(FieldAccess first, FieldAccess second) => first.Equals(second);
+        /// <returns>
+        /// True, if the first and second field access are the same.
+        /// </returns>
+        public static bool operator ==(FieldAccess first, FieldAccess second) =>
+            first.Equals(second);
 
         /// <summary>
         /// Returns true if the first and second field access are not the same.
         /// </summary>
         /// <param name="first">The first field access.</param>
         /// <param name="second">The second field access.</param>
-        /// <returns>True, if the first and second field access are not the same.</returns>
-        public static bool operator !=(FieldAccess first, FieldAccess second) => !first.Equals(second);
+        /// <returns>
+        /// True, if the first and second field access are not the same.
+        /// </returns>
+        public static bool operator !=(FieldAccess first, FieldAccess second) =>
+            !first.Equals(second);
 
         #endregion
     }
@@ -197,14 +209,16 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary>
-        /// Creates a new immutable array builder that has a sufficient capacity for all values.
+        /// Creates a new immutable array builder that has a sufficient capacity for
+        /// all values.
         /// </summary>
         /// <returns>The created field builder.</returns>
         public ImmutableArray<TypeNode>.Builder CreateFieldTypeBuilder() =>
             ImmutableArray.CreateBuilder<TypeNode>(Span);
 
         /// <summary>
-        /// Creates a new immutable array builder that has a sufficient capacity for all values.
+        /// Creates a new immutable array builder that has a sufficient capacity for
+        /// all values.
         /// </summary>
         /// <returns>The created field builder.</returns>
         public ImmutableArray<ValueReference>.Builder CreateFieldBuilder() =>
@@ -240,7 +254,9 @@ namespace ILGPU.IR.Values
         /// Returns true if the given field access is equal to the current one.
         /// </summary>
         /// <param name="other">The other field reference.</param>
-        /// <returns>True, if the given field access is equal to the current one.</returns>
+        /// <returns>
+        /// True, if the given field access is equal to the current one.
+        /// </returns>
         public bool Equals(FieldSpan other) =>
             Access.Equals(other.Access) && Span == other.Span;
 
@@ -252,8 +268,11 @@ namespace ILGPU.IR.Values
         /// Returns true if the given object is equal to the current one.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, if the given field access is equal to the current one.</returns>
-        public override bool Equals(object obj) => obj is FieldSpan other && Equals(other);
+        /// <returns>
+        /// True, if the given field access is equal to the current one.
+        /// </returns>
+        public override bool Equals(object obj) =>
+            obj is FieldSpan other && Equals(other);
 
         /// <summary>
         /// Returns the hash code of this field access.
@@ -289,22 +308,29 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="first">The first field access.</param>
         /// <param name="second">The second field access.</param>
-        /// <returns>True, if the first and second field access are the same.</returns>
-        public static bool operator ==(FieldSpan first, FieldSpan second) => first.Equals(second);
+        /// <returns>
+        /// True, if the first and second field access are the same.
+        /// </returns>
+        public static bool operator ==(FieldSpan first, FieldSpan second) =>
+            first.Equals(second);
 
         /// <summary>
         /// Returns true if the first and second field access are not the same.
         /// </summary>
         /// <param name="first">The first field access.</param>
         /// <param name="second">The second field access.</param>
-        /// <returns>True, if the first and second field access are not the same.</returns>
-        public static bool operator !=(FieldSpan first, FieldSpan second) => !first.Equals(second);
+        /// <returns>
+        /// True, if the first and second field access are not the same.
+        /// </returns>
+        public static bool operator !=(FieldSpan first, FieldSpan second) =>
+            !first.Equals(second);
 
         #endregion
     }
 
     /// <summary>
-    /// Represents a chain of field indices that is used to point to a particular structure field.
+    /// Represents a chain of field indices that is used to point to a particular
+    /// structure field.
     /// </summary>
     public readonly struct FieldAccessChain : IEquatable<FieldAccessChain>
     {
@@ -380,7 +406,9 @@ namespace ILGPU.IR.Values
         /// Returns true if this access chain is a subchain of the given one.
         /// </summary>
         /// <param name="other">The other subchain.</param>
-        /// <returns>True if this access chain is a subchain of the given one.</returns>
+        /// <returns>
+        /// True if this access chain is a subchain of the given one.
+        /// </returns>
         public bool IsSubChainOf(FieldAccessChain other)
         {
             if (Length >= other.Length)
@@ -397,7 +425,8 @@ namespace ILGPU.IR.Values
         /// Returns an enumerate to iterate over all chain elements.
         /// </summary>
         /// <returns>An enumerate to iterate over all chain elements.</returns>
-        public ImmutableArray<FieldAccess>.Enumerator GetEnumerator() => AccessChain.GetEnumerator();
+        public ImmutableArray<FieldAccess>.Enumerator GetEnumerator() =>
+            AccessChain.GetEnumerator();
 
         /// <summary>
         /// Realizes an additional access operation to the given field indices.
@@ -423,7 +452,9 @@ namespace ILGPU.IR.Values
         /// Returns true if the given field ref is equal to the current one.
         /// </summary>
         /// <param name="other">The other field reference.</param>
-        /// <returns>True, if the given field ref is equal to the current one.</returns>
+        /// <returns>
+        /// True, if the given field ref is equal to the current one.
+        /// </returns>
         public bool Equals(FieldAccessChain other)
         {
             var chain = AccessChain;
@@ -446,8 +477,11 @@ namespace ILGPU.IR.Values
         /// Returns true if the given object is equal to the current one.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, if the given field ref is equal to the current one.</returns>
-        public override bool Equals(object obj) => obj is FieldAccessChain other && Equals(other);
+        /// <returns>
+        /// True, if the given field ref is equal to the current one.
+        /// </returns>
+        public override bool Equals(object obj) =>
+            obj is FieldAccessChain other && Equals(other);
 
         /// <summary>
         /// Returns the hash code of this field reference.
@@ -480,8 +514,12 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="first">The first field ref.</param>
         /// <param name="second">The second field ref.</param>
-        /// <returns>True, if the first and second field ref are the same.</returns>
-        public static bool operator ==(FieldAccessChain first, FieldAccessChain second) =>
+        /// <returns>
+        /// True, if the first and second field ref are the same.
+        /// </returns>
+        public static bool operator ==(
+            FieldAccessChain first,
+            FieldAccessChain second) =>
             first.Equals(second);
 
         /// <summary>
@@ -489,8 +527,12 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="first">The first field ref.</param>
         /// <param name="second">The second field ref.</param>
-        /// <returns>True, if the first and second field ref are not the same.</returns>
-        public static bool operator !=(FieldAccessChain first, FieldAccessChain second) =>
+        /// <returns>
+        /// True, if the first and second field ref are not the same.
+        /// </returns>
+        public static bool operator !=(
+            FieldAccessChain first,
+            FieldAccessChain second) =>
             !first.Equals(second);
 
         #endregion
@@ -559,12 +601,10 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="fieldSpan">The field span.</param>
         /// <returns>The new field reference.</returns>
-        public FieldRef Access(FieldSpan fieldSpan)
-        {
-            if (IsDirect)
-                return new FieldRef(Source, fieldSpan);
-            return new FieldRef(Source, FieldSpan.Narrow(fieldSpan));
-        }
+        public FieldRef Access(FieldSpan fieldSpan) =>
+            IsDirect
+            ? new FieldRef(Source, fieldSpan)
+            : new FieldRef(Source, FieldSpan.Narrow(fieldSpan));
 
         #endregion
 
@@ -574,14 +614,20 @@ namespace ILGPU.IR.Values
         /// Returns true if the given field ref is equal to the current one.
         /// </summary>
         /// <param name="other">The other field reference.</param>
-        /// <returns>True, if the given field ref is equal to the current one.</returns>
+        /// <returns>
+        /// True, if the given field ref is equal to the current one.
+        /// </returns>
+        [SuppressMessage(
+            "Style",
+            "IDE0046:Convert to conditional expression",
+            Justification = "Avoid nested if conditionals")]
         public bool Equals(FieldRef other)
         {
             if (Source != other.Source || IsDirect != other.IsDirect)
                 return false;
-            if (IsDirect)
-                return true;
-            return FieldSpan.Equals(other.FieldSpan);
+            return IsDirect
+                ? true
+                : FieldSpan.Equals(other.FieldSpan);
         }
 
         #endregion
@@ -592,8 +638,11 @@ namespace ILGPU.IR.Values
         /// Returns true if the given object is equal to the current one.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, if the given field ref is equal to the current one.</returns>
-        public override bool Equals(object obj) => obj is FieldRef other && Equals(other);
+        /// <returns>
+        /// True, if the given field ref is equal to the current one.
+        /// </returns>
+        public override bool Equals(object obj) =>
+            obj is FieldRef other && Equals(other);
 
         /// <summary>
         /// Returns the hash code of this field reference.
@@ -608,9 +657,9 @@ namespace ILGPU.IR.Values
         public override string ToString()
         {
             var baseString = Source.ToReferenceString();
-            if (IsDirect)
-                return baseString;
-            return baseString + '[' + FieldSpan.ToString() + ']';
+            return IsDirect
+                ? baseString
+                : baseString + '[' + FieldSpan.ToString() + ']';
         }
 
         #endregion
@@ -623,7 +672,8 @@ namespace ILGPU.IR.Values
         /// <param name="first">The first field ref.</param>
         /// <param name="second">The second field ref.</param>
         /// <returns>True, if the first and second field ref are the same.</returns>
-        public static bool operator ==(FieldRef first, FieldRef second) => first.Equals(second);
+        public static bool operator ==(FieldRef first, FieldRef second) =>
+            first.Equals(second);
 
         /// <summary>
         /// Returns true if the first and second field ref are not the same.
@@ -631,7 +681,8 @@ namespace ILGPU.IR.Values
         /// <param name="first">The first field ref.</param>
         /// <param name="second">The second field ref.</param>
         /// <returns>True, if the first and second field ref are not the same.</returns>
-        public static bool operator !=(FieldRef first, FieldRef second) => !first.Equals(second);
+        public static bool operator !=(FieldRef first, FieldRef second) =>
+            !first.Equals(second);
 
         #endregion
     }
@@ -707,7 +758,9 @@ namespace ILGPU.IR.Values
         }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder)
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder)
         {
             var fields = ImmutableArray.CreateBuilder<ValueReference>(NumFields);
             foreach (var value in Nodes)
@@ -841,7 +894,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, ObjectValue, FieldSpan);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateGetField(
                 rebuilder.Rebuild(ObjectValue),
                 FieldSpan);
@@ -921,7 +976,9 @@ namespace ILGPU.IR.Values
             ComputeType(ObjectValue);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateSetField(
                 rebuilder.Rebuild(ObjectValue),
                 FieldSpan,

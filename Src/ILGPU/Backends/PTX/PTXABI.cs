@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXABI.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.PointerViews;
 using ILGPU.IR.Types;
@@ -32,7 +32,7 @@ namespace ILGPU.Backends.PTX
             TargetPlatform targetPlatform)
             : base(typeContext, targetPlatform)
         {
-            // Bools are mapped to 32bit int registers in PTX
+            // Boolean values are mapped to 32bit int registers in PTX
             DefineBasicTypeInformation(BasicValueType.Int1, 4);
         }
 

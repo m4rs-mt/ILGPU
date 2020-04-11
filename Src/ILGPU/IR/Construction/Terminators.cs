@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Terminators.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using ILGPU.Util;
@@ -34,7 +34,9 @@ namespace ILGPU.IR.Construction
         public TerminatorValue CreateReturn(Value returnValue)
         {
             Debug.Assert(returnValue != null, "Invalid return value");
-            Debug.Assert(returnValue.Type == Method.ReturnType, "Incompatible return value");
+            Debug.Assert(
+                returnValue.Type == Method.ReturnType,
+                "Incompatible return value");
             return CreateTerminator(new ReturnTerminator(
                 BasicBlock,
                 returnValue));
@@ -95,19 +97,16 @@ namespace ILGPU.IR.Construction
             value = CreateConvert(value, GetPrimitiveType(BasicValueType.Int32));
 
             // Transformation to create simple predicates
-            if (targets.Length == 2)
-            {
-                return CreateIfBranch(
+            return targets.Length == 2
+                ? CreateIfBranch(
                     CreateCompare(value, CreatePrimitiveValue(0), CompareKind.Equal),
                     targets[0],
-                    targets[1]);
-            }
-
-            return CreateTerminator(new SwitchBranch(
-                Context,
-                BasicBlock,
-                value,
-                targets));
+                    targets[1])
+                : CreateTerminator(new SwitchBranch(
+                    Context,
+                    BasicBlock,
+                    value,
+                    targets));
         }
 
         /// <summary>
@@ -116,12 +115,10 @@ namespace ILGPU.IR.Construction
         /// <param name="targets">All branch targets.</param>
         /// <returns>The created terminator.</returns>
         public BuilderTerminator CreateBuilderTerminator(
-            ImmutableArray<BasicBlock> targets)
-        {
-            return CreateTerminator(new BuilderTerminator(
+            ImmutableArray<BasicBlock> targets) =>
+            CreateTerminator(new BuilderTerminator(
                 Context,
                 BasicBlock,
                 targets)) as BuilderTerminator;
-        }
     }
 }

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLInstructions.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Values;
@@ -42,7 +42,9 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="addressSpace">The target address space to convert to.</param>
         /// <param name="operation">The resolved address-space-cast operation.</param>
         /// <returns>True, if an operation could be resolved.</returns>
-        public static bool TryGetAddressSpaceCast(MemoryAddressSpace addressSpace, out string operation)
+        public static bool TryGetAddressSpaceCast(
+            MemoryAddressSpace addressSpace,
+            out string operation)
         {
             operation = AddressSpaceCastOperations[(int)addressSpace];
             return operation != null;
@@ -53,15 +55,21 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="isFloat">True, if this is a floating-point operation.</param>
-        /// <param name="isFunction">True, if the resolved operation is a function call.</param>
+        /// <param name="isFunction">
+        /// True, if the resolved operation is a function call.
+        /// </param>
         /// <returns>The resolved arithmetic operation.</returns>
         public static string GetArithmeticOperation(
             UnaryArithmeticKind kind,
             bool isFloat,
             out bool isFunction)
         {
-            if (!UnaryArithmeticOperations.TryGetValue((kind, isFloat), out var operation))
+            if (!UnaryArithmeticOperations.TryGetValue(
+                (kind, isFloat),
+                out var operation))
+            {
                 throw new NotSupportedIntrinsicException(kind.ToString());
+            }
             isFunction = operation.Item2;
             return operation.Item1;
         }
@@ -71,15 +79,21 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="isFloat">True, if this is a floating-point operation.</param>
-        /// <param name="isFunction">True, if the resolved operation is a function call.</param>
+        /// <param name="isFunction">
+        /// True, if the resolved operation is a function call.
+        /// </param>
         /// <returns>The resolved arithmetic operation.</returns>
         public static string GetArithmeticOperation(
             BinaryArithmeticKind kind,
             bool isFloat,
             out bool isFunction)
         {
-            if (!BinaryArithmeticOperations.TryGetValue((kind, isFloat), out var operation))
+            if (!BinaryArithmeticOperations.TryGetValue(
+                (kind, isFloat),
+                out var operation))
+            {
                 throw new NotSupportedIntrinsicException(kind.ToString());
+            }
             isFunction = operation.Item2;
             return operation.Item1;
         }
@@ -119,7 +133,9 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="operation">The resolved memory-barrier operation.</param>
         /// <param name="kind">The barrier kind.</param>
         /// <returns>True, if the operation could be resolved.</returns>
-        public static bool TryGetPredicateBarrier(PredicateBarrierKind kind, out string operation)
+        public static bool TryGetPredicateBarrier(
+            PredicateBarrierKind kind,
+            out string operation)
         {
             operation = PredicateBarrierOperations[(int)kind];
             return operation != null;

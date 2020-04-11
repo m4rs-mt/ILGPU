@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: StructureType.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using ILGPU.Util;
@@ -88,9 +88,9 @@ namespace ILGPU.IR.Types
         /// <param name="typeNode">The type.</param>
         /// <returns>The number of nested fields (or 1).</returns>
         public static int GetNumFields(TypeNode typeNode) =>
-            typeNode is StructureType structureType ?
-            structureType.NumFields :
-            1;
+            typeNode is StructureType structureType
+            ? structureType.NumFields
+            : 1;
 
         #endregion
 
@@ -119,7 +119,9 @@ namespace ILGPU.IR.Types
             hashCode = 0;
             foreach (var type in fieldTypes)
             {
-                Debug.Assert(!(type is StructureType), "Invalid nested structure type");
+                Debug.Assert
+                    (!(type is StructureType),
+                    "Invalid nested structure type");
                 hashCode ^= type.GetHashCode();
                 AddFlags(type.Flags);
             }
@@ -163,13 +165,10 @@ namespace ILGPU.IR.Types
         /// <param name="span">The span to slice.</param>
         /// <returns>The nested type.</returns>
         public TypeNode Get<TTypeContext>(TTypeContext typeContext, FieldSpan span)
-            where TTypeContext : IIRTypeContext
-        {
-            if (!span.HasSpan)
-                return this[span.Access];
-            else
-                return Slice(typeContext, span);
-        }
+            where TTypeContext : IIRTypeContext =>
+            !span.HasSpan
+            ? this[span.Access]
+            : Slice(typeContext, span);
 
         /// <summary>
         /// Slices a structure type out of this type.
@@ -196,14 +195,16 @@ namespace ILGPU.IR.Types
         }
 
         /// <summary>
-        /// Creates a new immutable array builder that has a sufficient capacity for all values.
+        /// Creates a new immutable array builder that has a sufficient capacity for
+        /// all values.
         /// </summary>
         /// <returns>The created field builder.</returns>
         public ImmutableArray<TypeNode>.Builder CreateFieldTypeBuilder() =>
             ImmutableArray.CreateBuilder<TypeNode>(NumFields);
 
         /// <summary>
-        /// Creates a new immutable array builder that has a sufficient capacity for all values.
+        /// Creates a new immutable array builder that has a sufficient capacity for
+        /// all values.
         /// </summary>
         /// <returns>The created field builder.</returns>
         public ImmutableArray<ValueReference>.Builder CreateFieldBuilder() =>
@@ -218,9 +219,9 @@ namespace ILGPU.IR.Types
         {
             if (childIndex < 0 || childIndex >= Fields.Length)
                 throw new ArgumentOutOfRangeException(nameof(childIndex));
-            if (childIndex < Names.Length)
-                return Names[childIndex];
-            return string.Empty;
+            return childIndex < Names.Length
+                ? Names[childIndex]
+                : string.Empty;
         }
 
         /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
@@ -247,8 +248,8 @@ namespace ILGPU.IR.Types
         /// Returns an enumerator to enumerate all fields in this type.
         /// </summary>
         /// <returns>The enumerator.</returns>
-        IEnumerator<(TypeNode, FieldAccess)> IEnumerable<(TypeNode, FieldAccess)>.GetEnumerator() =>
-            GetEnumerator();
+        IEnumerator<(TypeNode, FieldAccess)>
+            IEnumerable<(TypeNode, FieldAccess)>.GetEnumerator() => GetEnumerator();
 
         /// <summary>
         /// Returns an enumerator to enumerate all fields in this type.
@@ -271,7 +272,10 @@ namespace ILGPU.IR.Types
         {
             if (!(obj is StructureType structureType) ||
                 structureType.NumFields != NumFields)
+            {
                 return false;
+            }
+
             for (int i = 0, e = Fields.Length; i < e; ++i)
             {
                 if (Fields[i] != structureType.Fields[i])

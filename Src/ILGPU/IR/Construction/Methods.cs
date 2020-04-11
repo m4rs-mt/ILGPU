@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Methods.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -52,7 +52,7 @@ namespace ILGPU.IR.Construction
         /// Declares a method.
         /// </summary>
         /// <param name="declaration">The method declaration.</param>
-        /// <param name="created">True, iff the method has been created.</param>
+        /// <param name="created">True, if the method has been created.</param>
         /// <returns>The declared method.</returns>
         public Method DeclareMethod(
             in MethodDeclaration declaration,

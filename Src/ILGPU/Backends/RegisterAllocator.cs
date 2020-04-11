@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: RegisterAllocator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Types;
@@ -78,7 +78,8 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
-        /// Represents a primitive register that might consume up to one hardware register.
+        /// Represents a primitive register that might consume up to one hardware
+        /// register.
         /// </summary>
         public abstract class PrimitiveRegister : Register
         {
@@ -179,7 +180,9 @@ namespace ILGPU.Backends
             /// </summary>
             /// <param name="type">The underlying type node.</param>
             /// <param name="registers">The child registers.</param>
-            internal CompoundRegister(StructureType type, ImmutableArray<Register> registers)
+            internal CompoundRegister(
+                StructureType type,
+                ImmutableArray<Register> registers)
             {
                 Type = type;
                 Children = registers;
@@ -276,9 +279,12 @@ namespace ILGPU.Backends
         /// <summary>
         /// Allocates a new hardware register of the given kind.
         /// </summary>
-        /// <param name="description">The register description used for allocation.</param>
+        /// <param name="description">
+        /// The register description used for allocation.
+        /// </param>
         /// <returns>The allocated register.</returns>
-        public abstract HardwareRegister AllocateRegister(RegisterDescription description);
+        public abstract HardwareRegister AllocateRegister(
+            RegisterDescription description);
 
         /// <summary>
         /// Frees the given register.
@@ -344,12 +350,10 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="node">The node to bind.</param>
         /// <param name="targetRegister">The target register to bind to.</param>
-        public void Bind(Value node, Register targetRegister)
-        {
+        public void Bind(Value node, Register targetRegister) =>
             registerLookup[node] = new RegisterEntry(
                 targetRegister,
                 node);
-        }
 
         /// <summary>
         /// Allocates a new register recursively
@@ -360,13 +364,17 @@ namespace ILGPU.Backends
             switch (typeNode)
             {
                 case PrimitiveType primitiveType:
-                    var primitiveRegisterKind = ResolveRegisterDescription(primitiveType);
+                    var primitiveRegisterKind =
+                        ResolveRegisterDescription(primitiveType);
                     return AllocateRegister(primitiveRegisterKind);
                 case StructureType structureType:
-                    var childRegisters = ImmutableArray.CreateBuilder<Register>(structureType.NumFields);
+                    var childRegisters = ImmutableArray.CreateBuilder<Register>(
+                        structureType.NumFields);
                     for (int i = 0, e = structureType.NumFields; i < e; ++i)
                         childRegisters.Add(AllocateType(structureType.Fields[i]));
-                    return new CompoundRegister(structureType, childRegisters.MoveToImmutable());
+                    return new CompoundRegister(
+                        structureType,
+                        childRegisters.MoveToImmutable());
                 case PointerType _:
                 case StringType _:
                     return AllocateType(ABI.PointerType);

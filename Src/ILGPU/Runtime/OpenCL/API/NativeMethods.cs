@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: NativeMethods.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Runtime.InteropServices;
@@ -64,7 +64,10 @@ namespace ILGPU.Runtime.OpenCL.API
             [Out] void* value,
             [Out] IntPtr size);
 
-        [DllImport(LibName, EntryPoint = "clGetExtensionFunctionAddressForPlatform", BestFitMapping = false)]
+        [DllImport(
+            LibName,
+            EntryPoint = "clGetExtensionFunctionAddressForPlatform",
+            BestFitMapping = false)]
         public static extern IntPtr GetExtensionFunctionAddressForPlatform(
             [In] IntPtr platformId,
             [In, MarshalAs(UnmanagedType.LPStr)] string name);
@@ -120,7 +123,10 @@ namespace ILGPU.Runtime.OpenCL.API
 
         #region Kernels
 
-        [DllImport(LibName, EntryPoint = "clCreateProgramWithSource", BestFitMapping = false)]
+        [DllImport(
+            LibName,
+            EntryPoint = "clCreateProgramWithSource",
+            BestFitMapping = false)]
         public static extern IntPtr CreateProgramWithSource(
             [In] IntPtr context,
             [In] int numPrograms,

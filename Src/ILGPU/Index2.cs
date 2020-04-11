@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Index2.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
@@ -49,7 +49,7 @@ namespace ILGPU
         /// <summary>
         /// Reconstructs a 2D index from a linear index.
         /// </summary>
-        /// <param name="linearIndex">The lienar index.</param>
+        /// <param name="linearIndex">The linear index.</param>
         /// <param name="dimension">The 2D dimension for reconstruction.</param>
         /// <returns>The reconstructed 2D index.</returns>
         public static Index2 ReconstructIndex(int linearIndex, Index2 dimension)
@@ -170,8 +170,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="dimension">The dimension for index computation.</param>
         /// <returns>The computed linear index of this 2D index.</returns>
-        public int ComputeLinearIndex(Index2 dimension) =>
-            Y * dimension.X + X;
+        public int ComputeLinearIndex(Index2 dimension) => Y * dimension.X + X;
 
         /// <summary>
         /// Reconstructs a 2D index from a linear index.
@@ -248,15 +247,13 @@ namespace ILGPU
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current index.</returns>
-        public override bool Equals(object obj) =>
-            obj is Index2 other && Equals(other);
+        public override bool Equals(object obj) => obj is Index2 other && Equals(other);
 
         /// <summary>
         /// Returns the hash code of this index.
         /// </summary>
         /// <returns>The hash code of this index.</returns>
-        public override int GetHashCode() =>
-            X.GetHashCode() ^ Y.GetHashCode();
+        public override int GetHashCode() => X.GetHashCode() ^ Y.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this index.
@@ -281,8 +278,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The added result index.</returns>
-        public static Index2 Add(Index2 first, Index2 second) =>
-            first + second;
+        public static Index2 Add(Index2 first, Index2 second) => first + second;
 
         /// <summary>
         /// Adds two indices (component wise).
@@ -299,11 +295,10 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The subtracted result index.</returns>
-        public static Index2 Subtract(Index2 first, Index2 second) =>
-            first - second;
+        public static Index2 Subtract(Index2 first, Index2 second) => first - second;
 
         /// <summary>
-        /// Subracts two indices (component wise).
+        /// Subtracts two indices (component wise).
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
@@ -335,8 +330,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The multiplied index.</returns>
-        public static Index2 Multiply(Index2 first, Index2 second) =>
-            first * second;
+        public static Index2 Multiply(Index2 first, Index2 second) => first * second;
 
         /// <summary>
         /// Multiplies two indices (component wise).
@@ -371,8 +365,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The divided index.</returns>
-        public static Index2 Divide(Index2 first, Index2 second) =>
-            first / second;
+        public static Index2 Divide(Index2 first, Index2 second) => first / second;
 
         /// <summary>
         /// Divides two indices (component wise).
@@ -415,7 +408,9 @@ namespace ILGPU
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, if the first index is smaller than or equal to the second index.</returns>
+        /// <returns>
+        /// True, if the first index is smaller than or equal to the second index.
+        /// </returns>
         public static bool operator <=(Index2 first, Index2 second) =>
             first.X <= second.X && first.Y <= second.Y;
 
@@ -433,7 +428,9 @@ namespace ILGPU
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, if the first index is greater than or equal to the second index.</returns>
+        /// <returns>
+        /// True, if the first index is greater than or equal to the second index.
+        /// </returns>
         public static bool operator >=(Index2 first, Index2 second) =>
             first.X >= second.X && first.Y >= second.Y;
 

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PrimitiveTypes.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
 using System;
@@ -85,12 +85,9 @@ namespace ILGPU.IR.Types
             base.GetHashCode() ^ 0x2AB11613 ^ (int)BasicValueType;
 
         /// <summary cref="TypeNode.Equals(object)"/>
-        public override bool Equals(object obj)
-        {
-            if (obj is PrimitiveType primitiveType)
-                return primitiveType.BasicValueType == BasicValueType;
-            return false;
-        }
+        public override bool Equals(object obj) =>
+            obj is PrimitiveType primitiveType &&
+            primitiveType.BasicValueType == BasicValueType;
 
         #endregion
     }

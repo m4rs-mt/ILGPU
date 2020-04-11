@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SSARewriter.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using System;
@@ -63,7 +63,8 @@ namespace ILGPU.IR.Rewriting
         /// </summary>
         /// <param name="newBuilder">The new builder to use.</param>
         /// <returns>The specialized rewriter context.</returns>
-        public SSARewriterContext<TVariable> SpecializeBuilder(BasicBlock.Builder newBuilder) =>
+        public SSARewriterContext<TVariable> SpecializeBuilder(
+            BasicBlock.Builder newBuilder) =>
             new SSARewriterContext<TVariable>(
                 baseContext.SpecializeBuilder(newBuilder),
                 SSABuilder);
@@ -354,7 +355,9 @@ namespace ILGPU.IR.Rewriting
         /// <param name="ssaBuilder">The parent SSA builder.</param>
         /// <param name="rewriting">The resolved rewriting functionality.</param>
         /// <returns>True, if some nodes to rewrite could have been determined.</returns>
-        public bool TryBeginRewrite(SSABuilder<TVariable> ssaBuilder, out RewriterProcess rewriting) =>
+        public bool TryBeginRewrite(
+            SSABuilder<TVariable> ssaBuilder,
+            out RewriterProcess rewriting) =>
             TryBeginRewrite(ssaBuilder, null, out rewriting);
 
         /// <summary>

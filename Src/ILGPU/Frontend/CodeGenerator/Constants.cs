@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Constants.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 
@@ -24,10 +24,8 @@ namespace ILGPU.Frontend
         private static void Load(
             Block block,
             IRBuilder builder,
-            int value)
-        {
+            int value) =>
             block.Push(builder.CreatePrimitiveValue(value));
-        }
 
         /// <summary>
         /// Loads a long.
@@ -38,10 +36,8 @@ namespace ILGPU.Frontend
         private static void Load(
             Block block,
             IRBuilder builder,
-            long value)
-        {
+            long value) =>
             block.Push(builder.CreatePrimitiveValue(value));
-        }
 
         /// <summary>
         /// Loads a float.
@@ -52,10 +48,8 @@ namespace ILGPU.Frontend
         private static void Load(
             Block block,
             IRBuilder builder,
-            float value)
-        {
+            float value) =>
             block.Push(builder.CreatePrimitiveValue(value));
-        }
 
         /// <summary>
         /// Loads a double.
@@ -66,10 +60,8 @@ namespace ILGPU.Frontend
         private static void Load(
             Block block,
             IRBuilder builder,
-            double value)
-        {
+            double value) =>
             block.Push(builder.CreatePrimitiveValue(value));
-        }
 
         /// <summary>
         /// Loads a string.
@@ -80,10 +72,7 @@ namespace ILGPU.Frontend
         private static void LoadString(
             Block block,
             IRBuilder builder,
-            string value)
-        {
+            string value) =>
             block.Push(builder.CreatePrimitiveValue(value));
-        }
-
     }
 }

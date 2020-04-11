@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: RemappedIntrinsics.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
@@ -38,24 +38,45 @@ namespace ILGPU.Frontend.Intrinsic
         /// <summary>
         /// Represents a basic remapper for compiler-specific device functions.
         /// </summary>
-        public delegate InvocationContext? DeviceFunctionRemapper(in InvocationContext context);
+        public delegate InvocationContext? DeviceFunctionRemapper(
+            in InvocationContext context);
 
         /// <summary>
         /// Stores function remappers.
         /// </summary>
-        private static readonly Dictionary<MethodBase, DeviceFunctionRemapper> FunctionRemappers =
+        private static readonly Dictionary<MethodBase, DeviceFunctionRemapper>
+            FunctionRemappers =
             new Dictionary<MethodBase, DeviceFunctionRemapper>();
 
-        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline", Justification = "Caching of compiler-known functions")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1810:InitializeReferenceTypeStaticFieldsInline",
+            Justification = "Caching of compiler-known functions")]
         static RemappedIntrinsics()
         {
             var remappedType = typeof(RemappedIntrinsics);
 
-            AddRemapping(typeof(float), CPUMathType, nameof(float.IsNaN), typeof(float));
-            AddRemapping(typeof(float), CPUMathType, nameof(float.IsInfinity), typeof(float));
+            AddRemapping(
+                typeof(float),
+                CPUMathType,
+                nameof(float.IsNaN),
+                typeof(float));
+            AddRemapping(
+                typeof(float),
+                CPUMathType,
+                nameof(float.IsInfinity),
+                typeof(float));
 
-            AddRemapping(typeof(double), CPUMathType, nameof(double.IsNaN), typeof(double));
-            AddRemapping(typeof(double), CPUMathType, nameof(double.IsInfinity), typeof(double));
+            AddRemapping(
+                typeof(double),
+                CPUMathType,
+                nameof(double.IsNaN),
+                typeof(double));
+            AddRemapping(
+                typeof(double),
+                CPUMathType,
+                nameof(double.IsInfinity),
+                typeof(double));
 
             RegisterMathRemappings();
 
@@ -104,7 +125,8 @@ namespace ILGPU.Frontend.Intrinsic
                 parameters,
                 null);
             AddRemapping(debugMethod,
-                (in InvocationContext context) => context.Remap(targetMethod, context.Arguments));
+                (in InvocationContext context) =>
+                    context.Remap(targetMethod, context.Arguments));
         }
 
         #endregion
@@ -116,7 +138,9 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         /// <param name="sourceType">The source math type.</param>
         /// <param name="targetType">The target math type.</param>
-        /// <param name="functionName">The name of the function in the scope of mathType.</param>
+        /// <param name="functionName">
+        /// The name of the function in the scope of mathType.
+        /// </param>
         /// <param name="paramTypes">The parameter types of both functions.</param>
         public static void AddRemapping(
             Type sourceType,
@@ -142,7 +166,8 @@ namespace ILGPU.Frontend.Intrinsic
 
             AddRemapping(
                 mathFunc,
-                (in InvocationContext context) => context.Remap(gpuMathFunc, context.Arguments));
+                (in InvocationContext context) =>
+                    context.Remap(gpuMathFunc, context.Arguments));
         }
 
         /// <summary>
@@ -153,11 +178,14 @@ namespace ILGPU.Frontend.Intrinsic
         /// <remarks>
         /// This method is not thread safe.
         /// </remarks>
-        public static void AddRemapping(MethodInfo methodInfo, DeviceFunctionRemapper remapper)
+        public static void AddRemapping(
+            MethodInfo methodInfo,
+            DeviceFunctionRemapper remapper)
         {
             if (methodInfo == null)
                 throw new ArgumentNullException(nameof(methodInfo));
-            FunctionRemappers[methodInfo] = remapper ?? throw new ArgumentNullException(nameof(remapper));
+            FunctionRemappers[methodInfo] = remapper
+                ?? throw new ArgumentNullException(nameof(remapper));
         }
 
         /// <summary>
@@ -167,7 +195,9 @@ namespace ILGPU.Frontend.Intrinsic
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void RemapIntrinsic(ref InvocationContext context)
         {
-            if (FunctionRemappers.TryGetValue(context.Method, out DeviceFunctionRemapper remapper))
+            if (FunctionRemappers.TryGetValue(
+                context.Method,
+                out DeviceFunctionRemapper remapper))
             {
                 var newContext = remapper(context);
                 if (newContext.HasValue)
@@ -179,12 +209,13 @@ namespace ILGPU.Frontend.Intrinsic
         /// Implements a simple debug assertion.
         /// </summary>
         /// <param name="condition">The assertion condition.</param>
-        [SuppressMessage("Microsoft.Globalization", "CA1303:DoNotPassLiteralsAsLocalizedParameters",
-            Justification = "ILGPU cannot load constants from global resource tables at the moment")]
-        private static void DebugAssertCondition(bool condition)
-        {
+        [SuppressMessage(
+            "Microsoft.Globalization",
+            "CA1303:DoNotPassLiteralsAsLocalizedParameters",
+            Justification = "ILGPU cannot load constants from global resource " +
+            "tables at the moment")]
+        private static void DebugAssertCondition(bool condition) =>
             DebugAssertConditionMessage(condition, "Assertion failed");
-        }
 
         /// <summary>
         /// Implements a simple debug assertion.

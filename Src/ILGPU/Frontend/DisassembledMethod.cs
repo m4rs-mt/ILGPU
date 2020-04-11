@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: DisassembledMethod.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.DebugInformation;
 using System.Collections.Immutable;
@@ -31,7 +31,9 @@ namespace ILGPU.Frontend
             int maxStackSize)
         {
             Debug.Assert(method != null, "Invalid method");
-            Debug.Assert(instructions != null && instructions.Length > 0, "Invalid instructions");
+            Debug.Assert(
+                instructions != null && instructions.Length > 0,
+                "Invalid instructions");
             Method = method;
             Instructions = instructions;
             MaxStackSize = maxStackSize;
@@ -86,34 +88,33 @@ namespace ILGPU.Frontend
         /// Returns an instruction enumerator.
         /// </summary>
         /// <returns>An instruction enumerator.</returns>
-        public ImmutableArray<ILInstruction>.Enumerator GetEnumerator() => Instructions.GetEnumerator();
+        public ImmutableArray<ILInstruction>.Enumerator GetEnumerator() =>
+            Instructions.GetEnumerator();
 
         /// <summary>
         /// Disassembles the given method.
         /// </summary>
         /// <param name="method">The method to disassemble.</param>
         /// <returns>The disassembled method.</returns>
-        public static Task<DisassembledMethod> DisassembleAsync(MethodBase method)
-        {
-            return DisassembleAsync(method, SequencePointEnumerator.Empty);
-        }
+        public static Task<DisassembledMethod> DisassembleAsync(MethodBase method) =>
+            DisassembleAsync(method, SequencePointEnumerator.Empty);
 
         /// <summary>
         /// Disassembles the given method.
         /// </summary>
         /// <param name="method">The method to disassemble.</param>
-        /// <param name="sequencePointEnumerator">The assocated sequence-point enumerator.</param>
+        /// <param name="sequencePointEnumerator">
+        /// The associated sequence-point enumerator.
+        /// </param>
         /// <returns>The disassembled method.</returns>
         public static Task<DisassembledMethod> DisassembleAsync(
             MethodBase method,
-            SequencePointEnumerator sequencePointEnumerator)
-        {
-            return Task.Run(() =>
+            SequencePointEnumerator sequencePointEnumerator) =>
+            Task.Run(() =>
             {
                 var context = new Disassembler(method, sequencePointEnumerator);
                 return context.Disassemble();
             });
-        }
 
         #endregion
     }

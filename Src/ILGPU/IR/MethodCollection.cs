@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MethodCollection.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections;
@@ -74,7 +74,8 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Represents a function predicate that matches all functions that have not been transformed yet.
+        /// Represents a function predicate that matches all functions that have not
+        /// been transformed yet.
         /// </summary>
         public readonly struct NotTransformed : IMethodCollectionPredicate
         {
@@ -98,7 +99,8 @@ namespace ILGPU.IR
     /// Represents an unsafe function view.
     /// </summary>
     /// <typeparam name="TPredicate">The predicate type.</typeparam>
-    public readonly struct UnsafeMethodCollection<TPredicate> : IMethodCollection<TPredicate>
+    public readonly struct UnsafeMethodCollection<TPredicate> :
+        IMethodCollection<TPredicate>
         where TPredicate : IMethodCollectionPredicate
     {
         #region Nested Types
@@ -229,7 +231,8 @@ namespace ILGPU.IR
     /// Represents a thread-safe function view.
     /// </summary>
     /// <typeparam name="TPredicate">The predicate type.</typeparam>
-    public readonly struct MethodCollection<TPredicate> : IMethodCollection<TPredicate>
+    public readonly struct MethodCollection<TPredicate> :
+        IMethodCollection<TPredicate>
         where TPredicate : IMethodCollectionPredicate
     {
         #region Nested Types

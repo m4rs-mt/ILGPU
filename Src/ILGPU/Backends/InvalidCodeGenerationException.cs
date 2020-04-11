@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: InvalidCodeGenerationException.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
 using System;
@@ -33,7 +33,10 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="message">The detailed error message.</param>
         public InvalidCodeGenerationException(string message)
-            : base(string.Format(RuntimeErrorMessages.InvalidCodeGenerationOperation1, message))
+            : base(
+                  string.Format(
+                      RuntimeErrorMessages.InvalidCodeGenerationOperation1,
+                      message))
         { }
 
         /// <summary>
@@ -50,7 +53,9 @@ namespace ILGPU.Backends
         /// <summary>
         /// Constructs a new code generation exception.
         /// </summary>
-        protected InvalidCodeGenerationException(SerializationInfo info, StreamingContext context)
+        protected InvalidCodeGenerationException(
+            SerializationInfo info,
+            StreamingContext context)
             : base(info, context)
         {
             // Implement type-specific serialization constructor logic.

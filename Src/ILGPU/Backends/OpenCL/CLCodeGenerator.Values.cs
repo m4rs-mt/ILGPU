@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.Values.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Types;
@@ -33,7 +33,9 @@ namespace ILGPU.Backends.OpenCL
                 statementEmitter.AppendCommand(GetMethodName(target));
             }
             else
+            {
                 statementEmitter = BeginStatement(GetMethodName(target));
+            }
 
             // Append arguments
             statementEmitter.BeginArguments();
@@ -107,7 +109,9 @@ namespace ILGPU.Backends.OpenCL
                     statement.BeginArguments();
                 }
                 else
+                {
                     statement.OpenParen();
+                }
 
                 statement.AppendCast(value.ArithmeticBasicValueType);
                 statement.AppendArgument(left);
@@ -133,7 +137,9 @@ namespace ILGPU.Backends.OpenCL
                 value.Kind,
                 value.BasicValueType.IsFloat(),
                 out string operation))
+            {
                 throw new InvalidCodeGenerationException();
+            }
 
             var first = Load(value.First);
             var second = Load(value.Second);
@@ -612,7 +618,9 @@ namespace ILGPU.Backends.OpenCL
             if (!CLInstructions.TryGetPredicateBarrier(
                 barrier.Kind,
                 out string operation))
+            {
                 throw new InvalidCodeGenerationException();
+            }
 
             using (var statement = BeginStatement(target))
             {
@@ -664,7 +672,9 @@ namespace ILGPU.Backends.OpenCL
                 Backend.Vendor,
                 shuffle.Kind,
                 out string operation))
+            {
                 throw new InvalidCodeGenerationException();
+            }
 
             var source = Load(shuffle.Variable);
             var origin = Load(shuffle.Origin);
@@ -690,12 +700,11 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(SubWarpShuffle)"/>
-        public void GenerateCode(SubWarpShuffle shuffle) => throw new InvalidCodeGenerationException();
+        public void GenerateCode(SubWarpShuffle shuffle) =>
+            throw new InvalidCodeGenerationException();
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugOperation)"/>
-        public void GenerateCode(DebugOperation debug)
-        {
+        public void GenerateCode(DebugOperation debug) =>
             Debug.Assert(false, "Invalid debug node -> should have been removed");
-        }
     }
 }

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ParameterCollection.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
 using ILGPU.Util;
@@ -67,8 +67,9 @@ namespace ILGPU.Backends.EntryPoints
         }
 
         /// <summary>
-        /// Represents a parameter that is annotated with the help of the <see cref="SpecializedValue{T}"/>
-        /// structure to enable dynamic specialization of kernels.
+        /// Represents a parameter that is annotated with the help of the
+        /// <see cref="SpecializedValue{T}"/> structure to enable dynamic specialization
+        /// of kernels.
         /// </summary>
         public readonly struct SpecializedParameter
         {
@@ -124,16 +125,18 @@ namespace ILGPU.Backends.EntryPoints
         {
             ParameterTypes = parameterTypes;
 
-            var specializedParameters = ImmutableArray.CreateBuilder<SpecializedParameter>(
+            var specializedParameters =ImmutableArray.CreateBuilder<SpecializedParameter>(
                 parameterTypes.Length);
             for (int i = 0, e =  Count; i < e; ++i)
             {
                 var paramType = this[i];
                 if (paramType.IsSpecializedType(out var nestedType))
+                {
                     specializedParameters.Add(new SpecializedParameter(
                         i,
                         nestedType,
                         paramType));
+                }
             }
             SpecializedParameters = specializedParameters.ToImmutable();
         }
@@ -192,7 +195,8 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <param name="target">The target array.</param>
         /// <param name="offset">The target offset to copy to.</param>
-        public void CopyTo(Type[] target, int offset) => ParameterTypes.CopyTo(target, offset);
+        public void CopyTo(Type[] target, int offset) =>
+            ParameterTypes.CopyTo(target, offset);
 
         #endregion
 

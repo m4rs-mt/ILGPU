@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CPUKernel.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using System;
@@ -20,6 +20,19 @@ namespace ILGPU.Runtime.CPU
     /// </summary>
     public sealed class CPUKernel : Kernel
     {
+        #region Static
+
+        /// <summary>
+        /// Represents the <see cref="KernelExecutionDelegate"/> property getter.
+        /// </summary>
+        internal static readonly MethodInfo GetKernelExecutionDelegate =
+            typeof(CPUKernel).GetProperty(
+                nameof(KernelExecutionDelegate),
+                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+            .GetGetMethod(true);
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -36,7 +49,8 @@ namespace ILGPU.Runtime.CPU
             CPUKernelExecutionHandler kernelExecutionDelegate)
             : base(accelerator, kernel, launcher)
         {
-            KernelExecutionDelegate = kernelExecutionDelegate ?? throw new ArgumentNullException(nameof(kernelExecutionDelegate));
+            KernelExecutionDelegate = kernelExecutionDelegate
+                ?? throw new ArgumentNullException(nameof(kernelExecutionDelegate));
         }
 
         #endregion

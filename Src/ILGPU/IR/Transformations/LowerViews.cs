@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: LowerViews.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Rewriting;
@@ -65,12 +65,18 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected static void AddRewriters(
             Rewriter<TypeLowering<ViewType>> rewriter,
-            RewriteConverter<TypeLowering<ViewType>, NewView> newViewConverter,
-            RewriteConverter<TypeLowering<ViewType>, GetViewLength> getViewLengthConverter,
-            RewriteConverter<TypeLowering<ViewType>, SubViewValue> subViewConverter,
-            RewriteConverter<TypeLowering<ViewType>, AddressSpaceCast> addressSpaceCastConverter,
-            RewriteConverter<TypeLowering<ViewType>, ViewCast> viewCastConverter,
-            RewriteConverter<TypeLowering<ViewType>, LoadElementAddress> leaConverter)
+            RewriteConverter<
+                TypeLowering<ViewType>, NewView> newViewConverter,
+            RewriteConverter<
+                TypeLowering<ViewType>, GetViewLength> getViewLengthConverter,
+            RewriteConverter<
+                TypeLowering<ViewType>, SubViewValue> subViewConverter,
+            RewriteConverter<
+                TypeLowering<ViewType>, AddressSpaceCast> addressSpaceCastConverter,
+            RewriteConverter<
+                TypeLowering<ViewType>, ViewCast> viewCastConverter,
+            RewriteConverter<
+                TypeLowering<ViewType>, LoadElementAddress> leaConverter)
         {
             AddRewriters(rewriter);
 

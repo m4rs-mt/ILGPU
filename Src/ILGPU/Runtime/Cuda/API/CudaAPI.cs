@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CudaAPI.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
 using System;
@@ -36,33 +36,33 @@ namespace ILGPU.Runtime.Cuda.API
     /// Wraps the Cuda-driver API.
     /// </summary>
     /// <remarks>
-    /// Since the current implementation of dotnetcore does not support
+    /// Since the current implementation of .Net Core does not support
     /// platform-dependent DLL imports with different entry point and libs,
     /// we have to wrap the direct low-level calls with (slow) virtual dispatchers.
-    /// This will be removed as soon as dotnetcore adds additional support.
+    /// This will be removed as soon as .Net Core adds additional support.
     /// </remarks>
     public abstract class CudaAPI
     {
         #region Static
 
 #pragma warning disable IDE0002 // Simplify Member Access
-        // Access cannot be simplified (dotnetcore build)
+        // Access cannot be simplified (.Net Core build)
         private static CudaAPI InitializeAPI()
         {
             CudaAPI result;
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    result = new CudaAPIWindows();
-                else
-                    result = new CudaAPIUnix();
+                result = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? new CudaAPIWindows() as CudaAPI
+                    : new CudaAPIUnix() as CudaAPI;
                 if (result.InitAPI() != CudaError.CUDA_SUCCESS)
                     result = new NotSupportedCudaAPI();
             }
-            catch (Exception ex) when (ex is DllNotFoundException || ex is EntryPointNotFoundException)
+            catch (Exception ex) when (
+                ex is DllNotFoundException || ex is EntryPointNotFoundException)
             {
                 // In case of a critical initialization exception
-                // fall back to the not supported Cuda api.
+                // fall back to the not supported Cuda API.
                 result = new NotSupportedCudaAPI();
             }
             return result;
@@ -106,12 +106,10 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         /// <param name="error">The error to resolve.</param>
         /// <returns>The resolved error string.</returns>
-        public string GetErrorString(CudaError error)
-        {
-            if (GetErrorString(error, out IntPtr ptr) != CudaError.CUDA_SUCCESS)
-                return RuntimeErrorMessages.CannotResolveErrorString;
-            return Marshal.PtrToStringAnsi(ptr);
-        }
+        public string GetErrorString(CudaError error) =>
+            GetErrorString(error, out IntPtr ptr) != CudaError.CUDA_SUCCESS
+            ? RuntimeErrorMessages.CannotResolveErrorString
+            : Marshal.PtrToStringAnsi(ptr);
 
         #endregion
 
@@ -287,19 +285,23 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         /// <param name="config">The resolved shared-memory configuration.</param>
         /// <returns>The error status.</returns>
-        public abstract CudaError GetSharedMemoryConfig(out CudaSharedMemoryConfiguration config);
+        public abstract CudaError GetSharedMemoryConfig(
+            out CudaSharedMemoryConfiguration config);
 
         /// <summary>
         /// Updates the shared-memory configuration.
         /// </summary>
         /// <param name="config">The updated shared-memory configuration.</param>
         /// <returns>The error status.</returns>
-        public abstract CudaError SetSharedMemoryConfig(CudaSharedMemoryConfiguration config);
+        public abstract CudaError SetSharedMemoryConfig(
+            CudaSharedMemoryConfiguration config);
 
         /// <summary>
         /// Resolves whether the given device can access the given peer device.
         /// </summary>
-        /// <param name="canAccess">True, iff the device can access the peer device.</param>
+        /// <param name="canAccess">
+        /// True, if the device can access the peer device.
+        /// </param>
         /// <param name="device">The device.</param>
         /// <param name="peerDevice">The peer device.</param>
         /// <returns>The error status.</returns>
@@ -411,7 +413,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="destinationDevice">The destination in device memory.</param>
         /// <param name="sourceHost">The source in host memory.</param>
         /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">The accelerator stream for async processing.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CudaError MemcpyHostToDevice(
@@ -434,7 +438,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="destinationDevice">The destination in device memory.</param>
         /// <param name="sourceHost">The source in host memory.</param>
         /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">The accelerator stream for async processing.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <returns>The error status.</returns>
         public abstract CudaError MemcpyHostToDevice(
             IntPtr destinationDevice,
@@ -448,7 +454,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="destinationHost">The destination in host memory.</param>
         /// <param name="sourceDevice">The source in device memory.</param>
         /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">The accelerator stream for async processing.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CudaError MemcpyDeviceToHost(
@@ -471,7 +479,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="destinationHost">The destination in host memory.</param>
         /// <param name="sourceDevice">The source in device memory.</param>
         /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">The accelerator stream for async processing.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <returns>The error status.</returns>
         public abstract CudaError MemcpyDeviceToHost(
             IntPtr destinationHost,
@@ -485,7 +495,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="destinationDevice">The destination in device memory.</param>
         /// <param name="sourceDevice">The source in device memory.</param>
         /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">The accelerator stream for async processing.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CudaError MemcpyDeviceToDevice(
@@ -508,7 +520,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="destinationDevice">The destination in device memory.</param>
         /// <param name="sourceDevice">The source in device memory.</param>
         /// <param name="length">The number of bytes to copy.</param>
-        /// <param name="stream">The accelerator stream for async processing.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <returns>The error status.</returns>
         public abstract CudaError MemcpyDeviceToDevice(
             IntPtr destinationDevice,
@@ -522,7 +536,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="destinationDevice">The destination in device memory.</param>
         /// <param name="value">The value to set.</param>
         /// <param name="length">The length in bytes.</param>
-        /// <param name="stream">The accelerator stream for async processing.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public CudaError Memset(
@@ -545,7 +561,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="destinationDevice">The destination in device memory.</param>
         /// <param name="value">The value to set.</param>
         /// <param name="length">The length in bytes.</param>
-        /// <param name="stream">The accelerator stream for async processing.</param>
+        /// <param name="stream">
+        /// The accelerator stream for asynchronous processing.
+        /// </param>
         /// <returns>The error status.</returns>
         public abstract CudaError Memset(
             IntPtr destinationDevice,
@@ -622,9 +640,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// </summary>
         /// <param name="kernelModule">The loaded module.</param>
         /// <param name="moduleData">The module data to load.</param>
-        /// <param name="numOptions">The number of jit options.</param>
-        /// <param name="jitOptions">The jit options.</param>
-        /// <param name="jitOptionValues">The jit values.</param>
+        /// <param name="numOptions">The number of JIT options.</param>
+        /// <param name="jitOptions">The JIT options.</param>
+        /// <param name="jitOptionValues">The JIT values.</param>
         /// <returns>The error status.</returns>
         public abstract CudaError LoadModule(
             out IntPtr kernelModule,
@@ -668,15 +686,14 @@ namespace ILGPU.Runtime.Cuda.API
                 new IntPtr(options),
                 new IntPtr(optionValues));
 
-            if (result != CudaError.CUDA_SUCCESS)
-                errorLog = Encoding.ASCII.GetString(errorBuffer, BufferSize);
-            else
-                errorLog = null;
+            errorLog = result != CudaError.CUDA_SUCCESS
+                ? Encoding.ASCII.GetString(errorBuffer, BufferSize)
+                : null;
             return result;
         }
 
         /// <summary>
-        /// Unlods the given module.
+        /// Unloads the given module.
         /// </summary>
         /// <param name="kernelModule">The module to unload.</param>
         /// <returns>The error status.</returns>
@@ -771,7 +788,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="sharedMemSizeInBytes">The shared-memory size in bytes.</param>
         /// <param name="stream">The associated accelerator stream.</param>
         /// <param name="argument">The argument structure.</param>
-        /// <param name="argumentLength">The length of the memory region in bytes.</param>
+        /// <param name="argumentLength">
+        /// The length of the memory region in bytes.
+        /// </param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe CudaError LaunchKernelWithStruct<T>(
@@ -817,7 +836,9 @@ namespace ILGPU.Runtime.Cuda.API
         /// <param name="numBlocks">The number of blocks.</param>
         /// <param name="func">The function.</param>
         /// <param name="blockSize">The desired block size.</param>
-        /// <param name="dynamicSMemSize">The size of the required shared memory.</param>
+        /// <param name="dynamicSMemSize">
+        /// The size of the required shared memory.
+        /// </param>
         /// <returns>The error status.</returns>
         public abstract CudaError ComputeOccupancyMaxActiveBlocksPerMultiprocessor(
             out int numBlocks,
@@ -828,11 +849,17 @@ namespace ILGPU.Runtime.Cuda.API
         /// <summary>
         /// Computes the maximum potential block size to for maximum occupancy.
         /// </summary>
-        /// <param name="minGridSize">The minimum grid size for maximum occupancy.</param>
+        /// <param name="minGridSize">
+        /// The minimum grid size for maximum occupancy.
+        /// </param>
         /// <param name="blockSize">The block size for maximum occupancy.</param>
         /// <param name="func">The function.</param>
-        /// <param name="blockSizeToDynamicSMemSize">Computes the amount of required shared-memory for the given block size.</param>
-        /// <param name="dynamicSMemSize">The size of the required shared memory (independent of the block size).</param>
+        /// <param name="blockSizeToDynamicSMemSize">
+        /// Computes the amount of required shared-memory for the given block size.
+        /// </param>
+        /// <param name="dynamicSMemSize">
+        /// The size of the required shared memory (independent of the block size).
+        /// </param>
         /// <param name="blockSizeLimit">The block-size limit.</param>
         /// <returns>The error status.</returns>
         public abstract CudaError ComputeOccupancyMaxPotentialBlockSize(
@@ -846,11 +873,17 @@ namespace ILGPU.Runtime.Cuda.API
         /// <summary>
         /// Computes the maximum potential block size to for maximum occupancy.
         /// </summary>
-        /// <param name="minGridSize">The minimum grid size for maximum occupancy.</param>
+        /// <param name="minGridSize">
+        /// The minimum grid size for maximum occupancy.
+        /// </param>
         /// <param name="blockSize">The block size for maximum occupancy.</param>
         /// <param name="func">The function.</param>
-        /// <param name="blockSizeToDynamicSMemSize">Computes the amount of required shared-memory for the given block size.</param>
-        /// <param name="dynamicSMemSize">The size of the required shared memory (independent of the block size).</param>
+        /// <param name="blockSizeToDynamicSMemSize">
+        /// Computes the amount of required shared-memory for the given block size.
+        /// </param>
+        /// <param name="dynamicSMemSize">
+        /// The size of the required shared memory (independent of the block size).
+        /// </param>
         /// <param name="blockSizeLimit">The block-size limit.</param>
         /// <returns>The error status.</returns>
         public CudaError ComputeOccupancyMaxPotentialBlockSize(
@@ -859,16 +892,14 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr func,
             ComputeManagedDynamicMemorySizeForBlockSize blockSizeToDynamicSMemSize,
             int dynamicSMemSize,
-            int blockSizeLimit)
-        {
-            return ComputeOccupancyMaxPotentialBlockSize(
+            int blockSizeLimit) =>
+            ComputeOccupancyMaxPotentialBlockSize(
                 out minGridSize,
                 out blockSize,
                 func,
                 size => new IntPtr(blockSizeToDynamicSMemSize(size)),
                 new IntPtr(dynamicSMemSize),
                 blockSizeLimit);
-        }
 
         #endregion
     }

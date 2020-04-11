@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXIntrinsics.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.AtomicOperations;
 using ILGPU.Frontend;
@@ -60,7 +60,12 @@ namespace ILGPU.Backends.PTX
             IntrinsicImplementationMode mode,
             PTXArchitecture? minArchitecture,
             PTXArchitecture maxArchitecture) =>
-            new PTXIntrinsic(PTXIntrinsicsType, name, mode, minArchitecture, maxArchitecture);
+            new PTXIntrinsic(
+                PTXIntrinsicsType,
+                name,
+                mode,
+                minArchitecture,
+                maxArchitecture);
 
         /// <summary>
         /// Creates a new PTX intrinsic.
@@ -68,7 +73,9 @@ namespace ILGPU.Backends.PTX
         /// <param name="name">The name of the intrinsic.</param>
         /// <param name="mode">The implementation mode.</param>
         /// <returns>The created intrinsic.</returns>
-        private static PTXIntrinsic CreateIntrinsic(string name, IntrinsicImplementationMode mode) =>
+        private static PTXIntrinsic CreateIntrinsic(
+            string name,
+            IntrinsicImplementationMode mode) =>
             new PTXIntrinsic(PTXIntrinsicsType, name, mode);
 
         /// <summary>
@@ -90,15 +97,21 @@ namespace ILGPU.Backends.PTX
             // Register broadcasts
             manager.RegisterBroadcast(
                 BroadcastKind.GroupLevel,
-                CreateIntrinsic(nameof(GroupBroadcast), IntrinsicImplementationMode.Redirect));
+                CreateIntrinsic(
+                    nameof(GroupBroadcast),
+                    IntrinsicImplementationMode.Redirect));
             manager.RegisterBroadcast(
                 BroadcastKind.WarpLevel,
-                CreateIntrinsic(nameof(WarpBroadcast), IntrinsicImplementationMode.Redirect));
+                CreateIntrinsic(
+                    nameof(WarpBroadcast),
+                    IntrinsicImplementationMode.Redirect));
 
             // Register assert support
             manager.RegisterDebug(
                 DebugKind.AssertFailed,
-                CreateIntrinsic(nameof(AssertFailed), IntrinsicImplementationMode.Redirect));
+                CreateIntrinsic(
+                    nameof(AssertFailed),
+                    IntrinsicImplementationMode.Redirect));
 
             // Register shuffles
             RegisterWarpShuffles(manager);
@@ -122,7 +135,11 @@ namespace ILGPU.Backends.PTX
         /// <param name="target">The target address.</param>
         /// <param name="value">The value to add.</param>
         private static void AtomicAddF64(ref double target, double value) =>
-            Atomic.MakeAtomic(ref target, value, new AddDouble(), new CompareExchangeDouble());
+            Atomic.MakeAtomic(
+                ref target,
+                value,
+                new AddDouble(),
+                new CompareExchangeDouble());
 
         #endregion
 

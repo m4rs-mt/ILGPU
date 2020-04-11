@@ -1,16 +1,15 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Threads.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
-using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -87,12 +86,12 @@ namespace ILGPU.IR.Values
         /// <param name="kind">The barrier kind.</param>
         /// <returns>The resolved type node.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context, PredicateBarrierKind kind)
-        {
-            if (kind == PredicateBarrierKind.PopCount)
-                return context.GetPrimitiveType(BasicValueType.Int32);
-            return context.GetPrimitiveType(BasicValueType.Int1);
-        }
+        private static TypeNode ComputeType(
+            IRContext context,
+            PredicateBarrierKind kind) =>
+            kind == PredicateBarrierKind.PopCount
+            ? context.GetPrimitiveType(BasicValueType.Int32)
+            : context.GetPrimitiveType(BasicValueType.Int1);
 
         #endregion
 
@@ -147,7 +146,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, Kind);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateBarrier(
                 rebuilder.Rebuild(Predicate),
                 Kind);
@@ -244,7 +245,9 @@ namespace ILGPU.IR.Values
             ComputeType(context);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateBarrier(Kind);
 
         /// <summary cref="Value.Accept" />
@@ -312,7 +315,8 @@ namespace ILGPU.IR.Values
         public ValueReference Variable => this[0];
 
         /// <summary>
-        /// Returns true if this communication operation works on intrinsic primitive types.
+        /// Returns true if this communication operation works on intrinsic primitive
+        /// types.
         /// </summary>
         public bool IsBuiltIn => BasicValueType >= BasicValueType.Int32;
 
@@ -340,7 +344,9 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="basicBlock">The parent basic block.</param>
         /// <param name="value">The value to broadcast.</param>
-        /// <param name="origin">The source thread index within the group or warp..</param>
+        /// <param name="origin">
+        /// The source thread index within the group or warp.
+        /// </param>
         /// <param name="broadcastKind">The operation kind.</param>
         internal Broadcast(
             BasicBlock basicBlock,
@@ -376,7 +382,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateBroadcast(
                 rebuilder.Rebuild(Variable),
                 rebuilder.Rebuild(Origin),
@@ -508,7 +516,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateShuffle(
                 rebuilder.Rebuild(Variable),
                 rebuilder.Rebuild(Origin),
@@ -572,7 +582,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateShuffle(
                 rebuilder.Rebuild(Variable),
                 rebuilder.Rebuild(Origin),

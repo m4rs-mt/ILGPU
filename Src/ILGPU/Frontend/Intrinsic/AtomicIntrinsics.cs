@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: AtomicIntrinsics.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using System;
@@ -64,24 +64,17 @@ namespace ILGPU.Frontend.Intrinsic
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleAtomicOperation(
             in InvocationContext context,
-            AtomicIntrinsicAttribute attribute)
-        {
-            if (attribute.IntrinsicKind == AtomicIntrinsicKind.CompareExchange)
-            {
-                return context.Builder.CreateAtomicCAS(
-                    context[0],
-                    context[1],
-                    context[2],
-                    attribute.IntrinsicFlags);
-            }
-            else
-            {
-                return context.Builder.CreateAtomic(
-                    context[0],
-                    context[1],
-                    (AtomicKind)attribute.IntrinsicKind,
-                    attribute.IntrinsicFlags);
-            }
-        }
+            AtomicIntrinsicAttribute attribute) =>
+            attribute.IntrinsicKind == AtomicIntrinsicKind.CompareExchange
+            ? context.Builder.CreateAtomicCAS(
+                context[0],
+                context[1],
+                context[2],
+                attribute.IntrinsicFlags)
+            : (ValueReference)context.Builder.CreateAtomic(
+                context[0],
+                context[1],
+                (AtomicKind)attribute.IntrinsicKind,
+                attribute.IntrinsicFlags);
     }
 }

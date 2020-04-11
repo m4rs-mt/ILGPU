@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Kernel.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using ILGPU.Backends.EntryPoints;
@@ -86,7 +86,7 @@ namespace ILGPU.Runtime
                 emitter.Emit(OpCodes.Ret);
             }
 
-            // Return dummy arg
+            // Return dummy argument
             emitter.Emit(OpCodes.Ldnull);
             emitter.Emit(OpCodes.Ret);
             emitter.Finish();
@@ -95,17 +95,20 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Creates a launcher delegate that uses the <see cref="SpecializationCache{TLoader, TArgs, TDelegate}"/>
-        /// to created dynamically specialized kernels.
+        /// Creates a launcher delegate that uses the
+        /// <see cref="SpecializationCache{TLoader, TArgs, TDelegate}"/> to create
+        /// dynamically specialized kernels.
         /// </summary>
         /// <typeparam name="TLoader">The associated loader type.</typeparam>
-        /// <typeparam name="TDelegate">The lancher delegate type.</typeparam>
+        /// <typeparam name="TDelegate">The launcher delegate type.</typeparam>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="entry">The entry point to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelMethod">The kernel IR method.</param>
         /// <param name="loader">The loader instance.</param>
-        /// <returns>A dynamic kernel launcher that automagically specializes kernels.</returns>
+        /// <returns>
+        /// A dynamic kernel launcher that automatically specializes kernels.
+        /// </returns>
         public static TDelegate CreateSpecializedLauncher<TDelegate, TLoader>(
             Accelerator accelerator,
             in EntryPointDescription entry,
@@ -157,9 +160,12 @@ namespace ILGPU.Runtime
                 // Load target field address
                 emitter.Emit(LocalOperation.LoadAddress, keyVariable);
 
-                // Load the associated argument address and extract the value to specialize for
+                // Load the associated argument address and extract the value to
+                // specialize for
                 var param = specializedParameters[i];
-                emitter.Emit(ArgumentOperation.LoadAddress, KernelParameterOffset + param.Index);
+                emitter.Emit(
+                    ArgumentOperation.LoadAddress,
+                    KernelParameterOffset + param.Index);
 
                 var valueProperty = param.SpecializedType.GetProperty(
                     nameof(SpecializedValue<int>.Value),
@@ -202,7 +208,9 @@ namespace ILGPU.Runtime
                 loader,
                 entry,
                 specialization);
-            return launcherMethod.CreateDelegate(typeof(TDelegate), cacheInstance) as TDelegate;
+            return launcherMethod.CreateDelegate(
+                typeof(TDelegate),
+                cacheInstance) as TDelegate;
         }
 
         #endregion
@@ -259,7 +267,7 @@ namespace ILGPU.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TDelegate CreateLauncherDelegate<TDelegate>()
             where TDelegate : Delegate =>
-            (Launcher.CreateDelegate(typeof(TDelegate), this) as object) as TDelegate;
+            Launcher.CreateDelegate(typeof(TDelegate), this) as object as TDelegate;
 
         /// <summary>
         /// Invokes the associated launcher via reflection.
@@ -269,15 +277,22 @@ namespace ILGPU.Runtime
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="args">The kernel arguments.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void InvokeLauncher<T>(T dimension, AcceleratorStream stream, object[] args)
+        private void InvokeLauncher<T>(
+            T dimension,
+            AcceleratorStream stream,
+            object[] args)
             where T : IIndex
         {
             if (NumParameters != args.Length)
-                throw new ArgumentException(RuntimeErrorMessages.InvalidNumberOfUniformArgs);
+            {
+                throw new ArgumentException(
+                    RuntimeErrorMessages.InvalidNumberOfUniformArgs);
+            }
 
             var reflectionArgs = new object[KernelParameterOffset + args.Length];
             reflectionArgs[KernelInstanceParamIdx] = this;
-            reflectionArgs[KernelStreamParamIdx] = stream ?? throw new ArgumentNullException(nameof(stream));
+            reflectionArgs[KernelStreamParamIdx] = stream
+                ?? throw new ArgumentNullException(nameof(stream));
             reflectionArgs[KernelParamDimensionIdx] = dimension;
             args.CopyTo(reflectionArgs, KernelParameterOffset);
             Launcher.Invoke(null, reflectionArgs);
@@ -295,7 +310,10 @@ namespace ILGPU.Runtime
         /// <param name="dimension">The grid dimension.</param>
         /// <param name="args">The kernel arguments.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Launch<TIndex>(AcceleratorStream stream, TIndex dimension, params object[] args)
+        public void Launch<TIndex>(
+            AcceleratorStream stream,
+            TIndex dimension,
+            params object[] args)
             where TIndex : struct, IIndex =>
             InvokeLauncher(dimension, stream, args);
 
@@ -306,7 +324,10 @@ namespace ILGPU.Runtime
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="args">The kernel arguments.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Launch(AcceleratorStream stream, int dimension, params object[] args) =>
+        public void Launch(
+            AcceleratorStream stream,
+            int dimension,
+            params object[] args) =>
             InvokeLauncher(new Index1(dimension), stream, args);
 
         #endregion
@@ -324,13 +345,16 @@ namespace ILGPU.Runtime
         /// <param name="kernelDelegate">The kernel-delegate instance.</param>
         /// <param name="kernel">The resolved kernel object (if any).</param>
         /// <returns>True, if a kernel object could be resolved.</returns>
-        public static bool TryGetKernel<TDelegate>(this TDelegate kernelDelegate, out Kernel kernel)
+        public static bool TryGetKernel<TDelegate>(
+            this TDelegate kernelDelegate,
+            out Kernel kernel)
             where TDelegate : Delegate =>
             (kernel = kernelDelegate.Target as Kernel) != null;
 
         /// <summary>
         /// Resolves a kernel object from a previously created kernel delegate.
-        /// If this is not possible, the method will throw an <see cref="InvalidOperationException"/>.
+        /// If this is not possible, the method will throw an
+        /// <see cref="InvalidOperationException"/>.
         /// </summary>
         /// <typeparam name="TDelegate">The kernel-delegate type.</typeparam>
         /// <param name="kernelDelegate">The kernel-delegate instance.</param>

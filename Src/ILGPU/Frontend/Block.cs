@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Block.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR;
@@ -143,7 +143,8 @@ namespace ILGPU.Frontend
         public BasicValueType PeekBasicValueType()
         {
             Debug.Assert(StackCounter > 0, "Stack empty");
-            var value = GetValue(new VariableRef((StackCounter - 1), VariableRefType.Stack));
+            var value = GetValue(
+                new VariableRef(StackCounter - 1, VariableRefType.Stack));
             return value.BasicValueType;
         }
 
@@ -172,7 +173,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Pops a value as the required type from the execution stack.
         /// </summary>
-        /// <param name="targetType">The required targt type.</param>
+        /// <param name="targetType">The required target type.</param>
         /// <param name="flags">The conversion flags.</param>
         public Value Pop(TypeNode targetType, ConvertFlags flags)
         {
@@ -184,18 +185,16 @@ namespace ILGPU.Frontend
         /// Converts a value to the required type.
         /// </summary>
         /// <param name="value">The value to convert.</param>
-        /// <param name="targetType">The required targt type.</param>
+        /// <param name="targetType">The required target type.</param>
         /// <param name="flags">The conversion flags.</param>
-        private Value Convert(Value value, TypeNode targetType, ConvertFlags flags)
-        {
-            if (value.Type == targetType || targetType == StructureType.Root)
-                return value;
-            return CodeGenerator.CreateConversion(
+        private Value Convert(Value value, TypeNode targetType, ConvertFlags flags) =>
+            value.Type == targetType || targetType == StructureType.Root
+            ? value
+            : CodeGenerator.CreateConversion(
                 Builder,
                 value,
                 targetType,
                 flags);
-        }
 
         /// <summary>
         /// Pops an element as integer from the stack.
@@ -290,12 +289,10 @@ namespace ILGPU.Frontend
         /// <returns>
         /// The popped value from the stack that can be used in the
         /// context of compare and arithmetic operations.</returns>
-        public Value PopCompareValue(ConvertFlags flags)
-        {
-            if (PeekBasicValueType() == BasicValueType.Int1)
-                return Pop();
-            return PopCompareOrArithmeticValue(flags);
-        }
+        public Value PopCompareValue(ConvertFlags flags) =>
+            PeekBasicValueType() == BasicValueType.Int1
+            ? Pop()
+            : PopCompareOrArithmeticValue(flags);
 
         /// <summary>
         /// Pops a value from the stack that can be used in the context of
@@ -334,7 +331,10 @@ namespace ILGPU.Frontend
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
         /// <returns>The type of the two operands.</returns>
-        public void PopArithmeticArgs(ConvertFlags flags, out Value left, out Value right)
+        public void PopArithmeticArgs(
+            ConvertFlags flags,
+            out Value left,
+            out Value right)
         {
             right = PopCompareOrArithmeticValue(flags);
             left = PopCompareOrArithmeticValue(flags);

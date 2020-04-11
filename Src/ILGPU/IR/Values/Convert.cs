@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Convert.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -61,12 +61,10 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="flags">The flags to convert.</param>
         /// <returns>The converted flags.</returns>
-        internal static ConvertFlags ToSourceUnsignedFlags(this ConvertFlags flags)
-        {
-            if ((flags & ConvertFlags.TargetUnsigned) != ConvertFlags.TargetUnsigned)
-                return flags;
-            return (flags & ~ConvertFlags.TargetUnsigned) | ConvertFlags.SourceUnsigned;
-        }
+        internal static ConvertFlags ToSourceUnsignedFlags(this ConvertFlags flags) =>
+            (flags & ConvertFlags.TargetUnsigned) != ConvertFlags.TargetUnsigned
+            ? flags
+            : (flags & ~ConvertFlags.TargetUnsigned) | ConvertFlags.SourceUnsigned;
     }
 
     /// <summary>
@@ -171,7 +169,9 @@ namespace ILGPU.IR.Values
             ComputeType(ConvertType);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateConvert(
                 rebuilder.Rebuild(Value),
                 ConvertType,
@@ -189,7 +189,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
-            $"{Value} -> {TargetType.ToString()} [{Flags}]";
+            $"{Value} -> {TargetType} [{Flags}]";
 
         #endregion
     }

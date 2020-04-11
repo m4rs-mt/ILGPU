@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MethodScope.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections;
@@ -21,11 +21,14 @@ namespace ILGPU.Frontend.DebugInformation
     /// <summary>
     /// Represents a default method scope.
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1710:IdentifiersShouldHaveCorrectSuffix", Justification = "This is known to be a scope")]
-    public readonly struct MethodScope
-        : IEnumerable<LocalVariable>
-        , IEquatable<MethodScope>
-        , IDebugInformationEnumeratorValue
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1710:IdentifiersShouldHaveCorrectSuffix",
+        Justification = "This is known to be a scope")]
+    public readonly struct MethodScope :
+        IEnumerable<LocalVariable>,
+        IEquatable<MethodScope>,
+        IDebugInformationEnumeratorValue
     {
         #region Nested Types
 
@@ -42,7 +45,7 @@ namespace ILGPU.Frontend.DebugInformation
             /// Constructs a new variable enumerator.
             /// </summary>
             /// <param name="localVariables">The collection of local variables.</param>
-            /// <param name="metadataReader">The assocated metadata reader.</param>
+            /// <param name="metadataReader">The associated metadata reader.</param>
             internal VariableEnumerator(
                 LocalVariableHandleCollection localVariables,
                 MetadataReader metadataReader)
@@ -58,12 +61,12 @@ namespace ILGPU.Frontend.DebugInformation
             #region Properties
 
             /// <summary>
-            /// Returns the assocated collection of local variables.
+            /// Returns the associated collection of local variables.
             /// </summary>
             internal LocalVariableHandleCollection LocalVariables { get; }
 
             /// <summary>
-            /// Returns the assocated metadata reader.
+            /// Returns the associated metadata reader.
             /// </summary>
             internal MetadataReader MetadataReader { get; }
 
@@ -78,9 +81,20 @@ namespace ILGPU.Frontend.DebugInformation
             #region Methods
 
             /// <summary cref="IEnumerator.Reset"/>
-            public void Reset()
-            {
+            public void Reset() =>
                 enumerator = LocalVariables.GetEnumerator();
+
+            /// <summary>
+            /// Tries to get a variable that is not hidden from a debugger.
+            /// </summary>
+            /// <param name="variable">The loaded variable.</param>
+            /// <returns>True, if the resolved variable is not hidden.</returns>
+            private bool TryGetVariable(
+                out System.Reflection.Metadata.LocalVariable variable)
+            {
+                variable = MetadataReader.GetLocalVariable(enumerator.Current);
+                return (variable.Attributes & LocalVariableAttributes.DebuggerHidden) ==
+                    LocalVariableAttributes.None;
             }
 
             /// <summary cref="IEnumerator.MoveNext"/>
@@ -88,9 +102,7 @@ namespace ILGPU.Frontend.DebugInformation
             {
                 while (enumerator.MoveNext())
                 {
-                    var variable = MetadataReader.GetLocalVariable(enumerator.Current);
-                    if ((variable.Attributes & LocalVariableAttributes.DebuggerHidden) ==
-                        LocalVariableAttributes.DebuggerHidden)
+                    if (!TryGetVariable(out var variable))
                         continue;
                     var variableName = variable.Name.IsNil ? string.Empty :
                         MetadataReader.GetString(variable.Name);
@@ -129,7 +141,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// Constructs a new scope.
         /// </summary>
         /// <param name="localScope">The current local scope.</param>
-        /// <param name="metadataReader">The assocated metadata reader.</param>
+        /// <param name="metadataReader">The associated metadata reader.</param>
         internal MethodScope(
             LocalScope localScope,
             MetadataReader metadataReader)
@@ -150,7 +162,7 @@ namespace ILGPU.Frontend.DebugInformation
         internal MetadataReader MetadataReader { get; }
 
         /// <summary>
-        /// Returns true iff the current method scope might represent
+        /// Returns true if the current method scope might represent
         /// a valid scope of an existing method.
         /// </summary>
         public bool IsValid => MetadataReader != null;
@@ -183,61 +195,44 @@ namespace ILGPU.Frontend.DebugInformation
         /// Returns an unboxed variable enumerator.
         /// </summary>
         /// <returns>An unboxed variable enumerator.</returns>
-        public VariableEnumerator GetEnumerator()
-        {
-            return new VariableEnumerator(localVariables, MetadataReader);
-        }
+        public VariableEnumerator GetEnumerator() =>
+            new VariableEnumerator(localVariables, MetadataReader);
 
         /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-        IEnumerator<LocalVariable> IEnumerable<LocalVariable>.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator<LocalVariable> IEnumerable<LocalVariable>.GetEnumerator() =>
+            GetEnumerator();
 
         /// <summary cref="IEnumerable.GetEnumerator"/>
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         #endregion
 
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given scope is equal to the current scope.
+        /// Returns true if the given scope is equal to the current scope.
         /// </summary>
         /// <param name="other">The other scope.</param>
-        /// <returns>True, iff the given scope is equal to the current scope.</returns>
-        public bool Equals(MethodScope other)
-        {
-            return other == this;
-        }
+        /// <returns>True, if the given scope is equal to the current scope.</returns>
+        public bool Equals(MethodScope other) => other == this;
 
         #endregion
 
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current scope.
+        /// Returns true if the given object is equal to the current scope.
         /// </summary>
         /// <param name="obj">The other sequence object.</param>
-        /// <returns>True, iff the given object is equal to the current scope.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is SequencePoint other)
-                return Equals(other);
-            return false;
-        }
+        /// <returns>True, if the given object is equal to the current scope.</returns>
+        public override bool Equals(object obj) =>
+            obj is MethodScope other && other == this;
 
         /// <summary>
         /// Returns the hash code of this scope.
         /// </summary>
         /// <returns>The hash code of this scope.</returns>
-        public override int GetHashCode()
-        {
-            return StartOffset ^ Length;
-        }
+        public override int GetHashCode() => StartOffset ^ Length;
 
         /// <summary>
         /// Returns the string representation of this scope.
@@ -262,28 +257,23 @@ namespace ILGPU.Frontend.DebugInformation
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first scope and the second scope are the same.
+        /// Returns true if the first scope and the second scope are the same.
         /// </summary>
         /// <param name="first">The first scope.</param>
         /// <param name="second">The second scope.</param>
-        /// <returns>True, iff the first and second the scope are the same.</returns>
-        public static bool operator ==(MethodScope first, MethodScope second)
-        {
-            return first.StartOffset == second.StartOffset &&
-                first.Length == second.Length;
-        }
+        /// <returns>True, if the first and second the scope are the same.</returns>
+        public static bool operator ==(MethodScope first, MethodScope second) =>
+            first.StartOffset == second.StartOffset &&
+            first.Length == second.Length;
 
         /// <summary>
-        /// Returns true iff the first scope and the second scope are not the same.
+        /// Returns true if the first scope and the second scope are not the same.
         /// </summary>
         /// <param name="first">The first scope.</param>
         /// <param name="second">The second scope.</param>
-        /// <returns>True, iff the first and second the scope are not the same.</returns>
-        public static bool operator !=(MethodScope first, MethodScope second)
-        {
-            return first.StartOffset != second.StartOffset ||
-                first.Length != second.Length;
-        }
+        /// <returns>True, if the first and second the scope are not the same.</returns>
+        public static bool operator !=(MethodScope first, MethodScope second) =>
+            !(first == second);
 
         #endregion
     }

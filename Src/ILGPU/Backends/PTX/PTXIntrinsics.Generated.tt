@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXIntrinsics.Generated.tt/PTXIntrinsics.Generated.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="../../TypeInformation.tt" #>
@@ -35,20 +35,28 @@ namespace ILGPU.Backends.PTX
             manager.RegisterWarpShuffle(
                 ShuffleKind.<#= kind #>,
                 BasicValueType.Int64,
-                CreateIntrinsic(nameof(Warp<#= operation #>Int64), IntrinsicImplementationMode.Redirect));
+                CreateIntrinsic(
+                    nameof(Warp<#= operation #>Int64),
+                    IntrinsicImplementationMode.Redirect));
             manager.RegisterWarpShuffle(
                 ShuffleKind.<#= kind #>,
                 BasicValueType.Float64,
-                CreateIntrinsic(nameof(Warp<#= operation #>Float64), IntrinsicImplementationMode.Redirect));
+                CreateIntrinsic(
+                    nameof(Warp<#= operation #>Float64),
+                    IntrinsicImplementationMode.Redirect));
 
             manager.RegisterSubWarpShuffle(
                 ShuffleKind.<#= kind #>,
                 BasicValueType.Int64,
-                CreateIntrinsic(nameof(Warp<#= operation #>Int64), IntrinsicImplementationMode.Redirect));
+                CreateIntrinsic(
+                    nameof(Warp<#= operation #>Int64),
+                    IntrinsicImplementationMode.Redirect));
             manager.RegisterSubWarpShuffle(
                 ShuffleKind.<#= kind #>,
                 BasicValueType.Float64,
-                CreateIntrinsic(nameof(Warp<#= operation #>Float64), IntrinsicImplementationMode.Redirect));
+                CreateIntrinsic(
+                    nameof(Warp<#= operation #>Float64),
+                    IntrinsicImplementationMode.Redirect));
 
 <# } #>
         }

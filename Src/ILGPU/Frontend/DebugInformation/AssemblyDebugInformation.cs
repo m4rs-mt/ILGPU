@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: AssemblyDebugInformation.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -27,7 +27,8 @@ namespace ILGPU.Frontend.DebugInformation
     {
         #region Instance
 
-        private readonly Dictionary<MethodBase, MethodDebugInformation> debugInformation =
+        private readonly Dictionary<MethodBase, MethodDebugInformation>
+            debugInformation =
             new Dictionary<MethodBase, MethodDebugInformation>();
 
         /// <summary>
@@ -50,17 +51,30 @@ namespace ILGPU.Frontend.DebugInformation
             Assembly = assembly;
             Modules = ImmutableArray.Create(assembly.GetModules());
 
-            using (var metadataReaderProvider = MetadataReaderProvider.FromPortablePdbStream(pdbStream, MetadataStreamOptions.PrefetchMetadata))
+            using (var metadataReaderProvider =
+                MetadataReaderProvider.FromPortablePdbStream(
+                    pdbStream,
+                    MetadataStreamOptions.PrefetchMetadata))
+            {
                 MetadataReader = metadataReaderProvider.GetMetadataReader();
+            }
 
-            var methodDebugInformationEnumerator = MetadataReader.MethodDebugInformation.GetEnumerator();
+            var methodDebugInformationEnumerator =
+                MetadataReader.MethodDebugInformation.GetEnumerator();
             while (methodDebugInformationEnumerator.MoveNext())
             {
                 var methodDebugRef = methodDebugInformationEnumerator.Current;
                 var methodDefinitionHandle = methodDebugRef.ToDefinitionHandle();
                 var metadataToken = MetadataTokens.GetToken(methodDefinitionHandle);
                 if (TryResolveMethod(metadataToken, out MethodBase method))
-                    debugInformation.Add(method, new MethodDebugInformation(this, method, methodDebugRef));
+                {
+                    debugInformation.Add(
+                        method,
+                        new MethodDebugInformation(
+                            this,
+                            method,
+                            methodDebugRef));
+                }
             }
         }
 
@@ -97,7 +111,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// </summary>
         /// <param name="metadataToken">The metadata token to resolve.</param>
         /// <param name="method">The resolved method (or null).</param>
-        /// <returns>True, iff the given token could be resolved.</returns>
+        /// <returns>True, if the given token could be resolved.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryResolveMethod(int metadataToken, out MethodBase method)
         {
@@ -115,18 +129,25 @@ namespace ILGPU.Frontend.DebugInformation
         /// Tries to load debug information for the given method base.
         /// </summary>
         /// <param name="methodBase">The method base.</param>
-        /// <param name="methodDebugInformation">The loaded debug information (or null).</param>
-        /// <returns>True, iff the requested debug information could be loaded.</returns>
+        /// <param name="methodDebugInformation">
+        /// The loaded debug information (or null).
+        /// </param>
+        /// <returns>True, if the requested debug information could be loaded.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryLoadDebugInformation(
             MethodBase methodBase,
             out MethodDebugInformation methodDebugInformation)
         {
             Debug.Assert(methodBase != null, "Invalid method");
-            Debug.Assert(methodBase.Module.Assembly == Assembly, "Invalid method association");
+            Debug.Assert(
+                methodBase.Module.Assembly == Assembly,
+                "Invalid method association");
 
-            if (methodBase is MethodInfo methodInfo && methodInfo.GetGenericArguments().Length > 0)
+            if (methodBase is MethodInfo methodInfo &&
+                methodInfo.GetGenericArguments().Length > 0)
+            {
                 methodBase = methodInfo.GetGenericMethodDefinition();
+            }
             if (!debugInformation.TryGetValue(methodBase, out methodDebugInformation))
                 return false;
             methodDebugInformation.LoadSequencePoints();

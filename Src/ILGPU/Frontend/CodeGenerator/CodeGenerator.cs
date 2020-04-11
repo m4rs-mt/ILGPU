@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CodeGenerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Construction;
@@ -34,7 +34,8 @@ namespace ILGPU.Frontend
 
         private readonly Block.CFGBuilder cfgBuilder;
         private readonly HashSet<VariableRef> variables = new HashSet<VariableRef>();
-        private readonly Dictionary<VariableRef, (TypeNode, ConvertFlags)> variableTypes =
+        private readonly Dictionary<VariableRef, (TypeNode, ConvertFlags)>
+            variableTypes =
             new Dictionary<VariableRef, (TypeNode, ConvertFlags)>();
 
         /// <summary>
@@ -42,7 +43,9 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="frontend">The current frontend instance.</param>
         /// <param name="methodBuilder">The current method builder.</param>
-        /// <param name="disassembledMethod">The corresponding disassembled method.</param>
+        /// <param name="disassembledMethod">
+        /// The corresponding disassembled method.
+        /// </param>
         /// <param name="detectedMethods">The set of newly detected methods.</param>
         public CodeGenerator(
             ILFrontend frontend,
@@ -91,7 +94,7 @@ namespace ILGPU.Frontend
                 }
             }
 
-            // Init params
+            // Initialize params
             if (!Method.IsStatic)
             {
                 var declaringType = builder.CreateType(Method.DeclaringType);
@@ -112,19 +115,24 @@ namespace ILGPU.Frontend
                 var parameter = methodParameters[i];
                 var paramType = builder.CreateType(parameter.ParameterType);
                 Value ssaValue = Builder.AddParameter(paramType, parameter.Name);
-                var argRef = new VariableRef(i + parameterOffset, VariableRefType.Argument);
+                var argRef = new VariableRef(
+                    i + parameterOffset,
+                    VariableRefType.Argument);
                 if (variables.Contains(argRef))
                 {
-                    // Address was taken... emit a temporary alloca and store the arg value to it
+                    // Address was taken... emit a temporary alloca and store
+                    // the argument value to it
                     var alloca = CreateTempAlloca(paramType);
                     builder.CreateStore(alloca, ssaValue);
                     ssaValue = alloca;
                 }
                 EntryBlock.SetValue(argRef, ssaValue);
-                variableTypes[argRef] = (paramType, parameter.ParameterType.ToTargetUnsignedFlags());
+                variableTypes[argRef] = (
+                    paramType,
+                    parameter.ParameterType.ToTargetUnsignedFlags());
             }
 
-            // Init locals
+            // Initialize locals
             var localVariables = Method.GetMethodBody().LocalVariables;
             for (int i = 0, e = localVariables.Count; i < e; ++i)
             {
@@ -134,14 +142,17 @@ namespace ILGPU.Frontend
                 Value initValue = builder.CreateNull(variableType);
                 if (variables.Contains(localRef))
                 {
-                    // Address was taken... emit a temporary alloca and store empty value to it
+                    // Address was taken... emit a temporary alloca and store
+                    // an empty value to it
                     var alloca = CreateTempAlloca(variableType);
                     builder.CreateStore(alloca, initValue);
                     initValue = alloca;
                 }
 
                 EntryBlock.SetValue(localRef, initValue);
-                variableTypes[localRef] = (variableType, variable.LocalType.ToTargetUnsignedFlags());
+                variableTypes[localRef] = (
+                    variableType,
+                    variable.LocalType.ToTargetUnsignedFlags());
             }
         }
 
@@ -175,7 +186,7 @@ namespace ILGPU.Frontend
         public DisassembledMethod DisassembledMethod { get; }
 
         /// <summary>
-        /// Returns the current mananged method.
+        /// Returns the current managed method.
         /// </summary>
         public MethodBase Method => DisassembledMethod.Method;
 
@@ -221,7 +232,9 @@ namespace ILGPU.Frontend
         /// <param name="length">The length of the array.</param>
         /// <param name="type">The type to allocate.</param>
         /// <returns>The created alloca.</returns>
-        public ValueReference CreateTempAlloca(ValueReference length, TypeNode type) =>
+        public ValueReference CreateTempAlloca(
+            ValueReference length,
+            TypeNode type) =>
             EntryBlock.Builder.CreateAlloca(length, type, MemoryAddressSpace.Local);
 
         /// <summary>
@@ -254,8 +267,8 @@ namespace ILGPU.Frontend
             blockBuilder.SetupSequencePoint(
                 DisassembledMethod[block.InstructionOffset].SequencePoint);
 
-            for (int i = block.InstructionOffset, e = block.InstructionOffset + block.InstructionCount;
-                i < e; ++i)
+            int endOffset = block.InstructionOffset + block.InstructionCount;
+            for (int i = block.InstructionOffset; i < endOffset; ++i)
             {
                 var instruction = DisassembledMethod[i];
 
@@ -264,8 +277,12 @@ namespace ILGPU.Frontend
 
                 // Try to generate code for this instruction
                 if (!TryGenerateCode(block, blockBuilder, instruction))
+                {
                     throw this.GetNotSupportedException(
-                        ErrorMessages.NotSupportedInstruction, Method.Name, instruction);
+                        ErrorMessages.NotSupportedInstruction,
+                        Method.Name,
+                        instruction);
+                }
             }
 
             // Handle implicit branches to successor blocks
@@ -282,7 +299,17 @@ namespace ILGPU.Frontend
 
         #region Verification
 
-        /// <summary cref="ICodeGenerationContext.GetException{TException}(string, object[])"/>
+        /// <summary>
+        /// Constructs a new exception of the given type based on the given
+        /// message, the formatting arguments and the current general compilation
+        /// information.
+        /// </summary>
+        /// <typeparam name="TException">The exception type.</typeparam>
+        /// <param name="message">The main content of the error message.</param>
+        /// <param name="args">The formatting arguments.</param>
+        /// <returns>
+        /// A new exception of type
+        /// <typeparamref name="TException"/>.</returns>
         public TException GetException<TException>(
             string message,
             params object[] args)
@@ -307,7 +334,8 @@ namespace ILGPU.Frontend
 
         /// <summary>
         /// Verifies that the given method is not a .Net-runtime-dependent method.
-        /// If it depends on the runtime, this method will throw a <see cref="NotSupportedException"/>.
+        /// If it depends on the runtime, this method will throw a
+        /// <see cref="NotSupportedException"/>.
         /// </summary>
         /// <param name="method">The method to verify.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -316,12 +344,22 @@ namespace ILGPU.Frontend
             Debug.Assert(method != null, "Invalid method");
             var @namespace = method.DeclaringType.FullName;
             // Internal unsafe intrinsic methods
-            if (@namespace.StartsWith("System.Runtime.CompilerServices", StringComparison.OrdinalIgnoreCase))
+            if (@namespace.StartsWith(
+                "System.Runtime.CompilerServices",
+                StringComparison.OrdinalIgnoreCase))
+            {
                 return;
-            if (@namespace.StartsWith("System.Runtime", StringComparison.OrdinalIgnoreCase) ||
-                @namespace.StartsWith("System.Reflection", StringComparison.OrdinalIgnoreCase))
+            }
+            if (@namespace.StartsWith(
+                "System.Runtime",
+                StringComparison.OrdinalIgnoreCase) ||
+                @namespace.StartsWith(
+                    "System.Reflection",
+                    StringComparison.OrdinalIgnoreCase))
+            {
                 throw this.GetNotSupportedException(
                     ErrorMessages.NotSupportedRuntimeMethod, method.Name);
+            }
         }
 
         /// <summary>
@@ -333,10 +371,15 @@ namespace ILGPU.Frontend
         {
             Debug.Assert(field != null || !field.IsStatic, "Invalid field");
 
-            if ((field.Attributes & FieldAttributes.InitOnly) != FieldAttributes.InitOnly &&
+            bool isInitOnly = (field.Attributes & FieldAttributes.InitOnly) !=
+                FieldAttributes.InitOnly;
+            if (isInitOnly &&
                 !Context.HasFlags(ContextFlags.InlineMutableStaticFieldValues))
+            {
                 throw this.GetNotSupportedException(
-                    ErrorMessages.NotSupportedLoadOfStaticField, field);
+                    ErrorMessages.NotSupportedLoadOfStaticField,
+                    field);
+            }
         }
 
         /// <summary>
@@ -349,8 +392,11 @@ namespace ILGPU.Frontend
             Debug.Assert(field != null || !field.IsStatic, "Invalid field");
 
             if (!Context.HasFlags(ContextFlags.IgnoreStaticFieldStores))
+            {
                 throw this.GetNotSupportedException(
-                    ErrorMessages.NotSupportedStoreToStaticField, field);
+                    ErrorMessages.NotSupportedStoreToStaticField,
+                    field);
+            }
         }
 
         #endregion
@@ -358,7 +404,7 @@ namespace ILGPU.Frontend
         #region Code Generation
 
         /// <summary>
-        /// Realizes a nop instruction.
+        /// Realizes a no-operation instruction.
         /// </summary>
         private static void MakeNop() { }
 
@@ -451,22 +497,16 @@ namespace ILGPU.Frontend
         }
 
         /// <summary>
-        /// Realizes a dup operation.
+        /// Realizes a duplicate operation.
         /// </summary>
         /// <param name="block">The current basic block.</param>
-        private static void MakeDup(Block block)
-        {
-            block.Dup();
-        }
+        private static void MakeDup(Block block) => block.Dup();
 
         /// <summary>
         /// Realizes a pop operation.
         /// </summary>
         /// <param name="block">The current basic block.</param>
-        private static void MakePop(Block block)
-        {
-            block.Pop();
-        }
+        private static void MakePop(Block block) => block.Pop();
 
         /// <summary>
         /// Realizes an internal load-token operation.

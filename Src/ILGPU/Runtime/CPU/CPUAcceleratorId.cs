@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: AcceleratorId.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 namespace ILGPU.Runtime.CPU
 {
@@ -21,8 +21,7 @@ namespace ILGPU.Runtime.CPU
         /// <summary>
         /// The main CPU accelerator id instance.
         /// </summary>
-        public static CPUAcceleratorId Instance { get; } =
-            new CPUAcceleratorId();
+        public static CPUAcceleratorId Instance { get; } = new CPUAcceleratorId();
 
         #endregion
 

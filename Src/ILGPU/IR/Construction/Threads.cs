@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Threads.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using System.Diagnostics;
@@ -23,13 +23,17 @@ namespace ILGPU.IR.Construction
         /// <param name="predicate">The barrier predicate.</param>
         /// <param name="kind">The barrier kind.</param>
         /// <returns>A node that represents the barrier.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public MemoryValue CreateBarrier(
             Value predicate,
             PredicateBarrierKind kind)
         {
             Debug.Assert(predicate != null, "Invalid predicate value");
-            Debug.Assert(predicate.BasicValueType == BasicValueType.Int1, "Invalid predicate bool type");
+            Debug.Assert(
+                predicate.BasicValueType == BasicValueType.Int1,
+                "Invalid predicate bool type");
 
             return Append(new PredicateBarrier(
                 Context,
@@ -43,7 +47,9 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="kind">The barrier kind.</param>
         /// <returns>A node that represents the barrier.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public MemoryValue CreateBarrier(BarrierKind kind) =>
             Append(new Barrier(
                 Context,
@@ -54,7 +60,9 @@ namespace ILGPU.IR.Construction
         /// Creates a new broadcast operation.
         /// </summary>
         /// <param name="variable">The variable.</param>
-        /// <param name="origin">The broadcast origin (thread index within a group or a warp).</param>
+        /// <param name="origin">
+        /// The broadcast origin (thread index within a group or a warp).
+        /// </param>
         /// <param name="kind">The operation kind.</param>
         /// <returns>A node that represents the broadcast operation.</returns>
         public ValueReference CreateBroadcast(
@@ -113,20 +121,14 @@ namespace ILGPU.IR.Construction
             Debug.Assert(origin != null, "Invalid origin value");
             Debug.Assert(width != null, "Invalid width value");
 
-            if (width is WarpSizeValue)
-            {
-                return CreateShuffle(
+            return width is WarpSizeValue
+                ? CreateShuffle(variable, origin, kind)
+                : Append(new SubWarpShuffle(
+                    BasicBlock,
                     variable,
                     origin,
-                    kind);
-            }
-
-            return Append(new SubWarpShuffle(
-                BasicBlock,
-                variable,
-                origin,
-                width,
-                kind));
+                    width,
+                    kind));
         }
     }
 }

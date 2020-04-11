@@ -1,18 +1,17 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ArrayValues.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
@@ -71,7 +70,9 @@ namespace ILGPU.IR.Values
         protected override TypeNode UpdateType(IRContext context) => ArrayType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateArray(ArrayType, rebuilder.Rebuild(Extent));
 
         /// <summary cref="Value.Accept" />
@@ -211,7 +212,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, ArrayType);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateGetArrayExtent(rebuilder.Rebuild(ObjectValue));
 
         /// <summary cref="Value.Accept" />
@@ -276,7 +279,9 @@ namespace ILGPU.IR.Values
             ComputeType(ObjectValue);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateGetArrayElement(
                 rebuilder.Rebuild(ObjectValue),
                 rebuilder.Rebuild(Index));
@@ -356,7 +361,9 @@ namespace ILGPU.IR.Values
             ComputeType(context);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateSetArrayElement(
                 rebuilder.Rebuild(ObjectValue),
                 rebuilder.Rebuild(Index),

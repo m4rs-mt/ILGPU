@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IRRebuilder.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
@@ -85,7 +85,9 @@ namespace ILGPU.IR.Construction
                 {
                     if (value is PhiValue phiValue)
                     {
-                        Debug.Assert(!valueMapping.ContainsKey(value), "Phi already found");
+                        Debug.Assert(
+                            !valueMapping.ContainsKey(value),
+                            "Phi already found");
 
                         // Setup debug information for the current value
                         Builder.SequencePoint = value.SequencePoint;
@@ -132,7 +134,8 @@ namespace ILGPU.IR.Construction
         /// <returns>An array of exit blocks and their return values.</returns>
         public ImmutableArray<(BasicBlock.Builder, Value)> Rebuild()
         {
-            var exitBlocks = ImmutableArray.CreateBuilder<(BasicBlock.Builder, Value)>(Scope.Count);
+            var exitBlocks = ImmutableArray.CreateBuilder<
+                (BasicBlock.Builder, Value)>(Scope.Count);
 
             // Rebuild all instructions
             foreach (var block in Scope)
@@ -150,7 +153,9 @@ namespace ILGPU.IR.Construction
                     exitBlocks.Add((newBlock, newReturnValue));
                 }
                 else
+                {
                     Rebuild(terminator);
+                }
             }
 
             // Seal all phi nodes
@@ -174,7 +179,7 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="oldNode">The old node.</param>
         /// <param name="newNode">The new node.</param>
-        /// <returns>True, iff a corresponding new node could be found.</returns>
+        /// <returns>True, if a corresponding new node could be found.</returns>
         public bool TryGetNewNode(Value oldNode, out Value newNode) =>
             valueMapping.TryGetValue(oldNode, out newNode);
 
@@ -236,7 +241,9 @@ namespace ILGPU.IR.Construction
             // Setup debug information for the source value
             Builder.SequencePoint = source.SequencePoint;
 
-            Debug.Assert(!(source is Parameter), "Invalid recursive parameter rebuilding process");
+            Debug.Assert(
+                !(source is Parameter),
+                "Invalid recursive parameter rebuilding process");
             node = source.Rebuild(CurrentBlock, this);
             Map(source, node);
             return node;

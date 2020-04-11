@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IRContext.Types.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using System;
@@ -38,7 +38,8 @@ namespace ILGPU.IR
         public TypeNode IndexType => TypeContext.IndexType;
 
         /// <summary>
-        /// Resolves the primitive type that corresponds to the given <see cref="BasicValueType"/>.
+        /// Resolves the primitive type that corresponds to the given
+        /// <see cref="BasicValueType"/>.
         /// </summary>
         /// <param name="basicValueType">The basic value type.</param>
         /// <returns>The created primitive type.</returns>
@@ -88,7 +89,8 @@ namespace ILGPU.IR
         /// Creates an empty structure type.
         /// </summary>
         /// <returns>The type representing an empty structure.</returns>
-        public TypeNode CreateEmptyStructureType() => TypeContext.CreateEmptyStructureType();
+        public TypeNode CreateEmptyStructureType() =>
+            TypeContext.CreateEmptyStructureType();
 
         /// <summary>
         /// Creates a new structure type.

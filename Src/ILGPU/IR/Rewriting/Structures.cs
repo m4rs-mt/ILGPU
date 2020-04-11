@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Structures.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -74,7 +74,9 @@ namespace ILGPU.IR.Rewriting
             for (int i = 0, e = structureType.NumFields; i < e; ++i)
             {
                 var access = new FieldAccess(i);
-                var getField = context.Builder.CreateGetField(value, new FieldSpan(access));
+                var getField = context.Builder.CreateGetField(
+                    value,
+                    new FieldSpan(access));
 
                 // Invoke lowering implementation
                 lowering(context, value, getField, new FieldAccess(i));
@@ -105,7 +107,9 @@ namespace ILGPU.IR.Rewriting
             where TValue : Value
         {
             if (source.Type is PrimitiveType)
+            {
                 return lowering(context, source, source);
+            }
             else
             {
                 var structureType = (StructureType)source.Type;

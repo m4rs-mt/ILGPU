@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MathIntrinsics.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -61,7 +61,7 @@ namespace ILGPU.Frontend.Intrinsic
     }
 
     /// <summary>
-    /// Marks math methods that are builtin.
+    /// Marks math methods that are built in.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     sealed class MathIntrinsicAttribute : IntrinsicAttribute
@@ -111,10 +111,12 @@ namespace ILGPU.Frontend.Intrinsic
                         (UnaryArithmeticKind)attribute.IntrinsicKind,
                         attribute.IntrinsicFlags);
                 case 2:
+                    var kindIndex = attribute.IntrinsicKind -
+                        MathIntrinsicKind._BinaryFunctions - 1;
                     return context.Builder.CreateArithmetic(
                         context[0],
                         context[1],
-                        (BinaryArithmeticKind)(attribute.IntrinsicKind - MathIntrinsicKind._BinaryFunctions - 1),
+                        (BinaryArithmeticKind)kindIndex,
                         attribute.IntrinsicFlags);
                 default:
                     throw context.GetNotSupportedException(

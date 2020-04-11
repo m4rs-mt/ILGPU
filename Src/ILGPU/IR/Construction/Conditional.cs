@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Conditional.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -32,7 +32,9 @@ namespace ILGPU.IR.Construction
             Debug.Assert(condition != null, "Invalid condition node");
             Debug.Assert(trueValue != null, "Invalid true node");
             Debug.Assert(falseValue != null, "Invalid false node");
-            Debug.Assert(condition.Type.BasicValueType == BasicValueType.Int1, "Invalid condition type");
+            Debug.Assert(
+                condition.Type.BasicValueType == BasicValueType.Int1,
+                "Invalid condition type");
 
             if (trueValue.Type != falseValue.Type)
                 falseValue = CreateConvert(falseValue, trueValue.Type as PrimitiveType);
@@ -40,14 +42,14 @@ namespace ILGPU.IR.Construction
                 return constant.Int1Value ? trueValue : falseValue;
 
             // Match negated predicates
-            if (condition is UnaryArithmeticValue unary && unary.Kind == UnaryArithmeticKind.Not)
-                return CreatePredicate(unary.Value, falseValue, trueValue);
-
-            return Append(new Predicate(
-                BasicBlock,
-                condition,
-                trueValue,
-                falseValue));
+            return condition is UnaryArithmeticValue unary &&
+                unary.Kind == UnaryArithmeticKind.Not
+                ? CreatePredicate(unary.Value, falseValue, trueValue)
+                : Append(new Predicate(
+                    BasicBlock,
+                    condition,
+                    trueValue,
+                    falseValue));
         }
     }
 }

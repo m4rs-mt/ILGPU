@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ArrayViewGeneric.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime;
 using System;
@@ -60,7 +60,7 @@ namespace ILGPU
         public ArrayView<T> BaseView { get; }
 
         /// <summary>
-        /// Returns true iff this view points to a valid location.
+        /// Returns true if this view points to a valid location.
         /// </summary>
         public bool IsValid => BaseView.IsValid;
 
@@ -84,74 +84,86 @@ namespace ILGPU
         /// </summary>
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
-        public ref T this[TIndex index] => ref BaseView[index.ComputeLinearIndex(Extent)];
+        public ref T this[TIndex index] =>
+            ref BaseView[index.ComputeLinearIndex(Extent)];
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="index">The starting offset.</param>
-        /// <returns>The new subview.</returns>
+        /// <returns>The new sub view.</returns>
         /// <remarks>
-        /// Note that this function interprets the memory view as a linear contiguous chunk of
-        /// memory that does not pay attention to the actual <see cref="Extent"/>. Instead, it
-        /// converts the (potentially multidemensional) indices to linear indices and returns
-        /// a raw view that spans a contiguous region of memory.
+        /// Note that this function interprets the memory view as a linear contiguous
+        /// chunk of memory that does not pay attention to the actual
+        /// <see cref="Extent"/>. Instead, it converts the (potentially multidimensional)
+        /// indices to linear indices and returns a raw view that spans a contiguous
+        /// region of memory.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Obsolete("Use GetSubView(TIndex, Index) instead")]
         public ArrayView<T, TIndex> GetSubView(TIndex index)
         {
-            Debug.Assert(index.InBounds(Extent), "Offset ouf of bounds");
+            Debug.Assert(index.InBounds(Extent), "Offset out of bounds");
             return GetSubView(index, Extent.Subtract(index));
         }
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="index">The starting offset.</param>
-        /// <param name="subViewExtent">The extent of the new subview.</param>
-        /// <returns>The new subview.</returns>
+        /// <param name="subViewExtent">The extent of the new sub view.</param>
+        /// <returns>The new sub view.</returns>
         /// <remarks>
-        /// Note that this function interprets the memory view as a linear contiguous chunk of
-        /// memory that does not pay attention to the actual <see cref="Extent"/>. Instead, it
-        /// converts the (potentially multidemensional) indices to linear indices and returns
-        /// a raw view that spans a contiguous region of memory.
+        /// Note that this function interprets the memory view as a linear contiguous
+        /// chunk of memory that does not pay attention to the actual
+        /// <see cref="Extent"/>. Instead, it converts the (potentially multidimensional)
+        /// indices to linear indices and returns a raw view that spans a contiguous
+        /// region of memory.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Obsolete("Use GetSubView(TIndex, Index) instead")]
         public ArrayView<T, TIndex> GetSubView(TIndex index, TIndex subViewExtent)
         {
-            Debug.Assert(index.InBounds(Extent), "Offset ouf of bounds");
+            Debug.Assert(index.InBounds(Extent), "Offset out of bounds");
             var elementIndex = index.ComputeLinearIndex(Extent);
-            Debug.Assert(elementIndex >= 0 && elementIndex < Length, "Offset ouf of bounds");
-            Debug.Assert(index.Add(subViewExtent).InBoundsInclusive(Extent), "Subview out of range");
+            Debug.Assert(
+                elementIndex >= 0 && elementIndex < Length,
+                "Offset out of bounds");
+            Debug.Assert(
+                index.Add(subViewExtent).InBoundsInclusive(Extent),
+                "Sub view out of range");
             var subView = BaseView.GetSubView(elementIndex, subViewExtent.Size);
             return new ArrayView<T, TIndex>(subView, subViewExtent);
         }
 
         /// <summary>
-        /// Returns a subview of the current view starting at the given offset.
+        /// Returns a sub view of the current view starting at the given offset.
         /// </summary>
         /// <param name="index">The starting offset.</param>
-        /// <param name="subViewExtent">The extent of the new subview.</param>
-        /// <returns>The new raw subview.</returns>
+        /// <param name="subViewExtent">The extent of the new sub view.</param>
+        /// <returns>The new raw sub view.</returns>
         /// <remarks>
-        /// Note that this function interprets the memory view as a linear contiguous chunk of
-        /// memory that does not pay attention to the actual <see cref="Extent"/>. Instead, it
-        /// converts the (potentially multidemensional) indices to linear indices and returns
-        /// a raw view that spans a contiguous region of memory.
+        /// Note that this function interprets the memory view as a linear contiguous
+        /// chunk of memory that does not pay attention to the actual
+        /// <see cref="Extent"/>. Instead, it converts the (potentially multidimensional)
+        /// indices to linear indices and returns a raw view that spans a contiguous
+        /// region of memory.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T> GetSubView(TIndex index, Index1 subViewExtent)
         {
-            Debug.Assert(index.InBounds(Extent), "Offset ouf of bounds");
+            Debug.Assert(index.InBounds(Extent), "Offset out of bounds");
             var elementIndex = index.ComputeLinearIndex(Extent);
-            Debug.Assert(elementIndex >= 0 && elementIndex < Length, "Offset ouf of bounds");
-            Debug.Assert(elementIndex + subViewExtent <= Length, "Subview out of range");
+            Debug.Assert(
+                elementIndex >= 0 && elementIndex < Length,
+                "Offset out of bounds");
+            Debug.Assert(
+                elementIndex + subViewExtent <= Length,
+                "Sub view out of range");
             return BaseView.GetSubView(elementIndex, subViewExtent);
         }
 
@@ -176,11 +188,9 @@ namespace ILGPU
         /// <param name="index">The variable index.</param>
         /// <returns>The resolved variable view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VariableView<T> GetVariableView(TIndex index)
-        {
-            return new VariableView<T>(
+        public VariableView<T> GetVariableView(TIndex index) =>
+            new VariableView<T>(
                 BaseView.GetSubView(index.ComputeLinearIndex(Extent), 1));
-        }
 
         /// <summary>
         /// Converts the current view into a linear view.
@@ -196,10 +206,7 @@ namespace ILGPU
         /// Returns the string representation of this view.
         /// </summary>
         /// <returns>The string representation of this view.</returns>
-        public override string ToString()
-        {
-            return BaseView.ToString();
-        }
+        public override string ToString() => BaseView.ToString();
 
         #endregion
     }

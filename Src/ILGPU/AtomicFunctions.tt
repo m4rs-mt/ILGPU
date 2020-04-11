@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: AtomicFunctions.tt/AtomicFunctions.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="TypeInformation.tt" #>
@@ -46,7 +46,10 @@ namespace ILGPU
             /// <param name="compare">The expected comparison value.</param>
             /// <param name="value">The target value.</param>
             /// <returns>The old value.</returns>
-            public <#= type.Type #> CompareExchange(ref <#= type.Type #> target, <#= type.Type #> compare, <#= type.Type #> value) =>
+            public <#= type.Type #> CompareExchange(
+                ref <#= type.Type #> target,
+                <#= type.Type #> compare,
+                <#= type.Type #> value) =>
                 Atomic.CompareExchange(ref target, compare, value);
         }
 
@@ -59,7 +62,7 @@ namespace ILGPU
 
 <#      foreach (var type in AtomicSignedIntTypes) { #>
         /// <summary>
-        /// Atommically adds the given value and the value at the target location
+        /// Atomically adds the given value and the value at the target location
         /// and returns the old value.
         /// </summary>
         /// <param name="target">The target location.</param>
@@ -67,7 +70,9 @@ namespace ILGPU
         /// <returns>The old value that was stored at the target location.</returns>
         [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.None)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        public static <#= type.Type #> Add(
+            ref <#= type.Type #> target,
+            <#= type.Type #> value) =>
             Interlocked.Add(ref target, value) - value;
 
 <#      } #>
@@ -75,7 +80,9 @@ namespace ILGPU
 <#      foreach (var type in atomicUnsignedIntAndFloatTypes) { #>
         struct Add<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+            public <#= type.Type #> Operation(
+                <#= type.Type #> current,
+                <#= type.Type #> value) =>
                 current + value;
         }
 
@@ -83,7 +90,7 @@ namespace ILGPU
 
 <#      foreach (var type in AtomicUnsignedIntTypes) { #>
         /// <summary>
-        /// Atommically adds the given value and the value at the target location
+        /// Atomically adds the given value and the value at the target location
         /// and returns the old value.
         /// </summary>
         /// <param name="target">The target location.</param>
@@ -92,14 +99,20 @@ namespace ILGPU
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.Unsigned)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value) =>
-            MakeAtomic(ref target, value, new Add<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        public static <#= type.Type #> Add(
+            ref <#= type.Type #> target,
+            <#= type.Type #> value) =>
+            MakeAtomic(
+                ref target,
+                value,
+                new Add<#= type.Name #>(),
+                new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
 <#      foreach (var type in AtomicFloatTypes) { #>
         /// <summary>
-        /// Atommically adds the given value and the value at the target location
+        /// Atomically adds the given value and the value at the target location
         /// and returns the old value.
         /// </summary>
         /// <param name="target">The target location.</param>
@@ -110,8 +123,14 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Add, AtomicFlags.None)]
 <#          } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Add(ref <#= type.Type #> target, <#= type.Type #> value) =>
-            MakeAtomic(ref target, value, new Add<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        public static <#= type.Type #> Add(
+            ref <#= type.Type #> target,
+            <#= type.Type #> value) =>
+            MakeAtomic(
+                ref target,
+                value,
+                new Add<#= type.Name #>(),
+                new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -122,7 +141,9 @@ namespace ILGPU
 <#      foreach (var type in AtomicNumericTypes) { #>
         struct Max<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+            public <#= type.Type #> Operation(
+                <#= type.Type #> current,
+                <#= type.Type #> value) =>
                 IntrinsicMath.Max(current, value);
         }
 
@@ -140,8 +161,14 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Max, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Max(ref <#= type.Type #> target, <#= type.Type #> value) =>
-            MakeAtomic(ref target, value, new Max<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        public static <#= type.Type #> Max(
+            ref <#= type.Type #> target,
+            <#= type.Type #> value) =>
+            MakeAtomic(
+                ref target,
+                value,
+                new Max<#= type.Name #>(),
+                new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -152,7 +179,9 @@ namespace ILGPU
 <#      foreach (var type in AtomicNumericTypes) { #>
         struct Min<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+            public <#= type.Type #> Operation(
+                <#= type.Type #> current,
+                <#= type.Type #> value) =>
                 IntrinsicMath.Min(current, value);
         }
 
@@ -170,8 +199,14 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Min, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Min(ref <#= type.Type #> target, <#= type.Type #> value) =>
-            MakeAtomic(ref target, value, new Min<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        public static <#= type.Type #> Min(
+            ref <#= type.Type #> target,
+            <#= type.Type #> value) =>
+            MakeAtomic(
+                ref target,
+                value,
+                new Min<#= type.Name #>(),
+                new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -188,7 +223,8 @@ namespace ILGPU
 
         /// <summary>
         /// Atomically computes the logical and of the value at the target location with
-        /// the given value and returns the old value that was stored at the target location.
+        /// the given value and returns the old value that was stored at the target
+        /// location.
         /// </summary>
         /// <param name="target">The target location.</param>
         /// <param name="value">The comparison value.</param>
@@ -200,8 +236,14 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.And, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> And(ref <#= type.Type #> target, <#= type.Type #> value) =>
-            MakeAtomic(ref target, value, new And<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        public static <#= type.Type #> And(
+            ref <#= type.Type #> target,
+            <#= type.Type #> value) =>
+            MakeAtomic(
+                ref target,
+                value,
+                new And<#= type.Name #>(),
+                new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -212,13 +254,16 @@ namespace ILGPU
 <#      foreach (var type in AtomicIntTypes) { #>
         struct Or<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+            public <#= type.Type #> Operation(
+                <#= type.Type #> current,
+                <#= type.Type #> value) =>
                 current | value;
         }
 
         /// <summary>
         /// Atomically computes the logical or of the value at the target location with
-        /// the given value and returns the old value that was stored at the target location.
+        /// the given value and returns the old value that was stored at the target
+        /// location.
         /// </summary>
         /// <param name="target">The target location.</param>
         /// <param name="value">The comparison value.</param>
@@ -230,8 +275,14 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Or, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Or(ref <#= type.Type #> target, <#= type.Type #> value) =>
-            MakeAtomic(ref target, value, new Or<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        public static <#= type.Type #> Or(
+            ref <#= type.Type #> target,
+            <#= type.Type #> value) =>
+            MakeAtomic(
+                ref target,
+                value,
+                new Or<#= type.Name #>(),
+                new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -242,13 +293,16 @@ namespace ILGPU
 <#      foreach (var type in AtomicIntTypes) { #>
         struct Xor<#= type.Name #> : AtomicOperations.IAtomicOperation<<#= type.Type #>>
         {
-            public <#= type.Type #> Operation(<#= type.Type #> current, <#= type.Type #> value) =>
+            public <#= type.Type #> Operation(
+                <#= type.Type #> current,
+                <#= type.Type #> value) =>
                 current ^ value;
         }
 
         /// <summary>
         /// Atomically computes the logical xor of the value at the target location with
-        /// the given value and returns the old value that was stored at the target location.
+        /// the given value and returns the old value that was stored at the target
+        /// location.
         /// </summary>
         /// <param name="target">The target location.</param>
         /// <param name="value">The comparison value.</param>
@@ -260,8 +314,14 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Xor, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Xor(ref <#= type.Type #> target, <#= type.Type #> value) =>
-            MakeAtomic(ref target, value, new Xor<#= type.Name #>(), new AtomicOperations.CompareExchange<#= type.Name #>());
+        public static <#= type.Type #> Xor(
+            ref <#= type.Type #> target,
+            <#= type.Type #> value) =>
+            MakeAtomic(
+                ref target,
+                value,
+                new Xor<#= type.Name #>(),
+                new AtomicOperations.CompareExchange<#= type.Name #>());
 
 <#      } #>
 
@@ -283,7 +343,9 @@ namespace ILGPU
         [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.None)]
 <#      } #>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> Exchange(ref <#= type.Type #> target, <#= type.Type #> value) =>
+        public static <#= type.Type #> Exchange(
+            ref <#= type.Type #> target,
+            <#= type.Type #> value) =>
             Interlocked.Exchange(ref target, value);
 
 <#      } #>
@@ -302,7 +364,10 @@ namespace ILGPU
         /// <returns>The old value.</returns>
         [AtomicIntrinsic(AtomicIntrinsicKind.CompareExchange, AtomicFlags.None)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static <#= type.Type #> CompareExchange(ref <#= type.Type #> target, <#= type.Type #> compare, <#= type.Type #> value) =>
+        public static <#= type.Type #> CompareExchange(
+            ref <#= type.Type #> target,
+            <#= type.Type #> compare,
+            <#= type.Type #> value) =>
             Interlocked.CompareExchange(ref target, value, compare);
 
 <#      } #>

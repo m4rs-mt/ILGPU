@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLKernelTypeGenerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR.Types;
@@ -37,7 +37,8 @@ namespace ILGPU.Backends.OpenCL
         private readonly (StructureType, string)[] parameterTypes;
 
         /// <summary>
-        /// Constructs a new type generator and defines all internal types for the OpenCL backend.
+        /// Constructs a new type generator and defines all internal types for the
+        /// OpenCL backend.
         /// </summary>
         /// <param name="typeGenerator">The parent type generator.</param>
         /// <param name="entryPoint">The current entry point.</param>
@@ -107,7 +108,9 @@ namespace ILGPU.Backends.OpenCL
             if (!EntryPoint.TryGetViewParameters(
                 parameter.Index - ParameterOffset,
                 out var _))
+            {
                 return;
+            }
 
             // Resolve base type name from the parent type generator
             var clName = TypeGenerator[parameter.ParameterType];
@@ -158,8 +161,11 @@ namespace ILGPU.Backends.OpenCL
                     continue;
 
                 // Get the current view mapping
-                var viewMapping = EntryPoint.GetViewParameters(paramIdx - ParameterOffset);
-                Debug.Assert(viewMapping.Count > 0, "There must be at least one view entry");
+                var viewMapping = EntryPoint.GetViewParameters(
+                    paramIdx - ParameterOffset);
+                Debug.Assert(
+                    viewMapping.Count > 0,
+                    "There must be at least one view entry");
 
                 builder.AppendLine(typeName);
                 builder.AppendLine("{");

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Memory.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -61,12 +61,10 @@ namespace ILGPU.IR.Values
         private static TypeNode ComputeType(
             IRContext context,
             TypeNode allocaType,
-            MemoryAddressSpace addressSpace)
-        {
-            return context.CreatePointerType(
+            MemoryAddressSpace addressSpace) =>
+            context.CreatePointerType(
                 allocaType,
                 addressSpace);
-        }
 
         #endregion
 
@@ -153,7 +151,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, AllocaType, AddressSpace);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateAlloca(
                 rebuilder.Rebuild(ArrayLength),
                 AllocaType,
@@ -258,7 +258,9 @@ namespace ILGPU.IR.Values
             ComputeType(context);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateMemoryBarrier(Kind);
 
         /// <summary cref="Value.Accept"/>
@@ -340,7 +342,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, Source.Type);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateLoad(
                 rebuilder.Rebuild(Source));
 
@@ -425,7 +429,9 @@ namespace ILGPU.IR.Values
             ComputeType(context);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateStore(
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value));

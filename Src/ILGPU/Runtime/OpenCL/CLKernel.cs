@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLKernel.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.OpenCL;
 using ILGPU.Runtime.OpenCL.API;
@@ -35,7 +35,9 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="programPtr">The created program pointer.</param>
         /// <param name="kernelPtr">The created kernel pointer.</param>
         /// <param name="errorLog">The error log (if any).</param>
-        /// <returns>True, if the program and the kernel could be loaded successfully.</returns>
+        /// <returns>
+        /// True, if the program and the kernel could be loaded successfully.
+        /// </returns>
         public static CLError LoadKernel(
             CLAccelerator accelerator,
             string source,
@@ -132,8 +134,11 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="kernel">The source kernel.</param>
         /// <param name="launcher">The launcher method for the given kernel.</param>
-        [SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods",
-            MessageId = "0", Justification = "Will be verified in the constructor of the base class")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1062:Validate arguments of public methods",
+            MessageId = "0",
+            Justification = "Will be verified in the constructor of the base class")]
         public CLKernel(
             CLAccelerator accelerator,
             CLCompiledKernel kernel,

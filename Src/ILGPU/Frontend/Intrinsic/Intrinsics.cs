@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Intrinsics.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Types;
@@ -15,16 +15,17 @@ using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+// disable: max_line_length
+
 namespace ILGPU.Frontend.Intrinsic
 {
-    enum IntrinsicType
+    enum IntrinsicType : int
     {
         Accelerator,
         Atomic,
@@ -40,7 +41,7 @@ namespace ILGPU.Frontend.Intrinsic
     }
 
     /// <summary>
-    /// Marks methods that are builtin.
+    /// Marks methods that are built in.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     abstract class IntrinsicAttribute : Attribute
@@ -61,7 +62,8 @@ namespace ILGPU.Frontend.Intrinsic
         /// <summary>
         /// Represents a basic handler for compiler-specific device functions.
         /// </summary>
-        private delegate ValueReference DeviceFunctionHandler(in InvocationContext context);
+        private delegate ValueReference DeviceFunctionHandler(
+            in InvocationContext context);
 
         /// <summary>
         /// Stores function handlers.
@@ -69,7 +71,10 @@ namespace ILGPU.Frontend.Intrinsic
         private static readonly Dictionary<Type, DeviceFunctionHandler> FunctionHandlers =
             new Dictionary<Type, DeviceFunctionHandler>();
 
-        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline", Justification = "Caching of compiler-known functions")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1810:InitializeReferenceTypeStaticFieldsInline",
+            Justification = "Caching of compiler-known functions")]
         static Intrinsics()
         {
             FunctionHandlers.Add(typeof(Activator), HandleActivator);
@@ -88,9 +93,11 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         /// <param name="context">The current invocation context.</param>
         /// <param name="result">The resulting value of the intrinsic call.</param>
-        /// <returns>True, iff this class could handle the call.</returns>
+        /// <returns>True, if this class could handle the call.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool HandleIntrinsic(in InvocationContext context, out ValueReference result)
+        public static bool HandleIntrinsic(
+            in InvocationContext context,
+            out ValueReference result)
         {
             result = default;
 
@@ -169,8 +176,11 @@ namespace ILGPU.Frontend.Intrinsic
                 context.NumArguments != 0 ||
                 genericArgs.Length != 1 ||
                 !genericArgs[0].IsValueType)
+            {
                 throw context.GetNotSupportedException(
                     ErrorMessages.NotSupportedActivatorOperation, context.Method.Name);
+            }
+
             return context.Builder.CreateNull(
                 context.Builder.CreateType(genericArgs[0]));
         }
@@ -190,23 +200,30 @@ namespace ILGPU.Frontend.Intrinsic
                     switch (context.NumArguments)
                     {
                         case 1:
-                            return builder.CreateDebug(DebugKind.Trace, context[0]);
+                            return builder.CreateDebug(
+                                DebugKind.Trace,
+                                context[0]);
                         default:
                             throw context.GetNotSupportedException(
-                                ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
+                                ErrorMessages.NotSupportedIntrinsic,
+                                context.Method.Name);
                     }
                 case nameof(Debug.Fail):
                     switch (context.NumArguments)
                     {
                         case 1:
-                            return builder.CreateDebug(DebugKind.AssertFailed, context[0]);
+                            return builder.CreateDebug(
+                                DebugKind.AssertFailed,
+                                context[0]);
                         default:
                             throw context.GetNotSupportedException(
-                                ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
+                                ErrorMessages.NotSupportedIntrinsic,
+                                context.Method.Name);
                     }
                 default:
                     throw context.GetNotSupportedException(
-                        ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
+                        ErrorMessages.NotSupportedIntrinsic,
+                        context.Method.Name);
             }
         }
 
@@ -304,7 +321,8 @@ namespace ILGPU.Frontend.Intrinsic
                         return builder.CreateSetArrayElement(
                             context[0],
                             builder.CreateStructure(
-                                context.Arguments.RemoveAt(0).RemoveAt(context.NumArguments - 2)),
+                                context.Arguments.RemoveAt(0).RemoveAt(
+                                    context.NumArguments - 2)),
                             context[context.NumArguments - 1]);
                     case "get_Length":
                         return builder.CreateGetArrayLength(context[0]);
@@ -318,18 +336,21 @@ namespace ILGPU.Frontend.Intrinsic
                         return builder.CreateArithmetic(
                             builder.CreateGetField(
                                 builder.CreateGetArrayExtent(context[0]),
-                                new FieldSpan(context[1].ResolveAs<PrimitiveValue>().Int32Value)),
+                                new FieldSpan(
+                                    context[1].ResolveAs<PrimitiveValue>().Int32Value)),
                             builder.CreatePrimitiveValue(1),
                             BinaryArithmeticKind.Sub);
                     case nameof(Array.GetLength):
                         return builder.CreateGetField(
                             builder.CreateGetArrayExtent(context[0]),
-                            new FieldSpan(context[1].ResolveAs<PrimitiveValue>().Int32Value));
+                            new FieldSpan(
+                                context[1].ResolveAs<PrimitiveValue>().Int32Value));
                     case nameof(Array.GetLongLength):
                         return builder.CreateConvert(
                             builder.CreateGetField(
                                 builder.CreateGetArrayExtent(context[0]),
-                                new FieldSpan(context[1].ResolveAs<PrimitiveValue>().Int32Value)),
+                                new FieldSpan(
+                                    context[1].ResolveAs<PrimitiveValue>().Int32Value)),
                             builder.GetPrimitiveType(BasicValueType.Int64));
                     default:
                         throw context.GetNotSupportedException(

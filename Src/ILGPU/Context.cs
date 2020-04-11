@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Context.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.IL;
 using ILGPU.Backends.PTX;
@@ -58,9 +58,13 @@ namespace ILGPU
         /// <summary>
         /// Initializes all static context attributes.
         /// </summary>
-        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline",
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1810:InitializeReferenceTypeStaticFieldsInline",
             Justification = "Complex initialization logic is required in this case")]
-        [SuppressMessage("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations",
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1065:DoNotRaiseExceptionsInUnexpectedLocations",
             Justification = "Internal initialization check that should never fail")]
         static Context()
         {
@@ -72,12 +76,16 @@ namespace ILGPU
             Version = versionString.Substring(0, offset);
 
             InliningAttributeBuilder = new CustomAttributeBuilder(
-                typeof(MethodImplAttribute).GetConstructor(new Type[] { typeof(MethodImplOptions) }),
+                typeof(MethodImplAttribute).GetConstructor(
+                    new Type[] { typeof(MethodImplOptions) }),
                 new object[] { MethodImplOptions.AggressiveInlining });
 
             // Ensure initialized runtime
-            if (Runtime.Accelerator.Accelerators.Length < 1)
-                throw new TypeLoadException(ErrorMessages.IntrinsicAcceleratorsBroken);
+            if (Accelerator.Accelerators.Length < 1)
+            {
+                throw new TypeLoadException(
+                    ErrorMessages.IntrinsicAcceleratorsBroken);
+            }
         }
 
         #endregion
@@ -131,7 +139,7 @@ namespace ILGPU
         #region Instance
 
         private long idCounter = 0;
-        private long functionHandleCounter = 0;
+        private long methodHandleCounter = 0;
         private long nodeMarker = 0L;
 
         private readonly SemaphoreSlim codeGenerationSemaphore = new SemaphoreSlim(1);
@@ -184,18 +192,18 @@ namespace ILGPU
 
             // Create frontend
             DebugInformationManager frontendDebugInformationManager =
-                HasFlags(ContextFlags.EnableDebugInformation) ? DebugInformationManager : null;
+                HasFlags(ContextFlags.EnableDebugInformation)
+                ? DebugInformationManager
+                : null;
 
-            if (HasFlags(ContextFlags.EnableParallelCodeGenerationInFrontend))
-                ILFrontend = new ILFrontend(frontendDebugInformationManager);
-            else
-                ILFrontend = new ILFrontend(frontendDebugInformationManager, 1);
+            ILFrontend = HasFlags(ContextFlags.EnableParallelCodeGenerationInFrontend)
+                ? new ILFrontend(frontendDebugInformationManager)
+                : new ILFrontend(frontendDebugInformationManager, 1);
 
             // Create default IL backend
-            if (flags.HasFlags(ContextFlags.SkipCPUCodeGeneration))
-                DefautltILBackend = new SkipCodeGenerationDefaultILBackend(this);
-            else
-                DefautltILBackend = new DefaultILBackend(this);
+            DefautltILBackend = flags.HasFlags(ContextFlags.SkipCPUCodeGeneration)
+                ? new SkipCodeGenerationDefaultILBackend(this)
+                : new DefaultILBackend(this);
 
             // Initialize default transformer
             ContextTransformer = Optimizer.CreateTransformer(
@@ -243,7 +251,8 @@ namespace ILGPU
         /// <summary>
         /// Returns the main debug-information manager.
         /// </summary>
-        public DebugInformationManager DebugInformationManager { get; } = new DebugInformationManager();
+        public DebugInformationManager DebugInformationManager { get; } =
+            new DebugInformationManager();
 
         /// <summary>
         /// Returns the main type context.
@@ -267,10 +276,7 @@ namespace ILGPU
         /// <summary>
         /// Initializes all intrinsics.
         /// </summary>
-        private void InitIntrinsics()
-        {
-            PTXIntrinsics.Register(IntrinsicManager);
-        }
+        private void InitIntrinsics() => PTXIntrinsics.Register(IntrinsicManager);
 
         /// <summary>
         /// Reloads the assembly builder.
@@ -311,20 +317,18 @@ namespace ILGPU
             new NodeId(Interlocked.Add(ref idCounter, 1));
 
         /// <summary>
-        /// Creates a new unique function handle.
+        /// Creates a new unique method handle.
         /// </summary>
-        /// <returns>A new unique function handle.</returns>
+        /// <returns>A new unique method handle.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal long CreateFunctionHandle() =>
-            Interlocked.Add(ref functionHandleCounter, 1);
+        internal long CreateMethodHandle() =>
+            Interlocked.Add(ref methodHandleCounter, 1);
 
         /// <summary>
         /// Releases the internal code-generation lock.
         /// </summary>
-        internal void ReleaseCodeGenerationLock()
-        {
+        internal void ReleaseCodeGenerationLock() =>
             codeGenerationSemaphore.Release();
-        }
 
         /// <summary>
         /// Begins a new code generation phase.
@@ -346,19 +350,18 @@ namespace ILGPU
         }
 
         /// <summary>
-        /// Begins a new code generation phase (async).
+        /// Begins a new code generation phase (asynchronous).
         /// </summary>
         /// <returns>The new code generation phase.</returns>
-        public Task<ContextCodeGenerationPhase> BeginCodeGenerationAsync()
-        {
-            return Task.Run(new Func<ContextCodeGenerationPhase>(BeginCodeGeneration));
-        }
+        public Task<ContextCodeGenerationPhase> BeginCodeGenerationAsync() =>
+            Task.Run(new Func<ContextCodeGenerationPhase>(BeginCodeGeneration));
 
         /// <summary>
-        /// Begins a new code generation phase (async).
+        /// Begins a new code generation phase (asynchronous).
         /// </summary>
         /// <returns>The new code generation phase.</returns>
-        public Task<ContextCodeGenerationPhase> BeginCodeGenerationAsync(IRContext irContext)
+        public Task<ContextCodeGenerationPhase> BeginCodeGenerationAsync(
+            IRContext irContext)
         {
             if (irContext == null)
                 throw new ArgumentNullException(nameof(irContext));
@@ -366,7 +369,8 @@ namespace ILGPU
         }
 
         /// <summary>
-        /// Clears internal caches. However, this does not affect individual accelerator caches.
+        /// Clears internal caches. However, this does not affect individual accelerator
+        /// caches.
         /// </summary>
         /// <param name="mode">The clear mode.</param>
         /// <remarks>
@@ -403,16 +407,20 @@ namespace ILGPU
         private TypeBuilder DefineRuntimeType(TypeAttributes attributes, Type baseClass)
         {
             lock (assemblyLock)
-                return moduleBuilder.DefineType(CustomTypeName + typeBuilderIdx++, attributes, baseClass);
+            {
+                return moduleBuilder.DefineType(
+                    CustomTypeName + typeBuilderIdx++,
+                    attributes,
+                    baseClass);
+            }
         }
 
         /// <summary>
         /// Defines a new runtime class.
         /// </summary>
         /// <returns>A new runtime type builder.</returns>
-        internal TypeBuilder DefineRuntimeClass(Type baseClass)
-        {
-            return DefineRuntimeType(
+        internal TypeBuilder DefineRuntimeClass(Type baseClass) =>
+            DefineRuntimeType(
                 TypeAttributes.Public |
                 TypeAttributes.Class |
                 TypeAttributes.AutoClass |
@@ -421,15 +429,13 @@ namespace ILGPU
                 TypeAttributes.AutoLayout |
                 TypeAttributes.Sealed,
                 baseClass ?? typeof(object));
-        }
 
         /// <summary>
         /// Defines a new runtime structure.
         /// </summary>
         /// <returns>A new runtime type builder.</returns>
-        internal TypeBuilder DefineRuntimeStruct()
-        {
-            return DefineRuntimeType(
+        internal TypeBuilder DefineRuntimeStruct() =>
+            DefineRuntimeType(
                 TypeAttributes.Public |
                 TypeAttributes.Class |
                 TypeAttributes.AnsiClass |
@@ -437,7 +443,6 @@ namespace ILGPU
                 TypeAttributes.SequentialLayout |
                 TypeAttributes.Sealed,
                 typeof(ValueType));
-        }
 
         /// <summary>
         /// Defines a new runtime method.

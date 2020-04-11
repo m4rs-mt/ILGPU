@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLTypeGenerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.Util;
@@ -62,49 +62,52 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Maps basic value types to OpenCL language types.
         /// </summary>
-        private static readonly ImmutableArray<string> BasicTypeMapping = ImmutableArray.Create(
-            null,
-            "bool",
-            "char",
-            "short",
-            "int",
-            "long",
-            "float",
-            "double");
+        private static readonly ImmutableArray<string> BasicTypeMapping =
+            ImmutableArray.Create(
+                null,
+                "bool",
+                "char",
+                "short",
+                "int",
+                "long",
+                "float",
+                "double");
 
         /// <summary>
         /// Maps arithmetic-basic value types to OpenCL language types.
         /// </summary>
-        private static readonly ImmutableArray<string> ArtihmeticTypeMapping = ImmutableArray.Create(
-            string.Empty,
-            "bool",
-            "char",
-            "short",
-            "int",
-            "long",
-            "float",
-            "double",
-            "uchar",
-            "ushort",
-            "uint",
-            "ulong");
+        private static readonly ImmutableArray<string> ArtihmeticTypeMapping =
+            ImmutableArray.Create(
+                string.Empty,
+                "bool",
+                "char",
+                "short",
+                "int",
+                "long",
+                "float",
+                "double",
+                "uchar",
+                "ushort",
+                "uint",
+                "ulong");
 
         /// <summary>
         /// Maps arithmetic-basic value types to atomic OpenCL language types.
         /// </summary>
-        private static readonly ImmutableArray<string> AtomicTypeMapping = ImmutableArray.Create(
-            string.Empty,
-            null,
-            null,
-            null,
-            "atomic_int",
-            "atomic_long",
-            null,
-            null,
-            null,
-            null,
-            "atomic_uint",
-            "atomic_ulong");
+        private static readonly ImmutableArray<string> AtomicTypeMapping =
+            ImmutableArray.Create(
+                string.Empty,
+                null,
+                null,
+                null,
+                "atomic_int",
+                "atomic_long",
+                null,
+                null,
+                null,
+                null,
+                "atomic_uint",
+                "atomic_ulong");
 
         /// <summary>
         /// Resolves the given basic-value type to an OpenCL type name.
@@ -150,8 +153,8 @@ namespace ILGPU.Backends.OpenCL
 
         #region Instance
 
-        private readonly ReaderWriterLockSlim readerWriterLock = new ReaderWriterLockSlim(
-            LockRecursionPolicy.SupportsRecursion);
+        private readonly ReaderWriterLockSlim readerWriterLock =
+            new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         private readonly Dictionary<TypeNode, string> mapping =
             new Dictionary<TypeNode, string>();
 

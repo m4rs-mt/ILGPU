@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CodeGeneratorBackend.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
@@ -23,7 +23,9 @@ namespace ILGPU.Backends
     /// Represents a backend that works on several code generators and kernel builders
     /// in parallel to speed up code generation.
     /// </summary>
-    /// <typeparam name="TDelegate">The intrinsic delegate type for backend implementations.</typeparam>
+    /// <typeparam name="TDelegate">
+    /// The intrinsic delegate type for backend implementations.
+    /// </typeparam>
     /// <typeparam name="T">The main data type.</typeparam>
     /// <typeparam name="TCodeGenerator">The code-generator type.</typeparam>
     /// <typeparam name="TKernelBuilder">The kernel-builder type.</typeparam>
@@ -44,7 +46,9 @@ namespace ILGPU.Backends
         /// <param name="backendType">The backend type.</param>
         /// <param name="backendFlags">The backend flags.</param>
         /// <param name="abi">The current ABI.</param>
-        /// <param name="argumentMapperProvider">The provider for argument mappers.</param>
+        /// <param name="argumentMapperProvider">
+        /// The provider for argument mappers.
+        /// </param>
         protected CodeGeneratorBackend(
             Context context,
             BackendType backendType,
@@ -75,7 +79,7 @@ namespace ILGPU.Backends
             in BackendContext backendContext,
             in KernelSpecialization specialization)
         {
-            // Init the main builder and generator
+            // Initialize the main builder and generator
             var mainBuilder = CreateKernelBuilder(
                 entryPoint,
                 backendContext,
@@ -104,10 +108,7 @@ namespace ILGPU.Backends
             }
 
             // Generate code
-            Parallel.For(0, generators.Count, i =>
-            {
-                generators[i].GenerateCode();
-            });
+            Parallel.For(0, generators.Count, i => generators[i].GenerateCode());
 
             // Generate all constants
             for (int i = 0, e = generators.Count; i < e; ++i)

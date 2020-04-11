@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Dominators.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
@@ -138,12 +138,12 @@ namespace ILGPU.IR.Analyses
         #region Methods
 
         /// <summary>
-        /// Returns true iff the given <paramref name="cfgNode"/> node is
+        /// Returns true if the given <paramref name="cfgNode"/> node is
         /// dominated by the <paramref name="dominator"/> node.
         /// </summary>
         /// <param name="cfgNode">The node.</param>
         /// <param name="dominator">The potential dominator.</param>
-        /// <returns>True, iff the given node is dominated by the dominator.</returns>
+        /// <returns>True, if the given node is dominated by the dominator.</returns>
         public bool IsDominatedBy(CFG.Node cfgNode, CFG.Node dominator)
         {
             Debug.Assert(cfgNode != null, "Invalid CFG node");
@@ -155,18 +155,18 @@ namespace ILGPU.IR.Analyses
         }
 
         /// <summary>
-        /// Returns true iff the given <paramref name="dominator"/> node. is
+        /// Returns true if the given <paramref name="dominator"/> node. is
         /// dominating the <paramref name="cfgNode"/> node.
         /// </summary>
         /// <param name="dominator">The potential dominator.</param>
         /// <param name="cfgNode">The other node.</param>
-        /// <returns>True, iff the given node is dominating the other node.</returns>
+        /// <returns>True, if the given node is dominating the other node.</returns>
         public bool Dominates(CFG.Node dominator, CFG.Node cfgNode) =>
             IsDominatedBy(cfgNode, dominator);
 
         /// <summary>
         /// Returns the first dominator of the given node.
-        /// This might be the node itself iff there are no other
+        /// This might be the node itself if there are no other
         /// dominators.
         /// </summary>
         /// <param name="cfgNode">The node.</param>
@@ -180,7 +180,7 @@ namespace ILGPU.IR.Analyses
 
         /// <summary>
         /// Returns the first dominator of the given node.
-        /// This might be the node itself iff there are no other
+        /// This might be the node itself if there are no other
         /// dominators.
         /// </summary>
         /// <param name="first">The first node.</param>

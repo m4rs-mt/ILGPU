@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: InferAddressSpaces.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Values;
@@ -20,6 +20,8 @@ namespace ILGPU.IR.Transformations
     /// </summary>
     public sealed class InferAddressSpaces : UnorderedTransformation
     {
+        #region Static
+
         /// <summary>
         /// Returns true if the given cast is redundant.
         /// </summary>
@@ -42,7 +44,8 @@ namespace ILGPU.IR.Transformations
                         // We are not allowed to remove casts from phi node operands.
                         return false;
                     case Store _:
-                        // We are not allowed to remove casts in the case of alloca stores
+                        // We are not allowed to remove casts in the case of alloca
+                        // stores
                         if (use.Index != 0)
                             return false;
                         break;
@@ -60,6 +63,10 @@ namespace ILGPU.IR.Transformations
             return true;
         }
 
+        #endregion
+
+        #region Rewriter
+
         /// <summary>
         /// The internal rewriter.
         /// </summary>
@@ -76,13 +83,25 @@ namespace ILGPU.IR.Transformations
                 (context, cast) => context.ReplaceAndRemove(cast, cast.Value));
         }
 
+        #endregion
+
+        #region Instance
+
         /// <summary>
         /// Constructs a new address-space inference pass.
         /// </summary>
         public InferAddressSpaces() { }
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Applies the address-space inference transformation.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder) =>
             Rewriter.Rewrite(builder);
+
+        #endregion
     }
 }

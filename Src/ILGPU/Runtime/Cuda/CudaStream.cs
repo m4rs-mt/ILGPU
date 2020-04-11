@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CudaStream.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
@@ -19,7 +19,9 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Represents a Cuda stream.
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
     public sealed class CudaStream : AcceleratorStream
     {
         #region Instance
@@ -45,7 +47,9 @@ namespace ILGPU.Runtime.Cuda
             : base(accelerator)
         {
             CudaException.ThrowIfFailed(
-                CudaAPI.Current.CreateStream(out streamPtr, StreamFlags.CU_STREAM_DEFAULT));
+                CudaAPI.Current.CreateStream(
+                    out streamPtr,
+                    StreamFlags.CU_STREAM_DEFAULT));
         }
 
         #endregion
@@ -64,11 +68,12 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="AcceleratorStream.Synchronize"/>
         public override void Synchronize()
         {
-            using (var binding = Accelerator.BindScoped())
-            {
-                CudaException.ThrowIfFailed(
-                    CudaAPI.Current.SynchronizeStream(streamPtr));
-            }
+            var binding = Accelerator.BindScoped();
+
+            CudaException.ThrowIfFailed(
+                CudaAPI.Current.SynchronizeStream(streamPtr));
+
+            binding.Recover();
         }
 
         #endregion

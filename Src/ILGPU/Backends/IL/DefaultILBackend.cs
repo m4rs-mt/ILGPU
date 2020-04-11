@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: DefaultILBackend.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using System.Collections.Immutable;
@@ -35,7 +35,9 @@ namespace ILGPU.Backends.IL
 
         #region Methods
 
-        /// <summary cref="ILBackend.GenerateLocals{TEmitter}(EntryPoint, TEmitter, KernelGenerationData, ImmutableArray{FieldInfo}, ILLocal)"/>
+        /// <summary>
+        /// Generates code that caches all task fields in local variables.
+        /// </summary>
         protected override void GenerateLocals<TEmitter>(
             EntryPoint entryPoint,
             TEmitter emitter,
@@ -44,7 +46,8 @@ namespace ILGPU.Backends.IL
             ILLocal task)
         {
             // Cache all fields in local variables
-            var taskArgumentLocals = ImmutableArray.CreateBuilder<ILLocal>(taskArgumentMapping.Length);
+            var taskArgumentLocals = ImmutableArray.CreateBuilder<ILLocal>(
+                taskArgumentMapping.Length);
 
             for (int i = 0, e = taskArgumentMapping.Length; i < e; ++i)
             {
@@ -64,7 +67,9 @@ namespace ILGPU.Backends.IL
             kernelData.SetupUniforms(taskArgumentLocals.MoveToImmutable());
         }
 
-        /// <summary cref="ILBackend.GenerateCode{TEmitter}(EntryPoint, in BackendContext, TEmitter, KernelGenerationData)"/>
+        /// <summary>
+        /// Generates the actual kernel invocation call.
+        /// </summary>
         protected override void GenerateCode<TEmitter>(
             EntryPoint entryPoint,
             in BackendContext backendContext,

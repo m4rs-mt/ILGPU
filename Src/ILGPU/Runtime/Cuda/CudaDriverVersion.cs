@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXArchitecture.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using ILGPU.Resources;
@@ -21,7 +21,9 @@ namespace ILGPU.Runtime.Cuda
     /// Represents a CUDA driver version
     /// </summary>
     [DebuggerDisplay("CUDA {Major}.{Minor}")]
-    public readonly struct CudaDriverVersion : IEquatable<CudaDriverVersion>, IComparable<CudaDriverVersion>
+    public readonly struct CudaDriverVersion :
+        IEquatable<CudaDriverVersion>,
+        IComparable<CudaDriverVersion>
     {
         #region Constants
 
@@ -49,14 +51,11 @@ namespace ILGPU.Runtime.Cuda
         public static CudaDriverVersion FromMajorMinor(int major, int minor)
         {
             if (major < 0 || major >= MaxMajorVersion)
-            {
                 throw new ArgumentOutOfRangeException(nameof(major));
-            }
             if (minor < 0 || minor >= MaxMinVersion)
-            {
                 throw new ArgumentOutOfRangeException(nameof(minor));
-            }
-            return new CudaDriverVersion((major * MajorMultiplier) + (minor * MinorMultiplier));
+            return new CudaDriverVersion(
+                (major * MajorMultiplier) + (minor * MinorMultiplier));
         }
 
         /// <summary>
@@ -72,10 +71,10 @@ namespace ILGPU.Runtime.Cuda
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given version is equal to this version.
+        /// Returns true if the given version is equal to this version.
         /// </summary>
         /// <param name="other">The other version.</param>
-        /// <returns>True, iff the given version is equal to this version.</returns>
+        /// <returns>True, if the given version is equal to this version.</returns>
         public bool Equals(CudaDriverVersion other) => this == other;
 
         #endregion
@@ -94,16 +93,14 @@ namespace ILGPU.Runtime.Cuda
         #region Properties
 
         /// <summary>
-        /// 
+        /// Major driver version.
         /// </summary>
-        public int Major =>
-            Value / MajorMultiplier;
+        public int Major => Value / MajorMultiplier;
 
         /// <summary>
-        /// 
+        /// Minor driver version.
         /// </summary>
-        public int Minor =>
-            (Value % MajorMultiplier) / MinorMultiplier;
+        public int Minor => (Value % MajorMultiplier) / MinorMultiplier;
 
         /// <summary>
         /// 
@@ -115,16 +112,12 @@ namespace ILGPU.Runtime.Cuda
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to this version.
+        /// Returns true if the given object is equal to this version.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to this version.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is CudaDriverVersion version)
-                return version == this;
-            return false;
-        }
+        /// <returns>True, if the given object is equal to this version.</returns>
+        public override bool Equals(object obj) =>
+            obj is CudaDriverVersion version && version == this;
 
         /// <summary>
         /// Returns the hash code of this version.
@@ -150,57 +143,81 @@ namespace ILGPU.Runtime.Cuda
             version.Value;
 
         /// <summary>
-        /// Returns true iff the first and the second version are the same.
+        /// Returns true if the first and the second version are the same.
         /// </summary>
         /// <param name="first">The first version.</param>
         /// <param name="second">The second version.</param>
-        /// <returns>True, iff the first and the second version are the same.</returns>
-        public static bool operator ==(CudaDriverVersion first, CudaDriverVersion second) =>
+        /// <returns>True, if the first and the second version are the same.</returns>
+        public static bool operator ==(
+            CudaDriverVersion first,
+            CudaDriverVersion second) =>
             first.Value == second.Value;
 
         /// <summary>
-        /// Returns true iff the first and the second version are not the same.
+        /// Returns true if the first and the second version are not the same.
         /// </summary>
         /// <param name="first">The first version.</param>
         /// <param name="second">The second version.</param>
-        /// <returns>True, iff the first and the second version are not the same.</returns>
-        public static bool operator !=(CudaDriverVersion first, CudaDriverVersion second) =>
+        /// <returns>
+        /// True, if the first and the second version are not the same.
+        /// </returns>
+        public static bool operator !=(
+            CudaDriverVersion first,
+            CudaDriverVersion second) =>
             first.Value != second.Value;
 
         /// <summary>
-        /// Returns true iff the first version is smaller than the second one.
+        /// Returns true if the first version is smaller than the second one.
         /// </summary>
         /// <param name="first">The first version.</param>
         /// <param name="second">The second version.</param>
-        /// <returns>True, iff the first version is smaller than the second one.</returns>
-        public static bool operator <(CudaDriverVersion first, CudaDriverVersion second) =>
+        /// <returns>
+        /// True, if the first version is smaller than the second one.
+        /// </returns>
+        public static bool operator <(
+            CudaDriverVersion first,
+            CudaDriverVersion second) =>
             first.Value < second.Value;
 
         /// <summary>
-        /// Returns true iff the first version is less than or equal to the second version.
+        /// Returns true if the first version is less than or equal to the second
+        /// version.
         /// </summary>
         /// <param name="first">The first version.</param>
         /// <param name="second">The second version.</param>
-        /// <returns>True, iff the first version is less or equal to the second version.</returns>
-        public static bool operator <=(CudaDriverVersion first, CudaDriverVersion second) =>
+        /// <returns>
+        /// True, if the first version is less or equal to the second version.
+        /// </returns>
+        public static bool operator <=(
+            CudaDriverVersion first,
+            CudaDriverVersion second) =>
             first.Value <= second.Value;
 
         /// <summary>
-        /// Returns true iff the first version is greater than the second one.
+        /// Returns true if the first version is greater than the second one.
         /// </summary>
         /// <param name="first">The first version.</param>
         /// <param name="second">The second version.</param>
-        /// <returns>True, iff the first version is greater than the second one.</returns>
-        public static bool operator >(CudaDriverVersion first, CudaDriverVersion second) =>
+        /// <returns>
+        /// True, if the first version is greater than the second one.
+        /// </returns>
+        public static bool operator >(
+            CudaDriverVersion first,
+            CudaDriverVersion second) =>
             first.Value > second.Value;
 
         /// <summary>
-        /// Returns true iff the first version is greater than or equal to the second version.
+        /// Returns true if the first version is greater than or equal to the second
+        /// version.
         /// </summary>
         /// <param name="first">The first version.</param>
         /// <param name="second">The second version.</param>
-        /// <returns>True, iff the first version is greater or equal to the second version.</returns>
-        public static bool operator >=(CudaDriverVersion first, CudaDriverVersion second) =>
+        /// <returns>
+        /// True, if the first version is greater or equal to the second version.
+        /// </returns>
+        public static bool operator >=(
+            CudaDriverVersion first,
+            CudaDriverVersion second) =>
             first.Value >= second.Value;
 
         #endregion
@@ -216,7 +233,9 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Maps PTX architecture to their corresponding minimum CUDA driver version.
         /// </summary>
-        private static readonly Dictionary<PTXArchitecture, CudaDriverVersion> ArchitectureLookup =
+        private static readonly Dictionary<
+            PTXArchitecture,
+            CudaDriverVersion> ArchitectureLookup =
             new Dictionary<PTXArchitecture, CudaDriverVersion>
         {
             { PTXArchitecture.SM_30, CudaDriverVersion.FromMajorMinor(4, 1) },
@@ -240,7 +259,9 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Maps PTX ISA to their corresponding minimum CUDA driver version.
         /// </summary>
-        private static readonly Dictionary<PTXInstructionSet, CudaDriverVersion> InstructionSetLookup =
+        private static readonly Dictionary<
+            PTXInstructionSet,
+            CudaDriverVersion> InstructionSetLookup =
             new Dictionary<PTXInstructionSet, CudaDriverVersion>
         {
             { PTXInstructionSet.ISA_30, CudaDriverVersion.FromMajorMinor(4, 1) },
@@ -266,10 +287,15 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="architecture">The PTX architecture</param>
         /// <returns>The minimum driver version</returns>
-        public static CudaDriverVersion GetMinimumDriverVersion(PTXArchitecture architecture)
+        public static CudaDriverVersion GetMinimumDriverVersion(
+            PTXArchitecture architecture)
         {
             if (!ArchitectureLookup.TryGetValue(architecture, out var result))
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedPTXArchitecture);
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedPTXArchitecture);
+            }
+
             return result;
         }
 
@@ -278,10 +304,15 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="instructionSet">The PTX instruction set</param>
         /// <returns>The minimum driver version</returns>
-        public static CudaDriverVersion GetMinimumDriverVersion(PTXInstructionSet instructionSet)
+        public static CudaDriverVersion GetMinimumDriverVersion(
+            PTXInstructionSet instructionSet)
         {
             if (!InstructionSetLookup.TryGetValue(instructionSet, out var result))
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedPTXInstructionSet);
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedPTXInstructionSet);
+            }
+
             return result;
         }
 

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Transformer.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections.Immutable;
@@ -49,17 +49,19 @@ namespace ILGPU.IR.Transformations
         /// Represents an empty configuration that works on all functions without
         /// adding additional flags to them.
         /// </summary>
-        public static readonly TransformerConfiguration Empty = new TransformerConfiguration(
-            MethodTransformationFlags.None,
-            true);
+        public static readonly TransformerConfiguration Empty =
+            new TransformerConfiguration(
+                MethodTransformationFlags.None,
+                true);
 
         /// <summary>
-        /// Represents a default configuration that works on all non-transformed functions
-        /// and marks them as transformed.
+        /// Represents a default configuration that works on all non-transformed
+        /// functions and marks them as transformed.
         /// </summary>
-        public static readonly TransformerConfiguration Transformed = new TransformerConfiguration(
-            MethodTransformationFlags.Transformed,
-            true);
+        public static readonly TransformerConfiguration Transformed =
+            new TransformerConfiguration(
+                MethodTransformationFlags.Transformed,
+                true);
 
         /// <summary>
         /// Constructs a new transformer configuration.
@@ -75,7 +77,9 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new transformer configuration.
         /// </summary>
-        /// <param name="requiredFlags">The transformation flags that should not be set.</param>
+        /// <param name="requiredFlags">
+        /// The transformation flags that should not be set.
+        /// </param>
         /// <param name="flags">The transformation flags that will be set.</param>
         /// <param name="finalGC">True, if a final GC run is required.</param>
         public TransformerConfiguration(
@@ -157,11 +161,9 @@ namespace ILGPU.IR.Transformations
             /// Adds the given transformation to the manager.
             /// </summary>
             /// <param name="transformation">The transformation to add.</param>
-            public void Add(Transformation transformation)
-            {
-                builder.Add(transformation ??
-                    throw new ArgumentNullException(nameof(transformation)));
-            }
+            public void Add(Transformation transformation) =>
+                builder.Add(transformation
+                    ?? throw new ArgumentNullException(nameof(transformation)));
 
             /// <summary>
             /// Converts this builder to an immutable array.
@@ -218,7 +220,9 @@ namespace ILGPU.IR.Transformations
         /// <param name="configuration">The transformer configuration.</param>
         /// <returns>A new builder.</returns>
         public static Builder CreateBuilder(TransformerConfiguration configuration) =>
-            new Builder(configuration, ImmutableArray.CreateBuilder<Transformation>());
+            new Builder(
+                configuration,
+                ImmutableArray.CreateBuilder<Transformation>());
 
         /// <summary>
         /// Creates a transformer.
@@ -313,7 +317,7 @@ namespace ILGPU.IR.Transformations
             THandler handler)
             where THandler : ITransformerHandler
         {
-            Debug.Assert(context != null, "Invalid conext");
+            Debug.Assert(context != null, "Invalid context");
 
             var toTransform = context.GetMethodCollection(
                 new MethodPredicate(Configuration.RequiredFlags));

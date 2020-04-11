@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: TypeConverter.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
@@ -59,7 +59,9 @@ namespace ILGPU.IR.Types
         /// <param name="typeContext">The type converter instance to use.</param>
         /// <param name="type">The type to convert.</param>
         /// <returns>The converted type.</returns>
-        protected abstract TypeNode ConvertType<TTypeContext>(TTypeContext typeContext, TType type)
+        protected abstract TypeNode ConvertType<TTypeContext>(
+            TTypeContext typeContext,
+            TType type)
             where TTypeContext : IIRTypeContext;
 
         /// <summary>
@@ -75,7 +77,9 @@ namespace ILGPU.IR.Types
         /// <param name="typeContext">The type converter instance to use.</param>
         /// <param name="type">The type to convert.</param>
         /// <returns>The converted type.</returns>
-        public TypeNode ConvertType<TTypeContext>(TTypeContext typeContext, TypeNode type)
+        public TypeNode ConvertType<TTypeContext>(
+            TTypeContext typeContext,
+            TypeNode type)
             where TTypeContext : IIRTypeContext
         {
             switch (type)
@@ -114,12 +118,10 @@ namespace ILGPU.IR.Types
         /// Resolves the number of element fields per type instance.
         /// </summary>
         /// <param name="type">The parent type.</param>
-        public int GetNumFields(TypeNode type)
-        {
-            if (type is TType ttype)
-                return GetNumFields(ttype);
-            return 1;
-        }
+        public int GetNumFields(TypeNode type) =>
+            type is TType ttype
+            ? GetNumFields(ttype)
+            : 1;
     }
 
     /// <summary>
@@ -187,12 +189,15 @@ namespace ILGPU.IR.Types
         /// <returns>The converted type.</returns>
         public TypeNode ConvertType(TypeNode type)
         {
-            Debug.Assert(TypeContext != null, "Lowering must be bound to a valid type context");
+            Debug.Assert(
+                TypeContext != null,
+                "Lowering must be bound to a valid type context");
             return ConvertType(TypeContext, type);
         }
 
         /// <summary>
-        /// Computes a new field span while taking all structure field changes into account.
+        /// Computes a new field span while taking all structure field changes into
+        /// account.
         /// </summary>
         /// <param name="value">The source value.</param>
         /// <param name="fieldSpan">The source span.</param>
@@ -243,11 +248,9 @@ namespace ILGPU.IR.Types
         /// <param name="value">The value.</param>
         /// <param name="type">The mapped type.</param>
         /// <returns>True, if the given type is type dependent.</returns>
-        public bool TryRegister(Value value, TypeNode type)
-        {
-            if (!IsTypeDependent(type))
-                return false;
-            return Register(value, type);
-        }
+        public bool TryRegister(Value value, TypeNode type) =>
+            !IsTypeDependent(type)
+            ? false
+            : Register(value, type);
     }
 }

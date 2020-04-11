@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: TypeNode.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 
@@ -106,15 +106,10 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns the basic value type.
         /// </summary>
-        public BasicValueType BasicValueType
-        {
-            get
-            {
-                if (this is PrimitiveType primitiveType)
-                    return primitiveType.BasicValueType;
-                return BasicValueType.None;
-            }
-        }
+        public BasicValueType BasicValueType =>
+            this is PrimitiveType primitiveType
+            ? primitiveType.BasicValueType
+            : BasicValueType.None;
 
         /// <summary>
         /// Returns all type flags.
@@ -149,7 +144,9 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Tries to resolve the managed type that represents this IR type.
         /// </summary>
-        /// <param name="type">The resolved managed type that represents this IR type.</param>
+        /// <param name="type">
+        /// The resolved managed type that represents this IR type.
+        /// </param>
         /// <returns>True, if the managed type could be resolved.</returns>
         public abstract bool TryResolveManagedType(out Type type);
 
@@ -172,7 +169,7 @@ namespace ILGPU.IR.Types
             obj is TypeNode;
 
         /// <summary>
-        /// Returns the string represetation of this node.
+        /// Returns the string representation of this node.
         /// </summary>
         /// <returns>The string representation of this node.</returns>
         public override string ToString() => ToPrefixString();

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Method.Builder.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR.Analyses;
@@ -62,7 +62,7 @@ namespace ILGPU.IR
             public IRContext Context => Method.Context;
 
             /// <summary>
-            /// Retruns true if debbug information is enabled.
+            /// Returns true if debug information is enabled.
             /// </summary>
             public bool EnableDebugInformation { get; }
 
@@ -100,7 +100,9 @@ namespace ILGPU.IR
             /// <summary>
             /// Returns the associated basic block builder.
             /// </summary>
-            /// <param name="basicBlock">The basic block to resolve the builder for.</param>
+            /// <param name="basicBlock">
+            /// The basic block to resolve the builder for.
+            /// </param>
             /// <returns>The resolved basic block builder.</returns>
             public BasicBlock.Builder this[BasicBlock basicBlock]
             {
@@ -108,11 +110,15 @@ namespace ILGPU.IR
                 get
                 {
                     Debug.Assert(basicBlock != null, "Invalid basic block to lookup");
-                    Debug.Assert(basicBlock.Method == Method, "Invalid associated function");
+                    Debug.Assert(
+                        basicBlock.Method == Method,
+                        "Invalid associated function");
                     if (basicBlock.GetOrCreateBuilder(
                         this,
                         out BasicBlock.Builder basicBlockBuilder))
+                    {
                         basicBlockBuilders.Add(basicBlockBuilder);
+                    }
                     return basicBlockBuilder;
                 }
             }
@@ -149,7 +155,8 @@ namespace ILGPU.IR
             /// </summary>
             /// <typeparam name="TTypeConverter">The type converter.</typeparam>
             /// <param name="typeConverter">The type converter instance.</param>
-            public void UpdateReturnType<TTypeConverter>(TTypeConverter typeConverter)
+            public void UpdateReturnType<TTypeConverter>(
+                TTypeConverter typeConverter)
                 where TTypeConverter : ITypeConverter<TypeNode>
             {
                 var returnType = typeConverter.ConvertType(Context, Method.ReturnType);
@@ -161,7 +168,8 @@ namespace ILGPU.IR
             /// </summary>
             /// <typeparam name="TTypeConverter">The type converter.</typeparam>
             /// <param name="typeConverter">The type converter instance.</param>
-            public void UpdateParameterTypes<TTypeConverter>(TTypeConverter typeConverter)
+            public void UpdateParameterTypes<TTypeConverter>(
+                TTypeConverter typeConverter)
                 where TTypeConverter : ITypeConverter<TypeNode>
             {
                 foreach (var param in parameters)
@@ -185,12 +193,15 @@ namespace ILGPU.IR
             /// </summary>
             /// <param name="scopeFlags">The scope flags.</param>
             /// <returns>A new method scope.</returns>
-            public Scope CreateScope(ScopeFlags scopeFlags) => Method.CreateScope(scopeFlags);
+            public Scope CreateScope(ScopeFlags scopeFlags) =>
+                Method.CreateScope(scopeFlags);
 
             /// <summary>
             /// Creates a new rebuilder that works on the given scope.
             /// </summary>
-            /// <param name="parameterMapping">The target value of every parameter.</param>
+            /// <param name="parameterMapping">
+            /// The target value of every parameter.
+            /// </param>
             /// <param name="scope">The used scope.</param>
             /// <returns>The created rebuilder.</returns>
             public IRRebuilder CreateRebuilder(
@@ -201,7 +212,9 @@ namespace ILGPU.IR
             /// <summary>
             /// Creates a new rebuilder that works on the given scope.
             /// </summary>
-            /// <param name="parameterMapping">The target value of every parameter.</param>
+            /// <param name="parameterMapping">
+            /// The target value of every parameter.
+            /// </param>
             /// <param name="scope">The used scope.</param>
             /// <param name="methodMapping">The method mapping.</param>
             /// <returns>The created rebuilder.</returns>
@@ -210,9 +223,13 @@ namespace ILGPU.IR
                 Scope scope,
                 MethodMapping methodMapping)
             {
-                Debug.Assert(parameterMapping.Method == scope.Method, "Invalid parameter mapping");
+                Debug.Assert(
+                    parameterMapping.Method == scope.Method,
+                    "Invalid parameter mapping");
                 Debug.Assert(scope != null, "Invalid scope");
-                Debug.Assert(scope.Method != Method, "Cannot rebuild a function into itself");
+                Debug.Assert(
+                    scope.Method != Method,
+                    "Cannot rebuild a function into itself");
 
                 return new IRRebuilder(
                     this,
@@ -226,10 +243,8 @@ namespace ILGPU.IR
             /// </summary>
             /// <param name="type">The parameter type.</param>
             /// <returns>The created parameter.</returns>
-            public Parameter AddParameter(TypeNode type)
-            {
-                return AddParameter(type, null);
-            }
+            public Parameter AddParameter(TypeNode type) =>
+                AddParameter(type, null);
 
             /// <summary>
             /// Adds a new parameter to the encapsulated function.
@@ -249,10 +264,8 @@ namespace ILGPU.IR
             /// </summary>
             /// <param name="type">The parameter type.</param>
             /// <returns>The created parameter.</returns>
-            public Parameter InsertParameter(TypeNode type)
-            {
-                return InsertParameter(type, null);
-            }
+            public Parameter InsertParameter(TypeNode type) =>
+                InsertParameter(type, null);
 
             /// <summary>
             /// Inserts a new parameter to the encapsulated function at the beginning.
@@ -354,7 +367,7 @@ namespace ILGPU.IR
             /// Declares a method.
             /// </summary>
             /// <param name="methodBase">The method base.</param>
-            /// <param name="created">True, iff the method has been created.</param>
+            /// <param name="created">True, if the method has been created.</param>
             /// <returns>The declared method.</returns>
             public Method DeclareMethod(
                 MethodBase methodBase,
@@ -365,7 +378,7 @@ namespace ILGPU.IR
             /// Declares a method.
             /// </summary>
             /// <param name="declaration">The method declaration.</param>
-            /// <param name="created">True, iff the method has been created.</param>
+            /// <param name="created">True, if the method has been created.</param>
             /// <returns>The declared method.</returns>
             public Method DeclareMethod(
                 in MethodDeclaration declaration,

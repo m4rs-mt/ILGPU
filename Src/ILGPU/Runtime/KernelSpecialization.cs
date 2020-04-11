@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: KernelSpecialization.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 
@@ -33,16 +33,25 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Constructs a new specialization object.
         /// </summary>
-        /// <param name="maxNumThreadsPerGroup">The maximum number of threads per group.</param>
-        /// <param name="minNumGroupsPerMultiprocessor">The minimum number of groups per multiprocessor.</param>
+        /// <param name="maxNumThreadsPerGroup">
+        /// The maximum number of threads per group.
+        /// </param>
+        /// <param name="minNumGroupsPerMultiprocessor">
+        /// The minimum number of groups per multiprocessor.
+        /// </param>
         public KernelSpecialization(
             int? maxNumThreadsPerGroup,
             int? minNumGroupsPerMultiprocessor)
         {
             if (maxNumThreadsPerGroup.HasValue && maxNumThreadsPerGroup < 1)
                 throw new ArgumentOutOfRangeException(nameof(maxNumThreadsPerGroup));
-            if (minNumGroupsPerMultiprocessor.HasValue && minNumGroupsPerMultiprocessor < 1)
-                throw new ArgumentOutOfRangeException(nameof(minNumGroupsPerMultiprocessor));
+            if (minNumGroupsPerMultiprocessor.HasValue &&
+                minNumGroupsPerMultiprocessor < 1)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(minNumGroupsPerMultiprocessor));
+            }
+
             MaxNumThreadsPerGroup = maxNumThreadsPerGroup;
             MinNumGroupsPerMultiprocessor = minNumGroupsPerMultiprocessor;
         }
@@ -66,35 +75,38 @@ namespace ILGPU.Runtime
         #region IEquatable
 
         /// <summary>
-        /// Returns true if the given specialization is equal to the current specialization.
+        /// Returns true if the given specialization is equal to the current
+        /// specialization.
         /// </summary>
         /// <param name="other">The other specialization.</param>
-        /// <returns>True, if the given specialization is equal to the current specialization.</returns>
-        public bool Equals(KernelSpecialization other)
-        {
-            return this == other;
-        }
+        /// <returns>
+        /// True, if the given specialization is equal to the current specialization.
+        /// </returns>
+        public bool Equals(KernelSpecialization other) => this == other;
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Checks whether the given accelerator is compatible with the current specialization.
+        /// Checks whether the given accelerator is compatible with the current
+        /// specialization.
         /// </summary>
         /// <param name="accelerator">The target accelerator.</param>
-        /// <returns>True, if the given accelerator is compatible with the current specialization.</returns>
+        /// <returns>
+        /// True, if the given accelerator is compatible with the current specialization.
+        /// </returns>
         public bool IsCompatibleWith(Accelerator accelerator)
         {
             if (accelerator == null)
                 throw new ArgumentNullException(nameof(accelerator));
 
-            // TODO: We might want to verify MinNumGroupsPerMultiprocessor in the future at this point.
-            // However, this requires further extensions of the accelerator API.
-            if (!MaxNumThreadsPerGroup.HasValue)
-                return true;
-
-            return MaxNumThreadsPerGroup <= accelerator.MaxNumThreadsPerGroup;
+            // TODO: We might want to verify MinNumGroupsPerMultiprocessor in the future
+            // at this point. However, this requires further extensions of the
+            // accelerator API.
+            return !MaxNumThreadsPerGroup.HasValue
+                ? true
+                : MaxNumThreadsPerGroup <= accelerator.MaxNumThreadsPerGroup;
         }
 
         #endregion
@@ -105,31 +117,27 @@ namespace ILGPU.Runtime
         /// Returns true if the given object is equal to the current specialization.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, if the given object is equal to the current specialization.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is KernelSpecialization other)
-                return Equals(other);
-            return false;
-        }
+        /// <returns>
+        /// True, if the given object is equal to the current specialization.
+        /// </returns>
+        public override bool Equals(object obj) =>
+            obj is KernelSpecialization specialization && specialization == this;
 
         /// <summary>
         /// Returns the hash code of this specialization.
         /// </summary>
         /// <returns>The hash code of this specialization.</returns>
-        public override int GetHashCode()
-        {
-            return MaxNumThreadsPerGroup.GetHashCode() ^ MinNumGroupsPerMultiprocessor.GetHashCode();
-        }
+        public override int GetHashCode() =>
+            MaxNumThreadsPerGroup.GetHashCode() ^
+            MinNumGroupsPerMultiprocessor.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this specialization.
         /// </summary>
         /// <returns>The string representation of this specialization.</returns>
-        public override string ToString()
-        {
-            return $"MaxNumThreadsPerGroup: {MaxNumThreadsPerGroup ?? 0}, MinNumGroupsPerMP: {MinNumGroupsPerMultiprocessor ?? 0}";
-        }
+        public override string ToString() =>
+            $"MaxNumThreadsPerGroup: {MaxNumThreadsPerGroup ?? 0}, " +
+            $"MinNumGroupsPerMP: {MinNumGroupsPerMultiprocessor ?? 0}";
 
         #endregion
 
@@ -140,25 +148,29 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="first">The first specialization.</param>
         /// <param name="second">The second specialization.</param>
-        /// <returns>True, if the first and second specialization are the same.</returns>
-        public static bool operator ==(KernelSpecialization first, KernelSpecialization second)
-        {
-            return first.MaxNumThreadsPerGroup.GetValueOrDefault(0) ==
-                second.MaxNumThreadsPerGroup.GetValueOrDefault(0) &&
-                first.MinNumGroupsPerMultiprocessor.GetValueOrDefault(0) ==
-                second.MinNumGroupsPerMultiprocessor.GetValueOrDefault(0);
-        }
+        /// <returns>
+        /// True, if the first and second specialization are the same.
+        /// </returns>
+        public static bool operator ==(
+            KernelSpecialization first,
+            KernelSpecialization second) =>
+            first.MaxNumThreadsPerGroup.GetValueOrDefault(0) ==
+            second.MaxNumThreadsPerGroup.GetValueOrDefault(0) &&
+            first.MinNumGroupsPerMultiprocessor.GetValueOrDefault(0) ==
+            second.MinNumGroupsPerMultiprocessor.GetValueOrDefault(0);
 
         /// <summary>
         /// Returns true if the first and second specialization are not the same.
         /// </summary>
         /// <param name="first">The first specialization.</param>
         /// <param name="second">The second specialization.</param>
-        /// <returns>True, if the first and second specialization are not the same.</returns>
-        public static bool operator !=(KernelSpecialization first, KernelSpecialization second)
-        {
-            return !(first == second);
-        }
+        /// <returns>
+        /// True, if the first and second specialization are not the same.
+        /// </returns>
+        public static bool operator !=(
+            KernelSpecialization first,
+            KernelSpecialization second) =>
+            !(first == second);
 
         #endregion
     }

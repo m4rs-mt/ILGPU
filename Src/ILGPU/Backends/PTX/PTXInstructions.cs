@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXInstructions.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 
@@ -40,7 +40,9 @@ namespace ILGPU.Backends.PTX
         /// <param name="kind">The compare kind.</param>
         /// <param name="type">The type to compare.</param>
         /// <returns>The resolved compare operation.</returns>
-        public static string GetCompareOperation(CompareKind kind, ArithmeticBasicValueType type)
+        public static string GetCompareOperation(
+            CompareKind kind,
+            ArithmeticBasicValueType type)
         {
             if (CompareOperations.TryGetValue((kind, type), out string operation))
                 return operation;
@@ -53,7 +55,9 @@ namespace ILGPU.Backends.PTX
         /// <param name="source">The source type to convert from.</param>
         /// <param name="target">The target type to convert to.</param>
         /// <returns>The resolved convert operation.</returns>
-        public static string GetConvertOperation(ArithmeticBasicValueType source, ArithmeticBasicValueType target)
+        public static string GetConvertOperation(
+            ArithmeticBasicValueType source,
+            ArithmeticBasicValueType target)
         {
             if (ConvertOperations.TryGetValue((source, target), out string operation))
                 return operation;
@@ -74,9 +78,13 @@ namespace ILGPU.Backends.PTX
         {
             var key = (kind, type);
             if (fastMath &&
-                UnaryArithmeticOperationsFastMath.TryGetValue(key, out string operation) ||
+                UnaryArithmeticOperationsFastMath.TryGetValue(
+                    key,
+                    out string operation) ||
                 UnaryArithmeticOperations.TryGetValue(key, out operation))
+            {
                 return operation;
+            }
             throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
@@ -94,9 +102,13 @@ namespace ILGPU.Backends.PTX
         {
             var key = (kind, type);
             if (fastMath &&
-                BinaryArithmeticOperationsFastMath.TryGetValue(key, out string operation) ||
+                BinaryArithmeticOperationsFastMath.TryGetValue(
+                    key,
+                    out string operation) ||
                 BinaryArithmeticOperations.TryGetValue(key, out operation))
+            {
                 return operation;
+            }
             throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
@@ -110,8 +122,13 @@ namespace ILGPU.Backends.PTX
             TernaryArithmeticKind kind,
             ArithmeticBasicValueType type)
         {
-            if (TernaryArithmeticOperations.TryGetValue((kind, type), out string operation))
+            if (TernaryArithmeticOperations.TryGetValue(
+                (kind, type),
+                out string operation))
+            {
                 return operation;
+            }
+
             throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
@@ -123,8 +140,13 @@ namespace ILGPU.Backends.PTX
         /// <returns>The resolved atomic operation.</returns>
         public static string GetAtomicOperation(AtomicKind kind, bool requireResult)
         {
-            if (AtomicOperations.TryGetValue((kind, requireResult), out string operation))
+            if (AtomicOperations.TryGetValue(
+                (kind, requireResult),
+                out string operation))
+            {
                 return operation;
+            }
+
             throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
@@ -134,7 +156,9 @@ namespace ILGPU.Backends.PTX
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="type">The operation type.</param>
         /// <returns>The resolved atomic-operation suffix.</returns>
-        public static string GetAtomicOperationSuffix(AtomicKind kind, ArithmeticBasicValueType type)
+        public static string GetAtomicOperationSuffix(
+            AtomicKind kind,
+            ArithmeticBasicValueType type)
         {
             if (AtomicOperationsTypes.TryGetValue((kind, type), out string operation))
                 return operation;
@@ -145,7 +169,9 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Resolves an address-space-cast operation.
         /// </summary>
-        /// <param name="convertToGeneric">True, to convert to the generic address space.</param>
+        /// <param name="convertToGeneric">
+        /// True, to convert to the generic address space.
+        /// </param>
         /// <returns>The resolved address-space-cast operation.</returns>
         public static string GetAddressSpaceCast(bool convertToGeneric) =>
             AddressSpaceCastOperations[convertToGeneric ? 0 : 1];
@@ -156,7 +182,8 @@ namespace ILGPU.Backends.PTX
         /// <param name="abi">The current ABI.</param>
         /// <returns>The resolved address-space-cast suffix.</returns>
         public static string GetAddressSpaceCastSuffix(ABI abi) =>
-            AddressSpaceCastOperationSuffix[abi.PointerBasicValueType == BasicValueType.Int32 ? 0 : 1];
+            AddressSpaceCastOperationSuffix[
+                abi.PointerBasicValueType == BasicValueType.Int32 ? 0 : 1];
 
         /// <summary>
         /// Resolves a barrier operation.

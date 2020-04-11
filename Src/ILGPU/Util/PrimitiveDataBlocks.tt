@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PrimitiveDataBlocks.tt/PrimitiveDataBlocks.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="../TypeInformation.tt" #>
@@ -29,9 +29,11 @@
 <# var operations = new string[] { "*", "/", "-", "+" }; #>
 <# var itemNames = new string[] { "X", "Y", "Z", "W" }; #>
 <# var paramItemNames = itemNames.Select(t => t.ToLower()).ToArray(); #>
-
 using System;
 using System.Runtime.InteropServices;
+
+// disable: max_line_length
+#pragma warning disable IDE0047 // Remove unnecessary parentheses
 
 namespace ILGPU.Util
 {
@@ -50,7 +52,8 @@ namespace ILGPU.Util
          }; #>
 <#      foreach (var typeParams in typeRange) { #>
     /// <summary>
-    /// Represents a combined structure type to hold multiple primitive values of the same type.
+    /// Represents a combined structure type to hold multiple primitive values of the
+    /// same type.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct <#= typeParams.TypeName #> : IEquatable<<#= typeParams.TypeName #>>
@@ -207,7 +210,9 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="left">The left block.</param>
         /// <param name="right">The right block.</param>
-        /// <returns>True, if both data block do not represent the same elements.</returns>
+        /// <returns>
+        /// True, if both data block do not represent the same elements.
+        /// </returns>
         public static bool operator !=(<#= typeParams.TypeName #> left, <#= typeParams.TypeName #> right) =>
             !(left == right);
 
@@ -217,3 +222,5 @@ namespace ILGPU.Util
 <#      } #>
 <#  } #>
 }
+
+#pragma warning restore IDE0047 // Remove unnecessary parentheses

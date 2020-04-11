@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: DebugInformationManager.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
 using System;
@@ -51,9 +51,15 @@ namespace ILGPU.Frontend.DebugInformation
             /// Executes the actual loader logic.
             /// </summary>
             /// <param name="assembly">The current assembly.</param>
-            /// <param name="assemblyDebugInformation">The loaded debug-information instance.</param>
-            /// <returns>True, if the requested debug information could be loaded.</returns>
-            bool Load(Assembly assembly, out AssemblyDebugInformation assemblyDebugInformation);
+            /// <param name="assemblyDebugInformation">
+            /// The loaded debug-information instance.
+            /// </param>
+            /// <returns>
+            /// True, if the requested debug information could be loaded.
+            /// </returns>
+            bool Load(
+                Assembly assembly,
+                out AssemblyDebugInformation assemblyDebugInformation);
         }
 
         /// <summary>
@@ -83,28 +89,40 @@ namespace ILGPU.Frontend.DebugInformation
             public string PDBFileName { get; }
 
             /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
-            [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes",
-                Justification = "Loading exceptions will be published on the debug output")]
-            public bool Load(Assembly assembly, out AssemblyDebugInformation assemblyDebugInformation)
+            [SuppressMessage(
+                "Microsoft.Design",
+                "CA1031:DoNotCatchGeneralExceptionTypes",
+                Justification = "Loading exceptions will be published on the " +
+                "debug output")]
+            public bool Load(
+                Assembly assembly,
+                out AssemblyDebugInformation assemblyDebugInformation)
             {
                 if (Parent.pdbFiles.TryGetValue(PDBFileName, out string fileName))
                 {
                     try
                     {
-                        using (var pdbFileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read))
+                        using (var pdbFileStream = new FileStream(
+                            fileName,
+                            FileMode.Open,
+                            FileAccess.Read))
                         {
-                            assemblyDebugInformation = new AssemblyDebugInformation(assembly, pdbFileStream);
+                            assemblyDebugInformation =
+                                new AssemblyDebugInformation(assembly, pdbFileStream);
                         }
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine("Error loading PDB file: " + PDBFileName);
                         Debug.WriteLine(ex.ToString());
-                        assemblyDebugInformation = new AssemblyDebugInformation(assembly);
+                        assemblyDebugInformation =
+                            new AssemblyDebugInformation(assembly);
                     }
                 }
                 else
+                {
                     assemblyDebugInformation = new AssemblyDebugInformation(assembly);
+                }
 
                 Parent.assemblies.Add(assembly, assemblyDebugInformation);
                 return assemblyDebugInformation.IsValid;
@@ -131,9 +149,14 @@ namespace ILGPU.Frontend.DebugInformation
             public DebugInformationManager Parent { get; }
 
             /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
-            [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes",
-                Justification = "Loading exceptions will be published on the debug output")]
-            public bool Load(Assembly assembly, out AssemblyDebugInformation assemblyDebugInformation)
+            [SuppressMessage(
+                "Microsoft.Design",
+                "CA1031:DoNotCatchGeneralExceptionTypes",
+                Justification = "Loading exceptions will be published on the " +
+                "debug output")]
+            public bool Load(
+                Assembly assembly,
+                out AssemblyDebugInformation assemblyDebugInformation)
             {
                 assemblyDebugInformation = null;
                 if (assembly.IsDynamic)
@@ -176,13 +199,19 @@ namespace ILGPU.Frontend.DebugInformation
             public Stream PDBStream { get; }
 
             /// <summary cref="ILoader.Load(Assembly, out AssemblyDebugInformation)"/>
-            [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes",
-                Justification = "Loading exceptions will be published on the debug output")]
-            public bool Load(Assembly assembly, out AssemblyDebugInformation assemblyDebugInformation)
+            [SuppressMessage(
+                "Microsoft.Design",
+                "CA1031:DoNotCatchGeneralExceptionTypes",
+                Justification = "Loading exceptions will be published on the " +
+                "debug output")]
+            public bool Load(
+                Assembly assembly,
+                out AssemblyDebugInformation assemblyDebugInformation)
             {
                 try
                 {
-                    assemblyDebugInformation = new AssemblyDebugInformation(assembly, PDBStream);
+                    assemblyDebugInformation =
+                        new AssemblyDebugInformation(assembly, PDBStream);
                     if (!assemblyDebugInformation.IsValid)
                         return false;
 
@@ -192,7 +221,8 @@ namespace ILGPU.Frontend.DebugInformation
                 catch (Exception ex)
                 {
                     assemblyDebugInformation = null;
-                    Debug.WriteLine($"Error reading from PDB stream for assembly '{assembly}'");
+                    Debug.WriteLine($"Error reading from PDB stream for assembly " +
+                        $"'{assembly}'");
                     Debug.WriteLine(ex.ToString());
                     return false;
                 }
@@ -203,9 +233,10 @@ namespace ILGPU.Frontend.DebugInformation
 
         #region Instance
 
-        private readonly ReaderWriterLockSlim cacheLock = new ReaderWriterLockSlim(
-            LockRecursionPolicy.SupportsRecursion);
-        private readonly Dictionary<string, string> pdbFiles = new Dictionary<string, string>();
+        private readonly ReaderWriterLockSlim cacheLock =
+            new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        private readonly Dictionary<string, string> pdbFiles =
+            new Dictionary<string, string>();
         private readonly HashSet<string> lookupDirectories = new HashSet<string>();
         private readonly Dictionary<Assembly, AssemblyDebugInformation> assemblies =
             new Dictionary<Assembly, AssemblyDebugInformation>();
@@ -226,11 +257,13 @@ namespace ILGPU.Frontend.DebugInformation
         #region Methods
 
         /// <summary>
-        /// Tries to load symbols for the given assemlby.
+        /// Tries to load symbols for the given assembly.
         /// </summary>
         /// <param name="assembly">The assembly.</param>
-        /// <param name="assemblyDebugInformation">The loaded debug information (or null).</param>
-        /// <returns>True, iff the debug information could be loaded.</returns>
+        /// <param name="assemblyDebugInformation">
+        /// The loaded debug information (or null).
+        /// </param>
+        /// <returns>True, if the debug information could be loaded.</returns>
         public bool TryLoadSymbols(
             Assembly assembly,
             out AssemblyDebugInformation assemblyDebugInformation) =>
@@ -240,12 +273,15 @@ namespace ILGPU.Frontend.DebugInformation
                 out assemblyDebugInformation);
 
         /// <summary>
-        /// Tries to load symbols for the given assembly based on the given debug-information file.
+        /// Tries to load symbols for the given assembly based on the given
+        /// debug-information file.
         /// </summary>
         /// <param name="assembly">The assembly.</param>
         /// <param name="pdbFileName">The name of the debug-information file.</param>
-        /// <param name="assemblyDebugInformation">The loaded debug information (or null).</param>
-        /// <returns>True, iff the debug information could be loaded.</returns>
+        /// <param name="assemblyDebugInformation">
+        /// The loaded debug information (or null).
+        /// </param>
+        /// <returns>True, if the debug information could be loaded.</returns>
         public bool TryLoadSymbols(
             Assembly assembly,
             string pdbFileName,
@@ -267,8 +303,10 @@ namespace ILGPU.Frontend.DebugInformation
         /// </summary>
         /// <param name="assembly">The assembly.</param>
         /// <param name="pdbStream">The source PDB stream.</param>
-        /// <param name="assemblyDebugInformation">The loaded debug information (or null).</param>
-        /// <returns>True, iff the debug information could be loaded.</returns>
+        /// <param name="assemblyDebugInformation">
+        /// The loaded debug information (or null).
+        /// </param>
+        /// <returns>True, if the debug information could be loaded.</returns>
         public bool TryLoadSymbols(
             Assembly assembly,
             Stream pdbStream,
@@ -284,12 +322,15 @@ namespace ILGPU.Frontend.DebugInformation
         }
 
         /// <summary>
-        /// Tries to load symbols for the given assembly based on the given debug-information file.
+        /// Tries to load symbols for the given assembly based on the given
+        /// debug-information file.
         /// </summary>
         /// <param name="assembly">The assembly.</param>
         /// <param name="loader">The internal loader.</param>
-        /// <param name="assemblyDebugInformation">The loaded debug information (or null).</param>
-        /// <returns>True, iff the debug information could be loaded.</returns>
+        /// <param name="assemblyDebugInformation">
+        /// The loaded debug information (or null).
+        /// </param>
+        /// <returns>True, if the debug information could be loaded.</returns>
         private bool TryLoadSymbolsInternal<TLoader>(
             Assembly assembly,
             in TLoader loader,
@@ -322,11 +363,12 @@ namespace ILGPU.Frontend.DebugInformation
         }
 
         /// <summary>
-        /// Tries to find a debug-information file with the name <paramref name="pdbFileName"/>.
+        /// Tries to find a debug-information file with the name
+        /// <paramref name="pdbFileName"/>.
         /// </summary>
         /// <param name="pdbFileName">The name of the debug-information file.</param>
         /// <param name="fileName">The resolved filename (or null).</param>
-        /// <returns>True, iff the given debug-information file could be found.</returns>
+        /// <returns>True, if the given debug-information file could be found.</returns>
         public bool TryFindPbdFile(string pdbFileName, out string fileName)
         {
             cacheLock.EnterReadLock();
@@ -341,7 +383,8 @@ namespace ILGPU.Frontend.DebugInformation
         }
 
         /// <summary>
-        /// Registers the given directory as a source directory for debug-information files.
+        /// Registers the given directory as a source directory for
+        /// debug-information files.
         /// </summary>
         /// <param name="directory">The directory to register.</param>
         public void RegisterLookupDirectory(string directory)
@@ -381,39 +424,43 @@ namespace ILGPU.Frontend.DebugInformation
         /// Tries to load debug information for the given method.
         /// </summary>
         /// <param name="methodBase">The method.</param>
-        /// <param name="methodDebugInformation">Loaded debug information (or null).</param>
-        /// <returns>True, iff debug information could be loaded.</returns>
+        /// <param name="methodDebugInformation">
+        /// Loaded debug information (or null).
+        /// </param>
+        /// <returns>True, if debug information could be loaded.</returns>
         public bool TryLoadDebugInformation(
             MethodBase methodBase,
             out MethodDebugInformation methodDebugInformation)
         {
             Debug.Assert(methodBase != null, "Invalid method");
             methodDebugInformation = null;
-            if (!TryLoadSymbols(
+            return !TryLoadSymbols(
                 methodBase.Module.Assembly,
-                out var assemblyDebugInformation))
-                return false;
-            return assemblyDebugInformation.TryLoadDebugInformation(
-                methodBase,
-                out methodDebugInformation);
+                out var assemblyDebugInformation)
+                ? false
+                : assemblyDebugInformation.TryLoadDebugInformation(
+                    methodBase,
+                    out methodDebugInformation);
         }
 
         /// <summary>
         /// Loads the sequence points of the given method.
         /// </summary>
         /// <param name="methodBase">The method base.</param>
-        /// <returns>A sequence-point enumerator that targets the given method.</returns>
+        /// <returns>
+        /// A sequence-point enumerator that targets the given method.
+        /// </returns>
         /// <remarks>
         /// If no debug information could be loaded for the given method, an empty
         /// <see cref="SequencePointEnumerator"/> will be returned.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public SequencePointEnumerator LoadSequencePoints(MethodBase methodBase)
-        {
-            if (TryLoadDebugInformation(methodBase, out MethodDebugInformation methodDebugInformation))
-                return methodDebugInformation.CreateSequencePointEnumerator();
-            return SequencePointEnumerator.Empty;
-        }
+        public SequencePointEnumerator LoadSequencePoints(MethodBase methodBase) =>
+            TryLoadDebugInformation(
+                methodBase,
+                out MethodDebugInformation methodDebugInformation)
+            ? methodDebugInformation.CreateSequencePointEnumerator()
+            : SequencePointEnumerator.Empty;
 
         /// <summary>
         /// Loads the scopes of the given method.
@@ -425,12 +472,12 @@ namespace ILGPU.Frontend.DebugInformation
         /// <see cref="MethodScopeEnumerator"/> will be returned.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public MethodScopeEnumerator LoadScopes(MethodBase methodBase)
-        {
-            if (TryLoadDebugInformation(methodBase, out MethodDebugInformation methodDebugInformation))
-                return methodDebugInformation.CreateScopeEnumerator();
-            return MethodScopeEnumerator.Empty;
-        }
+        public MethodScopeEnumerator LoadScopes(MethodBase methodBase) =>
+            TryLoadDebugInformation(
+                methodBase,
+                out MethodDebugInformation methodDebugInformation)
+            ? methodDebugInformation.CreateScopeEnumerator()
+            : MethodScopeEnumerator.Empty;
 
         /// <summary>
         /// Clears cached debug information.
@@ -451,8 +498,12 @@ namespace ILGPU.Frontend.DebugInformation
                     var assembliesToRemove = new List<Assembly>(assemblies.Count);
                     foreach (var assembly in assemblies.Keys)
                     {
-                        if (assembly.FullName.StartsWith(Context.AssemblyName, StringComparison.OrdinalIgnoreCase))
+                        if (assembly.FullName.StartsWith(
+                            Context.AssemblyName,
+                            StringComparison.OrdinalIgnoreCase))
+                        {
                             continue;
+                        }
                         assembliesToRemove.Add(assembly);
                     }
                     foreach (var assemblyToRemove in assembliesToRemove)

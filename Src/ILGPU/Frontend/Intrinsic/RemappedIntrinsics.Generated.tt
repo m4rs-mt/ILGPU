@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: RemappedIntrinsics.Generated.tt/RemappedIntrinsics.Generated.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ include file="../../TypeInformation.tt" #>
@@ -79,19 +79,39 @@ namespace ILGPU.Frontend.Intrinsic
             var systemMathType = typeof(Math);
 
 <# foreach (var (method, _, type, className) in unaryMathFunctions) { #>
-            AddRemapping(systemMathType, <#= className #>, "<#= method #>", typeof(<#= type.Type #>));
+            AddRemapping(
+                systemMathType,
+                <#= className #>,
+                "<#= method #>",
+                typeof(<#= type.Type #>));
 <# } #>
 <# foreach (var (method, _, type, className) in binaryMathFunctions) { #>
-            AddRemapping(systemMathType, <#= className #>, "<#= method #>", typeof(<#= type.Type #>), typeof(<#= type.Type #>));
+            AddRemapping(
+                systemMathType,
+                <#= className #>,
+                "<#= method #>",
+                typeof(<#= type.Type #>),
+                typeof(<#= type.Type #>));
 <# } #>
 #if NETCORE
             var systemMathFType = typeof(MathF);
 
-<# foreach (var (method, type, _, className) in unaryMathFunctions.Where(t => t.Item2 != null)) { #>
-            AddRemapping(systemMathFType, <#= className #>, "<#= method #>", typeof(<#= type.Type #>));
+<# foreach (var (method, type, _, className) in #>
+<#      unaryMathFunctions.Where(t => t.Item2 != null)) { #>
+                AddRemapping(
+                systemMathFType,
+                <#= className #>,
+                "<#= method #>",
+                typeof(<#= type.Type #>));
 <# } #>
-<# foreach (var (method, type, _, className) in binaryMathFunctions.Where(t => t.Item2 != null)) { #>
-            AddRemapping(systemMathFType, <#= className #>, "<#= method #>", typeof(<#= type.Type #>), typeof(<#= type.Type #>));
+<# foreach (var (method, type, _, className) in #>
+<#      binaryMathFunctions.Where(t => t.Item2 != null)) { #>
+            AddRemapping(
+                systemMathFType,
+                <#= className #>,
+                "<#= method #>",
+                typeof(<#= type.Type #>),
+                typeof(<#= type.Type #>));
 <# } #>
 #endif
         }

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Constants.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -54,7 +54,8 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected sealed override TypeNode UpdateType(IRContext context) => ConstantType;
+        protected sealed override TypeNode UpdateType(IRContext context) =>
+            ConstantType;
 
         #endregion
     }
@@ -88,7 +89,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateNull(Type);
 
         /// <summary cref="Value.Accept" />
@@ -235,7 +238,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreatePrimitiveValue(BasicValueType, rawValue);
 
         /// <summary cref="Value.Accept" />
@@ -336,7 +341,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreatePrimitiveValue(String);
 
         /// <summary cref="Value.Accept" />
@@ -364,7 +371,7 @@ namespace ILGPU.IR.Values
         #region Instance
 
         /// <summary>
-        /// Constructs a new sizeof value.
+        /// Constructs a new size-of value.
         /// </summary>
         /// <param name="context">The parent IR context.</param>
         /// <param name="basicBlock">The parent basic block.</param>
@@ -397,7 +404,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateSizeOf(TargetType);
 
         /// <summary cref="Value.Accept" />

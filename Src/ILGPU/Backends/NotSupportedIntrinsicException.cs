@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: NotSupportedIntrinsicException.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.Resources;
@@ -32,9 +32,14 @@ namespace ILGPU.Backends
         /// <summary>
         /// Constructs a new intrinsic exception.
         /// </summary>
-        /// <param name="intrinsicMethod">The IR method that could not be implemented.</param>
+        /// <param name="intrinsicMethod">
+        /// The IR method that could not be implemented.
+        /// </param>
         public NotSupportedIntrinsicException(Method intrinsicMethod)
-            : this(intrinsicMethod.HasSource ? intrinsicMethod.Source.Name : intrinsicMethod.Name)
+            : this(
+                  intrinsicMethod.HasSource
+                  ? intrinsicMethod.Source.Name
+                  : intrinsicMethod.Name)
         { }
 
         /// <summary>
@@ -42,7 +47,10 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="intrinsicName">The name of the not supported intrinsic.</param>
         public NotSupportedIntrinsicException(string intrinsicName)
-            : base(string.Format(ErrorMessages.NotSupportedIntrinsicImplementation1, intrinsicName))
+            : base(
+                  string.Format(
+                      ErrorMessages.NotSupportedIntrinsicImplementation1,
+                      intrinsicName))
         { }
 
         /// <summary>
@@ -59,7 +67,9 @@ namespace ILGPU.Backends
         /// <summary>
         /// Constructs a new intrinsic exception.
         /// </summary>
-        protected NotSupportedIntrinsicException(SerializationInfo info, StreamingContext context)
+        protected NotSupportedIntrinsicException(
+            SerializationInfo info,
+            StreamingContext context)
             : base(info, context)
         {
             // Implement type-specific serialization constructor logic.

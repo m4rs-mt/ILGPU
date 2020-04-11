@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CPUAccelerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
@@ -65,7 +65,9 @@ namespace ILGPU.Runtime.CPU
         /// Constructs a new CPU runtime.
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
-        /// <param name="numThreads">The number of threads for paralllel processing.</param>
+        /// <param name="numThreads">
+        /// The number of threads for parallel processing.
+        /// </param>
         public CPUAccelerator(Context context, int numThreads)
             : this(context, numThreads, ThreadPriority.Normal)
         { }
@@ -74,8 +76,12 @@ namespace ILGPU.Runtime.CPU
         /// Constructs a new CPU runtime.
         /// </summary>
         /// <param name="context">The ILGPU context.</param>
-        /// <param name="numThreads">The number of threads for paralllel processing.</param>
-        /// <param name="threadPriority">The thread priority of the execution threads.</param>
+        /// <param name="numThreads">
+        /// The number of threads for parallel processing.
+        /// </param>
+        /// <param name="threadPriority">
+        /// The thread priority of the execution threads.
+        /// </param>
         public CPUAccelerator(
             Context context,
             int numThreads,
@@ -133,17 +139,18 @@ namespace ILGPU.Runtime.CPU
 
         #region Methods
 
-        /// <summary cref="Accelerator.CreateExtension{TExtension, TExtensionProvider}(TExtensionProvider)"/>
-        public override TExtension CreateExtension<TExtension, TExtensionProvider>(TExtensionProvider provider)
-        {
-            return provider.CreateCPUExtension(this);
-        }
+        /// <summary cref="Accelerator.CreateExtension{TExtension, TExtensionProvider}
+        /// (TExtensionProvider)"/>
+        public override TExtension CreateExtension<
+            TExtension,
+            TExtensionProvider>(TExtensionProvider provider) =>
+            provider.CreateCPUExtension(this);
 
         /// <summary cref="Accelerator.AllocateInternal{T, TIndex}(TIndex)"/>
-        protected override MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(TIndex extent)
-        {
-            return new CPUMemoryBuffer<T, TIndex>(this, extent);
-        }
+        protected override MemoryBuffer<T, TIndex> AllocateInternal<
+            T,
+            TIndex>(TIndex extent) =>
+            new CPUMemoryBuffer<T, TIndex>(this, extent);
 
         /// <summary>
         /// Loads the given kernel.
@@ -156,9 +163,14 @@ namespace ILGPU.Runtime.CPU
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
             if (!(kernel is ILCompiledKernel ilKernel))
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
+            {
+                throw new NotSupportedException(
+                    RuntimeErrorMessages.NotSupportedKernel);
+            }
 
-            var launcherMethod = GenerateKernelLauncherMethod(ilKernel, customGroupSize);
+            var launcherMethod = GenerateKernelLauncherMethod(
+                ilKernel,
+                customGroupSize);
             return new CPUKernel(
                 this,
                 kernel,
@@ -167,12 +179,11 @@ namespace ILGPU.Runtime.CPU
         }
 
         /// <summary cref="Accelerator.LoadKernelInternal(CompiledKernel)"/>
-        protected override Kernel LoadKernelInternal(CompiledKernel kernel)
-        {
-            return LoadKernel(kernel, 0);
-        }
+        protected override Kernel LoadKernelInternal(CompiledKernel kernel) =>
+            LoadKernel(kernel, 0);
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(CompiledKernel, int)"/>
+        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(
+        /// CompiledKernel, int)"/>
         protected override Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
             int customGroupSize)
@@ -182,7 +193,8 @@ namespace ILGPU.Runtime.CPU
             return LoadKernel(kernel, customGroupSize);
         }
 
-        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(CompiledKernel, out int, out int)"/>
+        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(
+        /// CompiledKernel, out int, out int)"/>
         protected override Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
             out int groupSize,
@@ -194,45 +206,42 @@ namespace ILGPU.Runtime.CPU
         }
 
         /// <summary cref="Accelerator.CreateStreamInternal"/>
-        protected override AcceleratorStream CreateStreamInternal()
-        {
-            return new CPUStream(this);
-        }
+        protected override AcceleratorStream CreateStreamInternal() =>
+            new CPUStream(this);
 
         /// <summary cref="Accelerator.Synchronize"/>
-        protected override void SynchronizeInternal()
-        { }
+        protected override void SynchronizeInternal() { }
 
         /// <summary cref="Accelerator.OnBind"/>
-        protected override void OnBind()
-        { }
+        protected override void OnBind() { }
 
         /// <summary cref="Accelerator.OnUnbind"/>
-        protected override void OnUnbind()
-        { }
+        protected override void OnUnbind() { }
 
         #endregion
 
         #region Peer Access
 
         /// <summary cref="Accelerator.CanAccessPeerInternal(Accelerator)"/>
-        protected override bool CanAccessPeerInternal(Accelerator otherAccelerator)
-        {
-            return (otherAccelerator as CPUAccelerator) != null;
-        }
+        protected override bool CanAccessPeerInternal(Accelerator otherAccelerator) =>
+            otherAccelerator as CPUAccelerator != null;
 
         /// <summary cref="Accelerator.EnablePeerAccessInternal(Accelerator)"/>
         protected override void EnablePeerAccessInternal(Accelerator otherAccelerator)
         {
             if (otherAccelerator as CPUAccelerator == null)
-                throw new InvalidOperationException(RuntimeErrorMessages.CannotEnablePeerAccessToDifferentAcceleratorKind);
+            {
+                throw new InvalidOperationException(
+                    RuntimeErrorMessages.CannotEnablePeerAccessToOtherAccelerator);
+            }
         }
 
         /// <summary cref="Accelerator.DisablePeerAccess(Accelerator)"/>
-        protected override void DisablePeerAccessInternal(Accelerator otherAccelerator)
-        {
-            Debug.Assert(otherAccelerator is CPUAccelerator, "Invalid EnablePeerAccess method");
-        }
+        protected override void DisablePeerAccessInternal(
+            Accelerator otherAccelerator) =>
+            Debug.Assert(
+                otherAccelerator is CPUAccelerator,
+                "Invalid EnablePeerAccess method");
 
         #endregion
 
@@ -242,14 +251,17 @@ namespace ILGPU.Runtime.CPU
         /// Computes the number of required threads to reach the requested group size.
         /// </summary>
         /// <param name="groupSize">The requested group size.</param>
-        /// <returns>The number of threads to reach the requested groupn size.</returns>
+        /// <returns>The number of threads to reach the requested group size.</returns>
         private int ComputeNumGroupThreads(int groupSize)
         {
             var numThreads = groupSize + (groupSize % WarpSize);
             if (numThreads > NumThreads)
+            {
                 throw new NotSupportedException(string.Format(
                     RuntimeErrorMessages.NotSupportedTotalGroupSize,
                     NumThreads));
+            }
+
             return numThreads;
         }
 
@@ -330,9 +342,11 @@ namespace ILGPU.Runtime.CPU
                     var groupContext = groupContexts[runtimeGroupIdx];
                     groupContext.MakeCurrent();
                     var runtimeDimension = task.RuntimeDimension;
-                    var chunkSize = (runtimeDimension + numRuntimeGroups - 1) / numRuntimeGroups;
-                    chunkSize = ((chunkSize + groupThreadSize - 1) / groupThreadSize) * groupThreadSize;
-                    var chunkOffset = chunkSize * runtimeGroupIdx;
+                    int chunkSize = (runtimeDimension + numRuntimeGroups - 1) /
+                        numRuntimeGroups;
+                    chunkSize = (chunkSize + groupThreadSize - 1) / groupThreadSize *
+                        groupThreadSize;
+                    int chunkOffset = chunkSize * runtimeGroupIdx;
 
                     // Setup current indices
                     CPURuntimeThreadContext.SetupDimensions(task.GridDim, task.GroupDim);
@@ -361,9 +375,13 @@ namespace ILGPU.Runtime.CPU
         /// can be avoided.
         /// </summary>
         /// <param name="kernel">The kernel to generate a launcher for.</param>
-        /// <param name="customGroupSize">The custom group size for the launching operation.</param>
+        /// <param name="customGroupSize">
+        /// The custom group size for the launching operation.
+        /// </param>
         /// <returns>The generated launcher method.</returns>
-        private MethodInfo GenerateKernelLauncherMethod(ILCompiledKernel kernel, int customGroupSize)
+        private MethodInfo GenerateKernelLauncherMethod(
+            ILCompiledKernel kernel,
+            int customGroupSize)
         {
             var entryPoint = kernel.EntryPoint;
             AdjustAndVerifyKernelGroupSize(ref customGroupSize, entryPoint);
@@ -380,10 +398,7 @@ namespace ILGPU.Runtime.CPU
             var task = emitter.DeclareLocal(kernel.TaskType);
             {
                 emitter.Emit(LocalOperation.Load, cpuKernel);
-                emitter.EmitCall(
-                    typeof(CPUKernel).GetProperty(
-                        nameof(CPUKernel.KernelExecutionDelegate),
-                        BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).GetGetMethod(true));
+                emitter.EmitCall(CPUKernel.GetKernelExecutionDelegate);
 
                 // Load custom user dimension
                 KernelLauncherBuilder.EmitLoadKernelConfig(
@@ -438,7 +453,8 @@ namespace ILGPU.Runtime.CPU
 
         #region Occupancy
 
-        /// <summary cref="Accelerator.EstimateMaxActiveGroupsPerMultiprocessor(Kernel, int, int)"/>
+        /// <summary cref="Accelerator.EstimateMaxActiveGroupsPerMultiprocessor(
+        /// Kernel, int, int)"/>
         protected override int EstimateMaxActiveGroupsPerMultiprocessorInternal(
             Kernel kernel,
             int groupSize,
@@ -450,7 +466,8 @@ namespace ILGPU.Runtime.CPU
             return NumThreads / groupSize;
         }
 
-        /// <summary cref="Accelerator.EstimateGroupSizeInternal(Kernel, Func{int, int}, int, out int)"/>
+        /// <summary cref="Accelerator.EstimateGroupSizeInternal(
+        /// Kernel, Func{int, int}, int, out int)"/>
         protected override int EstimateGroupSizeInternal(
             Kernel kernel,
             Func<int, int> computeSharedMemorySize,
@@ -465,7 +482,8 @@ namespace ILGPU.Runtime.CPU
             return 1;
         }
 
-        /// <summary cref="Accelerator.EstimateGroupSizeInternal(Kernel, int, int, out int)"/>
+        /// <summary cref="Accelerator.EstimateGroupSizeInternal(
+        /// Kernel, int, int, out int)"/>
         protected override int EstimateGroupSizeInternal(
             Kernel kernel,
             int dynamicSharedMemorySizeInBytes,

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: VariableAllocator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Types;
@@ -212,12 +212,14 @@ namespace ILGPU.Backends
         /// <param name="basicValueType">The type to allocate.</param>
         /// <returns>The allocated variable.</returns>
         public Variable AllocateType(BasicValueType basicValueType) =>
-            new PrimitiveVariable(idCounter++, basicValueType.GetArithmeticBasicValueType(false));
+            new PrimitiveVariable(
+                idCounter++,
+                basicValueType.GetArithmeticBasicValueType(false));
 
         /// <summary>
         /// Allocates a pointer type.
         /// </summary>
-        /// <param name="pointerType">The pointer type type to allocate.</param>
+        /// <param name="pointerType">The pointer type to allocate.</param>
         /// <returns>The allocated variable.</returns>
         public PointerVariable AllocatePointerType(PointerType pointerType) =>
             new PointerVariable(idCounter++, pointerType);

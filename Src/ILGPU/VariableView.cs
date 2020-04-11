@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: VariableView.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -54,7 +54,7 @@ namespace ILGPU
         public ArrayView<T> BaseView { get; }
 
         /// <summary>
-        /// Returns true iff this view points to a valid location.
+        /// Returns true if this view points to a valid location.
         /// </summary>
         public bool IsValid => BaseView.IsValid;
 
@@ -71,21 +71,19 @@ namespace ILGPU
         /// Copies the current value to the memory location of the given view.
         /// </summary>
         /// <param name="targetView">The target view.</param>
-        /// <remarks>The target view must be accessible from the this view (e.g. same accelerator).</remarks>
-        public void CopyTo(VariableView<T> targetView)
-        {
-            targetView.Value = Value;
-        }
+        /// <remarks>
+        /// The target view must be accessible from the this view (e.g. same accelerator).
+        /// </remarks>
+        public void CopyTo(VariableView<T> targetView) => targetView.Value = Value;
 
         /// <summary>
         /// Copies the value from the memory location of the given view.
         /// </summary>
         /// <param name="sourceView">The source view.</param>
-        /// <remarks>The source view must be accessible from the this view (e.g. same accelerator).</remarks>
-        public void CopyFrom(VariableView<T> sourceView)
-        {
-            Value = sourceView.Value;
-        }
+        /// <remarks>
+        /// The source view must be accessible from the this view (e.g. same accelerator).
+        /// </remarks>
+        public void CopyFrom(VariableView<T> sourceView) => Value = sourceView.Value;
 
         /// <summary>
         /// Creates a sub view into this view.
@@ -96,7 +94,9 @@ namespace ILGPU
             where TOther : struct
         {
             Debug.Assert(offsetInBytes >= 0, "Offset out of range");
-            Debug.Assert(offsetInBytes + Interop.SizeOf<TOther>() <= VariableSize, "OutOfBounds sub view");
+            Debug.Assert(
+                offsetInBytes + Interop.SizeOf<TOther>() <= VariableSize,
+                "OutOfBounds sub view");
 
             var rawView = BaseView.Cast<byte>();
             var subView = rawView.GetSubView(offsetInBytes);

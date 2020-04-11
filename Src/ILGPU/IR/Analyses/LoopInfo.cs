@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: LoopInfo.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using ILGPU.Util;
@@ -29,10 +29,10 @@ namespace ILGPU.IR.Analyses
         #region Static
 
         /// <summary>
-        /// Creates a new loop info instance from the given
-        /// scc while checking for unique entry and exit blocks.
+        /// Creates a new loop info instance from the given SCC while checking for
+        /// unique entry and exit blocks.
         /// </summary>
-        /// <param name="scc">The scc.</param>
+        /// <param name="scc">The SCC.</param>
         /// <returns>The resolved loop info instance.</returns>
         public static LoopInfo Create(SCCs.SCC scc)
         {
@@ -42,10 +42,10 @@ namespace ILGPU.IR.Analyses
         }
 
         /// <summary>
-        /// Tries to create a new loop info instance from the given
-        /// scc while checking for unique entry and exit blocks.
+        /// Tries to create a new loop info instance from the given SCC while checking
+        /// for unique entry and exit blocks.
         /// </summary>
-        /// <param name="scc">The scc.</param>
+        /// <param name="scc">The SCC.</param>
         /// <param name="loopInfo">The resolved loop info object (if any).</param>
         /// <returns>True, if the resulting loop info object could be resolved.</returns>
         public static bool TryCreate(SCCs.SCC scc, out LoopInfo loopInfo)
@@ -54,7 +54,9 @@ namespace ILGPU.IR.Analyses
 
             if (!TryGetEntryBlock(scc, out var entryBlock) ||
                 !TryGetExitBlock(scc, out var exitBlock))
+            {
                 return false;
+            }
             loopInfo = new LoopInfo(scc, entryBlock, exitBlock);
             return true;
         }
@@ -122,9 +124,15 @@ namespace ILGPU.IR.Analyses
         /// <param name="scc">The related SCC.</param>
         /// <param name="variableIndex">The variable index.</param>
         /// <param name="visitedNodes">The set of already visited nodes.</param>
-        /// <param name="phiValue">The current phi value.</param>
-        /// <param name="inductionVariable">The resolved induction variable (if any).</param>
-        /// <returns>True, if the given phi node could be resolved to an induction variable.</returns>
+        /// <param name="phiValue">
+        /// The current phi value.
+        /// </param>
+        /// <param name="inductionVariable">
+        /// The resolved induction variable (if any).
+        /// </param>
+        /// <returns>
+        /// True, if the given phi node could be resolved to an induction variable.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool TryResolveInductionVariable(
             in SCCs.SCC scc,
@@ -155,8 +163,7 @@ namespace ILGPU.IR.Analyses
             if (insideOperand == null | outsideOperand == null)
                 return false;
 
-            // Check the influcence of the inside operand
-            // on the overall break behavior
+            // Check the influence of the inside operand on the overall break behavior
             bool foundBranch = false;
             foreach (var use in phiValue.Uses)
             {
@@ -184,7 +191,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Tries to trace an induction-variable branch.
         /// </summary>
-        /// <param name="scc">The current scc.</param>
+        /// <param name="scc">The current SCC.</param>
         /// <param name="visitedNodes">The set of already visited nodes.</param>
         /// <param name="node">The node to trace.</param>
         /// <returns>True, if the given node is an induction-variable branch.</returns>
@@ -196,7 +203,7 @@ namespace ILGPU.IR.Analyses
             if (!visitedNodes.Add(node))
                 return false;
 
-            // Try to find a conditional branch that leaves the current scc
+            // Try to find a conditional branch that leaves the current SCC
             if (node is Branch branch && branch.NumTargets > 1)
             {
                 foreach (var target in branch.Targets)
@@ -223,7 +230,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Constructs a new loop info instance.
         /// </summary>
-        /// <param name="scc">The parent scc.</param>
+        /// <param name="scc">The parent SCC.</param>
         /// <param name="entryBlock">The unique entry block.</param>
         /// <param name="exitBlock">The unique exit block.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -238,7 +245,8 @@ namespace ILGPU.IR.Analyses
 
             var phis = scc.ResolvePhis();
 
-            var inductionVariables = ImmutableArray.CreateBuilder<InductionVariable>(phis.Count);
+            var inductionVariables = ImmutableArray.CreateBuilder<
+                InductionVariable>(phis.Count);
             var visitedNodes = new HashSet<Node>();
             foreach (var phi in phis)
             {
@@ -295,10 +303,11 @@ namespace ILGPU.IR.Analyses
     }
 
     /// <summary>
-    /// Inferes high-level control-flow loops
-    /// from unstructred low-level control flow.
+    /// Infers high-level control-flow loops from unstructured low-level control flow.
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of this program analysis")]
     public sealed class LoopInfos : IReadOnlyList<LoopInfo>
     {
@@ -382,7 +391,7 @@ namespace ILGPU.IR.Analyses
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private LoopInfos(SCCs sccs)
         {
-            Debug.Assert(sccs != null, "Invalid sccs");
+            Debug.Assert(sccs != null, "Invalid SCCs");
 
             SCCs = sccs;
             loops = new Dictionary<int, LoopInfo>(sccs.Count);
@@ -390,7 +399,7 @@ namespace ILGPU.IR.Analyses
 
             foreach (var scc in sccs)
             {
-                // Try to resolve loop info for the current scc.
+                // Try to resolve loop info for the current SCC
                 if (LoopInfo.TryCreate(scc, out var loopInfo))
                 {
                     infos.Add(loopInfo);
@@ -642,7 +651,9 @@ namespace ILGPU.IR.Analyses
             // Check for a primitive operation
             if (!(Update is BinaryArithmeticValue updateValue) ||
                 !updateValue.BasicValueType.IsInt())
+            {
                 return false;
+            }
 
             // Determine the step value
             int stepValueIndex = updateValue.Left.Resolve() == Init ? 1 : 1;
@@ -669,7 +680,9 @@ namespace ILGPU.IR.Analyses
             // Check for a primitive operation
             if (!(BreakCondition is CompareValue compareValue) ||
                 !compareValue.BasicValueType.IsInt())
+            {
                 return false;
+            }
 
             int endValueIndex = compareValue.Left.Resolve() == Phi ? 1 : 0;
             var resolvedEndValue = compareValue[endValueIndex].Resolve();
@@ -692,16 +705,17 @@ namespace ILGPU.IR.Analyses
         {
             bounds = default;
 
-            // Try to resolve init and update oeration
+            // Try to resolve init and update oration
             if (!TryResolveUpdateOperation(out var updateOperation) ||
                 !TryResolveBreakOperation(out var breakOperation))
+            {
                 return false;
+            }
 
             bounds = new InductionVariableBounds(
                 Init,
                 updateOperation,
                 breakOperation);
-
             return true;
         }
 

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Cast.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -172,7 +172,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, SourceType, TargetElementType);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreatePointerCast(
                 rebuilder.Rebuild(Value),
                 TargetElementType);
@@ -188,8 +190,7 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "ptrcast";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() =>
-            $"{Value} -> {TargetType.ToString()}";
+        protected override string ToArgString() => $"{Value} -> {TargetType}";
 
         #endregion
     }
@@ -288,7 +289,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, SourceType, TargetAddressSpace);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateAddressSpaceCast(
                 rebuilder.Rebuild(Value),
                 TargetAddressSpace);
@@ -387,7 +390,9 @@ namespace ILGPU.IR.Values
             ComputeType(context, SourceType, TargetElementType);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateViewCast(
                 rebuilder.Rebuild(Value),
                 TargetElementType);
@@ -456,7 +461,8 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected sealed override TypeNode UpdateType(IRContext context) => TargetPrimitiveType;
+        protected sealed override TypeNode UpdateType(IRContext context) =>
+            TargetPrimitiveType;
 
         #endregion
 
@@ -497,7 +503,8 @@ namespace ILGPU.IR.Values
                 basicValueType == BasicValueType.Float64, "Invalid primitive type");
             Debug.Assert(
                 targetType.BasicValueType == BasicValueType.Int32 ||
-                targetType.BasicValueType == BasicValueType.Int64, "Invalid primitive type");
+                targetType.BasicValueType == BasicValueType.Int64,
+                "Invalid primitive type");
         }
 
         #endregion
@@ -512,7 +519,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateFloatAsIntCast(
                 rebuilder.Rebuild(Value));
 
@@ -558,7 +567,8 @@ namespace ILGPU.IR.Values
                 basicValueType == BasicValueType.Int64, "Invalid primitive type");
             Debug.Assert(
                 targetType.BasicValueType == BasicValueType.Float32 ||
-                targetType.BasicValueType == BasicValueType.Float64, "Invalid primitive type");
+                targetType.BasicValueType == BasicValueType.Float64,
+                "Invalid primitive type");
         }
 
         #endregion
@@ -573,7 +583,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateIntAsFloatCast(
                 rebuilder.Rebuild(Value));
 

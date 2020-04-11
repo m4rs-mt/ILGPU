@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Allocas.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using ILGPU.IR.Types;
@@ -42,18 +42,21 @@ namespace ILGPU.IR.Analyses
             var rawArrayLength = alloca.ArrayLength;
             var arrayLength = rawArrayLength.ResolveAs<PrimitiveValue>();
             if (arrayLength != null)
+            {
                 ArraySize = arrayLength.Int32Value;
+            }
             else
             {
                 var dynamicArrayLength = rawArrayLength.ResolveAs<UndefinedValue>();
-                if (dynamicArrayLength != null)
-                    ArraySize = -1;
-                else
+                if (dynamicArrayLength == null)
+                {
                     throw new NotSupportedException(
                         string.Format(
                             ErrorMessages.NotSupportedDynamicAllocation,
                             alloca.AddressSpace,
                             rawArrayLength));
+                }
+                ArraySize = -1;
             }
         }
 
@@ -174,9 +177,12 @@ namespace ILGPU.IR.Analyses
         /// <param name="abi">The ABI specification.</param>
         private Allocas(Scope scope, ABI abi)
         {
-            var localAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
-            var sharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
-            var dynamicSharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
+            var localAllocations = ImmutableArray.CreateBuilder<
+                AllocaInformation>(20);
+            var sharedAllocations = ImmutableArray.CreateBuilder<
+                AllocaInformation>(20);
+            var dynamicSharedAllocations = ImmutableArray.CreateBuilder<
+                AllocaInformation>(20);
 
             int localMemorySize = 0;
             int sharedMemorySize = 0;
@@ -227,7 +233,9 @@ namespace ILGPU.IR.Analyses
         /// <param name="alloca">The current alloca.</param>
         /// <param name="builder">The target builder.</param>
         /// <param name="memorySize">The current memory size.</param>
-        /// <param name="dynamicBuilder">The target builder for dynamic allocations.</param>
+        /// <param name="dynamicBuilder">
+        /// The target builder for dynamic allocations.
+        /// </param>
         private static void AddAllocation(
             ABI abi,
             Alloca alloca,
@@ -241,7 +249,9 @@ namespace ILGPU.IR.Analyses
                 abi.GetSizeOf(alloca.AllocaType));
             if (info.IsDynamicArray)
             {
-                Debug.Assert(dynamicBuilder != null, "Invalid dynamic local memory allocation");
+                Debug.Assert(
+                    dynamicBuilder != null,
+                    "Invalid dynamic local memory allocation");
                 dynamicBuilder.Add(info);
             }
             else

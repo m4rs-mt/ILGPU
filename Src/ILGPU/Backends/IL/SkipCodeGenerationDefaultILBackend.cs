@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SkipCodeGenerationDefaultILBackend.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Runtime;
@@ -26,8 +26,8 @@ namespace ILGPU.Backends.IL
         /// The default amount of shared memory per kernel in bytes.
         /// </summary>
         /// <remarks>
-        /// Note that this amount is only valid in the scope of the <see cref="ContextFlags.SkipCPUCodeGeneration"/>
-        /// setting.
+        /// Note that this amount is only valid in the scope of the
+        /// <see cref="ContextFlags.SkipCPUCodeGeneration"/> setting.
         /// </remarks>
         public const int SharedMemoryPerKernel = 1024 * 1024;
 

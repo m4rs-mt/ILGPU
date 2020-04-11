@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXCodeGenerator.Views.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Types;
@@ -22,7 +22,9 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(LoadElementAddress value)
         {
             var elementIndex = LoadPrimitive(value.ElementIndex);
-            var targetAddressRegister = AllocatePlatformRegister(value, out RegisterDescription _);
+            var targetAddressRegister = AllocatePlatformRegister(
+                value,
+                out RegisterDescription _);
             Debug.Assert(value.IsPointerAccess, "Invalid pointer access");
 
             var address = LoadPrimitive(value.Source);
@@ -55,13 +57,16 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(AddressSpaceCast value)
         {
             var sourceType = value.SourceType as AddressSpaceType;
-            var targetAdressRegister = AllocatePlatformRegister(value, out RegisterDescription _);
+            var targetAdressRegister = AllocatePlatformRegister(
+                value,
+                out RegisterDescription _);
             Debug.Assert(value.IsPointerCast, "Invalid pointer access");
 
             var address = LoadPrimitive(value.Value);
             var toGeneric = value.TargetAddressSpace == MemoryAddressSpace.Generic;
             var addressSpaceOperation = PTXInstructions.GetAddressSpaceCast(toGeneric);
-            var addressSpaceOperationSuffix = PTXInstructions.GetAddressSpaceCastSuffix(ABI);
+            var addressSpaceOperationSuffix =
+                PTXInstructions.GetAddressSpaceCastSuffix(ABI);
 
             using (var command = BeginCommand(addressSpaceOperation))
             {

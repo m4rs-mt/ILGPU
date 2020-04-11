@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.Emitter.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Types;
@@ -81,10 +81,8 @@ namespace ILGPU.Backends.OpenCL
             /// Appends a target declaration.
             /// </summary>
             /// <param name="target">The target declaration.</param>
-            internal void AppendDeclaration(Variable target)
-            {
+            internal void AppendDeclaration(Variable target) =>
                 BeginAppendTarget(target);
-            }
 
             /// <summary>
             /// Appends a target.
@@ -297,7 +295,9 @@ namespace ILGPU.Backends.OpenCL
             public void AppendArgument()
             {
                 if (!argMode)
+                {
                     stringBuilder.Append(' ');
+                }
                 else
                 {
                     if (argumentCount > 0)
@@ -310,10 +310,8 @@ namespace ILGPU.Backends.OpenCL
             /// Appends the given variable directly.
             /// </summary>
             /// <param name="variable">The variable to append.</param>
-            public void Append(Variable variable)
-            {
+            public void Append(Variable variable) =>
                 stringBuilder.Append(variable.ToString());
-            }
 
             /// <summary>
             /// Appends the given register argument.
@@ -352,10 +350,8 @@ namespace ILGPU.Backends.OpenCL
             /// Append the given operation.
             /// </summary>
             /// <param name="operation">The operation to append.</param>
-            public void AppendOperation(string operation)
-            {
+            public void AppendOperation(string operation) =>
                 stringBuilder.Append(operation);
-            }
 
             /// <summary>
             /// Appends a constant.
@@ -434,10 +430,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Increases the current indentation level.
         /// </summary>
-        public void PushIndent()
-        {
-            ++Indent;
-        }
+        public void PushIndent() => ++Indent;
 
         /// <summary>
         /// Decreases the current indentation level.
@@ -451,10 +444,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Appends the current indentation level to the builder.
         /// </summary>
-        public void AppendIndent()
-        {
-            Builder.Append('\t', Indent);
-        }
+        public void AppendIndent() => Builder.Append('\t', Indent);
 
         /// <summary>
         /// Pushes the current indentation level and appends it to the builder.
@@ -517,12 +507,12 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="target">The target variable to assign to.</param>
         /// <param name="fieldAccess">The field access to use.</param>
         /// <returns>The created statement emitter.</returns>
-        public StatementEmitter BeginStatement(Variable target, FieldAccess? fieldAccess)
-        {
-            if (!fieldAccess.HasValue)
-                return BeginStatement(target);
-            return BeginStatement(target, fieldAccess.Value);
-        }
+        public StatementEmitter BeginStatement(
+            Variable target,
+            FieldAccess? fieldAccess) =>
+            !fieldAccess.HasValue
+            ? BeginStatement(target)
+            : BeginStatement(target, fieldAccess.Value);
 
         /// <summary>
         /// Begins a new statement.

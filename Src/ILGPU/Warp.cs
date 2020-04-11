@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Warp.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using System.Diagnostics;
@@ -31,7 +31,7 @@ namespace ILGPU
         public static int WarpSize
         {
             [WarpIntrinsic(WarpIntrinsicKind.WarpSize)]
-            get { return 1; }
+            get => 1;
         }
 
         /// <summary>
@@ -41,16 +41,16 @@ namespace ILGPU
         public static int LaneIdx
         {
             [WarpIntrinsic(WarpIntrinsicKind.LaneIdx)]
-            get { return 0; }
+            get => 0;
         }
 
         /// <summary>
-        /// Returns true iff the current lane is the first lane.
+        /// Returns true if the current lane is the first lane.
         /// </summary>
         public static bool IsFirstLane => LaneIdx == 0;
 
         /// <summary>
-        /// Returns true iff the current lane is the last lane.
+        /// Returns true if the current lane is the last lane.
         /// </summary>
         public static bool IsLastLane => LaneIdx == WarpSize - 1;
 
@@ -63,18 +63,28 @@ namespace ILGPU
         /// <summary>
         /// Computes the current warp index in the range [0, NumUsedWarps - 1].
         /// </summary>
-        /// <param name="groupThreadIdx">The current thread index within the current group.</param>
-        /// <returns>The current warp index in the range [0, NumUsedWarps - 1].</returns>
+        /// <param name="groupThreadIdx">
+        /// The current thread index within the current group.
+        /// </param>
+        /// <returns>
+        /// The current warp index in the range [0, NumUsedWarps - 1].
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeWarpIdx(Index1 groupThreadIdx) => groupThreadIdx / WarpSize;
+        public static int ComputeWarpIdx(Index1 groupThreadIdx) =>
+            groupThreadIdx / WarpSize;
 
         /// <summary>
         /// Computes the current thread within a warp in the range [0, WarpSize - 1].
         /// </summary>
-        /// <param name="groupThreadIdx">The current thread index within the current group.</param>
-        /// <returns>The current warp thread index in the range [0, WarpSize - 1].</returns>
+        /// <param name="groupThreadIdx">
+        /// The current thread index within the current group.
+        /// </param>
+        /// <returns>
+        /// The current warp thread index in the range [0, WarpSize - 1].
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeWarpThreadIdx(Index1 groupThreadIdx) => groupThreadIdx % WarpSize;
+        public static int ComputeWarpThreadIdx(Index1 groupThreadIdx) =>
+            groupThreadIdx % WarpSize;
 
         #endregion
 
@@ -84,12 +94,7 @@ namespace ILGPU
         /// Executes a thread barrier in the scope of a warp.
         /// </summary>
         [WarpIntrinsic(WarpIntrinsicKind.Barrier)]
-        public static void Barrier()
-        {
-            // This may need to be extended in the future in order
-            // to support more sophisticated warp setups on the CPU.
-            Thread.MemoryBarrier();
-        }
+        public static void Barrier() => Thread.MemoryBarrier();
 
         #endregion
 
@@ -103,8 +108,12 @@ namespace ILGPU
         /// <typeparam name="T">The value type to shuffle.</typeparam>
         /// <param name="variable">The source variable to shuffle.</param>
         /// <param name="sourceLane">The source lane.</param>
-        /// <returns>The value of the variable in the scope of the desired lane.</returns>
-        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        /// <returns>
+        /// The value of the variable in the scope of the desired lane.
+        /// </returns>
+        /// <remarks>
+        /// Note that all threads in a warp should participate in the shuffle operation.
+        /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.Shuffle)]
         public static T Shuffle<T>(T variable, int sourceLane)
             where T : struct => variable;
@@ -116,9 +125,15 @@ namespace ILGPU
         /// <typeparam name="T">The value type to shuffle.</typeparam>
         /// <param name="variable">The source variable to shuffle.</param>
         /// <param name="sourceLane">The source lane.</param>
-        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
-        /// <returns>The value of the variable in the scope of the desired lane.</returns>
-        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        /// <param name="width">
+        /// The width of the shuffle operation. Width must be a power of 2.
+        /// </param>
+        /// <returns>
+        /// The value of the variable in the scope of the desired lane.
+        /// </returns>
+        /// <remarks>
+        /// Note that all threads in a warp should participate in the shuffle operation.
+        /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffle)]
         public static T Shuffle<T>(T variable, int sourceLane, int width)
             where T : struct
@@ -139,8 +154,12 @@ namespace ILGPU
         /// <typeparam name="T">The value type to shuffle.</typeparam>
         /// <param name="variable">The source variable to shuffle.</param>
         /// <param name="delta">The delta to add to the current lane.</param>
-        /// <returns>The value of the variable in the scope of the desired lane.</returns>
-        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        /// <returns>
+        /// The value of the variable in the scope of the desired lane.
+        /// </returns>
+        /// <remarks>
+        /// Note that all threads in a warp should participate in the shuffle operation.
+        /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleDown)]
         public static T ShuffleDown<T>(T variable, int delta)
             where T : struct => variable;
@@ -152,9 +171,15 @@ namespace ILGPU
         /// <typeparam name="T">The value type to shuffle.</typeparam>
         /// <param name="variable">The source variable to shuffle.</param>
         /// <param name="delta">The delta to add to the current lane.</param>
-        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
-        /// <returns>The value of the variable in the scope of the desired lane.</returns>
-        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        /// <param name="width">
+        /// The width of the shuffle operation. Width must be a power of 2.
+        /// </param>
+        /// <returns>
+        /// The value of the variable in the scope of the desired lane.
+        /// </returns>
+        /// <remarks>
+        /// Note that all threads in a warp should participate in the shuffle operation.
+        /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffleDown)]
         public static T ShuffleDown<T>(T variable, int delta, int width)
             where T : struct
@@ -175,8 +200,12 @@ namespace ILGPU
         /// <typeparam name="T">The value type to shuffle.</typeparam>
         /// <param name="variable">The source variable to shuffle.</param>
         /// <param name="delta">The delta to subtract to the current lane.</param>
-        /// <returns>The value of the variable in the scope of the desired lane.</returns>
-        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        /// <returns>
+        /// The value of the variable in the scope of the desired lane.
+        /// </returns>
+        /// <remarks>
+        /// Note that all threads in a warp should participate in the shuffle operation.
+        /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleUp)]
         public static T ShuffleUp<T>(T variable, int delta)
             where T : struct => variable;
@@ -188,9 +217,15 @@ namespace ILGPU
         /// <typeparam name="T">The value type to shuffle.</typeparam>
         /// <param name="variable">The source variable to shuffle.</param>
         /// <param name="delta">The delta to subtract to the current lane.</param>
-        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
-        /// <returns>The value of the variable in the scope of the desired lane.</returns>
-        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        /// <param name="width">
+        /// The width of the shuffle operation. Width must be a power of 2.
+        /// </param>
+        /// <returns>
+        /// The value of the variable in the scope of the desired lane.
+        /// </returns>
+        /// <remarks>
+        /// Note that all threads in a warp should participate in the shuffle operation.
+        /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffleUp)]
         public static T ShuffleUp<T>(T variable, int delta, int width)
             where T : struct
@@ -211,8 +246,12 @@ namespace ILGPU
         /// <typeparam name="T">The type to shuffle.</typeparam>
         /// <param name="variable">The source variable to shuffle.</param>
         /// <param name="mask">The mask to xor to the current lane.</param>
-        /// <returns>The value of the variable in the scope of the desired lane.</returns>
-        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        /// <returns>
+        /// The value of the variable in the scope of the desired lane.
+        /// </returns>
+        /// <remarks>
+        /// Note that all threads in a warp should participate in the shuffle operation.
+        /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleXor)]
         public static T ShuffleXor<T>(T variable, int mask)
             where T : struct => variable;
@@ -224,9 +263,15 @@ namespace ILGPU
         /// <typeparam name="T">The type to shuffle.</typeparam>
         /// <param name="variable">The source variable to shuffle.</param>
         /// <param name="mask">The mask to xor to the current lane.</param>
-        /// <param name="width">The width of the shuffle operation. Width must be a power of 2.</param>
-        /// <returns>The value of the variable in the scope of the desired lane.</returns>
-        /// <remarks>Note that all threads in a warp should participate in the shuffle operation.</remarks>
+        /// <param name="width">
+        /// The width of the shuffle operation. Width must be a power of 2.
+        /// </param>
+        /// <returns>
+        /// The value of the variable in the scope of the desired lane.
+        /// </returns>
+        /// <remarks>
+        /// Note that all threads in a warp should participate in the shuffle operation.
+        /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffleXor)]
         public static T ShuffleXor<T>(T variable, int mask, int width)
             where T : struct
@@ -247,7 +292,8 @@ namespace ILGPU
         /// <param name="value">The value to broadcast.</param>
         /// <param name="laneIndex">The source thread index within the warp.</param>
         /// <remarks>
-        /// Note that the group index must be the same for all threads in the warp.</remarks>
+        /// Note that the group index must be the same for all threads in the warp.
+        /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.Broadcast)]
         public static T Broadcast<T>(T value, int laneIndex)
             where T : struct => value;

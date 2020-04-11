@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Use.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections;
@@ -80,10 +80,10 @@ namespace ILGPU.IR.Values
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given use is equal to this use.
+        /// Returns true if the given use is equal to this use.
         /// </summary>
         /// <param name="other">The other use.</param>
-        /// <returns>True, iff the given id is equal to this use.</returns>
+        /// <returns>True, if the given id is equal to this use.</returns>
         public bool Equals(Use other) => other == this;
 
         #endregion
@@ -91,16 +91,11 @@ namespace ILGPU.IR.Values
         #region Objects
 
         /// <summary>
-        /// Returns true iff the given object is equal to this use.
+        /// Returns true if the given object is equal to this use.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to this use.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is Use use)
-                return use == this;
-            return false;
-        }
+        /// <returns>True, if the given object is equal to this use.</returns>
+        public override bool Equals(object obj) => obj is Use use && use == this;
 
         /// <summary>
         /// Returns the hash code of this use.
@@ -131,26 +126,22 @@ namespace ILGPU.IR.Values
         public static implicit operator Value(Use use) => use.Resolve();
 
         /// <summary>
-        /// Returns true iff the first and the second use are the same.
+        /// Returns true if the first and the second use are the same.
         /// </summary>
         /// <param name="first">The first use.</param>
         /// <param name="second">The second use.</param>
-        /// <returns>True, iff the first and the second use are the same.</returns>
-        public static bool operator ==(Use first, Use second)
-        {
-            return first.Index == second.Index && first.Target == second.Target;
-        }
+        /// <returns>True, if the first and the second use are the same.</returns>
+        public static bool operator ==(Use first, Use second) =>
+            first.Index == second.Index && first.Target == second.Target;
 
         /// <summary>
-        /// Returns true iff the first and the second use are not the same.
+        /// Returns true if the first and the second use are not the same.
         /// </summary>
         /// <param name="first">The first use.</param>
         /// <param name="second">The second use.</param>
-        /// <returns>True, iff the first and the second use are not the same.</returns>
-        public static bool operator !=(Use first, Use second)
-        {
-            return first.Index != second.Index || first.Target != second.Target;
-        }
+        /// <returns>True, if the first and the second use are not the same.</returns>
+        public static bool operator !=(Use first, Use second) =>
+            !(first == second);
 
         #endregion
     }
@@ -197,10 +188,7 @@ namespace ILGPU.IR.Values
             object IEnumerator.Current => Current;
 
             /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose()
-            {
-                enumerator.Dispose();
-            }
+            public void Dispose() => enumerator.Dispose();
 
             /// <summary cref="IEnumerator.MoveNext"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -244,7 +232,7 @@ namespace ILGPU.IR.Values
         private HashSet<Use> AllUses { get; }
 
         /// <summary>
-        /// Returns true, iff the collection contains at least one use.
+        /// Returns true, if the collection contains at least one use.
         /// </summary>
         public bool HasAny
         {
@@ -258,7 +246,7 @@ namespace ILGPU.IR.Values
         }
 
         /// <summary>
-        /// Returns true, iff the collection contains exactly one use.
+        /// Returns true, if the collection contains exactly one use.
         /// </summary>
         public bool HasExactlyOne
         {
@@ -266,9 +254,7 @@ namespace ILGPU.IR.Values
             {
                 using (var enumerator = GetEnumerator())
                 {
-                    if (!enumerator.MoveNext())
-                        return false;
-                    return !enumerator.MoveNext();
+                    return !enumerator.MoveNext() ? false : !enumerator.MoveNext();
                 }
             }
         }
@@ -277,7 +263,7 @@ namespace ILGPU.IR.Values
         /// Tries to resolve a single use.
         /// </summary>
         /// <param name="use">The resolved use reference.</param>
-        /// <returns>True, iff the collection contains exactly one use.</returns>
+        /// <returns>True, if the collection contains exactly one use.</returns>
         public bool TryGetSingleUse(out Use use)
         {
             use = default;

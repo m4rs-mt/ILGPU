@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IRContext.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
@@ -40,14 +40,18 @@ namespace ILGPU.IR
         /// </summary>
         private readonly struct NoHandler : ITransformerHandler
         {
-            /// <summary cref="ITransformerHandler.BeforeTransformation(IRContext, Transformation)"/>
+            /// <summary>
+            /// Performs no operation.
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void BeforeTransformation(
                 IRContext context,
                 Transformation transformation)
             { }
 
-            /// <summary cref="ITransformerHandler.AfterTransformation(IRContext, Transformation)"/>
+            /// <summary>
+            /// Performs no operation.
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void AfterTransformation(
                 IRContext context,
@@ -59,8 +63,8 @@ namespace ILGPU.IR
 
         #region Instance
 
-        private readonly ReaderWriterLockSlim irLock = new ReaderWriterLockSlim(
-            LockRecursionPolicy.SupportsRecursion);
+        private readonly ReaderWriterLockSlim irLock =
+            new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         private readonly Action<Method> gcDelegate;
 
         private readonly MethodMapping<Method> methods = new MethodMapping<Method>();
@@ -138,9 +142,13 @@ namespace ILGPU.IR
         /// <param name="predicate">The predicate to apply.</param>
         /// <returns>The resolved function view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public UnsafeMethodCollection<TPredicate> GetUnsafeMethodCollection<TPredicate>(TPredicate predicate)
+        public UnsafeMethodCollection<TPredicate>
+            GetUnsafeMethodCollection<TPredicate>(TPredicate predicate)
             where TPredicate : IMethodCollectionPredicate =>
-            new UnsafeMethodCollection<TPredicate>(this, methods.AsReadOnly(), predicate);
+            new UnsafeMethodCollection<TPredicate>(
+                this,
+                methods.AsReadOnly(),
+                predicate);
 
         /// <summary>
         /// Returns a thread-safe function view.
@@ -149,7 +157,8 @@ namespace ILGPU.IR
         /// <param name="predicate">The predicate to apply.</param>
         /// <returns>The resolved function view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public MethodCollection<TPredicate> GetMethodCollection<TPredicate>(TPredicate predicate)
+        public MethodCollection<TPredicate>
+            GetMethodCollection<TPredicate>(TPredicate predicate)
             where TPredicate : IMethodCollectionPredicate
         {
             irLock.EnterReadLock();
@@ -162,7 +171,10 @@ namespace ILGPU.IR
                     if (predicate.Match(function))
                         builder.Add(function);
                 }
-                return new MethodCollection<TPredicate>(this, builder.ToImmutable(), predicate);
+                return new MethodCollection<TPredicate>(
+                    this,
+                    builder.ToImmutable(),
+                    predicate);
             }
             finally
             {
@@ -181,7 +193,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="method">The method to resolve.</param>
         /// <param name="handle">The resolved function reference (if any).</param>
-        /// <returns>True, iff the requested function could be resolved.</returns>
+        /// <returns>True, if the requested function could be resolved.</returns>
         public bool TryGetMethodHandle(MethodBase method, out MethodHandle handle)
         {
             if (method == null)
@@ -203,7 +215,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="handle">The function handle to resolve.</param>
         /// <param name="function">The resolved function (if any).</param>
-        /// <returns>True, iff the requested function could be resolved.</returns>
+        /// <returns>True, if the requested function could be resolved.</returns>
         public bool TryGetMethod(MethodHandle handle, out Method function)
         {
             if (handle.IsEmpty)
@@ -228,7 +240,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="method">The method to resolve.</param>
         /// <param name="function">The resolved function (if any).</param>
-        /// <returns>True, iff the requested function could be resolved.</returns>
+        /// <returns>True, if the requested function could be resolved.</returns>
         public bool TryGetMethod(MethodBase method, out Method function)
         {
             if (method == null)
@@ -238,9 +250,9 @@ namespace ILGPU.IR
             irLock.EnterReadLock();
             try
             {
-                if (!methods.TryGetHandle(method, out MethodHandle handle))
-                    return false;
-                return methods.TryGetData(handle, out function);
+                return !methods.TryGetHandle(method, out MethodHandle handle)
+                    ? false
+                    : methods.TryGetData(handle, out function);
             }
             finally
             {
@@ -256,9 +268,12 @@ namespace ILGPU.IR
         public Method GetMethod(MethodHandle method)
         {
             if (!TryGetMethod(method, out Method function))
+            {
                 throw new InvalidOperationException(string.Format(
                     ErrorMessages.CouldNotFindCorrespondingIRMethod,
                     method.Name));
+            }
+
             return function;
         }
 
@@ -266,7 +281,7 @@ namespace ILGPU.IR
         /// Declares a method.
         /// </summary>
         /// <param name="methodBase">The method to declare.</param>
-        /// <param name="created">True, iff the method has been created.</param>
+        /// <param name="created">True, if the method has been created.</param>
         /// <returns>The declared method.</returns>
         public Method Declare(MethodBase methodBase, out bool created)
         {
@@ -299,7 +314,7 @@ namespace ILGPU.IR
         /// Declares a method.
         /// </summary>
         /// <param name="declaration">The method declaration.</param>
-        /// <param name="created">True, iff the method has been created.</param>
+        /// <param name="created">True, if the method has been created.</param>
         /// <returns>The declared method.</returns>
         public Method Declare(in MethodDeclaration declaration, out bool created)
         {
@@ -309,37 +324,21 @@ namespace ILGPU.IR
             irLock.EnterUpgradeableReadLock();
             try
             {
-                if (!methods.TryGetData(declaration.Handle, out Method function))
+                if (!methods.TryGetData(declaration.Handle, out Method method))
                 {
                     irLock.EnterWriteLock();
                     try
                     {
                         created = true;
-                        var functionId = Context.CreateFunctionHandle();
-                        var functionName = declaration.HasSource ? declaration.Source.Name :
-                            declaration.Handle.Name ?? "Func";
-                        var handle = new MethodHandle(functionId, functionName);
-                        var specializedDeclaration = declaration.Specialize(handle);
-                        function = new Method(this, specializedDeclaration);
-                        methods.Register(handle, function);
-
-                        // Check for external function
-                        if (declaration.HasFlags(MethodFlags.External | MethodFlags.Intrinsic))
-                        {
-                            using (var builder = function.CreateBuilder())
-                            {
-                                var bbBuilder = builder.CreateEntryBlock();
-                                var returnValue = bbBuilder.CreateNull(declaration.ReturnType);
-                                bbBuilder.CreateReturn(returnValue);
-                            }
-                        }
+                        method = DeclareNewMethod_Sync(declaration, out var handle);
+                        methods.Register(handle, method);
                     }
                     finally
                     {
                         irLock.ExitWriteLock();
                     }
                 }
-                return function;
+                return method;
             }
             finally
             {
@@ -348,13 +347,49 @@ namespace ILGPU.IR
         }
 
         /// <summary>
+        /// Declares a new method.
+        /// </summary>
+        /// <param name="declaration">The method declaration to use.</param>
+        /// <param name="handle">The created handle.</param>
+        /// <returns>The declared method.</returns>
+        private Method DeclareNewMethod_Sync(
+            MethodDeclaration declaration,
+            out MethodHandle handle)
+        {
+            var methodId = Context.CreateMethodHandle();
+            var methodName = declaration.HasSource
+                ? declaration.Source.Name
+                : declaration.Handle.Name ?? "Func";
+            handle = new MethodHandle(methodId, methodName);
+            var specializedDeclaration = declaration.Specialize(handle);
+            var method = new Method(this, specializedDeclaration);
+
+            // Check for external function
+            if (declaration.HasFlags(
+                MethodFlags.External | MethodFlags.Intrinsic))
+            {
+                using (var builder = method.CreateBuilder())
+                {
+                    var bbBuilder = builder.CreateEntryBlock();
+                    var returnValue = bbBuilder.CreateNull(declaration.ReturnType);
+                    bbBuilder.CreateReturn(returnValue);
+                }
+            }
+            return method;
+        }
+
+        /// <summary>
         /// Imports the given method (and all dependencies) into this context.
         /// </summary>
-        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <typeparam name="TScopeProvider">
+        /// The provider to resolve methods to scopes.
+        /// </typeparam>
         /// <param name="source">The method to import.</param>
         /// <param name="scopeProvider">Resolves methods to scopes.</param>
         /// <returns>The imported method.</returns>
-        public Method Import<TScopeProvider>(Method source, TScopeProvider scopeProvider)
+        public Method Import<TScopeProvider>(
+            Method source,
+            TScopeProvider scopeProvider)
             where TScopeProvider : IScopeProvider
         {
             irLock.EnterUpgradeableReadLock();
@@ -382,15 +417,21 @@ namespace ILGPU.IR
         /// <summary>
         /// Imports the given method (and all dependencies) into this context.
         /// </summary>
-        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <typeparam name="TScopeProvider">
+        /// The provider to resolve methods to scopes.
+        /// </typeparam>
         /// <param name="source">The method to import.</param>
         /// <param name="scopeProvider">Resolves methods to scopes.</param>
         /// <returns>The imported method.</returns>
-        private Method ImportInternal<TScopeProvider>(Method source, TScopeProvider scopeProvider)
+        private Method ImportInternal<TScopeProvider>(
+            Method source,
+            TScopeProvider scopeProvider)
             where TScopeProvider : IScopeProvider
         {
             Debug.Assert(source != null, "Invalid source");
-            Debug.Assert(source.Context != this, "Cannot import a function into the same context");
+            Debug.Assert(
+                source.Context != this,
+                "Cannot import a function into the same context");
 
             var allReferences = AllReferences.Create(
                 scopeProvider[source],
@@ -420,8 +461,8 @@ namespace ILGPU.IR
                 using (var builder = targetMethod.CreateBuilder())
                 {
                     // Build new parameters to match the old ones
-                    var parameterArguments = ImmutableArray.CreateBuilder<ValueReference>(
-                        sourceMethod.NumParameters);
+                    var parameterArguments = ImmutableArray.CreateBuilder<
+                        ValueReference>(sourceMethod.NumParameters);
                     foreach (var param in sourceMethod.Parameters)
                     {
                         var newParam = builder.AddParameter(param.Type, param.Name);
@@ -456,28 +497,22 @@ namespace ILGPU.IR
         /// <param name="value">The node to create.</param>
         /// <returns>The created node.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Create(Value value)
-        {
-            value.Id = Context.CreateNodeId();
-        }
+        internal void Create(Value value) => value.Id = Context.CreateNodeId();
 
         /// <summary>
         /// Applies all default optimization transformations.
         /// </summary>
-        public void Optimize()
-        {
-            Transform(Context.ContextTransformer);
-        }
+        public void Optimize() => Transform(Context.ContextTransformer);
 
         /// <summary>
-        /// Applies the given transfomer to the current context.
+        /// Applies the given transformer to the current context.
         /// </summary>
         /// <param name="transformer">The target transformer.</param>
         public void Transform(in Transformer transformer) =>
             Transform(transformer, new NoHandler());
 
         /// <summary>
-        /// Applies the given transfomer to the current context.
+        /// Applies the given transformer to the current context.
         /// </summary>
         /// <typeparam name="THandler">The handler type.</typeparam>
         /// <param name="transformer">The target transformer.</param>
@@ -508,10 +543,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Dumps the IR context to the console output.
         /// </summary>
-        public void DumpToConsole()
-        {
-            Dump(Console.Out);
-        }
+        public void DumpToConsole() => Dump(Console.Out);
 
         /// <summary>
         /// Dumps the IR context to the given text writer.
@@ -538,8 +570,11 @@ namespace ILGPU.IR
         /// This method must not be invoked in the context of other
         /// parallel operations using this context.
         /// </remarks>
-        [SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods",
-            Justification = "Users might want to force a global GC to free memory after an internal ILGPU GC run")]
+        [SuppressMessage(
+            "Microsoft.Reliability",
+            "CA2001:AvoidCallingProblematicMethods",
+            Justification = "Users might want to force a global GC to free memory " +
+            "after an internal ILGPU GC run")]
         public void GC()
         {
             irLock.EnterWriteLock();

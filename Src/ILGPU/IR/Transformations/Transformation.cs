@@ -1,20 +1,18 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Transformation.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using System;
 using System.Runtime.CompilerServices;
-#if !VERIFICATION
 using System.Threading.Tasks;
-#endif
 
 namespace ILGPU.IR.Transformations
 {
@@ -72,7 +70,11 @@ namespace ILGPU.IR.Transformations
         {
             var result = executor.Execute(builder);
             if (result)
-                builder.Method.AddTransformationFlags(MethodTransformationFlags.Dirty);
+            {
+                builder.Method.AddTransformationFlags(
+                    MethodTransformationFlags.Dirty);
+            }
+
             return result;
         }
 
@@ -82,7 +84,9 @@ namespace ILGPU.IR.Transformations
     /// <summary>
     /// Represents a generic transformation that can be applied in an unordered manner.
     /// </summary>
-    /// <remarks>Note that this transformation is applied in parallel to all methods.</remarks>
+    /// <remarks>
+    /// Note that this transformation is applied in parallel to all methods.
+    /// </remarks>
     public abstract class UnorderedTransformation : Transformation
     {
         #region Nested Types
@@ -106,7 +110,11 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             public UnorderedTransformation Parent { get; }
 
-            /// <summary cref="Transformation.ITransformExecutor.Execute(Method.Builder)"/>
+            /// <summary>
+            /// Applies the parent transformation.
+            /// </summary>
+            /// <param name="builder">The current builder.</param>
+            /// <returns>True, if the transformation could be applied.</returns>
             public bool Execute(Method.Builder builder) =>
                 Parent.PerformTransformation(builder);
         }
@@ -134,17 +142,13 @@ namespace ILGPU.IR.Transformations
 
         #region Methods
 
-        /// <summary cref="Transformation.Transform{TPredicate}(MethodCollection{TPredicate})"/>
+        /// <summary>
+        /// Transforms all methods in the given context.
+        /// </summary>
+        /// <param name="methods">The methods to transform.</param>
         public override void Transform<TPredicate>(
-            MethodCollection<TPredicate> methods)
-        {
-#if VERIFICATION
-            foreach (var method in methods)
-                transformerDelegate(method);
-#else
+            MethodCollection<TPredicate> methods) =>
             Parallel.ForEach(methods, transformerDelegate);
-#endif
-        }
 
         /// <summary>
         /// Transforms the given method using the provided builder.
@@ -191,7 +195,11 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             public TIntermediate Intermediate { get; }
 
-            /// <summary cref="Transformation.ITransformExecutor.Execute(Method.Builder)"/>
+            /// <summary>
+            /// Applies the parent transformation.
+            /// </summary>
+            /// <param name="builder">The current builder.</param>
+            /// <returns>True, if the transformation could be applied.</returns>
             public bool Execute(Method.Builder builder) =>
                 Parent.PerformTransformation(builder, Intermediate);
         }
@@ -221,7 +229,10 @@ namespace ILGPU.IR.Transformations
         /// <param name="intermediate">The current intermediate value.</param>
         protected abstract void FinishProcessing(TIntermediate intermediate);
 
-        /// <summary cref="Transformation.Transform{TPredicate}(MethodCollection{TPredicate})"/>
+        /// <summary>
+        /// Transforms all methods in the given context.
+        /// </summary>
+        /// <param name="methods">The methods to transform.</param>
         public override void Transform<TPredicate>(
             MethodCollection<TPredicate> methods)
         {
@@ -302,7 +313,11 @@ namespace ILGPU.IR.Transformations
             /// </summary>
             public CachedScopeProvider CachedScopeProvider { get; }
 
-            /// <summary cref="Transformation.ITransformExecutor.Execute(Method.Builder)"/>
+            /// <summary>
+            /// Applies the parent transformation.
+            /// </summary>
+            /// <param name="builder">The current builder.</param>
+            /// <returns>True, if the transformation could be applied.</returns>
             public bool Execute(Method.Builder builder) =>
                 Parent.PerformTransformation(
                     builder,
@@ -324,11 +339,16 @@ namespace ILGPU.IR.Transformations
 
         #region Methods
 
-        /// <summary cref="Transformation.Transform{TPredicate}(MethodCollection{TPredicate})"/>
+        /// <summary>
+        /// Transforms all methods in the given context.
+        /// </summary>
+        /// <param name="methods">The methods to transform.</param>
         public sealed override void Transform<TPredicate>(
             MethodCollection<TPredicate> methods)
         {
-            var landscape = Landscape.Create<MethodCollection<TPredicate>, TPredicate>(methods);
+            var landscape = Landscape.Create<
+                MethodCollection<TPredicate>,
+                TPredicate>(methods);
             if (landscape.Count < 1)
                 return;
 
@@ -344,7 +364,9 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Transforms the given method using the provided builder.
         /// </summary>
-        /// <typeparam name="TScopeProvider">The provider to resolve methods to scopes.</typeparam>
+        /// <typeparam name="TScopeProvider">
+        /// The provider to resolve methods to scopes.
+        /// </typeparam>
         /// <param name="builder">The current method builder.</param>
         /// <param name="landscape">The global processing landscape.</param>
         /// <param name="current">The current landscape entry.</param>

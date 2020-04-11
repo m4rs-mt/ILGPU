@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Types.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using System;
@@ -139,7 +139,7 @@ namespace ILGPU.IR.Construction
         /// <param name="type">The pointer or view type.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <param name="specializedType">The specialized type.</param>
-        /// <returns>True, iff the type could be specialized.</returns>
+        /// <returns>True, if the type could be specialized.</returns>
         public bool TrySpecializeAddressSpaceType(
             TypeNode type,
             MemoryAddressSpace addressSpace,

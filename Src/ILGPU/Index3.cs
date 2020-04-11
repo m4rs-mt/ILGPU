@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Index3.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
@@ -49,7 +49,7 @@ namespace ILGPU
         /// <summary>
         /// Reconstructs a 3D index from a linear index.
         /// </summary>
-        /// <param name="linearIndex">The lienar index.</param>
+        /// <param name="linearIndex">The linear index.</param>
         /// <param name="dimension">The 3D dimension for reconstruction.</param>
         /// <returns>The reconstructed 3D index.</returns>
         public static Index3 ReconstructIndex(int linearIndex, Index3 dimension)
@@ -65,7 +65,8 @@ namespace ILGPU
         /// Returns the main constructor to create a new index instance.
         /// </summary>
         internal static ConstructorInfo MainConstructor =
-            typeof(Index3).GetConstructor(new Type[] { typeof(int), typeof(int), typeof(int) });
+            typeof(Index3).GetConstructor(
+                new Type[] { typeof(int), typeof(int), typeof(int) });
 
         /// <summary>
         /// Computes min(first, second).
@@ -292,8 +293,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current index.</returns>
-        public override bool Equals(object obj) =>
-            obj is Index3 other && Equals(other);
+        public override bool Equals(object obj) => obj is Index3 other && Equals(other);
 
         /// <summary>
         /// Returns the hash code of this index.
@@ -325,8 +325,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The added index.</returns>
-        public static Index3 Add(Index3 first, Index3 second) =>
-            first + second;
+        public static Index3 Add(Index3 first, Index3 second) => first + second;
 
         /// <summary>
         /// Adds two indices (component wise).
@@ -343,8 +342,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The subtracted index.</returns>
-        public static Index3 Subtract(Index3 first, Index3 second) =>
-            first - second;
+        public static Index3 Subtract(Index3 first, Index3 second) => first - second;
 
         /// <summary>
         /// Subtracts two indices (component wise).
@@ -379,8 +377,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The multiplied index.</returns>
-        public static Index3 Multiply(Index3 first, Index3 second) =>
-            first * second;
+        public static Index3 Multiply(Index3 first, Index3 second) => first * second;
 
         /// <summary>
         /// Multiplies two indices (component wise).
@@ -415,8 +412,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The divided index.</returns>
-        public static Index3 Divide(Index3 first, Index3 second) =>
-            first / second;
+        public static Index3 Divide(Index3 first, Index3 second) => first / second;
 
         /// <summary>
         /// Divides two indices (component wise).
@@ -459,7 +455,9 @@ namespace ILGPU
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, if the first index is smaller than or equal the second index.</returns>
+        /// <returns>
+        /// True, if the first index is smaller than or equal the second index.
+        /// </returns>
         public static bool operator <=(Index3 first, Index3 second) =>
             first.X <= second.X && first.Y <= second.Y && first.Z <= second.Z;
 
@@ -477,7 +475,9 @@ namespace ILGPU
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, if the first index is greater or equal to the second index.</returns>
+        /// <returns>
+        /// True, if the first index is greater or equal to the second index.
+        /// </returns>
         public static bool operator >=(Index3 first, Index3 second) =>
             first.X >= second.X && first.Y >= second.Y && first.Z >= second.Z;
 

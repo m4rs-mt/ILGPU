@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: WarpIntrinsics.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -35,7 +35,7 @@ namespace ILGPU.Frontend.Intrinsic
     }
 
     /// <summary>
-    /// Marks warp methods that are builtin.
+    /// Marks warp methods that are built in.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     sealed class WarpIntrinsicAttribute : IntrinsicAttribute
@@ -84,7 +84,8 @@ namespace ILGPU.Frontend.Intrinsic
                         context[0],
                         context[1],
                         context[2],
-                        (ShuffleKind)(attribute.IntrinsicKind - WarpIntrinsicKind.SubShuffle));
+                        (ShuffleKind)(
+                            attribute.IntrinsicKind - WarpIntrinsicKind.SubShuffle));
                 case WarpIntrinsicKind.Barrier:
                     return builder.CreateBarrier(BarrierKind.WarpLevel);
                 case WarpIntrinsicKind.WarpSize:

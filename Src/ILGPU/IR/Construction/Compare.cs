@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Compare.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -69,18 +69,13 @@ namespace ILGPU.IR.Construction
                     // Bool comparison -> convert to logical operation
                     if (rightValue != null)
                     {
-                        if (kind == CompareKind.Equal)
-                        {
-                            if (rightValue.Int1Value)
-                                return left;
-                            return CreateArithmetic(left, UnaryArithmeticKind.Not);
-                        }
-                        else
-                        {
-                            if (rightValue.Int1Value)
-                                return CreateArithmetic(left, UnaryArithmeticKind.Not);
-                            return left;
-                        }
+                        return kind == CompareKind.Equal
+                            ? rightValue.Int1Value
+                                ? (ValueReference)left
+                                : CreateArithmetic(left, UnaryArithmeticKind.Not)
+                            : rightValue.Int1Value
+                                ? CreateArithmetic(left, UnaryArithmeticKind.Not)
+                                : (ValueReference)left;
                     }
                 }
             }

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Cast.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -38,6 +38,8 @@ namespace ILGPU.IR.Construction
 
             if (type.ElementType == targetElementType)
                 return node;
+            if (node is PointerCast pointerCast)
+                node = pointerCast.Value;
 
             return Append(new PointerCast(
                 Context,
@@ -62,14 +64,13 @@ namespace ILGPU.IR.Construction
             Debug.Assert(type != null, "Invalid address space type");
 
             var sourceAddressSpace = type.AddressSpace;
-            if (sourceAddressSpace == targetAddressSpace)
-                return node;
-
-            return Append(new AddressSpaceCast(
-                Context,
-                BasicBlock,
-                node,
-                targetAddressSpace));
+            return sourceAddressSpace == targetAddressSpace
+                ? (ValueReference)node
+                : Append(new AddressSpaceCast(
+                    Context,
+                    BasicBlock,
+                    node,
+                    targetAddressSpace));
         }
 
         /// <summary>
@@ -87,14 +88,13 @@ namespace ILGPU.IR.Construction
             var type = node.Type as ViewType;
             Debug.Assert(type != null, "Invalid view type");
 
-            if (type.ElementType == targetElementType)
-                return node;
-
-            return Append(new ViewCast(
-                Context,
-                BasicBlock,
-                node,
-                targetElementType));
+            return type.ElementType == targetElementType
+                ? (ValueReference)node
+                : Append(new ViewCast(
+                    Context,
+                    BasicBlock,
+                    node,
+                    targetElementType));
         }
 
         /// <summary>

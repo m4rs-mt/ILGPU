@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Variables.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using System.Diagnostics;
@@ -53,12 +53,8 @@ namespace ILGPU.Frontend
         /// Loads a variable address. This can be an argument or a local reference.
         /// </summary>
         /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="var">The variable reference.</param>
-        private void LoadVariableAddress(
-            Block block,
-            IRBuilder builder,
-            VariableRef var)
+        private void LoadVariableAddress(Block block, VariableRef var)
         {
             Debug.Assert(
                 var.RefType == VariableRefType.Argument ||
@@ -69,7 +65,7 @@ namespace ILGPU.Frontend
         }
 
         /// <summary>
-        /// Stores a value to the argument with index idx.
+        /// Stores a value to the given variable slot.
         /// </summary>
         /// <param name="block">The current basic block.</param>
         /// <param name="builder">The current builder.</param>
@@ -90,7 +86,9 @@ namespace ILGPU.Frontend
                 builder.CreateStore(address, storeValue);
             }
             else
+            {
                 block.SetValue(var, storeValue);
+            }
         }
     }
 }

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IntrinsicMapping.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using System;
@@ -38,7 +38,8 @@ namespace ILGPU.IR.Intrinsics
         }
 
         /// <summary>
-        /// Resolves generic arguments from <see cref="System.Reflection.MethodInfo"/> objects.
+        /// Resolves generic arguments from <see cref="System.Reflection.MethodInfo"/>
+        /// objects.
         /// </summary>
         public readonly struct MethodInfoArgumentResolver : IGenericArgumentResolver
         {
@@ -82,12 +83,10 @@ namespace ILGPU.IR.Intrinsics
             public Value Value { get; }
 
             /// <summary cref="IGenericArgumentResolver.ResolveGenericArguments"/>
-            public Type[] ResolveGenericArguments()
-            {
-                if (!Value.Type.TryResolveManagedType(out Type managedType))
-                    return null;
-                return new Type[] { managedType };
-            }
+            public Type[] ResolveGenericArguments() =>
+                !Value.Type.TryResolveManagedType(out Type managedType)
+                ? null
+                : new Type[] { managedType };
         }
 
         /// <summary>
@@ -125,7 +124,9 @@ namespace ILGPU.IR.Intrinsics
             /// Returns true if the given object is equal to this mapping key.
             /// </summary>
             /// <param name="other">The other object.</param>
-            /// <returns>True, if the given object is equal to this mapping key.</returns>
+            /// <returns>
+            /// True, if the given object is equal to this mapping key.
+            /// </returns>
             public bool Equals(MappingKey other)
             {
                 if (Length != other.Length)
@@ -147,7 +148,9 @@ namespace ILGPU.IR.Intrinsics
             /// Returns true if the given object is equal to this mapping key.
             /// </summary>
             /// <param name="obj">The object.</param>
-            /// <returns>True, if the given object is equal to this mapping key.</returns>
+            /// <returns>
+            /// True, if the given object is equal to this mapping key.
+            /// </returns>
             public override bool Equals(object obj) =>
                 obj is MappingKey entry && Equals(entry);
 
@@ -218,7 +221,7 @@ namespace ILGPU.IR.Intrinsics
         #region Properties
 
         /// <summary>
-        /// Returns the associated intrinisc implementation.
+        /// Returns the associated intrinsic implementation.
         /// </summary>
         public IntrinsicImplementation Implementation { get; }
 
@@ -246,10 +249,14 @@ namespace ILGPU.IR.Intrinsics
         /// </summary>
         /// <typeparam name="TResolver">The generic argument resolver type.</typeparam>
         /// <param name="resolver">The argument resolver.</param>
-        /// <param name="genericArguments">The resolved generic arguments (if any).</param>
+        /// <param name="genericArguments">
+        /// The resolved generic arguments (if any).
+        /// </param>
         /// <returns>The resolved target method (if any).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected MethodInfo ResolveTarget<TResolver>(TResolver resolver, out Type[] genericArguments)
+        protected MethodInfo ResolveTarget<TResolver>(
+            TResolver resolver,
+            out Type[] genericArguments)
             where TResolver : struct, IGenericArgumentResolver
         {
             genericArguments = resolver.ResolveGenericArguments();
@@ -267,7 +274,9 @@ namespace ILGPU.IR.Intrinsics
         /// <param name="genericMapping">The resolved generic mapping key.</param>
         /// <returns>The resolved redirection method (if any).</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public MethodInfo ResolveRedirect<TResolver>(TResolver resolver, out MappingKey genericMapping)
+        public MethodInfo ResolveRedirect<TResolver>(
+            TResolver resolver,
+            out MappingKey genericMapping)
             where TResolver : struct, IGenericArgumentResolver
         {
             Debug.Assert(Mode == IntrinsicImplementationMode.Redirect);
@@ -305,9 +314,14 @@ namespace ILGPU.IR.Intrinsics
                     break;
                 case IntrinsicImplementationMode.GenerateCode:
                     if (!TargetMethod.IsGenericMethod)
-                        CodeGenerator = TargetMethod.CreateDelegate(typeof(TDelegate)) as TDelegate;
+                    {
+                        CodeGenerator = TargetMethod.CreateDelegate(typeof(TDelegate))
+                            as TDelegate;
+                    }
                     else
+                    {
                         delegateMapping = new Dictionary<MappingKey, TDelegate>();
+                    }
                     break;
                 default:
                     throw new NotSupportedException();
@@ -332,10 +346,16 @@ namespace ILGPU.IR.Intrinsics
         /// </summary>
         /// <param name="genericMapping">The generic mapping key.</param>
         /// <param name="implementation">The implementation to provide.</param>
-        internal void ProvideImplementation(MappingKey genericMapping, Method implementation)
+        internal void ProvideImplementation(
+            MappingKey genericMapping,
+            Method implementation)
         {
-            Debug.Assert(Mode == IntrinsicImplementationMode.Redirect, "Invalid redirection");
-            Debug.Assert(implementation != null, "Invalid implementation");
+            Debug.Assert(
+                Mode == IntrinsicImplementationMode.Redirect,
+                "Invalid redirection");
+            Debug.Assert(
+                implementation != null,
+                "Invalid implementation");
 
             implementationMapping[genericMapping] = implementation;
         }
@@ -377,7 +397,8 @@ namespace ILGPU.IR.Intrinsics
                 var key = new MappingKey(genericArguments);
                 if (!delegateMapping.TryGetValue(key, out var codeGenerator))
                 {
-                    codeGenerator = resolvedMethod.CreateDelegate(typeof(TDelegate)) as TDelegate;
+                    codeGenerator = resolvedMethod.CreateDelegate(typeof(TDelegate))
+                        as TDelegate;
                     delegateMapping.Add(key, codeGenerator);
                 }
                 return codeGenerator;

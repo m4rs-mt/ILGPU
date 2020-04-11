@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CudaKernel.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.PTX;
 using ILGPU.Runtime.Cuda.API;
@@ -20,7 +20,7 @@ using System.Reflection;
 namespace ILGPU.Runtime.Cuda
 {
     /// <summary>
-    /// Represents a Cuda kernel that can be directly launched on a gpu.
+    /// Represents a Cuda kernel that can be directly launched on a GPU.
     /// </summary>
     public sealed class CudaKernel : Kernel
     {
@@ -44,8 +44,11 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="kernel">The source kernel.</param>
         /// <param name="launcher">The launcher method for the given kernel.</param>
-        [SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods",
-            MessageId = "0", Justification = "Will be verified in the constructor of the base class")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1062:Validate arguments of public methods",
+            MessageId = "0",
+            Justification = "Will be verified in the constructor of the base class")]
         internal CudaKernel(
             CudaAccelerator accelerator,
             PTXCompiledKernel kernel,

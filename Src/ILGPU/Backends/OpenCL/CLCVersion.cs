@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLCVersion.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System.Text.RegularExpressions;
 
@@ -43,14 +43,17 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// The internal regex that is used to parse OpenCL C versions.
         /// </summary>
-        private static readonly Regex VersionRegex = new Regex("\\s*(CL|OpenCL C)?\\s*([0-9]+).([0-9]+)");
+        private static readonly Regex VersionRegex =
+            new Regex("\\s*(CL|OpenCL C)?\\s*([0-9]+).([0-9]+)");
 
         /// <summary>
         /// Tries to parse the given string expression into an OpenCL C version.
         /// </summary>
         /// <param name="expression">The expression to parse.</param>
         /// <param name="version">The parsed version (if any).</param>
-        /// <returns>True, if the given expression could be parsed into an OpenCL C version.</returns>
+        /// <returns>
+        /// True, if the given expression could be parsed into an OpenCL C version.
+        /// </returns>
         public static bool TryParse(string expression, out CLCVersion version)
         {
             version = default;

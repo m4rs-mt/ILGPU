@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ControlFlow.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
@@ -32,7 +32,7 @@ namespace ILGPU.Frontend
         }
 
         /// <summary>
-        /// Realizes an uncoditional branch instruction.
+        /// Realizes an unconditional branch instruction.
         /// </summary>
         /// <param name="block">The current basic block.</param>
         /// <param name="builder">The current builder.</param>
@@ -58,7 +58,11 @@ namespace ILGPU.Frontend
         {
             var targets = block.GetBuilderTerminator(2);
 
-            var condition = CreateCompare(block, builder, compareKind, instructionFlags);
+            var condition = CreateCompare(
+                block,
+                builder,
+                compareKind,
+                instructionFlags);
             builder.CreateIfBranch(condition, targets[0], targets[1]);
         }
 
@@ -76,9 +80,16 @@ namespace ILGPU.Frontend
             var targets = block.GetBuilderTerminator(2);
 
             var comparisonValue = block.PopCompareValue(ConvertFlags.None);
-            var rightValue = builder.CreatePrimitiveValue(comparisonValue.BasicValueType, 0);
+            var rightValue =builder.CreatePrimitiveValue(
+                comparisonValue.BasicValueType,
+                0);
 
-            var condition = CreateCompare(builder, comparisonValue, rightValue, kind, CompareFlags.None);
+            var condition = CreateCompare(
+                builder,
+                comparisonValue,
+                rightValue,
+                kind,
+                CompareFlags.None);
             builder.CreateIfBranch(condition, targets[0], targets[1]);
         }
 
@@ -112,7 +123,6 @@ namespace ILGPU.Frontend
             var targets = block.GetBuilderTerminator(branchTargets.Count);
 
             var switchValue = block.PopInt(ConvertFlags.TargetUnsigned);
-
             builder.CreateSwitchBranch(switchValue, targets);
         }
     }

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IntrinsicMapping.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
@@ -31,7 +31,10 @@ namespace ILGPU.IR.Intrinsics
     /// <summary>
     /// Defines an abstract intrinsic implementation.
     /// </summary>
-    [SuppressMessage("Microsoft.Design", "CA1040:AvoidEmptyInterfaces", Justification = "It is used as a type constraint")]
+    [SuppressMessage(
+        "Microsoft.Design",
+        "CA1040:AvoidEmptyInterfaces",
+        Justification = "It is used as a type constraint")]
     public interface IIntrinsicImplementation
     {
         // Left blank for future extension possibilities
@@ -124,7 +127,7 @@ namespace ILGPU.IR.Intrinsics
     }
 
     /// <summary>
-    /// Represents an intrinic matcher that matches managed methods.
+    /// Represents an intrinsic matcher that matches managed methods.
     /// </summary>
     /// <typeparam name="T">The matcher value type.</typeparam>
     public sealed class IntrinsicMethodMatcher<T> : IntrinsicMatcher<T, MethodInfo>
@@ -132,7 +135,8 @@ namespace ILGPU.IR.Intrinsics
     {
         #region Instance
 
-        private readonly Dictionary<MethodInfo, T> entries = new Dictionary<MethodInfo, T>();
+        private readonly Dictionary<MethodInfo, T> entries =
+            new Dictionary<MethodInfo, T>();
 
         /// <summary>
         /// Constructs a new intrinsic matcher.
@@ -147,7 +151,9 @@ namespace ILGPU.IR.Intrinsics
         /// Registers the given implementation with the current matcher.
         /// </summary>
         /// <param name="value">The method information.</param>
-        /// <param name="implementation">The intrinsic implementation to register.</param>
+        /// <param name="implementation">
+        /// The intrinsic implementation to register.
+        /// </param>
         public void Register(MethodInfo value, T implementation)
         {
             if (value == null)
@@ -159,7 +165,8 @@ namespace ILGPU.IR.Intrinsics
                 throw new ArgumentNullException(nameof(implementation));
         }
 
-        /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(TMatchedValue, out T)"/>
+        /// <summary cref="IntrinsicMatcher{T, TMatchedValue}.TryGetImplementation(
+        /// TMatchedValue, out T)"/>
         public override bool TryGetImplementation(MethodInfo value, out T implementation)
         {
             if (value.IsGenericMethod)
@@ -167,7 +174,8 @@ namespace ILGPU.IR.Intrinsics
             return entries.TryGetValue(value, out implementation);
         }
 
-        /// <summary cref="IntrinsicMatcher{T}.TransformTo{TOther, TTransformer}(TTransformer, IntrinsicMatcher{TOther})"/>
+        /// <summary cref="IntrinsicMatcher{T}.TransformTo{TOther, TTransformer}(
+        /// TTransformer, IntrinsicMatcher{TOther})"/>
         public override void TransformTo<TOther, TTransformer>(
             TTransformer transformer,
             IntrinsicMatcher<TOther> other)
@@ -181,10 +189,11 @@ namespace ILGPU.IR.Intrinsics
     }
 
     /// <summary>
-    /// Represents an intrinic matcher that matches values.
+    /// Represents an intrinsic matcher that matches values.
     /// </summary>
     /// <typeparam name="T">The matcher value type.</typeparam>
-    public abstract partial class BaseIntrinsicValueMatcher<T> : IntrinsicMatcher<T, Value>
+    public abstract partial class BaseIntrinsicValueMatcher<T> :
+        IntrinsicMatcher<T, Value>
         where T : class, IIntrinsicImplementation
     {
         #region Instance
@@ -211,7 +220,7 @@ namespace ILGPU.IR.Intrinsics
     }
 
     /// <summary>
-    /// Represents an intrinic matcher that matches values.
+    /// Represents an intrinsic matcher that matches values.
     /// </summary>
     /// <typeparam name="T">The matcher value type.</typeparam>
     public abstract class IntrinsicValueMatcher<T> : BaseIntrinsicValueMatcher<T>
@@ -248,10 +257,12 @@ namespace ILGPU.IR.Intrinsics
         {
             if (Implementation != null)
                 throw new InvalidOperationException();
-            Implementation = implementation ?? throw new ArgumentNullException(nameof(implementation));
+            Implementation = implementation
+                ?? throw new ArgumentNullException(nameof(implementation));
         }
 
-        /// <summary cref="IntrinsicMatcher{T}.TransformTo{TOther, TTransformer}(TTransformer, IntrinsicMatcher{TOther})"/>
+        /// <summary cref="IntrinsicMatcher{T}.TransformTo{TOther, TTransformer}(
+        /// TTransformer, IntrinsicMatcher{TOther})"/>
         public sealed override void TransformTo<TOther, TTransformer>(
             TTransformer transformer,
             IntrinsicMatcher<TOther> other)
@@ -264,11 +275,12 @@ namespace ILGPU.IR.Intrinsics
     }
 
     /// <summary>
-    /// Represents an intrinic matcher that matches values.
+    /// Represents an intrinsic matcher that matches values.
     /// </summary>
     /// <typeparam name="T">The matcher value type.</typeparam>
     /// <typeparam name="TValueKind">The type of the value kind.</typeparam>
-    public abstract class IntrinsicValueMatcher<T, TValueKind> : BaseIntrinsicValueMatcher<T>
+    public abstract class IntrinsicValueMatcher<T, TValueKind> :
+        BaseIntrinsicValueMatcher<T>
         where T : class, IIntrinsicImplementation
         where TValueKind : struct
     {
@@ -309,7 +321,8 @@ namespace ILGPU.IR.Intrinsics
 
         #region Methods
 
-        /// <summary cref="IntrinsicMatcher{T}.TransformTo{TOther, TTransformer}(TTransformer, IntrinsicMatcher{TOther})"/>
+        /// <summary cref="IntrinsicMatcher{T}.TransformTo{TOther, TTransformer}(
+        /// TTransformer, IntrinsicMatcher{TOther})"/>
         public sealed override void TransformTo<TOther, TTransformer>(
             TTransformer transformer,
             IntrinsicMatcher<TOther> other)
@@ -323,11 +336,12 @@ namespace ILGPU.IR.Intrinsics
     }
 
     /// <summary>
-    /// Represents an intrinic matcher that matches values.
+    /// Represents an intrinsic matcher that matches values.
     /// </summary>
     /// <typeparam name="T">The matcher value type.</typeparam>
     /// <typeparam name="TValueKind">The type of the value kind.</typeparam>
-    public abstract class TypedIntrinsicValueMatcher<T, TValueKind> : BaseIntrinsicValueMatcher<T>
+    public abstract class TypedIntrinsicValueMatcher<T, TValueKind> :
+        BaseIntrinsicValueMatcher<T>
         where T : class, IIntrinsicImplementation
         where TValueKind : struct
     {
@@ -336,14 +350,18 @@ namespace ILGPU.IR.Intrinsics
         /// <summary>
         /// All value implementation entries.
         /// </summary>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional")]
         private readonly T[,] entries;
 
         /// <summary>
         /// Constructs a new abstract intrinsic value matcher.
         /// </summary>
         /// <param name="valueKind">The value kind.</param>
-        [SuppressMessage("Microsoft.Performance", "CA1814: PreferJaggedArraysOverMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional")]
         protected TypedIntrinsicValueMatcher(ValueKind valueKind)
             : base(valueKind)
         {
@@ -362,7 +380,9 @@ namespace ILGPU.IR.Intrinsics
         /// <param name="index">The element index.</param>
         /// <param name="basicValueType">The basic-value type.</param>
         /// <returns>The resolved reference.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1023:IndexersShouldNotBeMultidimensional")]
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1023:IndexersShouldNotBeMultidimensional")]
         protected T this[int index, BasicValueType basicValueType]
         {
             get => entries[index, (int)basicValueType];
@@ -373,7 +393,8 @@ namespace ILGPU.IR.Intrinsics
 
         #region Methods
 
-        /// <summary cref="IntrinsicMatcher{T}.TransformTo{TOther, TTransformer}(TTransformer, IntrinsicMatcher{TOther})"/>
+        /// <summary cref="IntrinsicMatcher{T}.TransformTo{TOther, TTransformer}(
+        /// TTransformer, IntrinsicMatcher{TOther})"/>
         public sealed override void TransformTo<TOther, TTransformer>(
             TTransformer transformer,
             IntrinsicMatcher<TOther> other)

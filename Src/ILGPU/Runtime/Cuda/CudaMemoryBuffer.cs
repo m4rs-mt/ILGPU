@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CudaMemoryBuffer.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
 using ILGPU.Runtime.Cuda.API;
@@ -46,7 +46,8 @@ namespace ILGPU.Runtime.Cuda
 
         #region Methods
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(AcceleratorStream, ArrayView{T}, Index1)"/>
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(
+        /// AcceleratorStream, ArrayView{T}, Index1)"/>
         protected internal unsafe override void CopyToView(
             AcceleratorStream stream,
             ArrayView<T> target,
@@ -74,13 +75,15 @@ namespace ILGPU.Runtime.Cuda
                         stream));
                     break;
                 default:
-                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                    throw new NotSupportedException(
+                        RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
 
             binding.Recover();
         }
 
-        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(AcceleratorStream, ArrayView{T}, Index1)"/>
+        /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(
+        /// AcceleratorStream, ArrayView{T}, Index1)"/>
         protected internal unsafe override void CopyFromView(
             AcceleratorStream stream,
             ArrayView<T> source,
@@ -107,7 +110,8 @@ namespace ILGPU.Runtime.Cuda
                         stream));
                     break;
                 default:
-                    throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
+                    throw new NotSupportedException(
+                        RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
 
             binding.Recover();

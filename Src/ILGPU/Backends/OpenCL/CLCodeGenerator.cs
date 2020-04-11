@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLCodeGenerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
@@ -46,7 +46,9 @@ namespace ILGPU.Backends.OpenCL
                 TypeGenerator = typeGenerator;
                 EntryPoint = entryPoint;
                 ABI = abi;
-                KernelTypeGenerator = new CLKernelTypeGenerator(typeGenerator, entryPoint);
+                KernelTypeGenerator = new CLKernelTypeGenerator(
+                    typeGenerator,
+                    entryPoint);
             }
 
             /// <summary>
@@ -136,7 +138,9 @@ namespace ILGPU.Backends.OpenCL
             /// Handles an intrinsic parameter and returns the
             /// associated allocated variable (if any).
             /// </summary>
-            /// <param name="parameterOffset">The current intrinsic parameter index.</param>
+            /// <param name="parameterOffset">
+            /// The current intrinsic parameter index.
+            /// </param>
             /// <param name="parameter">The intrinsic parameter.</param>
             /// <returns>The allocated variable (if any).</returns>
             Variable HandleIntrinsicParameter(int parameterOffset, Parameter parameter);
@@ -188,14 +192,11 @@ namespace ILGPU.Backends.OpenCL
                 var targetNode = node;
                 foreach (var argument in phiValue)
                 {
-                    if (argument.BasicBlock == null)
-                        targetNode = CFG.EntryNode;
-                    else
-                    {
-                        targetNode = Dominators.GetImmediateCommonDominator(
+                    targetNode = argument.BasicBlock == null
+                        ? CFG.EntryNode
+                        : Dominators.GetImmediateCommonDominator(
                             targetNode,
                             CFG[argument.BasicBlock]);
-                    }
 
                     if (targetNode == CFG.EntryNode)
                         break;
@@ -231,9 +232,9 @@ namespace ILGPU.Backends.OpenCL
         protected static string GetMethodName(Method method)
         {
             var handleName = method.Handle.Name;
-            if (method.HasFlags(MethodFlags.External))
-                return handleName;
-            return handleName + "_" + method.Id;
+            return method.HasFlags(MethodFlags.External)
+                ? handleName
+                : handleName + "_" + method.Id;
         }
 
         /// <summary>
@@ -305,7 +306,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Returns the current intrinsic provider for code-generation purposes.
         /// </summary>
-        public IntrinsicImplementationProvider<CLIntrinsic.Handler> ImplementationProvider { get; }
+        public IntrinsicImplementationProvider<CLIntrinsic.Handler>
+            ImplementationProvider { get; }
 
         /// <summary>
         /// Returns the associated string builder.
@@ -336,10 +338,8 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary cref="IBackendCodeGenerator{TKernelBuilder}.Merge(TKernelBuilder)"/>
-        public void Merge(StringBuilder builder)
-        {
+        public void Merge(StringBuilder builder) =>
             builder.Append(Builder.ToString());
-        }
 
         #endregion
 
@@ -366,7 +366,9 @@ namespace ILGPU.Backends.OpenCL
         /// Generates parameter declarations by writing them to the
         /// target builder provided.
         /// </summary>
-        /// <typeparam name="TSetupLogic">The dependent code-generator type to use.</typeparam>
+        /// <typeparam name="TSetupLogic">
+        /// The dependent code-generator type to use.
+        /// </typeparam>
         /// <param name="logic">The type generator to use.</param>
         /// <param name="targetBuilder">The target builder to use.</param>
         /// <param name="paramOffset">The intrinsic parameter offset.</param>
@@ -388,7 +390,9 @@ namespace ILGPU.Backends.OpenCL
                     offset++;
                 }
                 else
+                {
                     variable = Allocate(param);
+                }
 
                 if (variable == null)
                     continue;
@@ -460,8 +464,10 @@ namespace ILGPU.Backends.OpenCL
             SetupAllocations(Allocas.SharedAllocations, MemoryAddressSpace.Shared);
 
             if (Allocas.DynamicSharedAllocations.Length > 0)
+            {
                 throw new NotSupportedException(
                     ErrorMessages.NotSupportedDynamicSharedMemoryAllocations);
+            }
 
             // Build branch targets
             foreach (var block in Scope)

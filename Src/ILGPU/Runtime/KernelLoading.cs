@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: KernelLoading.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
 using ILGPU.Backends.EntryPoints;
@@ -28,7 +28,9 @@ namespace ILGPU.Runtime
         /// without an explicit group size will be launched with a group size
         /// that is equal to the available warp size.
         /// </summary>
-        /// <param name="customGroupSize">The custom group size to adjust and verify.</param>
+        /// <param name="customGroupSize">
+        /// The custom group size to adjust and verify.
+        /// </param>
         /// <param name="entryPoint">The kernel entry point.</param>
         internal void AdjustAndVerifyKernelGroupSize(
             ref int customGroupSize,
@@ -40,14 +42,23 @@ namespace ILGPU.Runtime
             if (entryPoint.IsExplicitlyGrouped)
             {
                 if (customGroupSize > 0)
-                    throw new InvalidOperationException(RuntimeErrorMessages.InvalidCustomGroupSize);
+                {
+                    throw new InvalidOperationException(
+                        RuntimeErrorMessages.InvalidCustomGroupSize);
+                }
             }
             else if (customGroupSize == 0)
+            {
                 customGroupSize = WarpSize;
+            }
 
             var maxNumThreadsPerGroup = entryPoint.Specialization.MaxNumThreadsPerGroup;
-            if (maxNumThreadsPerGroup.HasValue && customGroupSize > maxNumThreadsPerGroup.Value)
-                throw new InvalidOperationException(RuntimeErrorMessages.InvalidKernelSpecializationGroupSize);
+            if (maxNumThreadsPerGroup.HasValue &&
+                customGroupSize > maxNumThreadsPerGroup.Value)
+            {
+                throw new InvalidOperationException(
+                    RuntimeErrorMessages.InvalidKernelSpecializationGroupSize);
+            }
         }
 
         #endregion
@@ -84,12 +95,15 @@ namespace ILGPU.Runtime
         /// <param name="customGroupSize">The custom group size to use.</param>
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
-        /// Note that implicitly-grouped kernel will be launched with the given group size.
+        /// Note that implicitly-grouped kernel will be launched with the given group
+        /// size.
         /// </remarks>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
         /// </remarks>
-        public Kernel LoadImplicitlyGroupedKernel(CompiledKernel kernel, int customGroupSize)
+        public Kernel LoadImplicitlyGroupedKernel(
+            CompiledKernel kernel,
+            int customGroupSize)
         {
             Bind(); return LoadImplicitlyGroupedKernelInternal(kernel, customGroupSize);
         }
@@ -101,7 +115,8 @@ namespace ILGPU.Runtime
         /// <param name="customGroupSize">The custom group size to use.</param>
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
-        /// Note that implicitly-grouped kernel will be launched with the given group size.
+        /// Note that implicitly-grouped kernel will be launched with the given group
+        /// size.
         /// </remarks>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
@@ -127,8 +142,12 @@ namespace ILGPU.Runtime
         /// computed grouping configuration.
         /// </summary>
         /// <param name="kernel">The kernel to load.</param>
-        /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
+        /// <param name="groupSize">
+        /// The estimated group size to gain maximum occupancy on this device.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
@@ -138,7 +157,11 @@ namespace ILGPU.Runtime
             out int groupSize,
             out int minGridSize)
         {
-            Bind(); return LoadAutoGroupedKernelInternal(kernel, out groupSize, out minGridSize);
+            Bind();
+            return LoadAutoGroupedKernelInternal(
+                kernel,
+                out groupSize,
+                out minGridSize);
         }
 
         /// <summary>
@@ -146,8 +169,12 @@ namespace ILGPU.Runtime
         /// computed grouping configuration.
         /// </summary>
         /// <param name="kernel">The kernel to load.</param>
-        /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
+        /// <param name="groupSize">
+        /// The estimated group size to gain maximum occupancy on this device.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
         /// <returns>The loaded kernel.</returns>
         /// <remarks>
         /// Note that the returned kernel will not be managed by the kernel cache.
@@ -166,11 +193,12 @@ namespace ILGPU.Runtime
         /// </summary>
         private struct DefaultKernelLoader : IKernelLoader
         {
-            public static readonly DefaultKernelLoader Default = new DefaultKernelLoader()
-            {
-                GroupSize = 0,
-                MinGridSize = 0,
-            };
+            public static readonly DefaultKernelLoader Default =
+                new DefaultKernelLoader()
+                {
+                    GroupSize = 0,
+                    MinGridSize = 0,
+                };
 
             /// <summary cref="IKernelLoader.GroupSize"/>
             public int GroupSize { get; set; }
@@ -179,7 +207,9 @@ namespace ILGPU.Runtime
             public int MinGridSize { get; set; }
 
             /// <summary cref="IKernelLoader.LoadKernel(Accelerator, CompiledKernel)"/>
-            public Kernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel) =>
+            public Kernel LoadKernel(
+                Accelerator accelerator,
+                CompiledKernel compiledKernel) =>
                 accelerator.LoadKernel(compiledKernel);
         }
 
@@ -205,12 +235,15 @@ namespace ILGPU.Runtime
             public int MinGridSize { get; set; }
 
             /// <summary cref="IKernelLoader.LoadKernel(Accelerator, CompiledKernel)"/>
-            public Kernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel) =>
+            public Kernel LoadKernel(
+                Accelerator accelerator,
+                CompiledKernel compiledKernel) =>
                 accelerator.LoadImplicitlyGroupedKernel(compiledKernel, GroupSize);
         }
 
         /// <summary>
-        /// Represents an automatically configured grouped kernel loader for implicitly-grouped kernels.
+        /// Represents an automatically configured grouped kernel loader for
+        /// implicitly-grouped kernels.
         /// </summary>
         private struct AutoKernelLoader : IKernelLoader
         {
@@ -227,7 +260,9 @@ namespace ILGPU.Runtime
             public int MinGridSize { get; set; }
 
             /// <summary cref="IKernelLoader.LoadKernel(Accelerator, CompiledKernel)"/>
-            public Kernel LoadKernel(Accelerator accelerator, CompiledKernel compiledKernel)
+            public Kernel LoadKernel(
+                Accelerator accelerator,
+                CompiledKernel compiledKernel)
             {
                 var result = accelerator.LoadAutoGroupedKernel(
                     compiledKernel,
@@ -240,12 +275,14 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Loads a kernel specified by the given method and returns a launcher of the specified type.
-        /// Note that implicitly-grouped kernels will be launched with a group size
-        /// of the current warp size of the accelerator.
+        /// Loads a kernel specified by the given method and returns a launcher of the
+        /// specified type. Note that implicitly-grouped kernels will be launched with
+        /// a group size of the current warp size of the accelerator.
         /// </summary>
         /// <typeparam name="TDelegate">The delegate type.</typeparam>
-        /// <typeparam name="TKernelLoader">The type of the custom kernel loader.</typeparam>
+        /// <typeparam name="TKernelLoader">
+        /// The type of the custom kernel loader.
+        /// </typeparam>
         /// <param name="entry">The entry point to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
@@ -260,10 +297,12 @@ namespace ILGPU.Runtime
         {
             // Check for specialized parameters
             if (entry.HasSpecializedParameters)
+            {
                 return LoadSpecializationKernel<TDelegate, TKernelLoader>(
                     entry,
                     specialization,
                     ref kernelLoader);
+            }
 
             var kernel = LoadGenericKernel(entry, specialization, ref kernelLoader);
             return kernel.CreateLauncherDelegate<TDelegate>();
@@ -274,21 +313,27 @@ namespace ILGPU.Runtime
         #region Kernel Loading
 
         /// <summary>
-        /// Loads the given explicitly grouped kernel. Implicitly-grouped kernels are not supported.
+        /// Loads the given explicitly grouped kernel. Implicitly-grouped kernels are
+        /// not supported.
         /// </summary>
         /// <param name="method">The method to compile into a kernel.</param>
         /// <returns>The loaded kernel.</returns>
-        /// <remarks>Note that the returned kernel must not be disposed manually.</remarks>
+        /// <remarks>
+        /// Note that the returned kernel must not be disposed manually.
+        /// </remarks>
         public Kernel LoadKernel(MethodInfo method) =>
             LoadKernel(method, KernelSpecialization.Empty);
 
         /// <summary>
-        /// Loads the given explicitly grouped kernel. Implicitly-grouped kernels are not supported.
+        /// Loads the given explicitly grouped kernel. Implicitly-grouped kernels are
+        /// not supported.
         /// </summary>
         /// <param name="method">The method to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The loaded kernel.</returns>
-        /// <remarks>Note that the returned kernel must not be disposed manually.</remarks>
+        /// <remarks>
+        /// Note that the returned kernel must not be disposed manually.
+        /// </remarks>
         public Kernel LoadKernel(MethodInfo method, KernelSpecialization specialization)
         {
             var loader = DefaultKernelLoader.Default;
@@ -305,7 +350,9 @@ namespace ILGPU.Runtime
         /// <param name="method">The method to compile into a kernel.</param>
         /// <param name="customGroupSize">The custom group size to use.</param>
         /// <returns>The loaded kernel.</returns>
-        /// <remarks>Note that the returned kernel must not be disposed manually.</remarks>
+        /// <remarks>
+        /// Note that the returned kernel must not be disposed manually.
+        /// </remarks>
         public Kernel LoadImplicitlyGroupedKernel(MethodInfo method, int customGroupSize)
         {
             var loader = new GroupedKernelLoader(customGroupSize);
@@ -321,7 +368,9 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="method">The method to compile into a kernel.</param>
         /// <returns>The loaded kernel.</returns>
-        /// <remarks>Note that the returned kernel must not be disposed manually.</remarks>
+        /// <remarks>
+        /// Note that the returned kernel must not be disposed manually.
+        /// </remarks>
         public Kernel LoadAutoGroupedKernel(MethodInfo method)
         {
             var loader = AutoKernelLoader.Default;
@@ -336,11 +385,20 @@ namespace ILGPU.Runtime
         /// computed grouping configuration.
         /// </summary>
         /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
+        /// <param name="groupSize">
+        /// The estimated group size to gain maximum occupancy on this device.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
         /// <returns>The loaded kernel.</returns>
-        /// <remarks>Note that the returned kernel must not be disposed manually.</remarks>
-        public Kernel LoadAutoGroupedKernel(MethodInfo method, out int groupSize, out int minGridSize)
+        /// <remarks>
+        /// Note that the returned kernel must not be disposed manually.
+        /// </remarks>
+        public Kernel LoadAutoGroupedKernel(
+            MethodInfo method,
+            out int groupSize,
+            out int minGridSize)
         {
             var loader = AutoKernelLoader.Default;
             var result = LoadGenericKernel(
@@ -353,8 +411,8 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Loads the given explicitly grouped kernel and returns a launcher delegate that
-        /// can receive arbitrary accelerator streams (first parameter).
+        /// Loads the given explicitly grouped kernel and returns a launcher delegate
+        /// that can receive arbitrary accelerator streams (first parameter).
         /// </summary>
         /// <typeparam name="TDelegate">The delegate type.</typeparam>
         /// <param name="method">The method to compile into a kernel.</param>
@@ -378,7 +436,9 @@ namespace ILGPU.Runtime
         /// Note that implicitly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
-        public TDelegate LoadKernel<TDelegate>(MethodInfo method, KernelSpecialization specialization)
+        public TDelegate LoadKernel<TDelegate>(
+            MethodInfo method,
+            KernelSpecialization specialization)
             where TDelegate : Delegate
         {
             var loader = DefaultKernelLoader.Default;
@@ -399,7 +459,9 @@ namespace ILGPU.Runtime
         /// Note that implicitly-grouped kernel will be launched with the given
         /// group size.
         /// </remarks>
-        public TDelegate LoadImplicitlyGroupedKernel<TDelegate>(MethodInfo method, int customGroupSize)
+        public TDelegate LoadImplicitlyGroupedKernel<TDelegate>(
+            MethodInfo method,
+            int customGroupSize)
             where TDelegate : Delegate
         {
             var loader = new GroupedKernelLoader(customGroupSize);
@@ -414,8 +476,12 @@ namespace ILGPU.Runtime
         /// can receive arbitrary accelerator streams (first parameter).
         /// </summary>
         /// <param name="method">The method to compile into a kernel.</param>
-        /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
+        /// <param name="groupSize">
+        /// The estimated group size to gain maximum occupancy on this device.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         public TDelegate LoadAutoGroupedKernel<TDelegate>(
             MethodInfo method,
@@ -463,7 +529,8 @@ namespace ILGPU.Runtime
         /// Note that implicitly-grouped kernels will be launched with a group size
         /// of the current warp size of the accelerator.
         /// </remarks>
-        public TDelegate LoadKernel<TDelegate, TSourceDelegate>(TSourceDelegate methodDelegate)
+        public TDelegate LoadKernel<TDelegate, TSourceDelegate>(
+            TSourceDelegate methodDelegate)
             where TDelegate : Delegate
             where TSourceDelegate : Delegate =>
             LoadKernel<TDelegate>(methodDelegate.GetMethodInfo());
@@ -506,7 +573,9 @@ namespace ILGPU.Runtime
             int customGroupSize)
             where TDelegate : Delegate
             where TSourceDelegate : Delegate =>
-            LoadImplicitlyGroupedKernel<TDelegate>(methodDelegate.GetMethodInfo(), customGroupSize);
+            LoadImplicitlyGroupedKernel<TDelegate>(
+                methodDelegate.GetMethodInfo(),
+                customGroupSize);
 
         /// <summary>
         /// Loads the given kernel and returns a launcher delegate that
@@ -515,8 +584,12 @@ namespace ILGPU.Runtime
         /// <typeparam name="TSourceDelegate">The source delegate type.</typeparam>
         /// <typeparam name="TDelegate">The delegate type.</typeparam>
         /// <param name="methodDelegate">The delegate to compile into a kernel.</param>
-        /// <param name="groupSize">The estimated group size to gain maximum occupancy on this device.</param>
-        /// <param name="minGridSize">The minimum grid size to gain maximum occupancy on this device.</param>
+        /// <param name="groupSize">
+        /// The estimated group size to gain maximum occupancy on this device.
+        /// </param>
+        /// <param name="minGridSize">
+        /// The minimum grid size to gain maximum occupancy on this device.
+        /// </param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
         public TDelegate LoadAutoGroupedKernel<TDelegate, TSourceDelegate>(
             TSourceDelegate methodDelegate,
@@ -537,7 +610,8 @@ namespace ILGPU.Runtime
         /// <typeparam name="TDelegate">The delegate type.</typeparam>
         /// <param name="methodDelegate">The delegate to compile into a kernel.</param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
-        public TDelegate LoadAutoGroupedKernel<TDelegate, TSourceDelegate>(TSourceDelegate methodDelegate)
+        public TDelegate LoadAutoGroupedKernel<TDelegate, TSourceDelegate>(
+            TSourceDelegate methodDelegate)
             where TDelegate : Delegate
             where TSourceDelegate : Delegate =>
             LoadAutoGroupedKernel<TDelegate>(methodDelegate.GetMethodInfo());

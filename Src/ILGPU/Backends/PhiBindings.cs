@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PhiBindings.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
@@ -21,7 +21,8 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.Backends
 {
     /// <summary>
-    /// An abstract binding allocator for the <see cref="PhiBindings{TAllocator}"/> class.
+    /// An abstract binding allocator for the <see cref="PhiBindings{TAllocator}"/>
+    /// class.
     /// </summary>
     public interface IPhiBindingAllocator
     {
@@ -146,11 +147,14 @@ namespace ILGPU.Backends
             /// <summary>
             /// Returns an enumerator to enumerate all entries in this collection.
             /// </summary>
-            /// <returns>An enumerator to enumerate all entries in this collection.</returns>
+            /// <returns>
+            /// An enumerator to enumerate all entries in this collection.
+            /// </returns>
             public Enumerator GetEnumerator() => new Enumerator(this);
 
             /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            IEnumerator<(Value, PhiValue)> IEnumerable<(Value, PhiValue)>.GetEnumerator() => GetEnumerator();
+            IEnumerator<(Value, PhiValue)>
+                IEnumerable<(Value, PhiValue)>.GetEnumerator() => GetEnumerator();
 
             /// <summary cref="IEnumerable.GetEnumerator"/>
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -201,7 +205,9 @@ namespace ILGPU.Backends
                     allocator.Allocate(cfgNode, phi);
 
                     // Determine predecessor mapping
-                    Debug.Assert(cfgNode.NumPredecessors == phi.Nodes.Length, "Invalid phi value");
+                    Debug.Assert(
+                        cfgNode.NumPredecessors == phi.Nodes.Length,
+                        "Invalid phi value");
 
                     // Assign values to their appropriate blocks
                     for (int i = 0, e = phi.Nodes.Length; i < e; ++i)

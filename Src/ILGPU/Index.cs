@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Index.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
@@ -105,7 +105,7 @@ namespace ILGPU
         public int X => x;
 
         /// <summary>
-        /// Returns true iff this is the first index.
+        /// Returns true if this is the first index.
         /// </summary>
         public bool IsFirst => X == 0;
 
@@ -124,60 +124,41 @@ namespace ILGPU
         #region IGenericIndex
 
         /// <summary cref="IGenericIndex{TIndex}.InBounds(TIndex)"/>
-        public bool InBounds(Index dimension)
-        {
-            return x >= 0 && x < dimension.x;
-        }
+        public bool InBounds(Index dimension) => x >= 0 && x < dimension.x;
 
         /// <summary cref="IGenericIndex{TIndex}.InBoundsInclusive(TIndex)"/>
-        public bool InBoundsInclusive(Index dimension)
-        {
-            return x >= 0 && x <= dimension.x;
-        }
+        public bool InBoundsInclusive(Index dimension) => x >= 0 && x <= dimension.x;
 
         /// <summary cref="IGenericIndex{TIndex}.ComputeLinearIndex(TIndex)"/>
-        public int ComputeLinearIndex(Index dimension)
-        {
-            return x;
-        }
+        public int ComputeLinearIndex(Index dimension) => x;
 
         /// <summary cref="IGenericIndex{TIndex}.ReconstructIndex(int)"/>
-        public Index ReconstructIndex(int linearIndex)
-        {
-            return linearIndex;
-        }
+        public Index ReconstructIndex(int linearIndex) => linearIndex;
 
         /// <summary cref="IGenericIndex{TIndex}.Add(TIndex)"/>
-        public Index Add(Index rhs)
-        {
-            return this + rhs;
-        }
+        public Index Add(Index rhs) => this + rhs;
 
         /// <summary cref="IGenericIndex{TIndex}.Subtract(TIndex)"/>
-        public Index Subtract(Index rhs)
-        {
-            return this - rhs;
-        }
+        public Index Subtract(Index rhs) =>
+            this - rhs;
 
         /// <summary cref="IGenericIndex{TIndex}.ComputedCastedExtent(TIndex, int, int)"/>
-        public Index ComputedCastedExtent(Index extent, int elementSize, int newElementSize)
-        {
-            return (extent.Size * elementSize) / newElementSize;
-        }
+        public Index ComputedCastedExtent(
+            Index extent,
+            int elementSize,
+            int newElementSize) =>
+            (extent.Size * elementSize) / newElementSize;
 
         #endregion
 
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given index is equal to the current index.
+        /// Returns true if the given index is equal to the current index.
         /// </summary>
         /// <param name="other">The other index.</param>
-        /// <returns>True, iff the given index is equal to the current index.</returns>
-        public bool Equals(Index other)
-        {
-            return this == other;
-        }
+        /// <returns>True, if the given index is equal to the current index.</returns>
+        public bool Equals(Index other) => this == other;
 
         #endregion
 
@@ -199,34 +180,23 @@ namespace ILGPU
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current index.
+        /// Returns true if the given object is equal to the current index.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current index.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is Index)
-                return Equals((Index)obj);
-            return false;
-        }
+        /// <returns>True, if the given object is equal to the current index.</returns>
+        public override bool Equals(object obj) => obj is Index index && Equals(index);
 
         /// <summary>
         /// Returns the hash code of this index.
         /// </summary>
         /// <returns>The hash code of this index.</returns>
-        public override int GetHashCode()
-        {
-            return X.GetHashCode();
-        }
+        public override int GetHashCode() => X.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this index.
         /// </summary>
         /// <returns>The string representation of this index.</returns>
-        public override string ToString()
-        {
-            return X.ToString();
-        }
+        public override string ToString() => X.ToString();
 
         #endregion
 
@@ -238,10 +208,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The added index.</returns>
-        public static Index Add(Index first, Index second)
-        {
-            return first + second;
-        }
+        public static Index Add(Index first, Index second) => first + second;
 
         /// <summary>
         /// Adds two indices.
@@ -249,10 +216,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The added index.</returns>
-        public static Index operator +(Index first, Index second)
-        {
-            return first.X + second.X;
-        }
+        public static Index operator +(Index first, Index second) => first.X + second.X;
 
         /// <summary>
         /// Subtracts two indices.
@@ -260,10 +224,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The subtracted index.</returns>
-        public static Index Subtract(Index first, Index second)
-        {
-            return first - second;
-        }
+        public static Index Subtract(Index first, Index second) => first - second;
 
         /// <summary>
         /// Subtracts two indices.
@@ -271,10 +232,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The subtracted index.</returns>
-        public static Index operator -(Index first, Index second)
-        {
-            return first.X - second.X;
-        }
+        public static Index operator -(Index first, Index second) => first.X - second.X;
 
         /// <summary>
         /// Multiplies two indices.
@@ -282,10 +240,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The multiplied index.</returns>
-        public static Index Multiply(Index first, Index second)
-        {
-            return first * second;
-        }
+        public static Index Multiply(Index first, Index second) => first * second;
 
         /// <summary>
         /// Multiplies two indices.
@@ -293,10 +248,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The multiplied index.</returns>
-        public static Index operator *(Index first, Index second)
-        {
-            return first.X * second.X;
-        }
+        public static Index operator *(Index first, Index second) => first.X * second.X;
 
         /// <summary>
         /// Divides two indices.
@@ -304,10 +256,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The divided index.</returns>
-        public static Index Divide(Index first, Index second)
-        {
-            return first / second;
-        }
+        public static Index Divide(Index first, Index second) => first / second;
 
         /// <summary>
         /// Divides two indices.
@@ -315,104 +264,78 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The divided index.</returns>
-        public static Index operator /(Index first, Index second)
-        {
-            return first.X / second.X;
-        }
+        public static Index operator /(Index first, Index second) => first.X / second.X;
 
         /// <summary>
-        /// Returns true iff the first and second index are the same.
+        /// Returns true if the first and second index are the same.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first and second index are the same.</returns>
-        public static bool operator ==(Index first, Index second)
-        {
-            return first.X == second.X;
-        }
+        /// <returns>True, if the first and second index are the same.</returns>
+        public static bool operator ==(Index first, Index second) => first.X == second.X;
 
         /// <summary>
-        /// Returns true iff the first and second index are not the same.
+        /// Returns true if the first and second index are not the same.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first and second index are not the same.</returns>
-        public static bool operator !=(Index first, Index second)
-        {
-            return first.X != second.X;
-        }
+        /// <returns>True, if the first and second index are not the same.</returns>
+        public static bool operator !=(Index first, Index second) => first.X != second.X;
 
         /// <summary>
-        /// Returns true iff the first index is smaller than the second index.
+        /// Returns true if the first index is smaller than the second index.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first index is smaller than the second index.</returns>
-        public static bool operator <(Index first, Index second)
-        {
-            return first.X < second.X;
-        }
+        /// <returns>True, if the first index is smaller than the second index.</returns>
+        public static bool operator <(Index first, Index second) => first.X < second.X;
 
         /// <summary>
-        /// Returns true iff the first index is smaller than or equal to the second index.
+        /// Returns true if the first index is smaller than or equal to the second index.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first index is smaller than or equal to the second index.</returns>
-        public static bool operator <=(Index first, Index second)
-        {
-            return first.X <= second.X;
-        }
+        /// <returns>
+        /// True, if the first index is smaller than or equal to the second index.
+        /// </returns>
+        public static bool operator <=(Index first, Index second) => first.X <= second.X;
 
         /// <summary>
-        /// Returns true iff the first index is greater than the second index.
+        /// Returns true if the first index is greater than the second index.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first index is greater than the second index.</returns>
-        public static bool operator >(Index first, Index second)
-        {
-            return first.X > second.X;
-        }
+        /// <returns>True, if the first index is greater than the second index.</returns>
+        public static bool operator >(Index first, Index second) => first.X > second.X;
 
         /// <summary>
-        /// Returns true iff the first index is greater than or equal to the second index.
+        /// Returns true if the first index is greater than or equal to the second index.
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, iff the first index is greater than or equal to the second index.</returns>
-        public static bool operator >=(Index first, Index second)
-        {
-            return first.X >= second.X;
-        }
+        /// <returns>
+        /// True, if the first index is greater than or equal to the second index.
+        /// </returns>
+        public static bool operator >=(Index first, Index second) => first.X >= second.X;
 
         /// <summary>
-        /// Implictly converts an index to an int.
+        /// Implicitly converts an index to an int.
         /// </summary>
         /// <param name="idx">The index to convert.</param>
-        public static implicit operator int(Index idx)
-        {
-            return idx.X;
-        }
+        public static implicit operator int(Index idx) => idx.X;
 
         /// <summary>
-        /// Implictly converts an int to an index.
+        /// Implicitly converts an int to an index.
         /// </summary>
         /// <param name="idx">The int to convert.</param>
-        public static implicit operator Index(int idx)
-        {
-            return new Index(idx);
-        }
+        public static implicit operator Index(int idx) => new Index(idx);
 
         /// <summary>
-        /// Implictly converts an index to an uint.
+        /// Implicitly converts an index to an uint.
         /// </summary>
         /// <param name="idx">The index to convert.</param>
         [CLSCompliant(false)]
-        public static explicit operator uint(Index idx)
-        {
-            return (uint)idx.X;
-        }
+        public static explicit operator uint(Index idx) => (uint)idx.X;
 
         #endregion
     }

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Arrays.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -42,7 +42,9 @@ namespace ILGPU.IR.Construction
         public ValueReference CreateArray(ArrayType type, Value extent)
         {
             Debug.Assert(extent != null, "Invalid extent");
-            Debug.Assert(extent.Type == GetIndexType(type.Dimensions), "Invalid extent type");
+            Debug.Assert(
+                extent.Type == GetIndexType(type.Dimensions),
+                "Invalid extent type");
             return Append(new ArrayValue(
                 BasicBlock,
                 type,
@@ -79,7 +81,9 @@ namespace ILGPU.IR.Construction
             Debug.Assert(arrayValue != null, "Invalid array value");
             var arrayType = arrayValue.Type as ArrayType;
             Debug.Assert(arrayType != null, "Invalid array type");
-            Debug.Assert(index.Type == GetIndexType(arrayType.Dimensions), "Invalid index type");
+            Debug.Assert(
+                index.Type == GetIndexType(arrayType.Dimensions),
+                "Invalid index type");
 
             return Append(new GetArrayElement(
                 BasicBlock,
@@ -102,7 +106,9 @@ namespace ILGPU.IR.Construction
             Debug.Assert(arrayValue != null, "Invalid array value");
             var arrayType = arrayValue.Type as ArrayType;
             Debug.Assert(arrayType != null, "Invalid array type");
-            Debug.Assert(index.Type == GetIndexType(arrayType.Dimensions), "Invalid index type");
+            Debug.Assert(
+                index.Type == GetIndexType(arrayType.Dimensions),
+                "Invalid index type");
 
             return Append(new SetArrayElement(
                 Context,
@@ -157,7 +163,9 @@ namespace ILGPU.IR.Construction
             int arrayExtentOffset)
         {
             int dimensions = StructureType.GetNumFields(arrayExtent.Type);
-            Value linearIndex = CreateGetField(arrayIndex, new FieldSpan(dimensions - 1));
+            Value linearIndex = CreateGetField(
+                arrayIndex,
+                new FieldSpan(dimensions - 1));
             for (int i = dimensions - 2; i >= 0; --i)
             {
                 var extent = CreateGetField(

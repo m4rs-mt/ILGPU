@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Node.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.DebugInformation;
 using System;
@@ -36,18 +36,18 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="newMarker">The new value to apply.</param>
         /// <returns>
-        /// True, iff the old marker was not equal to the new marker
+        /// True, if the old marker was not equal to the new marker
         /// (the node was not marked with the new marker value).
         /// </returns>
         bool Mark(NodeMarker newMarker);
 
         /// <summary>
-        /// Returns true iff the reference marker is less or equal to the
+        /// Returns true if the reference marker is less or equal to the
         /// current marker value.
         /// </summary>
         /// <param name="referenceMarker">The reference marker.</param>
         /// <returns>
-        /// True, iff the reference marker is less or equal to
+        /// True, if the reference marker is less or equal to
         /// the current marker value.
         /// </returns>
         bool IsMarked(NodeMarker referenceMarker);
@@ -75,7 +75,7 @@ namespace ILGPU.IR
         private long markerValue;
 
         /// <summary>
-        /// Constructs a new node that is marked as replacable.
+        /// Constructs a new node that is marked as replaceable.
         /// </summary>
         protected Node()
         {
@@ -105,19 +105,19 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="newMarker">The new value to apply.</param>
         /// <returns>
-        /// True, iff the old marker was not equal to the new marker
+        /// True, if the old marker was not equal to the new marker
         /// (the node was not marked with the new marker value).
         /// </returns>
         public bool Mark(NodeMarker newMarker) =>
             Interlocked.Exchange(ref markerValue, newMarker.Marker) != newMarker.Marker;
 
         /// <summary>
-        /// Returns true iff the reference marker is equal to the
+        /// Returns true if the reference marker is equal to the
         /// current marker value.
         /// </summary>
         /// <param name="referenceMarker">The reference marker.</param>
         /// <returns>
-        /// True, iff the current marker is equal to the current
+        /// True, if the current marker is equal to the current
         /// marker value.
         /// </returns>
         public bool IsMarked(NodeMarker referenceMarker) =>
@@ -137,13 +137,10 @@ namespace ILGPU.IR
         /// Returns the string representation of this node as reference.
         /// </summary>
         /// <returns>The string representation of this node as reference.</returns>
-        public string ToReferenceString()
-        {
-            return ToPrefixString() + "_" + Id.ToString();
-        }
+        public string ToReferenceString() => ToPrefixString() + "_" + Id.ToString();
 
         /// <summary>
-        /// Returns the string represetation of this node.
+        /// Returns the string representation of this node.
         /// </summary>
         /// <returns>The string representation of this node.</returns>
         public override string ToString() => ToReferenceString();

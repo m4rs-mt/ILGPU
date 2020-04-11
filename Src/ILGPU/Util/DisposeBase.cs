@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: DisposeBase.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -26,7 +26,8 @@ namespace ILGPU.Util
         /// Triggers the 'dispose' functionality of this object.
         /// </summary>
         [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly",
-            Justification = "Using DisposeDriver(bool) as thread-safe alternative to Dispose(bool)")]
+            Justification = "Using DisposeDriver(bool) as thread-safe alternative " +
+            "to Dispose(bool)")]
         public void Dispose()
         {
             DisposeDriver(true);
@@ -38,7 +39,8 @@ namespace ILGPU.Util
         /// The custom finalizer for dispose-base objects.
         /// </summary>
         [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly",
-            Justification = "Using DisposeDriver(bool) as thread-safe alternative to Dispose(bool)")]
+            Justification = "Using DisposeDriver(bool) as thread-safe alternative " +
+            "to Dispose(bool)")]
         ~DisposeBase()
         {
             DisposeDriver(false);
@@ -47,7 +49,9 @@ namespace ILGPU.Util
         /// <summary>
         /// Thread-safe wrapper for the actual dispose functionality.
         /// </summary>
-        /// <param name="disposing">True, iff the method is not called by the finalizer.</param>
+        /// <param name="disposing">
+        /// True, if the method is not called by the finalizer.
+        /// </param>
         private void DisposeDriver(bool disposing)
         {
             if (Interlocked.CompareExchange(ref disposeBarrier, 1, 0) != 0)
@@ -58,7 +62,9 @@ namespace ILGPU.Util
         /// <summary>
         /// Frees allocated resources.
         /// </summary>
-        /// <param name="disposing">True, iff the method is not called by the finalizer.</param>
+        /// <param name="disposing">
+        /// True, if the method is not called by the finalizer.
+        /// </param>
         protected virtual void Dispose(bool disposing) { }
     }
 }

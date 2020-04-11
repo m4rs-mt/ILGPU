@@ -1,19 +1,18 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Call.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace ILGPU.IR.Values
 {
@@ -81,7 +80,9 @@ namespace ILGPU.IR.Values
             ComputeType(Target);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder)
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder)
         {
             var args = ImmutableArray.CreateBuilder<ValueReference>(Nodes.Length);
             foreach (var arg in Nodes)

@@ -1,20 +1,19 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PTXKernelFunctionGenerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -59,9 +58,12 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             public PTXKernelFunctionGenerator Parent { get; }
 
-            /// <summary cref="PTXCodeGenerator.IParameterSetupLogic.HandleIntrinsicParameter(int, Parameter)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Register HandleIntrinsicParameter(int parameterOffset, Parameter parameter)
+            /// <summary>
+            /// Updates index and length registers.
+            /// </summary>
+            public Register HandleIntrinsicParameter(
+                int parameterOffset,
+                Parameter parameter)
             {
                 IndexRegister = Parent.Allocate(parameter);
 
@@ -184,7 +186,9 @@ namespace ILGPU.Backends.PTX
         /// Emits an implicit kernel index computation.
         /// </summary>
         /// <param name="dimension">The parameter dimension.</param>
-        /// <param name="targetRegister">The primitive target register to write to.</param>
+        /// <param name="targetRegister">
+        /// The primitive target register to write to.
+        /// </param>
         /// <param name="boundsRegister">The associated bounds register.</param>
         private void EmitImplicitKernelIndex(
             int dimension,
@@ -229,17 +233,21 @@ namespace ILGPU.Backends.PTX
         /// Setups the current kernel indices.
         /// </summary>
         /// <param name="indexRegister">The main kernel index register.</param>
-        /// <param name="lengthRegister">The length register of implicitly grouped kernels.</param>
+        /// <param name="lengthRegister">
+        /// The length register of implicitly grouped kernels.
+        /// </param>
         private void SetupKernelIndex(Register indexRegister, Register lengthRegister)
         {
             // Skip this step for grouped kernels
             if (EntryPoint.IsExplicitlyGrouped)
                 return;
             if (EntryPoint.IndexType == IndexType.Index1D)
+            {
                 EmitImplicitKernelIndex(
                     0,
                     indexRegister as PrimitiveRegister,
                     lengthRegister as PrimitiveRegister);
+            }
             else
             {
                 var compoundIndex = indexRegister as CompoundRegister;

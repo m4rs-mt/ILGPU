@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: PhiValue.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -83,8 +83,11 @@ namespace ILGPU.IR.Values
             public bool CanRemap(ImmutableArray<BasicBlock> blocks)
             {
                 foreach (var block in blocks)
+                {
                     if (OldBlock == block)
                         return true;
+                }
+
                 return false;
             }
 
@@ -102,7 +105,9 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// A phi builder.
         /// </summary>
-        [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
+        [SuppressMessage(
+            "Microsoft.Naming",
+            "CA1710: IdentifiersShouldHaveCorrectSuffix",
             Justification = "This is the correct name of the current entity")]
         public sealed class Builder : IReadOnlyCollection<ValueReference>
         {
@@ -162,7 +167,9 @@ namespace ILGPU.IR.Values
             /// <summary>
             /// Adds the given argument.
             /// </summary>
-            /// <param name="predecessor">The input block associated with the argument value.</param>
+            /// <param name="predecessor">
+            /// The input block associated with the argument value.
+            /// </param>
             /// <param name="value">The argument value to add.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void AddArgument(BasicBlock predecessor, Value value)
@@ -180,7 +187,9 @@ namespace ILGPU.IR.Values
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public PhiValue Seal()
             {
-                PhiValue.SealPhiArguments(argumentBlocks.ToImmutable(), arguments.ToImmutable());
+                PhiValue.SealPhiArguments(
+                    argumentBlocks.ToImmutable(),
+                    arguments.ToImmutable());
                 return PhiValue;
             }
 
@@ -189,7 +198,8 @@ namespace ILGPU.IR.Values
             #region IEnumerable
 
             /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            public IEnumerator<ValueReference> GetEnumerator() => arguments.GetEnumerator();
+            public IEnumerator<ValueReference> GetEnumerator() =>
+                arguments.GetEnumerator();
 
             /// <summary cref="IEnumerable.GetEnumerator"/>
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -207,7 +217,9 @@ namespace ILGPU.IR.Values
         /// <param name="methodBuilder">The current method builder.</param>
         /// <param name="phiValue">The phi value to check.</param>
         /// <returns>The resolved value.</returns>
-        public static Value TryRemoveTrivialPhi(Method.Builder methodBuilder, PhiValue phiValue)
+        public static Value TryRemoveTrivialPhi(
+            Method.Builder methodBuilder,
+            PhiValue phiValue)
         {
             // Implements a part of the SSA-construction algorithm from the paper:
             // Simple and Efficient Construction of Static Single Assignment Form
@@ -275,7 +287,8 @@ namespace ILGPU.IR.Values
         public TypeNode PhiType { get; }
 
         /// <summary>
-        /// Returns all associated blocks from which the values have to be resolved from.
+        /// Returns all associated blocks from which the values have to be resolved
+        /// from.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
         public ImmutableArray<BasicBlock> Sources { get; private set; }
@@ -320,11 +333,11 @@ namespace ILGPU.IR.Values
         protected override TypeNode UpdateType(IRContext context) => PhiType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder)
-        {
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             // Phi values have already been mapped in the beginning
-            return rebuilder.Rebuild(this);
-        }
+            rebuilder.Rebuild(this);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -359,12 +372,10 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "phi";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString()
-        {
-            if (Nodes.IsDefaultOrEmpty)
-                return string.Empty;
-            return string.Join(", ", Nodes);
-        }
+        protected override string ToArgString() =>
+            Nodes.IsDefaultOrEmpty
+            ? string.Empty
+            : string.Join(", ", Nodes);
 
         #endregion
     }

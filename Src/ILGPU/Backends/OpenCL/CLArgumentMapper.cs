@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CLArgumentMapper.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.IL;
@@ -34,9 +34,10 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// The method to set OpenCL kernel arguments.
         /// </summary>
-        private static readonly MethodInfo SetKernelArgumentMethod = typeof(CLAPI).GetMethod(
-            nameof(CLAPI.SetKernelArgumentUnsafeWithKernel),
-            BindingFlags.Public | BindingFlags.Static);
+        private static readonly MethodInfo SetKernelArgumentMethod =
+            typeof(CLAPI).GetMethod(
+                nameof(CLAPI.SetKernelArgumentUnsafeWithKernel),
+                BindingFlags.Public | BindingFlags.Static);
 
         #endregion
 
@@ -71,7 +72,9 @@ namespace ILGPU.Backends.OpenCL
                 /// <summary cref="ArgumentMapper.ISource.SourceType"/>
                 public Type SourceType => Source.SourceType;
 
-                /// <summary cref="ArgumentMapper.ISource.EmitLoadSource{TILEmitter}(in TILEmitter)"/>
+                /// <summary>
+                /// Emits a nested source address.
+                /// </summary>
                 public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
                     where TILEmitter : IILEmitter =>
                     Source.EmitLoadSource(emitter);
@@ -81,8 +84,12 @@ namespace ILGPU.Backends.OpenCL
             /// Constructs a new mapping handler.
             /// </summary>
             /// <param name="parent">The parent mapper.</param>
-            /// <param name="kernelLocal">The local variable holding the associated kernel reference.</param>
-            /// <param name="resultLocal">The local variable holding the result API status.</param>
+            /// <param name="kernelLocal">
+            /// The local variable holding the associated kernel reference.
+            /// </param>
+            /// <param name="resultLocal">
+            /// The local variable holding the result API status.
+            /// </param>
             /// <param name="startIndex">The start argument index.</param>
             public MappingHandler(
                 CLArgumentMapper parent,
@@ -117,8 +124,9 @@ namespace ILGPU.Backends.OpenCL
             /// </summary>
             public int StartIndex { get; }
 
-            /// <summary cref="ArgumentMapper.IMappingHandler.MapArgument{TILEmitter, TSource}(in TILEmitter, TSource, int)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            /// <summary>
+            /// Emits code to set an individual argument.
+            /// </summary>
             public void MapArgument<TILEmitter, TSource>(
                 in TILEmitter emitter,
                 TSource source,
@@ -171,7 +179,10 @@ namespace ILGPU.Backends.OpenCL
                 /// </summary>
                 public SeparateViewEntryPoint.ViewParameter Parameter { get; }
 
-                /// <summary cref="ArgumentMapper.ISource.EmitLoadSource{TILEmitter}(in TILEmitter)"/>
+                /// <summary>
+                /// Converts a view into its native implementation form and maps it to
+                /// an argument.
+                /// </summary>
                 public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
                     where TILEmitter : IILEmitter
                 {
@@ -194,8 +205,12 @@ namespace ILGPU.Backends.OpenCL
             /// Constructs a new mapping handler.
             /// </summary>
             /// <param name="parent">The parent mapper.</param>
-            /// <param name="kernelLocal">The local variable holding the associated kernel reference.</param>
-            /// <param name="resultLocal">The local variable holding the result API status.</param>
+            /// <param name="kernelLocal">
+            /// The local variable holding the associated kernel reference.
+            /// </param>
+            /// <param name="resultLocal">
+            /// The local variable holding the result API status.
+            /// </param>
             public ViewMappingHandler(
                 CLArgumentMapper parent,
                 ILLocal kernelLocal,
@@ -222,8 +237,9 @@ namespace ILGPU.Backends.OpenCL
             /// </summary>
             public ILLocal ResultLocal { get; }
 
-            /// <summary cref="ArgumentMapper.ISeparateViewMappingHandler.MapViewArgument{TILEmitter, TSource}(in TILEmitter, in TSource, in SeparateViewEntryPoint.ViewParameter, int)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            /// <summary>
+            /// Maps a view input argument.
+            /// </summary>
             public void MapViewArgument<TILEmitter, TSource>(
                 in TILEmitter emitter,
                 in TSource source,
@@ -284,11 +300,14 @@ namespace ILGPU.Backends.OpenCL
         /// <typeparam name="TILEmitter">The emitter type.</typeparam>
         /// <typeparam name="TSource">The value source type.</typeparam>
         /// <param name="emitter">The current emitter.</param>
-        /// <param name="kernelLocal">The local variable holding the associated kernel reference.</param>
-        /// <param name="resultLocal">The local variable holding the result API status.</param>
+        /// <param name="kernelLocal">
+        /// The local variable holding the associated kernel reference.
+        /// </param>
+        /// <param name="resultLocal">
+        /// The local variable holding the result API status.
+        /// </param>
         /// <param name="argumentIndex">The argument index.</param>
         /// <param name="source">The value source.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SetKernelArgument<TILEmitter, TSource>(
             in TILEmitter emitter,
             ILLocal kernelLocal,

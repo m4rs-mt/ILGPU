@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Grid.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
@@ -93,7 +93,9 @@ namespace ILGPU
         /// <returns>The X grid dimension.</returns>
         public static int DimX
         {
-            [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.X)]
+            [GridIntrinsic(
+                GridIntrinsicKind.GetGridDimension,
+                DeviceConstantDimension3D.X)]
             get => CPURuntimeThreadContext.GridDimension.X;
         }
 
@@ -110,7 +112,9 @@ namespace ILGPU
         /// <returns>The Y grid dimension.</returns>
         public static int DimY
         {
-            [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.Y)]
+            [GridIntrinsic(
+                GridIntrinsicKind.GetGridDimension,
+                DeviceConstantDimension3D.Y)]
             get => CPURuntimeThreadContext.GridDimension.Y;
         }
 
@@ -127,7 +131,9 @@ namespace ILGPU
         /// <returns>The Z grid dimension.</returns>
         public static int DimZ
         {
-            [GridIntrinsic(GridIntrinsicKind.GetGridDimension, DeviceConstantDimension3D.Z)]
+            [GridIntrinsic(
+                GridIntrinsicKind.GetGridDimension,
+                DeviceConstantDimension3D.Z)]
             get => CPURuntimeThreadContext.GridDimension.Z;
         }
 

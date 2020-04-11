@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Compare.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -81,39 +81,35 @@ namespace ILGPU.IR.Values
         #region Static
 
         /// <summary>
-        /// Computes a compare node type.
+        /// A mapping to inverted compare kinds.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context) =>
-            context.GetPrimitiveType(BasicValueType.Int1);
+        private static readonly ImmutableArray<CompareKind> Inverted =
+            ImmutableArray.Create(
+                CompareKind.NotEqual,
+                CompareKind.Equal,
+                CompareKind.GreaterEqual,
+                CompareKind.GreaterThan,
+                CompareKind.LessEqual,
+                CompareKind.LessThan);
+
+        /// <summary>
+        /// A mapping to string representations.
+        /// </summary>
+        private static readonly ImmutableArray<string> StringOperations =
+            ImmutableArray.Create(
+                "==",
+                "!=",
+                "<",
+                "<=",
+                ">",
+                ">=");
 
         /// <summary>
         /// Inverts the given compare kind.
         /// </summary>
         /// <param name="kind">The compare kind to invert.</param>
         /// <returns>The inverted compare kind.</returns>
-        public static CompareKind Invert(CompareKind kind)
-        {
-            switch (kind)
-            {
-                case CompareKind.Equal:
-                    return CompareKind.NotEqual;
-                case CompareKind.NotEqual:
-                    return CompareKind.Equal;
-                case CompareKind.LessThan:
-                    return CompareKind.GreaterEqual;
-                case CompareKind.LessEqual:
-                    return CompareKind.GreaterThan;
-                case CompareKind.GreaterThan:
-                    return CompareKind.LessEqual;
-                case CompareKind.GreaterEqual:
-                    return CompareKind.LessThan;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(kind));
-            }
-        }
+        public static CompareKind Invert(CompareKind kind) => Inverted[(int)kind];
 
         /// <summary>
         /// Returns true if the given kind is commutative.
@@ -128,12 +124,19 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="kind">The compare kind to invert.</param>
         /// <returns>The inverted compare kind.</returns>
-        public static CompareKind InvertIfNonCommutative(CompareKind kind)
-        {
-            if (IsCommutative(kind))
-                return kind;
-            return Invert(kind);
-        }
+        public static CompareKind InvertIfNonCommutative(CompareKind kind) =>
+            IsCommutative(kind)
+            ? kind
+            : Invert(kind);
+
+        /// <summary>
+        /// Computes a compare node type.
+        /// </summary>
+        /// <param name="context">The parent IR context.</param>
+        /// <returns>The resolved type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode ComputeType(IRContext context) =>
+            context.GetPrimitiveType(BasicValueType.Int1);
 
         #endregion
 
@@ -193,7 +196,8 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns true if the operation has enabled unsigned or unordered semantics.
         /// </summary>
-        public bool IsUnsignedOrUnordered => (Flags & CompareFlags.UnsignedOrUnordered) ==
+        public bool IsUnsignedOrUnordered =>
+            (Flags & CompareFlags.UnsignedOrUnordered) ==
             CompareFlags.UnsignedOrUnordered;
 
         /// <summary>
@@ -211,7 +215,9 @@ namespace ILGPU.IR.Values
             ComputeType(context);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateCompare(
                 rebuilder.Rebuild(Left),
                 rebuilder.Rebuild(Right),
@@ -231,28 +237,7 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString()
         {
-            var operation = "N/A";
-            switch (Kind)
-            {
-                case CompareKind.Equal:
-                    operation = "==";
-                    break;
-                case CompareKind.NotEqual:
-                    operation = "!=";
-                    break;
-                case CompareKind.LessThan:
-                    operation = "<";
-                    break;
-                case CompareKind.LessEqual:
-                    operation = "<=";
-                    break;
-                case CompareKind.GreaterThan:
-                    operation = ">";
-                    break;
-                case CompareKind.GreaterEqual:
-                    operation = ">=";
-                    break;
-            }
+            var operation = StringOperations[(int)Kind];
             return $"{Left} {operation} {Right} [{Flags}]";
         }
 

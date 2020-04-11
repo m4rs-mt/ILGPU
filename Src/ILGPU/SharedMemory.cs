@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SharedMemory.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.Runtime.CPU;
@@ -96,7 +96,10 @@ namespace ILGPU
         /// <param name="height">The height of the 3D buffer.</param>
         /// <param name="depth">The depth of the 3D buffer.</param>
         /// <returns>An allocated region of shared memory.</returns>
-        public static ArrayView3D<T> Allocate3D<T>(Index1 width, Index1 height, Index1 depth)
+        public static ArrayView3D<T> Allocate3D<T>(
+            Index1 width,
+            Index1 height,
+            Index1 depth)
             where T : struct =>
             Allocate3D<T>(new Index3(width, height, depth));
 

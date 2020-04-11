@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CompiledKernel.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Runtime;
@@ -70,10 +70,8 @@ namespace ILGPU.Backends
         /// Returns the string representation of this kernel.
         /// </summary>
         /// <returns>The string representation of this kernel.</returns>
-        public override string ToString()
-        {
-            return $"{SourceMethod}[Specialization: {Specialization}]";
-        }
+        public override string ToString() =>
+            $"{SourceMethod}[Specialization: {Specialization}]";
 
         #endregion
     }

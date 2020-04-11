@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Inliner.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend;
 using ILGPU.IR.Analyses;
@@ -47,14 +47,20 @@ namespace ILGPU.IR.Transformations
             if (method.HasSource)
             {
                 var source = method.Source;
-                if ((source.MethodImplementationFlags & MethodImplAttributes.NoInlining)
-                    == MethodImplAttributes.NoInlining)
+                if ((source.MethodImplementationFlags &
+                    MethodImplAttributes.NoInlining) ==
+                    MethodImplAttributes.NoInlining)
+                {
                     return;
+                }
 
-                if ((source.MethodImplementationFlags & MethodImplAttributes.AggressiveInlining)
-                    == MethodImplAttributes.AggressiveInlining ||
+                if ((source.MethodImplementationFlags &
+                    MethodImplAttributes.AggressiveInlining) ==
+                    MethodImplAttributes.AggressiveInlining ||
                     source.Module.Name == Context.FullAssemblyModuleName)
+                {
                     method.AddFlags(MethodFlags.Inline);
+                }
             }
 
             // Evaluate a simple inlining heuristic
@@ -65,7 +71,45 @@ namespace ILGPU.IR.Transformations
             }
         }
 
+        /// <summary>
+        /// Tries to inline method calls.
+        /// </summary>
+        /// <param name="builder">The current method builder.</param>
+        /// <param name="caller">The parent caller entry.</param>
+        /// <param name="scopeProvider">The scope provider.</param>
+        /// <param name="currentBlock">The current block (may be modified).</param>
+        /// <returns>True, in case of an inlined call.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool InlineCalls<TScopeProvider>(
+            Method.Builder builder,
+            Landscape.Entry caller,
+            TScopeProvider scopeProvider,
+            ref BasicBlock currentBlock)
+            where TScopeProvider : IScopeProvider
+        {
+            foreach (var valueEntry in currentBlock)
+            {
+                if (!(valueEntry.Value is MethodCall call))
+                    continue;
+
+                if (call.Target.HasFlags(MethodFlags.Inline))
+                {
+                    var targetScope = scopeProvider[call.Target];
+                    var blockBuilder = builder[currentBlock];
+                    var tempBlock = blockBuilder.SpecializeCall(call, targetScope);
+
+                    // We can continue our search in the temp block
+                    currentBlock = tempBlock.BasicBlock;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         #endregion
+
+        #region Instance
 
         /// <summary>
         /// Constructs a new inliner that inlines all methods marked with
@@ -73,7 +117,13 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         public Inliner() { }
 
-        /// <summary cref="OrderedTransformation.PerformTransformation{TScopeProvider}(Method.Builder, Landscape, Landscape{object}.Entry, TScopeProvider)"/>
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Applies the inlining transformation.
+        /// </summary>
         protected override bool PerformTransformation<TScopeProvider>(
             Method.Builder builder,
             Landscape landscape,
@@ -118,40 +168,7 @@ namespace ILGPU.IR.Transformations
             return result;
         }
 
-        /// <summary>
-        /// Tries to inline method calls.
-        /// </summary>
-        /// <param name="builder">The current method builder.</param>
-        /// <param name="caller">The parent caller entry.</param>
-        /// <param name="scopeProvider">The scope provider.</param>
-        /// <param name="currentBlock">The current block (may be modified).</param>
-        /// <returns>True, in case of an inlined call.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool InlineCalls<TScopeProvider>(
-            Method.Builder builder,
-            Landscape.Entry caller,
-            TScopeProvider scopeProvider,
-            ref BasicBlock currentBlock)
-            where TScopeProvider : IScopeProvider
-        {
-            foreach (var valueEntry in currentBlock)
-            {
-                if (!(valueEntry.Value is MethodCall call))
-                    continue;
+        #endregion
 
-                if (call.Target.HasFlags(MethodFlags.Inline))
-                {
-                    var targetScope = scopeProvider[call.Target];
-                    var blockBuilder = builder[currentBlock];
-                    var tempBlock = blockBuilder.SpecializeCall(call, targetScope);
-
-                    // We can continue our search in the temp block
-                    currentBlock = tempBlock.BasicBlock;
-                    return true;
-                }
-            }
-
-            return false;
-        }
     }
 }

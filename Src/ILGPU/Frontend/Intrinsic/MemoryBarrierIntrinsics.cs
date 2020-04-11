@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: MemoryBarrierIntrinsics.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using System;
@@ -15,7 +15,7 @@ using System;
 namespace ILGPU.Frontend.Intrinsic
 {
     /// <summary>
-    /// Marks memory-barrier methods that are builtin.
+    /// Marks memory-barrier methods that are built in.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     sealed class MemoryBarrierIntrinsicAttribute : IntrinsicAttribute
@@ -43,10 +43,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleMemoryBarrierOperation(
             in InvocationContext context,
-            MemoryBarrierIntrinsicAttribute attribute)
-        {
-            return context.Builder.CreateMemoryBarrier(
-                attribute.IntrinsicKind);
-        }
+            MemoryBarrierIntrinsicAttribute attribute) =>
+            context.Builder.CreateMemoryBarrier(attribute.IntrinsicKind);
     }
 }

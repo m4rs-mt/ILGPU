@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Backend.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
@@ -93,17 +93,27 @@ namespace ILGPU.Backends
         /// </summary>
         private readonly struct NoHook : IBackendHook
         {
-            /// <summary cref="IBackendHook.FinishedCodeGeneration(IRContext, Method)"/>
+            /// <summary>
+            /// Performs no operation.
+            /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void FinishedCodeGeneration(IRContext context, Method entryPoint) { }
+            public void FinishedCodeGeneration(
+                IRContext context,
+                Method entryPoint) { }
 
-            /// <summary cref="IBackendHook.InitializedKernelContext(IRContext, Method)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void InitializedKernelContext(IRContext kernelContext, Method kernelMethod) { }
+            /// <summary>
+            /// Performs no operation.
+            /// </summary>
+            public void InitializedKernelContext(
+                IRContext kernelContext,
+                Method kernelMethod) { }
 
-            /// <summary cref="IBackendHook.OptimizedKernelContext(IRContext, Method)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void OptimizedKernelContext(IRContext kernelContext, Method kernelMethod) { }
+            /// <summary>
+            /// Performs no operation.
+            /// </summary>
+            public void OptimizedKernelContext(
+                IRContext kernelContext,
+                Method kernelMethod) { }
         }
 
         /// <summary>
@@ -196,7 +206,6 @@ namespace ILGPU.Backends
             /// <param name="kernelContext">The current kernel context.</param>
             /// <param name="kernelMethod">The kernel function.</param>
             /// <param name="abi">The current ABI.</param>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal BackendContext(
                 IRContext kernelContext,
                 Method kernelMethod,
@@ -211,8 +220,10 @@ namespace ILGPU.Backends
                 var toProcess = new Stack<Scope>();
                 var currentScope = ScopeProvider[kernelMethod];
 
-                var sharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(20);
-                var dynamicSharedAllocations = ImmutableArray.CreateBuilder<AllocaInformation>(1);
+                var sharedAllocations = ImmutableArray.
+                    CreateBuilder<AllocaInformation>(20);
+                var dynamicSharedAllocations = ImmutableArray.
+                    CreateBuilder<AllocaInformation>(1);
                 int sharedMemorySize = 0;
 
                 for (; ; )
@@ -226,14 +237,17 @@ namespace ILGPU.Backends
 
                     sharedAllocations.AddRange(allocas.SharedAllocations.Allocas);
                     sharedMemorySize += allocas.SharedMemorySize;
-                    dynamicSharedAllocations.AddRange(allocas.DynamicSharedAllocations.Allocas);
+                    dynamicSharedAllocations.AddRange(
+                        allocas.DynamicSharedAllocations.Allocas);
 
                     // Check for dynamic shared memory
                     foreach (Value value in currentScope.Values)
                     {
                         if (value is MethodCall call &&
                             ScopeProvider.Resolve(call.Target, out var targetScope))
+                        {
                             toProcess.Push(targetScope);
+                        }
                     }
 
                     if (toProcess.Count < 1)
@@ -316,7 +330,9 @@ namespace ILGPU.Backends
             /// Ensures that all not-implemented intrinsics have a valid associated
             /// code generator that will implement this intrinsic.
             /// </summary>
-            /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
+            /// <typeparam name="TDelegate">
+            /// The backend-specific delegate type.
+            /// </typeparam>
             /// <param name="provider">The implementation provider to use.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void EnsureIntrinsicImplementations<TDelegate>(
@@ -389,10 +405,12 @@ namespace ILGPU.Backends
         public static void EnsureRunningOnNativePlatform()
         {
             if (!RunningOnNativePlatform)
+            {
                 throw new NotSupportedException(string.Format(
                     ErrorMessages.NativePlatformInvocationRequired,
                     RuntimePlatform,
                     OSPlatform));
+            }
         }
 
         /// <summary>
@@ -403,10 +421,12 @@ namespace ILGPU.Backends
         public static void EnsureRunningOnPlatform(TargetPlatform platform)
         {
             if (RuntimePlatform != platform)
+            {
                 throw new NotSupportedException(string.Format(
                     ErrorMessages.NotSupportedPlatform,
                     RuntimePlatform,
                     platform));
+            }
         }
 
         /// <summary>
@@ -414,13 +434,8 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="platform">The nullable target platform.</param>
         /// <returns>The computed target platform.</returns>
-        protected static TargetPlatform GetPlatform(TargetPlatform? platform)
-        {
-            if (platform.HasValue)
-                return platform.Value;
-            else
-                return RuntimePlatform;
-        }
+        protected static TargetPlatform GetPlatform(TargetPlatform? platform) =>
+            platform ?? RuntimePlatform;
 
         #endregion
 
@@ -433,7 +448,9 @@ namespace ILGPU.Backends
         /// <param name="backendType">The backend type.</param>
         /// <param name="backendFlags">The backend flags.</param>
         /// <param name="abi">The current ABI.</param>
-        /// <param name="argumentMapperProvider">The provider for argument mappers.</param>
+        /// <param name="argumentMapperProvider">
+        /// The provider for argument mappers.
+        /// </param>
         protected Backend(
             Context context,
             BackendType backendType,
@@ -533,8 +550,11 @@ namespace ILGPU.Backends
                 var mainContext = codeGenerationPhase.IRContext;
 
                 Frontend.CodeGenerationResult generationResult;
-                using (var frontendPhase = codeGenerationPhase.BeginFrontendCodeGeneration())
+                using (var frontendPhase = codeGenerationPhase.
+                    BeginFrontendCodeGeneration())
+                {
                     generationResult = frontendPhase.GenerateCode(entry.MethodSource);
+                }
 
                 generatedKernelMethod = generationResult.Result;
                 codeGenerationPhase.Optimize();
@@ -634,7 +654,9 @@ namespace ILGPU.Backends
         /// Creates a new entry point that is compatible with the current backend.
         /// </summary>
         /// <param name="entry">The entry point.</param>
-        /// <param name="backendContext">The current kernel context containing all required functions.</param>
+        /// <param name="backendContext">
+        /// The current kernel context containing all required functions.
+        /// </param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <returns>The created entry point.</returns>
         protected virtual EntryPoint CreateEntryPoint(
@@ -651,9 +673,13 @@ namespace ILGPU.Backends
         /// the given kernel specialization and the placement information.
         /// </summary>
         /// <param name="entryPoint">The desired entry point.</param>
-        /// <param name="backendContext">The current kernel context containing all required functions.</param>
+        /// <param name="backendContext">
+        /// The current kernel context containing all required functions.
+        /// </param>
         /// <param name="specialization">The kernel specialization.</param>
-        /// <returns>The compiled kernel that represents the compilation result.</returns>
+        /// <returns>
+        /// The compiled kernel that represents the compilation result.
+        /// </returns>
         protected abstract CompiledKernel Compile(
             EntryPoint entryPoint,
             in BackendContext backendContext,
@@ -676,7 +702,9 @@ namespace ILGPU.Backends
     /// <summary>
     /// Represents a general ILGPU backend.
     /// </summary>
-    /// <typeparam name="TDelegate">The intrinsic delegate type for backend implementations.</typeparam>
+    /// <typeparam name="TDelegate">
+    /// The intrinsic delegate type for backend implementations.
+    /// </typeparam>
     public abstract class Backend<TDelegate> : Backend
         where TDelegate : Delegate
     {
@@ -689,7 +717,9 @@ namespace ILGPU.Backends
         /// <param name="backendType">The backend type.</param>
         /// <param name="backendFlags">The backend flags.</param>
         /// <param name="abi">The current ABI.</param>
-        /// <param name="argumentMapperProvider">The provider for argument mappers.</param>
+        /// <param name="argumentMapperProvider">
+        /// The provider for argument mappers.
+        /// </param>
         protected Backend(
             Context context,
             BackendType backendType,
@@ -721,9 +751,8 @@ namespace ILGPU.Backends
         /// <param name="createTransformers">The target handler.</param>
         protected void InitializeKernelTransformers(
             IntrinsicSpecializerFlags flags,
-            Action<ImmutableArray<Transformer>.Builder> createTransformers)
-        {
-            base.InitializeKernelTransformers(builder =>
+            Action<ImmutableArray<Transformer>.Builder> createTransformers) =>
+            InitializeKernelTransformers(builder =>
             {
                 // Specialize intrinsic functions
                 var resolver = new IntrinsicResolver<TDelegate>(IntrinsicProvider);
@@ -745,7 +774,6 @@ namespace ILGPU.Backends
 
                 createTransformers(builder);
             });
-        }
 
         /// <summary>
         /// Clears all internal caches.

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IfInfo.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using System;
@@ -58,7 +58,9 @@ namespace ILGPU.IR.Analyses
                 ElseBlock = null;
             }
             else if (ElseBlock == exitBlock)
+            {
                 ElseBlock = null;
+            }
         }
 
         #endregion
@@ -106,26 +108,20 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <returns>True, if this is a simple if.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsSimpleIf()
-        {
-            if (HasElseBlock)
-                return
-                // Check direct connection of the entry node
-                EntryBlock.HasSuccessor(IfBlock) &&
+        public bool IsSimpleIf() =>
+            HasElseBlock
+            ? EntryBlock.HasSuccessor(IfBlock) &&
                 EntryBlock.HasSuccessor(ElseBlock) &&
                 // Check direct connection of the exit node
                 IfBlock.Successors.Length == 1 &&
                 IfBlock.Successors[0] == ExitBlock &&
                 ElseBlock.Successors.Length == 1 &&
-                ElseBlock.Successors[0] == ExitBlock;
-            return
-                // Check direct connection of the entry node
-                EntryBlock.HasSuccessor(IfBlock) &&
+                ElseBlock.Successors[0] == ExitBlock
+            : EntryBlock.HasSuccessor(IfBlock) &&
                 EntryBlock.HasSuccessor(ExitBlock) &&
                 // Check direct connection of the exit node
                 IfBlock.Successors.Length == 1 &&
                 IfBlock.Successors[0] == ExitBlock;
-        }
 
         /// <summary>
         /// Returns true if this if has side effects.
@@ -134,7 +130,7 @@ namespace ILGPU.IR.Analyses
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool HasSideEffects() =>
             IfBlock.HasSideEffects() ||
-            (HasElseBlock && ElseBlock.HasSideEffects());
+            HasElseBlock && ElseBlock.HasSideEffects();
 
         /// <summary>
         /// Resolves detailed variable information.
@@ -149,9 +145,13 @@ namespace ILGPU.IR.Analyses
     /// Represents detailed variable information with respect
     /// to an if statement.
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
-        Justification = "This is a single variable information object; adding a collection suffix would be misleading")]
-    public readonly struct IfVariableInfo : IReadOnlyCollection<KeyValuePair<PhiValue, IfVariableInfo.Variable>>
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1710: IdentifiersShouldHaveCorrectSuffix",
+        Justification = "This is a single variable information object; adding a" +
+        "collection suffix would be misleading")]
+    public readonly struct IfVariableInfo :
+        IReadOnlyCollection<KeyValuePair<PhiValue, IfVariableInfo.Variable>>
     {
         #region Nested Types
 
@@ -189,6 +189,11 @@ namespace ILGPU.IR.Analyses
             /// </summary>
             public Value FalseValue { get; }
 
+            /// <summary>
+            /// Adds an additional false value to this variable.
+            /// </summary>
+            /// <param name="falseValue">The false value.</param>
+            /// <returns>The updated variable.</returns>
             internal Variable AddFalseValue(Value falseValue)
             {
                 Debug.Assert(FalseValue == null, "False value already specified");
@@ -286,7 +291,7 @@ namespace ILGPU.IR.Analyses
             }
 
             // Link else block
-            foreach (Value value in (ifInfo.ElseBlock ?? ifInfo.EntryBlock))
+            foreach (Value value in ifInfo.ElseBlock ?? ifInfo.EntryBlock)
             {
                 foreach (var use in value.Uses)
                 {
@@ -322,8 +327,9 @@ namespace ILGPU.IR.Analyses
         public Enumerator GetEnumerator() => new Enumerator(this);
 
         /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-        IEnumerator<KeyValuePair<PhiValue, Variable>> IEnumerable<KeyValuePair<PhiValue, Variable>>.
-            GetEnumerator() => GetEnumerator();
+        IEnumerator<KeyValuePair<PhiValue, Variable>>
+            IEnumerable<KeyValuePair<PhiValue, Variable>>.GetEnumerator() =>
+            GetEnumerator();
 
         /// <summary cref="IEnumerable.GetEnumerator"/>
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -335,7 +341,9 @@ namespace ILGPU.IR.Analyses
     /// Infers high-level control-flow ifs
     /// from unstructured low-level control flow.
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of this program analysis")]
     public sealed class IfInfos : IReadOnlyList<IfInfo>
     {

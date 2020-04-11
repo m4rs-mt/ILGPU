@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Index1.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
@@ -122,12 +122,10 @@ namespace ILGPU
         #region IGenericIndex
 
         /// <summary cref="IGenericIndex{TIndex}.InBounds(TIndex)"/>
-        public bool InBounds(Index1 dimension) =>
-            X >= 0 && X < dimension.X;
+        public bool InBounds(Index1 dimension) => X >= 0 && X < dimension.X;
 
         /// <summary cref="IGenericIndex{TIndex}.InBoundsInclusive(TIndex)"/>
-        public bool InBoundsInclusive(Index1 dimension) =>
-            X >= 0 && X <= dimension.X;
+        public bool InBoundsInclusive(Index1 dimension) => X >= 0 && X <= dimension.X;
 
         /// <summary cref="IGenericIndex{TIndex}.ComputeLinearIndex(TIndex)"/>
         public int ComputeLinearIndex(Index1 dimension) => X;
@@ -182,8 +180,7 @@ namespace ILGPU
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current index.</returns>
-        public override bool Equals(object obj) =>
-            obj is Index1 other && Equals(other);
+        public override bool Equals(object obj) => obj is Index1 other && Equals(other);
 
         /// <summary>
         /// Returns the hash code of this index.
@@ -207,8 +204,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The added index.</returns>
-        public static Index1 Add(Index1 first, Index1 second) =>
-            first + second;
+        public static Index1 Add(Index1 first, Index1 second) => first + second;
 
         /// <summary>
         /// Adds two indices.
@@ -225,8 +221,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The subtracted index.</returns>
-        public static Index1 Subtract(Index1 first, Index1 second) =>
-            first - second;
+        public static Index1 Subtract(Index1 first, Index1 second) => first - second;
 
         /// <summary>
         /// Subtracts two indices.
@@ -243,8 +238,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The multiplied index.</returns>
-        public static Index1 Multiply(Index1 first, Index1 second) =>
-            first * second;
+        public static Index1 Multiply(Index1 first, Index1 second) => first * second;
 
         /// <summary>
         /// Multiplies two indices.
@@ -261,8 +255,7 @@ namespace ILGPU
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
         /// <returns>The divided index.</returns>
-        public static Index1 Divide(Index1 first, Index1 second) =>
-            first / second;
+        public static Index1 Divide(Index1 first, Index1 second) => first / second;
 
         /// <summary>
         /// Divides two indices.
@@ -305,7 +298,9 @@ namespace ILGPU
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, if the first index is smaller than or equal to the second index.</returns>
+        /// <returns>
+        /// True, if the first index is smaller than or equal to the second index.
+        /// </returns>
         public static bool operator <=(Index1 first, Index1 second) =>
             first.X <= second.X;
 
@@ -323,24 +318,26 @@ namespace ILGPU
         /// </summary>
         /// <param name="first">The first index.</param>
         /// <param name="second">The second index.</param>
-        /// <returns>True, if the first index is greater than or equal to the second index.</returns>
+        /// <returns>
+        /// True, if the first index is greater than or equal to the second index.
+        /// </returns>
         public static bool operator >=(Index1 first, Index1 second) =>
             first.X >= second.X;
 
         /// <summary>
-        /// Implictly converts an index to an int.
+        /// Implicitly converts an index to an int.
         /// </summary>
         /// <param name="idx">The index to convert.</param>
         public static implicit operator int(Index1 idx) => idx.X;
 
         /// <summary>
-        /// Implictly converts an int to an index.
+        /// Implicitly converts an int to an index.
         /// </summary>
         /// <param name="idx">The int to convert.</param>
         public static implicit operator Index1(int idx) => new Index1(idx);
 
         /// <summary>
-        /// Implictly converts an index to an uint.
+        /// Implicitly converts an index to an uint.
         /// </summary>
         /// <param name="idx">The index to convert.</param>
         [CLSCompliant(false)]

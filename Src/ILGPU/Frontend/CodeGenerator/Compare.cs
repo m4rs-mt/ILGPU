@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Compare.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Construction;
@@ -88,8 +88,11 @@ namespace ILGPU.Frontend
             CompareFlags flags)
         {
             var convertFlags = ConvertFlags.None;
-            if ((flags & CompareFlags.UnsignedOrUnordered) == CompareFlags.UnsignedOrUnordered)
+            if ((flags & CompareFlags.UnsignedOrUnordered) ==
+                CompareFlags.UnsignedOrUnordered)
+            {
                 convertFlags = ConvertFlags.SourceUnsigned;
+            }
             right = CreateConversion(builder, right, left.Type, convertFlags);
             left = CreateConversion(builder, left, right.Type, convertFlags);
             Debug.Assert(left.BasicValueType == right.BasicValueType);

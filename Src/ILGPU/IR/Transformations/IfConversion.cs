@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: IfConversion.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using System;
@@ -19,6 +19,8 @@ namespace ILGPU.IR.Transformations
     /// </summary>
     public sealed class IfConversion : UnorderedTransformation
     {
+        #region Constants
+
         /// <summary>
         /// The default maximum number of instructions per block.
         /// </summary>
@@ -28,6 +30,10 @@ namespace ILGPU.IR.Transformations
         /// The default The maximum size difference of the if and the else block.
         /// </summary>
         public const int DefaultMaxSizeDifference = 1;
+
+        #endregion
+
+        #region Instance
 
         /// <summary>
         /// Constructs a new if-conversion transformation.
@@ -39,8 +45,12 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new if-conversion transformation.
         /// </summary>
-        /// <param name="maxBlockSize">The maximum number of instructions per block.</param>
-        /// <param name="maxSizeDifference">The maximum size difference of the if and the else block.</param>
+        /// <param name="maxBlockSize">
+        /// The maximum number of instructions per block.
+        /// </param>
+        /// <param name="maxSizeDifference">
+        /// The maximum size difference of the if and the else block.
+        /// </param>
         public IfConversion(int maxBlockSize, int maxSizeDifference)
         {
             if (maxBlockSize < 1)
@@ -52,6 +62,10 @@ namespace ILGPU.IR.Transformations
             MaxSizeDifference = maxSizeDifference;
         }
 
+        #endregion
+
+        #region Properties
+
         /// <summary>
         /// Resolves the maximum number of instructions per block.
         /// </summary>
@@ -62,7 +76,13 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         public int MaxSizeDifference { get; }
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Applies an if-conversion transformation.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
             var scope = builder.CreateScope();
@@ -78,13 +98,17 @@ namespace ILGPU.IR.Transformations
 
                 // Check size constraints
                 int ifBlockSize = ifInfo.IfBlock.Count;
-                int elseBlockSize = ifInfo.HasElseBlock ? ifInfo.ElseBlock.Count : ifBlockSize;
+                int elseBlockSize = ifInfo.HasElseBlock
+                    ? ifInfo.ElseBlock.Count
+                    : ifBlockSize;
                 int blockSizeDiff = IntrinsicMath.Abs(ifBlockSize - elseBlockSize);
 
                 if (ifBlockSize > MaxBlockSize ||
                     elseBlockSize > MaxBlockSize ||
                     blockSizeDiff > DefaultMaxSizeDifference)
+                {
                     continue;
+                }
 
                 // Check for side effects
                 if (ifInfo.HasSideEffects())
@@ -121,5 +145,7 @@ namespace ILGPU.IR.Transformations
 
             return converted;
         }
+
+        #endregion
     }
 }

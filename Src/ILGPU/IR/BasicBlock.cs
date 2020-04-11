@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: BasicBlock.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
 using System;
@@ -24,9 +24,13 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents a single basic block.
     /// </summary>
-    [SuppressMessage("Microsoft.Naming", "CA1710: IdentifiersShouldHaveCorrectSuffix",
+    [SuppressMessage(
+        "Microsoft.Naming",
+        "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of the current entity")]
-    public sealed partial class BasicBlock : ValueParent, IReadOnlyCollection<BasicBlock.ValueEntry>
+    public sealed partial class BasicBlock :
+        ValueParent,
+        IReadOnlyCollection<BasicBlock.ValueEntry>
     {
         #region Nested Types
 
@@ -230,8 +234,11 @@ namespace ILGPU.IR
         public bool HasSuccessor(BasicBlock successor)
         {
             foreach (var succ in Successors)
+            {
                 if (succ == successor)
                     return true;
+            }
+
             return false;
         }
 
@@ -312,17 +319,19 @@ namespace ILGPU.IR
         /// <summary>
         /// Dumps this block to the console output.
         /// </summary>
-        /// <param name="ignoreDeadValues">True, if dead values should be ignored.</param>
-        public void DumpToConsole(bool ignoreDeadValues)
-        {
+        /// <param name="ignoreDeadValues">
+        /// True, if dead values should be ignored.
+        /// </param>
+        public void DumpToConsole(bool ignoreDeadValues) =>
             Dump(Console.Out, false);
-        }
 
         /// <summary>
         /// Dumps this block to the given text writer.
         /// </summary>
         /// <param name="textWriter">The text writer.</param>
-        /// <param name="ignoreDeadValues">True, if dead values should be ignored.</param>
+        /// <param name="ignoreDeadValues">
+        /// True, if dead values should be ignored.
+        /// </param>
         public void Dump(TextWriter textWriter, bool ignoreDeadValues)
         {
             if (textWriter == null)
@@ -364,7 +373,8 @@ namespace ILGPU.IR
         public Enumerator GetEnumerator() => new Enumerator(this);
 
         /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-        IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
+        IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() =>
+            GetEnumerator();
 
         /// <summary cref="IEnumerable.GetEnumerator"/>
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Unix.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
 using System;
@@ -207,12 +207,20 @@ namespace ILGPU.Runtime.Cuda.API
             [In] CudaError error,
             [Out] out IntPtr pStr);
 
-        [DllImport(LibName, BestFitMapping = false, CharSet = CharSet.Ansi, ThrowOnUnmappableChar = true)]
+        [DllImport(
+            LibName,
+            BestFitMapping = false,
+            CharSet = CharSet.Ansi,
+            ThrowOnUnmappableChar = true)]
         private static extern CudaError cuModuleLoadData(
             [Out] out IntPtr module,
             [In, MarshalAs(UnmanagedType.LPStr)] string moduleData);
 
-        [DllImport(LibName, BestFitMapping = false, CharSet = CharSet.Ansi, ThrowOnUnmappableChar = true)]
+        [DllImport(
+            LibName,
+            BestFitMapping = false,
+            CharSet = CharSet.Ansi,
+            ThrowOnUnmappableChar = true)]
         private static extern CudaError cuModuleLoadDataEx(
             [Out] out IntPtr module,
             [In, MarshalAs(UnmanagedType.LPStr)] string moduleData,
@@ -223,7 +231,11 @@ namespace ILGPU.Runtime.Cuda.API
         [DllImport(LibName)]
         private static extern CudaError cuModuleUnload(IntPtr module);
 
-        [DllImport(LibName, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+        [DllImport(
+            LibName,
+            CharSet = CharSet.Ansi,
+            BestFitMapping = false,
+            ThrowOnUnmappableChar = true)]
         private static extern CudaError cuModuleGetFunction(
             [Out] out IntPtr function,
             [In] IntPtr module,
@@ -255,7 +267,8 @@ namespace ILGPU.Runtime.Cuda.API
             [Out] out int minGridSize,
             [Out] out int blockSize,
             [In] IntPtr func,
-            [In] [MarshalAs(UnmanagedType.FunctionPtr)] ComputeDynamicMemorySizeForBlockSize blockSizeToDynamicSMemSize,
+            [In] [MarshalAs(UnmanagedType.FunctionPtr)]
+                ComputeDynamicMemorySizeForBlockSize blockSizeToDynamicSMemSize,
             [In] IntPtr dynamicSMemSize,
             [In] int blockSizeLimit);
 
@@ -264,7 +277,7 @@ namespace ILGPU.Runtime.Cuda.API
         #region Instance
 
         /// <summary>
-        /// Intializes a new driver API for Unix.
+        /// Initializes a new driver API for Unix.
         /// </summary>
         public CudaAPIUnix() { }
 
@@ -306,7 +319,10 @@ namespace ILGPU.Runtime.Cuda.API
             cuDeviceGetCount(out count);
 
         /// <summary cref="CudaAPI.GetDeviceName(byte[], int, int)"/>
-        protected override CudaError GetDeviceName(byte[] bytes, int length, int device) =>
+        protected override CudaError GetDeviceName(
+            byte[] bytes,
+            int length,
+            int device) =>
             cuDeviceGetName(bytes, length, device);
 
         /// <summary cref="CudaAPI.GetTotalDeviceMemory(out IntPtr, int)"/>
@@ -326,13 +342,19 @@ namespace ILGPU.Runtime.Cuda.API
             out int minor,
             int device)
         {
-            var error = cuDeviceGetAttribute(out major, DeviceAttribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device);
+            var error = cuDeviceGetAttribute(
+                out major,
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
+                device);
             if (error != CudaError.CUDA_SUCCESS)
             {
                 minor = default;
                 return error;
             }
-            return cuDeviceGetAttribute(out minor, DeviceAttribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device);
+            return cuDeviceGetAttribute(
+                out minor,
+                DeviceAttribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
+                device);
         }
 
         #endregion
@@ -346,13 +368,15 @@ namespace ILGPU.Runtime.Cuda.API
             int device) =>
             cuCtxCreate_v2(out context, flags, device);
 
-        /// <summary cref="CudaAPI.CreateContextD3D11(out IntPtr, out int, CudaAcceleratorFlags, IntPtr)"/>
+        /// <summary cref="CudaAPI.CreateContextD3D11(
+        /// out IntPtr, out int, CudaAcceleratorFlags, IntPtr)"/>
         public override CudaError CreateContextD3D11(
             out IntPtr context,
             out int device,
             CudaAcceleratorFlags flags,
             IntPtr d3dDevice) =>
-            throw new NotSupportedException(RuntimeErrorMessages.NotSupportedTargetAccelerator);
+            throw new NotSupportedException(
+                RuntimeErrorMessages.NotSupportedTargetAccelerator);
 
         /// <summary cref="CudaAPI.DestroyContext(IntPtr)"/>
         public override CudaError DestroyContext(IntPtr context) =>
@@ -374,12 +398,16 @@ namespace ILGPU.Runtime.Cuda.API
         public override CudaError SetCacheConfig(CudaCacheConfiguration config) =>
             cuCtxSetCacheConfig(config);
 
-        /// <summary cref="CudaAPI.GetSharedMemoryConfig(out CudaSharedMemoryConfiguration)"/>
-        public override CudaError GetSharedMemoryConfig(out CudaSharedMemoryConfiguration config) =>
+        /// <summary cref="CudaAPI.GetSharedMemoryConfig(
+        /// out CudaSharedMemoryConfiguration)"/>
+        public override CudaError GetSharedMemoryConfig(
+            out CudaSharedMemoryConfiguration config) =>
             cuCtxGetSharedMemConfig(out config);
 
-        /// <summary cref="CudaAPI.SetSharedMemoryConfig(CudaSharedMemoryConfiguration)"/>
-        public override CudaError SetSharedMemoryConfig(CudaSharedMemoryConfiguration config) =>
+        /// <summary cref="CudaAPI.SetSharedMemoryConfig(
+        /// CudaSharedMemoryConfiguration)"/>
+        public override CudaError SetSharedMemoryConfig(
+            CudaSharedMemoryConfiguration config) =>
             cuCtxSetSharedMemConfig(config);
 
         /// <summary cref="CudaAPI.CanAccessPeer(out int, int, int)"/>
@@ -397,7 +425,8 @@ namespace ILGPU.Runtime.Cuda.API
         public override CudaError DisablePeerAccess(IntPtr peerContext) =>
             cuCtxDisablePeerAccess(peerContext);
 
-        /// <summary cref="CudaAPI.GetPeerAttribute(out int, Peer2PeerAttribute, int, int)"/>
+        /// <summary cref="CudaAPI.GetPeerAttribute(
+        /// out int, Peer2PeerAttribute, int, int)"/>
         internal override CudaError GetPeerAttribute(
             out int value,
             Peer2PeerAttribute attribute,
@@ -418,7 +447,9 @@ namespace ILGPU.Runtime.Cuda.API
             cuMemGetInfo_v2(out free, out total);
 
         /// <summary cref="CudaAPI.AllocateMemory(out IntPtr, IntPtr)"/>
-        public override CudaError AllocateMemory(out IntPtr devicePtr, IntPtr bytesize) =>
+        public override CudaError AllocateMemory(
+            out IntPtr devicePtr,
+            IntPtr bytesize) =>
             cuMemAlloc_v2(out devicePtr, bytesize);
 
         /// <summary cref="CudaAPI.FreeMemory(IntPtr)"/>
@@ -426,7 +457,9 @@ namespace ILGPU.Runtime.Cuda.API
             cuMemFree_v2(devicePtr);
 
         /// <summary cref="CudaAPI.AllocateHostMemory(out IntPtr, IntPtr)"/>
-        public override CudaError AllocateHostMemory(out IntPtr devicePtr, IntPtr bytesize) =>
+        public override CudaError AllocateHostMemory(
+            out IntPtr devicePtr,
+            IntPtr bytesize) =>
             cuMemAllocHost_v2(out devicePtr, bytesize);
 
         /// <summary cref="CudaAPI.FreeHostMemory(IntPtr)"/>
@@ -440,7 +473,8 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr length) =>
             cuMemcpy(destination, source, length);
 
-        /// <summary cref="CudaAPI.MemcpyHostToDevice(IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
+        /// <summary cref="CudaAPI.MemcpyHostToDevice(
+        /// IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
         public override CudaError MemcpyHostToDevice(
             IntPtr destinationDevice,
             IntPtr sourceHost,
@@ -452,7 +486,8 @@ namespace ILGPU.Runtime.Cuda.API
                 length,
                 stream);
 
-        /// <summary cref="CudaAPI.MemcpyDeviceToHost(IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
+        /// <summary cref="CudaAPI.MemcpyDeviceToHost(
+        /// IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
         public override CudaError MemcpyDeviceToHost(
             IntPtr destinationHost,
             IntPtr sourceDevice,
@@ -464,7 +499,8 @@ namespace ILGPU.Runtime.Cuda.API
                 length,
                 stream);
 
-        /// <summary cref="CudaAPI.MemcpyDeviceToDevice(IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
+        /// <summary cref="CudaAPI.MemcpyDeviceToDevice(
+        /// IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
         public override CudaError MemcpyDeviceToDevice(
             IntPtr destinationDevice,
             IntPtr sourceDevice,
@@ -484,7 +520,8 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr stream) =>
             cuMemsetD8Async(destinationDevice, value, length, stream);
 
-        /// <summary cref="CudaAPI.GetPointerAttribute(IntPtr, PointerAttribute, IntPtr)"/>
+        /// <summary cref="CudaAPI.GetPointerAttribute(
+        /// IntPtr, PointerAttribute, IntPtr)"/>
         internal override CudaError GetPointerAttribute(
             IntPtr targetPtr,
             PointerAttribute attribute,
@@ -502,7 +539,8 @@ namespace ILGPU.Runtime.Cuda.API
         internal override CudaError CreateStream(out IntPtr stream, StreamFlags flags) =>
             cuStreamCreate(out stream, flags);
 
-        /// <summary cref="CudaAPI.CreateStreamWithPriority(out IntPtr, StreamFlags, int)"/>
+        /// <summary cref="CudaAPI.CreateStreamWithPriority(
+        /// out IntPtr, StreamFlags, int)"/>
         internal override CudaError CreateStreamWithPriority(
             out IntPtr stream,
             StreamFlags flags,
@@ -549,7 +587,8 @@ namespace ILGPU.Runtime.Cuda.API
             string functionName) =>
             cuModuleGetFunction(out function, module, functionName);
 
-        /// <summary cref="CudaAPI.LaunchKernel(IntPtr, int, int, int, int, int, int, int, IntPtr, IntPtr, IntPtr)"/>
+        /// <summary cref="CudaAPI.LaunchKernel(
+        /// IntPtr, int, int, int, int, int, int, int, IntPtr, IntPtr, IntPtr)"/>
         public override CudaError LaunchKernel(
             IntPtr function,
             int gridDimX,
@@ -575,7 +614,8 @@ namespace ILGPU.Runtime.Cuda.API
                 args,
                 kernelArgs);
 
-        /// <summary cref="CudaAPI.ComputeOccupancyMaxActiveBlocksPerMultiprocessor(out int, IntPtr, int, IntPtr)"/>
+        /// <summary cref="CudaAPI.ComputeOccupancyMaxActiveBlocksPerMultiprocessor(
+        /// out int, IntPtr, int, IntPtr)"/>
         public override CudaError ComputeOccupancyMaxActiveBlocksPerMultiprocessor(
             out int numBlocks,
             IntPtr func,
@@ -587,7 +627,9 @@ namespace ILGPU.Runtime.Cuda.API
                 blockSize,
                 dynamicSMemSize);
 
-        /// <summary cref="CudaAPI.ComputeOccupancyMaxPotentialBlockSize(out int, out int, IntPtr, ComputeDynamicMemorySizeForBlockSize, IntPtr, int)"/>
+        /// <summary cref="CudaAPI.ComputeOccupancyMaxPotentialBlockSize(
+        /// out int, out int, IntPtr, ComputeDynamicMemorySizeForBlockSize, IntPtr,
+        /// int)"/>
         public override CudaError ComputeOccupancyMaxPotentialBlockSize(
             out int minGridSize,
             out int blockSize,

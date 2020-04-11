@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SeparateViewEntryPoint.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -18,7 +18,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.EntryPoints
@@ -229,11 +228,14 @@ namespace ILGPU.Backends.EntryPoints
             /// <summary>
             /// Returns an enumerator to enumerate all parameters in this collection.
             /// </summary>
-            /// <returns>An enumerator to enumerate all parameters in this collection.</returns>
+            /// <returns>
+            /// An enumerator to enumerate all parameters in this collection.
+            /// </returns>
             public Enumerator GetEnumerator() => new Enumerator(this);
 
             /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            IEnumerator<ViewParameter> IEnumerable<ViewParameter>.GetEnumerator() => GetEnumerator();
+            IEnumerator<ViewParameter> IEnumerable<ViewParameter>.GetEnumerator() =>
+                GetEnumerator();
 
             /// <summary cref="IEnumerable.GetEnumerator"/>
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -258,7 +260,9 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="sharedMemory">The shared memory specification.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="typeInformationManager">The information manager to use.</param>
-        /// <param name="numImplementationFieldsPerView">The number of fields per view.</param>
+        /// <param name="numImplementationFieldsPerView">
+        /// The number of fields per view.
+        /// </param>
         public SeparateViewEntryPoint(
             EntryPointDescription description,
             in SharedMemorySpecification sharedMemory,
@@ -268,8 +272,10 @@ namespace ILGPU.Backends.EntryPoints
             : base(description, sharedMemory, specialization)
         {
             if (numImplementationFieldsPerView < 1)
+            {
                 throw new ArgumentOutOfRangeException(
                     nameof(numImplementationFieldsPerView));
+            }
             NumImplementationFieldsPerView = numImplementationFieldsPerView;
 
             var builder = ImmutableArray.CreateBuilder<ViewParameter>(

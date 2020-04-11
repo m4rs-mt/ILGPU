@@ -1,15 +1,14 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Arithmetic.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
-using ILGPU.IR;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
 
@@ -39,7 +38,7 @@ namespace ILGPU.Frontend
                 convertFlags |= ConvertFlags.TargetUnsigned;
                 arithmeticFlags |= ArithmeticFlags.Unsigned;
             }
-            block.PopArithmeticArgs(convertFlags, out Value left, out Value right);
+            block.PopArithmeticArgs(convertFlags, out var left, out var right);
             switch (kind)
             {
                 case BinaryArithmeticKind.Shl:
@@ -52,7 +51,11 @@ namespace ILGPU.Frontend
                         convertFlags);
                     break;
             }
-            var arithmetic = builder.CreateArithmetic(left, right, kind, arithmeticFlags);
+            var arithmetic = builder.CreateArithmetic(
+                left,
+                right,
+                kind,
+                arithmeticFlags);
             block.Push(arithmetic);
         }
 

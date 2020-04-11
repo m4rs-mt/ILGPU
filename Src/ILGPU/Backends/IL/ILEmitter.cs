@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ILEmitter.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Util;
 using System;
@@ -65,7 +65,7 @@ namespace ILGPU.Backends.IL
         }
 
         /// <summary>
-        /// Returns the assinged label index.
+        /// Returns the assigned label index.
         /// </summary>
         public int Index { get; }
     }
@@ -290,10 +290,8 @@ namespace ILGPU.Backends.IL
         }
 
         /// <summary cref="IILEmitter.MarkLabel(ILLabel)"/>
-        public void MarkLabel(ILLabel label)
-        {
+        public void MarkLabel(ILLabel label) =>
             Generator.MarkLabel(declaredLabels[label.Index]);
-        }
 
         /// <summary cref="IILEmitter.Emit(LocalOperation, ILLocal)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -330,76 +328,52 @@ namespace ILGPU.Backends.IL
         }
 
         /// <summary cref="IILEmitter.EmitCall(MethodInfo)"/>
-        public void EmitCall(MethodInfo target)
-        {
+        public void EmitCall(MethodInfo target) =>
             Generator.Emit(target.IsVirtual ? OpCodes.Callvirt : OpCodes.Call, target);
-        }
 
         /// <summary cref="IILEmitter.EmitNewObject(ConstructorInfo)"/>
-        public void EmitNewObject(ConstructorInfo info)
-        {
+        public void EmitNewObject(ConstructorInfo info) =>
             Generator.Emit(OpCodes.Newobj, info);
-        }
 
         /// <summary cref="IILEmitter.Emit(OpCode)"/>
-        public void Emit(OpCode opCode)
-        {
+        public void Emit(OpCode opCode) =>
             Generator.Emit(opCode);
-        }
 
         /// <summary cref="IILEmitter.Emit(OpCode, ILLabel)"/>
-        public void Emit(OpCode opCode, ILLabel label)
-        {
+        public void Emit(OpCode opCode, ILLabel label) =>
             Generator.Emit(opCode, declaredLabels[label.Index]);
-        }
 
         /// <summary cref="IILEmitter.Emit(OpCode, Type)"/>
-        public void Emit(OpCode opCode, Type type)
-        {
+        public void Emit(OpCode opCode, Type type) =>
             Generator.Emit(opCode, type);
-        }
 
         /// <summary cref="IILEmitter.Emit(OpCode, FieldInfo)"/>
-        public void Emit(OpCode opCode, FieldInfo field)
-        {
+        public void Emit(OpCode opCode, FieldInfo field) =>
             Generator.Emit(opCode, field);
-        }
 
         /// <summary cref="IILEmitter.EmitAlloca(int)"/>
-        public void EmitAlloca(int size)
-        {
+        public void EmitAlloca(int size) =>
             Generator.Emit(OpCodes.Localloc, size);
-        }
 
         /// <summary cref="IILEmitter.EmitConstant(string)"/>
-        public void EmitConstant(string constant)
-        {
+        public void EmitConstant(string constant) =>
             Generator.Emit(OpCodes.Ldstr, constant);
-        }
 
         /// <summary cref="IILEmitter.EmitConstant(int)"/>
-        public void EmitConstant(int constant)
-        {
+        public void EmitConstant(int constant) =>
             Generator.Emit(OpCodes.Ldc_I4, constant);
-        }
 
         /// <summary cref="IILEmitter.EmitConstant(long)"/>
-        public void EmitConstant(long constant)
-        {
+        public void EmitConstant(long constant) =>
             Generator.Emit(OpCodes.Ldc_I8, constant);
-        }
 
         /// <summary cref="IILEmitter.EmitConstant(float)"/>
-        public void EmitConstant(float constant)
-        {
+        public void EmitConstant(float constant) =>
             Generator.Emit(OpCodes.Ldc_R4, constant);
-        }
 
         /// <summary cref="IILEmitter.EmitConstant(double)"/>
-        public void EmitConstant(double constant)
-        {
+        public void EmitConstant(double constant) =>
             Generator.Emit(OpCodes.Ldc_R8, constant);
-        }
 
         /// <summary cref="IILEmitter.EmitSwitch(ILLabel[])"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -476,10 +450,8 @@ namespace ILGPU.Backends.IL
             Writer.WriteLine(":");
         }
 
-        private void EmitPrefix()
-        {
+        private void EmitPrefix() =>
             Writer.Write("\t");
-        }
 
         /// <summary cref="IILEmitter.Emit(LocalOperation, ILLocal)"/>
         public void Emit(LocalOperation operation, ILLocal local)

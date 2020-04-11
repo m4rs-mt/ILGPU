@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CPURuntimeThreadContext.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Reflection;
@@ -114,7 +114,9 @@ namespace ILGPU.Runtime.CPU
         /// <param name="gridDimension">The grid dimension.</param>
         /// <param name="groupDimension">The group dimension.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void SetupDimensions(Index3 gridDimension, Index3 groupDimension)
+        internal static void SetupDimensions(
+            Index3 gridDimension,
+            Index3 groupDimension)
         {
             SetupIndices(default, default);
             gridDimensionValue = gridDimension;

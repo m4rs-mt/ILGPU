@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Objects.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
@@ -35,7 +35,7 @@ namespace ILGPU.Frontend
         }
 
         /// <summary>
-        /// Realizes an un-boxing operation that unboxes a previously boxed value.
+        /// Realizes an unboxing operation that unboxes a previously boxed value.
         /// </summary>
         /// <param name="block">The current basic block.</param>
         /// <param name="builder">The current builder.</param>
@@ -57,7 +57,8 @@ namespace ILGPU.Frontend
         }
 
         /// <summary>
-        /// Realizes a new-object operation that creates a new instance of a specified type.
+        /// Realizes a new-object operation that creates a new instance of a specified
+        /// type.
         /// </summary>
         /// <param name="block">The current basic block.</param>
         /// <param name="builder">The current builder.</param>
@@ -115,10 +116,8 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="block">The current basic block.</param>
         /// <param name="type">The target type.</param>
-        private void MakeIsInstance(Block block, Type type)
-        {
+        private void MakeIsInstance(Block block, Type type) =>
             throw this.GetNotSupportedException(ErrorMessages.NotSupportedIsInstance);
-        }
 
         /// <summary>
         /// Realizes an indirect load instruction.

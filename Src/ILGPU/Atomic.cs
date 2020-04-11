@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Atomic.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR.Values;
@@ -45,7 +45,9 @@ namespace ILGPU
             /// <summary>
             /// Performs the actual atomic binary operation.
             /// </summary>
-            /// <param name="current">The current value at the target memory location.</param>
+            /// <param name="current">
+            /// The current value at the target memory location.
+            /// </param>
             /// <param name="value">The involved external value.</param>
             /// <returns>The result of the binary operation.</returns>
             T Operation(T current, T value);
@@ -60,17 +62,15 @@ namespace ILGPU
         #region Add
 
         /// <summary>
-        /// Atommically adds the given value and the value at the target location
+        /// Atomically adds the given value and the value at the target location
         /// and returns the old value.
         /// </summary>
         /// <param name="target">the target location.</param>
         /// <param name="value">The value to add.</param>
         /// <returns>The old value that was stored at the target location.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Index1 Add(ref Index1 target, Index1 value)
-        {
-            return Add(ref Unsafe.As<Index1, int>(ref target), value);
-        }
+        public static Index1 Add(ref Index1 target, Index1 value) =>
+            Add(ref Unsafe.As<Index1, int>(ref target), value);
 
         #endregion
 
@@ -85,10 +85,8 @@ namespace ILGPU
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.Unsigned)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint Exchange(ref uint target, uint value)
-        {
-            return (uint)Exchange(ref Unsafe.As<uint, int>(ref target), (int)value);
-        }
+        public static uint Exchange(ref uint target, uint value) =>
+            (uint)Exchange(ref Unsafe.As<uint, int>(ref target), (int)value);
 
         /// <summary>
         /// Represents an atomic exchange operation.
@@ -99,10 +97,8 @@ namespace ILGPU
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.Unsigned)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ulong Exchange(ref ulong target, ulong value)
-        {
-            return (ulong)Exchange(ref Unsafe.As<ulong, long>(ref target), (long)value);
-        }
+        public static ulong Exchange(ref ulong target, ulong value) =>
+            (ulong)Exchange(ref Unsafe.As<ulong, long>(ref target), (long)value);
 
         /// <summary>
         /// Represents an atomic exchange operation.
@@ -141,10 +137,8 @@ namespace ILGPU
         /// <param name="value">The value to add.</param>
         /// <returns>The old value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Index1 Exchange(ref Index1 target, Index1 value)
-        {
-            return Exchange(ref Unsafe.As<Index1, int>(ref target), value);
-        }
+        public static Index1 Exchange(ref Index1 target, Index1 value) =>
+            Exchange(ref Unsafe.As<Index1, int>(ref target), value);
 
         #endregion
 
@@ -160,13 +154,14 @@ namespace ILGPU
         [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [AtomicIntrinsic(AtomicIntrinsicKind.CompareExchange, AtomicFlags.Unsigned)]
-        public static uint CompareExchange(ref uint target, uint compare, uint value)
-        {
-            return (uint)CompareExchange(
+        public static uint CompareExchange(
+            ref uint target,
+            uint compare,
+            uint value) =>
+            (uint)CompareExchange(
                 ref Unsafe.As<uint, int>(ref target),
                 (int)compare,
                 (int)value);
-        }
 
         /// <summary>
         /// Represents an atomic compare-exchange operation.
@@ -178,13 +173,14 @@ namespace ILGPU
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.CompareExchange, AtomicFlags.Unsigned)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ulong CompareExchange(ref ulong target, ulong compare, ulong value)
-        {
-            return (ulong)CompareExchange(
+        public static ulong CompareExchange(
+            ref ulong target,
+            ulong compare,
+            ulong value) =>
+            (ulong)CompareExchange(
                 ref Unsafe.As<ulong, long>(ref target),
                 (long)compare,
                 (long)value);
-        }
 
         /// <summary>
         /// Represents an atomic compare-exchange operation.
@@ -194,7 +190,10 @@ namespace ILGPU
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float CompareExchange(ref float target, float compare, float value)
+        public static float CompareExchange(
+            ref float target,
+            float compare,
+            float value)
         {
             var result = CompareExchange(
                 ref Unsafe.As<float, int>(ref target),
@@ -211,7 +210,10 @@ namespace ILGPU
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double CompareExchange(ref double target, double compare, double value)
+        public static double CompareExchange(
+            ref double target,
+            double compare,
+            double value)
         {
             var result = CompareExchange(
                 ref Unsafe.As<double, long>(ref target),
@@ -228,10 +230,14 @@ namespace ILGPU
         /// <param name="value">The value to add.</param>
         /// <returns>The old value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Index1 CompareExchange(ref Index1 target, Index1 compare, Index1 value)
-        {
-            return CompareExchange(ref Unsafe.As<Index1, int>(ref target), compare, value);
-        }
+        public static Index1 CompareExchange(
+            ref Index1 target,
+            Index1 compare,
+            Index1 value) =>
+            CompareExchange(
+                ref Unsafe.As<Index1, int>(ref target),
+                compare,
+                value);
 
         #endregion
 
@@ -241,12 +247,18 @@ namespace ILGPU
         /// Implements a generic pattern to build custom atomic operations.
         /// </summary>
         /// <typeparam name="T">The parameter type of the atomic operation.</typeparam>
-        /// <typeparam name="TOperation">The type of the custom atomic operation.</typeparam>
-        /// <typeparam name="TCompareExchangeOperation">The type of the custom compare-exchange-operation logic.</typeparam>
+        /// <typeparam name="TOperation">
+        /// The type of the custom atomic operation.
+        /// </typeparam>
+        /// <typeparam name="TCompareExchangeOperation">
+        /// The type of the custom compare-exchange-operation logic.
+        /// </typeparam>
         /// <param name="target">The target location.</param>
         /// <param name="value">The target value.</param>
         /// <param name="operation">The custom atomic operation.</param>
-        /// <param name="compareExchangeOperation">The custom compare-exchange-operation logic.</param>
+        /// <param name="compareExchangeOperation">
+        /// The custom compare-exchange-operation logic.
+        /// </param>
         /// <returns>The old value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T MakeAtomic<T, TOperation, TCompareExchangeOperation>(
@@ -256,7 +268,9 @@ namespace ILGPU
             TCompareExchangeOperation compareExchangeOperation)
             where T : struct, IEquatable<T>
             where TOperation : struct, AtomicOperations.IAtomicOperation<T>
-            where TCompareExchangeOperation : struct, AtomicOperations.ICompareExchangeOperation<T>
+            where TCompareExchangeOperation :
+                struct,
+            AtomicOperations.ICompareExchangeOperation<T>
         {
             T current = target;
             T expected;

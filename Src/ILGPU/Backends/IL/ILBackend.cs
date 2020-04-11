@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ILBackend.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Runtime;
@@ -97,7 +97,9 @@ namespace ILGPU.Backends.IL
         /// <param name="context">The context to use.</param>
         /// <param name="backendFlags">The backend flags.</param>
         /// <param name="warpSize">The current warp size.</param>
-        /// <param name="argumentMapperProvider">The provider for argument mappers.</param>
+        /// <param name="argumentMapperProvider">
+        /// The provider for argument mappers.
+        /// </param>
         internal ILBackend(
             Context context,
             BackendFlags backendFlags,
@@ -126,7 +128,9 @@ namespace ILGPU.Backends.IL
 
         #region Methods
 
-        /// <summary cref="Backend.Compile(EntryPoint, in BackendContext, in KernelSpecialization)"/>
+        /// <summary>
+        /// Creates a new <see cref="ILCompiledKernel"/> instance.
+        /// </summary>
         protected sealed override CompiledKernel Compile(
             EntryPoint entryPoint,
             in BackendContext backendContext,
@@ -198,8 +202,11 @@ namespace ILGPU.Backends.IL
         /// </summary>codeEmitter
         /// <param name="parameters">The parameter collection.</param>
         /// <param name="taskConstructor">The created task constructor.</param>
-        /// <param name="taskArgumentMapping">The created task-argument mapping that maps parameter indices of uniforms
-        /// and dynamically-sized shared-memory-variable-length specifications to fields in the task class.</param>
+        /// <param name="taskArgumentMapping">
+        /// The created task-argument mapping that maps parameter indices of uniforms
+        /// and dynamically-sized shared-memory-variable-length specifications to fields
+        /// in the task class.
+        /// </param>
         private Type GenerateAcceleratorTask(
             in ParameterCollection parameters,
             out ConstructorInfo taskConstructor,
@@ -217,15 +224,16 @@ namespace ILGPU.Backends.IL
             {
                 var constructorILGenerator = ctor.GetILGenerator();
                 constructorILGenerator.Emit(OpCodes.Ldarg_0);
-                for (int i = 0, e = CPUAcceleratorTask.ConstructorParameterTypes.Length; i < e; ++i)
+                for (
+                    int i = 0, e = CPUAcceleratorTask.ConstructorParameterTypes.Length;
+                    i < e;
+                    ++i)
+                {
                     constructorILGenerator.Emit(OpCodes.Ldarg, i + 1);
+                }
                 constructorILGenerator.Emit(
                     OpCodes.Call,
-                    acceleratorTaskType.GetConstructor(
-                        BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance,
-                        null,
-                        CPUAcceleratorTask.ConstructorParameterTypes,
-                        null));
+                    CPUAcceleratorTask.GetTaskConstructor(acceleratorTaskType));
                 constructorILGenerator.Emit(OpCodes.Ret);
             }
 
@@ -240,10 +248,12 @@ namespace ILGPU.Backends.IL
             }
 
             var taskType = taskBuilder.CreateTypeInfo().AsType();
-            taskConstructor = taskType.GetConstructor(CPUAcceleratorTask.ConstructorParameterTypes);
+            taskConstructor = taskType.GetConstructor(
+                CPUAcceleratorTask.ConstructorParameterTypes);
 
             // Map the final fields
-            var resultMapping = ImmutableArray.CreateBuilder<FieldInfo>(parameters.Count);
+            var resultMapping = ImmutableArray.CreateBuilder<FieldInfo>(
+                parameters.Count);
             for (int i = 0, e = parameters.Count; i < e; ++i)
                 resultMapping.Add(taskType.GetField(argFieldBuilders[i].Name));
             taskArgumentMapping = resultMapping.MoveToImmutable();
@@ -258,8 +268,11 @@ namespace ILGPU.Backends.IL
         /// <param name="emitter">The current code generator.</param>
         /// <param name="kernelData">The current kernel data.</param>
         /// <param name="taskType">The created task.</param>
-        /// <param name="taskArgumentMapping">The created task-argument mapping that maps parameter indices of uniforms
-        /// and dynamically-sized shared-memory-variable-length specifications to fields in the task class.</param>
+        /// <param name="taskArgumentMapping">
+        /// The created task-argument mapping that maps parameter indices of uniforms
+        /// and dynamically-sized shared-memory-variable-length specifications to fields
+        /// in the task class.
+        /// </param>
         private void GenerateStartupCode<TEmitter>(
             EntryPoint entryPoint,
             TEmitter emitter,
@@ -290,7 +303,8 @@ namespace ILGPU.Backends.IL
             // Determine used grid dimensions
             if (entryPoint.IsImplictlyGrouped)
             {
-                kernelData.UserGridDim = emitter.DeclareLocal(entryPoint.KernelIndexType);
+                kernelData.UserGridDim = emitter.DeclareLocal(
+                    entryPoint.KernelIndexType);
 
                 KernelLauncherBuilder.EmitConvertIndex3ToTargetType(
                     entryPoint.IndexType, emitter,
@@ -314,7 +328,9 @@ namespace ILGPU.Backends.IL
             // Init counter: int i = runtimeThreadOffset
             kernelData.ChunkIdxCounter = emitter.DeclareLocal(typeof(int));
             kernelData.BreakCondition = emitter.DeclareLocal(typeof(bool));
-            emitter.Emit(ArgumentOperation.Load, CPUAcceleratorTask.RuntimeThreadOffsetIndex);
+            emitter.Emit(
+                ArgumentOperation.Load,
+                CPUAcceleratorTask.RuntimeThreadOffsetIndex);
             emitter.Emit(LocalOperation.Store, kernelData.ChunkIdxCounter);
             emitter.Emit(OpCodes.Br, kernelData.LoopHeader);
 
@@ -326,7 +342,9 @@ namespace ILGPU.Backends.IL
 
                 // var index = i + chunkOffset;
                 emitter.Emit(LocalOperation.Load, kernelData.ChunkIdxCounter);
-                emitter.Emit(ArgumentOperation.Load, CPUAcceleratorTask.ChunkSizeOffsetIndex);
+                emitter.Emit(
+                    ArgumentOperation.Load,
+                    CPUAcceleratorTask.ChunkSizeOffsetIndex);
                 emitter.Emit(OpCodes.Add);
 
                 emitter.Emit(LocalOperation.Store, globalIndex);
@@ -336,7 +354,9 @@ namespace ILGPU.Backends.IL
             // globalIndex < targetDimension
             kernelData.KernelNotInvoked = emitter.DeclareLabel();
             emitter.Emit(LocalOperation.Load, globalIndex);
-            emitter.Emit(ArgumentOperation.Load, CPUAcceleratorTask.TargetDimensionIndex);
+            emitter.Emit(
+                ArgumentOperation.Load,
+                CPUAcceleratorTask.TargetDimensionIndex);
             emitter.Emit(OpCodes.Clt);
             emitter.Emit(LocalOperation.Store, kernelData.BreakCondition);
             emitter.Emit(LocalOperation.Load, kernelData.BreakCondition);
@@ -390,12 +410,14 @@ namespace ILGPU.Backends.IL
         }
 
         /// <summary>
-        /// Generates the the required local variables (e.g. shared memory).
+        /// Generates the required local variables (e.g. shared memory).
         /// </summary>
         /// <param name="entryPoint">The entry point.</param>
         /// <param name="emitter">The current code generator.</param>
         /// <param name="kernelData">The current kernel data.</param>
-        /// <param name="taskArgumentMapping">The created task-argument mapping that maps parameter indices of uniforms</param>
+        /// <param name="taskArgumentMapping">
+        /// The created task-argument mapping that maps parameter indices of uniforms.
+        /// </param>
         /// <param name="task">The task variable.</param>
         protected abstract void GenerateLocals<TEmitter>(
             EntryPoint entryPoint,
@@ -420,7 +442,9 @@ namespace ILGPU.Backends.IL
                 emitter.MarkLabel(kernelData.KernelNotInvoked);
 
                 // Wait for all threads to complete and reset all required information
-                emitter.Emit(ArgumentOperation.Load, CPUAcceleratorTask.GroupContextIndex);
+                emitter.Emit(
+                    ArgumentOperation.Load,
+                    CPUAcceleratorTask.GroupContextIndex);
                 emitter.EmitCall(RuntimeMethods.WaitForNextThreadIndex);
             }
 
@@ -428,7 +452,9 @@ namespace ILGPU.Backends.IL
             {
                 // i += groupSize
                 emitter.Emit(LocalOperation.Load, kernelData.ChunkIdxCounter);
-                emitter.Emit(ArgumentOperation.Load, CPUAcceleratorTask.RuntimeGroupSizeIndex);
+                emitter.Emit(
+                    ArgumentOperation.Load,
+                    CPUAcceleratorTask.RuntimeGroupSizeIndex);
                 emitter.Emit(OpCodes.Add);
                 emitter.Emit(LocalOperation.Store, kernelData.ChunkIdxCounter);
             }

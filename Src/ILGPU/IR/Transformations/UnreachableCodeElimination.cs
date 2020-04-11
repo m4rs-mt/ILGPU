@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: UnreachableCodeElimination.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Rewriting;
@@ -43,7 +43,8 @@ namespace ILGPU.IR.Transformations
             public Scope Scope { get; }
 
             /// <summary>
-            /// Returns true if any of the given blocks is no longer in the current scope.
+            /// Returns true if any of the given blocks is no longer in the current
+            /// scope.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool CanRemap(ImmutableArray<BasicBlock> blocks)
@@ -57,7 +58,8 @@ namespace ILGPU.IR.Transformations
             }
 
             /// <summary>
-            /// Keeps the block mapping but returns false if this block has become unreachable.
+            /// Keeps the block mapping but returns false if this block has become
+            /// unreachable.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool TryRemap(BasicBlock block, out BasicBlock newBlock)
@@ -83,9 +85,7 @@ namespace ILGPU.IR.Transformations
         static UnreachableCodeElimination()
         {
             Rewriter.Add<PhiValue>((context, mapper, phiValue) =>
-            {
-                phiValue.RemapArguments(context.Builder, mapper);
-            });
+                phiValue.RemapArguments(context.Builder, mapper));
         }
 
         #endregion
@@ -95,7 +95,9 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         public UnreachableCodeElimination() { }
 
-        /// <summary cref="UnorderedTransformation.PerformTransformation(Method.Builder)"/>
+        /// <summary>
+        /// Applies the UCE transformation.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
             var scope = builder.CreateScope();

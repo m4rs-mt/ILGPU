@@ -63,9 +63,9 @@ namespace ILGPU.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Cannot enable peer access to an accelerator of a different kind.
         /// </summary>
-        internal static string CannotEnablePeerAccessToDifferentAcceleratorKind {
+        internal static string CannotEnablePeerAccessToOtherAccelerator {
             get {
-                return ResourceManager.GetString("CannotEnablePeerAccessToDifferentAcceleratorKind", resourceCulture);
+                return ResourceManager.GetString("CannotEnablePeerAccessToOtherAccelerator", resourceCulture);
             }
         }
         

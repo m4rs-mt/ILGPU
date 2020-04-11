@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: SharedMemoryIntrinsics.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Values;
@@ -24,7 +24,7 @@ namespace ILGPU.Frontend.Intrinsic
     }
 
     /// <summary>
-    /// Marks shared-memory methods that are builtin.
+    /// Marks shared-memory methods that are built in.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     sealed class SharedMemoryIntrinsicAttribute : IntrinsicAttribute
@@ -81,9 +81,9 @@ namespace ILGPU.Frontend.Intrinsic
                 length,
                 context.Builder.CreateType(allocationType),
                 MemoryAddressSpace.Shared);
-            if (attribute.IntrinsicKind == SharedMemoryIntrinsicKind.AllocateElement)
-                return alloca;
-            return builder.CreateNewView(alloca, length);
+            return attribute.IntrinsicKind == SharedMemoryIntrinsicKind.AllocateElement
+                ? alloca
+                : builder.CreateNewView(alloca, length);
         }
     }
 }

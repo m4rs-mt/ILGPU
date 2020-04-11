@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Fields.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
 using ILGPU.IR.Construction;
@@ -120,10 +120,8 @@ namespace ILGPU.Frontend
         private void MakeLoadStaticField(
             Block block,
             IRBuilder builder,
-            FieldInfo field)
-        {
+            FieldInfo field) =>
             block.Push(CreateLoadStaticFieldValue(builder, field));
-        }
 
         /// <summary>
         /// Loads the address of a static field specified by the given metadata token.
@@ -170,9 +168,10 @@ namespace ILGPU.Frontend
             VerifyStaticFieldStore(field);
 
             // Consume the current value from the stack but do not emit a global store,
-            // since we dont have any valid target address.
-            // TODO: Stores to static fields could be automatically propagated to the .Net
-            // runtime after kernel invocation. However, this remains as a future feature.
+            // since we don't have any valid target address.
+            // TODO: Stores to static fields could be automatically propagated to the
+            // .Net runtime after kernel invocation. However, this remains as a future
+            // feature.
             block.Pop();
         }
     }

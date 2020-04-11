@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: NotSupported.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
 using System;
@@ -55,7 +55,10 @@ namespace ILGPU.Runtime.Cuda.API
         }
 
         /// <summary cref="CudaAPI.GetDeviceName(byte[], int, int)"/>
-        protected override CudaError GetDeviceName(byte[] bytes, int length, int device) =>
+        protected override CudaError GetDeviceName(
+            byte[] bytes,
+            int length,
+            int device) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
         /// <summary cref="CudaAPI.GetTotalDeviceMemory(out IntPtr, int)"/>
@@ -87,7 +90,8 @@ namespace ILGPU.Runtime.Cuda.API
             int device) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.CreateContextD3D11(out IntPtr, out int, CudaAcceleratorFlags, IntPtr)"/>
+        /// <summary cref="CudaAPI.CreateContextD3D11(
+        /// out IntPtr, out int, CudaAcceleratorFlags, IntPtr)"/>
         public override CudaError CreateContextD3D11(
             out IntPtr context,
             out int device,
@@ -115,12 +119,16 @@ namespace ILGPU.Runtime.Cuda.API
         public override CudaError SetCacheConfig(CudaCacheConfiguration config) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.GetSharedMemoryConfig(out CudaSharedMemoryConfiguration)"/>
-        public override CudaError GetSharedMemoryConfig(out CudaSharedMemoryConfiguration config) =>
+        /// <summary cref="CudaAPI.GetSharedMemoryConfig(
+        /// out CudaSharedMemoryConfiguration)"/>
+        public override CudaError GetSharedMemoryConfig(
+            out CudaSharedMemoryConfiguration config) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.SetSharedMemoryConfig(CudaSharedMemoryConfiguration)"/>
-        public override CudaError SetSharedMemoryConfig(CudaSharedMemoryConfiguration config) =>
+        /// <summary cref="CudaAPI.SetSharedMemoryConfig(
+        /// CudaSharedMemoryConfiguration)"/>
+        public override CudaError SetSharedMemoryConfig(
+            CudaSharedMemoryConfiguration config) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
         /// <summary cref="CudaAPI.CanAccessPeer(out int, int, int)"/>
@@ -138,7 +146,8 @@ namespace ILGPU.Runtime.Cuda.API
         public override CudaError DisablePeerAccess(IntPtr peerContext) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.GetPeerAttribute(out int, Peer2PeerAttribute, int, int)"/>
+        /// <summary cref="CudaAPI.GetPeerAttribute(
+        /// out int, Peer2PeerAttribute, int, int)"/>
         internal override CudaError GetPeerAttribute(
             out int value,
             Peer2PeerAttribute attribute,
@@ -155,7 +164,9 @@ namespace ILGPU.Runtime.Cuda.API
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
         /// <summary cref="CudaAPI.AllocateMemory(out IntPtr, IntPtr)"/>
-        public override CudaError AllocateMemory(out IntPtr devicePtr, IntPtr bytesize) =>
+        public override CudaError AllocateMemory(
+            out IntPtr devicePtr,
+            IntPtr bytesize) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
         /// <summary cref="CudaAPI.FreeMemory(IntPtr)"/>
@@ -163,7 +174,9 @@ namespace ILGPU.Runtime.Cuda.API
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
         /// <summary cref="CudaAPI.AllocateHostMemory(out IntPtr, IntPtr)"/>
-        public override CudaError AllocateHostMemory(out IntPtr hostPtr, IntPtr bytesize) =>
+        public override CudaError AllocateHostMemory(
+            out IntPtr hostPtr,
+            IntPtr bytesize) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
         /// <summary cref="CudaAPI.FreeHostMemory(IntPtr)"/>
@@ -177,7 +190,8 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr length) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.MemcpyHostToDevice(IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
+        /// <summary cref="CudaAPI.MemcpyHostToDevice(
+        /// IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
         public override CudaError MemcpyHostToDevice(
             IntPtr destinationDevice,
             IntPtr sourceHost,
@@ -185,7 +199,8 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr stream) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.MemcpyDeviceToHost(IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
+        /// <summary cref="CudaAPI.MemcpyDeviceToHost(
+        /// IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
         public override CudaError MemcpyDeviceToHost(
             IntPtr destinationHost,
             IntPtr sourceDevice,
@@ -193,7 +208,8 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr stream) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.MemcpyDeviceToDevice(IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
+        /// <summary cref="CudaAPI.MemcpyDeviceToDevice(
+        /// IntPtr, IntPtr, IntPtr, AcceleratorStream)"/>
         public override CudaError MemcpyDeviceToDevice(
             IntPtr destinationDevice,
             IntPtr sourceDevice,
@@ -209,7 +225,8 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr stream) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.GetPointerAttribute(IntPtr, PointerAttribute, IntPtr)"/>
+        /// <summary cref="CudaAPI.GetPointerAttribute(
+        /// IntPtr, PointerAttribute, IntPtr)"/>
         internal override CudaError GetPointerAttribute(
             IntPtr targetPtr,
             PointerAttribute attribute,
@@ -221,10 +238,13 @@ namespace ILGPU.Runtime.Cuda.API
         #region Stream Methods
 
         /// <summary cref="CudaAPI.CreateStream(out IntPtr, StreamFlags)"/>
-        internal override CudaError CreateStream(out IntPtr stream, StreamFlags flags) =>
+        internal override CudaError CreateStream(
+            out IntPtr stream,
+            StreamFlags flags) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.CreateStreamWithPriority(out IntPtr, StreamFlags, int)"/>
+        /// <summary cref="CudaAPI.CreateStreamWithPriority(
+        /// out IntPtr, StreamFlags, int)"/>
         internal override CudaError CreateStreamWithPriority(
             out IntPtr stream,
             StreamFlags flags,
@@ -266,7 +286,8 @@ namespace ILGPU.Runtime.Cuda.API
             string functionName) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.LaunchKernel(IntPtr, int, int, int, int, int, int, int, IntPtr, IntPtr, IntPtr)"/>
+        /// <summary cref="CudaAPI.LaunchKernel(
+        /// IntPtr, int, int, int, int, int, int, int, IntPtr, IntPtr, IntPtr)"/>
         public override CudaError LaunchKernel(
             IntPtr function,
             int gridDimX,
@@ -281,7 +302,8 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr kernelArgs) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.ComputeOccupancyMaxActiveBlocksPerMultiprocessor(out int, IntPtr, int, IntPtr)"/>
+        /// <summary cref="CudaAPI.ComputeOccupancyMaxActiveBlocksPerMultiprocessor(
+        /// out int, IntPtr, int, IntPtr)"/>
         public override CudaError ComputeOccupancyMaxActiveBlocksPerMultiprocessor(
             out int numBlocks,
             IntPtr func,
@@ -289,7 +311,9 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr dynamicSMemSize) =>
             throw new NotSupportedException(RuntimeErrorMessages.CudaNotSupported);
 
-        /// <summary cref="CudaAPI.ComputeOccupancyMaxPotentialBlockSize(out int, out int, IntPtr, ComputeDynamicMemorySizeForBlockSize, IntPtr, int)"/>
+        /// <summary cref="CudaAPI.ComputeOccupancyMaxPotentialBlockSize(
+        /// out int, out int, IntPtr, ComputeDynamicMemorySizeForBlockSize, IntPtr,
+        /// int)"/>
         public override CudaError ComputeOccupancyMaxPotentialBlockSize(
             out int minGridSize,
             out int blockSize,

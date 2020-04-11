@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
 //                                www.ilgpu.net
 //
 // File: ABI.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -22,27 +22,14 @@ using System.Threading;
 namespace ILGPU.Backends
 {
     /// <summary>
-    /// Represents an ABI that can resolve native size information.
-    /// </summary>
-    public interface ISizeOfABI
-    {
-        /// <summary>
-        /// Resolves the native size in bytes of the given type.
-        /// </summary>
-        /// <param name="type">The type.</param>
-        /// <returns>The native size.</returns>
-        int GetSizeOf(TypeNode type);
-    }
-
-    /// <summary>
     /// Represents a generic ABI specification.
     /// </summary>
-    public abstract class ABI : DisposeBase, ISizeOfABI, ICache
+    public abstract class ABI : DisposeBase, ICache
     {
         #region Static
 
         /// <summary>
-        /// Computes a properly alligned offset in bytes for the given field size.
+        /// Computes a properly aligned offset in bytes for the given field size.
         /// </summary>
         /// <param name="offset">The current.</param>
         /// <param name="fieldAlignment">The field size in bytes.</param>
@@ -126,7 +113,9 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="typeContext">The parent type context.</param>
         /// <param name="targetPlatform">The target platform</param>
-        /// <param name="viewTypeInfoProvider">The ABI info object provider for a view.</param>
+        /// <param name="viewTypeInfoProvider">
+        /// The ABI info object provider for a view.
+        /// </param>
         protected ABI(
             IRTypeContext typeContext,
             TargetPlatform targetPlatform,
@@ -194,7 +183,9 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="basicValueType">The type to define.</param>
         /// <param name="size">New size information</param>
-        protected void DefineBasicTypeInformation(BasicValueType basicValueType, int size) =>
+        protected void DefineBasicTypeInformation(
+            BasicValueType basicValueType,
+            int size) =>
             basicTypeInformation[(int)basicValueType] = size;
 
         /// <summary>
@@ -211,7 +202,7 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
-        /// Computes the absolute field offset in bytes for the given type and access chain.
+        /// Computes the absolute field offset in bytes for the given type and access.
         /// </summary>
         /// <param name="type">The enclosing type.</param>
         /// <param name="fieldAccess">The relative field access.</param>
@@ -280,7 +271,12 @@ namespace ILGPU.Backends
         {
             Debug.Assert(type != null, "Invalid type info");
             if (type.IsPointerType)
-                return new ABITypeInfo(ImmutableArray<int>.Empty, PointerSize, PointerSize);
+            {
+                return new ABITypeInfo(
+                    ImmutableArray<int>.Empty,
+                    PointerSize,
+                    PointerSize);
+            }
             if (type.IsViewType)
                 return ViewTypeInfo;
             int size = basicTypeInformation[(int)type.BasicValueType];
@@ -315,11 +311,13 @@ namespace ILGPU.Backends
                         Debug.Assert(structureType != null, "Not supported type");
                         if (structureType.NumFields < 1)
                         {
-                            // This is an empty struct -> requires special handling
+                            // This is an empty structure -> requires special handling
                             info = new ABITypeInfo(ImmutableArray<int>.Empty, 1, 1);
                         }
                         else
+                        {
                             info = ResolveABIInfo(structureType);
+                        }
                     }
                     typeInformation.Add(type, info);
                     return info;

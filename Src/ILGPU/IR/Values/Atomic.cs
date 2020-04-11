@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: Atomic.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -105,7 +105,7 @@ namespace ILGPU.IR.Values
             BasicValueType.GetArithmeticBasicValueType(IsUnsigned);
 
         /// <summary>
-        /// Returns true iff the operation has enabled unsigned semantics.
+        /// Returns true if the operation has enabled unsigned semantics.
         /// </summary>
         public bool IsUnsigned => (Flags & AtomicFlags.Unsigned) ==
             AtomicFlags.Unsigned;
@@ -127,7 +127,7 @@ namespace ILGPU.IR.Values
     public enum AtomicKind
     {
         /// <summary>
-        /// An xchg operation.
+        /// An XCHG operation.
         /// </summary>
         Exchange,
 
@@ -213,7 +213,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateAtomic(
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value),
@@ -286,7 +288,9 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
-        protected internal override Value Rebuild(IRBuilder builder, IRRebuilder rebuilder) =>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
             builder.CreateAtomicCAS(
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value),

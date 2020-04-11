@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CurrentAccelerator.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;
@@ -31,7 +31,7 @@ namespace ILGPU.Runtime
         public static Accelerator Current
         {
             get => currentAccelerator;
-            private set { currentAccelerator = value; }
+            private set => currentAccelerator = value;
         }
 
         #endregion
@@ -42,10 +42,7 @@ namespace ILGPU.Runtime
         /// Makes this accelerator the current one for this thread.
         /// </summary>
         [Obsolete("Use Accelerator.Bind instead")]
-        public void MakeCurrent()
-        {
-            Bind();
-        }
+        public void MakeCurrent() => Bind();
 
         /// <summary>
         /// Makes this accelerator the current one for this thread.
@@ -66,10 +63,8 @@ namespace ILGPU.Runtime
         /// to easily recover the old binding.
         /// </summary>
         /// <returns>A scoped binding object.</returns>
-        public ScopedAcceleratorBinding BindScoped()
-        {
-            return new ScopedAcceleratorBinding(this);
-        }
+        public ScopedAcceleratorBinding BindScoped() =>
+            new ScopedAcceleratorBinding(this);
 
         /// <summary>
         /// Will be invoked when this accelerator will the current one.
@@ -91,9 +86,11 @@ namespace ILGPU.Runtime
     /// </summary>
     /// <remarks>
     /// The objects implements <see cref="IDisposable"/> in order
-    /// to use it in the scope of using statemenets
+    /// to use it in the scope of using statements
     /// </remarks>
-    public struct ScopedAcceleratorBinding : IDisposable, IEquatable<ScopedAcceleratorBinding>
+    public struct ScopedAcceleratorBinding :
+        IDisposable,
+        IEquatable<ScopedAcceleratorBinding>
     {
         #region Instance
 
@@ -123,7 +120,7 @@ namespace ILGPU.Runtime
         public Accelerator OldAccelerator { get; private set; }
 
         /// <summary>
-        /// Returns true iff an old accelerator has to be recovered.
+        /// Returns true if an old accelerator has to be recovered.
         /// </summary>
         public bool IsRecoverable => OldAccelerator != null;
 
@@ -148,14 +145,13 @@ namespace ILGPU.Runtime
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the given binding is equal to the current binding.
+        /// Returns true if the given binding is equal to the current binding.
         /// </summary>
         /// <param name="other">The other binding.</param>
-        /// <returns>True, iff the given binding is equal to the current binding.</returns>
-        public bool Equals(ScopedAcceleratorBinding other)
-        {
-            return this == other;
-        }
+        /// <returns>
+        /// True, if the given binding is equal to the current binding.
+        /// </returns>
+        public bool Equals(ScopedAcceleratorBinding other) => this == other;
 
         #endregion
 
@@ -164,71 +160,64 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Recovers the old accelerator and resets the internal state.
         /// </summary>
-        /// <remarks>The dispose method is useful in combination with using statements.</remarks>
-        public void Dispose()
-        {
-            Recover();
-        }
+        /// <remarks>
+        /// The dispose method is useful in combination with using statements.
+        /// </remarks>
+        public void Dispose() => Recover();
 
         #endregion
 
         #region Object
 
         /// <summary>
-        /// Returns true iff the given object is equal to the current binding.
+        /// Returns true if the given object is equal to the current binding.
         /// </summary>
         /// <param name="obj">The other object.</param>
-        /// <returns>True, iff the given object is equal to the current binding.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is Index1 idx)
-                return Equals(idx);
-            return false;
-        }
+        /// <returns>
+        /// True, if the given object is equal to the current binding.
+        /// </returns>
+        public override bool Equals(object obj) =>
+            obj is ScopedAcceleratorBinding binding && Equals(binding);
 
         /// <summary>
         /// Returns the hash code of this binding.
         /// </summary>
         /// <returns>The hash code of this binding.</returns>
-        public override int GetHashCode()
-        {
-            return IsRecoverable ? OldAccelerator.GetHashCode() : 0;
-        }
+        public override int GetHashCode() =>
+            IsRecoverable ? OldAccelerator.GetHashCode() : 0;
 
         /// <summary>
         /// Returns the string representation of this binding.
         /// </summary>
         /// <returns>The string representation of this binding.</returns>
-        public override string ToString()
-        {
-            return IsRecoverable ? OldAccelerator.ToString() : "<NoBinding>";
-        }
+        public override string ToString() =>
+            IsRecoverable ? OldAccelerator.ToString() : "<NoBinding>";
 
         #endregion
 
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first and second binding are the same.
+        /// Returns true if the first and second binding are the same.
         /// </summary>
         /// <param name="first">The first binding.</param>
         /// <param name="second">The second binding.</param>
-        /// <returns>True, iff the first and second binding are the same.</returns>
-        public static bool operator ==(ScopedAcceleratorBinding first, ScopedAcceleratorBinding second)
-        {
-            return first.OldAccelerator == second.OldAccelerator;
-        }
+        /// <returns>True, if the first and second binding are the same.</returns>
+        public static bool operator ==(
+            ScopedAcceleratorBinding first,
+            ScopedAcceleratorBinding second) =>
+            first.OldAccelerator == second.OldAccelerator;
 
         /// <summary>
-        /// Returns true iff the first and second binding are not the same.
+        /// Returns true if the first and second binding are not the same.
         /// </summary>
         /// <param name="first">The first binding.</param>
         /// <param name="second">The second binding.</param>
-        /// <returns>True, iff the first and second binding are not the same.</returns>
-        public static bool operator !=(ScopedAcceleratorBinding first, ScopedAcceleratorBinding second)
-        {
-            return first.OldAccelerator != second.OldAccelerator;
-        }
+        /// <returns>True, if the first and second binding are not the same.</returns>
+        public static bool operator !=(
+            ScopedAcceleratorBinding first,
+            ScopedAcceleratorBinding second) =>
+            !(first == second);
 
         #endregion
     }

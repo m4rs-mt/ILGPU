@@ -1,23 +1,24 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: ILInstruction.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.DebugInformation;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ILGPU.Frontend
 {
     /// <summary>
-    /// Represents an instruction type of a single il instruction.
+    /// Represents an instruction type of a single IL instruction.
     /// </summary>
     public enum ILInstructionType
     {
@@ -343,7 +344,7 @@ namespace ILGPU.Frontend
     }
 
     /// <summary>
-    /// Represents a collection fo branch targets.
+    /// Represents a collection of branch targets.
     /// </summary>
     public sealed class ILInstructionBranchTargets
     {
@@ -379,7 +380,8 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the unconditional branch target (if any).
         /// </summary>
-        public int? UnconditionalBranchTarget => targetOffsets.Length > 0 ? (int?)targetOffsets[0] : null;
+        public int? UnconditionalBranchTarget =>
+            targetOffsets.Length > 0 ? (int?)targetOffsets[0] : null;
 
         /// <summary>
         /// Returns the conditional branch if-target (if any).
@@ -389,7 +391,8 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the conditional branch else-target (if any).
         /// </summary>
-        public int? ConditionalBranchElseTarget => targetOffsets.Length > 1 ? (int?)targetOffsets[1] : null;
+        public int? ConditionalBranchElseTarget =>
+            targetOffsets.Length > 1 ? (int?)targetOffsets[1] : null;
 
         /// <summary>
         /// Returns the default switch branch target (if any).
@@ -404,10 +407,7 @@ namespace ILGPU.Frontend
         /// Returns the branch offsets.
         /// </summary>
         /// <returns>The branch offsets.</returns>
-        public int[] GetTargetOffsets()
-        {
-            return targetOffsets;
-        }
+        public int[] GetTargetOffsets() => targetOffsets;
 
         #endregion
 
@@ -433,7 +433,7 @@ namespace ILGPU.Frontend
     }
 
     /// <summary>
-    /// Represent flags of an il instruction.
+    /// Represent flags of an IL instruction.
     /// </summary>
     [Flags]
     public enum ILInstructionFlags : int
@@ -490,15 +490,15 @@ namespace ILGPU.Frontend
     public static class ILInstructionFlagsExtensions
     {
         /// <summary>
-        /// Returns true iff given flags have the other flags set;
+        /// Returns true if given flags have the other flags set;
         /// </summary>
         /// <param name="flags">The current flags.</param>
         /// <param name="otherFlags">The flags to check.</param>
-        /// <returns>True, iff given falgs have the other flags set.</returns>
-        public static bool HasFlags(this ILInstructionFlags flags, ILInstructionFlags otherFlags)
-        {
-            return (flags & otherFlags) == otherFlags;
-        }
+        /// <returns>True, if given flags have the other flags set.</returns>
+        public static bool HasFlags(
+            this ILInstructionFlags flags,
+            ILInstructionFlags otherFlags) =>
+            (flags & otherFlags) == otherFlags;
     }
 
     /// <summary>
@@ -540,103 +540,107 @@ namespace ILGPU.Frontend
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the current object is equal to the given one.
+        /// Returns true if the current object is equal to the given one.
         /// </summary>
         /// <param name="other">The other object.</param>
         /// <returns>True, if the current object is equal to the given one.</returns>
-        public bool Equals(ILInstructionFlagsContext other)
-        {
-            return other == this;
-        }
+        public bool Equals(ILInstructionFlagsContext other) =>
+            other == this;
 
         #endregion
 
         #region Object
 
         /// <summary>
-        /// Returns true iff the current object is equal to the given one.
+        /// Returns true if the current object is equal to the given one.
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the current object is equal to the given one.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is ILInstructionFlagsContext)
-                return (ILInstructionFlagsContext)obj == this;
-            return false;
-        }
+        public override bool Equals(object obj) =>
+            obj is ILInstructionFlagsContext context && context == this;
 
         /// <summary>
         /// Returns the hash code of this flags.
         /// </summary>
         /// <returns>The hash code.</returns>
-        public override int GetHashCode()
-        {
-            return Flags.GetHashCode();
-        }
+        public override int GetHashCode() => Flags.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this flags.
         /// </summary>
         /// <returns>The string representation.</returns>
-        public override string ToString()
-        {
-            if (Argument == null)
-                return $"{Flags}";
-            return $"{Flags} [{Argument}]";
-        }
+        public override string ToString() =>
+            Argument == null
+            ? $"{Flags}"
+            : $"{Flags} [{Argument}]";
 
         #endregion
 
         #region Operators
 
         /// <summary>
-        /// Returns true iff the first instruction context is equal to the second one.
+        /// Returns true if the first instruction context is equal to the second one.
         /// </summary>
         /// <param name="first">The first instruction context.</param>
         /// <param name="second">The second instruction context.</param>
-        /// <returns>True, iff the first instruction is equal to the second one.</returns>
+        /// <returns>
+        /// True, if the first instruction is equal to the second one.
+        /// </returns>
+        [SuppressMessage(
+            "Style",
+            "IDE0046:Convert to conditional expression",
+            Justification = "Avoid nested if conditionals")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator ==(ILInstructionFlagsContext first, ILInstructionFlagsContext second)
+        public static bool operator ==(
+            ILInstructionFlagsContext first,
+            ILInstructionFlagsContext second)
         {
             if (first.Flags != second.Flags ||
                 first.Argument == null && second.Argument != null ||
                 first.Argument != null && second.Argument == null)
+            {
                 return false;
-            if (first.Argument == null && second.Argument == null)
-                return true;
-            return first.Argument.Equals(second.Argument);
+            }
+            return first.Argument == null && second.Argument == null
+                ? true
+                : first.Argument.Equals(second.Argument);
         }
 
         /// <summary>
-        /// Returns true iff the first instruction context is not equal to the second one.
+        /// Returns true if the first instruction context is not equal to the second
+        /// one.
         /// </summary>
         /// <param name="first">The first instruction context.</param>
         /// <param name="second">The second instruction context.</param>
-        /// <returns>True, iff the first instruction is not equal to the second one.</returns>
+        /// <returns>
+        /// True, if the first instruction is not equal to the second one.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool operator !=(ILInstructionFlagsContext first, ILInstructionFlagsContext second)
-        {
-            return !(first == second);
-        }
+        public static bool operator !=(
+            ILInstructionFlagsContext first,
+            ILInstructionFlagsContext second) =>
+            !(first == second);
 
         #endregion
     }
 
     /// <summary>
-    /// Represents a single il instruction.
+    /// Represents a single IL instruction.
     /// </summary>
     public sealed class ILInstruction : IEquatable<ILInstruction>
     {
         #region Instance
 
         /// <summary>
-        /// Constructs a new il instruction.
+        /// Constructs a new IL instruction.
         /// </summary>
         /// <param name="offset">The instruction offset in bytes.</param>
         /// <param name="type">The instruction type.</param>
         /// <param name="flagsContext">The flags context.</param>
         /// <param name="popCount">The number of elements to pop from the stack.</param>
-        /// <param name="pushCount">The number of elements to push onto the stack.</param>
+        /// <param name="pushCount">
+        /// The number of elements to push onto the stack.
+        /// </param>
         /// <param name="argument">The instruction argument.</param>
         [CLSCompliant(false)]
         public ILInstruction(
@@ -657,13 +661,15 @@ namespace ILGPU.Frontend
         { }
 
         /// <summary>
-        /// Constructs a new il instruction.
+        /// Constructs a new IL instruction.
         /// </summary>
         /// <param name="offset">The instruction offset in bytes.</param>
         /// <param name="type">The instruction type.</param>
         /// <param name="flagsContext">The flags context.</param>
         /// <param name="popCount">The number of elements to pop from the stack.</param>
-        /// <param name="pushCount">The number of elements to push onto the stack.</param>
+        /// <param name="pushCount">
+        /// The number of elements to push onto the stack.
+        /// </param>
         /// <param name="argument">The instruction argument.</param>
         /// <param name="sequencePoint">The current sequence point.</param>
         [CLSCompliant(false)]
@@ -727,7 +733,7 @@ namespace ILGPU.Frontend
         public object Argument { get; }
 
         /// <summary>
-        /// Returns true iff the instruction is a call instruction.
+        /// Returns true if the instruction is a call instruction.
         /// </summary>
         public bool IsCall
         {
@@ -748,7 +754,7 @@ namespace ILGPU.Frontend
         }
 
         /// <summary>
-        /// Returns true iff this instruction is a basic block terminator.
+        /// Returns true if this instruction is a basic block terminator.
         /// </summary>
         public bool IsTerminator =>
             InstructionType == ILInstructionType.Jmp ||
@@ -774,30 +780,29 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <typeparam name="T">The target type T.</typeparam>
         /// <returns>The instruction argument T.</returns>
-        public T GetArgumentAs<T>()
-        {
-            return (T)Argument;
-        }
+        public T GetArgumentAs<T>() => (T)Argument;
 
         /// <summary>
-        /// Returns true iff current instruction has the given flags.
+        /// Returns true if current instruction has the given flags.
         /// </summary>
         /// <param name="flags">The flags to check.</param>
-        /// <returns>True, iff current instruction has the given flags.</returns>
-        public bool HasFlags(ILInstructionFlags flags)
-        {
-            return (Flags & flags) == flags;
-        }
+        /// <returns>True, if current instruction has the given flags.</returns>
+        public bool HasFlags(ILInstructionFlags flags) =>
+            (Flags & flags) == flags;
 
         #endregion
 
         #region IEquatable
 
         /// <summary>
-        /// Returns true iff the current object is equal to the given one.
+        /// Returns true if the current object is equal to the given one.
         /// </summary>
         /// <param name="other">The other object.</param>
         /// <returns>True, if the current object is equal to the given one.</returns>
+        [SuppressMessage(
+            "Style",
+            "IDE0046:Convert to conditional expression",
+            Justification = "Avoid nested if conditionals")]
         public bool Equals(ILInstruction other)
         {
             if (other == null)
@@ -806,10 +811,13 @@ namespace ILGPU.Frontend
                 FlagsContext != other.FlagsContext ||
                 Argument == null && other.Argument != null ||
                 Argument != null && other.Argument == null)
+            {
                 return false;
-            if (Argument == null && other.Argument == null)
-                return true;
-            return Argument.Equals(other.Argument);
+            }
+
+            return Argument == null && other.Argument == null
+                ? true
+                : Argument.Equals(other.Argument);
         }
 
         #endregion
@@ -817,25 +825,18 @@ namespace ILGPU.Frontend
         #region Object
 
         /// <summary>
-        /// Returns true iff the current object is equal to the given one.
+        /// Returns true if the current object is equal to the given one.
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the current object is equal to the given one.</returns>
-        public override bool Equals(object obj)
-        {
-            if (obj is ILInstruction otherObj)
-                return otherObj.Equals(this);
-            return false;
-        }
+        public override bool Equals(object obj) =>
+            obj is ILInstruction otherObj && otherObj == this;
 
         /// <summary>
         /// Returns the hash code of this instruction.
         /// </summary>
         /// <returns>The hash code.</returns>
-        public override int GetHashCode()
-        {
-            return InstructionType.GetHashCode();
-        }
+        public override int GetHashCode() => InstructionType.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this instruction.
@@ -843,16 +844,13 @@ namespace ILGPU.Frontend
         /// <returns>The string representation.</returns>
         public override string ToString()
         {
-            string baseArg;
-            if (Argument == null)
-                baseArg = $"{Offset.ToString("X4")}: {InstructionType}";
-            else
-                baseArg = $"{Offset.ToString("X4")}: {InstructionType} [{Argument}]";
-
-            if (Flags != ILInstructionFlags.None)
-                return $"{FlagsContext}.{baseArg}";
-            else
-                return baseArg;
+            string baseArg =
+                Argument == null
+                ? $"{Offset:X4}: {InstructionType}"
+                : $"{Offset:X4}: {InstructionType} [{Argument}]";
+            return Flags != ILInstructionFlags.None
+                ? $"{FlagsContext}.{baseArg}"
+                : baseArg;
         }
 
         #endregion

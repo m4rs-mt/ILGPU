@@ -1,16 +1,17 @@
-﻿// -----------------------------------------------------------------------------
-//                                    ILGPU
-//                     Copyright (c) 2016-2020 Marcel Koester
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
 //
 // File: CudaException.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime.Cuda.API;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
@@ -20,7 +21,9 @@ namespace ILGPU.Runtime.Cuda
     /// <summary>
     /// Represents a Cuda exception that can be thrown by the Cuda runtime.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1032:ImplementStandardExceptionConstructors")]
+    [SuppressMessage(
+        "Microsoft.Design",
+        "CA1032:ImplementStandardExceptionConstructors")]
     [Serializable]
     public sealed class CudaException : Exception
     {
@@ -64,9 +67,12 @@ namespace ILGPU.Runtime.Cuda
 
         #region Methods
 
-        /// <summary cref="Exception.GetObjectData(SerializationInfo, StreamingContext)"/>
+        /// <summary cref="Exception.GetObjectData(
+        /// SerializationInfo, StreamingContext)"/>
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        public override void GetObjectData(
+            SerializationInfo info,
+            StreamingContext context)
         {
             base.GetObjectData(info, context);
 
