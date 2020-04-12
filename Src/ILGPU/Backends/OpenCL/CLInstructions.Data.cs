@@ -245,11 +245,11 @@ namespace ILGPU.Backends.OpenCL
             {
                 // Basic arithmetic
                 
-                { (UnaryArithmeticKind.Neg, false), ("~", false) },
-                { (UnaryArithmeticKind.Neg, true), ("~", false) },
+                { (UnaryArithmeticKind.Neg, false), ("-", false) },
+                { (UnaryArithmeticKind.Neg, true), ("-", false) },
 
-                { (UnaryArithmeticKind.Not, false), ("!", false) },
-                { (UnaryArithmeticKind.Not, true), ("!", false) },
+                { (UnaryArithmeticKind.Not, false), ("~", false) },
+                { (UnaryArithmeticKind.Not, true), ("~", false) },
 
                 // Functions
 
