@@ -291,6 +291,12 @@ namespace ILGPU.IR.Types
                 var elementInfo = GetTypeInfoInternal(type.GetElementType());
                 result = AddTypeInfo(type, elementInfo.IsBlittable);
             }
+            // Check for enum types
+            else if (type.IsEnum)
+            {
+                var baseInfo = GetTypeInfoInternal(type.GetEnumUnderlyingType());
+                result = AddTypeInfo(type, baseInfo.IsBlittable);
+            }
             // Check for opaque view types
             else if (type.IsArrayViewType(out Type _))
             {
@@ -324,7 +330,7 @@ namespace ILGPU.IR.Types
             var fieldTypesBuilder = ImmutableArray.CreateBuilder<Type>(fields.Length);
             var fieldOffsetsBuilder = ImmutableArray.CreateBuilder<int>(fields.Length);
             int flattenedFields = 0;
-            bool isBlittable = !type.IsEnum;
+            bool isBlittable = true;
             foreach (var field in fields)
             {
                 fieldOffsetsBuilder.Add(flattenedFields);
