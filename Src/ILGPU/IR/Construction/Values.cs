@@ -65,12 +65,16 @@ namespace ILGPU.IR.Construction
             {
                 case TypeCode.Boolean:
                     return CreatePrimitiveValue((bool)value);
+                case TypeCode.SByte:
+                    return CreatePrimitiveValue((sbyte)value);
                 case TypeCode.Int16:
                     return CreatePrimitiveValue((short)value);
                 case TypeCode.Int32:
                     return CreatePrimitiveValue((int)value);
                 case TypeCode.Int64:
                     return CreatePrimitiveValue((long)value);
+                case TypeCode.Byte:
+                    return CreatePrimitiveValue((byte)value);
                 case TypeCode.UInt16:
                     return CreatePrimitiveValue((ushort)value);
                 case TypeCode.UInt32:
