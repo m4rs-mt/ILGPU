@@ -392,8 +392,15 @@ namespace ILGPU.Backends.EntryPoints
             where TTargetCollection : ICollection<Type>
         {
             var typeInfo = TypeInformationManager.GetTypeInfo(structType);
-            foreach (var type in typeInfo.FieldTypes)
-                MapType(type, elements);
+            if (typeInfo.NumFields < 1)
+            {
+                MapType(typeof(byte), elements);
+            }
+            else
+            {
+                foreach (var type in typeInfo.FieldTypes)
+                    MapType(type, elements);
+            }
         }
 
         /// <summary>
