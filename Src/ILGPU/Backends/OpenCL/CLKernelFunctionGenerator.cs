@@ -246,7 +246,7 @@ namespace ILGPU.Backends.OpenCL
                     var access = new FieldAccess(i);
                     // Check whether the current field is a nested view pointer
                     if (specialParamIdx < viewMapping.Count &&
-                        viewMapping[specialParamIdx].TargetAccess.Index == i)
+                        structureType[access].IsPointerType)
                     {
                         var viewIndex = viewMapping[specialParamIdx].Index;
 
