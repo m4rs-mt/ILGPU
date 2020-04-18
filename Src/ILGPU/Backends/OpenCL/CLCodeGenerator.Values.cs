@@ -444,10 +444,9 @@ namespace ILGPU.Backends.OpenCL
             if (value.Type.IsVoidType)
                 return;
             var target = Allocate(value);
-            Declare(target);
-
             if (value.Type is StructureType structureType)
             {
+                Declare(target);
                 for (int i = 0, e = structureType.NumFields; i < e; ++i)
                 {
                     using (var statement = BeginStatement(target, i))
