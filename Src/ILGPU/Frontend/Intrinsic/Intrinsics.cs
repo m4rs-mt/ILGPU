@@ -352,6 +352,11 @@ namespace ILGPU.Frontend.Intrinsic
                                 new FieldSpan(
                                     context[1].ResolveAs<PrimitiveValue>().Int32Value)),
                             builder.GetPrimitiveType(BasicValueType.Int64));
+                    case nameof(Array.Empty):
+                        return builder.CreateArray(
+                            builder.CreateType(context.Method.GetGenericArguments()[0]),
+                            1,
+                            builder.CreatePrimitiveValue(0));
                     default:
                         throw context.GetNotSupportedException(
                             ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
