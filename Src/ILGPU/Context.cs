@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.Backends.PTX;
 using ILGPU.Frontend;
@@ -185,6 +186,7 @@ namespace ILGPU
         {
             OptimizationLevel = optimizationLevel;
             Flags = flags.Prepare();
+            TargetPlatform = Backend.RuntimePlatform;
 
             // Initialize main contexts
             TypeContext = new IRTypeContext(this);
@@ -222,6 +224,11 @@ namespace ILGPU
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the current target platform.
+        /// </summary>
+        public TargetPlatform TargetPlatform { get; }
 
         /// <summary>
         /// Returns the main IR context.
@@ -434,14 +441,25 @@ namespace ILGPU
         /// Defines a new runtime structure.
         /// </summary>
         /// <returns>A new runtime type builder.</returns>
-        internal TypeBuilder DefineRuntimeStruct() =>
+        internal TypeBuilder DefineRuntimeStruct() => DefineRuntimeStruct(false);
+
+        /// <summary>
+        /// Defines a new runtime structure.
+        /// </summary>
+        /// <param name="explicitLayout">
+        /// True, if the individual fields have an explicit structure layout.
+        /// </param>
+        /// <returns>A new runtime type builder.</returns>
+        internal TypeBuilder DefineRuntimeStruct(bool explicitLayout) =>
             DefineRuntimeType(
                 TypeAttributes.Public |
                 TypeAttributes.Class |
                 TypeAttributes.AnsiClass |
                 TypeAttributes.BeforeFieldInit |
-                TypeAttributes.SequentialLayout |
-                TypeAttributes.Sealed,
+                TypeAttributes.Sealed |
+                (explicitLayout
+                    ? TypeAttributes.ExplicitLayout
+                    : TypeAttributes.SequentialLayout),
                 typeof(ValueType));
 
         /// <summary>

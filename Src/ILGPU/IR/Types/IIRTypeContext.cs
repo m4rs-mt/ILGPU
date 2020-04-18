@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
-using System.Collections.Immutable;
 
 namespace ILGPU.IR.Types
 {
@@ -78,27 +77,11 @@ namespace ILGPU.IR.Types
         ArrayType CreateArrayType(TypeNode elementType, int dimensions);
 
         /// <summary>
-        /// Creates an empty structure type.
+        /// Creates a new structure type builder with the given capacity.
         /// </summary>
-        /// <returns>The type representing an empty structure.</returns>
-        TypeNode CreateEmptyStructureType();
-
-        /// <summary>
-        /// Creates a new structure type.
-        /// </summary>
-        /// <param name="fieldTypes">The structure field types.</param>
-        /// <returns>The created structure type.</returns>
-        TypeNode CreateStructureType(ImmutableArray<TypeNode> fieldTypes);
-
-        /// <summary>
-        /// Creates a new structure type.
-        /// </summary>
-        /// <param name="fieldTypes">The structure field types.</param>
-        /// <param name="sourceType">The source structure type.</param>
-        /// <returns>The created structure type.</returns>
-        TypeNode CreateStructureType(
-            ImmutableArray<TypeNode> fieldTypes,
-            StructureType sourceType);
+        /// <param name="capacity">The initial capacity.</param>
+        /// <returns>The created structure builder.</returns>
+        StructureType.Builder CreateStructureType(int capacity);
 
         /// <summary>
         /// Creates a new type based on a type from the .Net world.
@@ -136,5 +119,32 @@ namespace ILGPU.IR.Types
             TypeNode type,
             MemoryAddressSpace addressSpace,
             out TypeNode specializedType);
+    }
+
+    /// <summary>
+    /// Extension methods for <see cref="IIRTypeContext"/> instances.
+    /// </summary>
+    public static class IRTypeContextExtensions
+    {
+        /// <summary>
+        /// Creates an empty structure type.
+        /// </summary>
+        /// <typeparam name="TTypeContext">the parent type context.</typeparam>
+        /// <param name="typeContext">The type context.</param>
+        /// <returns>The type representing an empty structure.</returns>
+        public static TypeNode CreateEmptyStructureType<TTypeContext>(
+            this TTypeContext typeContext)
+            where TTypeContext : IIRTypeContext =>
+            typeContext.GetPrimitiveType(BasicValueType.Int8);
+
+        /// <summary>
+        /// Creates a new structure type builder with an initial capacity.
+        /// </summary>
+        /// <typeparam name="TTypeContext">the parent type context.</typeparam>
+        /// <param name="typeContext">The type context.</param>
+        /// <returns>The created structure builder.</returns>
+        public static StructureType.Builder CreateStructureType<TTypeContext>(
+            this TTypeContext typeContext)
+            where TTypeContext : IIRTypeContext => typeContext.CreateStructureType(2);
     }
 }

@@ -23,21 +23,19 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Constructs a new void type.
         /// </summary>
-        internal VoidType() { }
+        /// <param name="typeContext">The parent type context.</param>
+        internal VoidType(IRTypeContext typeContext)
+            : base(typeContext)
+        { }
 
         #endregion
 
         #region Methods
 
-        /// <summary cref="TypeNode.Accept{T}(T)"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
-        public override bool TryResolveManagedType(out Type type)
-        {
-            type = typeof(void);
-            return true;
-        }
+        /// <summary>
+        /// Returns the void type.
+        /// </summary>
+        protected override Type GetManagedType() => typeof(void);
 
         #endregion
 

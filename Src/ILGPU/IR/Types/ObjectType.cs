@@ -9,8 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using System;
-
 namespace ILGPU.IR.Types
 {
     /// <summary>
@@ -23,31 +21,10 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Constructs a new object type.
         /// </summary>
-        /// <param name="source">The original source type (or null).</param>
-        protected ObjectType(Type source)
-        {
-            Source = source;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the original source type (may be null).
-        /// </summary>
-        public Type Source { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
-        public override bool TryResolveManagedType(out Type type)
-        {
-            type = Source;
-            return type != null;
-        }
+        /// <param name="typeContext">The parent type context.</param>
+        protected ObjectType(IRTypeContext typeContext)
+            : base(typeContext)
+        { }
 
         #endregion
     }

@@ -10,13 +10,14 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
-using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ILGPU.IR.Types
@@ -30,7 +31,158 @@ namespace ILGPU.IR.Types
         #region Nested Types
 
         /// <summary>
-        /// Returns an enumerator to enumerate all nested fields in the structure type.
+        /// A structure type builder.
+        /// </summary>
+        public struct Builder
+        {
+            #region Instance
+
+            private readonly ImmutableArray<TypeNode>.Builder fieldsBuilder;
+            private readonly ImmutableArray<TypeNode>.Builder allFieldsBuilder;
+            private readonly ImmutableArray<int>.Builder offsetsBuilder;
+
+            /// <summary>
+            /// Creates a new type builder with the given capacity.
+            /// </summary>
+            /// <param name="typeContext">The current type context.</param>
+            /// <param name="capacity">The initial capacity.</param>
+            internal Builder(IRTypeContext typeContext, int capacity)
+            {
+                Debug.Assert(capacity >= 0, "Invalid capacity");
+                fieldsBuilder = ImmutableArray.CreateBuilder<TypeNode>(capacity);
+                allFieldsBuilder = ImmutableArray.CreateBuilder<TypeNode>(capacity);
+                offsetsBuilder = ImmutableArray.CreateBuilder<int>(capacity);
+                TypeContext = typeContext;
+
+                Alignment = Offset = 0;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the parent type context.
+            /// </summary>
+            public IRTypeContext TypeContext { get; }
+
+            /// <summary>
+            /// Returns the number of all fields.
+            /// </summary>
+            public int Count => allFieldsBuilder.Count;
+
+            /// <summary>
+            /// The current offset in bytes.
+            /// </summary>
+            public int Offset { get; private set; }
+
+            /// <summary>
+            /// The current alignment for the underlying type.
+            /// </summary>
+            public int Alignment { get; private set; }
+
+            /// <summary>
+            /// The current size in bytes.
+            /// </summary>
+            public int Size => Alignment < 1 ? 0 : Align(Offset, Alignment);
+
+            /// <summary>
+            /// Returns the field type that corresponds to the given field access.
+            /// </summary>
+            /// <param name="access">The field access.</param>
+            /// <returns>The resolved field type.</returns>
+            public TypeNode this[FieldAccess access] => allFieldsBuilder[access.Index];
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Adds the given type node to the structure builder.
+            /// </summary>
+            /// <param name="type">The type node to add.</param>
+            public void Add(TypeNode type)
+            {
+                Debug.Assert(type != null, "Invalid type");
+                fieldsBuilder.Add(type);
+                if (type is StructureType structureType)
+                {
+                    int currentOffset = 0;
+                    foreach (var (fieldType, access) in structureType)
+                    {
+                        int nextOffset = structureType.GetOffset(access);
+                        AddInternal(fieldType, nextOffset - currentOffset);
+                        currentOffset = nextOffset;
+                    }
+                    int lastFieldSize = structureType[
+                        structureType.NumFields - 1].Size;
+                    Offset = Align(Offset + lastFieldSize, type.Alignment);
+                }
+                else
+                {
+                    AddInternal(type, 0);
+                    Offset += type.Size;
+                }
+
+                // Adjust offset and alignment information
+                Alignment = Math.Max(Alignment, type.Alignment);
+            }
+
+            /// <summary>
+            /// Adds the given primitive type node.
+            /// </summary>
+            /// <param name="type">The type node to add.</param>
+            /// <param name="offset">The custom relative offset.</param>
+            private void AddInternal(TypeNode type, int offset)
+            {
+                Debug.Assert(!type.IsStructureType, "Invalid nested structure type");
+                Debug.Assert(offset >= 0, "Invalid offset");
+
+                allFieldsBuilder.Add(type);
+
+                // Align the next field properly
+                Offset = Align(Offset + offset, type.Alignment);
+                offsetsBuilder.Add(Offset);
+            }
+
+            /// <summary>
+            /// Seals this builder and returns a type that corresponds to the type
+            /// represented by this builder.
+            /// </summary>
+            /// <returns></returns>
+            public TypeNode Seal() => TypeContext.FinishStructureType(this);
+
+            /// <summary>
+            /// Moves the underlying builders to immutable arrays.
+            /// </summary>
+            /// <param name="types">Direct field types.</param>
+            /// <param name="allTypes">All field types.</param>
+            /// <param name="offsets">All field offsets.</param>
+            internal void Seal(
+                out ImmutableArray<TypeNode> types,
+                out ImmutableArray<TypeNode> allTypes,
+                out ImmutableArray<int> offsets)
+            {
+                types = fieldsBuilder.Count == fieldsBuilder.Capacity
+                    ? fieldsBuilder.MoveToImmutable()
+                    : fieldsBuilder.ToImmutable();
+                allTypes = allFieldsBuilder.Count == allFieldsBuilder.Capacity
+                    ? allFieldsBuilder.MoveToImmutable()
+                    : allFieldsBuilder.ToImmutable();
+                offsets = offsetsBuilder.Count == offsetsBuilder.Capacity
+                    ? offsetsBuilder.MoveToImmutable()
+                    : offsetsBuilder.ToImmutable();
+                Debug.Assert(
+                    types.Length <= allTypes.Length &&
+                    offsets.Length == allTypes.Length,
+                    "Broken builder");
+            }
+
+            #endregion
+        }
+
+        /// <summary>
+        /// An enumerator to enumerate all nested fields in the structure type.
         /// </summary>
         public struct Enumerator : IEnumerator<(TypeNode, FieldAccess)>
         {
@@ -69,18 +221,142 @@ namespace ILGPU.IR.Types
             /// <summary cref="IEnumerator.Reset"/>
             void IEnumerator.Reset() => throw new InvalidOperationException();
         }
+        
+        /// <summary>
+        /// A readonly collection of all field offsets and paddings.
+        /// </summary>
+        public readonly struct OffsetCollection :
+            IReadOnlyCollection<(FieldAccess, int, int)>
+        {
+            #region Nested Types
+
+            /// <summary>
+            /// An enumerator to enumerate all offsets in the structure type.
+            /// </summary>
+            /// <remarks>
+            /// The tuple contains field access, byte offset and byte padding info.
+            /// </remarks>
+            public struct Enumerator : IEnumerator<(FieldAccess, int, int)>
+            {
+                private StructureType.Enumerator enumerator;
+                private int currentPadding;
+                private int offset;
+
+                /// <summary>
+                /// Constructs a new use enumerator.
+                /// </summary>
+                /// <param name="type">The structure type.</param>
+                internal Enumerator(StructureType type)
+                {
+                    enumerator = type.GetEnumerator();
+                    currentPadding = offset = 0;
+                }
+
+                /// <summary>
+                /// Returns the parent structure type.
+                /// </summary>
+                public StructureType Type => enumerator.Type;
+
+                /// <summary>
+                /// Returns the current use.
+                /// </summary>
+                public (FieldAccess, int, int) Current
+                {
+                    get
+                    {
+                        var (_, access) = enumerator.Current;
+                        return (access, Type.GetOffset(access), currentPadding);
+                    }
+                }
+
+                /// <summary cref="IEnumerator.Current"/>
+                object IEnumerator.Current => Current;
+
+                /// <summary cref="IDisposable.Dispose"/>
+                void IDisposable.Dispose() { }
+
+                /// <summary cref="IEnumerator.MoveNext"/>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public bool MoveNext()
+                {
+                    // Adjust current offset
+                    if (!enumerator.MoveNext())
+                        return false;
+
+                    // Align the current offset
+                    var (type, access) = enumerator.Current;
+
+                    // Compute the current offsets
+                    int alignedOffset = Align(offset, type.Alignment);
+                    int fieldOffset = Type.GetOffset(access);
+                    currentPadding = fieldOffset - alignedOffset;
+                    Debug.Assert(currentPadding >= 0, "Invalid padding");
+
+                    // Adjust the next offset
+                    offset = fieldOffset + type.Size;
+                    return true;
+                }
+
+                /// <summary cref="IEnumerator.Reset"/>
+                void IEnumerator.Reset() => throw new InvalidOperationException();
+            }
+
+            #endregion
+
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new offset collection.
+            /// </summary>
+            /// <param name="parent">The parent structure type.</param>
+            internal OffsetCollection(StructureType parent)
+            {
+                Parent = parent;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the parent structure type.
+            /// </summary>
+            public StructureType Parent { get; }
+
+            /// <summary>
+            /// Returns the number of offsets.
+            /// </summary>
+            public int Count => Parent.NumFields;
+
+            #endregion
+
+            #region IEnumerable
+
+            /// <summary>
+            /// Returns an enumerator to enumerate all offsets in the parent type.
+            /// </summary>
+            /// <returns>The enumerator.</returns>
+            public Enumerator GetEnumerator() => new Enumerator(Parent);
+
+            /// <summary>
+            /// Returns an enumerator to enumerate all offsets in the parent type.
+            /// </summary>
+            /// <returns>The enumerator.</returns>
+            IEnumerator<(FieldAccess, int, int)>
+                IEnumerable<(FieldAccess, int, int)>.GetEnumerator() => GetEnumerator();
+
+            /// <summary>
+            /// Returns an enumerator to enumerate all offsets in the parent type.
+            /// </summary>
+            /// <returns>The enumerator.</returns>
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            #endregion
+        }
 
         #endregion
 
         #region Static
-
-        /// <summary>
-        /// Represents the base object class of all objects.
-        /// </summary>
-        public static StructureType Root { get; } = new StructureType(
-            ImmutableArray<TypeNode>.Empty,
-            ImmutableArray<string>.Empty,
-            typeof(object));
 
         /// <summary>
         /// Gets the number of fields of the given type.
@@ -99,30 +375,33 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Caches the internal hash code of all child nodes.
         /// </summary>
-        private readonly int hashCode;
+        private readonly int hashCode = 0;
+
+        /// <summary>
+        /// All underlying byte offsets.
+        /// </summary>
+        private readonly ImmutableArray<int> offsets;
 
         /// <summary>
         /// Constructs a new object type.
         /// </summary>
-        /// <param name="fieldTypes">The field types.</param>
-        /// <param name="fieldNames">The field names.</param>
-        /// <param name="source">The original source type (or null).</param>
-        internal StructureType(
-            ImmutableArray<TypeNode> fieldTypes,
-            ImmutableArray<string> fieldNames,
-            Type source)
-            : base(source)
+        /// <param name="typeContext">The parent type context.</param>
+        /// <param name="builder">The current structure builder.</param>
+        internal StructureType(IRTypeContext typeContext, in Builder builder)
+            : base(typeContext)
         {
-            Fields = fieldTypes;
-            Names = fieldNames;
+            Alignment = builder.Alignment;
+            Size = builder.Size;
 
-            hashCode = 0;
-            foreach (var type in fieldTypes)
+            builder.Seal(out var fields, out var allFields, out offsets);
+            DirectFields = fields;
+            Fields = allFields;
+
+            // Update flags and init hash code
+            for (int i = 0, e = NumFields; i < e; ++i)
             {
-                Debug.Assert
-                    (!(type is StructureType),
-                    "Invalid nested structure type");
-                hashCode ^= type.GetHashCode();
+                var type = Fields[i];
+                hashCode ^= type.GetHashCode() ^ offsets[i];
                 AddFlags(type.Flags);
             }
         }
@@ -132,19 +411,24 @@ namespace ILGPU.IR.Types
         #region Properties
 
         /// <summary>
+        /// Returns the high-level fields stored in this structure type.
+        /// </summary>
+        public ImmutableArray<TypeNode> DirectFields { get; }
+
+        /// <summary>
         /// Returns all associated fields.
         /// </summary>
         public ImmutableArray<TypeNode> Fields { get; }
 
         /// <summary>
+        /// Returns a readonly collection of all field offsets.
+        /// </summary>
+        public OffsetCollection Offsets => new OffsetCollection(this);
+
+        /// <summary>
         /// Returns the number of associated fields.
         /// </summary>
         public int NumFields => Fields.Length;
-
-        /// <summary>
-        /// Returns the associated name information.
-        /// </summary>
-        internal ImmutableArray<string> Names { get; }
 
         /// <summary>
         /// Returns the field type that corresponds to the given field access.
@@ -158,6 +442,13 @@ namespace ILGPU.IR.Types
         #region Methods
 
         /// <summary>
+        /// Gets a specific field offset in bytes from the beginning of the structure.
+        /// </summary>
+        /// <param name="fieldAccess">The field reference.</param>
+        /// <returns>The field offset in bytes.</returns>
+        public int GetOffset(FieldAccess fieldAccess) => offsets[fieldAccess.Index];
+
+        /// <summary>
         /// Gets a nested type that corresponds to the given span.
         /// </summary>
         /// <typeparam name="TTypeContext">the parent type context.</typeparam>
@@ -168,7 +459,45 @@ namespace ILGPU.IR.Types
             where TTypeContext : IIRTypeContext =>
             !span.HasSpan
             ? this[span.Access]
-            : Slice(typeContext, span);
+            : span.Index == 0 && span.Span == NumFields
+                ? this
+                : Slice(typeContext, span);
+
+        /// <summary>
+        /// Converts all field types using the type converter provided.
+        /// </summary>
+        /// <typeparam name="TTypeContext">The type context to use.</typeparam>
+        /// <typeparam name="TTypeConverter">The type converter to use.</typeparam>
+        /// <param name="typeContext">The type context instance to use.</param>
+        /// <param name="typeConverter">The type converter instance to use.</param>
+        /// <returns></returns>
+        public StructureType ConvertFieldTypes<TTypeContext, TTypeConverter>(
+            TTypeContext typeContext,
+            TTypeConverter typeConverter)
+            where TTypeContext : IIRTypeContext
+            where TTypeConverter : ITypeConverter<TypeNode>
+        {
+            // Iterate over all direct fields to preserve the high-level layout
+            var builder = typeContext.CreateStructureType(NumFields);
+            bool changed = false;
+            foreach (var type in DirectFields)
+            {
+                // Convert type and append it
+                var convertedType = typeConverter.ConvertType(typeContext, type);
+                builder.Add(convertedType);
+                changed |= convertedType != type;
+            }
+
+            // Ensure that we did not lose any fields
+            Debug.Assert(
+                builder.Count >= NumFields,
+                "Larger or equal number if fields expected");
+
+            // Create final structure type
+            var result = builder.Seal() as StructureType;
+            Debug.Assert(changed || result == this, "Invalid type conversion");
+            return result;
+        }
 
         /// <summary>
         /// Slices a structure type out of this type.
@@ -177,62 +506,74 @@ namespace ILGPU.IR.Types
         /// <param name="typeContext">The type context.</param>
         /// <param name="span">The span to slice.</param>
         /// <returns>The sliced structure type.</returns>
-        public TypeNode Slice<TTypeContext>(TTypeContext typeContext, FieldSpan span)
-            where TTypeContext : IIRTypeContext =>
-            typeContext.CreateStructureType(Slice(span));
-
-        /// <summary>
-        /// Slices the specified field types.
-        /// </summary>
-        /// <param name="span">The span to slice.</param>
-        /// <returns>The sliced field types.</returns>
-        public ImmutableArray<TypeNode> Slice(FieldSpan span)
+        private TypeNode Slice<TTypeContext>(TTypeContext typeContext, FieldSpan span)
+            where TTypeContext : IIRTypeContext
         {
-            var fieldTypes = span.CreateFieldTypeBuilder();
-            for (int i = 0; i < span.Span; ++i)
-                fieldTypes.Add(this[span.Index + i]);
-            return fieldTypes.MoveToImmutable();
+            // If we reach this point we have to create a new structure type
+            Debug.Assert(span.HasSpan && span.Span < NumFields);
+            var builder = typeContext.CreateStructureType(span.Span);
+
+            // Slice all field types into the builder
+            int index = 0;
+            SliceRecursive(ref builder, ref index, span);
+
+            return builder.Seal();
         }
 
         /// <summary>
-        /// Creates a new immutable array builder that has a sufficient capacity for
-        /// all values.
+        /// Slices a subset of fields recursively.
         /// </summary>
-        /// <returns>The created field builder.</returns>
-        public ImmutableArray<TypeNode>.Builder CreateFieldTypeBuilder() =>
-            ImmutableArray.CreateBuilder<TypeNode>(NumFields);
-
-        /// <summary>
-        /// Creates a new immutable array builder that has a sufficient capacity for
-        /// all values.
-        /// </summary>
-        /// <returns>The created field builder.</returns>
-        public ImmutableArray<ValueReference>.Builder CreateFieldBuilder() =>
-            ImmutableArray.CreateBuilder<ValueReference>(NumFields);
-
-        /// <summary>
-        /// Returns the name of the specified child.
-        /// </summary>
-        /// <param name="childIndex">The child index.</param>
-        /// <returns>The name of the specified child.</returns>
-        public string GetName(int childIndex)
+        /// <param name="builder">The target builder to append to.</param>
+        /// <param name="index">The current index.</param>
+        /// <param name="span">The source span to slice.</param>
+        private void SliceRecursive(
+            ref Builder builder,
+            ref int index,
+            in FieldSpan span)
         {
-            if (childIndex < 0 || childIndex >= Fields.Length)
-                throw new ArgumentOutOfRangeException(nameof(childIndex));
-            return childIndex < Names.Length
-                ? Names[childIndex]
-                : string.Empty;
+            foreach (var type in DirectFields)
+            {
+                int numFields = GetNumFields(type);
+                var nestedSpan = new FieldSpan(index, numFields);
+
+                // Check whether we can include the whole direct field
+                if (span.Contains(nestedSpan))
+                {
+                    builder.Add(type);
+                }
+                else if (nestedSpan.Contains(span))
+                {
+                    // This must be a nested structure
+                    (type as StructureType).SliceRecursive(
+                        ref builder,
+                        ref index,
+                        span);
+                }
+
+                // Skip parts
+                index += numFields;
+                if (index >= span.Index + span.Span)
+                    break;
+            }
         }
 
-        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
-        public override bool TryResolveManagedType(out Type type)
+        /// <summary>
+        /// Creates a managed type that corresponds to this structure type.
+        /// </summary>
+        protected override Type GetManagedType()
         {
-            type = Source;
-            return type != null;
-        }
+            var typeBuilder = Context.DefineRuntimeStruct();
+            int index = 0;
+            foreach (var type in DirectFields)
+            {
+                typeBuilder.DefineField(
+                    "Field" + index++,
+                    type.ManagedType,
+                    FieldAttributes.Public);
 
-        /// <summary cref="TypeNode.Accept{T}(T)"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
+            }
+            return typeBuilder.CreateType();
+        }
 
         #endregion
 
@@ -278,8 +619,11 @@ namespace ILGPU.IR.Types
 
             for (int i = 0, e = Fields.Length; i < e; ++i)
             {
-                if (Fields[i] != structureType.Fields[i])
+                if (Fields[i] != structureType.Fields[i] ||
+                    offsets[i] != structureType.offsets[i])
+                {
                     return false;
+                }
             }
             return true;
         }
@@ -287,24 +631,17 @@ namespace ILGPU.IR.Types
         /// <summary cref="TypeNode.ToString()"/>
         public override string ToString()
         {
-            if (Source != null)
-                return Source.GetStringRepresentation();
-
             var result = new StringBuilder();
             result.Append(ToPrefixString());
             result.Append('<');
-
             if (Fields.Length > 0)
             {
                 for (int i = 0, e = Fields.Length; i < e; ++i)
                 {
                     result.Append(Fields[i].ToString());
-                    var name = GetName(i);
-                    if (!string.IsNullOrEmpty(name))
-                    {
-                        result.Append(' ');
-                        result.Append(name);
-                    }
+                    result.Append(" [");
+                    result.Append(GetOffset(i));
+                    result.Append(']');
                     if (i + 1 < e)
                         result.Append(", ");
                 }

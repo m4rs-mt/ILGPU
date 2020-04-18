@@ -23,21 +23,19 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Constructs a new .Net runtime-specific handle type.
         /// </summary>
-        internal HandleType() { }
+        /// <param name="typeContext">The parent type context.</param>
+        internal HandleType(IRTypeContext typeContext)
+            : base(typeContext)
+        { }
 
         #endregion
 
         #region Methods
 
-        /// <summary cref="TypeNode.Accept{T}(T)"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
-        public override bool TryResolveManagedType(out Type type)
-        {
-            type = typeof(object);
-            return true;
-        }
+        /// <summary>
+        /// Creates an object type.
+        /// </summary>
+        protected override Type GetManagedType() => typeof(object);
 
         #endregion
 

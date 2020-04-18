@@ -23,14 +23,18 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Constructs a new array type.
         /// </summary>
+        /// <param name="typeContext">The parent type context.</param>
         /// <param name="elementType">The element type.</param>
         /// <param name="dimensions">The number of dimensions.</param>
-        /// <param name="source">The original source type (or null).</param>
-        internal ArrayType(TypeNode elementType, int dimensions, Type source)
-            : base(source)
+        internal ArrayType(
+            IRTypeContext typeContext,
+            TypeNode elementType,
+            int dimensions)
+            : base(typeContext)
         {
             ElementType = elementType;
             Dimensions = dimensions;
+            Size = Alignment = 4;
             AddFlags(elementType.Flags | TypeFlags.ArrayDependent);
         }
 
@@ -57,8 +61,11 @@ namespace ILGPU.IR.Types
 
         #region Methods
 
-        /// <summary cref="TypeNode.Accept{T}(T)"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
+        /// <summary>
+        /// Creates a managed array type.
+        /// </summary>
+        protected override Type GetManagedType() =>
+            ElementType.ManagedType.MakeArrayType();
 
         #endregion
 

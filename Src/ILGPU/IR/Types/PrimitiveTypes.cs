@@ -11,6 +11,7 @@
 
 using ILGPU.Util;
 using System;
+using System.Collections.Immutable;
 
 namespace ILGPU.IR.Types
 {
@@ -19,15 +20,37 @@ namespace ILGPU.IR.Types
     /// </summary>
     public sealed class PrimitiveType : TypeNode
     {
+        #region Static
+
+        /// <summary>
+        /// Contains default size information about built-in types.
+        /// </summary>
+        private static readonly ImmutableArray<int> BasicTypeInformation =
+            ImmutableArray.Create(
+                -1, // None
+                4,
+                1,
+                2,
+                4,
+                8,
+                4,
+                8);
+
+        #endregion
+
         #region Instance
 
         /// <summary>
         /// Constructs a new primitive type.
         /// </summary>
+        /// <param name="typeContext">The parent type context.</param>
         /// <param name="basicValueType">The basic value type.</param>
-        internal PrimitiveType(BasicValueType basicValueType)
+        internal PrimitiveType(IRTypeContext typeContext, BasicValueType basicValueType)
+            : base(typeContext)
         {
             BasicValueType = basicValueType;
+
+            Size = Alignment = BasicTypeInformation[(int)basicValueType];
         }
 
         #endregion
@@ -62,15 +85,10 @@ namespace ILGPU.IR.Types
 
         #region Methods
 
-        /// <summary cref="TypeNode.Accept{T}(T)"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
-        public override bool TryResolveManagedType(out Type type)
-        {
-            type = BasicValueType.GetManagedType();
-            return true;
-        }
+        /// <summary>
+        /// Returns the corresponding managed basic value type.
+        /// </summary>
+        protected override Type GetManagedType() => BasicValueType.GetManagedType();
 
         #endregion
 
@@ -102,21 +120,19 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Constructs a new string type.
         /// </summary>
-        internal StringType() { }
+        /// <param name="typeContext">The parent type context.</param>
+        internal StringType(IRTypeContext typeContext)
+            : base(typeContext)
+        { }
 
         #endregion
 
         #region Methods
 
-        /// <summary cref="TypeNode.Accept{T}(T)"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
-        public override bool TryResolveManagedType(out Type type)
-        {
-            type = typeof(string);
-            return true;
-        }
+        /// <summary>
+        /// Returns the corresponding managed basic value type.
+        /// </summary>
+        protected override Type GetManagedType() => typeof(string);
 
         #endregion
 

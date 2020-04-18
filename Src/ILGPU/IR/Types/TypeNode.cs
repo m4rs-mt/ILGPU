@@ -10,6 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Types
 {
@@ -39,6 +41,11 @@ namespace ILGPU.IR.Types
         /// The type is either an array or contains an array.
         /// </summary>
         ArrayDependent = 1 << 2,
+
+        /// <summary>
+        /// The type depends on an address space.
+        /// </summary>
+        AddressSpaceDependent = PointerDependent | ViewDependent
     }
 
     /// <summary>
@@ -46,16 +53,66 @@ namespace ILGPU.IR.Types
     /// </summary>
     public abstract class TypeNode : Node
     {
+        #region Static
+
+        /// <summary>
+        /// Computes a properly aligned offset in bytes for the given field size.
+        /// </summary>
+        /// <param name="offset">The current.</param>
+        /// <param name="fieldAlignment">The field size in bytes.</param>
+        /// <returns>The aligned field offset.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Align(int offset, int fieldAlignment)
+        {
+            var padding = (fieldAlignment - (offset % fieldAlignment)) % fieldAlignment;
+            return offset + padding;
+        }
+
+        #endregion
+
         #region Instance
+
+        /// <summary>
+        /// The managed type representation of this IR type.
+        /// </summary>
+        private Type managedType;
 
         /// <summary>
         /// Constructs a new type.
         /// </summary>
-        protected TypeNode() { }
+        /// <param name="typeContext">The parent type context.</param>
+        protected TypeNode(IRTypeContext typeContext)
+        {
+            Debug.Assert(typeContext != null, "Invalid type context");
+            TypeContext = typeContext;
+
+            Size = 1;
+            Alignment = 1;
+        }
 
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the parent ILGPU context.
+        /// </summary>
+        public Context Context => TypeContext.Context;
+
+        /// <summary>
+        /// Returns the parent type context.
+        /// </summary>
+        public IRTypeContext TypeContext { get; }
+
+        /// <summary>
+        /// The size of the type in bytes (if the type is in its lowered representation).
+        /// </summary>
+        public int Size { get; protected set; }
+
+        /// <summary>
+        /// The type alignment in bytes (if the type is in its lowered representation).
+        /// </summary>
+        public int Alignment { get; protected set; }
 
         /// <summary>
         /// Returns true if the current type is a <see cref="VoidType"/>.
@@ -104,6 +161,13 @@ namespace ILGPU.IR.Types
         public bool IsArrayType => this is ArrayType;
 
         /// <summary>
+        /// Returns true if this type is a root object type.
+        /// </summary>
+        public bool IsRootType =>
+            this is StructureType structureType &&
+            structureType.NumFields < 1;
+
+        /// <summary>
         /// Returns the basic value type.
         /// </summary>
         public BasicValueType BasicValueType =>
@@ -116,6 +180,24 @@ namespace ILGPU.IR.Types
         /// </summary>
         public TypeFlags Flags { get; private set; }
 
+        /// <summary>
+        /// Returns true if this type corresponds to its lowered representation.
+        /// </summary>
+        /// <remarks>
+        /// Lowered in this scope means that this type does not contains nested arrays
+        /// and views. In this case the size and alignment information can be used
+        /// immediately for interop purposes.
+        /// </remarks>
+        public bool IsLowered =>
+            Size > 0 && Alignment > 0 &&
+            !HasFlags(TypeFlags.ArrayDependent | TypeFlags.ViewDependent);
+
+        /// <summary>
+        /// The type representation in the managed world.
+        /// </summary>
+        public Type ManagedType =>
+            managedType ?? (managedType = GetManagedType());
+
         #endregion
 
         #region Methods
@@ -125,7 +207,8 @@ namespace ILGPU.IR.Types
         /// </summary>
         /// <param name="typeFlags">The flags to test.</param>
         /// <returns>True, if the given flags are set.</returns>
-        public bool HasFlags(TypeFlags typeFlags) => (Flags & typeFlags) == typeFlags;
+        public bool HasFlags(TypeFlags typeFlags) =>
+            (Flags & typeFlags) != TypeFlags.None;
 
         /// <summary>
         /// Adds the given flags to the current type.
@@ -134,21 +217,10 @@ namespace ILGPU.IR.Types
         protected void AddFlags(TypeFlags typeFlags) => Flags |= typeFlags;
 
         /// <summary>
-        /// Accepts a type node visitor.
+        /// Creates a managed type that corresponds to this IR type.
         /// </summary>
-        /// <typeparam name="T">The type of the visitor.</typeparam>
-        /// <param name="visitor">The visitor.</param>
-        public abstract void Accept<T>(T visitor)
-            where T : ITypeNodeVisitor;
-
-        /// <summary>
-        /// Tries to resolve the managed type that represents this IR type.
-        /// </summary>
-        /// <param name="type">
-        /// The resolved managed type that represents this IR type.
-        /// </param>
-        /// <returns>True, if the managed type could be resolved.</returns>
-        public abstract bool TryResolveManagedType(out Type type);
+        /// <returns>The created managed type.</returns>
+        protected abstract Type GetManagedType();
 
         #endregion
 

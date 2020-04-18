@@ -209,20 +209,11 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary>
-        /// Creates a new immutable array builder that has a sufficient capacity for
-        /// all values.
+        /// Returns the last inclusive field access.
         /// </summary>
-        /// <returns>The created field builder.</returns>
-        public ImmutableArray<TypeNode>.Builder CreateFieldTypeBuilder() =>
-            ImmutableArray.CreateBuilder<TypeNode>(Span);
-
-        /// <summary>
-        /// Creates a new immutable array builder that has a sufficient capacity for
-        /// all values.
-        /// </summary>
-        /// <returns>The created field builder.</returns>
-        public ImmutableArray<ValueReference>.Builder CreateFieldBuilder() =>
-            ImmutableArray.CreateBuilder<ValueReference>(Span);
+        /// <returns>The last inclusive field access.</returns>
+        public FieldAccess GetLastAccess() =>
+            Access.Add(IntrinsicMath.Max(Span - 1, 0));
 
         /// <summary>
         /// Returns true if the given field span is contained in this span.
@@ -693,6 +684,255 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.Structure)]
     public sealed class StructureValue : Value
     {
+        #region Nested Types
+
+        /// <summary>
+        /// An abstract structure value builder.
+        /// </summary>
+        public interface IBuilder
+        {
+            /// <summary>
+            /// Returns the parent IR builder.
+            /// </summary>
+            IRBuilder IRBuilder { get; }
+
+            /// <summary>
+            /// The number of field values.
+            /// </summary>
+            int Count { get; }
+
+            /// <summary>
+            /// Returns the value that corresponds to the given field access.
+            /// </summary>
+            /// <param name="access">The field access.</param>
+            /// <returns>The resolved field type.</returns>
+            ValueReference this[FieldAccess access] { get; }
+
+            /// <summary>
+            /// Adds the given value to the instance builder.
+            /// </summary>
+            /// <param name="value">The value to add.</param>
+            void Add(Value value);
+
+            /// <summary>
+            /// Constructs a new value that represents the current value builder.
+            /// </summary>
+            /// <returns>The resulting value reference.</returns>
+            ValueReference Seal();
+        }
+
+        /// <summary>
+        /// An internal instance builder.
+        /// </summary>
+        internal interface IInternalBuilder : IBuilder
+        {
+            /// <summary>
+            /// Moves the underlying array builder to an immutable array and returns
+            /// an assembled structure type.
+            /// </summary>
+            /// <param name="structureType">The resulting structure type.</param>
+            /// <returns>The resulting immutable array of value references.</returns>
+            ImmutableArray<ValueReference> Seal(out StructureType structureType);
+        }
+
+        /// <summary>
+        /// An instance builder for structure instances.
+        /// </summary>
+        public struct Builder : IInternalBuilder
+        {
+            #region Instance
+
+            private readonly ImmutableArray<ValueReference>.Builder builder; 
+
+            /// <summary>
+            /// Initializes a new instance builder.
+            /// </summary>
+            /// <param name="irBuilder">The current IR builder.</param>
+            /// <param name="parent">The parent type.</param>
+            internal Builder(IRBuilder irBuilder, StructureType parent)
+            {
+                Debug.Assert(parent != null, "Invalid parent");
+                builder = ImmutableArray.CreateBuilder<ValueReference>(
+                    parent.NumFields);
+                IRBuilder = irBuilder;
+                Parent = parent;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the parent builder.
+            /// </summary>
+            public IRBuilder IRBuilder { get; }
+
+            /// <summary>
+            /// Returns the corresponding parent type.
+            /// </summary>
+            public StructureType Parent { get; }
+
+            /// <summary>
+            /// The number of field values.
+            /// </summary>
+            public int Count => builder.Count;
+
+            /// <summary>
+            /// Returns the value that corresponds to the given field access.
+            /// </summary>
+            /// <param name="access">The field access.</param>
+            /// <returns>The resolved field type.</returns>
+            public ValueReference this[FieldAccess access]
+            {
+                get => builder[access.Index];
+                set
+                {
+                    Debug.Assert(value != null, "Invalid value");
+                    Debug.Assert(
+                        !value.Type.IsStructureType,
+                        "Invalid structure value");
+                    Debug.Assert(
+                        value.Type == Parent[Count] ||
+                        value.ResolveAs<UndefinedValue>() != null,
+                        "Invalid type");
+                    builder[access.Index] = value;
+                }
+            }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Adds the given value to the instance builder.
+            /// </summary>
+            /// <param name="value">The value to add.</param>
+            public void Add(Value value)
+            {
+                Debug.Assert(value != null, "Invalid value");
+                Debug.Assert(!value.Type.IsStructureType, "Invalid structure value");
+                Debug.Assert(
+                    value.Type == Parent[Count] || value is UndefinedValue,
+                    "Invalid type");
+                Debug.Assert(
+                    Count + 1 <= Parent.NumFields,
+                    "Number of fields out of range");
+                builder.Add(value);
+            }
+
+            /// <summary>
+            /// Constructs a new value that represents the current value builder.
+            /// </summary>
+            /// <returns>The resulting value reference.</returns>
+            public ValueReference Seal() => IRBuilder.FinishStructureBuilder(this);
+
+            /// <summary>
+            /// Moves the underlying array builder to an immutable array and returns
+            /// an assembled structure type.
+            /// </summary>
+            /// <returns>The resulting immutable array of value references.</returns>
+            ImmutableArray<ValueReference> IInternalBuilder.Seal(
+                out StructureType structureType)
+            {
+                Debug.Assert(Count == Parent.NumFields, "Invalid structure instance");
+                structureType = Parent;
+                return builder.MoveToImmutable();
+            }
+
+            #endregion
+        }
+
+        /// <summary>
+        /// An instance builder for dynamically typed structure instances.
+        /// </summary>
+        public struct DynamicBuilder : IInternalBuilder
+        {
+            #region Instance
+
+            private readonly ImmutableArray<ValueReference>.Builder builder; 
+
+            /// <summary>
+            /// Initializes a new instance builder.
+            /// </summary>
+            /// <param name="irBuilder">The current IR builder.</param>
+            /// <param name="capacity">The initial capacity.</param>
+            internal DynamicBuilder(IRBuilder irBuilder, int capacity)
+            {
+                builder = ImmutableArray.CreateBuilder<ValueReference>(capacity);
+                IRBuilder = irBuilder;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the parent builder.
+            /// </summary>
+            public IRBuilder IRBuilder { get; }
+
+            /// <summary>
+            /// The number of field values.
+            /// </summary>
+            public int Count => builder.Count;
+
+            /// <summary>
+            /// Returns the value that corresponds to the given field access.
+            /// </summary>
+            /// <param name="access">The field access.</param>
+            /// <returns>The resolved field type.</returns>
+            public ValueReference this[FieldAccess access]
+            {
+                get => builder[access.Index];
+                set => builder[access.Index] = value;
+            }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Adds the given value to the instance builder.
+            /// </summary>
+            /// <param name="value">The value to add.</param>
+            public void Add(Value value)
+            {
+                Debug.Assert(value != null, "Invalid value");
+                Debug.Assert(!value.Type.IsStructureType, "Invalid structure value");
+                builder.Add(value);
+            }
+
+            /// <summary>
+            /// Constructs a new value that represents the current value builder.
+            /// </summary>
+            /// <returns>The resulting value reference.</returns>
+            public ValueReference Seal() => IRBuilder.FinishStructureBuilder(this);
+
+            /// <summary>
+            /// Moves the underlying array builder to an immutable array and returns
+            /// an assembled structure type.
+            /// </summary>
+            /// <param name="structureType">The resulting structure type.</param>
+            /// <returns>The resulting immutable array of value references.</returns>
+            ImmutableArray<ValueReference> IInternalBuilder.Seal(
+                out StructureType structureType)
+            {
+                // Create a new structure type that corresponds to all value types
+                var typeBuilder = IRBuilder.CreateStructureType(Count);
+                foreach (var value in builder)
+                    typeBuilder.Add(value.Type);
+                structureType = typeBuilder.Seal() as StructureType;
+                Debug.Assert(structureType != null, "Invalid structure type");
+                return Count == builder.Capacity
+                    ? builder.MoveToImmutable()
+                    : builder.ToImmutable();
+            }
+
+            #endregion
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -707,6 +947,7 @@ namespace ILGPU.IR.Values
             ImmutableArray<ValueReference> fieldValues)
             : base(basicBlock, structureType)
         {
+            StructureType = structureType;
             Seal(fieldValues);
         }
 
@@ -720,7 +961,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the structure type.
         /// </summary>
-        public StructureType StructureType => Type as StructureType;
+        public StructureType StructureType { get; }
 
         /// <summary>
         /// Returns the number of field values.
@@ -741,31 +982,29 @@ namespace ILGPU.IR.Values
         {
             if (!fieldSpan.HasSpan)
                 return this[fieldSpan.Index];
+            else if (fieldSpan.Index == 0 && fieldSpan.Span == NumFields)
+                return this;
 
-            var fields = fieldSpan.CreateFieldBuilder();
+            var resultType = StructureType.Get(builder, fieldSpan) as StructureType;
+            Debug.Assert(resultType != null, "Invalid result type");
+            var instance = builder.CreateStructure(resultType);
             for (int i = 0; i < fieldSpan.Span; ++i)
-                fields.Add(this[fieldSpan.Index + i]);
-            return builder.CreateStructure(fields.MoveToImmutable());
+                instance.Add(this[fieldSpan.Index + i]);
+            return instance.Seal();
         }
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context)
-        {
-            var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(NumFields);
-            foreach (var field in Nodes)
-                fieldTypes.Add(field.Type);
-            return context.CreateStructureType(fieldTypes.MoveToImmutable());
-        }
+        protected override TypeNode UpdateType(IRContext context) => StructureType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder)
         {
-            var fields = ImmutableArray.CreateBuilder<ValueReference>(NumFields);
+            var instance = builder.CreateStructure(StructureType);
             foreach (var value in Nodes)
-                fields.Add(rebuilder.Rebuild(value));
-            return builder.CreateStructure(fields.MoveToImmutable());
+                instance.Add(rebuilder.Rebuild(value));
+            return instance.Seal();
         }
 
         /// <summary cref="Value.Accept" />

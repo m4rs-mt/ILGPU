@@ -55,8 +55,8 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Converts the given type node.
         /// </summary>
-        /// <typeparam name="TTypeContext">The type converter to use.</typeparam>
-        /// <param name="typeContext">The type converter instance to use.</param>
+        /// <typeparam name="TTypeContext">The type context to use.</typeparam>
+        /// <param name="typeContext">The type context instance to use.</param>
         /// <param name="type">The type to convert.</param>
         /// <returns>The converted type.</returns>
         protected abstract TypeNode ConvertType<TTypeContext>(
@@ -73,8 +73,8 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Converts the given type node.
         /// </summary>
-        /// <typeparam name="TTypeContext">The type converter to use.</typeparam>
-        /// <param name="typeContext">The type converter instance to use.</param>
+        /// <typeparam name="TTypeContext">The type context to use.</typeparam>
+        /// <param name="typeContext">The type context instance to use.</param>
         /// <param name="type">The type to convert.</param>
         /// <returns>The converted type.</returns>
         public TypeNode ConvertType<TTypeContext>(
@@ -87,16 +87,7 @@ namespace ILGPU.IR.Types
                 case TType ttype:
                     return ConvertType(typeContext, ttype);
                 case StructureType structureType:
-                    var fields = structureType.CreateFieldTypeBuilder();
-                    foreach (var fieldType in structureType.Fields)
-                    {
-                        var converted = ConvertType(typeContext, fieldType);
-                        if (converted is StructureType nestedStructureType)
-                            fields.AddRange(nestedStructureType.Fields);
-                        else
-                            fields.Add(converted);
-                    }
-                    return typeContext.CreateStructureType(fields.ToImmutable());
+                    return structureType.ConvertFieldTypes(typeContext, this);
                 case ArrayType arrayType:
                     return typeContext.CreateArrayType(
                         ConvertType(typeContext, arrayType.ElementType),

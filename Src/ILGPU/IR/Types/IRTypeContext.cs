@@ -66,15 +66,15 @@ namespace ILGPU.IR.Types
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
 
-            VoidType = CreateType(new VoidType());
-            StringType = CreateType(new StringType());
-            HandleType = CreateType(new HandleType());
+            VoidType = CreateType(new VoidType(this));
+            StringType = CreateType(new StringType(this));
+            HandleType = CreateType(new HandleType(this));
 
             basicValueTypes = new PrimitiveType[BasicValueTypes.Length + 1];
             foreach (var type in BasicValueTypes)
             {
                 basicValueTypes[(int)type] = CreateType(
-                    new PrimitiveType(type));
+                    new PrimitiveType(this, type));
             }
 
             if (context.HasFlags(ContextFlags.Force32BitFloats))
@@ -87,7 +87,15 @@ namespace ILGPU.IR.Types
             // Populate type mapping
             typeMapping.Add(typeof(void), VoidType);
             typeMapping.Add(typeof(string), StringType);
-            typeMapping.Add(typeof(Array), StructureType.Root);
+
+            {
+                var rootTypeBuilder = CreateStructureType(0);
+                typeMapping.Add(
+                    typeof(Array),
+                    new StructureType(
+                        this,
+                        rootTypeBuilder));
+            }
 
             typeMapping.Add(typeof(RuntimeFieldHandle), HandleType);
             typeMapping.Add(typeof(RuntimeMethodHandle), HandleType);
@@ -169,6 +177,7 @@ namespace ILGPU.IR.Types
         {
             Debug.Assert(elementType != null, "Invalid element type");
             return CreateType(new PointerType(
+                this,
                 elementType,
                 addressSpace));
         }
@@ -185,73 +194,38 @@ namespace ILGPU.IR.Types
         {
             Debug.Assert(elementType != null, "Invalid element type");
             return CreateType(new ViewType(
+                this,
                 elementType,
                 addressSpace));
         }
 
         /// <summary>
-        /// Creates an empty structure type.
+        /// Creates a new structure type builder with the given capacity.
         /// </summary>
-        /// <returns>The type representing an empty structure.</returns>
-        public TypeNode CreateEmptyStructureType() =>
-            GetPrimitiveType(BasicValueType.Int8);
+        /// <param name="capacity">The initial capacity.</param>
+        /// <returns>The created structure builder.</returns>
+        public StructureType.Builder CreateStructureType(int capacity) =>
+            new StructureType.Builder(this, capacity);
 
         /// <summary>
-        /// Creates a new object type.
+        /// Creates a new structure type.
         /// </summary>
-        /// <param name="fieldTypes">The object field types.</param>
-        /// <returns>The created object type.</returns>
-        public TypeNode CreateStructureType(ImmutableArray<TypeNode> fieldTypes) =>
-            CreateStructureType(
-                fieldTypes,
-                ImmutableArray<string>.Empty,
-                null);
-
-        /// <summary>
-        /// Creates a new object type.
-        /// </summary>
-        /// <param name="fieldTypes">The object field types.</param>
-        /// <param name="fieldNames">The object field names.</param>
-        /// <param name="sourceType">The source object type.</param>
-        /// <returns>The created object type.</returns>
+        /// <param name="builder">The current builder.</param>
+        /// <returns>The created type.</returns>
         [SuppressMessage(
             "Style",
             "IDE0046:Convert to conditional expression",
             Justification = "Avoid nested if conditionals")]
-        public TypeNode CreateStructureType(
-            ImmutableArray<TypeNode> fieldTypes,
-            ImmutableArray<string> fieldNames,
-            Type sourceType)
+        internal TypeNode FinishStructureType(in StructureType.Builder builder)
         {
-            if (fieldTypes.Length < 1)
-                return CreateEmptyStructureType();
+            if (builder.Count < 1)
+                return this.CreateEmptyStructureType();
 
-            return fieldTypes.Length < 2
-                ? fieldTypes[0]
+            return builder.Count < 2
+                ? builder[0]
                 : CreateType(new StructureType(
-                    fieldTypes,
-                    fieldNames,
-                    sourceType));
-        }
-
-        /// <summary>
-        /// Creates a new object type.
-        /// </summary>
-        /// <param name="fieldTypes">The object field types.</param>
-        /// <param name="sourceType">The source object type.</param>
-        /// <returns>The created object type.</returns>
-        public TypeNode CreateStructureType(
-            ImmutableArray<TypeNode> fieldTypes,
-            StructureType sourceType)
-        {
-            Debug.Assert(sourceType != null, "Invalid source type");
-            Debug.Assert(
-                sourceType.NumFields == fieldTypes.Length,
-                "Incompatible field types");
-            return CreateStructureType(
-                fieldTypes,
-                sourceType.Names,
-                sourceType.Source);
+                    this,
+                    builder));
         }
 
         /// <summary>
@@ -264,17 +238,11 @@ namespace ILGPU.IR.Types
         {
             Debug.Assert(dimension > 0, "Invalid array length");
 
-            // Try to resolve the managed type
-            Type managedType = null;
-            if (elementType.TryResolveManagedType(out Type managedElementType))
-                managedType = managedElementType.MakeArrayType();
-
             // Create the actual type
-            return CreateType(
-                new ArrayType(
-                    elementType,
-                    dimension,
-                    managedType));
+            return CreateType(new ArrayType(
+                this,
+                elementType,
+                dimension));
         }
 
         /// <summary>
@@ -295,46 +263,6 @@ namespace ILGPU.IR.Types
         {
             Debug.Assert(type != null, "Invalid type");
 
-            var primitiveType = TryCreatePrimitiveType(type, addressSpace);
-            if (primitiveType != null)
-                return primitiveType;
-
-            // TODO: Enable support for classes
-            if (type.IsClass)
-            {
-                throw new NotSupportedException(
-                    string.Format(
-                        ErrorMessages.NotSupportedClassType,
-                        type));
-            }
-
-            Debug.Assert(type.IsValueType, "Invalid structure type");
-            var typeInfo = GetTypeInfo(type);
-
-            var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(
-                typeInfo.NumFlattendedFields);
-            var fieldNames = ImmutableArray.CreateBuilder<string>(
-                typeInfo.NumFlattendedFields);
-            CreateTypeRecursive(addressSpace, typeInfo, fieldTypes, fieldNames);
-
-            var fieldTypesArray = fieldTypes.MoveToImmutable();
-            var fieldNamesArray = fieldNames.MoveToImmutable();
-            return CreateStructureType(
-                fieldTypesArray,
-                fieldNamesArray,
-                type);
-        }
-
-        /// <summary>
-        /// Tries to create a primitive type from the given .Net type.
-        /// </summary>
-        /// <param name="type">The parent type.</param>
-        /// <param name="addressSpace">The current address space.</param>
-        /// <returns>The created node or null.</returns>
-        private TypeNode TryCreatePrimitiveType(
-            Type type,
-            MemoryAddressSpace addressSpace)
-        {
             var basicValueType = type.GetBasicValueType();
             if (basicValueType != BasicValueType.None)
             {
@@ -372,41 +300,25 @@ namespace ILGPU.IR.Types
                     CreateType(type.GetElementType(), addressSpace),
                     addressSpace);
             }
-            return null;
-        }
-
-        /// <summary>
-        /// Creates a structure type recursively.
-        /// </summary>
-        /// <param name="addressSpace">The current address space.</param>
-        /// <param name="typeInfo">The type info builder.</param>
-        /// <param name="fieldTypes">The field types builder.</param>
-        /// <param name="fieldNames">The field names builder.</param>
-        private void CreateTypeRecursive(
-            MemoryAddressSpace addressSpace,
-            TypeInformation typeInfo,
-            ImmutableArray<TypeNode>.Builder fieldTypes,
-            ImmutableArray<string>.Builder fieldNames)
-        {
-            foreach (var fieldInfo in typeInfo.Fields)
+            else if (type.IsClass)
             {
-                var fieldType = TryCreatePrimitiveType(
-                    fieldInfo.FieldType,
-                    addressSpace);
-                if (fieldType != null)
-                {
-                    fieldTypes.Add(fieldType);
-                    fieldNames.Add(fieldInfo.Name);
-                }    
-                else
-                {
-                    var nestedTypeInfo = GetTypeInfo(fieldInfo.FieldType);
-                    CreateTypeRecursive(
-                        addressSpace,
-                        nestedTypeInfo,
-                        fieldTypes,
-                        fieldNames);
-                }
+                throw new NotSupportedException(
+                    string.Format(
+                        ErrorMessages.NotSupportedClassType,
+                        type));
+            }
+            else
+            {
+                // TODO: integrated type mapping
+
+                // Must be a structure type
+                Debug.Assert(type.IsValueType, "Invalid structure type");
+                var typeInfo = GetTypeInfo(type);
+
+                var builder = CreateStructureType(typeInfo.NumFlattendedFields);
+                foreach (var field in typeInfo.Fields)
+                    builder.Add(CreateType(field.FieldType, addressSpace));
+                return CreateType(builder.Seal());
             }
         }
 

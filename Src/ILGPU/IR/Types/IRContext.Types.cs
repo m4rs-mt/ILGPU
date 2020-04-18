@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Types;
 using System;
-using System.Collections.Immutable;
 
 namespace ILGPU.IR
 {
@@ -86,49 +85,12 @@ namespace ILGPU.IR
             TypeContext.CreateArrayType(elementType, dimension);
 
         /// <summary>
-        /// Creates an empty structure type.
+        /// Creates a new structure type builder with the given capacity.
         /// </summary>
-        /// <returns>The type representing an empty structure.</returns>
-        public TypeNode CreateEmptyStructureType() =>
-            TypeContext.CreateEmptyStructureType();
-
-        /// <summary>
-        /// Creates a new structure type.
-        /// </summary>
-        /// <param name="fieldTypes">The structure field types.</param>
-        /// <returns>The created structure type.</returns>
-        public TypeNode CreateStructureType(
-            ImmutableArray<TypeNode> fieldTypes) =>
-            TypeContext.CreateStructureType(fieldTypes);
-
-        /// <summary>
-        /// Creates a new structure type.
-        /// </summary>
-        /// <param name="fieldTypes">The structure field types.</param>
-        /// <param name="fieldNames">The structure field names.</param>
-        /// <param name="sourceType">The source structure type.</param>
-        /// <returns>The created structure type.</returns>
-        public TypeNode CreateStructureType(
-            ImmutableArray<TypeNode> fieldTypes,
-            ImmutableArray<string> fieldNames,
-            Type sourceType) =>
-            TypeContext.CreateStructureType(
-                fieldTypes,
-                fieldNames,
-                sourceType);
-
-        /// <summary>
-        /// Creates a new structure type.
-        /// </summary>
-        /// <param name="fieldTypes">The structure field types.</param>
-        /// <param name="sourceType">The source structure type.</param>
-        /// <returns>The created structure type.</returns>
-        public TypeNode CreateStructureType(
-            ImmutableArray<TypeNode> fieldTypes,
-            StructureType sourceType) =>
-            TypeContext.CreateStructureType(
-                fieldTypes,
-                sourceType);
+        /// <param name="capacity">The initial capacity.</param>
+        /// <returns>The created structure builder.</returns>
+        public StructureType.Builder CreateStructureType(int capacity) =>
+            TypeContext.CreateStructureType(capacity);
 
         /// <summary>
         /// Creates a new type based on a type from the .Net world.

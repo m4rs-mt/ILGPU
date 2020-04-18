@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Backends;
+using ILGPU.Util;
 using System;
 
 namespace ILGPU.IR.Types
@@ -39,11 +41,14 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Constructs a new address type.
         /// </summary>
+        /// <param name="typeContext">The parent type context.</param>
         /// <param name="elementType">The element type.</param>
         /// <param name="addressSpace">The associated address space.</param>
         protected AddressSpaceType(
+            IRTypeContext typeContext,
             TypeNode elementType,
             MemoryAddressSpace addressSpace)
+            : base(typeContext)
         {
             ElementType = elementType;
             AddressSpace = addressSpace;
@@ -81,7 +86,7 @@ namespace ILGPU.IR.Types
 
         /// <summary cref="TypeNode.ToString"/>
         public override string ToString() =>
-            $"{ToPrefixString()} <{ElementType}, {AddressSpace}>";
+            $"{ToPrefixString()}<{ElementType}, {AddressSpace}>";
 
         #endregion
     }
@@ -96,13 +101,19 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Constructs a new pointer type.
         /// </summary>
+        /// <param name="typeContext">The parent type context.</param>
         /// <param name="elementType">The element type.</param>
         /// <param name="addressSpace">The associated address space.</param>
         internal PointerType(
+            IRTypeContext typeContext,
             TypeNode elementType,
             MemoryAddressSpace addressSpace)
-            : base(elementType, addressSpace)
+            : base(typeContext, elementType, addressSpace)
         {
+            Size = Alignment =
+                typeContext.Context.TargetPlatform == TargetPlatform.X86
+                ? 4
+                : 8;
             AddFlags(TypeFlags.PointerDependent);
         }
 
@@ -110,17 +121,11 @@ namespace ILGPU.IR.Types
 
         #region Methods
 
-        /// <summary cref="TypeNode.Accept{T}(T)"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
-        public override bool TryResolveManagedType(out Type type)
-        {
-            if (!ElementType.TryResolveManagedType(out type))
-                return false;
-            type = type.MakePointerType();
-            return true;
-        }
+        /// <summary>
+        /// Creates a managed pointer type.
+        /// </summary>
+        protected override Type GetManagedType() =>
+            ElementType.ManagedType.MakePointerType();
 
         #endregion
 
@@ -150,13 +155,16 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Constructs a new view type.
         /// </summary>
+        /// <param name="typeContext">The parent type context.</param>
         /// <param name="elementType">The element type.</param>
         /// <param name="addressSpace">The associated address space.</param>
         internal ViewType(
+            IRTypeContext typeContext,
             TypeNode elementType,
             MemoryAddressSpace addressSpace)
-            : base(elementType, addressSpace)
+            : base(typeContext, elementType, addressSpace)
         {
+            Size = Alignment = 4;
             AddFlags(TypeFlags.ViewDependent);
         }
 
@@ -164,17 +172,11 @@ namespace ILGPU.IR.Types
 
         #region Methods
 
-        /// <summary cref="TypeNode.Accept{T}(T)"/>
-        public override void Accept<T>(T visitor) => visitor.Visit(this);
-
-        /// <summary cref="TypeNode.TryResolveManagedType(out Type)"/>
-        public override bool TryResolveManagedType(out Type type)
-        {
-            if (!ElementType.TryResolveManagedType(out type))
-                return false;
-            type = typeof(ArrayView<>).MakeGenericType(type);
-            return true;
-        }
+        /// <summary>
+        /// Creates a managed view type.
+        /// </summary>
+        protected override Type GetManagedType() =>
+            typeof(ArrayView<>).MakeGenericType(ElementType.ManagedType);
 
         #endregion
 
