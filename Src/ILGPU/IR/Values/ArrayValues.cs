@@ -116,7 +116,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the array type.
         /// </summary>
-        public ArrayType ArrayType => Type as ArrayType;
+        public ArrayType ArrayType => ObjectType as ArrayType;
 
         /// <summary>
         /// Returns the associated element type.
@@ -172,13 +172,14 @@ namespace ILGPU.IR.Values
         /// Computes a get extent node type.
         /// </summary>
         /// <param name="context">The parent IR context.</param>
-        /// <param name="arrayType">The current array type.</param>
+        /// <param name="arrayValue">The current array value.</param>
         /// <returns>The resolved type node.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static TypeNode ComputeType(
             IRContext context,
-            ArrayType arrayType) =>
-            context.GetIndexType(arrayType.Dimensions);
+            ValueReference arrayValue) =>
+            context.GetIndexType(
+                (arrayValue.Type as ArrayType).Dimensions);
 
         #endregion
 
@@ -197,7 +198,7 @@ namespace ILGPU.IR.Values
             : base(
                 basicBlock,
                 ImmutableArray.Create(arrayValue),
-                ComputeType(context, arrayValue.Type as ArrayType))
+                ComputeType(context, arrayValue))
         { }
 
         #endregion
@@ -209,7 +210,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
         protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, ArrayType);
+            ComputeType(context, ObjectValue);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

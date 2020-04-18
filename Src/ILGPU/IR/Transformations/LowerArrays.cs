@@ -122,20 +122,20 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         private static void Lower(
             RewriterContext context,
-            TypeLowering<ArrayType> _,
+            TypeLowering<ArrayType> typeLowering,
             GetArrayExtent value)
         {
             var builder = context.Builder;
 
             // Create new extent structure based on all dimension entries
-            int dimensions = value.ArrayType.Dimensions;
+            int dimensions = StructureType.GetNumFields(typeLowering[value]);
             var fields = ImmutableArray.CreateBuilder<ValueReference>(dimensions);
 
             // Insert all dimension values
-            for (int i = 0, e = value.ArrayType.Dimensions; i < e; ++i)
+            for (int i = 0; i < dimensions; ++i)
             {
                 fields.Add(builder.CreateGetField(
-                    value,
+                    value.ObjectValue,
                     new FieldSpan(i + ArrayTypeLowering.DimensionOffset)));
             }
 
@@ -235,11 +235,16 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         static LowerArrays()
         {
-            Rewriter.Add<ArrayValue>(Lower);
-            Rewriter.Add<GetArrayExtent>(Lower);
-            Rewriter.Add<GetArrayElement>(Lower);
-            Rewriter.Add<SetArrayElement>(Lower);
-            Rewriter.Add<LoadElementAddress>((_, value) => value.IsArrayAccesss, Lower);
+            AddRewriters(Rewriter);
+
+            Rewriter.Add<ArrayValue>(Register, Lower);
+            Rewriter.Add<GetArrayExtent>(Register, Lower);
+            Rewriter.Add<GetArrayElement>(Register, Lower);
+            Rewriter.Add<SetArrayElement>(Register, Lower);
+            Rewriter.Add<LoadElementAddress>(
+                (converter, value) =>
+                    value.IsArrayAccesss && Register(converter, value),
+                Lower);
         }
 
         #endregion
