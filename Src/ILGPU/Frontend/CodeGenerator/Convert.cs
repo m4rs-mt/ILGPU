@@ -78,7 +78,7 @@ namespace ILGPU.Frontend
             }
             else if (
                 targetType is PointerType targetPointerType &&
-                targetPointerType.ElementType == StructureType.Root)
+                targetPointerType.ElementType.IsRootType)
             {
                 // Must be a reflection array call
                 // FIXME: note that we have to update this spot once

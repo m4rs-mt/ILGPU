@@ -264,12 +264,7 @@ namespace ILGPU.Frontend.Intrinsic
             // appropriate store instructions
             Value target = context[0];
             var arrayType = target.Type as ArrayType;
-            if (!arrayType.ElementType.TryResolveManagedType(out Type elementType))
-            {
-                throw context.GetNotSupportedException(
-                        ErrorMessages.NotSupportedIntrinsic,
-                        context.Method.Name);
-            }
+            var elementType = arrayType.ElementType.ManagedType;
 
             // Convert values to IR values
             var builder = context.Builder;
@@ -300,7 +295,8 @@ namespace ILGPU.Frontend.Intrinsic
             var builder = context.Builder;
             if (context.Method is ConstructorInfo)
             {
-                var newExtent = builder.CreateStructure(context.Arguments.RemoveAt(0));
+                var newExtent = builder.CreateDynamicStructure(
+                    context.Arguments.RemoveAt(0));
                 var newElementType = builder.CreateType(
                     context.Method.DeclaringType.GetElementType());
                 return builder.CreateArray(
@@ -315,12 +311,12 @@ namespace ILGPU.Frontend.Intrinsic
                     case "Get":
                         return builder.CreateGetArrayElement(
                             context[0],
-                            builder.CreateStructure(
+                            builder.CreateDynamicStructure(
                                 context.Arguments.RemoveAt(0)));
                     case "Set":
                         return builder.CreateSetArrayElement(
                             context[0],
-                            builder.CreateStructure(
+                            builder.CreateDynamicStructure(
                                 context.Arguments.RemoveAt(0).RemoveAt(
                                     context.NumArguments - 2)),
                             context[context.NumArguments - 1]);

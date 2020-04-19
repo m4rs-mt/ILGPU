@@ -188,7 +188,7 @@ namespace ILGPU.Frontend
         /// <param name="targetType">The required target type.</param>
         /// <param name="flags">The conversion flags.</param>
         private Value Convert(Value value, TypeNode targetType, ConvertFlags flags) =>
-            value.Type == targetType || targetType == StructureType.Root
+            value.Type == targetType || targetType.IsRootType
             ? value
             : CodeGenerator.CreateConversion(
                 Builder,
