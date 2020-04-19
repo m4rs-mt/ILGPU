@@ -249,11 +249,10 @@ namespace ILGPU.Backends
         /// <summary>
         /// Constructs a new register allocator.
         /// </summary>
-        /// <param name="abi">The underlying ABI.</param>
-        protected RegisterAllocator(ABI abi)
+        /// <param name="backend">The underlying backend.</param>
+        protected RegisterAllocator(Backend backend)
         {
-            Debug.Assert(abi != null, "Invalid ABI");
-            ABI = abi;
+            Backend = backend;
         }
 
         #endregion
@@ -263,7 +262,7 @@ namespace ILGPU.Backends
         /// <summary>
         /// Returns the underlying ABI.
         /// </summary>
-        public ABI ABI { get; }
+        public Backend Backend { get; }
 
         #endregion
 
@@ -377,7 +376,7 @@ namespace ILGPU.Backends
                         childRegisters.MoveToImmutable());
                 case PointerType _:
                 case StringType _:
-                    return AllocateType(ABI.PointerType);
+                    return AllocateType(Backend.PointerType);
                 default:
                     throw new NotSupportedException();
             }

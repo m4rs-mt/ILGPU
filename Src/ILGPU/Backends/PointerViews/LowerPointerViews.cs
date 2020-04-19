@@ -15,7 +15,6 @@ using ILGPU.IR.Rewriting;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Collections.Immutable;
 
 namespace ILGPU.Backends.PointerViews
 {
@@ -47,13 +46,12 @@ namespace ILGPU.Backends.PointerViews
                 TTypeContext typeContext,
                 ViewType type)
             {
-                var pointerType = typeContext.CreatePointerType(
+                var builder = typeContext.CreateStructureType(2);
+                builder.Add(typeContext.CreatePointerType(
                     type.ElementType,
-                    type.AddressSpace);
-                var lengthType = typeContext.GetPrimitiveType(BasicValueType.Int32);
-
-                return typeContext.CreateStructureType(
-                    ImmutableArray.Create<TypeNode>(pointerType, lengthType));
+                    type.AddressSpace));
+                builder.Add(typeContext.GetPrimitiveType(BasicValueType.Int32));
+                return builder.Seal();
             }
         }
 
@@ -69,10 +67,9 @@ namespace ILGPU.Backends.PointerViews
             TypeLowering<ViewType> _,
             NewView value)
         {
-            var viewInstance = context.Builder.CreateStructure(
-                ImmutableArray.Create(
-                    value.Pointer,
-                    value.Length));
+            var viewInstance = context.Builder.CreateDynamicStructure(
+                value.Pointer,
+                value.Length);
             context.ReplaceAndRemove(value, viewInstance);
         }
 
@@ -102,8 +99,9 @@ namespace ILGPU.Backends.PointerViews
             var pointer = builder.CreateGetField(value.Source, new FieldSpan(0));
             var newPointer = builder.CreateLoadElementAddress(pointer, value.Offset);
 
-            var subView = builder.CreateStructure(
-                ImmutableArray.Create(newPointer, value.Length));
+            var subView = builder.CreateDynamicStructure(
+                newPointer,
+                value.Length);
             context.ReplaceAndRemove(value, subView);
         }
 
@@ -122,8 +120,9 @@ namespace ILGPU.Backends.PointerViews
             var newPointer = builder.CreateAddressSpaceCast(
                 pointer,
                 value.TargetAddressSpace);
-            var newInstance = builder.CreateStructure(
-                ImmutableArray.Create(newPointer, length));
+            var newInstance = builder.CreateDynamicStructure(
+                newPointer,
+                length);
             context.ReplaceAndRemove(value, newInstance);
         }
 
@@ -154,8 +153,9 @@ namespace ILGPU.Backends.PointerViews
                     BinaryArithmeticKind.Mul),
                 targetElementSize, BinaryArithmeticKind.Div);
 
-            var newInstance = builder.CreateStructure(
-                ImmutableArray.Create(newPointer, newLength));
+            var newInstance = builder.CreateDynamicStructure(
+                newPointer,
+                newLength);
             context.ReplaceAndRemove(value, newInstance);
         }
 
