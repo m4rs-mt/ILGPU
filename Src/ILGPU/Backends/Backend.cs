@@ -14,6 +14,7 @@ using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Transformations;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Runtime;
@@ -205,11 +206,7 @@ namespace ILGPU.Backends
             /// </summary>
             /// <param name="kernelContext">The current kernel context.</param>
             /// <param name="kernelMethod">The kernel function.</param>
-            /// <param name="abi">The current ABI.</param>
-            internal BackendContext(
-                IRContext kernelContext,
-                Method kernelMethod,
-                ABI abi)
+            internal BackendContext(IRContext kernelContext, Method kernelMethod)
             {
                 Context = kernelContext;
                 KernelMethod = kernelMethod;
@@ -232,7 +229,7 @@ namespace ILGPU.Backends
                     if (currentScope.Method.HasFlags(MethodFlags.Intrinsic))
                         notImplementedIntrinsics.Add(currentScope.Method);
 
-                    var allocas = Allocas.Create(currentScope, abi);
+                    var allocas = Allocas.Create(currentScope);
                     allocaMapping.Add(currentScope.Method, allocas);
 
                     sharedAllocations.AddRange(allocas.SharedAllocations.Allocas);
@@ -361,20 +358,15 @@ namespace ILGPU.Backends
         /// Represents a function to create backend-specific argument mappers.
         /// </summary>
         /// <param name="context">The current context.</param>
-        /// <param name="abi">The current ABI.</param>
-        protected delegate ArgumentMapper CreateArgumentMapper(
-            Context context,
-            ABI abi);
+        protected delegate ArgumentMapper CreateArgumentMapper(Context context);
 
         /// <summary>
         /// Represents a function to create backend-specific transformers.
         /// </summary>
         /// <param name="context">The current context.</param>
-        /// <param name="abi">The current ABI.</param>
         /// <param name="builder">The target transformer builder.</param>
         protected delegate void CreateTransformersHandler(
             Context context,
-            ABI abi,
             ImmutableArray<Transformer>.Builder builder);
 
         #endregion
@@ -447,22 +439,25 @@ namespace ILGPU.Backends
         /// <param name="context">The context to use.</param>
         /// <param name="backendType">The backend type.</param>
         /// <param name="backendFlags">The backend flags.</param>
-        /// <param name="abi">The current ABI.</param>
-        /// <param name="argumentMapperProvider">
-        /// The provider for argument mappers.
-        /// </param>
+        /// <param name="argumentMapper">The argument mapper to use.</param>
         protected Backend(
             Context context,
             BackendType backendType,
             BackendFlags backendFlags,
-            ABI abi,
-            Func<ABI, ArgumentMapper> argumentMapperProvider)
+            ArgumentMapper argumentMapper)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
             BackendType = backendType;
             BackendFlags = backendFlags;
-            ABI = abi ?? throw new ArgumentNullException(nameof(abi));
-            ArgumentMapper = argumentMapperProvider(abi);
+            ArgumentMapper = argumentMapper;
+
+            // Setup custom pointer types
+            PointerArithmeticType =
+                Context.TargetPlatform == TargetPlatform.X64
+                ? ArithmeticBasicValueType.UInt64
+                : ArithmeticBasicValueType.UInt32;
+            PointerType = context.TypeContext.GetPrimitiveType(
+                PointerArithmeticType.GetBasicValueType());
         }
 
         #endregion
@@ -487,12 +482,7 @@ namespace ILGPU.Backends
         /// <summary>
         /// Returns the target platform.
         /// </summary>
-        public TargetPlatform Platform => ABI.TargetPlatform;
-
-        /// <summary>
-        /// Returns the current ABI.
-        /// </summary>
-        public ABI ABI { get; }
+        public TargetPlatform Platform => Context.TargetPlatform;
 
         /// <summary>
         /// Returns the associated <see cref="ArgumentMapper"/>.
@@ -504,6 +494,26 @@ namespace ILGPU.Backends
         /// </summary>
         protected ImmutableArray<Transformer> KernelTransformers { get; private set; } =
             ImmutableArray<Transformer>.Empty;
+
+        /// <summary>
+        /// Returns type of a native pointer.
+        /// </summary>
+        public PrimitiveType PointerType { get; }
+
+        /// <summary>
+        /// Returns the pointer size of a native pointer type.
+        /// </summary>
+        public int PointerSize => PointerType.Size;
+
+        /// <summary>
+        /// Returns the basic type of a native pointer.
+        /// </summary>
+        public BasicValueType PointerBasicValueType => PointerType.BasicValueType;
+
+        /// <summary>
+        /// Returns the arithmetic type of a native pointer.
+        /// </summary>
+        public ArithmeticBasicValueType PointerArithmeticType { get; }
 
         #endregion
 
@@ -641,7 +651,7 @@ namespace ILGPU.Backends
                 backendHook.OptimizedKernelContext(kernelContext, method);
 
                 // Compile kernel
-                var backendContext = new BackendContext(kernelContext, method, ABI);
+                var backendContext = new BackendContext(kernelContext, method);
                 var entryPoint = CreateEntryPoint(
                     entry,
                     backendContext,
@@ -716,17 +726,13 @@ namespace ILGPU.Backends
         /// <param name="context">The context to use.</param>
         /// <param name="backendType">The backend type.</param>
         /// <param name="backendFlags">The backend flags.</param>
-        /// <param name="abi">The current ABI.</param>
-        /// <param name="argumentMapperProvider">
-        /// The provider for argument mappers.
-        /// </param>
+        /// <param name="argumentMapper">The argument mapper to use.</param>
         protected Backend(
             Context context,
             BackendType backendType,
             BackendFlags backendFlags,
-            ABI abi,
-            Func<ABI, ArgumentMapper> argumentMapperProvider)
-            : base(context, backendType, backendFlags, abi, argumentMapperProvider)
+            ArgumentMapper argumentMapper)
+            : base(context, backendType, backendFlags, argumentMapper)
         {
             IntrinsicProvider = context.IntrinsicManager.CreateProvider<TDelegate>(this);
         }

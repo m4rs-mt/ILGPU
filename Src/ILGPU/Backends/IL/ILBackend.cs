@@ -97,20 +97,17 @@ namespace ILGPU.Backends.IL
         /// <param name="context">The context to use.</param>
         /// <param name="backendFlags">The backend flags.</param>
         /// <param name="warpSize">The current warp size.</param>
-        /// <param name="argumentMapperProvider">
-        /// The provider for argument mappers.
-        /// </param>
+        /// <param name="argumentMapper">The argument mapper to use.</param>
         internal ILBackend(
             Context context,
             BackendFlags backendFlags,
             int warpSize,
-            Func<ABI, ArgumentMapper> argumentMapperProvider)
+            ArgumentMapper argumentMapper)
             : base(
                   context,
                   BackendType.IL,
                   backendFlags,
-                  new ILABI(context.TypeContext, RuntimePlatform),
-                  argumentMapperProvider)
+                  argumentMapper)
         {
             WarpSize = warpSize;
         }
