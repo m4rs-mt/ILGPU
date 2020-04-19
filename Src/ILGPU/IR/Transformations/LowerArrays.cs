@@ -96,7 +96,7 @@ namespace ILGPU.IR.Transformations
             var entryBlock = methodBuilder[methodBuilder.EntryBlock];
             entryBlock.InsertPosition = 0;
             var arrayLength = entryBlock.ComputeArrayLength(value.Extent);
-            var newArray = entryBlock.CreateAlloca(
+            var newArray = entryBlock.CreateStaticAllocaArray(
                 arrayLength,
                 value.ArrayType.ElementType,
                 MemoryAddressSpace.Local);

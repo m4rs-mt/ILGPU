@@ -227,17 +227,6 @@ namespace ILGPU.Frontend
             EntryBlock.Builder.CreateAlloca(type, MemoryAddressSpace.Local);
 
         /// <summary>
-        /// Creates a temporary alloca for the given type.
-        /// </summary>
-        /// <param name="length">The length of the array.</param>
-        /// <param name="type">The type to allocate.</param>
-        /// <returns>The created alloca.</returns>
-        public ValueReference CreateTempAlloca(
-            ValueReference length,
-            TypeNode type) =>
-            EntryBlock.Builder.CreateAlloca(length, type, MemoryAddressSpace.Local);
-
-        /// <summary>
         /// Generates code for the current function.
         /// </summary>
         /// <returns>The created top-level function.</returns>

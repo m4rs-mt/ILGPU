@@ -55,35 +55,33 @@ namespace ILGPU.Frontend.Intrinsic
             SharedMemoryIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
-
             var genericArgs = context.GetMethodGenericArguments();
-            var allocationType = genericArgs[0];
+            var allocationType = builder.CreateType(genericArgs[0]);
 
-            Value length;
             switch (attribute.IntrinsicKind)
             {
                 case SharedMemoryIntrinsicKind.AllocateElement:
-                    length = builder.CreatePrimitiveValue(1);
-                    break;
+                    return builder.CreateAlloca(
+                        allocationType,
+                        MemoryAddressSpace.Shared);
                 case SharedMemoryIntrinsicKind.Allocate:
-                    length = context[0];
-                    break;
+                    return builder.CreateNewView(
+                        builder.CreateStaticAllocaArray(
+                            context[0],
+                            allocationType,
+                            MemoryAddressSpace.Shared),
+                        context[0]);
                 case SharedMemoryIntrinsicKind.AllocateDynamic:
-                    length = builder.CreatePrimitiveValue(-1);
-                    break;
-                default:
-                    throw context.GetNotSupportedException(
-                        ErrorMessages.NotSupportedSharedMemoryIntrinsic,
-                        attribute.IntrinsicKind.ToString());
+                    var alloca = builder.CreateDynamicAllocaArray(
+                        allocationType,
+                        MemoryAddressSpace.Shared).ResolveAs<Alloca>();
+                    return builder.CreateNewView(
+                        alloca,
+                        alloca.ArrayLength);
             }
-
-            var alloca = context.Builder.CreateAlloca(
-                length,
-                context.Builder.CreateType(allocationType),
-                MemoryAddressSpace.Shared);
-            return attribute.IntrinsicKind == SharedMemoryIntrinsicKind.AllocateElement
-                ? alloca
-                : builder.CreateNewView(alloca, length);
+            throw context.GetNotSupportedException(
+                ErrorMessages.NotSupportedSharedMemoryIntrinsic,
+                attribute.IntrinsicKind.ToString());
         }
     }
 }

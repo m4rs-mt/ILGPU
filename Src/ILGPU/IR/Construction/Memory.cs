@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
@@ -31,13 +30,10 @@ namespace ILGPU.IR.Construction
         public ValueReference CreateAlloca(
             TypeNode type,
             MemoryAddressSpace addressSpace) =>
-            CreateAlloca(
-                CreatePrimitiveValue(1),
-                type,
-                addressSpace);
+            CreateAlloca(type, addressSpace, CreateUndefined());
 
         /// <summary>
-        /// Creates a local allocation.
+        /// Creates an array based local allocation.
         /// </summary>
         /// <param name="arrayLength">
         /// The array length (number of elements to allocate).
@@ -48,29 +44,62 @@ namespace ILGPU.IR.Construction
         [SuppressMessage(
             "Microsoft.Design",
             "CA1011:ConsiderPassingBaseTypesAsParameters")]
-        public ValueReference CreateAlloca(
+        public ValueReference CreateStaticAllocaArray(
             Value arrayLength,
             TypeNode type,
-            MemoryAddressSpace addressSpace)
+            MemoryAddressSpace addressSpace) =>
+            CreateAlloca(type, addressSpace, arrayLength);
+
+        /// <summary>
+        /// Creates a dynamic local memory allocation.
+        /// </summary>
+        /// <param name="type">The type of the allocation.</param>
+        /// <param name="addressSpace">The target address space.</param>
+        /// <returns>A node that represents the alloca operation.</returns>
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        public ValueReference CreateDynamicAllocaArray(
+            TypeNode type,
+            MemoryAddressSpace addressSpace) =>
+            CreateStaticAllocaArray(
+                CreatePrimitiveValue(-1),
+                type,
+                addressSpace);
+
+        /// <summary>
+        /// Creates a local allocation.
+        /// </summary>
+        /// <param name="type">The type of the allocation.</param>
+        /// <param name="addressSpace">The target address space.</param>
+        /// <param name="arrayLength">
+        /// The array length (number of elements to allocate or undefined).
+        /// </param>
+        /// <returns>A node that represents the alloca operation.</returns>
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1011:ConsiderPassingBaseTypesAsParameters")]
+        internal ValueReference CreateAlloca(
+            TypeNode type,
+            MemoryAddressSpace addressSpace,
+            Value arrayLength)
         {
             Debug.Assert(arrayLength != null, "Invalid array length");
             Debug.Assert(type != null, "Invalid alloca type");
+            Debug.Assert(
+                addressSpace == MemoryAddressSpace.Local ||
+                addressSpace == MemoryAddressSpace.Shared,
+                "Invalid address space");
 
-            switch (addressSpace)
-            {
-                case MemoryAddressSpace.Local:
-                case MemoryAddressSpace.Shared:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(addressSpace));
-            }
-
-            return Append(new Alloca(
-                Context,
-                BasicBlock,
-                arrayLength,
-                type,
-                addressSpace));
+            return arrayLength is PrimitiveValue primitiveValue &&
+                primitiveValue.Int32Value == 0
+                ? CreateNull(CreatePointerType(type, addressSpace))
+                : Append(new Alloca(
+                    Context,
+                    BasicBlock,
+                    arrayLength,
+                    type,
+                    addressSpace));
         }
 
         /// <summary>

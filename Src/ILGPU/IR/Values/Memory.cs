@@ -123,28 +123,23 @@ namespace ILGPU.IR.Values
         public ValueReference ArrayLength => this[0];
 
         /// <summary>
-        /// Returns true if this allocation is an array allocation.
+        /// Returns true if this allocation is a simple allocation.
         /// </summary>
-        public bool IsArrayAllocation
-        {
-            get
-            {
-                var length = ArrayLength.Resolve();
-                return
-                    length is PrimitiveValue primitiveValue &&
-                    primitiveValue.Int32Value != 1;
-            }
-        }
-
-        /// <summary>
-        /// Returns true if this allocation is a dynamic allocation.
-        /// </summary>
-        public bool IsDynamicAllocation =>
-            ArrayLength.ResolveAs<PrimitiveValue>() == null;
+        public bool IsSimpleAllocation =>
+            ArrayLength.ResolveAs<UndefinedValue>() != null;
 
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns true if this allocation is an array allocation.
+        /// </summary>
+        public bool IsArrayAllocation(out PrimitiveValue primitive)
+        {
+            primitive = ArrayLength.ResolveAs<PrimitiveValue>();
+            return primitive != null;
+        }
 
         /// <summary cref="Value.UpdateType(IRContext)"/>
         protected override TypeNode UpdateType(IRContext context) =>
@@ -155,9 +150,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateAlloca(
-                rebuilder.Rebuild(ArrayLength),
                 AllocaType,
-                AddressSpace);
+                AddressSpace,
+                rebuilder.Rebuild(ArrayLength));
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -171,7 +166,9 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
-            $"{Type} [{ArrayLength.Resolve()}]";
+            ArrayLength.Resolve() is PrimitiveValue value
+            ? $"{Type} [{value}]"
+            : Type.ToString();
 
         #endregion
     }

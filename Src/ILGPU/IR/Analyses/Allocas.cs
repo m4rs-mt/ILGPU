@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Backends;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -29,35 +28,17 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="index">The allocation index.</param>
         /// <param name="alloca">The alloca node.</param>
-        /// <param name="elementSize">The element size.</param>
-        internal AllocaInformation(
-            int index,
-            Alloca alloca,
-            int elementSize)
+        internal AllocaInformation(int index, Alloca alloca)
         {
             Index = index;
             Alloca = alloca;
-            ElementSize = elementSize;
 
-            var rawArrayLength = alloca.ArrayLength;
-            var arrayLength = rawArrayLength.ResolveAs<PrimitiveValue>();
-            if (arrayLength != null)
-            {
-                ArraySize = arrayLength.Int32Value;
-            }
-            else
-            {
-                var dynamicArrayLength = rawArrayLength.ResolveAs<UndefinedValue>();
-                if (dynamicArrayLength == null)
-                {
-                    throw new NotSupportedException(
-                        string.Format(
-                            ErrorMessages.NotSupportedDynamicAllocation,
-                            alloca.AddressSpace,
-                            rawArrayLength));
-                }
-                ArraySize = -1;
-            }
+            ArraySize = alloca.IsArrayAllocation(out var length)
+                ? length.Int32Value
+                : alloca.IsSimpleAllocation
+                    ? 1
+                    : throw new NotSupportedException(
+                        ErrorMessages.NotSupportedDynamicAllocation);
         }
 
         /// <summary>
@@ -88,7 +69,12 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Returns the element size in bytes of a single element.
         /// </summary>
-        public int ElementSize { get; }
+        public int ElementSize => Alloca.AllocaType.Size;
+
+        /// <summary>
+        /// Returns the element alignment in bytes of a single element.
+        /// </summary>
+        public int ElementAlignment => Alloca.AllocaType.Alignment;
 
         /// <summary>
         /// Returns the total size in bytes.
@@ -161,10 +147,8 @@ namespace ILGPU.IR.Analyses
         /// Creates an alloca analysis.
         /// </summary>
         /// <param name="scope">The parent scope.</param>
-        /// <param name="abi">The ABI specification.</param>
-        public static Allocas Create(Scope scope, ABI abi) => new Allocas(
-            scope ?? throw new ArgumentNullException(nameof(scope)),
-            abi ?? throw new ArgumentNullException(nameof(abi)));
+        public static Allocas Create(Scope scope) => new Allocas(
+            scope ?? throw new ArgumentNullException(nameof(scope)));
 
         #endregion
 
@@ -174,8 +158,7 @@ namespace ILGPU.IR.Analyses
         /// Constructs a new analysis.
         /// </summary>
         /// <param name="scope">The current scope.</param>
-        /// <param name="abi">The ABI specification.</param>
-        private Allocas(Scope scope, ABI abi)
+        private Allocas(Scope scope)
         {
             var localAllocations = ImmutableArray.CreateBuilder<
                 AllocaInformation>(20);
@@ -195,14 +178,12 @@ namespace ILGPU.IR.Analyses
                     {
                         case MemoryAddressSpace.Local:
                             AddAllocation(
-                                abi,
                                 alloca,
                                 localAllocations,
                                 ref localMemorySize);
                             break;
                         case MemoryAddressSpace.Shared:
                             AddAllocation(
-                                abi,
                                 alloca,
                                 sharedAllocations,
                                 ref sharedMemorySize,
@@ -229,7 +210,6 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Creates and adds a new allocation to the given list.
         /// </summary>
-        /// <param name="abi">The current ABI.</param>
         /// <param name="alloca">The current alloca.</param>
         /// <param name="builder">The target builder.</param>
         /// <param name="memorySize">The current memory size.</param>
@@ -237,16 +217,12 @@ namespace ILGPU.IR.Analyses
         /// The target builder for dynamic allocations.
         /// </param>
         private static void AddAllocation(
-            ABI abi,
             Alloca alloca,
             ImmutableArray<AllocaInformation>.Builder builder,
             ref int memorySize,
             ImmutableArray<AllocaInformation>.Builder dynamicBuilder = null)
         {
-            var info = new AllocaInformation(
-                builder.Count,
-                alloca,
-                abi.GetSizeOf(alloca.AllocaType));
+            var info = new AllocaInformation(builder.Count, alloca);
             if (info.IsDynamicArray)
             {
                 Debug.Assert(

@@ -123,7 +123,6 @@ namespace ILGPU.IR.Transformations
             if (!data.ContainsAlloca(alloca))
                 return;
 
-            Debug.Assert(!alloca.IsArrayAllocation, "Unsupported dynamic allocation");
             var initValue = context.Builder.CreateNull(alloca.AllocaType);
             context.SetValue(context.Block, alloca, initValue);
 
@@ -255,7 +254,7 @@ namespace ILGPU.IR.Transformations
             var allocas = new HashSet<Alloca>();
             scope.ForEachValue<Alloca>(alloca =>
             {
-                if (alloca.IsArrayAllocation ||
+                if (!alloca.IsSimpleAllocation ||
                     alloca.AddressSpace != MemoryAddressSpace.Local ||
                     RequiresAddress(alloca))
                 {
