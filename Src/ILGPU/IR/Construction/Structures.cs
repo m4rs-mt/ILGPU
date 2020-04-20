@@ -13,6 +13,7 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -21,58 +22,6 @@ namespace ILGPU.IR.Construction
 {
     partial class IRBuilder
     {
-        /// <summary>
-        /// Creates a primitive value if possible.
-        /// </summary>
-        /// <param name="instance">The instance value.</param>
-        /// <param name="type">The resolved type.</param>
-        /// <returns>The primitive value reference (if any).</returns>
-        private ValueReference CreatePrimitiveObjectValue(
-            object instance,
-            out Type type)
-        {
-            if (instance == null)
-                throw new ArgumentNullException(nameof(instance));
-
-            type = instance.GetType();
-            if (type.IsPrimitive)
-                return CreatePrimitiveValue(instance);
-            if (type.IsEnum)
-                return CreateEnumValue(instance);
-            if (!type.IsClass && !type.IsArray)
-                return default;
-            throw new NotSupportedException(
-                string.Format(ErrorMessages.NotSupportedClassType, type));
-        }
-
-        /// <summary>
-        /// Helper function to build new structure values.
-        /// </summary>
-        /// <param name="fields">The target field builder.</param>
-        /// <param name="instance">The instance.</param>
-        /// <param name="type">The instance type.</param>
-        private void CreateStructureValue(
-            ImmutableArray<ValueReference>.Builder fields,
-            object instance,
-            Type type)
-        {
-            var typeInfo = Context.TypeContext.GetTypeInfo(type);
-            for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
-            {
-                var rawFieldValue = typeInfo.Fields[i].GetValue(instance);
-                var fieldValue = CreatePrimitiveObjectValue(
-                    rawFieldValue,
-                    out var fieldType);
-                if (fieldValue.IsValid)
-                    fields.Add(fieldValue);
-
-                CreateStructureValue(
-                    fields,
-                    rawFieldValue,
-                    fieldType);
-            }
-        }
-
         /// <summary>
         /// Creates a new object value.
         /// </summary>
@@ -83,69 +32,141 @@ namespace ILGPU.IR.Construction
             if (instance == null)
                 throw new ArgumentNullException(nameof(instance));
 
-            var primitiveValue = CreatePrimitiveObjectValue(instance, out var type);
-            if (primitiveValue.IsValid)
-                return primitiveValue;
+            var managedType = instance.GetType();
+            if (managedType.IsPrimitive)
+                return CreatePrimitiveValue(instance);
+            if (managedType.IsEnum)
+                return CreateEnumValue(instance);
+            if (managedType.IsClass || managedType.IsArray)
+            {
+                throw new NotSupportedException(
+                    string.Format(ErrorMessages.NotSupportedClassType, managedType));
+            }
 
-            var fieldValues = ImmutableArray.CreateBuilder<ValueReference>();
-            CreateStructureValue(
-                fieldValues,
-                instance,
-                type);
-            return CreateStructure(fieldValues.ToImmutable());
+            var typeInfo = Context.TypeContext.GetTypeInfo(managedType);
+            var type = CreateType(managedType);
+            if (!(type is StructureType structureType))
+            {
+                // This type has zero or one element and can be used without an
+                // enclosing structure value
+                return typeInfo.NumFields > 0
+                    ? CreateObjectValue(typeInfo.Fields[0].GetValue(instance))
+                    : CreateNull(type);
+            }
+                var instanceBuilder = CreateStructure(structureType);
+                for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
+                {
+                    var rawFieldValue = typeInfo.Fields[i].GetValue(instance);
+                    Value fieldValue = CreateObjectValue(rawFieldValue);
+                    if (fieldValue.Type is StructureType nestedStructureType)
+                    {
+                        // Extract all nested fields and insert them into the builder
+                        foreach (var (_, access) in nestedStructureType)
+                        {
+                            instanceBuilder.Add(
+                                CreateGetField(fieldValue, access));
+                        }
+                    }
+                    else
+                    {
+                        instanceBuilder.Add(fieldValue);
+                    }
+                }
+                return instanceBuilder.Seal();
         }
 
         /// <summary>
-        /// Creates a new structure value.
+        /// Creates a new structure instance builder.
         /// </summary>
         /// <param name="structureType">The structure type.</param>
-        /// <returns>The created empty structure value.</returns>
-        public ValueReference CreateStructure(StructureType structureType) =>
-            CreateNull(structureType);
+        /// <returns>The created structure instance builder.</returns>
+        public StructureValue.Builder CreateStructure(StructureType structureType) =>
+            new StructureValue.Builder(this, structureType);
+
+        /// <summary>
+        /// Creates a new dynamic structure instance builder.
+        /// </summary>
+        /// <returns>The created structure instance builder.</returns>
+        public StructureValue.DynamicBuilder CreateDynamicStructure() =>
+            CreateDynamicStructure(2);
+
+        /// <summary>
+        /// Creates a new dynamic structure instance builder.
+        /// </summary>
+        /// <param name="capacity">The initial capacity.</param>
+        /// <returns>The created structure instance builder.</returns>
+        public StructureValue.DynamicBuilder CreateDynamicStructure(int capacity) =>
+            new StructureValue.DynamicBuilder(this, capacity);
+
+        /// <summary>
+        /// Creates a new dynamic structure instance.
+        /// </summary>
+        /// <param name="item1">The first item.</param>
+        /// <param name="item2">The second item.</param>
+        /// <returns>The created structure instance value.</returns>
+        public ValueReference CreateDynamicStructure(
+            ValueReference item1,
+            ValueReference item2)
+        {
+            var builder = CreateDynamicStructure(2);
+            builder.Add(item1);
+            builder.Add(item2);
+            return builder.Seal();
+        }
+
+        /// <summary>
+        /// Creates a new dynamic structure instance.
+        /// </summary>
+        /// <param name="item1">The first item.</param>
+        /// <param name="item2">The second item.</param>
+        /// <param name="item3">The third item.</param>
+        /// <returns>The created structure instance value.</returns>
+        public ValueReference CreateDynamicStructure(
+            ValueReference item1,
+            ValueReference item2,
+            ValueReference item3)
+        {
+            var builder = CreateDynamicStructure(3);
+            builder.Add(item1);
+            builder.Add(item2);
+            builder.Add(item3);
+            return builder.Seal();
+        }
+
+        /// <summary>
+        /// Creates a new dynamic structure instance.
+        /// </summary>
+        /// <param name="values">The list of all values to add.</param>
+        /// <returns>The created structure instance value.</returns>
+        public ValueReference CreateDynamicStructure<TList>(TList values)
+            where TList : IReadOnlyList<ValueReference>
+        {
+            var builder = CreateDynamicStructure(values.Count);
+            for (int i = 0, e = values.Count; i < e; ++i)
+                builder.Add(values[i]);
+            return builder.Seal();
+        }
 
         /// <summary>
         /// Creates a new structure instance value.
         /// </summary>
-        /// <param name="fieldValues">The structure instance values.</param>
+        /// <param name="builder">The structure instance builder.</param>
         /// <returns>The created structure instance value.</returns>
-        public ValueReference CreateStructure(
-            ImmutableArray<ValueReference> fieldValues)
+        internal ValueReference FinishStructureBuilder<TBuilder>(in TBuilder builder)
+            where TBuilder : struct, StructureValue.IInternalBuilder
         {
-            if (fieldValues.Length < 1)
-                return CreateNull(CreateEmptyStructureType());
-            if (fieldValues.Length < 2)
-                return fieldValues[0];
+            if (builder.Count < 1)
+                return CreateNull(this.CreateEmptyStructureType());
+            if (builder.Count < 2)
+                return builder[0];
 
-            // Construct structure type
-            var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(fieldValues.Length);
-            foreach (var value in fieldValues)
-                fieldTypes.Add(value.Type);
-            var structureType = CreateStructureType(fieldTypes.MoveToImmutable());
-            return CreateStructure(structureType as StructureType, fieldValues);
-        }
-
-        /// <summary>
-        /// Creates a new structure instance value.
-        /// </summary>
-        /// <param name="structureType">The structure type.</param>
-        /// <param name="values">The structure instance values.</param>
-        /// <returns>The created structure instance value.</returns>
-        private ValueReference CreateStructure(
-            StructureType structureType,
-            ImmutableArray<ValueReference> values)
-        {
-            Debug.Assert(structureType != null, "Invalid structure type");
-            Debug.Assert(values != null && values.Length > 0, "Invalid values");
-            Debug.Assert(
-                values.Length == structureType.NumFields,
-                "Invalid values or structure type");
-
+            // Construct structure instance
+            var values = builder.Seal(out var structureType);
             return Append(new StructureValue(
                 BasicBlock,
                 structureType,
                 values));
         }
-
 
         /// <summary>
         /// Creates a load operation of an object field.
@@ -193,30 +214,30 @@ namespace ILGPU.IR.Construction
             Debug.Assert(objectValue != null, "Invalid object node");
             Debug.Assert(value != null, "Invalid value node");
 
-            var structType = objectValue.Type as StructureType;
-            Debug.Assert(structType != null, "Invalid object structure type");
+            var structureType = objectValue.Type as StructureType;
+            Debug.Assert(structureType != null, "Invalid object structure type");
             Debug.Assert(
-                structType.Get(Context,
-                fieldSpan) == value.Type, "Incompatible value type");
+                structureType.Get(Context, fieldSpan) == value.Type,
+                "Incompatible value type");
 
             // Fold structure values
             if (objectValue is StructureValue structureValue)
             {
-                var fieldValues = structType.CreateFieldBuilder();
+                var instance = CreateStructure(structureType);
                 foreach (Value fieldValue in structureValue.Nodes)
-                    fieldValues.Add(fieldValue);
+                    instance.Add(fieldValue);
 
                 for (int i = 0; i < fieldSpan.Span; ++i)
                 {
-                    fieldValues[fieldSpan.Index + i] = CreateGetField(
+                    instance[fieldSpan.Index + i] = CreateGetField(
                         value,
                         new FieldSpan(i));
                 }
 
-                return CreateStructure(structType, fieldValues.MoveToImmutable());
+                return instance.Seal();
             }
 
-            return objectValue is NullValue && fieldSpan.Span == structType.NumFields
+            return objectValue is NullValue && fieldSpan.Span == structureType.NumFields
                 ? (ValueReference)value
                 : Append(new SetField(
                     BasicBlock,

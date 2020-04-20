@@ -221,16 +221,12 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="dimension">The dimension value.</param>
         /// <returns>The created index type.</returns>
-        public ValueReference CreateIndex(ValueReference dimension) =>
-            CreateIndex(ImmutableArray.Create(dimension));
-
-        /// <summary>
-        /// Creates a new index structure instance.
-        /// </summary>
-        /// <param name="dimensions">The dimension values.</param>
-        /// <returns>The created index type.</returns>
-        public ValueReference CreateIndex(ImmutableArray<ValueReference> dimensions) =>
-            CreateStructure(dimensions);
+        public ValueReference CreateIndex(ValueReference dimension)
+        {
+            var instance = CreateDynamicStructure(1);
+            instance.Add(dimension);
+            return instance.Seal();
+        }
 
         /// <summary>
         /// Creates an instantiated phi value.
