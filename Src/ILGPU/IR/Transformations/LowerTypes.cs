@@ -53,7 +53,7 @@ namespace ILGPU.IR.Transformations
         {
             var builder = context.Builder;
             var sourceType = typeConverter[value] as StructureType;
-            var fields = ImmutableArray.CreateBuilder<ValueReference>();
+            var instance = builder.CreateDynamicStructure(sourceType.NumFields);
 
             for (int i = 0, e = sourceType.NumFields; i < e; ++i)
             {
@@ -65,16 +65,16 @@ namespace ILGPU.IR.Transformations
                         var viewField = builder.CreateGetField(
                             value[i],
                             new FieldSpan(j));
-                        fields.Add(viewField);
+                        instance.Add(viewField);
                     }
                 }
                 else
                 {
-                    fields.Add(value[i]);
+                    instance.Add(value[i]);
                 }
             }
 
-            var newValue = builder.CreateStructure(fields.ToImmutable());
+            var newValue = instance.Seal();
             context.ReplaceAndRemove(value, newValue);
         }
 
@@ -96,16 +96,15 @@ namespace ILGPU.IR.Transformations
             if (typeConverter[getValue] is TType)
             {
                 // We have to extract multiple elements from this structure
-                var fieldValues = ImmutableArray.CreateBuilder<ValueReference>(
-                    span.Span);
+                var instance = builder.CreateDynamicStructure(span.Span);
                 for (int i = 0; i < span.Span; ++i)
                 {
                     var viewField = builder.CreateGetField(
                         getValue.ObjectValue,
                         new FieldSpan(span.Index + i));
-                    fieldValues.Add(viewField);
+                    instance.Add(viewField);
                 }
-                newValue = builder.CreateStructure(fieldValues.MoveToImmutable());
+                newValue = instance.Seal();
             }
             else
             {

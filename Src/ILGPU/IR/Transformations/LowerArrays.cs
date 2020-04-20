@@ -53,10 +53,10 @@ namespace ILGPU.IR.Transformations
                 TTypeContext typeContext,
                 ArrayType type)
             {
-                var fieldTypes = ImmutableArray.CreateBuilder<TypeNode>(
-                    GetNumFields(type));
+                var builder = typeContext.CreateStructureType(GetNumFields(type));
+
                 // Append storage pointer
-                fieldTypes.Add(
+                builder.Add(
                     typeContext.CreatePointerType(
                         type.ElementType,
                         type.AddressSpace));
@@ -64,11 +64,11 @@ namespace ILGPU.IR.Transformations
                 // Append dimension types
                 for (int i = 0, e = type.Dimensions; i < e; ++i)
                 {
-                    fieldTypes.Add(
+                    builder.Add(
                         typeContext.GetPrimitiveType(BasicValueType.Int32));
                 }
 
-                return typeContext.CreateStructureType(fieldTypes.MoveToImmutable());
+                return builder.Seal();
             }
 
             /// <summary cref="TypeLowering{TType}.IsTypeDependent(TypeNode)"/>
@@ -103,17 +103,17 @@ namespace ILGPU.IR.Transformations
 
             // Create resulting structure in current block
             builder.InsertPosition = currentPosition;
-            var fields = ImmutableArray.CreateBuilder<ValueReference>(
+            var instance = builder.CreateDynamicStructure(
                 typeLowering.GetNumFields(value.ArrayType));
 
             // Insert pointer field
-            fields.Add(newArray);
+            instance.Add(newArray);
 
             // Insert all dimensions
             for (int i = 0, e = value.ArrayType.Dimensions; i < e; ++i)
-                fields.Add(builder.CreateGetField(value.Extent, new FieldSpan(i)));
+                instance.Add(builder.CreateGetField(value.Extent, new FieldSpan(i)));
 
-            var newStructure = builder.CreateStructure(fields.MoveToImmutable());
+            var newStructure = instance.Seal();
             context.ReplaceAndRemove(value, newStructure);
         }
 
@@ -129,17 +129,17 @@ namespace ILGPU.IR.Transformations
 
             // Create new extent structure based on all dimension entries
             int dimensions = StructureType.GetNumFields(typeLowering[value]);
-            var fields = ImmutableArray.CreateBuilder<ValueReference>(dimensions);
+            var instance = builder.CreateDynamicStructure(dimensions);
 
             // Insert all dimension values
             for (int i = 0; i < dimensions; ++i)
             {
-                fields.Add(builder.CreateGetField(
+                instance.Add(builder.CreateGetField(
                     value.ObjectValue,
                     new FieldSpan(i + ArrayTypeLowering.DimensionOffset)));
             }
 
-            var newStructure = builder.CreateStructure(fields.MoveToImmutable());
+            var newStructure = instance.Seal();
             context.ReplaceAndRemove(value, newStructure);
         }
 

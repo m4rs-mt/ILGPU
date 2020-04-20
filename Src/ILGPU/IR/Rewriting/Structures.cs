@@ -40,17 +40,17 @@ namespace ILGPU.IR.Rewriting
             where T : IRewriterContext
             where TValue : Value
         {
-            var fields = structureType.CreateFieldBuilder();
+            var instance = context.Builder.CreateStructure(structureType);
 
             // Invoke the lowering implementation for all fields
             for (int i = 0, e = structureType.NumFields; i < e; ++i)
             {
                 // Invoke lowering implementation
-                fields.Add(lowering(context, value, new FieldAccess(i)));
+                instance.Add(lowering(context, value, new FieldAccess(i)));
             }
 
             // Create new structure instance
-            return context.Builder.CreateStructure(fields.MoveToImmutable());
+            return instance.Seal();
         }
         /// <summary>
         /// Disassembled a structure value using the lowering provided.

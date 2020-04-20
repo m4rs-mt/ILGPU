@@ -23,7 +23,7 @@ namespace ILGPU.IR.Transformations
     /// <remarks>
     /// Note that this class does not perform recursive specialization operations.
     /// </remarks>
-    public abstract class AcceleratorSpecializer : UnorderedTransformation
+    public class AcceleratorSpecializer : UnorderedTransformation
     {
         #region Rewriter Methods
 
@@ -67,12 +67,11 @@ namespace ILGPU.IR.Transformations
         private static void Specialize(
             RewriterContext context,
             AcceleratorSpecializer specializer,
-            SizeOfValue value)
-        {
-            if (!specializer.TryGetSizeOf(value.TargetType, out int size))
-                return;
-            Specialize(context, value, size);
-        }
+            SizeOfValue value) =>
+            Specialize(
+                context,
+                value,
+                value.TargetType.Size);
 
         #endregion
 
@@ -126,14 +125,6 @@ namespace ILGPU.IR.Transformations
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// Tries to resolve the native size in bytes of the given type.
-        /// </summary>
-        /// <param name="type">The type.</param>
-        /// <param name="size">The native size in bytes.</param>
-        /// <returns>True, if the size could be resolved.</returns>
-        protected abstract bool TryGetSizeOf(TypeNode type, out int size);
 
         /// <summary>
         /// Applies an accelerator-specialization transformation.
