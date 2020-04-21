@@ -38,34 +38,31 @@ namespace ILGPU.Backends.PointerViews
         /// <summary>
         /// Maps an internal view type to a pointer implementation type.
         /// </summary>
-        protected sealed override void MapViewType<TTargetCollection>(
-            Type viewType,
-            Type elementType,
-            TTargetCollection elements) =>
-            ViewImplementation.AppendImplementationTypes(elements);
+        protected sealed override Type MapViewType(Type viewType, Type elementType) =>
+            ViewImplementation.GetImplementationType(elementType);
 
         /// <summary>
         /// Maps an internal view instance to a pointer instance.
         /// </summary>
-        protected sealed override void MapViewInstance<TILEmitter, TSource>(
+        protected sealed override void MapViewInstance<TILEmitter, TSource, TTarget>(
             in TILEmitter emitter,
             Type elementType,
             TSource source,
-            ref Target target)
+            TTarget target)
         {
-            // Emit the target address and resolve the implementation type to store
-            var implType = ViewImplementation.GetImplementationType(elementType);
+            var targetType = target.TargetType;
+
+            // Load target address
             target.EmitLoadTarget(emitter);
 
             // Load source and create custom view type
             source.EmitLoadSource(emitter);
             emitter.Emit(OpCodes.Ldobj, source.SourceType);
             emitter.EmitNewObject(
-                ViewImplementation.GetViewConstructor(implType));
+                ViewImplementation.GetViewConstructor(targetType));
 
-            // Store object
-            emitter.Emit(OpCodes.Stobj, implType);
-            target.NextTarget();
+            // Store target
+            emitter.Emit(OpCodes.Stobj, target.TargetType);
         }
 
         #endregion

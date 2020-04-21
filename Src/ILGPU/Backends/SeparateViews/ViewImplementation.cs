@@ -36,18 +36,6 @@ namespace ILGPU.Backends.SeparateViews
             GetMethod(nameof(Create));
 
         /// <summary>
-        /// Append all implementation-specific element types.
-        /// </summary>
-        /// <typeparam name="TCollection">The target collection type.</typeparam>
-        /// <param name="collection">The target element collection.</param>
-        public static void AppendImplementationTypes<TCollection>(TCollection collection)
-            where TCollection : ICollection<Type>
-        {
-            collection.Add(typeof(int));
-            collection.Add(typeof(int));
-        }
-
-        /// <summary>
         /// Returns a specialized create method.
         /// </summary>
         /// <param name="sourceType">The source array-view type.</param>

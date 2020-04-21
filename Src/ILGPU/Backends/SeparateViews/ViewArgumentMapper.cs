@@ -33,26 +33,24 @@ namespace ILGPU.Backends.SeparateViews
 
         #endregion
 
+        #region Methods
+
         /// <summary>
         /// Maps an internal view type to a pointer implementation type.
         /// </summary>
-        protected sealed override void MapViewType<TTargetCollection>(
-            Type viewType,
-            Type elementType,
-            TTargetCollection elements) =>
-            ViewImplementation.AppendImplementationTypes(elements);
+        protected sealed override Type MapViewType(Type viewType, Type elementType) =>
+            typeof(ViewImplementation);
 
         /// <summary>
         /// Maps an internal view instance to a pointer instance.
         /// </summary>
-        protected sealed override void MapViewInstance<TILEmitter, TSource>(
+        protected sealed override void MapViewInstance<TILEmitter, TSource, TTarget>(
             in TILEmitter emitter,
             Type elementType,
             TSource source,
-            ref Target target)
+            TTarget target)
         {
-            // Declare local view type
-            var implType = typeof(ViewImplementation);
+            // Load target address
             target.EmitLoadTarget(emitter);
 
             // Load source and create custom view type
@@ -61,9 +59,10 @@ namespace ILGPU.Backends.SeparateViews
             emitter.EmitCall(
                 ViewImplementation.GetCreateMethod(source.SourceType));
 
-            // Store object
-            emitter.Emit(OpCodes.Stobj, implType);
-            target.NextTarget();
+            // Store target
+            emitter.Emit(OpCodes.Stobj, target.TargetType);
         }
+
+        #endregion
     }
 }
