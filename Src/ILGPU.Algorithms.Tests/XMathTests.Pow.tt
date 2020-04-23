@@ -1,0 +1,180 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="XMathTests.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+using ILGPU.Runtime;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Xunit;
+
+<#
+    var powFunctions = new []
+    {
+        new PowFunction("Pow" , "float" , new RelativeError(0E-00, 1E-05, 1E-06)),
+        new PowFunction("Pow" , "double", new RelativeError(0E-00, 1E-05, 1E-15)),
+    };
+
+    var exp2Functions = new []
+    {
+        new PowFunction("Exp2", "float" , new RelativeError(0E-00, 0E-00, 1E-07)),
+        new PowFunction("Exp2", "double", new RelativeError(0E-00, 1E-07, 0E-00)),
+    };
+
+    var expFunctions = new []
+    {
+        new PowFunction("Exp" , "float" , new RelativeError(0E-00, 1E-05, 1E-06)),
+        new PowFunction("Exp" , "double", new RelativeError(0E-00, 1E-05, 1E-15)),
+    };
+#>
+namespace ILGPU.Algorithms.Tests
+{
+    // Performs tests on the various power functions across a range of input values
+    // and ensures a minimum error on each accelerator type.
+    partial class XMathTests
+    {
+<# foreach (var function in powFunctions) { #>
+        internal static void <#= function.KernelName #>(Index index, ArrayView<XMathTuple<<#= function.DataType #>>> input, ArrayView<<#= function.DataType #>> output)
+        {
+            output[index] = XMath.<#= function.Name #>(input[index].X, input[index].Y);
+        }
+
+        [Fact]
+        [KernelMethod(nameof(<#= function.KernelName #>))]
+        public void <#= function.TestName #>()
+        {
+<#
+            var start = 0.5;
+            var end = 20.0;
+            var step = 0.5;
+#>
+            // [<#= start #>, <#= end #>]
+            var inputValues = new List<XMathTuple<<#= function.DataType #>>>();
+            for (var x = <#= start #><#= function.ValueSuffix #>; x <= <#= end #><#= function.ValueSuffix #>; x += <#= step #><#= function.ValueSuffix #>)
+            {
+                for (var y = <#= start #><#= function.ValueSuffix #>; y <= <#= end #><#= function.ValueSuffix #>; y += <#= step #><#= function.ValueSuffix #>)
+                {
+                    inputValues.Add(new XMathTuple<<#= function.DataType #>>(x, y));
+                }
+            }
+
+            var inputArray = inputValues.ToArray();
+            using var input = Accelerator.Allocate<XMathTuple<<#= function.DataType #>>>(inputArray.Length);
+            using var output = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+
+            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            Execute(input.Length, input.View, output.View);
+
+            var expected = inputArray.Select(v => Math<#= function.MathSuffix #>.<#= function.Name #>(v.X, v.Y)).ToArray();
+            if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                VerifyWithinRelativeError(output, expected, <#= function.RelativeError.Cuda #>);
+            else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
+                VerifyWithinRelativeError(output, expected, <#= function.RelativeError.OpenCL #>);
+            else
+                VerifyWithinRelativeError(output, expected, <#= function.RelativeError.CPU #>);
+        }
+
+<# } #>
+<# foreach (var function in exp2Functions) { #>
+        internal static void <#= function.KernelName #>(Index index, ArrayView<<#= function.DataType #>> input, ArrayView<<#= function.DataType #>> output)
+        {
+            output[index] = XMath.<#= function.Name #>(input[index]);
+        }
+
+        [Fact]
+        [KernelMethod(nameof(<#= function.KernelName #>))]
+        public void <#= function.TestName #>()
+        {
+<#
+            var start = 0.5;
+            var end = 40.0;
+            var step = 0.5;
+#>
+            // [<#= start #>, <#= end #>]
+            var inputValues = new List<<#= function.DataType #>>();
+            for (var x = <#= start #><#= function.ValueSuffix #>; x <= <#= end #><#= function.ValueSuffix #>; x += <#= step #><#= function.ValueSuffix #>)
+                inputValues.Add(x);
+
+            var inputArray = inputValues.ToArray();
+            using var input = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+            using var output = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+
+            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            Execute(input.Length, input.View, output.View);
+
+            var expected = inputArray.Select(x => Math<#= function.MathSuffix #>.Pow(2.0<#= function.ValueSuffix #>, x)).ToArray();
+            if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                VerifyWithinRelativeError(output, expected, <#= function.RelativeError.Cuda #>);
+            else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
+                VerifyWithinRelativeError(output, expected, <#= function.RelativeError.OpenCL #>);
+            else
+                VerifyWithinRelativeError(output, expected, <#= function.RelativeError.CPU #>);
+        }
+
+<# } #>
+<# foreach (var function in expFunctions) { #>
+        internal static void <#= function.KernelName #>(Index index, ArrayView<<#= function.DataType #>> input, ArrayView<<#= function.DataType #>> output)
+        {
+            output[index] = XMath.<#= function.Name #>(input[index]);
+        }
+
+        [Fact]
+        [KernelMethod(nameof(<#= function.KernelName #>))]
+        public void <#= function.TestName #>()
+        {
+<#
+            var start = 0.5;
+            var end = 40.0;
+            var step = 0.5;
+#>
+            // [<#= start #>, <#= end #>]
+            var inputValues = new List<<#= function.DataType #>>();
+            for (var x = <#= start #><#= function.ValueSuffix #>; x <= <#= end #><#= function.ValueSuffix #>; x += <#= step #><#= function.ValueSuffix #>)
+                inputValues.Add(x);
+
+            var inputArray = inputValues.ToArray();
+            using var input = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+            using var output = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+
+            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            Execute(input.Length, input.View, output.View);
+
+            var expected = inputArray.Select(x => Math<#= function.MathSuffix #>.<#= function.Name #>(x)).ToArray();
+            if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                VerifyWithinRelativeError(output, expected, <#= function.RelativeError.Cuda #>);
+            else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
+                VerifyWithinRelativeError(output, expected, <#= function.RelativeError.OpenCL #>);
+            else
+                VerifyWithinRelativeError(output, expected, <#= function.RelativeError.CPU #>);
+        }
+
+<# } #>
+    }
+}
+<#+
+    struct RelativeError
+    {
+        public RelativeError(double cpu, double cuda, double opencl)
+        {
+            CPU = cpu;
+            Cuda = cuda;
+            OpenCL = opencl;
+        }
+
+        public double CPU { get; }
+        public double Cuda { get; }
+        public double OpenCL { get; }
+    }
+
+    class PowFunction : XMathFunctionBase
+    {
+        public PowFunction(string name, string dataType, RelativeError relativeError)
+            : base(name, dataType)
+        {
+            RelativeError = relativeError;
+        }
+
+        public RelativeError RelativeError { get; }
+    }
+#>

@@ -1,0 +1,133 @@
+﻿<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#+
+public static readonly (string, Type)[] SignedIntTypes =
+    {
+        ("sbyte", typeof(sbyte)),
+        ("short", typeof(short)),
+        ("int", typeof(int)),
+        ("long", typeof(long)),
+    };
+public static readonly (string, Type)[] UnsignedIntTypes =
+    {
+        ("byte", typeof(byte)),
+        ("ushort", typeof(ushort)),
+        ("uint", typeof(uint)),
+        ("ulong", typeof(ulong)),
+    };
+
+public static readonly (string, Type)[] IntTypes =
+    SignedIntTypes.Concat(UnsignedIntTypes).ToArray();
+
+public static readonly (string, Type)[] DefaultIntTypes =
+    SignedIntTypes.Skip(2).Concat(UnsignedIntTypes.Skip(2)).ToArray();
+
+public static readonly (string, Type, string)[] FloatTypes =
+    {
+        ("float", typeof(float), "f"),
+        ("double", typeof(double), ""),
+    };
+
+public static IEnumerable<string> GetFloatRanges(
+    string typeName,
+    string suffix,
+    bool maxRanges,
+    bool useZero = true,
+    bool useInfinity = true,
+    bool useMultiplesOfPi = true)
+{
+    var isFloat = suffix != string.Empty;
+    var pi = isFloat ? "(float)Math.PI" : "Math.PI";
+    IEnumerable<string> result = new string[]
+        {
+            "-1.0" + suffix,
+            "1.0" + suffix,
+            pi,
+            "-" + pi,
+        };
+    if (useZero)
+    {
+        result = new string[]
+            {
+                "0.0" + suffix,
+            }.Concat(result);
+    }
+    if (useInfinity)
+    {
+        result = result.Concat(new string[]
+            {
+                typeName + ".PositiveInfinity",
+                typeName + ".NegativeInfinity",
+            });
+    }
+    if (maxRanges)
+    {
+        result = result.Concat(new string[]
+            {
+                "(" + typeName + ")float.MaxValue",
+                "(" + typeName + ")float.MinValue",
+                "(" + typeName + ")float.Epsilon",
+            });
+    }
+    if (useMultiplesOfPi)
+    {
+        result = result.Concat(new string[]
+            {
+                "2.0" + suffix + " * " + pi,
+                "-2.0" + suffix + " * " + pi,
+                "0.5" + suffix + " * " + pi,
+                "-0.5" + suffix + " * " + pi,
+            });
+    }
+    return result;
+}
+
+public sealed class TestConfig
+{
+    public TestConfig(string name)
+        : this(name, null)
+    {}
+
+    public TestConfig(string name, string[] optimizationLevels)
+    {
+        Name = name;
+        OptimizationLevels = optimizationLevels ?? new string[] { "Debug", "Release" };
+    }
+
+    public string Name { get; }
+
+    public string[] OptimizationLevels { get; }
+
+    public static IEnumerable<TestConfig> Parse(string fileName)
+    {
+        return Parse(System.IO.File.ReadAllLines(fileName));
+    }
+
+    public static IEnumerable<TestConfig> Parse(string[] lines)
+    {
+        var result = new List<TestConfig>(lines.Length);
+
+        for (int i = 0, e = lines.Length; i < e; ++i)
+        {
+            var line = lines[i].Trim();
+            if (line.StartsWith("//") || line.Length < 1)
+                continue;
+            var parts = line.Split(':');
+            var testName = parts[0].Trim();
+            string[] optimizationLevels = null;
+            if (parts.Length > 1)
+            {
+                var levels = parts[1].Split(',');
+                optimizationLevels = new string[Math.Min(levels.Length, 2)];
+                for (int j = 0; j < optimizationLevels.Length; ++j)
+                    optimizationLevels[j] = levels[j].Trim();
+            }
+            result.Add(new TestConfig(testName, optimizationLevels));
+        }
+
+        return result;
+    }
+}
+#>

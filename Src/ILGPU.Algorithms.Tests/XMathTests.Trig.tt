@@ -1,0 +1,158 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="XMathTests.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+using ILGPU.Runtime;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Xunit;
+
+<#
+    var unaryTrigFunctions = new []
+    {
+        new TrigFunction("Sin", "float"  , new Precision(15,  6,  7), projection: ".Select(x => XMath.DegToRad((float)x))"),
+        new TrigFunction("Sin", "double" , new Precision(15,  6, 15), projection: ".Select(x => XMath.DegToRad((double)x))"),
+        new TrigFunction("Cos", "float"  , new Precision(15,  6,  7), projection: ".Select(x => XMath.DegToRad((float)x))"),
+        new TrigFunction("Cos", "double" , new Precision(15,  6, 15), projection: ".Select(x => XMath.DegToRad((double)x))"),
+        new TrigFunction("Tan", "float"  , new Precision(15,  2,  5), projection: ".Select(x => XMath.DegToRad((float)x))" , condition: ".Where(x => Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270) // NB: Tan is undefined for these input values"),
+        new TrigFunction("Tan", "double" , new Precision(15,  2, 14), projection: ".Select(x => XMath.DegToRad((double)x))", condition: ".Where(x => Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270) // NB: Tan is undefined for these input values"),
+
+        new TrigFunction("Asin", "float" , new Precision(15,  2,  6), projection: ".Select(x => MathF.Sin(XMath.DegToRad((float)x)))", condition: ".Where(x => Accelerator.AcceleratorType != AcceleratorType.Cuda || (Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270)) // TODO: Cuda incorrectly returns NaN for XMath.Asin(float)"),
+        new TrigFunction("Asin", "double", new Precision(15,  2, 15), projection: ".Select(x => Math.Sin(XMath.DegToRad((double)x)))", condition: ".Where(x => Accelerator.AcceleratorType != AcceleratorType.Cuda || (Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270)) // TODO: Cuda incorrectly returns NaN for XMath.Asin(double)"),
+        new TrigFunction("Acos", "float" , new Precision(15,  2,  6), projection: ".Select(x => MathF.Cos(XMath.DegToRad((float)x)))", condition: ".Where(x => Accelerator.AcceleratorType != AcceleratorType.Cuda || (Math.Abs(x) % 360 != 0 && Math.Abs(x) % 360 != 180)) // TODO: Cuda incorrectly returns NaN for XMath.Acos(float)"),
+        new TrigFunction("Acos", "double", new Precision(15,  2, 15), projection: ".Select(x => Math.Cos(XMath.DegToRad((double)x)))", condition: ".Where(x => Accelerator.AcceleratorType != AcceleratorType.Cuda || (Math.Abs(x) % 360 != 0 && Math.Abs(x) % 360 != 180)) // TODO: Cuda incorrectly returns NaN for XMath.Acos(double)"),
+        new TrigFunction("Atan", "float" , new Precision(15,  2,  6), projection: ".Select(x => MathF.Tan(XMath.DegToRad((float)x)))", condition: ".Where(x => Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270)"),
+        new TrigFunction("Atan", "double", new Precision(15,  2, 15), projection: ".Select(x => Math.Tan(XMath.DegToRad((double)x)))", condition: ".Where(x => Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270)"),
+
+        new TrigFunction("Sinh", "float" , new Precision(15,  4,  4), projection: ".Select(x => XMath.DegToRad((float)x))"),
+        new TrigFunction("Sinh", "double", new Precision(15,  4, 13), projection: ".Select(x => XMath.DegToRad((double)x))"),
+        new TrigFunction("Cosh", "float" , new Precision(15,  4,  4), projection: ".Select(x => XMath.DegToRad((float)x))"),
+        new TrigFunction("Cosh", "double", new Precision(15,  4, 13), projection: ".Select(x => XMath.DegToRad((double)x))"),
+        new TrigFunction("Tanh", "float" , new Precision(15,  6,  0), projection: ".Select(x => XMath.DegToRad((float)x))"),
+        new TrigFunction("Tanh", "double", new Precision(15,  7,  0), projection: ".Select(x => XMath.DegToRad((double)x))"),
+    };
+
+    var binaryTrigFunctions = new []
+    {
+        new XMathFunction("Atan2", "float" , new Precision(15,  2,  6)),
+        new XMathFunction("Atan2", "double", new Precision(15,  2, 15)),
+    };
+#>
+namespace ILGPU.Algorithms.Tests
+{
+    // Performs tests on the various trigonometric functions across a range of input values
+    // and ensures a minimum precision on each accelerator type.
+    partial class XMathTests
+    {
+<# foreach (var function in unaryTrigFunctions) { #>
+        internal static void <#= function.KernelName #>(Index index, ArrayView<<#= function.DataType #>> input, ArrayView<<#= function.DataType #>> output)
+        {
+            output[index] = XMath.<#= function.Name #>(input[index]);
+        }
+
+        [Fact]
+        [KernelMethod(nameof(<#= function.KernelName #>))]
+        public void <#= function.TestName #>()
+        {
+<#
+        var startRange = -360;
+        var endRange = 360;
+#>
+            // [<#= startRange #>, <#= endRange #>] degrees
+            var inputArray =
+                Enumerable.Range(<#= startRange #>, <#= endRange - startRange + 1 #>)<#= function.Condition #>
+                <#= function.Projection #>
+                .ToArray();
+
+            using var input = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+            using var output = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+
+            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+
+<# if (function.Name == "Tanh") { #>
+            if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
+            {
+                // TODO: Implement OpenCL support for XMath.Tanh(<#= function.DataType #>)
+                var ae = Assert.Throws<AggregateException>(() => Execute(input.Length, input.View, output.View));
+                Assert.Single(ae.InnerExceptions);
+                Assert.IsType<Backends.NotSupportedIntrinsicException>(ae.InnerExceptions[0]);
+                return;
+            }
+<# } #>
+
+            Execute(input.Length, input.View, output.View);
+
+            var expected = inputArray.Select(Math<#= function.MathSuffix #>.<#= function.Name #>).ToArray();
+            if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
+            else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
+                VerifyWithinPrecision(output, expected, <#= function.Precision.OpenCL #>);
+            else
+                VerifyWithinPrecision(output, expected, <#= function.Precision.CPU #>);
+        }
+
+<# } #>
+<# foreach (var function in binaryTrigFunctions) { #>
+        internal static void <#= function.KernelName #>(Index index, ArrayView<XMathTuple<<#= function.DataType #>>> input, ArrayView<<#= function.DataType #>> output)
+        {
+            output[index] = XMath.<#= function.Name #>(input[index].X, input[index].Y);
+        }
+
+        [Fact]
+        [KernelMethod(nameof(<#= function.KernelName #>))]
+        public void <#= function.TestName #>()
+        {
+<#
+            var start = -1.0;
+            var end = 1.0;
+            var step = 0.015625;
+#>
+            // [<#= start #>, <#= end #>]
+            var inputValues = new List<XMathTuple<<#= function.DataType #>>>();
+            for (var x = <#= start.ToString("F1") #><#= function.ValueSuffix #>; x <= <#= end #><#= function.ValueSuffix #>; x += <#= step #><#= function.ValueSuffix #>)
+            {
+                for (var y = <#= start.ToString("F1") #><#= function.ValueSuffix #>; y <= <#= end #><#= function.ValueSuffix #>; y += <#= step #><#= function.ValueSuffix #>)
+                {
+                    // TODO: Cuda incorrectly returns (PI / 2) rather than 0 for XMath.<#= function.Name #>(<#= function.DataType #>)
+                    if (Accelerator.AcceleratorType == AcceleratorType.Cuda && x == 0 && y == 0)
+                        continue;
+
+                    inputValues.Add(new XMathTuple<<#= function.DataType #>>(x, y));
+                }
+            }
+
+            var inputArray = inputValues.ToArray();
+            using var input = Accelerator.Allocate<XMathTuple<<#= function.DataType #>>>(inputArray.Length);
+            using var output = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+
+            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            Execute(input.Length, input.View, output.View);
+
+            var expected = inputArray.Select(v => Math<#= function.MathSuffix #>.<#= function.Name #>(v.X, v.Y)).ToArray();
+            if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
+            else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
+                VerifyWithinPrecision(output, expected, <#= function.Precision.OpenCL #>);
+            else
+                VerifyWithinPrecision(output, expected, <#= function.Precision.CPU #>);
+        }
+
+<# } #>
+    }
+}
+<#+
+    class TrigFunction : XMathFunction
+    {
+        public TrigFunction(string name, string dataType, Precision precision, string projection, string condition = null)
+            : base(name, dataType, precision)
+        {
+            Projection = projection;
+            Condition = condition ?? string.Empty;
+        }
+
+        public string Projection { get; }
+        public string Condition { get; }
+    }
+#>

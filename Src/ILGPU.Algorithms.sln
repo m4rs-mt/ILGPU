@@ -11,6 +11,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{A374B733
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Algorithms", "ILGPU.Algorithms\ILGPU.Algorithms.csproj", "{89B89E70-2720-4069-B0FD-50E6A2AE30E3}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Algorithms.Tests", "ILGPU.Algorithms.Tests\ILGPU.Algorithms.Tests.csproj", "{DA2F560D-FED2-4D87-B10B-B74EABD9512C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{48551B26-0126-4171-A878-27372D05D1BA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Algorithms.Tests.CPU", "ILGPU.Algorithms.Tests.CPU\ILGPU.Algorithms.Tests.CPU.csproj", "{E4FC7717-F619-4ED5-A008-860FFB8AF568}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Algorithms.Tests.Cuda", "ILGPU.Algorithms.Tests.Cuda\ILGPU.Algorithms.Tests.Cuda.csproj", "{99189BD9-6604-4278-BE6C-F9FE70BCADB6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ILGPU.Algorithms.Tests.OpenCL", "ILGPU.Algorithms.Tests.OpenCL\ILGPU.Algorithms.Tests.OpenCL.csproj", "{7FD1337D-2CD4-4DF3-804E-DFFD56F1EBFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,9 +31,31 @@ Global
 		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{89B89E70-2720-4069-B0FD-50E6A2AE30E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA2F560D-FED2-4D87-B10B-B74EABD9512C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA2F560D-FED2-4D87-B10B-B74EABD9512C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA2F560D-FED2-4D87-B10B-B74EABD9512C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA2F560D-FED2-4D87-B10B-B74EABD9512C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4FC7717-F619-4ED5-A008-860FFB8AF568}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4FC7717-F619-4ED5-A008-860FFB8AF568}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4FC7717-F619-4ED5-A008-860FFB8AF568}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4FC7717-F619-4ED5-A008-860FFB8AF568}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99189BD9-6604-4278-BE6C-F9FE70BCADB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99189BD9-6604-4278-BE6C-F9FE70BCADB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99189BD9-6604-4278-BE6C-F9FE70BCADB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99189BD9-6604-4278-BE6C-F9FE70BCADB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FD1337D-2CD4-4DF3-804E-DFFD56F1EBFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FD1337D-2CD4-4DF3-804E-DFFD56F1EBFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FD1337D-2CD4-4DF3-804E-DFFD56F1EBFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FD1337D-2CD4-4DF3-804E-DFFD56F1EBFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DA2F560D-FED2-4D87-B10B-B74EABD9512C} = {48551B26-0126-4171-A878-27372D05D1BA}
+		{E4FC7717-F619-4ED5-A008-860FFB8AF568} = {48551B26-0126-4171-A878-27372D05D1BA}
+		{99189BD9-6604-4278-BE6C-F9FE70BCADB6} = {48551B26-0126-4171-A878-27372D05D1BA}
+		{7FD1337D-2CD4-4DF3-804E-DFFD56F1EBFF} = {48551B26-0126-4171-A878-27372D05D1BA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E123F77E-B3AF-4C32-A183-E63F8DEF5BA7}
