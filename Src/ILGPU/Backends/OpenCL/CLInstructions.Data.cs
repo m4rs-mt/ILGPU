@@ -272,6 +272,7 @@ namespace ILGPU.Backends.OpenCL
 
                 { (UnaryArithmeticKind.TanF, true), ("tan", true) },
                 { (UnaryArithmeticKind.AtanF, true), ("atan", true) },
+                { (UnaryArithmeticKind.TanHF, true), ("tanh", true) },
 
                 { (UnaryArithmeticKind.ExpF, true), ("exp", true) },
                 { (UnaryArithmeticKind.Exp2F, true), ("exp2", true) },
