@@ -39,13 +39,11 @@ namespace ILGPU.Backends.OpenCL
             internal GeneratorArgs(
                 CLBackend backend,
                 CLTypeGenerator typeGenerator,
-                SeparateViewEntryPoint entryPoint,
-                ABI abi)
+                SeparateViewEntryPoint entryPoint)
             {
                 Backend = backend;
                 TypeGenerator = typeGenerator;
                 EntryPoint = entryPoint;
-                ABI = abi;
                 KernelTypeGenerator = new CLKernelTypeGenerator(
                     typeGenerator,
                     entryPoint);
@@ -65,11 +63,6 @@ namespace ILGPU.Backends.OpenCL
             /// Returns the current entry point.
             /// </summary>
             public SeparateViewEntryPoint EntryPoint { get; }
-
-            /// <summary>
-            /// Returns the associated ABI.
-            /// </summary>
-            public ABI ABI { get; }
 
             /// <summary>
             /// Returns the current kernel-type generator.
@@ -267,7 +260,6 @@ namespace ILGPU.Backends.OpenCL
             Scope = scope;
             ImplementationProvider = Backend.IntrinsicProvider;
             Allocas = allocas;
-            ABI = args.ABI;
 
             labelPrefix = "L_" + Method.Id.ToString();
 
@@ -297,11 +289,6 @@ namespace ILGPU.Backends.OpenCL
         /// Returns all local allocas.
         /// </summary>
         public Allocas Allocas { get; }
-
-        /// <summary>
-        /// Returns the current ABI.
-        /// </summary>
-        public ABI ABI { get; }
 
         /// <summary>
         /// Returns the current intrinsic provider for code-generation purposes.

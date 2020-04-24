@@ -19,7 +19,6 @@ using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -263,21 +262,9 @@ namespace ILGPU.Backends.OpenCL
         /// Constructs a new OpenCL argument mapper.
         /// </summary>
         /// <param name="context">The current context.</param>
-        /// <param name="abi">The current ABI.</param>
-        public CLArgumentMapper(Context context, ABI abi)
+        public CLArgumentMapper(Context context)
             : base(context)
-        {
-            ABI = abi ?? throw new ArgumentNullException(nameof(abi));
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated OpenCL ABI.
-        /// </summary>
-        public ABI ABI { get; }
+        { }
 
         #endregion
 
@@ -288,11 +275,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns>The interop size in bytes.</returns>
-        private int GetSizeOf(Type type)
-        {
-            var typeNode = Context.TypeContext.CreateType(type);
-            return ABI.GetSizeOf(typeNode);
-        }
+        private int GetSizeOf(Type type) => Context.TypeContext.CreateType(type).Size;
 
         /// <summary>
         /// Emits code that sets an OpenCL kernel argument.

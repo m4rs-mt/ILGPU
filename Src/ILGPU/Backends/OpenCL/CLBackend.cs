@@ -13,7 +13,6 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
-using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using System.Text;
@@ -37,25 +36,9 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         private sealed class CLAcceleratorSpecializer : AcceleratorSpecializer
         {
-            public CLAcceleratorSpecializer(ABI abi)
+            public CLAcceleratorSpecializer()
                 : base(AcceleratorType.OpenCL, null)
-            {
-                ABI = abi;
-            }
-
-            /// <summary>
-            /// Returns the current ABI.
-            /// </summary>
-            public ABI ABI { get; }
-
-            /// <summary>
-            /// Resolves the size of the given type node.
-            /// </summary>
-            protected override bool TryGetSizeOf(TypeNode type, out int size)
-            {
-                size = ABI.GetSizeOf(type);
-                return true;
-            }
+            { }
         }
 
         #endregion
@@ -75,18 +58,13 @@ namespace ILGPU.Backends.OpenCL
         /// Constructs a new OpenCL source backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
-        /// <param name="platform">The target platform.</param>
         /// <param name="vendor">The associated major vendor.</param>
-        public CLBackend(
-            Context context,
-            TargetPlatform platform,
-            CLAcceleratorVendor vendor)
+        public CLBackend(Context context, CLAcceleratorVendor vendor)
             : base(
                   context,
                   BackendType.OpenCL,
                   BackendFlags.None,
-                  new CLABI(context.TypeContext, platform),
-                  abi => new CLArgumentMapper(context, abi))
+                  new CLArgumentMapper(context))
         {
             Vendor = vendor;
 
@@ -97,7 +75,7 @@ namespace ILGPU.Backends.OpenCL
                     var transformerBuilder = Transformer.CreateBuilder(
                         TransformerConfiguration.Empty);
                     transformerBuilder.AddBackendOptimizations(
-                        new CLAcceleratorSpecializer(ABI),
+                        new CLAcceleratorSpecializer(),
                         context.OptimizationLevel);
                     builder.Add(transformerBuilder.ToTransformer());
                 });
@@ -155,8 +133,7 @@ namespace ILGPU.Backends.OpenCL
             data = new CLCodeGenerator.GeneratorArgs(
                 this,
                 typeGenerator,
-                entryPoint as SeparateViewEntryPoint,
-                ABI);
+                entryPoint as SeparateViewEntryPoint);
             return builder;
         }
 

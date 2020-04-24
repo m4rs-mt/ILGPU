@@ -309,20 +309,53 @@ namespace ILGPU.Backends.OpenCL
                 if (!(entry.Key is StructureType structureType))
                     continue;
 
-                builder.AppendLine(entry.Value);
-                builder.AppendLine("{");
-                for (int i = 0, e = structureType.NumFields; i < e; ++i)
-                {
-                    builder.Append('\t');
-                    builder.Append(mapping[structureType.Fields[i]]);
-                    builder.Append(' ');
-                    builder.Append(GetFieldName(i));
-                    builder.AppendLine(";");
-                }
-                builder.AppendLine("};");
+                GenerateStructureDefinition(
+                    structureType,
+                    entry.Value,
+                    builder);
             }
 
             builder.AppendLine();
+        }
+
+        /// <summary>
+        /// Generates a new structure definition in OpenCL format.
+        /// </summary>
+        /// <param name="structureType">The structure type.</param>
+        /// <param name="typeName">The type name.</param>
+        /// <param name="builder">The target builder to write to.</param>
+        public void GenerateStructureDefinition(
+            StructureType structureType,
+            string typeName,
+            StringBuilder builder)
+        {
+            int paddingCounter = 0;
+
+            builder.AppendLine(typeName);
+            builder.AppendLine("{");
+            foreach (var (access, _, padding) in structureType.Offsets)
+            {
+                // Append padding information
+                if (padding > 0)
+                {
+                    builder.Append('\t');
+                    builder.Append(GetBasicValueType(ArithmeticBasicValueType.Int8));
+                    builder.Append(' ');
+                    builder.Append("__padding");
+                    builder.Append(++paddingCounter);
+                    builder.Append('[');
+                    builder.Append(padding);
+                    builder.AppendLine("];");
+                }
+
+                builder.Append('\t');
+                builder.Append(mapping[structureType[access]]);
+                builder.Append(' ');
+                builder.Append(GetFieldName(access.Index));
+                builder.AppendLine(";");
+
+            }
+            builder.AppendLine("};");
         }
 
         #endregion

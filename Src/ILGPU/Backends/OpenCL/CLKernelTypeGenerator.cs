@@ -32,8 +32,32 @@ namespace ILGPU.Backends.OpenCL
 
         #endregion
 
+        #region Nested Types
+
+        /// <summary>
+        /// Replaces pointers with an integer index offsets.
+        /// </summary>
+        private sealed class CLKernelTypeConverter : TypeConverter<PointerType>
+        {
+            /// <summary>
+            /// Converts a pointer to an index argument for kernel-argument mapping.
+            /// </summary>
+            protected override TypeNode ConvertType<TTypeContext>(
+                TTypeContext typeContext,
+                PointerType type) =>
+                typeContext.GetPrimitiveType(BasicValueType.Int32);
+
+            /// <summary>
+            /// The result will consume one field.
+            /// </summary>
+            protected override int GetNumFields(PointerType type) => 1;
+        }
+
+        #endregion
+
         #region Instance
 
+        private readonly CLKernelTypeConverter typeConverter;
         private readonly (StructureType, string)[] parameterTypes;
 
         /// <summary>
@@ -50,6 +74,7 @@ namespace ILGPU.Backends.OpenCL
             EntryPoint = entryPoint;
             ParameterOffset = entryPoint.KernelIndexParameterOffset;
 
+            typeConverter = new CLKernelTypeConverter();
             parameterTypes = new (StructureType, string)[
                 entryPoint.Parameters.Count + ParameterOffset];
         }
@@ -122,6 +147,11 @@ namespace ILGPU.Backends.OpenCL
             var structureType = parameter.ParameterType as StructureType;
             Debug.Assert(structureType != null, "Invalid custom kernel type");
 
+            // Convert the kernel type using a specific type converter
+            structureType = typeConverter.ConvertType(
+                TypeGenerator.TypeContext,
+                structureType) as StructureType;
+
             // Register internally
             parameterTypes[parameter.Index] = (structureType, clName);
         }
@@ -160,6 +190,7 @@ namespace ILGPU.Backends.OpenCL
                 if (type == null || !generatedTypes.Add(typeName))
                     continue;
 
+#if DEBUG
                 // Get the current view mapping
                 var viewMapping = EntryPoint.GetViewParameters(
                     paramIdx - ParameterOffset);
@@ -167,30 +198,24 @@ namespace ILGPU.Backends.OpenCL
                     viewMapping.Count > 0,
                     "There must be at least one view entry");
 
-                builder.AppendLine(typeName);
-                builder.AppendLine("{");
-                for (int i = 0, specialParamIdx = 0, e = type.NumFields; i < e; ++i)
+                for (
+                    int i = 0, specialParamIdx = 0, e = type.NumFields;
+                    i < e && specialParamIdx < viewMapping.Count;
+                    ++i)
                 {
                     // Check whether the current field is a view pointer
-                    builder.Append('\t');
-                    if (specialParamIdx < viewMapping.Count &&
-                        viewMapping[specialParamIdx].TargetAccess.Index == i)
+                    if (viewMapping[specialParamIdx].TargetAccess.Index == i)
                     {
-                        // Append an integer type (the view index)
-                        builder.Append(
-                            CLTypeGenerator.GetBasicValueType(BasicValueType.Int32));
-                        ++specialParamIdx;
+                        Debug.Assert(
+                            type[i].BasicValueType == BasicValueType.Int32,
+                            "Invalid view index");
                     }
-                    else
-                    {
-                        // Append the field type
-                        builder.Append(TypeGenerator[type[i]]);
-                    }
-                    builder.Append(' ');
-                    builder.Append(CLTypeGenerator.GetFieldName(i));
-                    builder.AppendLine(";");
                 }
-                builder.AppendLine("};");
+#endif
+                TypeGenerator.GenerateStructureDefinition(
+                    type,
+                    typeName,
+                    builder);
             }
 
             builder.AppendLine();
