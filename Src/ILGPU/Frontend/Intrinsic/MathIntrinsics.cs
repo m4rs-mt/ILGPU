@@ -58,6 +58,7 @@ namespace ILGPU.Frontend.Intrinsic
         Max,
         Atan2F,
         PowF,
+        BinaryLogF
     }
 
     /// <summary>

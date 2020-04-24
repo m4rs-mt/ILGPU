@@ -252,6 +252,11 @@ namespace ILGPU.IR.Values
         /// Computes basis^exp.
         /// </summary>
         PowF,
+
+        /// <summary>
+        /// Computes log(x) to base e.
+        /// </summary>
+        LogF,
     }
 
     /// <summary>
