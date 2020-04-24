@@ -30,8 +30,8 @@ using Xunit;
         new TrigFunction("Sinh", "double", new Precision(15,  4, 13), projection: ".Select(x => XMath.DegToRad((double)x))"),
         new TrigFunction("Cosh", "float" , new Precision(15,  4,  4), projection: ".Select(x => XMath.DegToRad((float)x))"),
         new TrigFunction("Cosh", "double", new Precision(15,  4, 13), projection: ".Select(x => XMath.DegToRad((double)x))"),
-        new TrigFunction("Tanh", "float" , new Precision(15,  6,  0), projection: ".Select(x => XMath.DegToRad((float)x))"),
-        new TrigFunction("Tanh", "double", new Precision(15,  7,  0), projection: ".Select(x => XMath.DegToRad((double)x))"),
+        new TrigFunction("Tanh", "float" , new Precision(15,  6,  6), projection: ".Select(x => XMath.DegToRad((float)x))"),
+        new TrigFunction("Tanh", "double", new Precision(15,  7, 15), projection: ".Select(x => XMath.DegToRad((double)x))"),
     };
 
     var binaryTrigFunctions = new []
@@ -70,18 +70,6 @@ namespace ILGPU.Algorithms.Tests
             using var output = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
 
             input.CopyFrom(inputArray, 0, 0, inputArray.Length);
-
-<# if (function.Name == "Tanh") { #>
-            if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
-            {
-                // TODO: Implement OpenCL support for XMath.Tanh(<#= function.DataType #>)
-                var ae = Assert.Throws<AggregateException>(() => Execute(input.Length, input.View, output.View));
-                Assert.Single(ae.InnerExceptions);
-                Assert.IsType<Backends.NotSupportedIntrinsicException>(ae.InnerExceptions[0]);
-                return;
-            }
-<# } #>
-
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(Math<#= function.MathSuffix #>.<#= function.Name #>).ToArray();
