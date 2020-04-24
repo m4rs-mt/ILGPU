@@ -261,6 +261,7 @@ namespace ILGPU
             /// <param name="value">The value.</param>
             /// <param name="newBase">The desired base.</param>
             /// <returns>log_newBase(value).</returns>
+            [MathIntrinsic(MathIntrinsicKind.BinaryLogF)]
             public static double Log(double value, double newBase) =>
                 Math.Log(value, newBase);
 
@@ -458,6 +459,7 @@ namespace ILGPU
             /// <param name="value">The value.</param>
             /// <param name="newBase">The desired base.</param>
             /// <returns>log_newBase(value).</returns>
+            [MathIntrinsic(MathIntrinsicKind.BinaryLogF)]
             public static float Log(float value, float newBase) =>
                 MathF.Log(value, newBase);
 
@@ -650,6 +652,7 @@ namespace ILGPU
             /// <param name="value">The value.</param>
             /// <param name="newBase">The desired base.</param>
             /// <returns>log_newBase(value).</returns>
+            [MathIntrinsic(MathIntrinsicKind.BinaryLogF)]
             public static float Log(float value, float newBase) =>
                 (float)Math.Log(value, newBase);
 
