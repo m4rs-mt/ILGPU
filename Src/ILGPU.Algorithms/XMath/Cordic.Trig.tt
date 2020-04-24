@@ -1,0 +1,406 @@
+﻿// -----------------------------------------------------------------------------
+//                             ILGPU.Algorithms
+//                  Copyright (c) 2020 ILGPU Algorithms Project
+//                                www.ilgpu.net
+//
+// File: Cordic.Trig.tt/Cordic.Trig.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+    var operations = new []
+    {
+        new { DataType = "float", ValueSuffix = "f", Iterations = 24, Format = "E9", XMathSuffix = "" },
+        new { DataType = "double", ValueSuffix = "", Iterations = 53, Format = "E17", XMathSuffix = "D" },
+    };
+
+    // Pre-calculate a table of inverse tangents of negative powers of two, in radians.
+    // i.e. angles = atan(2.^(-i))
+    //
+    // This table is used by the CORDIC algorithm to compute sine/cosine in rotation mode, and inverse tangent in vectoring mode.
+    var maxIterations  = operations.Max(x => x.Iterations);
+    var angles = new double[maxIterations];
+
+    for (var i = 0; i < maxIterations; i++)
+    {
+        angles[i] = Math.Atan(Math.Pow(2, -i));
+    }
+
+    // A table of products of reciprocal lengths
+    // i.e. kvalues = cumprod(1./ sqrt(1 + 2.^(-2i)))
+    //
+    // CORDIC rotations accumulate errors with each rotation.
+    // Pre-calculate a table of 'corrections' that will be used by the CORDIC algorithm to scale the final result.
+    var kvalues = new double[maxIterations];
+
+    kvalues[0] = 1 / Math.Sqrt(1 + Math.Pow(2, 0));
+    for (var i = 1; i < kvalues.Length; i++)
+    {
+        kvalues[i] = kvalues[i - 1] * (1 / Math.Sqrt(1 + Math.Pow(2, i * -2)));
+    }
+
+#>
+using ILGPU.Util;
+using System.Runtime.CompilerServices;
+
+namespace ILGPU.Algorithms
+{
+    partial class XMath
+    {
+        /// <summary>
+        /// Implementation of trigonometric transcendental functions using CORDIC approximation.
+        /// https://en.wikipedia.org/wiki/CORDIC
+        ///
+        /// NB: CORDIC is typically implemented using a lookup table with angles. However, since
+        /// these are not currently available, we unroll the loop.
+        /// </summary>
+        internal static partial class Cordic
+        {
+            #region Utilities
+
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Performs the common matrix multiplication used by CORDIC (a 2x2 matrix with a 2x1 matrix).
+            /// </summary>
+            /// <param name="cos">The current cosine value. Filled in with the result cosine value</param>
+            /// <param name="sin">The current sine value. Filled in with the result sine value</param>
+            /// <param name="factor">The multiplication factor</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static void MatrixMultiply(ref <#= operation.DataType #> cos, ref <#= operation.DataType #> sin, <#= operation.DataType #> factor)
+            {
+                // Matrix multiplication
+                // [ 1     , -factor ] [ currCos ]
+                // [ factor, 1       ] [ currSin ]
+                var currCos = cos;
+                var currSin = sin;
+                var nextCos = currCos - (currSin * factor);
+                var nextSin = (currCos * factor) + currSin;
+
+                cos = nextCos;
+                sin = nextSin;
+            }
+
+<# } #>
+            #endregion
+
+            #region Trigonometric
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Corrects the inaccuracies gained by rotating through the <#= operation.Iterations #> iterations.
+            /// NB: We are using a pre-defined number of iterations, so the scaling can be a constant value.
+            /// </summary>
+            private const <#= operation.DataType #> Gain<#= operation.XMathSuffix #> = <#= kvalues[operation.Iterations - 1].ToString(operation.Format) #><#= operation.ValueSuffix #>;
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the next iteration of CORDIC rotation
+            /// </summary>
+            /// <param name="angle">The angle for this iteration</param>
+            /// <param name="cos">The current cosine value</param>
+            /// <param name="sin">The current sine value</param>
+            /// <param name="radians">The current radians value</param>
+            /// <param name="powerOfTwo">The current multiplier</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static void NextRotateIteration(<#= operation.DataType #> angle, ref <#= operation.DataType #> cos, ref <#= operation.DataType #> sin, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> powerOfTwo)
+            {
+                var sigma = Utilities.Select(radians < 0, -1, 1);
+                var factor = sigma * powerOfTwo;
+
+                MatrixMultiply(ref cos, ref sin, factor);
+
+                // Update the remaining angle
+                radians -= sigma * angle;
+                powerOfTwo /= 2.0<#= operation.ValueSuffix #>;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the iterations of CORDIC rotations
+            /// </summary>
+            /// <param name="radians">The radians value</param>
+            /// <param name="cos">Filled in with result cosine value</param>
+            /// <param name="sin">Filled in with result sine value</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static void RotateIterations(<#= operation.DataType #> radians, out <#= operation.DataType #> cos, out <#= operation.DataType #> sin)
+            {
+                // Apply <#= operation.Iterations #> iterations.
+                var currCos = 1.0<#= operation.ValueSuffix #>;
+                var currSin = 0.0<#= operation.ValueSuffix #>;
+                var currRadians = radians;
+                var powerOfTwo = 1.0<#= operation.ValueSuffix #>;
+
+<# for (var i = 0; i < operation.Iterations; i++) { #>
+                NextRotateIteration(<#= angles[i].ToString(operation.Format) #><#= operation.ValueSuffix #>, ref currCos, ref currSin, ref currRadians, ref powerOfTwo);
+<# } #>
+
+                cos = currCos;
+                sin = currSin;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Ensures that the radians are within the range [-PI, PI]
+            /// </summary>
+            /// <param name="radians">The angle in radians</param>
+            /// <returns>The angle, in radians</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static <#= operation.DataType #> RangeLimit(<#= operation.DataType #> radians)
+            {
+                while (radians < -PI<#= operation.XMathSuffix #>)
+                    radians += 2 * PI<#= operation.XMathSuffix #>;
+                while (radians > PI<#= operation.XMathSuffix #>)
+                    radians -= 2 * PI<#= operation.XMathSuffix #>;
+                return radians;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Implementation of sine approximation using CORDIC.
+            /// </summary>
+            /// <param name="radians">The angle in radians</param>
+            /// <returns>The sine value</returns>
+            public static <#= operation.DataType #> Sin(<#= operation.DataType #> radians)
+            {
+                SinCos(radians, out var sin, out _);
+                return sin;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Implementation of cosine approximation using CORDIC.
+            /// </summary>
+            /// <param name="radians">The angle in radians</param>
+            /// <returns>The cosine value</returns>
+            public static <#= operation.DataType #> Cos(<#= operation.DataType #> radians)
+            {
+                SinCos(radians, out _, out var cos);
+                return cos;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Implementation of sine/cosine approximation using CORDIC.
+            /// </summary>
+            /// <param name="radians">The angle in radians</param>
+            /// <param name="sin">The sine result</param>
+            /// <param name="cos">The cosine result</param>
+            public static void SinCos(<#= operation.DataType #> radians, out <#= operation.DataType #> sin, out <#= operation.DataType #> cos)
+            {
+                // Ensure that the radians are between [-PI, PI]
+                radians = RangeLimit(radians);
+
+                // Limit radians within the range [-PI/2, PI/2].
+                // Adjust the sign for second or third quadrant.
+                <#= operation.DataType #> sign;
+
+                if (radians < -PIHalf<#= operation.XMathSuffix #>)
+                {
+                    radians += PI<#= operation.XMathSuffix #>;
+                    sign = -1.0<#= operation.ValueSuffix #>;
+                }
+                else if (radians > PIHalf<#= operation.XMathSuffix #>)
+                {
+                    radians -= PI<#= operation.XMathSuffix #>;
+                    sign = -1.0<#= operation.ValueSuffix #>;
+                }
+                else
+                    sign = 1.0<#= operation.ValueSuffix #>;
+
+                // Apply <#= operation.Iterations #> iterations.
+                RotateIterations(radians, out var currCos, out var currSin);
+
+                // Adjust length of output vector
+                sin = currSin * Gain<#= operation.XMathSuffix #> * sign;
+                cos = currCos * Gain<#= operation.XMathSuffix #> * sign;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Implementation of tangent approximation using CORDIC.
+            /// </summary>
+            /// <param name="radians">The angle in radians</param>
+            /// <returns>The tangent value</returns>
+            public static <#= operation.DataType #> Tan(<#= operation.DataType #> radians)
+            {
+                // NB: This is the same algorithms as SinCos, but without adjustment for
+                // second or third quadrant, and without correcting for the "gain" from
+                // rotations - both are redudant multiplications for our calculation.
+
+                // Ensure that the radians are between [-PI, PI]
+                radians = RangeLimit(radians);
+
+                // Limit radians within the range [-PI/2, PI/2].
+                if (radians < -PIHalf<#= operation.XMathSuffix #>)
+                    radians += PI<#= operation.XMathSuffix #>;
+                else if (radians > PIHalf<#= operation.XMathSuffix #>)
+                    radians -= PI<#= operation.XMathSuffix #>;
+
+                // Apply <#= operation.Iterations #> iterations.
+                RotateIterations(radians, out var currCos, out var currSin);
+
+                return currSin / currCos;
+            }
+
+<# } #>
+            #endregion
+
+            #region Inverse Trigonometric
+
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the next iteration of CORDIC vectoring
+            /// </summary>
+            /// <param name="angle">The angle for this iteration</param>
+            /// <param name="cos">The current cosine value</param>
+            /// <param name="sin">The current sine value</param>
+            /// <param name="radians">The current radians value</param>
+            /// <param name="powerOfTwo">The current multiplier</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static void NextVectorIteration(<#= operation.DataType #> angle, ref <#= operation.DataType #> cos, ref <#= operation.DataType #> sin, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> powerOfTwo)
+            {
+                var sigma = Utilities.Select(sin >= 0, -1, 1);
+                var factor = sigma * powerOfTwo;
+
+                MatrixMultiply(ref cos, ref sin, factor);
+
+                radians -= sigma * angle;
+                powerOfTwo /= 2.0<#= operation.ValueSuffix #>;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Applies the iterations of CORDIC vectoring
+            /// </summary>
+            /// <param name="target">The target sine value</param>
+            /// <returns>The angle in radians</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static <#= operation.DataType #> VectorIterations(<#= operation.DataType #> target)
+            {
+                // Apply <#= operation.Iterations #> iterations.
+                var currCos = 1.0<#= operation.ValueSuffix #>;
+                var currSin = target;
+                var currRadians = 0.0<#= operation.ValueSuffix #>;
+                var powerOfTwo = 1.0<#= operation.ValueSuffix #>;
+
+<# for (var i = 0; i < operation.Iterations; i++) { #>
+                NextVectorIteration(<#= angles[i].ToString(operation.Format) #><#= operation.ValueSuffix #>, ref currCos, ref currSin, ref currRadians, ref powerOfTwo);
+<# } #>
+
+                return currRadians;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Implementation of inverse tangent approximation using CORDIC.
+            /// </summary>
+            /// <param name="value">The tangent of an angle</param>
+            /// <returns>The angle in radians</returns>
+            public static <#= operation.DataType #> Atan(<#= operation.DataType #> value)
+            {
+                // Apply <#= operation.Iterations #> iterations.
+                return VectorIterations(value);
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Implementation of inverse tangent approximation using CORDIC.
+            /// </summary>
+            /// <param name="y">The y value in radians</param>
+            /// <param name="x">The x value in radians</param>
+            /// <returns>The angle in radians</returns>
+            public static <#= operation.DataType #> Atan2(<#= operation.DataType #> y, <#= operation.DataType #> x)
+            {
+                // Tranform to equivalent Atan calculation, as defined in:
+                // https://en.wikipedia.org/wiki/Atan2
+                if (x > 0)
+                    return Atan(y / x);
+                else if (x < 0 && y >= 0)
+                    return Atan(y / x) + PI<#= operation.XMathSuffix #>;
+                else if (x < 0 && y < 0)
+                    return Atan(y / x) - PI<#= operation.XMathSuffix #>;
+                else if (x == 0 && y > 0)
+                    return PIHalf<#= operation.XMathSuffix #>;
+                else if (x == 0 && y < 0)
+                    return -PIHalf<#= operation.XMathSuffix #>;
+                else
+                    return 0;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Implementation of inverse sine approximation using CORDIC.
+            /// </summary>
+            /// <param name="value">The sine of an angle</param>
+            /// <returns>The angle in radians</returns>
+            public static <#= operation.DataType #> Asin(<#= operation.DataType #> value)
+            {
+                var currCos = 1.0<#= operation.ValueSuffix #>;
+                var currSin = 0.0<#= operation.ValueSuffix #>;
+                var radians = 0.0<#= operation.ValueSuffix #>;
+                var target = value;
+                var powerOfTwo = 1.0<#= operation.ValueSuffix #>;
+
+                // Apply <#= operation.Iterations #> iterations.
+<# for (var i = 0; i < operation.Iterations; i++) { #>
+                NextRotateIterationAsin(<#= angles[i].ToString(operation.Format) #><#= operation.ValueSuffix #>, ref currCos, ref currSin, ref radians, ref target, ref powerOfTwo);
+<# } #>
+
+                return radians;
+            }
+
+            /// <summary>
+            /// Applies the next iteration of CORDIC rotation for inverse sine
+            /// </summary>
+            /// <param name="angle">The angle for this iteration</param>
+            /// <param name="currCos">The current cosine value</param>
+            /// <param name="currSin">The current sine value</param>
+            /// <param name="radians">The current radians value</param>
+            /// <param name="target">The target value</param>
+            /// <param name="powerOfTwo">The current multiplier</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void NextRotateIterationAsin(<#= operation.DataType #> angle, ref <#= operation.DataType #> currCos, ref <#= operation.DataType #> currSin, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> target, ref <#= operation.DataType #> powerOfTwo)
+            {
+                var sigma = Utilities.Select(currCos < 0 && currSin <= target || currCos >= 0 && currSin > target, -1, 1);
+                var factor = sigma * powerOfTwo;
+
+                MatrixMultiply(ref currCos, ref currSin, factor);
+                MatrixMultiply(ref currCos, ref currSin, factor);
+                radians += 2 * sigma * angle;
+                target += target * powerOfTwo * powerOfTwo;
+
+                powerOfTwo /= 2.0<#= operation.ValueSuffix #>;
+            }
+
+<# } #>
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Implementation of inverse cosine approximation using CORDIC.
+            /// </summary>
+            /// <param name="value">The cosine of an angle</param>
+            /// <returns>The angle in radians</returns>
+            public static <#= operation.DataType #> Acos(<#= operation.DataType #> value) =>
+                PIHalf<#= operation.XMathSuffix #> - Asin(value);
+
+<# } #>
+            #endregion
+        }
+    }
+}

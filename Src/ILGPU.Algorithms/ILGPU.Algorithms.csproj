@@ -91,6 +91,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Sequencers.cs</LastGenOutput>
     </None>
+    <None Update="XMath\Cordic.Trig.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Cordic.Trig.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -148,6 +152,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Sequencers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMath\Cordic.Trig.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Cordic.Trig.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

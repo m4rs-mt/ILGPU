@@ -165,7 +165,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="XMath.Sin(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Sin(double value) =>
-            XMath.Sin((float)value);
+            XMath.Cordic.Sin(value);
 
         /// <summary cref="XMath.Sin(float)" />
         public static float Sin(float value) =>
@@ -210,7 +210,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="XMath.Cos(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Cos(double value) =>
-            XMath.Cos((float)value);
+            XMath.Cordic.Cos(value);
 
         /// <summary cref="XMath.Cos(float)" />
         public static float Cos(float value) =>
@@ -238,21 +238,13 @@ namespace ILGPU.Algorithms.PTX
 
         /// <summary cref="XMath.Tan(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Tan(double value)
-        {
-            var sin = Sin(value);
-            var cos = Cos(value);
-            return sin * XMath.Rcp(cos);
-        }
+        public static double Tan(double value) =>
+            XMath.Cordic.Tan(value);
 
         /// <summary cref="XMath.Tan(float)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Tan(float value)
-        {
-            var sin = XMath.Sin(value);
-            var cos = XMath.Cos(value);
-            return sin * XMath.Rcp(cos);
-        }
+        public static float Tan(float value) =>
+            XMath.Cordic.Tan(value);
 
         /// <summary cref="XMath.Tanh(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -274,75 +266,23 @@ namespace ILGPU.Algorithms.PTX
 
         /// <summary cref="XMath.Atan(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Atan(double value)
-        {
-            // https://de.wikipedia.org/wiki/Arkustangens_und_Arkuskotangens
-            var valueSq = value * value;
-            if (XMath.Abs(value) <= 1.0)
-                return value * XMath.Rcp(1.0 + 0.28 * valueSq);
-            else
-            {
-                var result = value * XMath.Rcp(0.28 + valueSq);
-                return Utilities.Select(
-                    value > 1.0,
-                    XMath.PIHalfD - result,
-                    -XMath.PIHalfD - result);
-            }
-        }
+        public static double Atan(double value) =>
+            XMath.Cordic.Atan(value);
 
         /// <summary cref="XMath.Atan(float)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Atan(float value)
-        {
-            // https://de.wikipedia.org/wiki/Arkustangens_und_Arkuskotangens
-            var valueSq = value * value;
-            if (XMath.Abs(value) <= 1.0f)
-                return value * XMath.Rcp(1.0f + 0.28f * valueSq);
-            else
-            {
-                var result = value * XMath.Rcp(0.28f + valueSq);
-                return Utilities.Select(
-                    value > 1.0f,
-                    XMath.PIHalf - result,
-                    -XMath.PIHalf - result);
-            }
-        }
+        public static float Atan(float value) =>
+            XMath.Cordic.Atan(value);
 
         /// <summary cref="XMath.Atan2(double, double)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Atan2(double y, double x)
-        {
-            // https://de.wikipedia.org/wiki/Arctan2
-            if (x > 0.0)
-                return Atan(y * XMath.Rcp(x));
-            else if (x < 0.0)
-            {
-                if (XMath.Abs(y) < 0.00001)
-                    return XMath.PID;
-                var result = Atan(y * XMath.Rcp(x));
-                return Utilities.Select(y > 0.0, result + XMath.PID, result - XMath.PID);
-            }
-            else // x == 0.0
-                return Utilities.Select(y > 0.0, XMath.PIHalfD, -XMath.PIHalfD);
-        }
+        public static double Atan2(double y, double x) =>
+            XMath.Cordic.Atan2(y, x);
 
         /// <summary cref="XMath.Atan2(float, float)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Atan2(float y, float x)
-        {
-            // https://de.wikipedia.org/wiki/Arctan2
-            if (x > 0.0f)
-                return Atan(y * XMath.Rcp(x));
-            else if (x < 0.0f)
-            {
-                if (XMath.Abs(y) < 0.00001f)
-                    return XMath.PI;
-                var result = Atan(y * XMath.Rcp(x));
-                return Utilities.Select(y > 0.0f, result + XMath.PI, result - XMath.PI);
-            }
-            else // x == 0.0f
-                return Utilities.Select(y > 0.0f, XMath.PIHalf, -XMath.PIHalf);
-        }
+        public static float Atan2(float y, float x) =>
+            XMath.Cordic.Atan2(y, x);
 
         #endregion
 
