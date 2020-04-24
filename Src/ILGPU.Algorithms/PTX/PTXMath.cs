@@ -185,6 +185,11 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Asin(double value)
         {
+            if (value == 1.0)
+                return XMath.PIHalfD;
+            else if (value == -1.0)
+                return -XMath.PIHalfD;
+
             double arg = value * Rsqrt(1.0 - value * value);
             return Atan(arg);
         }
@@ -193,6 +198,11 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Asin(float value)
         {
+            if (value == 1.0f)
+                return XMath.PIHalf;
+            else if (value == -1.0f)
+                return -XMath.PIHalf;
+
             float arg = value * Rsqrt(1.0f - value * value);
             return Atan(arg);
         }

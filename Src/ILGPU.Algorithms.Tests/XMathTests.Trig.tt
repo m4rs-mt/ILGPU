@@ -19,10 +19,10 @@ using Xunit;
         new TrigFunction("Tan", "float"  , new Precision(15,  2,  5), projection: ".Select(x => XMath.DegToRad((float)x))" , condition: ".Where(x => Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270) // NB: Tan is undefined for these input values"),
         new TrigFunction("Tan", "double" , new Precision(15,  2, 14), projection: ".Select(x => XMath.DegToRad((double)x))", condition: ".Where(x => Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270) // NB: Tan is undefined for these input values"),
 
-        new TrigFunction("Asin", "float" , new Precision(15,  2,  6), projection: ".Select(x => MathF.Sin(XMath.DegToRad((float)x)))", condition: ".Where(x => Accelerator.AcceleratorType != AcceleratorType.Cuda || (Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270)) // TODO: Cuda incorrectly returns NaN for XMath.Asin(float)"),
-        new TrigFunction("Asin", "double", new Precision(15,  2, 15), projection: ".Select(x => Math.Sin(XMath.DegToRad((double)x)))", condition: ".Where(x => Accelerator.AcceleratorType != AcceleratorType.Cuda || (Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270)) // TODO: Cuda incorrectly returns NaN for XMath.Asin(double)"),
-        new TrigFunction("Acos", "float" , new Precision(15,  2,  6), projection: ".Select(x => MathF.Cos(XMath.DegToRad((float)x)))", condition: ".Where(x => Accelerator.AcceleratorType != AcceleratorType.Cuda || (Math.Abs(x) % 360 != 0 && Math.Abs(x) % 360 != 180)) // TODO: Cuda incorrectly returns NaN for XMath.Acos(float)"),
-        new TrigFunction("Acos", "double", new Precision(15,  2, 15), projection: ".Select(x => Math.Cos(XMath.DegToRad((double)x)))", condition: ".Where(x => Accelerator.AcceleratorType != AcceleratorType.Cuda || (Math.Abs(x) % 360 != 0 && Math.Abs(x) % 360 != 180)) // TODO: Cuda incorrectly returns NaN for XMath.Acos(double)"),
+        new TrigFunction("Asin", "float" , new Precision(15,  2,  6), projection: ".Select(x => MathF.Sin(XMath.DegToRad((float)x)))"),
+        new TrigFunction("Asin", "double", new Precision(15,  2, 15), projection: ".Select(x => Math.Sin(XMath.DegToRad((double)x)))"),
+        new TrigFunction("Acos", "float" , new Precision(15,  2,  6), projection: ".Select(x => MathF.Cos(XMath.DegToRad((float)x)))"),
+        new TrigFunction("Acos", "double", new Precision(15,  2, 15), projection: ".Select(x => Math.Cos(XMath.DegToRad((double)x)))"),
         new TrigFunction("Atan", "float" , new Precision(15,  2,  6), projection: ".Select(x => MathF.Tan(XMath.DegToRad((float)x)))", condition: ".Where(x => Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270)"),
         new TrigFunction("Atan", "double", new Precision(15,  2, 15), projection: ".Select(x => Math.Tan(XMath.DegToRad((double)x)))", condition: ".Where(x => Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270)"),
 
