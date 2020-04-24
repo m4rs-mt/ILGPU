@@ -26,8 +26,8 @@ using Xunit;
 
     var binaryLogFunctions = new []
     {
-        new XMathFunction("Log" , "float" , new Precision(15, 15, 15)),
-        new XMathFunction("Log" , "double", new Precision(15, 15, 15)),
+        new XMathFunction("Log" , "float" , new Precision(15,  5,  0)),
+        new XMathFunction("Log" , "double", new Precision(15,  6,  0)),
     };
 #>
 namespace ILGPU.Algorithms.Tests
@@ -141,17 +141,12 @@ namespace ILGPU.Algorithms.Tests
 
             input.CopyFrom(inputArray, 0, 0, inputArray.Length);
 <# if (function.Name == "Log") { #>
-            if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+            if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
             {
-                // TODO: Fix Cuda support for XMath.Log(<#= function.DataType #>, <#= function.DataType #>)
-                Assert.False(false, "CudaException: hardware stack error");
-                return;
-            }
-            else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
-            {
-                // TODO: Fix OpenCL support for XMath.Log(<#= function.DataType #>, <#= function.DataType #>)
-                var ex = Assert.Throws<Runtime.OpenCL.CLException>(() => Execute(input.Length, input.View, output.View));
-                Assert.Equal(Runtime.OpenCL.API.CLError.CL_BUILD_PROGRAM_FAILURE, ex.Error);
+                // TODO: Implement OpenCL support for XMath.Log(<#= function.DataType #>, <#= function.DataType #>)
+                var ae = Assert.Throws<AggregateException>(() => Execute(input.Length, input.View, output.View));
+                Assert.Single(ae.InnerExceptions);
+                Assert.IsType<Backends.NotSupportedIntrinsicException>(ae.InnerExceptions[0]);
                 return;
             }
 <# } #>

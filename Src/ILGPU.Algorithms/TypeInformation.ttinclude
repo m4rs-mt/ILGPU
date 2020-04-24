@@ -223,7 +223,10 @@ public static readonly ValueTuple<string, Type, string, string>[] BinaryMathFunc
         ("Pow", typeof(double), "PowF", "Float64"),
 
         ("Atan2", typeof(float), "Atan2F", "Float32"),
-        ("Atan2", typeof(double), "Atan2F", "Float64")
+        ("Atan2", typeof(double), "Atan2F", "Float64"),
+
+        ("Log", typeof(float), "LogF", "Float32"),
+        ("Log", typeof(double), "LogF", "Float64")
     };
 
 // Group functions
