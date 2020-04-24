@@ -1,4 +1,5 @@
-﻿using ILGPU.Runtime;
+﻿using ILGPU.Backends.EntryPoints;
+using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 using System.Reflection;
@@ -114,7 +115,12 @@ namespace ILGPU.Algorithms.Tests
             // Compile kernel manually and load the compiled kernel into the accelerator
             var backend = Accelerator.Backend;
             Output.WriteLine($"Compiling '{kernel.Name}'");
-            var compiled = backend.Compile(kernel, new KernelSpecialization());
+            EntryPointDescription entryPoint;
+            if (typeof(TIndex) == typeof(KernelConfig))
+                entryPoint = EntryPointDescription.FromExplicitlyGroupedKernel(kernel);
+            else
+                entryPoint = EntryPointDescription.FromImplicitlyGroupedKernel(kernel);
+            var compiled = backend.Compile(entryPoint, new KernelSpecialization());
 
             // Load the compiled kernel
             Output.WriteLine($"Loading '{kernel.Name}'");
@@ -135,7 +141,7 @@ namespace ILGPU.Algorithms.Tests
         /// <param name="arguments">The arguments.</param>
         public void Execute(int dimension, params object[] arguments)
         {
-            Execute(new Index(dimension), arguments);
+            Execute(new Index1(dimension), arguments);
         }
 
         /// <summary>

@@ -35,7 +35,7 @@ namespace ILGPU.Algorithms.Tests
     partial class XMathTests
     {
 <# foreach (var function in powFunctions) { #>
-        internal static void <#= function.KernelName #>(Index index, ArrayView<XMathTuple<<#= function.DataType #>>> input, ArrayView<<#= function.DataType #>> output)
+        internal static void <#= function.KernelName #>(Index1 index, ArrayView<XMathTuple<<#= function.DataType #>>> input, ArrayView<<#= function.DataType #>> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index].X, input[index].Y);
         }
@@ -77,7 +77,7 @@ namespace ILGPU.Algorithms.Tests
 
 <# } #>
 <# foreach (var function in exp2Functions) { #>
-        internal static void <#= function.KernelName #>(Index index, ArrayView<<#= function.DataType #>> input, ArrayView<<#= function.DataType #>> output)
+        internal static void <#= function.KernelName #>(Index1 index, ArrayView<<#= function.DataType #>> input, ArrayView<<#= function.DataType #>> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index]);
         }
@@ -114,7 +114,7 @@ namespace ILGPU.Algorithms.Tests
 
 <# } #>
 <# foreach (var function in expFunctions) { #>
-        internal static void <#= function.KernelName #>(Index index, ArrayView<<#= function.DataType #>> input, ArrayView<<#= function.DataType #>> output)
+        internal static void <#= function.KernelName #>(Index1 index, ArrayView<<#= function.DataType #>> input, ArrayView<<#= function.DataType #>> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index]);
         }
