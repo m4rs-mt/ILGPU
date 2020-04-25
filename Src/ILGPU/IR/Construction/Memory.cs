@@ -233,7 +233,14 @@ namespace ILGPU.IR.Construction
 
             // Simplify pseudo-structure accesses
             if (!pointerType.ElementType.IsStructureType && fieldSpan.Span < 2)
+            {
                 return source;
+            }
+            else if (pointerType.ElementType is StructureType structureType &&
+                fieldSpan.Index == 0 && structureType.NumFields == fieldSpan.Span)
+            {
+                return source;
+            }
 
             // Fold nested field addresses
             return source is LoadFieldAddress lfa
