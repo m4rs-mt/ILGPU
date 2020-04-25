@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
+using ILGPU.IR.Types;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -778,7 +779,7 @@ namespace ILGPU.Runtime
         {
             var rawOffset = byteOffset - byteOffset % ElementSize;
             int offset = byteExtent + rawOffset;
-            var rawExtent = ABI.Align(offset, ElementSize);
+            var rawExtent = TypeNode.Align(offset, ElementSize);
 
             var result = new byte[rawExtent];
             fixed (byte* ptr = &result[0])

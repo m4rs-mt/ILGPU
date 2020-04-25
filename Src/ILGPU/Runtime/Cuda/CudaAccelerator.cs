@@ -334,8 +334,7 @@ namespace ILGPU.Runtime.Cuda
             Init(new PTXBackend(
                 Context,
                 Architecture,
-                InstructionSet,
-                Backends.Backend.OSPlatform));
+                InstructionSet));
         }
 
         #endregion
