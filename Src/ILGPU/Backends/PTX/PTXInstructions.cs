@@ -179,11 +179,11 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Resolves an address-space-cast suffix.
         /// </summary>
-        /// <param name="abi">The current ABI.</param>
+        /// <param name="backend">The current backend.</param>
         /// <returns>The resolved address-space-cast suffix.</returns>
-        public static string GetAddressSpaceCastSuffix(ABI abi) =>
+        public static string GetAddressSpaceCastSuffix(Backend backend) =>
             AddressSpaceCastOperationSuffix[
-                abi.PointerBasicValueType == BasicValueType.Int32 ? 0 : 1];
+                backend.PointerBasicValueType == BasicValueType.Int32 ? 0 : 1];
 
         /// <summary>
         /// Resolves a barrier operation.

@@ -297,9 +297,8 @@ namespace ILGPU.Backends.PTX
         /// <param name="scope">The current scope.</param>
         /// <param name="allocas">All local allocas.</param>
         internal PTXCodeGenerator(in GeneratorArgs args, Scope scope, Allocas allocas)
-            : base(args.Backend.ABI)
+            : base(args.Backend)
         {
-            Backend = args.Backend;
             Scope = scope;
             DebugInfoGenerator = args.DebugInfoGenerator.BeginScope();
             ImplementationProvider = Backend.IntrinsicProvider;
@@ -322,7 +321,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns the associated backend.
         /// </summary>
-        public PTXBackend Backend { get; }
+        public new PTXBackend Backend => base.Backend as PTXBackend;
 
         /// <summary>
         /// Returns the associated top-level function.
@@ -546,21 +545,16 @@ namespace ILGPU.Backends.PTX
             {
                 Builder.Append('\t');
                 Builder.Append(addressSpacePrefix);
-                var elementType = allocaInfo.ElementType;
-                ABI.GetAlignmentAndSizeOf(
-                    elementType,
-                    out int elementSize,
-                    out int elementAlignment);
 
                 Builder.Append(".align ");
-                Builder.Append(elementAlignment);
+                Builder.Append(allocaInfo.ElementAlignment);
                 Builder.Append(" .b8 ");
 
                 var name = namePrefix + offset++;
                 Builder.Append(name);
                 Builder.Append('[');
                 if (!allocaInfo.IsDynamicArray)
-                    Builder.Append(allocaInfo.ArraySize * elementSize);
+                    Builder.Append(allocaInfo.ArraySize * allocaInfo.ElementSize);
                 Builder.AppendLine("];");
 
                 result.Add((allocaInfo.Alloca, name));
@@ -808,7 +802,8 @@ namespace ILGPU.Backends.PTX
         {
             foreach (var allocaEntry in allocations)
             {
-                var description = ResolveRegisterDescription(ABI.PointerBasicValueType);
+                var description = ResolveRegisterDescription(
+                    Backend.PointerBasicValueType);
                 var targetRegister = Allocate(allocaEntry.Item1, description);
                 using (var command = BeginMove())
                 {
@@ -872,16 +867,12 @@ namespace ILGPU.Backends.PTX
                     targetBuilder.Append(paramName);
                     break;
                 default:
-                    ABI.GetAlignmentAndSizeOf(
-                        paramType,
-                        out int paramSize,
-                        out int paramAlignment);
                     targetBuilder.Append("align ");
-                    targetBuilder.Append(paramAlignment);
+                    targetBuilder.Append(paramType.Alignment);
                     targetBuilder.Append(" .b8 ");
                     targetBuilder.Append(paramName);
                     targetBuilder.Append('[');
-                    targetBuilder.Append(paramSize);
+                    targetBuilder.Append(paramType.Size);
                     targetBuilder.Append(']');
                     break;
             }

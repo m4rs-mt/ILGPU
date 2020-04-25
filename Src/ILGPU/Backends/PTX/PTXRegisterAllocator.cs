@@ -203,9 +203,9 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Constructs a new register allocator.
         /// </summary>
-        /// <param name="abi">The current ABI.</param>
-        public PTXRegisterAllocator(ABI abi)
-            : base(abi)
+        /// <param name="backend">The associated backend.</param>
+        public PTXRegisterAllocator(PTXBackend backend)
+            : base(backend)
         {
             for (int i = 0; i < NumRegisterTypes; ++i)
                 freeRegisters[i] = new Stack<int>();
@@ -224,7 +224,7 @@ namespace ILGPU.Backends.PTX
         public HardwareRegister AllocatePlatformRegister(
             out RegisterDescription description)
         {
-            description = ResolveRegisterDescription(ABI.PointerBasicValueType);
+            description = ResolveRegisterDescription(Backend.PointerBasicValueType);
             return AllocateRegister(description);
         }
 
@@ -263,7 +263,7 @@ namespace ILGPU.Backends.PTX
         protected RegisterDescription ResolveParameterRegisterDescription(TypeNode type)
         {
             if (type.IsPointerType || type.IsStringType)
-                return ResolveRegisterDescription(ABI.PointerBasicValueType);
+                return ResolveRegisterDescription(Backend.PointerBasicValueType);
             // A return call cannot handle some types -> we have to
             // perform a PTX-specific type remapping
             var remapped = ResolveParameterBasicValueType(type.BasicValueType);
@@ -276,7 +276,7 @@ namespace ILGPU.Backends.PTX
         protected sealed override RegisterDescription ResolveRegisterDescription(
             TypeNode type) =>
             type.IsPointerType || type.IsStringType
-            ? ResolveRegisterDescription(ABI.PointerBasicValueType)
+            ? ResolveRegisterDescription(Backend.PointerBasicValueType)
             : ResolveRegisterDescription(type.BasicValueType);
 
         /// <summary>

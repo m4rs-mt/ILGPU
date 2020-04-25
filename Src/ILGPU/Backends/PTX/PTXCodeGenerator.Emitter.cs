@@ -587,14 +587,12 @@ namespace ILGPU.Backends.PTX
                     break;
                 case CompoundRegister structureRegister:
                     var structType = structureRegister.Type;
-                    var offsets = ABI.GetOffsetsOf(structType);
-                    for (int i = 0, e = structType.NumFields; i < e; ++i)
+                    foreach (var (access, fieldOffset, _) in structType.Offsets)
                     {
-                        var fieldOffset = offsets[i];
                         EmitComplexCommandWithOffsets(
                             command,
                             emitter,
-                            structureRegister.Children[i],
+                            structureRegister.Children[access.Index],
                             offset + fieldOffset);
                     }
                     break;

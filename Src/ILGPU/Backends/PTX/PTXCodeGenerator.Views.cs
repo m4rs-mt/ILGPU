@@ -29,10 +29,10 @@ namespace ILGPU.Backends.PTX
 
             var address = LoadPrimitive(value.Source);
             var sourceType = value.Source.Type as AddressSpaceType;
-            var elementSize = ABI.GetSizeOf(sourceType.ElementType);
+            var elementSize = sourceType.ElementType.Size;
             var offsetRegister = AllocatePlatformRegister(out RegisterDescription _);
             using (var command = BeginCommand(
-                PTXInstructions.GetLEAMulOperation(ABI.PointerArithmeticType)))
+                PTXInstructions.GetLEAMulOperation(Backend.PointerArithmeticType)))
             {
                 command.AppendArgument(offsetRegister);
                 command.AppendArgument(elementIndex);
@@ -42,7 +42,7 @@ namespace ILGPU.Backends.PTX
             using (var command = BeginCommand(
                 PTXInstructions.GetArithmeticOperation(
                     BinaryArithmeticKind.Add,
-                    ABI.PointerArithmeticType,
+                    Backend.PointerArithmeticType,
                     false)))
             {
                 command.AppendArgument(targetAddressRegister);
@@ -66,7 +66,7 @@ namespace ILGPU.Backends.PTX
             var toGeneric = value.TargetAddressSpace == MemoryAddressSpace.Generic;
             var addressSpaceOperation = PTXInstructions.GetAddressSpaceCast(toGeneric);
             var addressSpaceOperationSuffix =
-                PTXInstructions.GetAddressSpaceCastSuffix(ABI);
+                PTXInstructions.GetAddressSpaceCastSuffix(Backend);
 
             using (var command = BeginCommand(addressSpaceOperation))
             {

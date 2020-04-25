@@ -533,8 +533,7 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(LoadFieldAddress value)
         {
             var source = LoadPrimitive(value.Source);
-            var fieldOffset = ABI.GetOffsetOf(
-                value.StructureType,
+            var fieldOffset = value.StructureType.GetOffset(
                 value.FieldSpan.Access);
 
             if (fieldOffset != 0)
@@ -545,7 +544,7 @@ namespace ILGPU.Backends.PTX
                 using (var command = BeginCommand(
                     PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Add,
-                        ABI.PointerArithmeticType,
+                        Backend.PointerArithmeticType,
                         false)))
                 {
                     command.AppendArgument(targetRegister);

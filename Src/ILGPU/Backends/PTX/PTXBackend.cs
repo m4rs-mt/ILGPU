@@ -13,7 +13,6 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
-using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using System.Text;
 
@@ -45,25 +44,9 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private sealed class PTXAcceleratorSpecializer : AcceleratorSpecializer
         {
-            public PTXAcceleratorSpecializer(ABI abi)
+            public PTXAcceleratorSpecializer()
                 : base(AcceleratorType.Cuda, PTXBackend.WarpSize)
-            {
-                ABI = abi;
-            }
-
-            /// <summary>
-            /// Returns the current ABI.
-            /// </summary>
-            public ABI ABI { get; }
-
-            /// <summary>
-            /// Resolves the size of the given type node.
-            /// </summary>
-            protected override bool TryGetSizeOf(TypeNode type, out int size)
-            {
-                size = ABI.GetSizeOf(type);
-                return true;
-            }
+            { }
         }
 
         #endregion
@@ -76,18 +59,15 @@ namespace ILGPU.Backends.PTX
         /// <param name="context">The context to use.</param>
         /// <param name="architecture">The target GPU architecture.</param>
         /// <param name="instructionSet">The target GPU instruction set.</param>
-        /// <param name="platform">The target platform.</param>
         public PTXBackend(
             Context context,
             PTXArchitecture architecture,
-            PTXInstructionSet instructionSet,
-            TargetPlatform platform)
+            PTXInstructionSet instructionSet)
             : base(
                   context,
                   BackendType.PTX,
                   BackendFlags.None,
-                  new PTXABI(context.TypeContext, platform),
-                  _ => new PTXArgumentMapper(context))
+                  new PTXArgumentMapper(context))
         {
             Architecture = architecture;
             InstructionSet = instructionSet;
@@ -101,7 +81,7 @@ namespace ILGPU.Backends.PTX
                 var transformerBuilder = Transformer.CreateBuilder(
                     TransformerConfiguration.Empty);
                 transformerBuilder.AddBackendOptimizations(
-                    new PTXAcceleratorSpecializer(ABI),
+                    new PTXAcceleratorSpecializer(),
                     context.OptimizationLevel);
 
                 // Append further backend specific transformations in release mode
@@ -178,7 +158,7 @@ namespace ILGPU.Backends.PTX
             else
                 builder.AppendLine();
             builder.Append(".address_size ");
-            builder.AppendLine((ABI.PointerSize * 8).ToString());
+            builder.AppendLine((PointerSize * 8).ToString());
             builder.AppendLine();
 
             data = new PTXCodeGenerator.GeneratorArgs(
