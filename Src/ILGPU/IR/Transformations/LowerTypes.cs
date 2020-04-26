@@ -304,14 +304,11 @@ namespace ILGPU.IR.Transformations
             var typeConverter = CreateLoweringConverter(builder, scope);
 
             // Use a static rewriter phase
-            if (!rewriter.TryBeginRewrite(
+            bool canRewriteBody = rewriter.TryBeginRewrite(
                 scope,
                 builder,
                 typeConverter,
-                out var rewriting))
-            {
-                return false;
-            }
+                out var rewriting);
 
             // Update return type
             if (typeConverter.IsTypeDependent(builder.Method.ReturnType))
@@ -321,7 +318,7 @@ namespace ILGPU.IR.Transformations
             builder.UpdateParameterTypes(typeConverter);
 
             // Apply the lowering logic
-            return rewriting.Rewrite();
+            return canRewriteBody && rewriting.Rewrite();
         }
 
         #endregion
