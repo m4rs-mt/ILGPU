@@ -107,11 +107,22 @@ namespace ILGPU.IR.Types
                 fieldsBuilder.Add(type);
                 if (type is StructureType structureType)
                 {
+                    // Add initial field using structure alignment information
+                    AddInternal(
+                        structureType[0],
+                        0,
+                        structureType.Alignment);
+
+                    // Add remaining fields
                     int currentOffset = 0;
-                    foreach (var (fieldType, access) in structureType)
+                    for (int i = 1, e = structureType.NumFields; i < e; ++i)
                     {
-                        int nextOffset = structureType.GetOffset(access);
-                        AddInternal(fieldType, nextOffset - currentOffset);
+                        var fieldType = structureType[i];
+                        int nextOffset = structureType.GetOffset(i);
+                        AddInternal(
+                            fieldType,
+                            nextOffset - currentOffset,
+                            fieldType.Alignment);
                         currentOffset = nextOffset;
                     }
                     int lastFieldSize = structureType[
@@ -120,7 +131,7 @@ namespace ILGPU.IR.Types
                 }
                 else
                 {
-                    AddInternal(type, 0);
+                    AddInternal(type, 0, type.Alignment);
                     Offset += type.Size;
                 }
 
@@ -133,7 +144,9 @@ namespace ILGPU.IR.Types
             /// </summary>
             /// <param name="type">The type node to add.</param>
             /// <param name="offset">The custom relative offset.</param>
-            private void AddInternal(TypeNode type, int offset)
+            /// <param name="alignment">The custom alignment.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private void AddInternal(TypeNode type, int offset, int alignment)
             {
                 Debug.Assert(!type.IsStructureType, "Invalid nested structure type");
                 Debug.Assert(offset >= 0, "Invalid offset");
@@ -141,7 +154,7 @@ namespace ILGPU.IR.Types
                 allFieldsBuilder.Add(type);
 
                 // Align the next field properly
-                Offset = Align(Offset + offset, type.Alignment);
+                Offset = Align(Offset + offset, alignment);
                 offsetsBuilder.Add(Offset);
             }
 
