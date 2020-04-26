@@ -1,0 +1,79 @@
+﻿// -----------------------------------------------------------------------------
+//                             ILGPU.Algorithms
+//                  Copyright (c) 2020 ILGPU Algorithms Project
+//                                www.ilgpu.net
+//
+// File: Cordic.Pow.tt/Cordic.Pow.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details.
+// -----------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="Cordic.ttinclude"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+namespace ILGPU.Algorithms
+{
+    partial class XMath
+    {
+        /// <summary>
+        /// Implementation of exponential functions using CORDIC approximation.
+        /// </summary>
+        partial class Cordic
+        {
+            #region Exponential
+
+<#  foreach (var operation in operations) { #>
+            /// <summary>
+            /// Implementation of e raised to a specific power using CORDIC approximation.
+            /// </summary>
+            /// <param name="value">Specifies the power</param>
+            /// <returns>The number e raised to the specified power</returns>
+            public static <#= operation.DataType #> Exp(<#= operation.DataType #> value)
+            {
+                // Deal with negative exponents
+                if (value < 0)
+                    return 1.0<#= operation.ValueSuffix #> / Exp(-1.0<#= operation.ValueSuffix #> * value);
+
+                // The exponential function is related to hyperbolic functions with the identity:
+                //  exp(x) = cosh(x) + sinh(x)
+                //
+                // Furthermore, the hyperbolic CORDIC algorithm cannot handle the full range of input
+                // values, so we simplify the calculations using the formula:
+                //
+                //  exp(x) = exp(quotient * ln(2) + remainder)
+                //         = exp(quotient * ln(2)) * exp(remainder)
+                //         = exp(ln(2)) ^ quotient * exp(remainder)
+                //         = 2^quotient * exp(remainder)
+                //
+                // We can calculate 2^quotient easily using repeated multiplication, and the remainder fits
+                // within the CORDIC input range.
+                //
+                // Reference:
+                //  https://en.wikipedia.org/wiki/Hyperbolic_functions#Relationship_to_the_exponential_function
+                //  https://en.wikipedia.org/wiki/Exponentiation#Identities_and_properties
+                //
+                var quotient = (int)Floor(value / Ln2<#= operation.XMathSuffix #>);
+                var remainder = value - quotient * Ln2<#= operation.XMathSuffix #>;
+
+                // Apply <#= operation.Iterations #> iterations.
+                RotateHyperbolicIterations(remainder, out var cosh, out var sinh);
+
+                var twoPowQuotient = 1.0<#= operation.ValueSuffix #>;
+                while (quotient > 0)
+                {
+                    twoPowQuotient *= 2.0<#= operation.ValueSuffix #>;
+                    quotient -= 1;
+                }
+
+                return twoPowQuotient * (cosh + sinh) * HyperbolicGain<#= operation.XMathSuffix #>;
+            }
+
+<# } #>
+            #endregion
+        }
+    }
+}

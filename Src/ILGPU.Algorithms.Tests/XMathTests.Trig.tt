@@ -27,11 +27,11 @@ using Xunit;
         new TrigFunction("Atan", "double", new Precision(15, 15, 15), projection: ".Select(x => Math.Tan(XMath.DegToRad((double)x)))"),
 
         new TrigFunction("Sinh", "float" , new Precision(15,  4,  4), projection: ".Select(x => XMath.DegToRad((float)x))"),
-        new TrigFunction("Sinh", "double", new Precision(15,  4, 13), projection: ".Select(x => XMath.DegToRad((double)x))"),
+        new TrigFunction("Sinh", "double", new Precision(15, 12, 13), projection: ".Select(x => XMath.DegToRad((double)x))"),
         new TrigFunction("Cosh", "float" , new Precision(15,  4,  4), projection: ".Select(x => XMath.DegToRad((float)x))"),
-        new TrigFunction("Cosh", "double", new Precision(15,  4, 13), projection: ".Select(x => XMath.DegToRad((double)x))"),
+        new TrigFunction("Cosh", "double", new Precision(15, 12, 13), projection: ".Select(x => XMath.DegToRad((double)x))"),
         new TrigFunction("Tanh", "float" , new Precision(15,  6,  6), projection: ".Select(x => XMath.DegToRad((float)x))"),
-        new TrigFunction("Tanh", "double", new Precision(15,  7, 15), projection: ".Select(x => XMath.DegToRad((double)x))"),
+        new TrigFunction("Tanh", "double", new Precision(15, 15, 15), projection: ".Select(x => XMath.DegToRad((double)x))"),
     };
 
     var binaryTrigFunctions = new []

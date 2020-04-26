@@ -13,21 +13,21 @@ using Xunit;
     var unaryLogFunctions = new []
     {
         new XMathFunction("Log"  , "float" , new Precision(15,  6,  6)),
-        new XMathFunction("Log"  , "double", new Precision(15,  6, 15)),
+        new XMathFunction("Log"  , "double", new Precision(15, 14, 15)),
         new XMathFunction("Log10", "float" , new Precision(15,  6,  6)),
-        new XMathFunction("Log10", "double", new Precision(15,  6, 15)),
+        new XMathFunction("Log10", "double", new Precision(15, 15, 15)),
     };
 
     var unaryLog2Functions = new []
     {
         new XMathFunction("Log2" , "float" , new Precision(15,  6,  6)),
-        new XMathFunction("Log2" , "double", new Precision(15,  6, 14)),
+        new XMathFunction("Log2" , "double", new Precision(15, 14, 14)),
     };
 
     var binaryLogFunctions = new []
     {
         new XMathFunction("Log" , "float" , new Precision(15,  5,  0)),
-        new XMathFunction("Log" , "double", new Precision(15,  6,  0)),
+        new XMathFunction("Log" , "double", new Precision(15, 14,  0)),
     };
 #>
 namespace ILGPU.Algorithms.Tests

@@ -255,6 +255,9 @@ Src/ILGPU.Algorithms/Runtime/Cuda/CuBlasNativeMethods.cs
 Src/ILGPU.Algorithms/ScanReduceOperations.cs
 Src/ILGPU.Algorithms/Sequencers.cs
 Src/ILGPU.Algorithms/TypeInformation.cs
+Src/ILGPU.Algorithms/XMath/Cordic.cs
+Src/ILGPU.Algorithms/XMath/Cordic.Log.cs
+Src/ILGPU.Algorithms/XMath/Cordic.Pow.cs
 Src/ILGPU.Algorithms/XMath/Cordic.Trig.cs
 
 # Generated test source files

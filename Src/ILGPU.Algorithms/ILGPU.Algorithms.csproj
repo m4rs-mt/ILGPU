@@ -91,6 +91,21 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Sequencers.cs</LastGenOutput>
     </None>
+    <None Update="XMath\Cordic.ttinclude">
+      <Generator></Generator>
+    </None>
+    <None Update="XMath\Cordic.tt">
+      <LastGenOutput>Cordic.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMath\Cordic.Log.tt">
+      <LastGenOutput>Cordic.Log.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMath\Cordic.Pow.tt">
+      <LastGenOutput>Cordic.Pow.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
     <None Update="XMath\Cordic.Trig.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Cordic.Trig.cs</LastGenOutput>
@@ -152,6 +167,21 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Sequencers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMath\Cordic.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Cordic.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMath\Cordic.Log.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Cordic.Log.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMath\Cordic.Pow.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Cordic.Pow.tt</DependentUpon>
     </Compile>
     <Compile Update="XMath\Cordic.Trig.cs">
       <DesignTime>True</DesignTime>

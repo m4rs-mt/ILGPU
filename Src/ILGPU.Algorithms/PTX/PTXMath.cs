@@ -301,7 +301,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="XMath.Exp(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Exp(double value) =>
-            Exp2(value * XMath.OneOverLn2D);
+            XMath.Cordic.Exp(value);
 
         /// <summary cref="XMath.Exp(float)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -311,7 +311,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="XMath.Exp2(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Exp2(double value) =>
-            XMath.Exp2((float)value);
+            Exp(value * XMath.OneOverLog2ED);
 
         /// <summary cref="XMath.Exp2(float)" />
         public static float Exp2(float value) =>
@@ -334,7 +334,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="XMath.Log(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Log(double value) =>
-            Log2(value) * XMath.OneOverLog2ED;
+            XMath.Cordic.Log(value);
 
         /// <summary cref="XMath.Log(float)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -344,7 +344,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="XMath.Log10(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Log10(double value) =>
-            Log(value) * XMath.OneOverLn10;
+            Log(value) * XMath.OneOverLn10D;
 
         /// <summary cref="XMath.Log10(float)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -354,7 +354,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="XMath.Log2(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Log2(double value) =>
-            XMath.Log2((float)value);
+            Log(value) * XMath.OneOverLn2D;
 
         /// <summary cref="XMath.Log2(float)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

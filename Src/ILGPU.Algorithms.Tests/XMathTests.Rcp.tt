@@ -12,8 +12,8 @@ using Xunit;
 <#
     var rcpFunctions = new []
     {
-        new XMathFunction("Rcp"  , "float" , new Precision(15, 15, 15)),
-        new XMathFunction("Rcp"  , "double", new Precision(15, 15, 15)),
+        new XMathFunction("Rcp"  , "float" , new Precision(15, 15,  0)),
+        new XMathFunction("Rcp"  , "double", new Precision(15, 15,  0)),
     };
 #>
 namespace ILGPU.Algorithms.Tests
