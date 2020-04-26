@@ -13,6 +13,7 @@ using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SimpleConstants
 {
@@ -26,7 +27,10 @@ namespace SimpleConstants
         /// <summary>
         /// A readonly field.
         /// </summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1802:Use literals where appropriate", Justification = "Testing readonly value")]
+        [SuppressMessage(
+            "Performance",
+            "CA1802:Use literals where appropriate",
+            Justification = "Testing readonly value")]
         static readonly int ReadOnlyValue = 2;
 
         /// <summary>

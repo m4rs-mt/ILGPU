@@ -8,6 +8,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="ILGPU" Version="0.8.0-beta1" />
+    <PackageReference Include="ILGPU" Version="0.8.0-beta2" />
   </ItemGroup>
 </Project>

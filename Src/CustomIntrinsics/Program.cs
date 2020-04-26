@@ -117,7 +117,7 @@ namespace CustomIntrinsics
             var xRegister = codeGenerator.LoadPrimitive(value[0]);
 
             // Allocate target register to write our result to
-            var target = codeGenerator.AllocatePrimitive(value);
+            var target = codeGenerator.AllocateHardware(value);
 
             // Emit our desired instructions
             using (var command = codeGenerator.BeginCommand(
