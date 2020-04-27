@@ -16,6 +16,7 @@ using ILGPU.IR;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using System;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms.CL
@@ -26,6 +27,28 @@ namespace ILGPU.Algorithms.CL
     static partial class CLContext
     {
         /// <summary>
+        /// The <see cref="CLMath"/> type.
+        /// </summary>
+        private static readonly Type CLMathType = typeof(CLMath);
+
+        /// <summary>
+        /// Represents the <see cref="CLMath.GenerateMathIntrinsic(CLBackend, CLCodeGenerator, IR.Value)"/>
+        /// methods.
+        /// </summary>
+        private static readonly MethodInfo MathCodeGenerator =
+            CLMathType.GetMethod(
+                nameof(CLMath.GenerateMathIntrinsic),
+                AlgorithmContext.IntrinsicBindingFlags);
+
+        /// <summary>
+        /// Represents the intrinsic representation of the <see cref="MathCodeGenerator"/>.
+        /// </summary>
+        private static readonly CLIntrinsic MathCodeGeneratorIntrinsic =
+            new CLIntrinsic(
+                MathCodeGenerator,
+                IntrinsicImplementationMode.GenerateCode);
+
+        /// <summary>
         /// The <see cref="CLGroupExtensions"/> type.
         /// </summary>
         internal static readonly Type CLGroupExtensionsType = typeof(CLGroupExtensions);
@@ -34,6 +57,23 @@ namespace ILGPU.Algorithms.CL
         /// The <see cref="CLWarpExtensions"/> type.
         /// </summary>
         internal static readonly Type CLWarpExtensionsType = typeof(CLWarpExtensions);
+
+        /// <summary>
+        /// Resolves a CL intrinsic for the given math-function configuration.
+        /// </summary>
+        /// <param name="name">The intrinsic name.</param>
+        /// <param name="types">The parameter types.</param>
+        /// <returns>The resolved intrinsic representation.</returns>
+        private static CLIntrinsic GetMathIntrinsic(string name, params Type[] types)
+        {
+            var targetMethod = CLMathType.GetMethod(
+                name,
+                AlgorithmContext.IntrinsicBindingFlags,
+                null,
+                types,
+                null);
+            return new CLIntrinsic(targetMethod, IntrinsicImplementationMode.Redirect);
+        }
 
         /// <summary>
         /// Registers an intrinsic mapping.

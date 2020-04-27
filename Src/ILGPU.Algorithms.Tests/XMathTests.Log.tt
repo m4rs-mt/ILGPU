@@ -26,8 +26,8 @@ using Xunit;
 
     var binaryLogFunctions = new []
     {
-        new XMathFunction("Log" , "float" , new Precision(15,  5,  0)),
-        new XMathFunction("Log" , "double", new Precision(15, 14,  0)),
+        new XMathFunction("Log" , "float" , new Precision(15,  5,  6)),
+        new XMathFunction("Log" , "double", new Precision(15, 14, 14)),
     };
 #>
 namespace ILGPU.Algorithms.Tests
@@ -140,17 +140,6 @@ namespace ILGPU.Algorithms.Tests
             using var output = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
 
             input.CopyFrom(inputArray, 0, 0, inputArray.Length);
-<# if (function.Name == "Log") { #>
-            if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
-            {
-                // TODO: Implement OpenCL support for XMath.Log(<#= function.DataType #>, <#= function.DataType #>)
-                var ae = Assert.Throws<AggregateException>(() => Execute(input.Length, input.View, output.View));
-                Assert.Single(ae.InnerExceptions);
-                Assert.IsType<Backends.NotSupportedIntrinsicException>(ae.InnerExceptions[0]);
-                return;
-            }
-<# } #>
-
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(v => Math<#= function.MathSuffix #>.Log(v.X, v.Y)).ToArray();

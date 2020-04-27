@@ -12,8 +12,8 @@ using Xunit;
 <#
     var rcpFunctions = new []
     {
-        new XMathFunction("Rcp"  , "float" , new Precision(15, 15,  0)),
-        new XMathFunction("Rcp"  , "double", new Precision(15, 15,  0)),
+        new XMathFunction("Rcp"  , "float" , new Precision(15, 15,  7)),
+        new XMathFunction("Rcp"  , "double", new Precision(15, 15, 15)),
     };
 #>
 namespace ILGPU.Algorithms.Tests
@@ -47,18 +47,6 @@ namespace ILGPU.Algorithms.Tests
             using var output = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
 
             input.CopyFrom(inputArray, 0, 0, inputArray.Length);
-
-<# if (function.Name == "Rcp") { #>
-            if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
-            {
-                // TODO: Implement OpenCL support for XMath.Rcp
-                var ae = Assert.Throws<AggregateException>(() => Execute(input.Length, input.View, output.View));
-                Assert.Single(ae.InnerExceptions);
-                Assert.IsType<Backends.NotSupportedIntrinsicException>(ae.InnerExceptions[0]);
-                return;
-            }
-<# } #>
-
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(x => 1 / x).ToArray();

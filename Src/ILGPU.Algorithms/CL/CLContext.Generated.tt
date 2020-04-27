@@ -16,7 +16,16 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
+<#
+var unaryMathFunctions = new ValueTuple<string, Type, string, string>[]
+    {
+        UnaryMathFunctions[18], // Rcp
+        UnaryMathFunctions[19], // Rcp
+    };
+var binaryMathFunctions = BinaryMathFunctions;
+#>
 using ILGPU.IR.Intrinsics;
+using ILGPU.IR.Values;
 
 namespace ILGPU.Algorithms.CL
 {
@@ -24,6 +33,21 @@ namespace ILGPU.Algorithms.CL
     {
         public static void EnableCLAlgorithms(IntrinsicImplementationManager manager)
         {
+            // Register math intrinsics
+<# foreach (var (name, type, kind, basicType) in binaryMathFunctions) { #>
+            manager.RegisterBinaryArithmetic(
+                BinaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                GetMathIntrinsic("<#= name #>", typeof(<#= type #>), typeof(<#= type #>)));
+<# } #>
+
+<# foreach (var (name, type, kind, basicType) in unaryMathFunctions) { #>
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.<#= kind #>,
+                BasicValueType.<#= basicType #>,
+                MathCodeGeneratorIntrinsic);
+<# } #>
+
             // Register group intrinsics
 <# foreach (var name in GroupFunctions.Take(4)) { #>
             RegisterIntrinsicCodeGenerator(
