@@ -95,11 +95,6 @@ namespace ILGPU.IR
         /// </summary>
         String,
 
-        /// <summary>
-        /// A <see cref="Values.SizeOfValue"/> value.
-        /// </summary>
-        SizeOf,
-
         // Device Constants
 
         /// <summary>

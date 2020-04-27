@@ -61,18 +61,6 @@ namespace ILGPU.IR.Transformations
             Specialize(context, value, specializer.WarpSize.Value);
         }
 
-        /// <summary>
-        /// Specializes size-of values.
-        /// </summary>
-        private static void Specialize(
-            RewriterContext context,
-            AcceleratorSpecializer specializer,
-            SizeOfValue value) =>
-            Specialize(
-                context,
-                value,
-                value.TargetType.Size);
-
         #endregion
 
         #region Rewriter
@@ -90,7 +78,6 @@ namespace ILGPU.IR.Transformations
         {
             Rewriter.Add<AcceleratorTypeValue>(Specialize);
             Rewriter.Add<WarpSizeValue>(Specialize);
-            Rewriter.Add<SizeOfValue>(Specialize);
         }
 
         #endregion

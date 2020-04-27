@@ -184,12 +184,6 @@ namespace ILGPU.IR.Values
         /// <param name="value">The node.</param>
         void Visit(NullValue value);
 
-        /// <summary>
-        /// Visits the node.
-        /// </summary>
-        /// <param name="value">The node.</param>
-        void Visit(SizeOfValue value);
-
         // Structures
 
         /// <summary>

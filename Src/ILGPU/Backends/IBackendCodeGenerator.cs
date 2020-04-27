@@ -448,10 +448,6 @@ namespace ILGPU.Backends
             public void Visit(NullValue value) =>
                 CodeGenerator.GenerateCode(value);
 
-            /// <summary cref="IValueVisitor.Visit(SizeOfValue)"/>
-            public void Visit(SizeOfValue value) =>
-                throw new InvalidCodeGenerationException();
-
             /// <summary cref="IValueVisitor.Visit(StructureValue)"/>
             public void Visit(StructureValue value) =>
                 CodeGenerator.GenerateCode(value);

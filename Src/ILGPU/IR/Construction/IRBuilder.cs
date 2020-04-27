@@ -182,18 +182,14 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
-        /// Creates a node that represents the native size of the
-        /// give type.
+        /// Creates a node that represents the native size of the given type.
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateSizeOf(TypeNode type)
         {
             Debug.Assert(type != null, "Invalid type node");
-            return Append(new SizeOfValue(
-                Context,
-                BasicBlock,
-                type));
+            return CreatePrimitiveValue(type.Size);
         }
 
         /// <summary>
