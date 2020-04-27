@@ -50,19 +50,27 @@ namespace ILGPU.Runtime.Cuda.API
         private static CudaAPI InitializeAPI()
         {
             CudaAPI result;
-            try
+            if (Backends.Backend.RunningOnNativePlatform)
             {
-                result = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? new CudaAPIWindows() as CudaAPI
-                    : new CudaAPIUnix() as CudaAPI;
-                if (result.InitAPI() != CudaError.CUDA_SUCCESS)
+                try
+                {
+                    result = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                        ? new CudaAPIWindows() as CudaAPI
+                        : new CudaAPIUnix() as CudaAPI;
+                    if (result.InitAPI() != CudaError.CUDA_SUCCESS)
+                        result = new NotSupportedCudaAPI();
+                }
+                catch (Exception ex) when (
+                    ex is DllNotFoundException || ex is EntryPointNotFoundException)
+                {
+                    // In case of a critical initialization exception
+                    // fall back to the not supported Cuda API.
                     result = new NotSupportedCudaAPI();
+                }
             }
-            catch (Exception ex) when (
-                ex is DllNotFoundException || ex is EntryPointNotFoundException)
+            else
             {
-                // In case of a critical initialization exception
-                // fall back to the not supported Cuda API.
+                // Not supported platform
                 result = new NotSupportedCudaAPI();
             }
             return result;

@@ -27,8 +27,21 @@ namespace ILGPU.Runtime.OpenCL.API
         /// Resolves the number of available platforms.
         /// </summary>
         /// <returns>The error code.</returns>
-        public static CLError GetNumPlatforms(out int numPlatforms) =>
-            NativeMethods.GetPlatformIDs(short.MaxValue, null, out numPlatforms);
+        public static CLError GetNumPlatforms(out int numPlatforms)
+        {
+            if (Backends.Backend.RunningOnNativePlatform)
+            {
+                return NativeMethods.GetPlatformIDs(
+                    short.MaxValue,
+                    null,
+                    out numPlatforms);
+            }
+            else
+            {
+                numPlatforms = 0;
+                return CLError.CL_DEVICE_NOT_AVAILABLE;
+            }
+        }
 
         /// <summary>
         /// Resolves the number of available platforms.
