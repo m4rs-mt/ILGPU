@@ -86,7 +86,7 @@ namespace ILGPU.Runtime
             Justification = "The generic parameter is required to compute the number " +
             "of elements of the given type that can be stored")]
         public Index1 GetCacheSize<T>()
-            where T : struct => (cache?.Length ?? 0) * ArrayView<T>.ElementSize;
+            where T : unmanaged => (cache?.Length ?? 0) * ArrayView<T>.ElementSize;
 
         /// <summary>
         /// Allocates the given number of elements and returns an array view
@@ -99,7 +99,7 @@ namespace ILGPU.Runtime
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T> Allocate<T>(Index1 numElements)
-            where T : struct
+            where T : unmanaged
         {
             if (numElements < Index1.One)
                 return default;
@@ -125,7 +125,7 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             out T target,
             Index1 targetIndex)
-            where T : struct
+            where T : unmanaged
         {
             target = default;
             using (var wrapper = ViewPointerWrapper.Create(ref target))
@@ -146,7 +146,7 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             T source,
             Index1 sourceIndex)
-            where T : struct
+            where T : unmanaged
         {
             using (var wrapper = ViewPointerWrapper.Create(ref source))
             {

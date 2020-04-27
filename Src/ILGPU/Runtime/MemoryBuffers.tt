@@ -35,7 +35,7 @@ namespace ILGPU.Runtime
     /// <remarks>Members of this class are not thread safe.</remarks>
     public sealed partial class <#= typeName #><T> :
         MemoryBuffer, IMemoryBuffer<T, <#= indexType #>>
-        where T : struct
+        where T : unmanaged
     {
         #region Constants
 

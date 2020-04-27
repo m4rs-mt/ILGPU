@@ -35,7 +35,7 @@ namespace ILGPU
     [DebuggerDisplay("Extent = {Extent}, Length = {Length}")]
     [StructLayout(LayoutKind.Sequential)]
     public readonly partial struct <#= typeName #><T> : IArrayView<T, <#= indexType #>>
-        where T : struct
+        where T : unmanaged
     {
         #region Constants
 
@@ -142,7 +142,7 @@ namespace ILGPU
         /// <returns>The casted array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public <#= typeName #><TOther> Cast<TOther>()
-            where TOther : struct =>
+            where TOther : unmanaged =>
             new <#= typeName #><TOther>(BaseView.Cast<TOther>());
 
         /// <summary>

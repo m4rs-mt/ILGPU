@@ -99,7 +99,7 @@ namespace ILGPU.Backends.PointerViews
         /// <param name="view">The view type.</param>
         /// <returns>The underlying native pointer.</returns>
         private static IntPtr GetNativePtr<T>(in ArrayView<T> view)
-            where T : struct =>
+            where T : unmanaged =>
             view.Source.NativePtr;
 
         /// <summary>

@@ -126,7 +126,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="value">The resolved value.</param>
         /// <returns>The error code.</returns>
         public CLError GetDeviceInfo<T>(CLDeviceInfoType type, out T value)
-            where T : struct => CLAPI.GetDeviceInfo(DeviceId, type, out value);
+            where T : unmanaged => CLAPI.GetDeviceInfo(DeviceId, type, out value);
 
         /// <summary>
         /// Resolves device information as typed structure value of type
@@ -136,7 +136,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="type">The information type.</param>
         /// <returns>The resolved value.</returns>
         public T GetDeviceInfo<T>(CLDeviceInfoType type)
-            where T : struct => CLAPI.GetDeviceInfo<T>(DeviceId, type);
+            where T : unmanaged => CLAPI.GetDeviceInfo<T>(DeviceId, type);
 
         /// <summary>
         /// Returns true if the given extension is supported.
@@ -199,7 +199,7 @@ namespace ILGPU.Runtime.OpenCL
             int numInputs,
             IntPtr* inputs,
             out T value)
-            where T : struct
+            where T : unmanaged
         {
             value = default;
             return getKernelSubGroupInfo?.Invoke(
@@ -231,7 +231,7 @@ namespace ILGPU.Runtime.OpenCL
             CLKernelSubGroupInfoType type,
             IntPtr[] inputs,
             out T value)
-            where T : struct
+            where T : unmanaged
         {
             fixed (IntPtr* basePtr = &inputs[0])
             {

@@ -24,7 +24,7 @@ namespace ILGPU.Backends.PointerViews
     [CLSCompliant(false)]
     [StructLayout(LayoutKind.Sequential)]
     public unsafe readonly struct ViewImplementation<T>
-        where T : struct
+        where T : unmanaged
     {
         #region Instance
 
@@ -122,7 +122,7 @@ namespace ILGPU.Backends.PointerViews
         /// <returns>The casted view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ViewImplementation<TOther> Cast<TOther>()
-            where TOther : struct =>
+            where TOther : unmanaged =>
             new ViewImplementation<TOther>(Ptr, Length);
 
         #endregion

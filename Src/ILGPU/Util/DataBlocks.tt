@@ -45,7 +45,7 @@ namespace ILGPU.Util
     [StructLayout(LayoutKind.Sequential)]
     public struct DataBlock<<#= typeParams.TypeParams #>> : IEquatable<DataBlock<<#= typeParams.TypeParams #>>>
 <# for (int i = 1; i <= typeParams.Range; ++i) { #>
-        where T<#= i #> : struct, IEquatable<T<#= i #>>
+        where T<#= i #> : unmanaged, IEquatable<T<#= i #>>
 <# } #>
     {
         #region Constants
@@ -53,7 +53,7 @@ namespace ILGPU.Util
         /// <summary>
         /// Represents the native size of a single element.
         /// </summary>
-        public static readonly int ElementSize = ArrayView<DataBlock<<#= typeParams.TypeParams #>>>.ElementSize;
+        public static readonly int ElementSize = Interop.SizeOf<DataBlock<<#= typeParams.TypeParams #>>>();
 
         #endregion
 

@@ -29,7 +29,7 @@ namespace ILGPU.Runtime
         /// <returns>The new specialized value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SpecializedValue<T> New<T>(T value)
-            where T : struct, IEquatable<T> =>
+            where T : unmanaged, IEquatable<T> =>
             new SpecializedValue<T>(value);
     }
 
@@ -39,7 +39,7 @@ namespace ILGPU.Runtime
     /// <typeparam name="T">The element type.</typeparam>
     [StructLayout(LayoutKind.Sequential)]
     public struct SpecializedValue<T> : IEquatable<SpecializedValue<T>>
-        where T : struct, IEquatable<T>
+        where T : unmanaged, IEquatable<T>
     {
         #region Instance
 

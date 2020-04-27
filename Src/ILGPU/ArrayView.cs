@@ -23,8 +23,8 @@ namespace ILGPU
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TIndex">The index type.</typeparam>
     public interface IArrayView<T, TIndex>
-        where T : struct
-        where TIndex : struct, IIndex, IGenericIndex<TIndex>
+        where T : unmanaged
+        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
     {
         /// <summary>
         /// Returns true if this view points to a valid location.
@@ -69,7 +69,7 @@ namespace ILGPU
         "CA1040: AvoidEmptyInterfaces",
         Justification = "Can be used in generic constraints")]
     public interface IArrayView<T> : IArrayView<T, Index1>
-        where T : struct
+        where T : unmanaged
     { }
 
     /// <summary>
@@ -79,7 +79,7 @@ namespace ILGPU
     [DebuggerTypeProxy(typeof(DebugArrayView<>))]
     [DebuggerDisplay("Extent = {Extent}, Length = {Length}")]
     public readonly struct ArrayView<T> : IArrayView<T>
-        where T : struct
+        where T : unmanaged
     {
         #region Constants
 
@@ -248,7 +248,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [ViewIntrinsic(ViewIntrinsicKind.CastView)]
         public ArrayView<TOther> Cast<TOther>()
-            where TOther : struct
+            where TOther : unmanaged
         {
             var extent = new Index1(Length);
             var newExtent = extent.ComputedCastedExtent(

@@ -151,7 +151,7 @@ namespace ILGPU.Backends.PTX
         /// <typeparam name="T">The type to broadcast.</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static T GroupBroadcast<T>(T value, int groupIndex)
-            where T : struct
+            where T : unmanaged
         {
             ref var sharedMemory = ref SharedMemory.Allocate<T>();
             if (Group.LinearIndex == groupIndex)
@@ -166,7 +166,7 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static T WarpBroadcast<T>(T value, int laneIndex)
-            where T : struct =>
+            where T : unmanaged =>
             Warp.Shuffle(value, laneIndex);
 
         #endregion

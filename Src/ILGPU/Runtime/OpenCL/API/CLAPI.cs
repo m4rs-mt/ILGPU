@@ -102,7 +102,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="type">The information type.</param>
         /// <returns>The resolved value.</returns>
         public static T GetPlatformInfo<T>(IntPtr platform, CLPlatformInfoType type)
-            where T : struct
+            where T : unmanaged
         {
             T value = default;
             CLException.ThrowIfFailed(NativeMethods.GetPlatformInfo(
@@ -198,7 +198,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="type">The information type.</param>
         /// <returns>The resolved value.</returns>
         public static T GetDeviceInfo<T>(IntPtr device, CLDeviceInfoType type)
-            where T : struct
+            where T : unmanaged
         {
             CLException.ThrowIfFailed(GetDeviceInfo(
                 device,
@@ -220,7 +220,7 @@ namespace ILGPU.Runtime.OpenCL.API
             IntPtr device,
             CLDeviceInfoType type,
             out T value)
-            where T : struct
+            where T : unmanaged
         {
             value = default;
             return NativeMethods.GetDeviceInfo(
@@ -244,21 +244,17 @@ namespace ILGPU.Runtime.OpenCL.API
             IntPtr device,
             CLDeviceInfoType type,
             T[] elements)
-            where T : struct
+            where T : unmanaged
         {
-            var handle = GCHandle.Alloc(elements, GCHandleType.Pinned);
-            try
+            fixed (T* ptr = &elements[0])
             {
+
                 CLException.ThrowIfFailed(NativeMethods.GetDeviceInfo(
                     device,
                     type,
                     new IntPtr(Interop.SizeOf<T>() * elements.Length),
-                    handle.AddrOfPinnedObject().ToPointer(),
+                    ptr,
                     IntPtr.Zero));
-            }
-            finally
-            {
-                handle.Free();
             }
         }
 
@@ -589,7 +585,7 @@ namespace ILGPU.Runtime.OpenCL.API
             IntPtr kernel,
             int index,
             T value)
-            where T : struct =>
+            where T : unmanaged =>
             SetKernelArgumentUnsafe(
                 kernel,
                 index,
@@ -755,7 +751,7 @@ namespace ILGPU.Runtime.OpenCL.API
             IntPtr kernel,
             IntPtr device,
             CLKernelWorkGroupInfoType type)
-            where T : struct
+            where T : unmanaged
         {
             T value = default;
             CLException.ThrowIfFailed(NativeMethods.GetKernelWorkGroupInfo(
@@ -782,22 +778,17 @@ namespace ILGPU.Runtime.OpenCL.API
             IntPtr device,
             CLKernelWorkGroupInfoType type,
             T[] elements)
-            where T : struct
+            where T : unmanaged
         {
-            var handle = GCHandle.Alloc(elements, GCHandleType.Pinned);
-            try
+            fixed (T* ptr = &elements[0])
             {
                 CLException.ThrowIfFailed(NativeMethods.GetKernelWorkGroupInfo(
                     kernel,
                     device,
                     type,
                     new IntPtr(Interop.SizeOf<T>() * elements.Length),
-                    handle.AddrOfPinnedObject().ToPointer(),
+                    ptr,
                     IntPtr.Zero));
-            }
-            finally
-            {
-                handle.Free();
             }
         }
 
@@ -918,7 +909,7 @@ namespace ILGPU.Runtime.OpenCL.API
             T pattern,
             IntPtr offset,
             IntPtr size)
-            where T : struct =>
+            where T : unmanaged =>
             NativeMethods.EnqueueFillBuffer(
                 queue,
                 buffer,

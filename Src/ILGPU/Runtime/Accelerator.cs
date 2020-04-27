@@ -312,8 +312,8 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated buffer on the this accelerator.</returns>
         public MemoryBuffer<T, TIndex> Allocate<T, TIndex>(TIndex extent)
-            where T : struct
-            where TIndex : struct, IIndex, IGenericIndex<TIndex>
+            where T : unmanaged
+            where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
         {
             // Check for blittable types
             var typeContext = Context.TypeContext;
@@ -339,8 +339,8 @@ namespace ILGPU.Runtime
         /// <returns>An allocated buffer on the this accelerator.</returns>
         protected abstract MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(
             TIndex extent)
-            where T : struct
-            where TIndex : struct, IIndex, IGenericIndex<TIndex>;
+            where T : unmanaged
+            where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>;
 
         /// <summary>
         /// Allocates a 1D buffer with the specified number of elements on this
@@ -350,7 +350,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated 1D buffer on the this accelerator.</returns>
         public MemoryBuffer<T> Allocate<T>(int extent)
-            where T : struct =>
+            where T : unmanaged =>
             new MemoryBuffer<T>(Allocate<T, Index1>(extent));
 
         /// <summary>
@@ -361,7 +361,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated 2D buffer on the this accelerator.</returns>
         public MemoryBuffer2D<T> Allocate<T>(Index2 extent)
-            where T : struct =>
+            where T : unmanaged =>
             new MemoryBuffer2D<T>(Allocate<T, Index2>(extent));
 
         /// <summary>
@@ -373,7 +373,7 @@ namespace ILGPU.Runtime
         /// <param name="height">The height of the 2D buffer.</param>
         /// <returns>An allocated 2D buffer on the this accelerator.</returns>
         public MemoryBuffer2D<T> Allocate<T>(int width, int height)
-            where T : struct =>
+            where T : unmanaged =>
             Allocate<T>(new Index2(width, height));
 
         /// <summary>
@@ -384,7 +384,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated 3D buffer on the this accelerator.</returns>
         public MemoryBuffer3D<T> Allocate<T>(Index3 extent)
-            where T : struct =>
+            where T : unmanaged =>
             new MemoryBuffer3D<T>(Allocate<T, Index3>(extent));
 
         /// <summary>
@@ -397,7 +397,7 @@ namespace ILGPU.Runtime
         /// <param name="depth">The depth of the 3D buffer.</param>
         /// <returns>An allocated 2D buffer on the this accelerator.</returns>
         public MemoryBuffer3D<T> Allocate<T>(int width, int height, int depth)
-            where T : struct =>
+            where T : unmanaged =>
             Allocate<T>(new Index3(width, height, depth));
 
         /// <summary>

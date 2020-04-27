@@ -24,8 +24,8 @@ namespace ILGPU
     [DebuggerTypeProxy(typeof(DebugArrayView<,>))]
     [DebuggerDisplay("Index = {Index}, Extent = {Extent}")]
     public readonly struct ArrayView<T, TIndex> : IArrayView<T, TIndex>
-        where T : struct
-        where TIndex : struct, IIndex, IGenericIndex<TIndex>
+        where T : unmanaged
+        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
     {
         #region Constants
 
@@ -174,7 +174,7 @@ namespace ILGPU
         /// <returns>The casted array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<TOther, TIndex> Cast<TOther>()
-            where TOther : struct
+            where TOther : unmanaged
         {
             var newExtent = Extent.ComputedCastedExtent(
                 Extent, ElementSize, ArrayView<TOther, TIndex>.ElementSize);

@@ -813,7 +813,7 @@ namespace ILGPU.Runtime.Cuda.API
             IntPtr stream,
             ref T argument,
             int argumentLength)
-            where T : struct
+            where T : unmanaged
         {
             var argumentLengthPtrSize = new IntPtr(argumentLength);
             var kernelArgs = stackalloc byte[sizeof(void*) * 5];

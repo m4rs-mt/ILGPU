@@ -39,7 +39,7 @@ namespace ILGPU.Runtime
     /// Represents the generic base interface of all typed memory buffers.
     /// </summary>
     public interface IMemoryBuffer<T> : IMemoryBuffer
-        where T : struct
+        where T : unmanaged
     {
         /// <summary>
         /// Returns the length of this buffer in bytes.
@@ -59,8 +59,8 @@ namespace ILGPU.Runtime
     /// using n-dimensional indices.
     /// </summary>
     public interface IMemoryBuffer<T, TIndex> : IMemoryBuffer<T>
-        where T : struct
-        where TIndex : struct, IIndex, IGenericIndex<TIndex>
+        where T : unmanaged
+        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
     {
         /// <summary>
         /// Returns an array view that can access this buffer.

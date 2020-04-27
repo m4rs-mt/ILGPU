@@ -27,7 +27,7 @@ namespace ILGPU
         /// <returns>An allocated element in shared memory.</returns>
         [SharedMemoryIntrinsic(SharedMemoryIntrinsicKind.AllocateElement)]
         public static ref T Allocate<T>()
-            where T : struct =>
+            where T : unmanaged =>
             ref Allocate<T>(1)[0];
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace ILGPU
         [SharedMemoryIntrinsic(SharedMemoryIntrinsicKind.Allocate)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView<T> Allocate<T>(int extent)
-            where T : struct =>
+            where T : unmanaged =>
             CPURuntimeGroupContext.Current.AllocateSharedMemory<T>(extent);
 
         /// <summary>
@@ -50,8 +50,8 @@ namespace ILGPU
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated region of shared memory.</returns>
         public static ArrayView<T, TIndex> Allocate<T, TIndex>(TIndex extent)
-            where T : struct
-            where TIndex : struct, IIndex, IGenericIndex<TIndex>
+            where T : unmanaged
+            where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
         {
             var baseView = Allocate<T>(extent.Size);
             return new ArrayView<T, TIndex>(baseView, extent);
@@ -64,7 +64,7 @@ namespace ILGPU
         /// <param name="length">The number of elements to allocate.</param>
         /// <returns>An allocated region of shared memory.</returns>
         public static ArrayView<T> Allocate<T>(Index1 length)
-            where T : struct =>
+            where T : unmanaged =>
             Allocate<T, Index1>(length).AsLinearView();
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace ILGPU
         /// <param name="height">The height of the 2D buffer.</param>
         /// <returns>An allocated region of shared memory.</returns>
         public static ArrayView2D<T> Allocate2D<T>(Index1 width, Index1 height)
-            where T : struct =>
+            where T : unmanaged =>
             Allocate2D<T>(new Index2(width, height));
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace ILGPU
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated region of shared memory.</returns>
         public static ArrayView2D<T> Allocate2D<T>(Index2 extent)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView2D<T>(Allocate<T, Index2>(extent));
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace ILGPU
             Index1 width,
             Index1 height,
             Index1 depth)
-            where T : struct =>
+            where T : unmanaged =>
             Allocate3D<T>(new Index3(width, height, depth));
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace ILGPU
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated region of shared memory.</returns>
         public static ArrayView3D<T> Allocate3D<T>(Index3 extent)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView3D<T>(Allocate<T, Index3>(extent));
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace ILGPU
         [SharedMemoryIntrinsic(SharedMemoryIntrinsicKind.AllocateDynamic)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView<T> GetDynamic<T>()
-            where T : struct =>
+            where T : unmanaged =>
             CPURuntimeGroupContext.Current.AllocateSharedMemoryDynamic<T>();
     }
 }

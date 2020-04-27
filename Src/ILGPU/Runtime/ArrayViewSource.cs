@@ -103,9 +103,19 @@ namespace ILGPU.Runtime
         /// <returns>An unsafe array view source.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe ViewPointerWrapper Create<T>(ref T value)
-            where T : struct =>
-            new ViewPointerWrapper(
-                new IntPtr(Unsafe.AsPointer(ref value)));
+            where T : unmanaged =>
+            Create((T*)Unsafe.AsPointer(ref value));
+
+        /// <summary>
+        /// Creates a new pointer wrapper.
+        /// </summary>
+        /// <param name="value">The native value pointer.</param>
+        /// <returns>An unsafe array view source.</returns>
+        [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe ViewPointerWrapper Create<T>(T* value)
+            where T : unmanaged =>
+            Create(new IntPtr(value));
 
         /// <summary>
         /// Creates a new pointer wrapper.
@@ -172,43 +182,5 @@ namespace ILGPU.Runtime
         }
 
         #endregion
-    }
-
-    /// <summary>
-    /// Represents a view array wrapper that wraps a <see cref="GCHandle"/>
-    /// instance. Note that this instance will not be freed automatically during
-    /// the <see cref="IDisposable.Dispose"/> operation.
-    /// </summary>
-    public sealed class ViewArrayWrapper : ArrayViewSource
-    {
-        /// <summary>
-        /// Creates a new array wrapper.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="handle">The GC handle of the fixed array.</param>
-        /// <returns>An unsafe array view source.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ViewArrayWrapper Create<T>(GCHandle handle)
-            where T : struct =>
-            new ViewArrayWrapper(handle, Unsafe.SizeOf<T>());
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ViewArrayWrapper(GCHandle handle, int elementSize)
-        {
-            NativePtr = handle.AddrOfPinnedObject();
-            ElementSize = elementSize;
-        }
-
-        /// <summary>
-        /// Returns the associated element size.
-        /// </summary>
-        public int ElementSize { get; }
-
-        /// <summary cref="ArrayViewSource.GetAsRawArray(
-        /// AcceleratorStream, Index1, Index1)"/>
-        protected internal override ArraySegment<byte> GetAsRawArray(
-            AcceleratorStream stream,
-            Index1 byteOffset,
-            Index1 byteExtent) => throw new InvalidOperationException();
     }
 }

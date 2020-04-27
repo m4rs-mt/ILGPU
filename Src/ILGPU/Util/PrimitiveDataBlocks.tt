@@ -63,7 +63,7 @@ namespace ILGPU.Util
         /// <summary>
         /// Represents the native size of a single element.
         /// </summary>
-        public static readonly int ElementSize = ArrayView<<#= typeParams.TypeName #>>.ElementSize;
+        public static readonly int ElementSize = Interop.SizeOf<<#= typeParams.TypeName #>>();
 
         #endregion
 

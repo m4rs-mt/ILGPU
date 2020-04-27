@@ -22,8 +22,8 @@ namespace ILGPU.Runtime.Cuda
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TIndex">The index type.</typeparam>
     public sealed class CudaMemoryBuffer<T, TIndex> : MemoryBuffer<T, TIndex>
-        where T : struct
-        where TIndex : struct, IIndex, IGenericIndex<TIndex>
+        where T : unmanaged
+        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
     {
         #region Instance
 

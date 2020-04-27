@@ -41,7 +41,7 @@ namespace ILGPU.Runtime
         public static ExchangeBuffer<T> AllocateExchangeBuffer<T>(
             this Accelerator accelerator,
             Index1 extent)
-            where T : struct =>
+            where T : unmanaged =>
             accelerator.AllocateExchangeBuffer<T>(
                 extent,
                 ExchangeBufferMode.PreferPagedLockedMemory);
@@ -60,7 +60,7 @@ namespace ILGPU.Runtime
             this Accelerator accelerator,
             Index1 extent,
             ExchangeBufferMode mode)
-            where T : struct
+            where T : unmanaged
         {
             var gpuBuffer = accelerator.Allocate<T>(extent);
             return new ExchangeBuffer<T>(gpuBuffer, mode);
@@ -91,7 +91,7 @@ namespace ILGPU.Runtime
     /// <typeparam name="T">The element type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
     public sealed unsafe class ExchangeBuffer<T> : MemoryBuffer, IMemoryBuffer<T>
-        where T : struct
+        where T : unmanaged
     {
         #region Constants
 
@@ -282,21 +282,15 @@ namespace ILGPU.Runtime
             stream.Synchronize();
 
             var data = new T[Length];
-            var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
-            try
+            fixed (T* ptr = &data[0])
             {
-                var ptr = handle.AddrOfPinnedObject().ToPointer();
                 System.Buffer.MemoryCopy(
                     cpuMemoryPointer,
                     ptr,
                     LengthInBytes,
                     LengthInBytes);
-                return data;
             }
-            finally
-            {
-                handle.Free();
-            }
+            return data;
         }
 
         /// <summary>

@@ -166,7 +166,7 @@ namespace ILGPU.Runtime.CPU
         /// </summary>
         /// <param name="extent">The number of elements to allocate.</param>
         private void AllocateSharedMemoryInternal<T>(int extent)
-            where T : struct
+            where T : unmanaged
         {
             int sizeInBytes = extent * Interop.SizeOf<T>();
             if (advancedSharedMemoryBufferIndex < 0)
@@ -215,7 +215,7 @@ namespace ILGPU.Runtime.CPU
         /// <returns>The resolved shared-memory array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T> AllocateSharedMemoryDynamic<T>()
-            where T : struct =>
+            where T : unmanaged =>
             AllocateSharedMemory<T>(dynamicSharedMemoryArrayLength);
 
         /// <summary>
@@ -225,7 +225,7 @@ namespace ILGPU.Runtime.CPU
         /// <returns>The resolved shared-memory array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T> AllocateSharedMemory<T>(int extent)
-            where T : struct
+            where T : unmanaged
         {
             var isMainThread = Interlocked.CompareExchange(
                 ref sharedMemoryLock, 1, 0) == 0;
@@ -263,7 +263,7 @@ namespace ILGPU.Runtime.CPU
         /// <param name="groupIndex">The source thread index within the group.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Broadcast<T>(T value, int groupIndex)
-            where T : struct
+            where T : unmanaged
         {
             var view = broadcastBuffer.View.Cast<T>();
             if (Group.LinearIndex == groupIndex)

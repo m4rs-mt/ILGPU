@@ -355,7 +355,7 @@ namespace ILGPU
         /// <param name="numElements">The number of elements to request.</param>
         /// <returns>A shared memory configuration that uses shared memory.</returns>
         public static SharedMemoryConfig RequestDynamic<T>(int numElements)
-            where T : struct
+            where T : unmanaged
         {
             if (numElements < 1)
                 throw new ArgumentOutOfRangeException(nameof(numElements));

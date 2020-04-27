@@ -35,7 +35,7 @@ namespace ILGPU
         [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe void* LoadEffectiveAddress<T>(this ArrayView<T> view)
-            where T : struct =>
+            where T : unmanaged =>
             view.LoadEffectiveAddress();
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace ILGPU
         /// <returns>The converted 2D view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView2D<T> As2DView<T>(this ArrayView<T> view, int height)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView2D<T>(view, height);
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace ILGPU
             this ArrayView<T> view,
             int width,
             int height)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView2D<T>(view, width, height);
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace ILGPU
         /// <returns>The converted 2D view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView2D<T> As2DView<T>(this ArrayView<T> view, Index2 extent)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView2D<T>(view, extent);
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace ILGPU
             this ArrayView<T> view,
             int height,
             int depth)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView3D<T>(view, height, depth);
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace ILGPU
         /// <returns>The converted 3D view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView3D<T> As3DView<T>(this ArrayView<T> view, Index2 extent)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView3D<T>(view, extent.X, extent.Y);
 
         /// <summary>
@@ -124,7 +124,7 @@ namespace ILGPU
             int width,
             int height,
             int depth)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView3D<T>(view, width, height, depth);
 
         /// <summary>
@@ -143,7 +143,7 @@ namespace ILGPU
             this ArrayView<T> view,
             Index2 extent,
             int depth)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView3D<T>(view, extent, depth);
 
         /// <summary>
@@ -162,7 +162,7 @@ namespace ILGPU
             this ArrayView<T> view,
             int width,
             Index2 extent)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView3D<T>(view, width, extent);
 
         /// <summary>
@@ -173,7 +173,7 @@ namespace ILGPU
         /// <returns>The converted 3D view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView3D<T> As3DView<T>(this ArrayView<T> view, Index3 extent)
-            where T : struct =>
+            where T : unmanaged =>
             new ArrayView3D<T>(view, extent);
 
         /// <summary>
@@ -184,7 +184,7 @@ namespace ILGPU
         /// <returns>The resolved variable view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static VariableView<T> GetVariableView<T>(this ArrayView<T> view)
-            where T : struct =>
+            where T : unmanaged =>
             view.GetVariableView(Index1.Zero);
 
         /// <summary>
@@ -198,7 +198,7 @@ namespace ILGPU
         public static VariableView<T> GetVariableView<T>(
             this ArrayView<T> view,
             Index1 element)
-            where T : struct =>
+            where T : unmanaged =>
             new VariableView<T>(view.GetSubView(element, 1));
 
         #endregion

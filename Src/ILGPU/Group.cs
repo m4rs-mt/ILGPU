@@ -226,7 +226,7 @@ namespace ILGPU
         [GroupIntrinsic(GroupIntrinsicKind.Broadcast)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Broadcast<T>(T value, int groupIndex)
-            where T : struct =>
+            where T : unmanaged =>
             CPURuntimeGroupContext.Current.Broadcast(value, groupIndex);
 
         #endregion

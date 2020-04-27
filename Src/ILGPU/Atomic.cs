@@ -23,7 +23,7 @@ namespace ILGPU
         /// </summary>
         /// <typeparam name="T">The type of the compare-exchange operation.</typeparam>
         public interface ICompareExchangeOperation<T>
-            where T : struct
+            where T : unmanaged
         {
             /// <summary>
             /// Realizes an atomic compare-exchange operation.
@@ -40,7 +40,7 @@ namespace ILGPU
         /// </summary>
         /// <typeparam name="T">The parameter type of the atomic operation.</typeparam>
         public interface IAtomicOperation<T>
-            where T : struct
+            where T : unmanaged
         {
             /// <summary>
             /// Performs the actual atomic binary operation.
@@ -266,7 +266,7 @@ namespace ILGPU
             T value,
             TOperation operation,
             TCompareExchangeOperation compareExchangeOperation)
-            where T : struct, IEquatable<T>
+            where T : unmanaged, IEquatable<T>
             where TOperation : struct, AtomicOperations.IAtomicOperation<T>
             where TCompareExchangeOperation :
                 struct,

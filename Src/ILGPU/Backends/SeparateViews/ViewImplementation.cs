@@ -63,7 +63,7 @@ namespace ILGPU.Backends.SeparateViews
         /// <returns>The created view implementation.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ViewImplementation Create<T>(ArrayView<T> source)
-            where T : struct =>
+            where T : unmanaged =>
             new ViewImplementation(source.Index, source.Length);
 
         /// <summary>

@@ -116,7 +116,7 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.Shuffle)]
         public static T Shuffle<T>(T variable, int sourceLane)
-            where T : struct => variable;
+            where T : unmanaged => variable;
 
         /// <summary>
         /// Performs a shuffle operation. It returns the value of the variable
@@ -136,7 +136,7 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffle)]
         public static T Shuffle<T>(T variable, int sourceLane, int width)
-            where T : struct
+            where T : unmanaged
         {
             Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
@@ -162,7 +162,7 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleDown)]
         public static T ShuffleDown<T>(T variable, int delta)
-            where T : struct => variable;
+            where T : unmanaged => variable;
 
         /// <summary>
         /// Performs a shuffle operation. It returns the value of the variable
@@ -182,7 +182,7 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffleDown)]
         public static T ShuffleDown<T>(T variable, int delta, int width)
-            where T : struct
+            where T : unmanaged
         {
             Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
@@ -208,7 +208,7 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleUp)]
         public static T ShuffleUp<T>(T variable, int delta)
-            where T : struct => variable;
+            where T : unmanaged => variable;
 
         /// <summary>
         /// Performs a shuffle operation. It returns the value of the variable
@@ -228,7 +228,7 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffleUp)]
         public static T ShuffleUp<T>(T variable, int delta, int width)
-            where T : struct
+            where T : unmanaged
         {
             Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
@@ -254,7 +254,7 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.ShuffleXor)]
         public static T ShuffleXor<T>(T variable, int mask)
-            where T : struct => variable;
+            where T : unmanaged => variable;
 
         /// <summary>
         /// Performs a shuffle operation. It returns the value of the variable
@@ -274,7 +274,7 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.SubShuffleXor)]
         public static T ShuffleXor<T>(T variable, int mask, int width)
-            where T : struct
+            where T : unmanaged
         {
             Debug.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
@@ -296,7 +296,7 @@ namespace ILGPU
         /// </remarks>
         [WarpIntrinsic(WarpIntrinsicKind.Broadcast)]
         public static T Broadcast<T>(T value, int laneIndex)
-            where T : struct => value;
+            where T : unmanaged => value;
 
         #endregion
     }

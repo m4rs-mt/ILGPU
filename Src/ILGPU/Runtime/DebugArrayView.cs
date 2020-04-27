@@ -19,7 +19,7 @@ namespace ILGPU.Runtime
     /// Base debug view.
     /// </summary>
     abstract class BaseDebugArrayView<T>
-        where T : struct
+        where T : unmanaged
     {
         #region Instance
 
@@ -115,7 +115,7 @@ namespace ILGPU.Runtime
     /// Represents a debugger array view.
     /// </summary>
     sealed class DebugArrayView<T> : BaseDebugArrayView<T>
-        where T : struct
+        where T : unmanaged
     {
         #region Instance
 
@@ -150,8 +150,8 @@ namespace ILGPU.Runtime
     /// Represents a debugger view for generic array views.
     /// </summary>
     sealed class DebugArrayView<T, TIndex> : BaseDebugArrayView<T>
-        where T : struct
-        where TIndex : struct, IIndex, IGenericIndex<TIndex>
+        where T : unmanaged
+        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
     {
         #region Instance
 

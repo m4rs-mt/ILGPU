@@ -93,8 +93,8 @@ namespace ILGPU.Runtime
     /// <remarks>Members of this class are not thread safe.</remarks>
     public abstract class MemoryBuffer<T, TIndex> :
         MemoryBuffer, IMemoryBuffer<T, TIndex>
-        where T : struct
-        where TIndex : struct, IIndex, IGenericIndex<TIndex>
+        where T : unmanaged
+        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
     {
         #region Constants
 
@@ -464,7 +464,7 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
-        public void CopyTo(
+        public unsafe void CopyTo(
             AcceleratorStream stream,
             T[] target,
             TIndex sourceOffset,
@@ -485,10 +485,9 @@ namespace ILGPU.Runtime
 
             Debug.Assert(target.Rank == 1);
 
-            var handle = GCHandle.Alloc(target, GCHandleType.Pinned);
-            try
+            fixed (T* ptr = &target[0])
             {
-                using (var wrapper = ViewArrayWrapper.Create<T>(handle))
+                using (var wrapper = ViewPointerWrapper.Create(ptr))
                 {
                     CopyToView(
                         stream,
@@ -497,10 +496,6 @@ namespace ILGPU.Runtime
                         sourceOffset.ComputeLinearIndex(Extent));
                 }
                 stream.Synchronize();
-            }
-            finally
-            {
-                handle.Free();
             }
         }
 
@@ -685,7 +680,7 @@ namespace ILGPU.Runtime
         /// <param name="sourceOffset">The source offset.</param>
         /// <param name="targetOffset">The target offset.</param>
         /// <param name="extent">The extent (number of elements).</param>
-        public void CopyFrom(
+        public unsafe void CopyFrom(
             AcceleratorStream stream,
             T[] source,
             int sourceOffset,
@@ -704,10 +699,9 @@ namespace ILGPU.Runtime
             if (sourceOffset + extent < 1 || extent + sourceOffset > source.Length)
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
 
-            GCHandle handle = GCHandle.Alloc(source, GCHandleType.Pinned);
-            try
+            fixed (T* ptr = &source[0])
             {
-                using (var wrapper = ViewArrayWrapper.Create<T>(handle))
+                using (var wrapper = ViewPointerWrapper.Create(ptr))
                 {
                     CopyFromView(
                         stream,
@@ -716,10 +710,6 @@ namespace ILGPU.Runtime
                         targetOffset.ComputeLinearIndex(Extent));
                     stream.Synchronize();
                 }
-            }
-            finally
-            {
-                handle.Free();
             }
         }
 
@@ -784,7 +774,7 @@ namespace ILGPU.Runtime
             var result = new byte[rawExtent];
             fixed (byte* ptr = &result[0])
             {
-                using (var wrapper = ViewPointerWrapper.Create(new IntPtr(ptr)))
+                using (var wrapper = ViewPointerWrapper.Create(ptr))
                 {
                     CopyToView(
                         stream,

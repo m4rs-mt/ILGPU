@@ -21,7 +21,7 @@ namespace ILGPU
     /// <typeparam name="T">The type of the variable.</typeparam>
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct VariableView<T>
-        where T : struct
+        where T : unmanaged
     {
         #region Constants
 
@@ -91,7 +91,7 @@ namespace ILGPU
         /// <param name="offsetInBytes"></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public VariableView<TOther> GetSubView<TOther>(int offsetInBytes)
-            where TOther : struct
+            where TOther : unmanaged
         {
             Debug.Assert(offsetInBytes >= 0, "Offset out of range");
             Debug.Assert(
