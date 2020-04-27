@@ -60,6 +60,7 @@ namespace ILGPU.Frontend.Intrinsic
             {
                 InteropIntrinsicKind.SizeOf => builder.CreateSizeOf(
                     builder.CreateType(context.GetMethodGenericArguments()[0])),
+                InteropIntrinsicKind.OffsetOf => CreateOffsetOf(context),
                 InteropIntrinsicKind.FloatAsInt => builder.CreateFloatAsIntCast(
                     context[0]),
                 InteropIntrinsicKind.IntAsFloat => builder.CreateIntAsFloatCast(
@@ -68,6 +69,31 @@ namespace ILGPU.Frontend.Intrinsic
                     ErrorMessages.NotSupportedInteropIntrinsic,
                     attribute.IntrinsicKind.ToString()),
             };
+        }
+
+        /// <summary>
+        /// Creates a new offset-of computation.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        private static ValueReference CreateOffsetOf(in InvocationContext context)
+        {
+            var builder = context.Builder;
+            var typeInfo = builder.Context.TypeContext.GetTypeInfo(
+                context.GetMethodGenericArguments()[0]);
+            var fieldName = context[0].ResolveAs<StringValue>();
+            int fieldIndex = 0;
+            foreach (var field in typeInfo.Fields)
+            {
+                if (field.Name == fieldName.String)
+                {
+                    fieldIndex = typeInfo.GetAbsoluteIndex(field);
+                    break;
+                }
+            }
+            var irType = context.Builder.CreateType(typeInfo.ManagedType);
+            return context.Builder.CreateOffsetOf(
+                irType,
+                fieldIndex);
         }
     }
 }

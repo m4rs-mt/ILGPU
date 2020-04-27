@@ -193,6 +193,22 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
+        /// Creates a node that represents the native offset of the specified field
+        /// index.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <param name="fieldIndex">The field index.</param>
+        /// <returns>A reference to the requested value.</returns>
+        public ValueReference CreateOffsetOf(TypeNode type, int fieldIndex)
+        {
+            Debug.Assert(type != null, "Invalid type node");
+            return CreatePrimitiveValue(
+                type is StructureType structureType
+                ? structureType.GetOffset(fieldIndex)
+                : 0);
+        }
+
+        /// <summary>
         /// Creates a node that represents an undefined value.
         /// </summary>
         /// <returns>A reference to the requested value.</returns>
