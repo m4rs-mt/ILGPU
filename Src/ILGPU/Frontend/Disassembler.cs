@@ -176,21 +176,19 @@ namespace ILGPU.Frontend
                     if (debugInformationEnumerator.TryGetCurrentDebugLocationString(
                         out string debugLocation))
                     {
-                        switch (opCode)
+                        throw opCode switch
                         {
-                            case ILOpCode.Ldftn:
-                                throw new NotSupportedException(string.Format(
-                                    ErrorMessages.NotSupportedILInstructionPossibleLambda,
-                                    MethodBase.ToString(),
-                                    opCode,
-                                    debugLocation));
-                            default:
-                                throw new NotSupportedException(string.Format(
-                                    ErrorMessages.NotSupportedILInstructionDebugLoc,
-                                    MethodBase.ToString(),
-                                    opCode,
-                                    debugLocation));
-                        }
+                            ILOpCode.Ldftn => new NotSupportedException(string.Format(
+                                ErrorMessages.NotSupportedILInstructionPossibleLambda,
+                                MethodBase.ToString(),
+                                opCode,
+                                debugLocation)),
+                            _ => new NotSupportedException(string.Format(
+                                ErrorMessages.NotSupportedILInstructionDebugLoc,
+                                MethodBase.ToString(),
+                                opCode,
+                                debugLocation)),
+                        };
                     }
                     else
                     {

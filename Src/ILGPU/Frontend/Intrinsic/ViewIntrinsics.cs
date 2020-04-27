@@ -66,59 +66,51 @@ namespace ILGPU.Frontend.Intrinsic
             // These methods are instance calls -> load instance value
             var paramOffset = 0;
             var instanceValue = builder.CreateLoad(context[paramOffset++]);
-            switch (attribute.IntrinsicKind)
+            return attribute.IntrinsicKind switch
             {
-                case ViewIntrinsicKind.GetViewLength:
-                    return builder.CreateGetViewLength(instanceValue);
-                case ViewIntrinsicKind.GetViewLengthInBytes:
-                    return builder.CreateArithmetic(
-                        builder.CreateGetViewLength(instanceValue),
-                        builder.CreateSizeOf(
-                            (instanceValue.Type as AddressSpaceType).ElementType),
-                        BinaryArithmeticKind.Mul);
-                case ViewIntrinsicKind.GetSubView:
-                    return builder.CreateSubViewValue(
-                        instanceValue,
-                        context[paramOffset++],
-                        context[paramOffset++]);
-                case ViewIntrinsicKind.GetSubViewImplicitLength:
-                    return builder.CreateSubViewValue(
+                ViewIntrinsicKind.GetViewLength => builder.CreateGetViewLength(
+                    instanceValue),
+                ViewIntrinsicKind.GetViewLengthInBytes => builder.CreateArithmetic(
+                    builder.CreateGetViewLength(instanceValue),
+                    builder.CreateSizeOf(
+                        (instanceValue.Type as AddressSpaceType).ElementType),
+                    BinaryArithmeticKind.Mul),
+                ViewIntrinsicKind.GetSubView => builder.CreateSubViewValue(
+                    instanceValue,
+                    context[paramOffset++],
+                    context[paramOffset++]),
+                ViewIntrinsicKind.GetSubViewImplicitLength =>
+                    builder.CreateSubViewValue(
                         instanceValue,
                         context[paramOffset],
                         builder.CreateArithmetic(
                             builder.CreateGetViewLength(instanceValue),
                             context[paramOffset],
-                            BinaryArithmeticKind.Sub));
-                case ViewIntrinsicKind.GetViewElementAddress:
-                    return builder.CreateLoadElementAddress(
+                            BinaryArithmeticKind.Sub)),
+                ViewIntrinsicKind.GetViewElementAddress =>
+                    builder.CreateLoadElementAddress(
                         instanceValue,
-                        context[paramOffset++]);
-                case ViewIntrinsicKind.CastView:
-                    return builder.CreateViewCast(
-                        instanceValue,
-                        builder.CreateType(context.GetMethodGenericArguments()[0]));
-
-                case ViewIntrinsicKind.IsValidView:
-                    return builder.CreateCompare(
-                        builder.CreateGetViewLength(instanceValue),
-                        builder.CreatePrimitiveValue(0),
-                        CompareKind.GreaterThan);
-                case ViewIntrinsicKind.GetViewExtent:
-                    return builder.CreateIndex(
-                        builder.CreateGetViewLength(instanceValue));
-                case ViewIntrinsicKind.GetViewElementAddressByIndex:
-                    return builder.CreateLoadElementAddress(
+                        context[paramOffset++]),
+                ViewIntrinsicKind.CastView => builder.CreateViewCast(
+                    instanceValue,
+                    builder.CreateType(context.GetMethodGenericArguments()[0])),
+                ViewIntrinsicKind.IsValidView => builder.CreateCompare(
+                    builder.CreateGetViewLength(instanceValue),
+                    builder.CreatePrimitiveValue(0),
+                    CompareKind.GreaterThan),
+                ViewIntrinsicKind.GetViewExtent => builder.CreateIndex(
+                    builder.CreateGetViewLength(instanceValue)),
+                ViewIntrinsicKind.GetViewElementAddressByIndex =>
+                    builder.CreateLoadElementAddress(
                         instanceValue,
                         builder.CreateGetField(
                             context[paramOffset++],
-                            new FieldAccess(0)));
-                case ViewIntrinsicKind.AsLinearView:
-                    return instanceValue;
-                default:
-                    throw context.GetNotSupportedException(
-                        ErrorMessages.NotSupportedViewIntrinsic,
-                        attribute.IntrinsicKind.ToString());
-            }
+                            new FieldAccess(0))),
+                ViewIntrinsicKind.AsLinearView => instanceValue,
+                _ => throw context.GetNotSupportedException(
+                    ErrorMessages.NotSupportedViewIntrinsic,
+                    attribute.IntrinsicKind.ToString()),
+            };
         }
     }
 }

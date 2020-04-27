@@ -18,13 +18,11 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IBackendCodeGenerator.GenerateCode(ReturnTerminator)"/>
         public void GenerateCode(ReturnTerminator returnTerminator)
         {
-            using (var statement = BeginStatement(CLInstructions.ReturnStatement))
+            using var statement = BeginStatement(CLInstructions.ReturnStatement);
+            if (!returnTerminator.IsVoidReturn)
             {
-                if (!returnTerminator.IsVoidReturn)
-                {
-                    var resultRegister = Load(returnTerminator.ReturnValue);
-                    statement.AppendArgument(resultRegister);
-                }
+                var resultRegister = Load(returnTerminator.ReturnValue);
+                statement.AppendArgument(resultRegister);
             }
         }
 

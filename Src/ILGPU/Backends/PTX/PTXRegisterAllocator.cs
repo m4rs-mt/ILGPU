@@ -158,40 +158,26 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="register">The register.</param>
         /// <returns>The string representation.</returns>
-        public static string GetStringRepresentation(HardwareRegister register)
-        {
-            switch (register.Kind)
+        public static string GetStringRepresentation(HardwareRegister register) =>
+            register.Kind switch
             {
-                case PTXRegisterKind.Predicate:
-                    return "p" + register.RegisterValue;
-                case PTXRegisterKind.Int16:
-                    return "rs" + register.RegisterValue;
-                case PTXRegisterKind.Int32:
-                    return "r" + register.RegisterValue;
-                case PTXRegisterKind.Int64:
-                    return "rd" + register.RegisterValue;
-                case PTXRegisterKind.Float32:
-                    return "f" + register.RegisterValue;
-                case PTXRegisterKind.Float64:
-                    return "fd" + register.RegisterValue;
-                case PTXRegisterKind.Ctaid:
-                    return "ctaid." +
-                        ResolveDeviceConstantValue(register);
-                case PTXRegisterKind.Tid:
-                    return "tid." +
-                        ResolveDeviceConstantValue(register);
-                case PTXRegisterKind.NctaId:
-                    return "nctaid." +
-                        ResolveDeviceConstantValue(register);
-                case PTXRegisterKind.NtId:
-                    return "ntid." +
-                        ResolveDeviceConstantValue(register);
-                case PTXRegisterKind.LaneId:
-                    return "laneid";
-                default:
-                    throw new InvalidCodeGenerationException();
-            }
-        }
+                PTXRegisterKind.Predicate => "p" + register.RegisterValue,
+                PTXRegisterKind.Int16 => "rs" + register.RegisterValue,
+                PTXRegisterKind.Int32 => "r" + register.RegisterValue,
+                PTXRegisterKind.Int64 => "rd" + register.RegisterValue,
+                PTXRegisterKind.Float32 => "f" + register.RegisterValue,
+                PTXRegisterKind.Float64 => "fd" + register.RegisterValue,
+                PTXRegisterKind.Ctaid => "ctaid." +
+                    ResolveDeviceConstantValue(register),
+                PTXRegisterKind.Tid => "tid." +
+                    ResolveDeviceConstantValue(register),
+                PTXRegisterKind.NctaId => "nctaid." +
+                    ResolveDeviceConstantValue(register),
+                PTXRegisterKind.NtId => "ntid." +
+                    ResolveDeviceConstantValue(register),
+                PTXRegisterKind.LaneId => "laneid",
+                _ => throw new InvalidCodeGenerationException(),
+            };
 
         #endregion
 

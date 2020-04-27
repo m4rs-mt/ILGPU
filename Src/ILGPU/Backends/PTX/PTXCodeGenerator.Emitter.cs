@@ -635,14 +635,12 @@ namespace ILGPU.Backends.PTX
             Debug.Assert(
                 targetRegister.Kind == PTXRegisterKind.Int32,
                 "Invalid target register");
-            using (var command = BeginCommand(
-                PTXInstructions.GetSelectValueOperation(BasicValueType.Int32)))
-            {
-                command.AppendArgument(targetRegister);
-                command.AppendConstant(1);
-                command.AppendConstant(0);
-                command.AppendArgument(register);
-            }
+            using var command = BeginCommand(
+                PTXInstructions.GetSelectValueOperation(BasicValueType.Int32));
+            command.AppendArgument(targetRegister);
+            command.AppendConstant(1);
+            command.AppendConstant(0);
+            command.AppendArgument(register);
         }
 
         /// <summary>
@@ -686,15 +684,13 @@ namespace ILGPU.Backends.PTX
                 "Invalid register kind");
 
             // Convert to predicate value
-            using (var command = BeginCommand(
+            using var command = BeginCommand(
                 PTXInstructions.GetCompareOperation(
                     CompareKind.NotEqual,
-                    ArithmeticBasicValueType.UInt32)))
-            {
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(register);
-                command.AppendConstant(0);
-            }
+                    ArithmeticBasicValueType.UInt32));
+            command.AppendArgument(targetRegister);
+            command.AppendArgument(register);
+            command.AppendConstant(0);
         }
 
         /// <summary>
@@ -840,12 +836,10 @@ namespace ILGPU.Backends.PTX
                 return;
             }
 
-            using (var emitter = BeginMove(predicate))
-            {
-                emitter.AppendSuffix(target.BasicValueType);
-                emitter.AppendArgument(target);
-                emitter.AppendArgument(source);
-            }
+            using var emitter = BeginMove(predicate);
+            emitter.AppendSuffix(target.BasicValueType);
+            emitter.AppendArgument(target);
+            emitter.AppendArgument(source);
         }
 
         /// <summary>

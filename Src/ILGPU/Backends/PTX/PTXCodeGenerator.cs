@@ -668,12 +668,10 @@ namespace ILGPU.Backends.PTX
                     PrimitiveRegister primitiveRegister,
                     int offset)
                 {
-                    using (var commandEmitter = codeGenerator.BeginCommand(command))
-                    {
-                        commandEmitter.AppendSuffix(primitiveRegister.BasicValueType);
-                        commandEmitter.AppendArgument(primitiveRegister);
-                        commandEmitter.AppendRawValue(ParamName, offset);
-                    }
+                    using var commandEmitter = codeGenerator.BeginCommand(command);
+                    commandEmitter.AppendSuffix(primitiveRegister.BasicValueType);
+                    commandEmitter.AppendArgument(primitiveRegister);
+                    commandEmitter.AppendRawValue(ParamName, offset);
                 }
             }
 
@@ -738,12 +736,10 @@ namespace ILGPU.Backends.PTX
                     PrimitiveRegister primitiveRegister,
                     int offset)
                 {
-                    using (var commandEmitter = codeGenerator.BeginCommand(command))
-                    {
-                        commandEmitter.AppendSuffix(primitiveRegister.BasicValueType);
-                        commandEmitter.AppendRawValue(ParamName, offset);
-                        commandEmitter.AppendArgument(primitiveRegister);
-                    }
+                    using var commandEmitter = codeGenerator.BeginCommand(command);
+                    commandEmitter.AppendSuffix(primitiveRegister.BasicValueType);
+                    commandEmitter.AppendRawValue(ParamName, offset);
+                    commandEmitter.AppendArgument(primitiveRegister);
                 }
             }
 
@@ -805,12 +801,10 @@ namespace ILGPU.Backends.PTX
                 var description = ResolveRegisterDescription(
                     Backend.PointerBasicValueType);
                 var targetRegister = Allocate(allocaEntry.Item1, description);
-                using (var command = BeginMove())
-                {
-                    command.AppendSuffix(description.BasicValueType);
-                    command.AppendArgument(targetRegister);
-                    command.AppendRawValueReference(allocaEntry.Item2);
-                }
+                using var command = BeginMove();
+                command.AppendSuffix(description.BasicValueType);
+                command.AppendArgument(targetRegister);
+                command.AppendRawValueReference(allocaEntry.Item2);
             }
         }
 

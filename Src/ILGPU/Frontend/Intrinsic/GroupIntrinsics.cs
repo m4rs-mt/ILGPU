@@ -57,20 +57,18 @@ namespace ILGPU.Frontend.Intrinsic
             GroupIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
-            switch (attribute.IntrinsicKind)
+            return attribute.IntrinsicKind switch
             {
-                case GroupIntrinsicKind.Barrier:
-                    return builder.CreateBarrier(BarrierKind.GroupLevel);
-                case GroupIntrinsicKind.Broadcast:
-                    return builder.CreateBroadcast(
-                        context[0],
-                        context[1],
-                        BroadcastKind.GroupLevel);
-                default:
-                    return builder.CreateBarrier(
-                        context[0],
-                        (PredicateBarrierKind)attribute.IntrinsicKind);
-            }
+                GroupIntrinsicKind.Barrier => builder.CreateBarrier(
+                    BarrierKind.GroupLevel),
+                GroupIntrinsicKind.Broadcast => builder.CreateBroadcast(
+                    context[0],
+                    context[1],
+                    BroadcastKind.GroupLevel),
+                _ => builder.CreateBarrier(
+                    context[0],
+                    (PredicateBarrierKind)attribute.IntrinsicKind),
+            };
         }
     }
 }

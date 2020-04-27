@@ -114,20 +114,14 @@ namespace ILGPU.IR
         /// <param name="space">The address space.</param>
         /// <returns>The .Net representation of the given address space.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Type GetManagedType(this MemoryAddressSpace space)
-        {
-            switch (space)
+        public static Type GetManagedType(this MemoryAddressSpace space) =>
+            space switch
             {
-                case MemoryAddressSpace.Global:
-                    return typeof(AddressSpaces.Global);
-                case MemoryAddressSpace.Local:
-                    return typeof(AddressSpaces.Local);
-                case MemoryAddressSpace.Shared:
-                    return typeof(AddressSpaces.Shared);
-                default:
-                    return typeof(AddressSpaces.Generic);
-            }
-        }
+                MemoryAddressSpace.Global => typeof(AddressSpaces.Global),
+                MemoryAddressSpace.Local => typeof(AddressSpaces.Local),
+                MemoryAddressSpace.Shared => typeof(AddressSpaces.Shared),
+                _ => typeof(AddressSpaces.Generic),
+            };
 
         /// <summary>
         /// Resolves the address-space type for the given .Net type.

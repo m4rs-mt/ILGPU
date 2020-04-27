@@ -238,10 +238,8 @@ namespace ILGPU.IR.Values
         {
             get
             {
-                using (var enumerator = GetEnumerator())
-                {
-                    return enumerator.MoveNext();
-                }
+                using var enumerator = GetEnumerator();
+                return enumerator.MoveNext();
             }
         }
 
@@ -252,10 +250,8 @@ namespace ILGPU.IR.Values
         {
             get
             {
-                using (var enumerator = GetEnumerator())
-                {
-                    return !enumerator.MoveNext() ? false : !enumerator.MoveNext();
-                }
+                using var enumerator = GetEnumerator();
+                return !enumerator.MoveNext() ? false : !enumerator.MoveNext();
             }
         }
 
@@ -267,13 +263,11 @@ namespace ILGPU.IR.Values
         public bool TryGetSingleUse(out Use use)
         {
             use = default;
-            using (var enumerator = GetEnumerator())
-            {
-                if (!enumerator.MoveNext())
-                    return false;
-                use = enumerator.Current;
-                return !enumerator.MoveNext();
-            }
+            using var enumerator = GetEnumerator();
+            if (!enumerator.MoveNext())
+                return false;
+            use = enumerator.Current;
+            return !enumerator.MoveNext();
         }
 
         /// <summary>

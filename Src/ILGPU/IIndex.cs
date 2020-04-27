@@ -54,22 +54,15 @@ namespace ILGPU
         /// </summary>
         /// <param name="indexType">The index type.</param>
         /// <returns>The resolved managed index type..</returns>
-        public static Type GetManagedIndexType(this IndexType indexType)
-        {
-            switch (indexType)
+        public static Type GetManagedIndexType(this IndexType indexType) =>
+            indexType switch
             {
-                case IndexType.Index1D:
-                    return typeof(Index1);
-                case IndexType.Index2D:
-                    return typeof(Index2);
-                case IndexType.Index3D:
-                    return typeof(Index3);
-                case IndexType.KernelConfig:
-                    return typeof(KernelConfig);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(indexType));
-            }
-        }
+                IndexType.Index1D => typeof(Index1),
+                IndexType.Index2D => typeof(Index2),
+                IndexType.Index3D => typeof(Index3),
+                IndexType.KernelConfig => typeof(KernelConfig),
+                _ => throw new ArgumentOutOfRangeException(nameof(indexType)),
+            };
 
         /// <summary>
         /// Tries to resolve an index type based on the given .Net type.

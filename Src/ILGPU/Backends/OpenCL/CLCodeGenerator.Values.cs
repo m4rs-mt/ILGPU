@@ -47,7 +47,7 @@ namespace ILGPU.Backends.OpenCL
             statementEmitter.EndArguments();
 
             // End call
-            statementEmitter.Dispose();
+            statementEmitter.Finish();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Parameter)"/>
@@ -68,24 +68,22 @@ namespace ILGPU.Backends.OpenCL
             var argument = Load(value.Value);
             var target = Allocate(value, value.ArithmeticBasicValueType);
 
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCast(value.ArithmeticBasicValueType);
-                var operation = CLInstructions.GetArithmeticOperation(
-                    value.Kind,
-                    value.BasicValueType.IsFloat(),
-                    out bool isFunction);
+            using var statement = BeginStatement(target);
+            statement.AppendCast(value.ArithmeticBasicValueType);
+            var operation = CLInstructions.GetArithmeticOperation(
+                value.Kind,
+                value.BasicValueType.IsFloat(),
+                out bool isFunction);
 
-                if (isFunction)
-                    statement.AppendCommand(operation);
-                statement.BeginArguments();
-                if (!isFunction)
-                    statement.AppendCommand(operation);
+            if (isFunction)
+                statement.AppendCommand(operation);
+            statement.BeginArguments();
+            if (!isFunction)
+                statement.AppendCommand(operation);
 
-                statement.AppendCast(value.ArithmeticBasicValueType);
-                statement.AppendArgument(argument);
-                statement.EndArguments();
-            }
+            statement.AppendCast(value.ArithmeticBasicValueType);
+            statement.AppendArgument(argument);
+            statement.EndArguments();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(BinaryArithmeticValue)"/>
@@ -95,39 +93,37 @@ namespace ILGPU.Backends.OpenCL
             var right = Load(value.Right);
 
             var target = Allocate(value, value.ArithmeticBasicValueType);
-            using (var statement = BeginStatement(target))
+            using var statement = BeginStatement(target);
+            statement.AppendCast(value.ArithmeticBasicValueType);
+            var operation = CLInstructions.GetArithmeticOperation(
+                value.Kind,
+                value.BasicValueType.IsFloat(),
+                out bool isFunction);
+
+            if (isFunction)
             {
-                statement.AppendCast(value.ArithmeticBasicValueType);
-                var operation = CLInstructions.GetArithmeticOperation(
-                    value.Kind,
-                    value.BasicValueType.IsFloat(),
-                    out bool isFunction);
-
-                if (isFunction)
-                {
-                    statement.AppendCommand(operation);
-                    statement.BeginArguments();
-                }
-                else
-                {
-                    statement.OpenParen();
-                }
-
-                statement.AppendCast(value.ArithmeticBasicValueType);
-                statement.AppendArgument(left);
-
-                if (!isFunction)
-                    statement.AppendCommand(operation);
-
-                statement.AppendArgument();
-                statement.AppendCast(value.ArithmeticBasicValueType);
-                statement.Append(right);
-
-                if (isFunction)
-                    statement.EndArguments();
-                else
-                    statement.CloseParen();
+                statement.AppendCommand(operation);
+                statement.BeginArguments();
             }
+            else
+            {
+                statement.OpenParen();
+            }
+
+            statement.AppendCast(value.ArithmeticBasicValueType);
+            statement.AppendArgument(left);
+
+            if (!isFunction)
+                statement.AppendCommand(operation);
+
+            statement.AppendArgument();
+            statement.AppendCast(value.ArithmeticBasicValueType);
+            statement.Append(right);
+
+            if (isFunction)
+                statement.EndArguments();
+            else
+                statement.CloseParen();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(TernaryArithmeticValue)"/>
@@ -146,26 +142,24 @@ namespace ILGPU.Backends.OpenCL
             var third = Load(value.Third);
 
             var target = Allocate(value, value.ArithmeticBasicValueType);
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCast(value.ArithmeticBasicValueType);
-                statement.AppendCommand(operation);
-                statement.BeginArguments();
+            using var statement = BeginStatement(target);
+            statement.AppendCast(value.ArithmeticBasicValueType);
+            statement.AppendCommand(operation);
+            statement.BeginArguments();
 
-                statement.AppendArgument();
-                statement.AppendCast(value.ArithmeticBasicValueType);
-                statement.Append(first);
+            statement.AppendArgument();
+            statement.AppendCast(value.ArithmeticBasicValueType);
+            statement.Append(first);
 
-                statement.AppendArgument();
-                statement.AppendCast(value.ArithmeticBasicValueType);
-                statement.Append(second);
+            statement.AppendArgument();
+            statement.AppendCast(value.ArithmeticBasicValueType);
+            statement.Append(second);
 
-                statement.AppendArgument();
-                statement.AppendCast(value.ArithmeticBasicValueType);
-                statement.Append(third);
+            statement.AppendArgument();
+            statement.AppendCast(value.ArithmeticBasicValueType);
+            statement.Append(third);
 
-                statement.EndArguments();
-            }
+            statement.EndArguments();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(CompareValue)"/>
@@ -175,16 +169,14 @@ namespace ILGPU.Backends.OpenCL
             var right = Load(value.Right);
 
             var target = Allocate(value);
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCast(value.CompareType);
-                statement.AppendArgument(left);
-                statement.AppendCommand(
-                    CLInstructions.GetCompareOperation(
-                        value.Kind));
-                statement.AppendCast(value.CompareType);
-                statement.AppendArgument(right);
-            }
+            using var statement = BeginStatement(target);
+            statement.AppendCast(value.CompareType);
+            statement.AppendArgument(left);
+            statement.AppendCommand(
+                CLInstructions.GetCompareOperation(
+                    value.Kind));
+            statement.AppendCast(value.CompareType);
+            statement.AppendArgument(right);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(ConvertValue)"/>
@@ -193,12 +185,10 @@ namespace ILGPU.Backends.OpenCL
             var sourceValue = Load(value.Value);
 
             var target = Allocate(value, value.TargetType);
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCast(value.TargetType);
-                statement.AppendCast(value.SourceType);
-                statement.AppendArgument(sourceValue);
-            }
+            using var statement = BeginStatement(target);
+            statement.AppendCast(value.TargetType);
+            statement.AppendCast(value.SourceType);
+            statement.AppendArgument(sourceValue);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PointerCast)"/>
@@ -207,11 +197,9 @@ namespace ILGPU.Backends.OpenCL
             var sourceValue = Load(value.Value);
 
             var target = Allocate(value);
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCast(value.TargetType);
-                statement.AppendArgument(sourceValue);
-            }
+            using var statement = BeginStatement(target);
+            statement.AppendCast(value.TargetType);
+            statement.AppendArgument(sourceValue);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(FloatAsIntCast)"/>
@@ -220,16 +208,14 @@ namespace ILGPU.Backends.OpenCL
             var source = Load(value.Value);
             var target = Allocate(value);
 
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCommand(
-                    value.BasicValueType == BasicValueType.Int64 ?
-                    CLInstructions.DoubleAsLong :
-                    CLInstructions.FloatAsInt);
-                statement.BeginArguments();
-                statement.AppendArgument(source);
-                statement.EndArguments();
-            }
+            using var statement = BeginStatement(target);
+            statement.AppendCommand(
+                value.BasicValueType == BasicValueType.Int64 ?
+                CLInstructions.DoubleAsLong :
+                CLInstructions.FloatAsInt);
+            statement.BeginArguments();
+            statement.AppendArgument(source);
+            statement.EndArguments();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(IntAsFloatCast)"/>
@@ -238,16 +224,14 @@ namespace ILGPU.Backends.OpenCL
             var source = Load(value.Value);
             var target = Allocate(value);
 
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCommand(
-                    value.BasicValueType == BasicValueType.Float64 ?
-                    CLInstructions.LongAsDouble :
-                    CLInstructions.IntAsFloat);
-                statement.BeginArguments();
-                statement.AppendArgument(source);
-                statement.EndArguments();
-            }
+            using var statement = BeginStatement(target);
+            statement.AppendCommand(
+                value.BasicValueType == BasicValueType.Float64 ?
+                CLInstructions.LongAsDouble :
+                CLInstructions.IntAsFloat);
+            statement.BeginArguments();
+            statement.AppendArgument(source);
+            statement.EndArguments();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Predicate)"/>
@@ -258,14 +242,12 @@ namespace ILGPU.Backends.OpenCL
             var falseValue = Load(predicate.FalseValue);
 
             var target = Allocate(predicate);
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendArgument(condition);
-                statement.AppendCommand(CLInstructions.SelectOperation1);
-                statement.AppendArgument(trueValue);
-                statement.AppendCommand(CLInstructions.SelectOperation2);
-                statement.AppendArgument(falseValue);
-            }
+            using var statement = BeginStatement(target);
+            statement.AppendArgument(condition);
+            statement.AppendCommand(CLInstructions.SelectOperation1);
+            statement.AppendArgument(trueValue);
+            statement.AppendCommand(CLInstructions.SelectOperation2);
+            statement.AppendArgument(falseValue);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(GenericAtomic)"/>
@@ -276,14 +258,12 @@ namespace ILGPU.Backends.OpenCL
             var result = Allocate(atomic);
 
             var atomicOperation = CLInstructions.GetAtomicOperation(atomic.Kind);
-            using (var statement = BeginStatement(result, atomicOperation))
-            {
-                statement.BeginArguments();
-                statement.AppendAtomicCast(atomic.ArithmeticBasicValueType);
-                statement.AppendArgument(target);
-                statement.AppendArgument(value);
-                statement.EndArguments();
-            }
+            using var statement = BeginStatement(result, atomicOperation);
+            statement.BeginArguments();
+            statement.AppendAtomicCast(atomic.ArithmeticBasicValueType);
+            statement.AppendArgument(target);
+            statement.AppendArgument(value);
+            statement.EndArguments();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(AtomicCAS)"/>
@@ -338,18 +318,16 @@ namespace ILGPU.Backends.OpenCL
             var command = CLInstructions.GetMemoryBarrier(
                 barrier.Kind,
                 out string memoryScope);
-            using (var statement = BeginStatement(command))
-            {
-                statement.BeginArguments();
+            using var statement = BeginStatement(command);
+            statement.BeginArguments();
 
-                statement.AppendArgument();
-                statement.AppendCommand(fenceFlags);
+            statement.AppendArgument();
+            statement.AppendCommand(fenceFlags);
 
-                statement.AppendArgument();
-                statement.AppendCommand(memoryScope);
+            statement.AppendArgument();
+            statement.AppendCommand(memoryScope);
 
-                statement.EndArguments();
-            }
+            statement.EndArguments();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Load)"/>
@@ -358,11 +336,9 @@ namespace ILGPU.Backends.OpenCL
             var address = Load(load.Source);
             var target = Allocate(load);
 
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCommand(CLInstructions.DereferenceOperation);
-                statement.AppendArgument(address);
-            }
+            using var statement = BeginStatement(target);
+            statement.AppendCommand(CLInstructions.DereferenceOperation);
+            statement.AppendArgument(address);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Store)"/>
@@ -371,13 +347,10 @@ namespace ILGPU.Backends.OpenCL
             var address = Load(store.Target);
             var value = Load(store.Value);
 
-            using (var statement = BeginStatement(
-                CLInstructions.DereferenceOperation))
-            {
-                statement.AppendArgument(address);
-                statement.AppendCommand(CLInstructions.AssignmentOperation);
-                statement.AppendArgument(value);
-            }
+            using var statement = BeginStatement(CLInstructions.DereferenceOperation);
+            statement.AppendArgument(address);
+            statement.AppendCommand(CLInstructions.AssignmentOperation);
+            statement.AppendArgument(value);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(LoadFieldAddress)"/>
@@ -386,49 +359,42 @@ namespace ILGPU.Backends.OpenCL
             var source = Load(value.Source);
             var target = Allocate(value);
 
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCommand(CLInstructions.AddressOfOperation);
-                statement.AppendArgument(source);
-                statement.AppendFieldViaPtr(value.FieldSpan.Access);
-            }
+            using var statement = BeginStatement(target);
+            statement.AppendCommand(CLInstructions.AddressOfOperation);
+            statement.AppendArgument(source);
+            statement.AppendFieldViaPtr(value.FieldSpan.Access);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PrimitiveValue)"/>
         public void GenerateCode(PrimitiveValue value)
         {
-            if (value.Uses.TryGetSingleUse(out Use use) && use.Resolve() is Alloca)
-                return;
-
             var variable = Allocate(value);
-            using (var statement = BeginStatement(variable))
+            using var statement = BeginStatement(variable);
+            switch (value.BasicValueType)
             {
-                switch (value.BasicValueType)
-                {
-                    case BasicValueType.Int1:
-                        statement.AppendConstant(value.Int1Value ? 1 : 0);
-                        break;
-                    case BasicValueType.Int8:
-                        statement.AppendConstant(value.UInt8Value);
-                        break;
-                    case BasicValueType.Int16:
-                        statement.AppendConstant(value.UInt16Value);
-                        break;
-                    case BasicValueType.Int32:
-                        statement.AppendConstant(value.UInt32Value);
-                        break;
-                    case BasicValueType.Int64:
-                        statement.AppendConstant(value.UInt64Value);
-                        break;
-                    case BasicValueType.Float32:
-                        statement.AppendConstant(value.Float32Value);
-                        break;
-                    case BasicValueType.Float64:
-                        statement.AppendConstant(value.Float64Value);
-                        break;
-                    default:
-                        throw new InvalidCodeGenerationException();
-                }
+                case BasicValueType.Int1:
+                    statement.AppendConstant(value.Int1Value ? 1 : 0);
+                    break;
+                case BasicValueType.Int8:
+                    statement.AppendConstant(value.UInt8Value);
+                    break;
+                case BasicValueType.Int16:
+                    statement.AppendConstant(value.UInt16Value);
+                    break;
+                case BasicValueType.Int32:
+                    statement.AppendConstant(value.UInt32Value);
+                    break;
+                case BasicValueType.Int64:
+                    statement.AppendConstant(value.UInt64Value);
+                    break;
+                case BasicValueType.Float32:
+                    statement.AppendConstant(value.Float32Value);
+                    break;
+                case BasicValueType.Float64:
+                    statement.AppendConstant(value.Float64Value);
+                    break;
+                default:
+                    throw new InvalidCodeGenerationException();
             }
         }
 
@@ -449,20 +415,16 @@ namespace ILGPU.Backends.OpenCL
                 Declare(target);
                 for (int i = 0, e = structureType.NumFields; i < e; ++i)
                 {
-                    using (var statement = BeginStatement(target, i))
-                    {
-                        statement.AppendCast(structureType[i]);
-                        statement.AppendConstant(0);
-                    }
+                    using var statement = BeginStatement(target, i);
+                    statement.AppendCast(structureType[i]);
+                    statement.AppendConstant(0);
                 }
             }
             else
             {
-                using (var statement = BeginStatement(target))
-                {
-                    statement.AppendCast(value.Type);
-                    statement.AppendConstant(0);
-                }
+                using var statement = BeginStatement(target);
+                statement.AppendCast(value.Type);
+                statement.AppendConstant(0);
             }
         }
 
@@ -473,8 +435,8 @@ namespace ILGPU.Backends.OpenCL
             Declare(target);
             for (int i = 0, e = value.NumFields; i < e; ++i)
             {
-                using (var statement = BeginStatement(target, i))
-                    statement.AppendArgument(Load(value[i]));
+                using var statement = BeginStatement(target, i);
+                statement.AppendArgument(Load(value[i]));
             }
         }
 
@@ -488,11 +450,9 @@ namespace ILGPU.Backends.OpenCL
             if (!span.HasSpan)
             {
                 // Extract primitive value from the given target
-                using (var statement = BeginStatement(target))
-                {
-                    statement.AppendArgument(source);
-                    statement.AppendField(span.Access);
-                }
+                using var statement = BeginStatement(target);
+                statement.AppendArgument(source);
+                statement.AppendField(span.Access);
             }
             else
             {
@@ -500,11 +460,9 @@ namespace ILGPU.Backends.OpenCL
                 Declare(target);
                 for (int i = 0; i < span.Span; ++i)
                 {
-                    using (var statement = BeginStatement(target, i))
-                    {
-                        statement.AppendArgument(source);
-                        statement.AppendField(span.Access.Add(i));
-                    }
+                    using var statement = BeginStatement(target, i);
+                    statement.AppendArgument(source);
+                    statement.AppendField(span.Access.Add(i));
                 }
             }
         }
@@ -524,19 +482,17 @@ namespace ILGPU.Backends.OpenCL
             if (!span.HasSpan)
             {
                 // Update field value
-                using (var statement = BeginStatement(target, span.Access))
-                    statement.AppendArgument(set);
+                using var statement = BeginStatement(target, span.Access);
+                statement.AppendArgument(set);
             }
             else
             {
                 // Update field values
                 for (int i = 0; i < span.Span; ++i)
                 {
-                    using (var statement = BeginStatement(target, i))
-                    {
-                        statement.AppendArgument(set);
-                        statement.AppendField(span.Access.Add(i));
-                    }
+                    using var statement = BeginStatement(target, i);
+                    statement.AppendArgument(set);
+                    statement.AppendField(span.Access.Add(i));
                 }
             }
         }
@@ -547,15 +503,13 @@ namespace ILGPU.Backends.OpenCL
             string args = null)
         {
             var target = Allocate(value);
-            using (var statement = BeginStatement(target))
+            using var statement = BeginStatement(target);
+            statement.AppendCommand(operation);
+            if (args != null)
             {
-                statement.AppendCommand(operation);
-                if (args != null)
-                {
-                    statement.BeginArguments();
-                    statement.AppendCommand(args);
-                    statement.EndArguments();
-                }
+                statement.BeginArguments();
+                statement.AppendCommand(args);
+                statement.EndArguments();
             }
         }
 
@@ -621,28 +575,24 @@ namespace ILGPU.Backends.OpenCL
                 throw new InvalidCodeGenerationException();
             }
 
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCast(BasicValueType.Int1);
-                statement.AppendCommand(operation);
-                statement.BeginArguments();
-                statement.AppendCast(BasicValueType.Int32);
-                statement.AppendArgument(sourcePredicate);
-                statement.EndArguments();
-            }
+            using var statement = BeginStatement(target);
+            statement.AppendCast(BasicValueType.Int1);
+            statement.AppendCommand(operation);
+            statement.BeginArguments();
+            statement.AppendCast(BasicValueType.Int32);
+            statement.AppendArgument(sourcePredicate);
+            statement.EndArguments();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Barrier)"/>
         public void GenerateCode(Barrier barrier)
         {
-            using (var statement = BeginStatement(
-                CLInstructions.GetBarrier(barrier.Kind)))
-            {
-                statement.BeginArguments();
-                statement.AppendCommand(
-                    CLInstructions.GetMemoryFenceFlags(true));
-                statement.EndArguments();
-            }
+            using var statement = BeginStatement(
+                CLInstructions.GetBarrier(barrier.Kind));
+            statement.BeginArguments();
+            statement.AppendCommand(
+                CLInstructions.GetMemoryFenceFlags(true));
+            statement.EndArguments();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Broadcast)"/>
@@ -652,16 +602,14 @@ namespace ILGPU.Backends.OpenCL
             var origin = Load(broadcast.Origin);
             var target = Allocate(broadcast);
 
-            using (var statement = BeginStatement(target))
-            {
-                statement.AppendCommand(
-                    CLInstructions.GetBroadcastOperation(
-                        broadcast.Kind));
-                statement.BeginArguments();
-                statement.AppendArgument(source);
-                statement.AppendArgument(origin);
-                statement.EndArguments();
-            }
+            using var statement = BeginStatement(target);
+            statement.AppendCommand(
+                CLInstructions.GetBroadcastOperation(
+                broadcast.Kind));
+            statement.BeginArguments();
+            statement.AppendArgument(source);
+            statement.AppendArgument(origin);
+            statement.EndArguments();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(WarpShuffle)"/>
@@ -678,24 +626,23 @@ namespace ILGPU.Backends.OpenCL
             var source = Load(shuffle.Variable);
             var origin = Load(shuffle.Origin);
             var target = Allocate(shuffle);
-            using (var statement = BeginStatement(target))
+
+            using var statement = BeginStatement(target);
+            statement.AppendCommand(operation);
+            statement.BeginArguments();
+
+            statement.AppendArgument(source);
+            // TODO: create a generic version that does not need this switch
+            switch (shuffle.Kind)
             {
-                statement.AppendCommand(operation);
-                statement.BeginArguments();
-
-                statement.AppendArgument(source);
-                // TODO: create a generic version that does not need this switch
-                switch (shuffle.Kind)
-                {
-                    case ShuffleKind.Down:
-                    case ShuffleKind.Up:
-                        statement.AppendArgument(source);
-                        break;
-                }
-                statement.AppendArgument(origin);
-
-                statement.EndArguments();
+                case ShuffleKind.Down:
+                case ShuffleKind.Up:
+                    statement.AppendArgument(source);
+                    break;
             }
+            statement.AppendArgument(origin);
+
+            statement.EndArguments();
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(SubWarpShuffle)"/>

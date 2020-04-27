@@ -68,14 +68,12 @@ namespace ILGPU.Backends.PTX
             var addressSpaceOperationSuffix =
                 PTXInstructions.GetAddressSpaceCastSuffix(Backend);
 
-            using (var command = BeginCommand(addressSpaceOperation))
-            {
-                command.AppendAddressSpace(
-                    toGeneric ? sourceType.AddressSpace : value.TargetAddressSpace);
-                command.AppendSuffix(addressSpaceOperationSuffix);
-                command.AppendArgument(targetAdressRegister);
-                command.AppendArgument(address);
-            }
+            using var command = BeginCommand(addressSpaceOperation);
+            command.AppendAddressSpace(
+                toGeneric ? sourceType.AddressSpace : value.TargetAddressSpace);
+            command.AppendSuffix(addressSpaceOperationSuffix);
+            command.AppendArgument(targetAdressRegister);
+            command.AppendArgument(address);
         }
     }
 }

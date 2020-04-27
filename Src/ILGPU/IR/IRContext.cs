@@ -368,12 +368,10 @@ namespace ILGPU.IR
             if (declaration.HasFlags(
                 MethodFlags.External | MethodFlags.Intrinsic))
             {
-                using (var builder = method.CreateBuilder())
-                {
-                    var bbBuilder = builder.CreateEntryBlock();
-                    var returnValue = bbBuilder.CreateNull(declaration.ReturnType);
-                    bbBuilder.CreateReturn(returnValue);
-                }
+                using var builder = method.CreateBuilder();
+                var bbBuilder = builder.CreateEntryBlock();
+                var returnValue = bbBuilder.CreateNull(declaration.ReturnType);
+                bbBuilder.CreateReturn(returnValue);
             }
             return method;
         }
@@ -458,34 +456,32 @@ namespace ILGPU.IR
                 // Store original sequence point
                 targetMethod.SequencePoint = sourceMethod.SequencePoint;
 
-                using (var builder = targetMethod.CreateBuilder())
+                using var builder = targetMethod.CreateBuilder();
+                // Build new parameters to match the old ones
+                var parameterArguments = ImmutableArray.CreateBuilder<
+                    ValueReference>(sourceMethod.NumParameters);
+                foreach (var param in sourceMethod.Parameters)
                 {
-                    // Build new parameters to match the old ones
-                    var parameterArguments = ImmutableArray.CreateBuilder<
-                        ValueReference>(sourceMethod.NumParameters);
-                    foreach (var param in sourceMethod.Parameters)
-                    {
-                        var newParam = builder.AddParameter(param.Type, param.Name);
-                        parameterArguments.Add(newParam);
-                    }
-                    var parameterMapping = sourceMethod.CreateParameterMapping(
-                        parameterArguments.MoveToImmutable());
-
-                    // Rebuild the source function into this context
-                    var references = allReferences[sourceMethod];
-                    var rebuilder = builder.CreateRebuilder(
-                        parameterMapping,
-                        references.Scope,
-                        methodMapping);
-
-                    // Create appropriate return instructions
-                    var exitBlocks = rebuilder.Rebuild();
-                    foreach (var (blockBuilder, returnValue) in exitBlocks)
-                        blockBuilder.CreateReturn(returnValue);
-
-                    // Wire entry block
-                    builder.EntryBlock = rebuilder.EntryBlock.BasicBlock;
+                    var newParam = builder.AddParameter(param.Type, param.Name);
+                    parameterArguments.Add(newParam);
                 }
+                var parameterMapping = sourceMethod.CreateParameterMapping(
+                    parameterArguments.MoveToImmutable());
+
+                // Rebuild the source function into this context
+                var references = allReferences[sourceMethod];
+                var rebuilder = builder.CreateRebuilder(
+                    parameterMapping,
+                    references.Scope,
+                    methodMapping);
+
+                // Create appropriate return instructions
+                var exitBlocks = rebuilder.Rebuild();
+                foreach (var (blockBuilder, returnValue) in exitBlocks)
+                    blockBuilder.CreateReturn(returnValue);
+
+                // Wire entry block
+                builder.EntryBlock = rebuilder.EntryBlock.BasicBlock;
             }
 
             return targetMapping[source];
@@ -536,8 +532,8 @@ namespace ILGPU.IR
         /// </summary>
         public void DumpToFile(string fileName)
         {
-            using (var stream = new StreamWriter(fileName, false))
-                Dump(stream);
+            using var stream = new StreamWriter(fileName, false);
+            Dump(stream);
         }
 
         /// <summary>

@@ -286,11 +286,9 @@ namespace ILGPU.Backends.OpenCL
                     else
                     {
                         // Map the field
-                        using (var statement = BeginStatement(targetVariable, access))
-                        {
-                            statement.Append(sourceVariable);
-                            statement.AppendField(access);
-                        }
+                        using var statement = BeginStatement(targetVariable, access);
+                        statement.Append(sourceVariable);
+                        statement.AppendField(access);
                     }
                 }
             }

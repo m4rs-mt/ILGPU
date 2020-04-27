@@ -29,11 +29,9 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IBackendCodeGenerator.GenerateCode(UnconditionalBranch)"/>
         public void GenerateCode(UnconditionalBranch branch)
         {
-            using (var command = BeginCommand(PTXInstructions.BranchOperation))
-            {
-                var targetLabel = blockLookup[branch.Target];
-                command.AppendLabel(targetLabel);
-            }
+            using var command = BeginCommand(PTXInstructions.BranchOperation);
+            var targetLabel = blockLookup[branch.Target];
+            command.AppendLabel(targetLabel);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(IfBranch)"/>
@@ -75,25 +73,23 @@ namespace ILGPU.Backends.PTX
                     command.AppendConstant(0);
                 }
 
-                using (var upperBoundsScope = new PredicateScope(this))
+                using var upperBoundsScope = new PredicateScope(this);
+                using (var command = BeginCommand(
+                    PTXInstructions.BranchIndexRangeComparison))
                 {
-                    using (var command = BeginCommand(
-                        PTXInstructions.BranchIndexRangeComparison))
-                    {
-                        command.AppendArgument(upperBoundsScope.PredicateRegister);
-                        command.AppendArgument(idx);
-                        command.AppendConstant(branch.NumCasesWithoutDefault);
-                        command.AppendArgument(lowerBoundsScope.PredicateRegister);
-                    }
-                    using (var command = BeginCommand(
-                        PTXInstructions.BranchOperation,
-                        new PredicateConfiguration(
-                            upperBoundsScope.PredicateRegister,
-                            true)))
-                    {
-                        var defaultTarget = blockLookup[branch.DefaultBlock];
-                        command.AppendLabel(defaultTarget);
-                    }
+                    command.AppendArgument(upperBoundsScope.PredicateRegister);
+                    command.AppendArgument(idx);
+                    command.AppendConstant(branch.NumCasesWithoutDefault);
+                    command.AppendArgument(lowerBoundsScope.PredicateRegister);
+                }
+                using (var command = BeginCommand(
+                    PTXInstructions.BranchOperation,
+                    new PredicateConfiguration(
+                        upperBoundsScope.PredicateRegister,
+                        true)))
+                {
+                    var defaultTarget = blockLookup[branch.DefaultBlock];
+                    command.AppendLabel(defaultTarget);
                 }
             }
 

@@ -128,11 +128,9 @@ namespace ILGPU.Runtime
             where T : unmanaged
         {
             target = default;
-            using (var wrapper = ViewPointerWrapper.Create(ref target))
-            {
-                var view = new ArrayView<T>(wrapper, 0, 1);
-                cache.CopyToView(stream, view.Cast<byte>(), targetIndex);
-            }
+            using var wrapper = ViewPointerWrapper.Create(ref target);
+            var view = new ArrayView<T>(wrapper, 0, 1);
+            cache.CopyToView(stream, view.Cast<byte>(), targetIndex);
         }
 
         /// <summary>
@@ -148,11 +146,9 @@ namespace ILGPU.Runtime
             Index1 sourceIndex)
             where T : unmanaged
         {
-            using (var wrapper = ViewPointerWrapper.Create(ref source))
-            {
-                var view = new ArrayView<T>(wrapper, 0, 1);
-                cache.CopyFromView(stream, view.Cast<byte>(), sourceIndex);
-            }
+            using var wrapper = ViewPointerWrapper.Create(ref source);
+            var view = new ArrayView<T>(wrapper, 0, 1);
+            cache.CopyFromView(stream, view.Cast<byte>(), sourceIndex);
         }
 
         /// <summary>

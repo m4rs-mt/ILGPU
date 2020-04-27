@@ -185,21 +185,19 @@ namespace ILGPU.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private TDelegate SpecializeKernel(in TArgs args)
         {
-            using (var targetContext = new IRContext(KernelContext.Context))
-            {
-                var oldKernelMethod = targetContext.Import(
-                    KernelMethod,
-                    new NewScopeProvider());
-                var targetMethod = CreateKernelWrapper(oldKernelMethod, args);
-                targetContext.Optimize();
+            using var targetContext = new IRContext(KernelContext.Context);
+            var oldKernelMethod = targetContext.Import(
+                KernelMethod,
+                new NewScopeProvider());
+            var targetMethod = CreateKernelWrapper(oldKernelMethod, args);
+            targetContext.Optimize();
 
-                var compiledKernel = Accelerator.Backend.Compile(
-                    targetMethod,
-                    Entry,
-                    KernelSpecialization);
-                var kernel = Loader.LoadKernel(Accelerator, compiledKernel);
-                return kernel.CreateLauncherDelegate<TDelegate>();
-            }
+            var compiledKernel = Accelerator.Backend.Compile(
+                targetMethod,
+                Entry,
+                KernelSpecialization);
+            var kernel = Loader.LoadKernel(Accelerator, compiledKernel);
+            return kernel.CreateLauncherDelegate<TDelegate>();
         }
 
         /// <summary>

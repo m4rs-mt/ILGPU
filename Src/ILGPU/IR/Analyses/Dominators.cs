@@ -61,41 +61,39 @@ namespace ILGPU.IR.Analyses
             do
             {
                 changed = false;
-                using (var enumerator = cfg.GetEnumerator())
+                using var enumerator = cfg.GetEnumerator();
+                enumerator.MoveNext();
+                var node = enumerator.Current;
+                nodesInRPO[node.NodeIndex] = node;
+
+                while (enumerator.MoveNext())
                 {
-                    enumerator.MoveNext();
-                    var node = enumerator.Current;
+                    node = enumerator.Current;
                     nodesInRPO[node.NodeIndex] = node;
-
-                    while (enumerator.MoveNext())
+                    int currentIdom = -1;
+                    foreach (var pred in node.Predecessors)
                     {
-                        node = enumerator.Current;
-                        nodesInRPO[node.NodeIndex] = node;
-                        int currentIdom = -1;
-                        foreach (var pred in node.Predecessors)
+                        var predRPO = pred.NodeIndex;
+                        if (idomsInRPO[predRPO] != -1)
                         {
-                            var predRPO = pred.NodeIndex;
-                            if (idomsInRPO[predRPO] != -1)
-                            {
-                                currentIdom = predRPO;
-                                break;
-                            }
+                            currentIdom = predRPO;
+                            break;
                         }
+                    }
 
-                        Debug.Assert(currentIdom != -1, "Invalid idom");
-                        foreach (var pred in node.Predecessors)
-                        {
-                            var predRPO = pred.NodeIndex;
-                            if (idomsInRPO[predRPO] != -1)
-                                currentIdom = Intersect(currentIdom, predRPO);
-                        }
+                    Debug.Assert(currentIdom != -1, "Invalid idom");
+                    foreach (var pred in node.Predecessors)
+                    {
+                        var predRPO = pred.NodeIndex;
+                        if (idomsInRPO[predRPO] != -1)
+                            currentIdom = Intersect(currentIdom, predRPO);
+                    }
 
-                        var rpoNumber = node.NodeIndex;
-                        if (idomsInRPO[rpoNumber] != currentIdom)
-                        {
-                            idomsInRPO[rpoNumber] = currentIdom;
-                            changed = true;
-                        }
+                    var rpoNumber = node.NodeIndex;
+                    if (idomsInRPO[rpoNumber] != currentIdom)
+                    {
+                        idomsInRPO[rpoNumber] = currentIdom;
+                        changed = true;
                     }
                 }
             }

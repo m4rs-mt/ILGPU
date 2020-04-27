@@ -116,19 +116,16 @@ namespace ILGPU.IR.Construction
                 switch (value.BasicValueType)
                 {
                     case BasicValueType.Int1:
-                        switch (targetBasicValueType)
+                        return targetBasicValueType switch
                         {
-                            case BasicValueType.Float32:
-                                return CreatePrimitiveValue(
-                                    Convert.ToSingle(value.Int1Value));
-                            case BasicValueType.Float64:
-                                return CreatePrimitiveValue(
-                                    Convert.ToDouble(value.Int1Value));
-                            default:
-                                return CreatePrimitiveValue(
-                                    targetBasicValueType,
-                                    value.Int1Value ? 1 : 0);
-                        }
+                            BasicValueType.Float32 => CreatePrimitiveValue(
+                               Convert.ToSingle(value.Int1Value)),
+                            BasicValueType.Float64 => CreatePrimitiveValue(
+                                Convert.ToDouble(value.Int1Value)),
+                            _ => CreatePrimitiveValue(
+                                targetBasicValueType,
+                                value.Int1Value ? 1 : 0),
+                        };
                     case BasicValueType.Int8:
                     case BasicValueType.Int16:
                     case BasicValueType.Int32:

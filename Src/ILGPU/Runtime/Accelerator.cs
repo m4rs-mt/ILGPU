@@ -87,19 +87,17 @@ namespace ILGPU.Runtime
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
 
-            switch (acceleratorId)
+            return acceleratorId switch
             {
-                case CPU.CPUAcceleratorId _:
-                    return new CPU.CPUAccelerator(context);
-                case Cuda.CudaAcceleratorId cudaId:
-                    return new Cuda.CudaAccelerator(context, cudaId.DeviceId);
-                case OpenCL.CLAcceleratorId clId:
-                    return new OpenCL.CLAccelerator(context, clId);
-                default:
-                    throw new ArgumentException(
-                        RuntimeErrorMessages.NotSupportedTargetAccelerator,
-                        nameof(acceleratorId));
-            }
+                CPU.CPUAcceleratorId _ => new CPU.CPUAccelerator(context),
+                Cuda.CudaAcceleratorId cudaId =>
+                    new Cuda.CudaAccelerator(context, cudaId.DeviceId),
+                OpenCL.CLAcceleratorId clId =>
+                    new OpenCL.CLAccelerator(context, clId),
+                _ => throw new ArgumentException(
+                    RuntimeErrorMessages.NotSupportedTargetAccelerator,
+                    nameof(acceleratorId)),
+            };
         }
 
         /// <summary>

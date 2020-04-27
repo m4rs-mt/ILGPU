@@ -178,28 +178,18 @@ namespace ILGPU.Util
         /// </summary>
         /// <param name="type">The source type.</param>
         /// <returns>The resolved managed type.</returns>
-        public static Type GetManagedType(this BasicValueType type)
-        {
-            switch (type)
+        public static Type GetManagedType(this BasicValueType type) =>
+            type switch
             {
-                case BasicValueType.Int1:
-                    return typeof(bool);
-                case BasicValueType.Int8:
-                    return typeof(byte);
-                case BasicValueType.Int16:
-                    return typeof(short);
-                case BasicValueType.Int32:
-                    return typeof(int);
-                case BasicValueType.Int64:
-                    return typeof(long);
-                case BasicValueType.Float32:
-                    return typeof(float);
-                case BasicValueType.Float64:
-                    return typeof(double);
-                default:
-                    return null;
-            }
-        }
+                BasicValueType.Int1 => typeof(bool),
+                BasicValueType.Int8 => typeof(byte),
+                BasicValueType.Int16 => typeof(short),
+                BasicValueType.Int32 => typeof(int),
+                BasicValueType.Int64 => typeof(long),
+                BasicValueType.Float32 => typeof(float),
+                BasicValueType.Float64 => typeof(double),
+                _ => null,
+            };
 
         /// <summary>
         /// Resolves the basic-value type for the given managed type.
@@ -239,36 +229,22 @@ namespace ILGPU.Util
         /// <param name="type">The source type.</param>
         /// <returns>The resolved basic-value type.</returns>
         public static ArithmeticBasicValueType GetArithmeticBasicValueType(
-            this Type type)
-        {
-            switch (Type.GetTypeCode(type))
+            this Type type) =>
+            Type.GetTypeCode(type) switch
             {
-                case TypeCode.Boolean:
-                    return ArithmeticBasicValueType.UInt1;
-                case TypeCode.SByte:
-                    return ArithmeticBasicValueType.Int8;
-                case TypeCode.Byte:
-                    return ArithmeticBasicValueType.UInt8;
-                case TypeCode.Int16:
-                    return ArithmeticBasicValueType.Int16;
-                case TypeCode.UInt16:
-                    return ArithmeticBasicValueType.UInt16;
-                case TypeCode.Int32:
-                    return ArithmeticBasicValueType.Int32;
-                case TypeCode.UInt32:
-                    return ArithmeticBasicValueType.UInt32;
-                case TypeCode.Int64:
-                    return ArithmeticBasicValueType.Int64;
-                case TypeCode.UInt64:
-                    return ArithmeticBasicValueType.UInt64;
-                case TypeCode.Single:
-                    return ArithmeticBasicValueType.Float32;
-                case TypeCode.Double:
-                    return ArithmeticBasicValueType.Float64;
-                default:
-                    return ArithmeticBasicValueType.None;
-            }
-        }
+                TypeCode.Boolean => ArithmeticBasicValueType.UInt1,
+                TypeCode.SByte => ArithmeticBasicValueType.Int8,
+                TypeCode.Byte => ArithmeticBasicValueType.UInt8,
+                TypeCode.Int16 => ArithmeticBasicValueType.Int16,
+                TypeCode.UInt16 => ArithmeticBasicValueType.UInt16,
+                TypeCode.Int32 => ArithmeticBasicValueType.Int32,
+                TypeCode.UInt32 => ArithmeticBasicValueType.UInt32,
+                TypeCode.Int64 => ArithmeticBasicValueType.Int64,
+                TypeCode.UInt64 => ArithmeticBasicValueType.UInt64,
+                TypeCode.Single => ArithmeticBasicValueType.Float32,
+                TypeCode.Double => ArithmeticBasicValueType.Float64,
+                _ => ArithmeticBasicValueType.None,
+            };
 
         /// <summary>
         /// Resolves the basic-value type for the given type.
@@ -313,36 +289,26 @@ namespace ILGPU.Util
         /// <returns>The resolved basic-value type.</returns>
         public static ArithmeticBasicValueType GetArithmeticBasicValueType(
             this BasicValueType type,
-            bool isUnsigned)
-        {
-            switch (type)
+            bool isUnsigned) =>
+            type switch
             {
-                case BasicValueType.Int1:
-                    return ArithmeticBasicValueType.UInt1;
-                case BasicValueType.Int8:
-                    return isUnsigned
-                        ? ArithmeticBasicValueType.UInt8
-                        : ArithmeticBasicValueType.Int8;
-                case BasicValueType.Int16:
-                    return isUnsigned
-                        ? ArithmeticBasicValueType.UInt16
-                        : ArithmeticBasicValueType.Int16;
-                case BasicValueType.Int32:
-                    return isUnsigned
-                        ? ArithmeticBasicValueType.UInt32
-                        : ArithmeticBasicValueType.Int32;
-                case BasicValueType.Int64:
-                    return isUnsigned
-                        ? ArithmeticBasicValueType.UInt64
-                        : ArithmeticBasicValueType.Int64;
-                case BasicValueType.Float32:
-                    return ArithmeticBasicValueType.Float32;
-                case BasicValueType.Float64:
-                    return ArithmeticBasicValueType.Float64;
-                default:
-                    return ArithmeticBasicValueType.None;
-            }
-        }
+                BasicValueType.Int1 => ArithmeticBasicValueType.UInt1,
+                BasicValueType.Int8 => isUnsigned
+                    ? ArithmeticBasicValueType.UInt8
+                    : ArithmeticBasicValueType.Int8,
+                BasicValueType.Int16 => isUnsigned
+                    ? ArithmeticBasicValueType.UInt16
+                    : ArithmeticBasicValueType.Int16,
+                BasicValueType.Int32 => isUnsigned
+                    ? ArithmeticBasicValueType.UInt32
+                    : ArithmeticBasicValueType.Int32,
+                BasicValueType.Int64 => isUnsigned
+                    ? ArithmeticBasicValueType.UInt64
+                    : ArithmeticBasicValueType.Int64,
+                BasicValueType.Float32 => ArithmeticBasicValueType.Float32,
+                BasicValueType.Float64 => ArithmeticBasicValueType.Float64,
+                _ => ArithmeticBasicValueType.None,
+            };
 
         /// <summary>
         /// Returns true if the given type represents an int.

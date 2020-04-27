@@ -641,14 +641,12 @@ namespace ILGPU.Runtime
             T source,
             TIndex sourceIndex)
         {
-            using (var wrapper = ViewPointerWrapper.Create(ref source))
-            {
-                CopyFromView(
-                    stream,
-                    new ArrayView<T>(wrapper, 0, 1),
-                    sourceIndex.ComputeLinearIndex(Extent));
-                stream.Synchronize();
-            }
+            using var wrapper = ViewPointerWrapper.Create(ref source);
+            CopyFromView(
+                stream,
+                new ArrayView<T>(wrapper, 0, 1),
+                sourceIndex.ComputeLinearIndex(Extent));
+            stream.Synchronize();
         }
 
         /// <summary>
@@ -701,15 +699,13 @@ namespace ILGPU.Runtime
 
             fixed (T* ptr = &source[0])
             {
-                using (var wrapper = ViewPointerWrapper.Create(ptr))
-                {
-                    CopyFromView(
-                        stream,
-                        new ArrayView<T>(wrapper, 0, source.Length).GetSubView(
-                            sourceOffset, extent),
-                        targetOffset.ComputeLinearIndex(Extent));
-                    stream.Synchronize();
-                }
+                using var wrapper = ViewPointerWrapper.Create(ptr);
+                CopyFromView(
+                    stream,
+                    new ArrayView<T>(wrapper, 0, source.Length).GetSubView(
+                    sourceOffset, extent),
+                    targetOffset.ComputeLinearIndex(Extent));
+                stream.Synchronize();
             }
         }
 
@@ -774,16 +770,11 @@ namespace ILGPU.Runtime
             var result = new byte[rawExtent];
             fixed (byte* ptr = &result[0])
             {
-                using (var wrapper = ViewPointerWrapper.Create(ptr))
-                {
-                    CopyToView(
-                        stream,
-                        new ArrayView<T>(
-                            wrapper,
-                            0,
-                            rawExtent / ElementSize),
-                        rawOffset / ElementSize);
-                }
+                using var wrapper = ViewPointerWrapper.Create(ptr);
+                CopyToView(
+                    stream,
+                    new ArrayView<T>(wrapper, 0, rawExtent / ElementSize),
+                    rawOffset / ElementSize);
             }
             return new ArraySegment<byte>(
                 result,

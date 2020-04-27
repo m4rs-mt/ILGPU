@@ -430,13 +430,11 @@ namespace ILGPU.Backends.OpenCL
 
                 // Since allocas are basically pointers in the IR we have to
                 // 'convert' the local allocations into generic pointers
-                using (var statement = BeginStatement(allocaVariable))
-                {
-                    statement.AppendOperation(CLInstructions.AddressOfOperation);
-                    statement.Append(allocationVariable);
-                    if (allocaInfo.IsArray)
-                        statement.AppendIndexer("0");
-                }
+                using var statement = BeginStatement(allocaVariable);
+                statement.AppendOperation(CLInstructions.AddressOfOperation);
+                statement.Append(allocationVariable);
+                if (allocaInfo.IsArray)
+                    statement.AppendIndexer("0");
             }
             Builder.AppendLine();
         }

@@ -262,34 +262,17 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString()
         {
-            string result;
-            switch (BasicValueType)
+            string result = BasicValueType switch
             {
-                case BasicValueType.Int1:
-                    result = Int1Value.ToString();
-                    break;
-                case BasicValueType.Int8:
-                    result = Int8Value.ToString();
-                    break;
-                case BasicValueType.Int16:
-                    result = Int16Value.ToString();
-                    break;
-                case BasicValueType.Int32:
-                    result = Int32Value.ToString();
-                    break;
-                case BasicValueType.Int64:
-                    result = Int64Value.ToString();
-                    break;
-                case BasicValueType.Float32:
-                    result = Float32Value.ToString();
-                    break;
-                case BasicValueType.Float64:
-                    result = Float64Value.ToString();
-                    break;
-                default:
-                    result = $"Raw({rawValue})";
-                    break;
-            }
+                BasicValueType.Int1 => Int1Value.ToString(),
+                BasicValueType.Int8 => Int8Value.ToString(),
+                BasicValueType.Int16 => Int16Value.ToString(),
+                BasicValueType.Int32 => Int32Value.ToString(),
+                BasicValueType.Int64 => Int64Value.ToString(),
+                BasicValueType.Float32 => Float32Value.ToString(),
+                BasicValueType.Float64 => Float64Value.ToString(),
+                _ => $"Raw({rawValue})",
+            };
             return $"{result} [{BasicValueType}]";
         }
 

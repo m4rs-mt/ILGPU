@@ -580,16 +580,12 @@ namespace ILGPU.IR.Values
         /// <returns>The resolved binary operation.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static BinaryArithmeticKind GetLeftBinaryKind(
-            TernaryArithmeticKind kind)
-        {
-            switch (kind)
+            TernaryArithmeticKind kind) =>
+            kind switch
             {
-                case TernaryArithmeticKind.MultiplyAdd:
-                    return BinaryArithmeticKind.Mul;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(kind));
-            }
-        }
+                TernaryArithmeticKind.MultiplyAdd => BinaryArithmeticKind.Mul,
+                _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+            };
 
         /// <summary>
         /// Returns the right hand binary operation of a fused ternary operation.
@@ -598,16 +594,12 @@ namespace ILGPU.IR.Values
         /// <returns>The resolved binary operation.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static BinaryArithmeticKind GetRightBinaryKind(
-            TernaryArithmeticKind kind)
-        {
-            switch (kind)
+            TernaryArithmeticKind kind) =>
+            kind switch
             {
-                case TernaryArithmeticKind.MultiplyAdd:
-                    return BinaryArithmeticKind.Add;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(kind));
-            }
-        }
+                TernaryArithmeticKind.MultiplyAdd => BinaryArithmeticKind.Add,
+                _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+            };
 
         #endregion
 

@@ -104,15 +104,13 @@ namespace ILGPU.Backends.PTX
             var argument = LoadPrimitive(value.Value);
             var targetRegister = AllocateHardware(value);
 
-            using (var command = BeginCommand(
+            using var command = BeginCommand(
                 PTXInstructions.GetArithmeticOperation(
                     value.Kind,
                     value.ArithmeticBasicValueType,
-                    FastMath)))
-            {
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(argument);
-            }
+                    FastMath));
+            command.AppendArgument(targetRegister);
+            command.AppendArgument(argument);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(BinaryArithmeticValue)"/>
@@ -122,16 +120,14 @@ namespace ILGPU.Backends.PTX
             var right = LoadPrimitive(value.Right);
 
             var targetRegister = Allocate(value, left.Description);
-            using (var command = BeginCommand(
+            using var command = BeginCommand(
                 PTXInstructions.GetArithmeticOperation(
                     value.Kind,
                     value.ArithmeticBasicValueType,
-                    FastMath)))
-            {
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(left);
-                command.AppendArgument(right);
-            }
+                    FastMath));
+            command.AppendArgument(targetRegister);
+            command.AppendArgument(left);
+            command.AppendArgument(right);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(TernaryArithmeticValue)"/>
@@ -143,16 +139,14 @@ namespace ILGPU.Backends.PTX
 
 
             var targetRegister = Allocate(value, first.Description);
-            using (var command = BeginCommand(
+            using var command = BeginCommand(
                 PTXInstructions.GetArithmeticOperation(
                     value.Kind,
-                    value.ArithmeticBasicValueType)))
-            {
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(first);
-                command.AppendArgument(second);
-                command.AppendArgument(third);
-            }
+                    value.ArithmeticBasicValueType));
+            command.AppendArgument(targetRegister);
+            command.AppendArgument(first);
+            command.AppendArgument(second);
+            command.AppendArgument(third);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(CompareValue)"/>
@@ -178,28 +172,24 @@ namespace ILGPU.Backends.PTX
 
                 if (value.Kind == CompareKind.Equal)
                 {
-                    using (var command = BeginCommand(
+                    using var command = BeginCommand(
                         PTXInstructions.GetArithmeticOperation(
                             UnaryArithmeticKind.Not,
                             ArithmeticBasicValueType.UInt1,
-                            false)))
-                    {
-                        command.AppendArgument(targetRegister);
-                        command.AppendArgument(targetRegister);
-                    }
+                            false));
+                    command.AppendArgument(targetRegister);
+                    command.AppendArgument(targetRegister);
                 }
             }
             else
             {
-                using (var command = BeginCommand(
+                using var command = BeginCommand(
                     PTXInstructions.GetCompareOperation(
                         value.Kind,
-                        value.CompareType)))
-                {
-                    command.AppendArgument(targetRegister);
-                    command.AppendArgument(left);
-                    command.AppendArgument(right);
-                }
+                        value.CompareType));
+                command.AppendArgument(targetRegister);
+                command.AppendArgument(left);
+                command.AppendArgument(right);
             }
         }
 
@@ -213,11 +203,9 @@ namespace ILGPU.Backends.PTX
                 value.TargetType);
 
             var targetRegister = AllocateHardware(value);
-            using (var command = BeginCommand(convertOperation))
-            {
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(sourceValue);
-            }
+            using var command = BeginCommand(convertOperation);
+            command.AppendArgument(targetRegister);
+            command.AppendArgument(sourceValue);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PointerCast)"/>
@@ -317,16 +305,14 @@ namespace ILGPU.Backends.PTX
                 atomic.ArithmeticBasicValueType);
 
             var targetRegister = requiresResult ? AllocateHardware(atomic) : default;
-            using (var command = BeginCommand(atomicOperation))
-            {
-                command.AppendNonLocalAddressSpace(
-                    (atomic.Target.Type as AddressSpaceType).AddressSpace);
-                command.AppendSuffix(suffix);
-                if (requiresResult)
-                    command.AppendArgument(targetRegister);
-                command.AppendArgumentValue(target);
-                command.AppendArgument(value);
-            }
+            using var command = BeginCommand(atomicOperation);
+            command.AppendNonLocalAddressSpace(
+                (atomic.Target.Type as AddressSpaceType).AddressSpace);
+            command.AppendSuffix(suffix);
+            if (requiresResult)
+                command.AppendArgument(targetRegister);
+            command.AppendArgumentValue(target);
+            command.AppendArgument(value);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(AtomicCAS)"/>
@@ -338,16 +324,14 @@ namespace ILGPU.Backends.PTX
 
             var targetRegister = AllocateHardware(atomicCAS);
 
-            using (var command = BeginCommand(PTXInstructions.AtomicCASOperation))
-            {
-                command.AppendNonLocalAddressSpace(
-                    (atomicCAS.Target.Type as AddressSpaceType).AddressSpace);
-                command.AppendSuffix(atomicCAS.BasicValueType);
-                command.AppendArgument(targetRegister);
-                command.AppendArgumentValue(target);
-                command.AppendArgument(value);
-                command.AppendArgument(compare);
-            }
+            using var command = BeginCommand(PTXInstructions.AtomicCASOperation);
+            command.AppendNonLocalAddressSpace(
+                (atomicCAS.Target.Type as AddressSpaceType).AddressSpace);
+            command.AppendSuffix(atomicCAS.BasicValueType);
+            command.AppendArgument(targetRegister);
+            command.AppendArgumentValue(target);
+            command.AppendArgument(value);
+            command.AppendArgument(compare);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Alloca)"/>
@@ -398,13 +382,11 @@ namespace ILGPU.Backends.PTX
                     PrimitiveRegister register,
                     int offset)
                 {
-                    using (var commandEmitter = codeGenerator.BeginCommand(command))
-                    {
-                        commandEmitter.AppendAddressSpace(SourceType.AddressSpace);
-                        commandEmitter.AppendSuffix(register.BasicValueType);
-                        commandEmitter.AppendArgument(register);
-                        commandEmitter.AppendArgumentValue(AddressRegister, offset);
-                    }
+                    using var commandEmitter = codeGenerator.BeginCommand(command);
+                    commandEmitter.AppendAddressSpace(SourceType.AddressSpace);
+                    commandEmitter.AppendSuffix(register.BasicValueType);
+                    commandEmitter.AppendArgument(register);
+                    commandEmitter.AppendArgumentValue(AddressRegister, offset);
                 }
             }
 
@@ -481,13 +463,11 @@ namespace ILGPU.Backends.PTX
                     PrimitiveRegister register,
                     int offset)
                 {
-                    using (var commandEmitter = codeGenerator.BeginCommand(command))
-                    {
-                        commandEmitter.AppendAddressSpace(TargetType.AddressSpace);
-                        commandEmitter.AppendSuffix(register.BasicValueType);
-                        commandEmitter.AppendArgumentValue(AddressRegister, offset);
-                        commandEmitter.AppendArgument(register);
-                    }
+                    using var commandEmitter = codeGenerator.BeginCommand(command);
+                    commandEmitter.AppendAddressSpace(TargetType.AddressSpace);
+                    commandEmitter.AppendSuffix(register.BasicValueType);
+                    commandEmitter.AppendArgumentValue(AddressRegister, offset);
+                    commandEmitter.AppendArgument(register);
                 }
             }
 
@@ -541,16 +521,14 @@ namespace ILGPU.Backends.PTX
                 var targetRegister = AllocatePlatformRegister(
                     value,
                     out RegisterDescription _);
-                using (var command = BeginCommand(
+                using var command = BeginCommand(
                     PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Add,
                         Backend.PointerArithmeticType,
-                        false)))
-                {
-                    command.AppendArgument(targetRegister);
-                    command.AppendArgument(source);
-                    command.AppendConstant(fieldOffset);
-                }
+                        false));
+                command.AppendArgument(targetRegister);
+                command.AppendArgument(source);
+                command.AppendConstant(fieldOffset);
             }
             else
             {
@@ -578,12 +556,10 @@ namespace ILGPU.Backends.PTX
             var register = AllocatePlatformRegister(
                 value,
                 out RegisterDescription description);
-            using (var command = BeginMove())
-            {
-                command.AppendSuffix(description.BasicValueType);
-                command.AppendArgument(register);
-                command.AppendRawValueReference(stringBinding);
-            }
+            using var command = BeginMove();
+            command.AppendSuffix(description.BasicValueType);
+            command.AppendArgument(register);
+            command.AppendRawValueReference(stringBinding);
         }
 
         /// <summary>
@@ -761,21 +737,18 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Barrier)"/>
         public void GenerateCode(Barrier barrier)
         {
-            using (var command = BeginCommand(
-                PTXInstructions.GetBarrier(barrier.Kind)))
+            using var command = BeginCommand(PTXInstructions.GetBarrier(barrier.Kind));
+            switch (barrier.Kind)
             {
-                switch (barrier.Kind)
-                {
-                    case BarrierKind.WarpLevel:
-                        command.AppendConstant(
-                            PTXInstructions.AllThreadsInAWarpMemberMask);
-                        break;
-                    case BarrierKind.GroupLevel:
-                        command.AppendConstant(0);
-                        break;
-                    default:
-                        throw new InvalidCodeGenerationException();
-                }
+                case BarrierKind.WarpLevel:
+                    command.AppendConstant(
+                        PTXInstructions.AllThreadsInAWarpMemberMask);
+                    break;
+                case BarrierKind.GroupLevel:
+                    command.AppendConstant(0);
+                    break;
+                default:
+                    throw new InvalidCodeGenerationException();
             }
         }
 
@@ -809,17 +782,15 @@ namespace ILGPU.Backends.PTX
             var targetRegister = Allocate(shuffle, variable.Description);
 
             var shuffleOperation = PTXInstructions.GetShuffleOperation(shuffle.Kind);
-            using (var command = BeginCommand(shuffleOperation))
-            {
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(variable);
-                command.AppendArgument(delta);
+            using var command = BeginCommand(shuffleOperation);
+            command.AppendArgument(targetRegister);
+            command.AppendArgument(variable);
+            command.AppendArgument(delta);
 
-                // Invoke the shuffle emitter
-                shuffleEmitter.EmitWarpMask(command);
+            // Invoke the shuffle emitter
+            shuffleEmitter.EmitWarpMask(command);
 
-                command.AppendConstant(PTXInstructions.AllThreadsInAWarpMemberMask);
-            }
+            command.AppendConstant(PTXInstructions.AllThreadsInAWarpMemberMask);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Broadcast)"/>

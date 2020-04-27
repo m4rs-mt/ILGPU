@@ -86,7 +86,7 @@ namespace ILGPU.Backends.EntryPoints
                 throw new ArgumentNullException(nameof(methodSource));
             IndexType = indexType;
 
-            parameters = parameters ?? methodSource.GetParameters();
+            parameters ??= methodSource.GetParameters();
 
             KernelIndexParameterOffset = IndexType == IndexType.KernelConfig ? 0 : 1;
             int maxNumParameters = parameters.Length - KernelIndexParameterOffset +

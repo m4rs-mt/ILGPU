@@ -56,20 +56,18 @@ namespace ILGPU.Frontend.Intrinsic
             InteropIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
-            switch (attribute.IntrinsicKind)
+            return attribute.IntrinsicKind switch
             {
-                case InteropIntrinsicKind.SizeOf:
-                    return builder.CreateSizeOf(
-                        builder.CreateType(context.GetMethodGenericArguments()[0]));
-                case InteropIntrinsicKind.FloatAsInt:
-                    return builder.CreateFloatAsIntCast(context[0]);
-                case InteropIntrinsicKind.IntAsFloat:
-                    return builder.CreateIntAsFloatCast(context[0]);
-                default:
-                    throw context.GetNotSupportedException(
-                        ErrorMessages.NotSupportedInteropIntrinsic,
-                        attribute.IntrinsicKind.ToString());
-            }
+                InteropIntrinsicKind.SizeOf => builder.CreateSizeOf(
+                    builder.CreateType(context.GetMethodGenericArguments()[0])),
+                InteropIntrinsicKind.FloatAsInt => builder.CreateFloatAsIntCast(
+                    context[0]),
+                InteropIntrinsicKind.IntAsFloat => builder.CreateIntAsFloatCast(
+                    context[0]),
+                _ => throw context.GetNotSupportedException(
+                    ErrorMessages.NotSupportedInteropIntrinsic,
+                    attribute.IntrinsicKind.ToString()),
+            };
         }
     }
 }

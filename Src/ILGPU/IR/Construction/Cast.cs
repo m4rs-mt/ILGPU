@@ -111,36 +111,26 @@ namespace ILGPU.IR.Construction
 
             if (UseConstantPropagation && node is PrimitiveValue primitive)
             {
-                switch (primitiveType.BasicValueType)
+                return primitiveType.BasicValueType switch
                 {
-                    case BasicValueType.Float32:
-                        return CreatePrimitiveValue(
-                            Interop.FloatAsInt(primitive.Float32Value));
-                    case BasicValueType.Float64:
-                        return CreatePrimitiveValue(
-                            Interop.FloatAsInt(primitive.Float64Value));
-                    default:
-                        throw new NotSupportedException(string.Format(
-                            ErrorMessages.NotSupportedFloatIntCast,
-                            primitiveType));
-                }
-            }
-
-            BasicValueType basicValueType;
-            switch (primitiveType.BasicValueType)
-            {
-                case BasicValueType.Float32:
-                    basicValueType = BasicValueType.Int32;
-                    break;
-                case BasicValueType.Float64:
-                    basicValueType = BasicValueType.Int64;
-                    break;
-                default:
-                    throw new NotSupportedException(string.Format(
+                    BasicValueType.Float32 => CreatePrimitiveValue(
+                        Interop.FloatAsInt(primitive.Float32Value)),
+                    BasicValueType.Float64 => CreatePrimitiveValue(
+                        Interop.FloatAsInt(primitive.Float64Value)),
+                    _ => throw new NotSupportedException(string.Format(
                         ErrorMessages.NotSupportedFloatIntCast,
-                        primitiveType));
+                        primitiveType)),
+                };
             }
 
+            var basicValueType = primitiveType.BasicValueType switch
+            {
+                BasicValueType.Float32 => BasicValueType.Int32,
+                BasicValueType.Float64 => BasicValueType.Int64,
+                _ => throw new NotSupportedException(string.Format(
+                    ErrorMessages.NotSupportedFloatIntCast,
+                    primitiveType)),
+            };
             var type = GetPrimitiveType(basicValueType);
             return Append(new FloatAsIntCast(
                 BasicBlock,
@@ -162,36 +152,26 @@ namespace ILGPU.IR.Construction
 
             if (UseConstantPropagation && node is PrimitiveValue primitive)
             {
-                switch (primitiveType.BasicValueType)
+                return primitiveType.BasicValueType switch
                 {
-                    case BasicValueType.Int32:
-                        return CreatePrimitiveValue(
-                            Interop.IntAsFloat(primitive.UInt32Value));
-                    case BasicValueType.Int64:
-                        return CreatePrimitiveValue(
-                            Interop.IntAsFloat(primitive.UInt64Value));
-                    default:
-                        throw new NotSupportedException(string.Format(
-                            ErrorMessages.NotSupportedFloatIntCast,
-                            primitiveType));
-                }
-            }
-
-            BasicValueType basicValueType;
-            switch (primitiveType.BasicValueType)
-            {
-                case BasicValueType.Int32:
-                    basicValueType = BasicValueType.Float32;
-                    break;
-                case BasicValueType.Int64:
-                    basicValueType = BasicValueType.Float64;
-                    break;
-                default:
-                    throw new NotSupportedException(string.Format(
+                    BasicValueType.Int32 => CreatePrimitiveValue(
+                        Interop.IntAsFloat(primitive.UInt32Value)),
+                    BasicValueType.Int64 => CreatePrimitiveValue(
+                        Interop.IntAsFloat(primitive.UInt64Value)),
+                    _ => throw new NotSupportedException(string.Format(
                         ErrorMessages.NotSupportedFloatIntCast,
-                        primitiveType));
+                        primitiveType)),
+                };
             }
 
+            var basicValueType = primitiveType.BasicValueType switch
+            {
+                BasicValueType.Int32 => BasicValueType.Float32,
+                BasicValueType.Int64 => BasicValueType.Float64,
+                _ => throw new NotSupportedException(string.Format(
+                    ErrorMessages.NotSupportedFloatIntCast,
+                    primitiveType)),
+            };
             var type = GetPrimitiveType(basicValueType);
             return Append(new IntAsFloatCast(
                 BasicBlock,

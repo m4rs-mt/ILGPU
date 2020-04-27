@@ -400,16 +400,17 @@ namespace ILGPU.Backends.OpenCL
                     value.ToString(CultureInfo.InvariantCulture));
             }
 
+            /// <summary>
+            /// Finishes the current statement.
+            /// </summary>
+            public void Finish() => stringBuilder.AppendLine(";");
+
             #endregion
 
             #region IDisposable
 
             /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose()
-            {
-                stringBuilder.Append(';');
-                stringBuilder.AppendLine();
-            }
+            void IDisposable.Dispose() => Finish();
 
             #endregion
         }
@@ -461,8 +462,8 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="target">The target variable to declare.</param>
         public void Declare(Variable target)
         {
-            using (var emitter = new StatementEmitter(this))
-                emitter.AppendDeclaration(target);
+            using var emitter = new StatementEmitter(this);
+            emitter.AppendDeclaration(target);
         }
 
         /// <summary>
@@ -471,8 +472,8 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="block">The target block to jump to.</param>
         public void GotoStatement(BasicBlock block)
         {
-            using (var statement = BeginStatement(CLInstructions.GotoStatement))
-                statement.AppendOperation(blockLookup[block]);
+            using var statement = BeginStatement(CLInstructions.GotoStatement);
+            statement.AppendOperation(blockLookup[block]);
         }
 
         /// <summary>
@@ -482,11 +483,9 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="source">The source variable to assign to.</param>
         public void Move(Variable target, Variable source)
         {
-            using (var emitter = new StatementEmitter(this))
-            {
-                emitter.AppendTarget(target, false);
-                emitter.Append(source);
-            }
+            using var emitter = new StatementEmitter(this);
+            emitter.AppendTarget(target, false);
+            emitter.Append(source);
         }
 
         /// <summary>

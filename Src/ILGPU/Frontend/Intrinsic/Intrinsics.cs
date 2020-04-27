@@ -203,11 +203,8 @@ namespace ILGPU.Frontend.Intrinsic
                             return builder.CreateDebug(
                                 DebugKind.Trace,
                                 context[0]);
-                        default:
-                            throw context.GetNotSupportedException(
-                                ErrorMessages.NotSupportedIntrinsic,
-                                context.Method.Name);
                     }
+                    break;
                 case nameof(Debug.Fail):
                     switch (context.NumArguments)
                     {
@@ -215,16 +212,12 @@ namespace ILGPU.Frontend.Intrinsic
                             return builder.CreateDebug(
                                 DebugKind.AssertFailed,
                                 context[0]);
-                        default:
-                            throw context.GetNotSupportedException(
-                                ErrorMessages.NotSupportedIntrinsic,
-                                context.Method.Name);
                     }
-                default:
-                    throw context.GetNotSupportedException(
-                        ErrorMessages.NotSupportedIntrinsic,
-                        context.Method.Name);
+                    break;
             }
+            throw context.GetNotSupportedException(
+                ErrorMessages.NotSupportedIntrinsic,
+                context.Method.Name);
         }
 
         /// <summary>
@@ -306,57 +299,47 @@ namespace ILGPU.Frontend.Intrinsic
             }
             else
             {
-                switch (context.Method.Name)
+                return context.Method.Name switch
                 {
-                    case "Get":
-                        return builder.CreateGetArrayElement(
-                            context[0],
-                            builder.CreateDynamicStructure(
-                                context.Arguments.RemoveAt(0)));
-                    case "Set":
-                        return builder.CreateSetArrayElement(
-                            context[0],
-                            builder.CreateDynamicStructure(
-                                context.Arguments.RemoveAt(0).RemoveAt(
-                                    context.NumArguments - 2)),
-                            context[context.NumArguments - 1]);
-                    case "get_Length":
-                        return builder.CreateGetArrayLength(context[0]);
-                    case "get_LongLength":
-                        return builder.CreateConvert(
-                            builder.CreateGetArrayLength(context[0]),
-                            builder.GetPrimitiveType(BasicValueType.Int64));
-                    case nameof(Array.GetLowerBound):
-                        return builder.CreatePrimitiveValue(0);
-                    case nameof(Array.GetUpperBound):
-                        return builder.CreateArithmetic(
-                            builder.CreateGetField(
-                                builder.CreateGetArrayExtent(context[0]),
-                                new FieldSpan(
-                                    context[1].ResolveAs<PrimitiveValue>().Int32Value)),
-                            builder.CreatePrimitiveValue(1),
-                            BinaryArithmeticKind.Sub);
-                    case nameof(Array.GetLength):
-                        return builder.CreateGetField(
-                            builder.CreateGetArrayExtent(context[0]),
+                    "Get" => builder.CreateGetArrayElement(
+                       context[0],
+                       builder.CreateDynamicStructure(context.Arguments.RemoveAt(0))),
+                    "Set" => builder.CreateSetArrayElement(
+                        context[0],
+                        builder.CreateDynamicStructure(
+                            context.Arguments.RemoveAt(0).RemoveAt(
+                                context.NumArguments - 2)),
+                        context[context.NumArguments - 1]),
+                    "get_Length" => builder.CreateGetArrayLength(context[0]),
+                    "get_LongLength" => builder.CreateConvert(
+                        builder.CreateGetArrayLength(context[0]),
+                        builder.GetPrimitiveType(BasicValueType.Int64)),
+                    nameof(Array.GetLowerBound) => builder.CreatePrimitiveValue(0),
+                    nameof(Array.GetUpperBound) => builder.CreateArithmetic(
+                        builder.CreateGetField(
+                        builder.CreateGetArrayExtent(context[0]),
+                        new FieldSpan(
+                            context[1].ResolveAs<PrimitiveValue>().Int32Value)),
+                        builder.CreatePrimitiveValue(1),
+                        BinaryArithmeticKind.Sub),
+                    nameof(Array.GetLength) => builder.CreateGetField(
+                        builder.CreateGetArrayExtent(context[0]),
+                        new FieldSpan(
+                            context[1].ResolveAs<PrimitiveValue>().Int32Value)),
+                    nameof(Array.GetLongLength) => builder.CreateConvert(
+                        builder.CreateGetField(
+                        builder.CreateGetArrayExtent(context[0]),
                             new FieldSpan(
-                                context[1].ResolveAs<PrimitiveValue>().Int32Value));
-                    case nameof(Array.GetLongLength):
-                        return builder.CreateConvert(
-                            builder.CreateGetField(
-                                builder.CreateGetArrayExtent(context[0]),
-                                new FieldSpan(
-                                    context[1].ResolveAs<PrimitiveValue>().Int32Value)),
-                            builder.GetPrimitiveType(BasicValueType.Int64));
-                    case nameof(Array.Empty):
-                        return builder.CreateArray(
-                            builder.CreateType(context.Method.GetGenericArguments()[0]),
-                            1,
-                            builder.CreatePrimitiveValue(0));
-                    default:
-                        throw context.GetNotSupportedException(
-                            ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
-                }
+                            context[1].ResolveAs<PrimitiveValue>().Int32Value)),
+                        builder.GetPrimitiveType(BasicValueType.Int64)),
+                    nameof(Array.Empty) => builder.CreateArray(
+                        builder.CreateType(context.Method.GetGenericArguments()[0]),
+                        1,
+                        builder.CreatePrimitiveValue(0)),
+                    _ => throw context.GetNotSupportedException(
+                        ErrorMessages.NotSupportedIntrinsic,
+                        context.Method.Name),
+                };
             }
         }
 

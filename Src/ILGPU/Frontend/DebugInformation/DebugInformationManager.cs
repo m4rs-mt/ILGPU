@@ -102,14 +102,12 @@ namespace ILGPU.Frontend.DebugInformation
                 {
                     try
                     {
-                        using (var pdbFileStream = new FileStream(
+                        using var pdbFileStream = new FileStream(
                             fileName,
                             FileMode.Open,
-                            FileAccess.Read))
-                        {
-                            assemblyDebugInformation =
-                                new AssemblyDebugInformation(assembly, pdbFileStream);
-                        }
+                            FileAccess.Read);
+                        assemblyDebugInformation =
+                            new AssemblyDebugInformation(assembly, pdbFileStream);
                     }
                     catch (Exception ex)
                     {

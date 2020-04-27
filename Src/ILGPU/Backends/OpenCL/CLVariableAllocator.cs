@@ -49,19 +49,15 @@ namespace ILGPU.Backends.OpenCL
         /// <param name="variable">The variable.</param>
         /// <returns>The resolved variable type name.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public string GetVariableType(Variable variable)
-        {
-            switch (variable)
+        public string GetVariableType(Variable variable) =>
+            variable switch
             {
-                case PrimitiveVariable primitiveVariable:
-                    return CLTypeGenerator.GetBasicValueType(
-                        primitiveVariable.BasicValueType);
-                case TypedVariable typedVariable:
-                    return TypeGenerator[typedVariable.Type];
-                default:
-                    throw new NotSupportedException();
-            }
-        }
+                PrimitiveVariable primitiveVariable =>
+                    CLTypeGenerator.GetBasicValueType(
+                        primitiveVariable.BasicValueType),
+                TypedVariable typedVariable => TypeGenerator[typedVariable.Type],
+                _ => throw new NotSupportedException(),
+            };
 
         #endregion
     }

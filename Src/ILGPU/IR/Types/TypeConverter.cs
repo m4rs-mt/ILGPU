@@ -80,30 +80,24 @@ namespace ILGPU.IR.Types
         public TypeNode ConvertType<TTypeContext>(
             TTypeContext typeContext,
             TypeNode type)
-            where TTypeContext : IIRTypeContext
-        {
-            switch (type)
+            where TTypeContext : IIRTypeContext =>
+            type switch
             {
-                case TType ttype:
-                    return ConvertType(typeContext, ttype);
-                case StructureType structureType:
-                    return structureType.ConvertFieldTypes(typeContext, this);
-                case ArrayType arrayType:
-                    return typeContext.CreateArrayType(
-                        ConvertType(typeContext, arrayType.ElementType),
-                        arrayType.Dimensions);
-                case PointerType pointerType:
-                    return typeContext.CreatePointerType(
-                        ConvertType(typeContext, pointerType.ElementType),
-                        pointerType.AddressSpace);
-                case ViewType viewType:
-                    return typeContext.CreateViewType(
-                        ConvertType(typeContext, viewType.ElementType),
-                        viewType.AddressSpace);
-                default:
-                    return type;
-            }
-        }
+                TType ttype => ConvertType(typeContext, ttype),
+                StructureType structureType => structureType.ConvertFieldTypes(
+                    typeContext,
+                    this),
+                ArrayType arrayType => typeContext.CreateArrayType(
+                    ConvertType(typeContext, arrayType.ElementType),
+                    arrayType.Dimensions),
+                PointerType pointerType => typeContext.CreatePointerType(
+                    ConvertType(typeContext, pointerType.ElementType),
+                    pointerType.AddressSpace),
+                ViewType viewType => typeContext.CreateViewType(
+                    ConvertType(typeContext, viewType.ElementType),
+                    viewType.AddressSpace),
+                _ => type,
+            };
 
         /// <summary>
         /// Resolves the number of element fields per type instance.

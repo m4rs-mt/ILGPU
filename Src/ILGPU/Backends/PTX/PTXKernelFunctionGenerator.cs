@@ -211,22 +211,20 @@ namespace ILGPU.Backends.PTX
             FreeRegister(bReg);
             FreeRegister(cReg);
 
-            using (var predicateScope = new PredicateScope(this))
+            using var predicateScope = new PredicateScope(this);
+            using (var command = BeginCommand(
+                PTXInstructions.GetCompareOperation(
+                CompareKind.GreaterEqual,
+                ArithmeticBasicValueType.Int32)))
             {
-                using (var command = BeginCommand(
-                    PTXInstructions.GetCompareOperation(
-                        CompareKind.GreaterEqual,
-                        ArithmeticBasicValueType.Int32)))
-                {
-                    command.AppendArgument(predicateScope.PredicateRegister);
-                    command.AppendArgument(targetRegister);
-                    command.AppendArgument(boundsRegister);
-                }
-
-                Command(
-                    PTXInstructions.ReturnOperation,
-                    predicateScope.GetConfiguration(true));
+                command.AppendArgument(predicateScope.PredicateRegister);
+                command.AppendArgument(targetRegister);
+                command.AppendArgument(boundsRegister);
             }
+
+            Command(
+                PTXInstructions.ReturnOperation,
+                predicateScope.GetConfiguration(true));
         }
 
         /// <summary>

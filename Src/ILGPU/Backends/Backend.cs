@@ -638,26 +638,25 @@ namespace ILGPU.Backends
             TBackendHook backendHook)
             where TBackendHook : IBackendHook
         {
-            using (var kernelContext = new IRContext(Context))
-            {
-                // Import the all kernel functions into our kernel context
-                var scopeProvider = new CachedScopeProvider();
-                var method = kernelContext.Import(kernelMethod, scopeProvider);
-                backendHook.InitializedKernelContext(kernelContext, method);
+            using var kernelContext = new IRContext(Context);
 
-                // Apply backend optimizations
-                foreach (var transformer in KernelTransformers)
-                    kernelContext.Transform(transformer);
-                backendHook.OptimizedKernelContext(kernelContext, method);
+            // Import the all kernel functions into our kernel context
+            var scopeProvider = new CachedScopeProvider();
+            var method = kernelContext.Import(kernelMethod, scopeProvider);
+            backendHook.InitializedKernelContext(kernelContext, method);
 
-                // Compile kernel
-                var backendContext = new BackendContext(kernelContext, method);
-                var entryPoint = CreateEntryPoint(
-                    entry,
-                    backendContext,
-                    specialization);
-                return Compile(entryPoint, backendContext, specialization);
-            }
+            // Apply backend optimizations
+            foreach (var transformer in KernelTransformers)
+                kernelContext.Transform(transformer);
+            backendHook.OptimizedKernelContext(kernelContext, method);
+
+            // Compile kernel
+            var backendContext = new BackendContext(kernelContext, method);
+            var entryPoint = CreateEntryPoint(
+                entry,
+                backendContext,
+                specialization);
+            return Compile(entryPoint, backendContext, specialization);
         }
 
         /// <summary>

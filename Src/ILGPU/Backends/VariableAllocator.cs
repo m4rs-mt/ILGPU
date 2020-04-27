@@ -229,20 +229,15 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="typeNode">The type to allocate.</param>
         /// <returns>The allocated variable.</returns>
-        public Variable AllocateType(TypeNode typeNode)
-        {
-            switch (typeNode)
+        public Variable AllocateType(TypeNode typeNode) =>
+            typeNode switch
             {
-                case PrimitiveType primitiveType:
-                    return AllocateType(primitiveType.BasicValueType);
-                case PointerType pointerType:
-                    return AllocatePointerType(pointerType);
-                case ObjectType objectType:
-                    return new ObjectVariable(idCounter++, objectType);
-                default:
-                    throw new NotSupportedException();
-            }
-        }
+                PrimitiveType primitiveType => AllocateType(
+                    primitiveType.BasicValueType),
+                PointerType pointerType => AllocatePointerType(pointerType),
+                ObjectType objectType => new ObjectVariable(idCounter++, objectType),
+                _ => throw new NotSupportedException(),
+            };
 
         /// <summary>
         /// Loads the given value.

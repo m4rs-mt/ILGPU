@@ -411,12 +411,10 @@ namespace ILGPU.IR
         /// <returns>The first use.</returns>
         public Use GetFirstUse()
         {
-            using (var enumerator = allUses.GetEnumerator())
-            {
-                if (!enumerator.MoveNext())
-                    throw new InvalidOperationException(ErrorMessages.NoUses);
-                return enumerator.Current;
-            }
+            using var enumerator = allUses.GetEnumerator();
+            if (!enumerator.MoveNext())
+                throw new InvalidOperationException(ErrorMessages.NoUses);
+            return enumerator.Current;
         }
 
         /// <summary>
