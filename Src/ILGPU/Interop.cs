@@ -48,14 +48,16 @@ namespace ILGPU
             Justification = "Matches signature of Marshal.SizeOf")]
         [InteropIntrinsic(InteropIntrinsicKind.SizeOf)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int SizeOf<T>() => Unsafe.SizeOf<T>();
+        public static int SizeOf<T>()
+            where T : unmanaged => Unsafe.SizeOf<T>();
 
         /// <summary>
         /// Computes the size of the given type.
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int SizeOf<T>(T structure) => SizeOf<T>();
+        public static int SizeOf<T>(T structure)
+            where T : unmanaged => SizeOf<T>();
 
         /// <summary>
         /// Computes number of elements of type <typeparamref name="TFirst"/>
@@ -79,6 +81,8 @@ namespace ILGPU
             "field offset")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ComputeRelativeSizeOf<TFirst, TSecond>()
+            where TFirst : unmanaged
+            where TSecond : unmanaged
         {
             var firstSize = SizeOf<TFirst>();
             var secondSize = SizeOf<TSecond>();
@@ -101,7 +105,8 @@ namespace ILGPU
             "field offset")]
         [InteropIntrinsic(InteropIntrinsicKind.OffsetOf)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int OffsetOf<T>(string fieldName) =>
+        public static int OffsetOf<T>(string fieldName)
+            where T : unmanaged =>
             Marshal.OffsetOf<T>(fieldName).ToInt32();
 
         /// <summary>
