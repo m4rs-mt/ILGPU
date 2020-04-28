@@ -174,7 +174,10 @@ namespace ILGPU.Tests
         [InlineData(1025, 723, 129)]
         [InlineData(1025, 1024, 1)]
         [KernelMethod(nameof(ArrayViewGetSubViewKernel))]
-        public void ArrayViewGetSubView(int length, int subViewOffset, int subViewLength)
+        public void ArrayViewGetSubView(
+            int length,
+            int subViewOffset,
+            int subViewLength)
         {
             using var buffer = Accelerator.Allocate<int>(length);
             using var viewLength = Accelerator.Allocate<int>(length);
@@ -227,7 +230,8 @@ namespace ILGPU.Tests
                 source.View,
                 subViewOffset);
 
-            var expectedLength = Enumerable.Repeat(length - subViewOffset, length).ToArray();
+            var expectedLength = Enumerable.Repeat(
+                length - subViewOffset, length).ToArray();
             Verify(viewLength, expectedLength);
         }
 
@@ -422,7 +426,8 @@ namespace ILGPU.Tests
         public void ArrayViewGetSubVariableView(int length)
         {
             using var buffer = Accelerator.Allocate<int>(length);
-            var sourceData = Enumerable.Range(0, length).Select(t => new Pair<int>() { First = t, Second = t + 1 }).ToArray();
+            var sourceData = Enumerable.Range(0, length).Select(t =>
+                new Pair<int>() { First = t, Second = t + 1 }).ToArray();
             var expected = Enumerable.Range(1, length).ToArray();
             using (var source = Accelerator.Allocate<Pair<int>>(length))
             {

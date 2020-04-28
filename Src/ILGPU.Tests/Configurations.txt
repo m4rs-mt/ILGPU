@@ -1,7 +1,11 @@
 ﻿ArrayViews: Debug, Release
-SizeOfValues: Debug, Release
+Arrays: Debug, Release
+EnumValues: Debug, Release
 KernelEntryPoints: Debug, Release
 SharedMemory: Debug, Release
+SizeOfValues: Debug, Release
+SpecializedKernels: Debug, Release
+StructureValues: Debug, Release
 
 BinaryIntOperations: Debug, Release
 UnaryIntOperations: Debug, Release
@@ -12,10 +16,10 @@ CompareFloatOperations: Debug, Release
 AtomicOperations: Debug, Release
 AtomicCASOperations: Debug, Release
 
-GroupOperations: Debug, Release
 GridOperations: Debug, Release
-WarpOperations: Debug, Release
+GroupOperations: Debug, Release
 MemoryFenceOperations: Debug, Release
+WarpOperations: Debug, Release
 
 ConvertFloatOperations: Debug, Release
 ConvertIntOperations: Debug, Release

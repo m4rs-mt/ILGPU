@@ -20,14 +20,30 @@ namespace ILGPU.Tests
         /// </summary>
         /// <param name="type">The parent type.</param>
         /// <param name="name">The kernel name to look for.</param>
+        /// <param name="typeArguments">The type arguments.</param>
         /// <returns>The resolved kernel method.</returns>
-        internal static MethodInfo GetKernelMethod(Type type, string name)
+        internal static MethodInfo GetKernelMethod(
+            Type type,
+            string name,
+            Type[] typeArguments)
         {
             var method = type.GetMethod(
                 name,
                 BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
             if (method == null)
-                throw new InvalidOperationException($"Could not find kernel method '{name}' of type '{type}'");
+            {
+                throw new InvalidOperationException(
+                    $"Could not find kernel method '{name}' of type '{type}'");
+            }
+            if (method.IsGenericMethod)
+            {
+                if (typeArguments == null)
+                    throw new ArgumentNullException(nameof(typeArguments));
+
+                // Try to specialize the method
+                method = method.MakeGenericMethod(typeArguments);
+            }
+
             return method;
         }
 
@@ -56,8 +72,7 @@ namespace ILGPU.Tests
         /// <summary>
         /// Returns the associated context provider.
         /// </summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Code Quality", "IDE0052:Remove unread private members", Justification = "Used in T4 templates")]
-        private ContextProvider ContextProvider { get; }
+        public ContextProvider ContextProvider { get; }
 
         /// <summary>
         /// Returns the output helper.
@@ -87,23 +102,13 @@ namespace ILGPU.Tests
         /// Executes the specified kernel with the given arguments.
         /// </summary>
         /// <typeparam name="TIndex">The index type.</typeparam>
-        /// <param name="kernelName">The kernel name.</param>
-        /// <param name="dimension">The dimension.</param>
-        /// <param name="arguments">The arguments.</param>
-        public void Execute<TIndex>(string kernelName, TIndex dimension, params object[] arguments)
-            where TIndex : struct, IIndex
-        {
-            Execute(GetKernelMethod(TestType, kernelName), dimension, arguments);
-        }
-
-        /// <summary>
-        /// Executes the specified kernel with the given arguments.
-        /// </summary>
-        /// <typeparam name="TIndex">The index type.</typeparam>
         /// <param name="kernel">The kernel method.</param>
         /// <param name="dimension">The dimension.</param>
         /// <param name="arguments">The arguments.</param>
-        public void Execute<TIndex>(MethodInfo kernel, TIndex dimension, params object[] arguments)
+        public void Execute<TIndex>(
+            MethodInfo kernel,
+            TIndex dimension,
+            params object[] arguments)
             where TIndex : struct, IIndex
         {
             Accelerator.DefaultStream.Synchronize();
@@ -112,11 +117,9 @@ namespace ILGPU.Tests
             // Compile kernel manually and load the compiled kernel into the accelerator
             var backend = Accelerator.Backend;
             Output.WriteLine($"Compiling '{kernel.Name}'");
-            EntryPointDescription entryPoint;
-            if (typeof(TIndex) == typeof(KernelConfig))
-                entryPoint = EntryPointDescription.FromExplicitlyGroupedKernel(kernel);
-            else
-                entryPoint = EntryPointDescription.FromImplicitlyGroupedKernel(kernel);
+            var entryPoint = typeof(TIndex) == typeof(KernelConfig)
+                ? EntryPointDescription.FromExplicitlyGroupedKernel(kernel)
+                : EntryPointDescription.FromImplicitlyGroupedKernel(kernel);
             var compiled = backend.Compile(entryPoint, new KernelSpecialization());
 
             // Load the compiled kernel
@@ -150,7 +153,43 @@ namespace ILGPU.Tests
         public void Execute<TIndex>(TIndex dimension, params object[] arguments)
             where TIndex : struct, IIndex
         {
-            var kernelMethod = KernelMethodAttribute.GetKernelMethod();
+            var kernelMethod = KernelMethodAttribute.GetKernelMethod(null);
+            Execute(kernelMethod, dimension, arguments);
+        }
+
+        /// <summary>
+        /// Executes an implicitly linked kernel with the given arguments.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <param name="dimension">The dimension.</param>
+        /// <param name="arguments">The arguments.</param>
+        public void Execute<TIndex, T>(TIndex dimension, params object[] arguments)
+            where TIndex : struct, IIndex
+            where T : unmanaged
+        {
+            var kernelMethod = KernelMethodAttribute.GetKernelMethod(new Type[]
+            {
+                typeof(T)
+            });
+            Execute(kernelMethod, dimension, arguments);
+        }
+
+        /// <summary>
+        /// Executes an implicitly linked kernel with the given arguments.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <param name="dimension">The dimension.</param>
+        /// <param name="arguments">The arguments.</param>
+        public void Execute<TIndex, T1, T2>(TIndex dimension, params object[] arguments)
+            where TIndex : struct, IIndex
+            where T1 : unmanaged
+            where T2 : unmanaged
+        {
+            var kernelMethod = KernelMethodAttribute.GetKernelMethod(new Type[]
+            {
+                typeof(T1),
+                typeof(T2)
+            });
             Execute(kernelMethod, dimension, arguments);
         }
 
@@ -167,7 +206,7 @@ namespace ILGPU.Tests
             T[] expected,
             int? offset = null,
             int? length = null)
-            where T : struct
+            where T : unmanaged
         {
             var data = buffer.GetAsArray(Accelerator.DefaultStream);
             Assert.Equal(data.Length, expected.Length);
@@ -182,7 +221,7 @@ namespace ILGPU.Tests
         /// <param name="buffer">The target buffer.</param>
         /// <param name="value">The value.</param>
         public void Initialize<T>(MemoryBuffer<T> buffer, T value)
-            where T : struct
+            where T : unmanaged
         {
             var data = new T[buffer.Length];
             for (int i = 0, e = data.Length; i < e; ++i)
@@ -197,7 +236,7 @@ namespace ILGPU.Tests
         /// <param name="buffer">The target buffer.</param>
         /// <param name="sequencer">The sequencer function.</param>
         public void Sequence<T>(MemoryBuffer<T> buffer, Func<int, T> sequencer)
-            where T : struct
+            where T : unmanaged
         {
             var data = new T[buffer.Length];
             for (int i = 0, e = data.Length; i < e; ++i)

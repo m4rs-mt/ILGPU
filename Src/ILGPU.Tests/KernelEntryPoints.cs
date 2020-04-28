@@ -7,7 +7,9 @@ namespace ILGPU.Tests
 {
     public abstract class KernelEntryPoints : TestBase
     {
-        protected KernelEntryPoints(ITestOutputHelper output, ContextProvider contextProvider)
+        protected KernelEntryPoints(
+            ITestOutputHelper output,
+            ContextProvider contextProvider)
             : base(output, contextProvider)
         { }
 
@@ -146,7 +148,8 @@ namespace ILGPU.Tests
                     for (int k = 0; k < i * i; ++k)
                     {
                         var groupIdx = Index2.ReconstructIndex(k, extent.GroupDim.XY);
-                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridDim.XY);
+                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(
+                            extent.GridDim.XY);
                         expected[idx] = idx;
                     }
                 }
@@ -188,7 +191,8 @@ namespace ILGPU.Tests
                     for (int k = 0; k < i * i * i; ++k)
                     {
                         var groupIdx = Index3.ReconstructIndex(k, extent.GroupDim);
-                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(extent.GridDim);
+                        var idx = (gridIdx * stride + groupIdx).ComputeLinearIndex(
+                            extent.GridDim);
                         expected[idx] = idx;
                     }
                 }

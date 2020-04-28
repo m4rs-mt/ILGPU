@@ -43,8 +43,11 @@ namespace ILGPU.Tests
         /// <summary>
         /// Resolves the kernel method using the current configuration.
         /// </summary>
+        /// <param name="typeArguments">The kernel type arguments.</param>
         /// <returns>The resolved kernel method.</returns>
-        public static MethodInfo GetKernelMethod(int offset = 1)
+        public static MethodInfo GetKernelMethod(
+            Type[] typeArguments = null,
+            int offset = 1)
         {
             // TODO: create a nicer way ;)
             var stackTrace = new StackTrace();
@@ -52,13 +55,18 @@ namespace ILGPU.Tests
             {
                 var frame = stackTrace.GetFrame(i);
                 var callingMethod = frame.GetMethod();
-                var attribute = callingMethod.GetCustomAttribute<KernelMethodAttribute>();
+                var attribute = callingMethod.GetCustomAttribute<
+                    KernelMethodAttribute>();
                 if (attribute == null)
                     continue;
                 var type = attribute.Type ?? callingMethod.DeclaringType;
-                return TestBase.GetKernelMethod(type, attribute.MethodName);
+                return TestBase.GetKernelMethod(
+                    type,
+                    attribute.MethodName,
+                    typeArguments);
             }
-            throw new NotSupportedException("Not supported kernel attribute. Missing attribute?");
+            throw new NotSupportedException(
+                "Not supported kernel attribute. Missing attribute?");
         }
     }
 }
