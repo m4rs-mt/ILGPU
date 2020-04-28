@@ -38,7 +38,6 @@ namespace ILGPU.Algorithms.CL
             var arithmeticValue = value as UnaryArithmeticValue;
             var argument = codeGenerator.Load(arithmeticValue.Value);
             var target = codeGenerator.Allocate(arithmeticValue);
-            var constant = arithmeticValue.BasicValueType == BasicValueType.Float32 ? 1.0f : 1.0;
             var operation = CLInstructions.GetArithmeticOperation(
                 BinaryArithmeticKind.Div,
                 arithmeticValue.BasicValueType.IsFloat(),
@@ -55,7 +54,10 @@ namespace ILGPU.Algorithms.CL
                     statement.OpenParen();
 
                 statement.AppendCast(arithmeticValue.ArithmeticBasicValueType);
-                statement.AppendConstant(constant);
+                if (arithmeticValue.BasicValueType == BasicValueType.Float32)
+                    statement.AppendConstant(1.0f);
+                else
+                    statement.AppendConstant(1.0);
 
                 if (!isFunction)
                     statement.AppendCommand(operation);
