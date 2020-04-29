@@ -17,8 +17,7 @@ namespace ILGPU.Frontend.DebugInformation
     /// <summary>
     /// Represents a sequence-point enumerator for methods.
     /// </summary>
-    public sealed class SequencePointEnumerator :
-        IDebugInformationEnumerator<SequencePoint>
+    public struct SequencePointEnumerator : IDebugInformationEnumerator<SequencePoint>
     {
         #region Constants
 
@@ -30,7 +29,7 @@ namespace ILGPU.Frontend.DebugInformation
             "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes",
             Justification = "The empty sequence-point-enumerator is immutable")]
         public static readonly SequencePointEnumerator Empty =
-            new SequencePointEnumerator();
+            new SequencePointEnumerator(ImmutableArray<SequencePoint>.Empty);
 
         #endregion
 
@@ -40,14 +39,6 @@ namespace ILGPU.Frontend.DebugInformation
 
         /// <summary>
         /// Constructs an empty sequence-point enumerator.
-        /// </summary>
-        private SequencePointEnumerator()
-        {
-            SequencePoints = ImmutableArray<SequencePoint>.Empty;
-        }
-
-        /// <summary>
-        /// Constructs a new sequence-point enumerator.
         /// </summary>
         /// <param name="sequencePoints">The wrapped sequence points.</param>
         internal SequencePointEnumerator(ImmutableArray<SequencePoint> sequencePoints)
@@ -90,14 +81,14 @@ namespace ILGPU.Frontend.DebugInformation
         public bool TryGetCurrentDebugLocationString(out string debugLocationString)
         {
             debugLocationString = Current.ToString();
-            return Current.IsValid;
+            return Current != null;
         }
 
         /// <summary>
         /// Tries to move the enumerator to the given offset in bytes.
         /// </summary>
         /// <param name="offset">The target instruction offset in bytes.</param>
-        /// <returns></returns>
+        /// <returns>True, is the next sequence point is valid.</returns>
         public bool MoveTo(int offset)
         {
             if (SequencePoints.Length < 1)

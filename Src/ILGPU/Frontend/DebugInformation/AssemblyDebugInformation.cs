@@ -23,13 +23,26 @@ namespace ILGPU.Frontend.DebugInformation
     /// <summary>
     /// Represents assembly debug information.
     /// </summary>
-    public sealed class AssemblyDebugInformation
+    public sealed class AssemblyDebugInformation : IMetadataReaderOperationProvider
     {
         #region Instance
 
+        /// <summary>
+        /// The internal mapping of methods to cached debug information.
+        /// </summary>
         private readonly Dictionary<MethodBase, MethodDebugInformation>
             debugInformation =
             new Dictionary<MethodBase, MethodDebugInformation>();
+
+        /// <summary>
+        /// The internal reader provider.
+        /// </summary>
+        private readonly MetadataReaderProvider readerProvider;
+
+        /// <summary>
+        /// The internal synchronization object.
+        /// </summary>
+        private readonly object syncLock = new object();
 
         /// <summary>
         /// Constructs new empty assembly debug information.
@@ -45,27 +58,23 @@ namespace ILGPU.Frontend.DebugInformation
         /// Constructs new assembly debug information.
         /// </summary>
         /// <param name="assembly">The referenced assembly.</param>
-        /// <param name="pdbStream">The associated PDB stream.</param>
+        /// <param name="pdbStream">
+        /// The associated PDB stream (hast to be kept open).
+        /// </param>
         internal AssemblyDebugInformation(Assembly assembly, Stream pdbStream)
         {
             Assembly = assembly;
             Modules = ImmutableArray.Create(assembly.GetModules());
 
-            using (var metadataReaderProvider =
-                MetadataReaderProvider.FromPortablePdbStream(
-                    pdbStream,
-                    MetadataStreamOptions.PrefetchMetadata))
-            {
-                MetadataReader = metadataReaderProvider.GetMetadataReader();
-            }
+            readerProvider = MetadataReaderProvider.FromPortablePdbStream(
+                pdbStream,
+                MetadataStreamOptions.Default);
+            MetadataReader = readerProvider.GetMetadataReader();
 
-            var methodDebugInformationEnumerator =
-                MetadataReader.MethodDebugInformation.GetEnumerator();
-            while (methodDebugInformationEnumerator.MoveNext())
+            foreach (var methodHandle in MetadataReader.MethodDebugInformation)
             {
-                var methodDebugRef = methodDebugInformationEnumerator.Current;
-                var methodDefinitionHandle = methodDebugRef.ToDefinitionHandle();
-                var metadataToken = MetadataTokens.GetToken(methodDefinitionHandle);
+                var definitionHandle = methodHandle.ToDefinitionHandle();
+                var metadataToken = MetadataTokens.GetToken(definitionHandle);
                 if (TryResolveMethod(metadataToken, out MethodBase method))
                 {
                     debugInformation.Add(
@@ -73,7 +82,7 @@ namespace ILGPU.Frontend.DebugInformation
                         new MethodDebugInformation(
                             this,
                             method,
-                            methodDebugRef));
+                            definitionHandle));
                 }
             }
         }
@@ -100,11 +109,18 @@ namespace ILGPU.Frontend.DebugInformation
         /// <summary>
         /// Returns the associated metadata reader.
         /// </summary>
-        internal MetadataReader MetadataReader { get; }
+        private MetadataReader MetadataReader { get; }
 
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Begins a synchronized metadata reader operation.
+        /// </summary>
+        /// <returns>The operation instance.</returns>
+        MetadataReaderOperation IMetadataReaderOperationProvider.BeginOperation() =>
+            new MetadataReaderOperation(MetadataReader, syncLock);
 
         /// <summary>
         /// Tries to resolve the given metadata token to a method.
@@ -133,7 +149,6 @@ namespace ILGPU.Frontend.DebugInformation
         /// The loaded debug information (or null).
         /// </param>
         /// <returns>True, if the requested debug information could be loaded.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryLoadDebugInformation(
             MethodBase methodBase,
             out MethodDebugInformation methodDebugInformation)
@@ -148,10 +163,9 @@ namespace ILGPU.Frontend.DebugInformation
             {
                 methodBase = methodInfo.GetGenericMethodDefinition();
             }
-            if (!debugInformation.TryGetValue(methodBase, out methodDebugInformation))
-                return false;
-            methodDebugInformation.LoadSequencePoints();
-            return true;
+            return debugInformation.TryGetValue(
+                methodBase,
+                out methodDebugInformation);
         }
 
         #endregion

@@ -63,7 +63,7 @@ namespace ILGPU.Backends.PTX
             Debug.Assert(node != null, "Invalid node");
 
             var sequencePoint = node.SequencePoint;
-            if (!sequencePoint.IsValid || Current == sequencePoint)
+            if (sequencePoint is null || Current == sequencePoint)
                 return;
             Parent.GenerateDebugInfo(builder, node, sequencePoint);
             Current = sequencePoint;

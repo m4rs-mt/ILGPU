@@ -17,7 +17,7 @@ namespace ILGPU.Frontend.DebugInformation
     /// <summary>
     /// Represents a local variable in a scope.
     /// </summary>
-    public struct LocalVariable : IEquatable<LocalVariable>
+    public readonly struct LocalVariable : IEquatable<LocalVariable>
     {
         #region Instance
 

@@ -20,7 +20,85 @@ namespace ILGPU.Frontend.DebugInformation
     /// </summary>
     public sealed class MethodDebugInformation
     {
+        #region Static
+
+        /// <summary>
+        /// Loads sequence points for the given information handle.
+        /// </summary>
+        /// <param name="readerOperationProvider">The parent reader provider.</param>
+        /// <param name="handle">The source information handle.</param>
+        /// <returns>The array of all sequence points.</returns>
+        private static ImmutableArray<SequencePoint> LoadSequencePoints<TProvider>(
+            TProvider readerOperationProvider,
+            MethodDefinitionHandle handle)
+            where TProvider : IMetadataReaderOperationProvider
+        {
+            using var operation = readerOperationProvider.BeginOperation();
+            MetadataReader reader = operation.Reader;
+            var debugInformation = reader.GetMethodDebugInformation(handle);
+
+            // Gather sequence points
+            var result = ImmutableArray.CreateBuilder<SequencePoint>();
+            foreach (var sequencePoint in debugInformation.GetSequencePoints())
+            {
+                if (sequencePoint.IsHidden || sequencePoint.Document.IsNil)
+                    continue;
+                var doc = reader.GetDocument(sequencePoint.Document);
+                result.Add(new SequencePoint(
+                    doc.Name.IsNil ? string.Empty : reader.GetString(doc.Name),
+                    sequencePoint.Offset,
+                    sequencePoint.StartColumn,
+                    sequencePoint.EndColumn,
+                    sequencePoint.StartLine,
+                    sequencePoint.EndLine));
+            }
+            return result.ToImmutable();
+        }
+
+        /// <summary>
+        /// Loads method scopes for the given information handle.
+        /// </summary>
+        /// <param name="readerOperationProvider">The parent reader provider.</param>
+        /// <param name="handle">The source information handle.</param>
+        /// <returns>The array of all method scopes.</returns>
+        private static ImmutableArray<MethodScope> LoadScopes<TProvider>(
+            TProvider readerOperationProvider,
+            MethodDefinitionHandle handle)
+            where TProvider : IMetadataReaderOperationProvider
+        {
+            using var operation = readerOperationProvider.BeginOperation();
+            MetadataReader reader = operation.Reader;
+            var scopes = reader.GetLocalScopes(handle);
+
+            // Gather method scopes
+            var result = ImmutableArray.CreateBuilder<MethodScope>(scopes.Count);
+            using var enumerator = scopes.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                var localScope = reader.GetLocalScope(enumerator.Current);
+                result.Add(new MethodScope(localScope, reader));
+            }
+            return result.MoveToImmutable();
+        }
+
+        #endregion
+
         #region Instance
+
+        /// <summary>
+        /// All associated sequence points.
+        /// </summary>
+        private ImmutableArray<SequencePoint> sequencePoints;
+
+        /// <summary>
+        /// All associated method scopes.
+        /// </summary>
+        private ImmutableArray<MethodScope> methodScopes;
+
+        /// <summary>
+        /// The internal synchronization object.
+        /// </summary>
+        private readonly object syncLock = new object();
 
         /// <summary>
         /// Constructs method debug information.
@@ -29,18 +107,20 @@ namespace ILGPU.Frontend.DebugInformation
         /// The parent assembly debug information
         /// </param>
         /// <param name="methodBase">The target method.</param>
-        /// <param name="debugInformationHandle">
+        /// <param name="handle">
         /// The debug handle of the given method.
         /// </param>
         internal MethodDebugInformation(
             AssemblyDebugInformation assemblyDebugInformation,
             MethodBase methodBase,
-            MethodDebugInformationHandle debugInformationHandle)
+            MethodDefinitionHandle handle)
         {
             MethodBase = methodBase;
             AssemblyDebugInformation = assemblyDebugInformation;
-            DebugInformationHandle = debugInformationHandle;
-            SequencePoints = ImmutableArray<SequencePoint>.Empty;
+            Handle = handle;
+
+            sequencePoints = default;
+            methodScopes = default;
         }
 
         #endregion
@@ -58,66 +138,49 @@ namespace ILGPU.Frontend.DebugInformation
         public MethodBase MethodBase { get; }
 
         /// <summary>
-        /// Returns the associated sequence points.
-        /// </summary>
-        public ImmutableArray<SequencePoint> SequencePoints { get; private set; }
-
-        /// <summary>
-        /// Returns the associated metadata reader.
-        /// </summary>
-        internal MetadataReader MetadataReader =>
-            AssemblyDebugInformation.MetadataReader;
-
-        /// <summary>
         /// Returns the associated the method debug-information handle.
         /// </summary>
-        internal MethodDebugInformationHandle DebugInformationHandle { get; }
+        internal MethodDefinitionHandle Handle { get; }
+
+        /// <summary>
+        /// Returns all sequence points of the current method.
+        /// </summary>
+        public ImmutableArray<SequencePoint> SequencePoints
+        {
+            get
+            {
+                lock (syncLock)
+                {
+                    return !sequencePoints.IsDefault
+                        ? sequencePoints
+                        : (sequencePoints = LoadSequencePoints(
+                            AssemblyDebugInformation,
+                            Handle));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns all method scops of the current method.
+        /// </summary>
+        public ImmutableArray<MethodScope> MethodScopes
+        {
+            get
+            {
+                lock (syncLock)
+                {
+                    return !methodScopes.IsDefault
+                        ? methodScopes
+                        : (methodScopes = LoadScopes(
+                            AssemblyDebugInformation,
+                            Handle));
+                }
+            }
+        }
 
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// Loads the requested sequence points.
-        /// </summary>
-        internal void LoadSequencePoints()
-        {
-            if (SequencePoints.Length > 0)
-                return;
-
-            var debugInformation = MetadataReader
-                .GetMethodDebugInformation(DebugInformationHandle);
-
-            // Gather sequence points
-            var sequencePointsCollection = debugInformation.GetSequencePoints();
-            var sequencePointEnumerator = sequencePointsCollection.GetEnumerator();
-            int numSequencePoints;
-            for (numSequencePoints = 0; sequencePointEnumerator.MoveNext();)
-            {
-                var sequencePoint = sequencePointEnumerator.Current;
-                if (sequencePoint.IsHidden || sequencePoint.Document.IsNil)
-                    continue;
-                ++numSequencePoints;
-            }
-            var sequencePoints = ImmutableArray.CreateBuilder<SequencePoint>(
-                numSequencePoints);
-            sequencePointEnumerator = sequencePointsCollection.GetEnumerator();
-            while (sequencePointEnumerator.MoveNext())
-            {
-                var sequencePoint = sequencePointEnumerator.Current;
-                if (sequencePoint.IsHidden || sequencePoint.Document.IsNil)
-                    continue;
-                var doc = MetadataReader.GetDocument(sequencePoint.Document);
-                sequencePoints.Add(new SequencePoint(
-                    doc.Name.IsNil ? string.Empty : MetadataReader.GetString(doc.Name),
-                    sequencePoint.Offset,
-                    sequencePoint.StartColumn,
-                    sequencePoint.EndColumn,
-                    sequencePoint.StartLine,
-                    sequencePoint.EndLine));
-            }
-            SequencePoints = sequencePoints.MoveToImmutable();
-        }
 
         /// <summary>
         /// Creates a new sequence-point enumerator for the current method.
@@ -125,13 +188,6 @@ namespace ILGPU.Frontend.DebugInformation
         /// <returns>The created sequence-point enumerator.</returns>
         public SequencePointEnumerator CreateSequencePointEnumerator() =>
             new SequencePointEnumerator(SequencePoints);
-
-        /// <summary>
-        /// Creates a new scope enumerator for the current method.
-        /// </summary>
-        /// <returns>The create scope enumerator.</returns>
-        public MethodScopeEnumerator CreateScopeEnumerator() =>
-            new MethodScopeEnumerator(this);
 
         #endregion
     }

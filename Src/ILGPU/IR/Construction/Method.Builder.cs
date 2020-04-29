@@ -348,7 +348,7 @@ namespace ILGPU.IR
 
                 // Create sequence point information
                 var currentSequencePoint = SequencePoint;
-                if (!currentSequencePoint.IsValid)
+                if (currentSequencePoint is null)
                 {
                     // Try to infer sequence points from all child nodes
                     foreach (var childNode in node.Nodes)

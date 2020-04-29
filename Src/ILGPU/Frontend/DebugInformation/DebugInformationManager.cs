@@ -94,6 +94,10 @@ namespace ILGPU.Frontend.DebugInformation
                 "CA1031:DoNotCatchGeneralExceptionTypes",
                 Justification = "Loading exceptions will be published on the " +
                 "debug output")]
+            [SuppressMessage(
+                "Reliability",
+                "CA2000:Dispose objects before losing scope",
+                Justification = "Stream will be used internally and disposed later")]
             public bool Load(
                 Assembly assembly,
                 out AssemblyDebugInformation assemblyDebugInformation)
@@ -102,7 +106,7 @@ namespace ILGPU.Frontend.DebugInformation
                 {
                     try
                     {
-                        using var pdbFileStream = new FileStream(
+                        var pdbFileStream = new FileStream(
                             fileName,
                             FileMode.Open,
                             FileAccess.Read);
@@ -179,7 +183,9 @@ namespace ILGPU.Frontend.DebugInformation
             /// Constructs a new stream loader.
             /// </summary>
             /// <param name="parent">The parent manager.</param>
-            /// <param name="pdbStream">The stream to load from.</param>
+            /// <param name="pdbStream">
+            /// The stream to load from (must be left open).
+            /// </param>
             public StreamLoader(DebugInformationManager parent, Stream pdbStream)
             {
                 Parent = parent;
@@ -300,7 +306,7 @@ namespace ILGPU.Frontend.DebugInformation
         /// Tries to load symbols for the given assembly based on the given PDB stream.
         /// </summary>
         /// <param name="assembly">The assembly.</param>
-        /// <param name="pdbStream">The source PDB stream.</param>
+        /// <param name="pdbStream">The source PDB stream (must be left open).</param>
         /// <param name="assemblyDebugInformation">
         /// The loaded debug information (or null).
         /// </param>
@@ -426,6 +432,10 @@ namespace ILGPU.Frontend.DebugInformation
         /// Loaded debug information (or null).
         /// </param>
         /// <returns>True, if debug information could be loaded.</returns>
+        [SuppressMessage(
+            "Reliability",
+            "CA2000:Dispose objects before losing scope",
+            Justification = "References will be disposed in Dispose method")]
         public bool TryLoadDebugInformation(
             MethodBase methodBase,
             out MethodDebugInformation methodDebugInformation)
@@ -452,30 +462,12 @@ namespace ILGPU.Frontend.DebugInformation
         /// If no debug information could be loaded for the given method, an empty
         /// <see cref="SequencePointEnumerator"/> will be returned.
         /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SequencePointEnumerator LoadSequencePoints(MethodBase methodBase) =>
             TryLoadDebugInformation(
                 methodBase,
                 out MethodDebugInformation methodDebugInformation)
             ? methodDebugInformation.CreateSequencePointEnumerator()
             : SequencePointEnumerator.Empty;
-
-        /// <summary>
-        /// Loads the scopes of the given method.
-        /// </summary>
-        /// <param name="methodBase">The method base.</param>
-        /// <returns>A scope-enumerator that targets the given method.</returns>
-        /// <remarks>
-        /// If no debug information could be loaded for the given method, an empty
-        /// <see cref="MethodScopeEnumerator"/> will be returned.
-        /// </remarks>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public MethodScopeEnumerator LoadScopes(MethodBase methodBase) =>
-            TryLoadDebugInformation(
-                methodBase,
-                out MethodDebugInformation methodDebugInformation)
-            ? methodDebugInformation.CreateScopeEnumerator()
-            : MethodScopeEnumerator.Empty;
 
         /// <summary>
         /// Clears cached debug information.

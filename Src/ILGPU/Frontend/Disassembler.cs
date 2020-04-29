@@ -72,7 +72,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Represents the associated sequence-point enumerator.
         /// </summary>
-        private readonly SequencePointEnumerator debugInformationEnumerator;
+        private SequencePointEnumerator debugInformationEnumerator;
 
         /// <summary>
         /// Constructs a new disassembler.
@@ -100,8 +100,7 @@ namespace ILGPU.Frontend
             }
             il = MethodBody.GetILAsByteArray();
             instructions = ImmutableArray.CreateBuilder<ILInstruction>(il.Length);
-            debugInformationEnumerator = sequencePointEnumerator
-                ?? SequencePointEnumerator.Empty;
+            debugInformationEnumerator = sequencePointEnumerator;
         }
 
         #endregion

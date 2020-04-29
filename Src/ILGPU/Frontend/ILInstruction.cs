@@ -769,7 +769,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns true if this instruction has a valid sequence point.
         /// </summary>
-        public bool HasValidSequencePoint => SequencePoint.IsValid;
+        public bool HasValidSequencePoint => SequencePoint != null;
 
         #endregion
 

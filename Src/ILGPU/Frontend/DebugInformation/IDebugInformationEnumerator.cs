@@ -12,22 +12,10 @@
 namespace ILGPU.Frontend.DebugInformation
 {
     /// <summary>
-    /// Represents an abstract item of a <see cref="IDebugInformationEnumerator{T}"/>.
-    /// </summary>
-    public interface IDebugInformationEnumeratorValue
-    {
-        /// <summary>
-        /// Returns true if this information is valid.
-        /// </summary>
-        bool IsValid { get; }
-    }
-
-    /// <summary>
     /// Represents a debug-information enumerator.
     /// </summary>
     /// <typeparam name="T">The enumerator type.</typeparam>
     public interface IDebugInformationEnumerator<T>
-        where T : struct, IDebugInformationEnumeratorValue
     {
         /// <summary>
         /// Returns the current object.
