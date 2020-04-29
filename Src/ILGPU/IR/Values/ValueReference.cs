@@ -111,28 +111,6 @@ namespace ILGPU.IR.Values
         public ValueReference Refresh() => new ValueReference(Resolve());
 
         /// <summary>
-        /// Marks the current node with the new marker value.
-        /// </summary>
-        /// <param name="newMarker">The new value to apply.</param>
-        /// <returns>
-        /// True, if the old marker was not equal to the new marker
-        /// (the node was not marked with the new marker value).
-        /// </returns>
-        public bool Mark(NodeMarker newMarker) => Resolve().Mark(newMarker);
-
-        /// <summary>
-        /// Returns true if the reference marker is less or equal to the
-        /// current marker value.
-        /// </summary>
-        /// <param name="referenceMarker">The reference marker.</param>
-        /// <returns>
-        /// True, if the reference marker is less or equal to
-        /// the current marker value.
-        /// </returns>
-        public bool IsMarked(NodeMarker referenceMarker) =>
-            Resolve().IsMarked(referenceMarker);
-
-        /// <summary>
         /// Returns an enumerator to enumerate all child nodes.
         /// </summary>
         /// <returns>An enumerator to enumerate all child nodes.</returns>

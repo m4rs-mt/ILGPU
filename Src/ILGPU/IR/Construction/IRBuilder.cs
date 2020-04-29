@@ -84,12 +84,6 @@ namespace ILGPU.IR.Construction
         #region Methods
 
         /// <summary>
-        /// Creates a new unique node marker.
-        /// </summary>
-        /// <returns>The new node marker.</returns>
-        public NodeMarker NewNodeMarker() => Context.NewNodeMarker();
-
-        /// <summary>
         /// Creates a node that represents an <see cref="Accelerator.CurrentType"/>
         /// property.
         /// </summary>

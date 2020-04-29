@@ -56,8 +56,8 @@ namespace ILGPU.Frontend
                 BuildBasicBlocks();
                 methodBuilder.EntryBlock = EntryBlock.BasicBlock;
 
-                var nodeMarker = methodBuilder.Context.NewNodeMarker();
-                SetupBasicBlocks(nodeMarker, EntryBlock, 0);
+                var visited = new HashSet<Block>();
+                SetupBasicBlocks(visited, EntryBlock, 0);
 
                 WireBlocks();
 
@@ -137,13 +137,13 @@ namespace ILGPU.Frontend
             /// <summary>
             /// Setups a single basic block.
             /// </summary>
-            /// <param name="nodeMarker">The current node marker.</param>
+            /// <param name="visited">The set of visited blocks.</param>
             /// <param name="current">The current block.</param>
             /// <param name="stackCounter">The current stack counter.</param>
             /// <param name="target">The target block.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private void SetupBasicBlock(
-                NodeMarker nodeMarker,
+                HashSet<Block> visited,
                 Block current,
                 int stackCounter,
                 int target)
@@ -152,21 +152,21 @@ namespace ILGPU.Frontend
                 AddSuccessor(current, targetBlock);
                 targetBlock.StackCounter = stackCounter;
                 var targetIdx = offsetMapping[target];
-                SetupBasicBlocks(nodeMarker, targetBlock, targetIdx);
+                SetupBasicBlocks(visited, targetBlock, targetIdx);
             }
 
             /// <summary>
             /// Setups all basic blocks (fills in the required information).
             /// </summary>
-            /// <param name="nodeMarker">The current node marker.</param>
+            /// <param name="visited">The set of visited blocks.</param>
             /// <param name="current">The current block.</param>
             /// <param name="instructionIdx">The starting instruction index.</param>
             private void SetupBasicBlocks(
-                NodeMarker nodeMarker,
+                HashSet<Block> visited,
                 Block current,
                 int instructionIdx)
             {
-                if (!current.BasicBlock.Mark(nodeMarker))
+                if (!visited.Add(current))
                     return;
 
                 var disassembledMethod = CodeGenerator.DisassembledMethod;
@@ -185,7 +185,7 @@ namespace ILGPU.Frontend
                         // Wire current and new block
                         AddSuccessor(current, other);
                         other.StackCounter = stackCounter;
-                        SetupBasicBlocks(nodeMarker, other, instructionIdx);
+                        SetupBasicBlocks(visited, other, instructionIdx);
                         break;
                     }
                     else
@@ -206,7 +206,7 @@ namespace ILGPU.Frontend
                                     foreach (var target in targetOffsets)
                                     {
                                         SetupBasicBlock(
-                                            nodeMarker,
+                                            visited,
                                             current,
                                             stackCounter,
                                             target);
@@ -215,7 +215,7 @@ namespace ILGPU.Frontend
                                 else
                                 {
                                     SetupBasicBlock(
-                                        nodeMarker,
+                                        visited,
                                         current,
                                         stackCounter,
                                         targetOffsets[0]);

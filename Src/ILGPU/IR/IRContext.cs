@@ -182,12 +182,6 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Creates a new unique node marker.
-        /// </summary>
-        /// <returns>The new node marker.</returns>
-        public NodeMarker NewNodeMarker() => Context.NewNodeMarker();
-
-        /// <summary>
         /// Tries to resolve the given managed method to function reference.
         /// </summary>
         /// <param name="method">The method to resolve.</param>

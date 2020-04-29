@@ -140,7 +140,6 @@ namespace ILGPU
         #region Instance
 
         private long methodHandleCounter = 0;
-        private long nodeMarker = 0L;
 
         private readonly SemaphoreSlim codeGenerationSemaphore = new SemaphoreSlim(1);
         private readonly object assemblyLock = new object();
@@ -305,14 +304,6 @@ namespace ILGPU
         /// <param name="flags">The flags to check.</param>
         /// <returns>True, if the current context has the given flags.</returns>
         public bool HasFlags(ContextFlags flags) => Flags.HasFlags(flags);
-
-        /// <summary>
-        /// Creates a new unique node marker.
-        /// </summary>
-        /// <returns>The new node marker.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public NodeMarker NewNodeMarker() =>
-            new NodeMarker(Interlocked.Add(ref nodeMarker, 1L));
 
         /// <summary>
         /// Creates a new unique method handle.

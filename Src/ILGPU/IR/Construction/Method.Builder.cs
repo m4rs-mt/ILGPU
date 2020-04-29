@@ -177,12 +177,6 @@ namespace ILGPU.IR
             }
 
             /// <summary>
-            /// Creates a new unique node marker.
-            /// </summary>
-            /// <returns>The new node marker.</returns>
-            public NodeMarker NewNodeMarker() => Context.NewNodeMarker();
-
-            /// <summary>
             /// Creates a new method scope with default flags.
             /// </summary>
             /// <returns>A new method scope.</returns>

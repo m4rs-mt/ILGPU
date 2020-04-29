@@ -11,8 +11,6 @@
 
 using ILGPU.Frontend.DebugInformation;
 using System;
-using System.Diagnostics;
-using System.Threading;
 
 namespace ILGPU.IR
 {
@@ -30,27 +28,6 @@ namespace ILGPU.IR
         /// Returns the associated sequence point.
         /// </summary>
         SequencePoint SequencePoint { get; }
-
-        /// <summary>
-        /// Marks the current node with the new marker value.
-        /// </summary>
-        /// <param name="newMarker">The new value to apply.</param>
-        /// <returns>
-        /// True, if the old marker was not equal to the new marker
-        /// (the node was not marked with the new marker value).
-        /// </returns>
-        bool Mark(NodeMarker newMarker);
-
-        /// <summary>
-        /// Returns true if the reference marker is less or equal to the
-        /// current marker value.
-        /// </summary>
-        /// <param name="referenceMarker">The reference marker.</param>
-        /// <returns>
-        /// True, if the reference marker is less or equal to
-        /// the current marker value.
-        /// </returns>
-        bool IsMarked(NodeMarker referenceMarker);
     }
 
     /// <summary>
@@ -70,9 +47,6 @@ namespace ILGPU.IR
         #endregion
 
         #region Instance
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private long markerValue;
 
         /// <summary>
         /// Constructs a new node that is marked as replaceable.
@@ -95,33 +69,6 @@ namespace ILGPU.IR
         /// Returns the unique node id.
         /// </summary>
         public NodeId Id { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Marks the current node with the new marker value.
-        /// </summary>
-        /// <param name="newMarker">The new value to apply.</param>
-        /// <returns>
-        /// True, if the old marker was not equal to the new marker
-        /// (the node was not marked with the new marker value).
-        /// </returns>
-        public bool Mark(NodeMarker newMarker) =>
-            Interlocked.Exchange(ref markerValue, newMarker.Marker) != newMarker.Marker;
-
-        /// <summary>
-        /// Returns true if the reference marker is equal to the
-        /// current marker value.
-        /// </summary>
-        /// <param name="referenceMarker">The reference marker.</param>
-        /// <returns>
-        /// True, if the current marker is equal to the current
-        /// marker value.
-        /// </returns>
-        public bool IsMarked(NodeMarker referenceMarker) =>
-            Interlocked.Read(ref markerValue) == referenceMarker.Marker;
 
         #endregion
 
