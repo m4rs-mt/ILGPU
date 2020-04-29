@@ -79,7 +79,6 @@ namespace ILGPU.IR
             TypeContext = context.TypeContext;
 
             UndefinedValue = new UndefinedValue(TypeContext.VoidType);
-            Create(UndefinedValue);
 
             gcDelegate = (Method method) => method.GC();
         }
@@ -486,14 +485,6 @@ namespace ILGPU.IR
 
             return targetMapping[source];
         }
-
-        /// <summary>
-        /// Creates an instantiated node by assigning a unique node id.
-        /// </summary>
-        /// <param name="value">The node to create.</param>
-        /// <returns>The created node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Create(Value value) => value.Id = Context.CreateNodeId();
 
         /// <summary>
         /// Applies all default optimization transformations.

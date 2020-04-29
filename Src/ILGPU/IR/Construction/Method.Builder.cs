@@ -286,15 +286,11 @@ namespace ILGPU.IR
             /// <param name="type">The parameter type.</param>
             /// <param name="name">The parameter name (for debugging purposes).</param>
             /// <returns>The created parameter.</returns>
-            private Parameter CreateParam(TypeNode type, string name)
-            {
-                var param = new Parameter(Method, type, name)
+            private Parameter CreateParam(TypeNode type, string name) =>
+                new Parameter(Method, type, name)
                 {
                     SequencePoint = SequencePoint
                 };
-                Context.Create(param);
-                return param;
-            }
 
             /// <summary>
             /// Creates a new entry block.
@@ -321,10 +317,7 @@ namespace ILGPU.IR
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public BasicBlock.Builder CreateBasicBlock(string name)
             {
-                var block = new BasicBlock(
-                    Method,
-                    name,
-                    Context.Context.CreateNodeId())
+                var block = new BasicBlock(Method, name)
                 {
                     SequencePoint = SequencePoint
                 };
@@ -339,9 +332,6 @@ namespace ILGPU.IR
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal void Create(Value node)
             {
-                // Register the node
-                Context.Create(node);
-
                 // Check for enabled debug information
                 if (!EnableDebugInformation)
                     return;

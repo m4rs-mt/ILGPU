@@ -79,7 +79,7 @@ namespace ILGPU.IR
         /// </summary>
         protected Node()
         {
-            Id = NodeId.Empty;
+            Id = NodeId.CreateNew();
         }
 
         #endregion
@@ -94,7 +94,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the unique node id.
         /// </summary>
-        public NodeId Id { get; internal set; }
+        public NodeId Id { get; }
 
         #endregion
 

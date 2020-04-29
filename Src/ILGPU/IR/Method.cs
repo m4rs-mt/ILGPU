@@ -340,9 +340,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="context">The context this method belongs to.</param>
         /// <param name="declaration">The associated declaration.</param>
-        internal Method(
-            IRContext context,
-            in MethodDeclaration declaration)
+        internal Method(IRContext context, in MethodDeclaration declaration)
         {
             Debug.Assert(context != null, "Invalid context");
             Debug.Assert(
@@ -350,7 +348,6 @@ namespace ILGPU.IR
                 "Invalid declaration");
             Context = context;
             Declaration = declaration;
-            Id = context.Context.CreateNodeId();
         }
 
         #endregion

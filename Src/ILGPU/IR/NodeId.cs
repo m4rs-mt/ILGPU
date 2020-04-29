@@ -10,6 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace ILGPU.IR
 {
@@ -24,6 +26,23 @@ namespace ILGPU.IR
         /// Represents the empty node id.
         /// </summary>
         public static readonly NodeId Empty = new NodeId(-1);
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// A shared static id counter.
+        /// </summary>
+        private static long idCounter = 0;
+
+        /// <summary>
+        /// Creates a new unique node id.
+        /// </summary>
+        /// <returns>A new unique node id.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static NodeId CreateNew() =>
+            new NodeId(Interlocked.Add(ref idCounter, 1L));
 
         #endregion
 

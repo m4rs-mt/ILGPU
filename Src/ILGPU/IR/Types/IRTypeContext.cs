@@ -387,7 +387,6 @@ namespace ILGPU.IR.Types
                     result = type;
                     try
                     {
-                        type.Id = Context.CreateNodeId();
                         unifiedTypes.Add(type, type);
                     }
                     finally

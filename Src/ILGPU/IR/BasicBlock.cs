@@ -174,15 +174,10 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="method">The parent method.</param>
         /// <param name="name">The name of the block (or null).</param>
-        /// <param name="nodeId">The unique node id.</param>
-        internal BasicBlock(
-            Method method,
-            string name,
-            NodeId nodeId)
+        internal BasicBlock(Method method, string name)
         {
             Method = method;
             Name = name ?? "BB";
-            Id = nodeId;
         }
 
         #endregion

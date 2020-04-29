@@ -139,7 +139,6 @@ namespace ILGPU
 
         #region Instance
 
-        private long idCounter = 0;
         private long methodHandleCounter = 0;
         private long nodeMarker = 0L;
 
@@ -314,14 +313,6 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public NodeMarker NewNodeMarker() =>
             new NodeMarker(Interlocked.Add(ref nodeMarker, 1L));
-
-        /// <summary>
-        /// Creates a new unique node id.
-        /// </summary>
-        /// <returns>A new unique node id.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal NodeId CreateNodeId() =>
-            new NodeId(Interlocked.Add(ref idCounter, 1));
 
         /// <summary>
         /// Creates a new unique method handle.
