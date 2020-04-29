@@ -23,8 +23,7 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <returns>The created terminator.</returns>
         public TerminatorValue CreateReturn() =>
-            CreateReturn(
-                CreateNull(Method.ReturnType));
+            CreateReturn(CreateUndefined());
 
         /// <summary>
         /// Creates a new return terminator.
