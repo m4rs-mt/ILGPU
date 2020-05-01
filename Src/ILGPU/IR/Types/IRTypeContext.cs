@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace ILGPU.IR.Types
@@ -41,6 +42,15 @@ namespace ILGPU.IR.Types
                 BasicValueType.Float64);
 
         /// <summary>
+        /// All intrinsic index types.
+        /// </summary>
+        private static readonly ImmutableArray<Type> IndexTypes =
+            ImmutableArray.Create(
+                typeof(Index1),
+                typeof(Index2),
+                typeof(Index3));
+
+        /// <summary>
         /// Represents the index type of a view.
         /// </summary>
         internal const BasicValueType ViewIndexType = BasicValueType.Int32;
@@ -53,8 +63,8 @@ namespace ILGPU.IR.Types
             LockRecursionPolicy.SupportsRecursion);
         private readonly Dictionary<TypeNode, TypeNode> unifiedTypes =
             new Dictionary<TypeNode, TypeNode>();
-        private readonly Dictionary<Type, TypeNode> typeMapping =
-            new Dictionary<Type, TypeNode>();
+        private readonly Dictionary<(Type, MemoryAddressSpace), TypeNode> typeMapping =
+            new Dictionary<(Type, MemoryAddressSpace), TypeNode>();
         private readonly TypeNode[] indexTypes;
         private readonly PrimitiveType[] basicValueTypes;
 
@@ -66,17 +76,18 @@ namespace ILGPU.IR.Types
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
 
-            VoidType = CreateType(new VoidType(this));
-            StringType = CreateType(new StringType(this));
-            HandleType = CreateType(new HandleType(this));
+            VoidType = new VoidType(this);
+            StringType = new StringType(this);
+            HandleType = new HandleType(this);
 
+            var rootTypeBuilder = CreateStructureType(0);
+            RootType = new StructureType(this, rootTypeBuilder);
+
+            indexTypes = new TypeNode[IndexTypes.Length];
             basicValueTypes = new PrimitiveType[BasicValueTypes.Length + 1];
-            foreach (var type in BasicValueTypes)
-            {
-                basicValueTypes[(int)type] = CreateType(
-                    new PrimitiveType(this, type));
-            }
 
+            foreach (var type in BasicValueTypes)
+                basicValueTypes[(int)type] = new PrimitiveType(this, type);
             if (context.HasFlags(ContextFlags.Force32BitFloats))
             {
                 basicValueTypes[
@@ -84,30 +95,7 @@ namespace ILGPU.IR.Types
                         (int)BasicValueType.Float32];
             }
 
-            // Populate type mapping
-            typeMapping.Add(typeof(void), VoidType);
-            typeMapping.Add(typeof(string), StringType);
-
-            {
-                var rootTypeBuilder = CreateStructureType(0);
-                typeMapping.Add(
-                    typeof(Array),
-                    new StructureType(
-                        this,
-                        rootTypeBuilder));
-            }
-
-            typeMapping.Add(typeof(RuntimeFieldHandle), HandleType);
-            typeMapping.Add(typeof(RuntimeMethodHandle), HandleType);
-            typeMapping.Add(typeof(RuntimeTypeHandle), HandleType);
-
-            // Setup index types
-            indexTypes = new TypeNode[]
-            {
-                CreateType(typeof(Index1)),
-                CreateType(typeof(Index2)),
-                CreateType(typeof(Index3)),
-            };
+            PopulateTypeMapping();
         }
 
         #endregion
@@ -135,9 +123,9 @@ namespace ILGPU.IR.Types
         public HandleType HandleType { get; }
 
         /// <summary>
-        /// Returns the main index type.
+        /// Returns the root structure type.
         /// </summary>
-        public TypeNode IndexType => indexTypes[0];
+        public StructureType RootType { get; }
 
         #endregion
 
@@ -162,7 +150,17 @@ namespace ILGPU.IR.Types
             Debug.Assert(
                 dimension >= 1 && dimension <= indexTypes.Length,
                 "Invalid index dimension");
-            return indexTypes[dimension - 1];
+            ref var indexType = ref indexTypes[dimension - 1];
+            typeLock.EnterWriteLock();
+            try
+            {
+                indexType ??= CreateType(IndexTypes[dimension - 1]);
+            }
+            finally
+            {
+                typeLock.ExitWriteLock();
+            }
+            return indexType;
         }
 
         /// <summary>
@@ -173,14 +171,11 @@ namespace ILGPU.IR.Types
         /// <returns>The created pointer type.</returns>
         public PointerType CreatePointerType(
             TypeNode elementType,
-            MemoryAddressSpace addressSpace)
-        {
-            Debug.Assert(elementType != null, "Invalid element type");
-            return CreateType(new PointerType(
+            MemoryAddressSpace addressSpace) =>
+            UnifyType(new PointerType(
                 this,
                 elementType,
                 addressSpace));
-        }
 
         /// <summary>
         /// Creates a view type.
@@ -190,14 +185,11 @@ namespace ILGPU.IR.Types
         /// <returns>The created view type.</returns>
         public ViewType CreateViewType(
             TypeNode elementType,
-            MemoryAddressSpace addressSpace)
-        {
-            Debug.Assert(elementType != null, "Invalid element type");
-            return CreateType(new ViewType(
+            MemoryAddressSpace addressSpace) =>
+            UnifyType(new ViewType(
                 this,
                 elementType,
                 addressSpace));
-        }
 
         /// <summary>
         /// Creates a new structure type builder with the given capacity.
@@ -223,7 +215,7 @@ namespace ILGPU.IR.Types
 
             return builder.Count < 2
                 ? builder[0]
-                : CreateType(new StructureType(
+                : UnifyType(new StructureType(
                     this,
                     builder));
         }
@@ -239,7 +231,7 @@ namespace ILGPU.IR.Types
             Debug.Assert(dimension > 0, "Invalid array length");
 
             // Create the actual type
-            return CreateType(new ArrayType(
+            return UnifyType(new ArrayType(
                 this,
                 elementType,
                 dimension));
@@ -263,42 +255,115 @@ namespace ILGPU.IR.Types
         {
             Debug.Assert(type != null, "Invalid type");
 
+            // Avoid querying the cache for primitive types
             var basicValueType = type.GetBasicValueType();
             if (basicValueType != BasicValueType.None)
             {
                 return GetPrimitiveType(basicValueType);
             }
-            else if (type.IsEnum)
+            else
             {
-                return CreateType(type.GetEnumUnderlyingType(), addressSpace);
+                // Try to query the local cache
+                typeLock.EnterUpgradeableReadLock();
+                try
+                {
+                    // Explicitly check the local cache for a potential type
+                    if (typeMapping.TryGetValue((type, addressSpace), out var result))
+                        return result;
+
+                    // Create a new type
+                    typeLock.EnterWriteLock();
+                    try
+                    {
+                        return CreateTypeInternal(type, addressSpace);
+                    }
+                    finally
+                    {
+                        typeLock.ExitWriteLock();
+                    }
+                }
+                finally
+                {
+                    typeLock.ExitUpgradeableReadLock();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Maps the given type and address space to the type node provided.
+        /// </summary>
+        /// <typeparam name="T">The node type.</typeparam>
+        /// <param name="type">The managed type.</param>
+        /// <param name="addressSpace">The address space.</param>
+        /// <param name="typeNode">The type node to map to.</param>
+        /// <returns>The given type node.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private T Map<T>(Type type, MemoryAddressSpace addressSpace, T typeNode)
+            where T : TypeNode
+        {
+            typeMapping[(type, addressSpace)] = typeNode;
+            return typeNode;
+        }
+
+        /// <summary>
+        /// Creates a new type based on a type from the .Net world.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <param name="addressSpace">The address space for pointer types.</param>
+        /// <returns>The IR type.</returns>
+        private TypeNode CreateTypeInternal(Type type, MemoryAddressSpace addressSpace)
+        {
+            Debug.Assert(type != null, "Invalid type");
+
+            // Check for a basic value type
+            var basicValueType = type.GetBasicValueType();
+            if (basicValueType != BasicValueType.None)
+                return GetPrimitiveType(basicValueType);
+
+            // Check the current cache
+            if (typeMapping.TryGetValue((type, addressSpace), out var result))
+                return result;
+
+            if (type.IsEnum)
+            {
+                // Do not store enum types
+                return CreateTypeInternal(type.GetEnumUnderlyingType(), addressSpace);
             }
             else if (type.IsArray)
             {
-                var arrayElementType = CreateType(
+                var arrayElementType = CreateTypeInternal(
                     type.GetElementType(),
                     addressSpace);
                 var dimension = type.GetArrayRank();
-                return CreateArrayType(arrayElementType, dimension);
+                return Map(
+                    type,
+                    addressSpace,
+                    CreateArrayType(arrayElementType, dimension));
             }
             else if (type.IsArrayViewType(out Type elementType))
             {
-                return CreateViewType(
-                    CreateType(elementType, addressSpace),
-                    addressSpace);
+                return Map(
+                    type,
+                    addressSpace,
+                    CreateViewType(
+                        CreateTypeInternal(elementType, addressSpace),
+                        addressSpace));
             }
             else if (type.IsVoidPtr())
             {
-                return CreatePointerType(VoidType, addressSpace);
-            }
-            else if (typeMapping.TryGetValue(type, out TypeNode typeNode))
-            {
-                return typeNode;
+                return Map(
+                    type,
+                    addressSpace,
+                    CreatePointerType(VoidType, addressSpace));
             }
             else if (type.IsByRef || type.IsPointer)
             {
-                return CreatePointerType(
-                    CreateType(type.GetElementType(), addressSpace),
-                    addressSpace);
+                return Map(
+                    type,
+                    addressSpace,
+                    CreatePointerType(
+                        CreateTypeInternal(type.GetElementType(), addressSpace),
+                        addressSpace));
             }
             else if (type.IsClass)
             {
@@ -309,16 +374,17 @@ namespace ILGPU.IR.Types
             }
             else
             {
-                // TODO: integrated type mapping
-
                 // Must be a structure type
                 Debug.Assert(type.IsValueType, "Invalid structure type");
                 var typeInfo = GetTypeInfo(type);
 
                 var builder = CreateStructureType(typeInfo.NumFlattendedFields);
                 foreach (var field in typeInfo.Fields)
-                    builder.Add(CreateType(field.FieldType, addressSpace));
-                return CreateType(builder.Seal());
+                    builder.Add(CreateTypeInternal(field.FieldType, addressSpace));
+                return Map(
+                    type,
+                    addressSpace,
+                    UnifyType(builder.Seal()));
             }
         }
 
@@ -375,30 +441,57 @@ namespace ILGPU.IR.Types
         /// <typeparam name="T">The type of the  type.</typeparam>
         /// <param name="type">The type to create.</param>
         /// <returns>The created type.</returns>
-        private T CreateType<T>(T type)
+        private T UnifyType<T>(T type)
             where T : TypeNode
         {
             typeLock.EnterUpgradeableReadLock();
             try
             {
-                if (!unifiedTypes.TryGetValue(type, out TypeNode result))
+                if (unifiedTypes.TryGetValue(type, out TypeNode result))
+                    return result as T;
+
+                typeLock.EnterWriteLock();
+                try
                 {
-                    typeLock.EnterWriteLock();
-                    result = type;
-                    try
-                    {
-                        unifiedTypes.Add(type, type);
-                    }
-                    finally
-                    {
-                        typeLock.ExitWriteLock();
-                    }
+                    unifiedTypes.Add(type, type);
+                    return type as T;
                 }
-                return result as T;
+                finally
+                {
+                    typeLock.ExitWriteLock();
+                }
             }
             finally
             {
                 typeLock.ExitUpgradeableReadLock();
+            }
+        }
+
+        /// <summary>
+        /// Populates the internal type mapping.
+        /// </summary>
+        private void PopulateTypeMapping()
+        {
+            // Populate type mapping
+            foreach (var space in AddressSpaces.Spaces)
+            {
+                typeMapping.Add((typeof(void), space), VoidType);
+                typeMapping.Add((typeof(string), space), StringType);
+
+                typeMapping.Add((typeof(Array), space), RootType);
+
+                typeMapping.Add((typeof(RuntimeFieldHandle), space), HandleType);
+                typeMapping.Add((typeof(RuntimeMethodHandle), space), HandleType);
+                typeMapping.Add((typeof(RuntimeTypeHandle), space), HandleType);
+            }
+
+            // Populate unified types
+            unifiedTypes.Add(VoidType, VoidType);
+            unifiedTypes.Add(StringType, StringType);
+            foreach (var basicType in BasicValueTypes)
+            {
+                var type = GetPrimitiveType(basicType);
+                unifiedTypes.Add(type, type);
             }
         }
 
@@ -413,18 +506,10 @@ namespace ILGPU.IR.Types
             typeLock.EnterWriteLock();
             try
             {
+                typeMapping.Clear();
                 unifiedTypes.Clear();
-
-                unifiedTypes.Add(VoidType, VoidType);
-                unifiedTypes.Add(StringType, StringType);
-
-                foreach (var basicType in BasicValueTypes)
-                {
-                    var type = GetPrimitiveType(basicType);
-                    unifiedTypes.Add(type, type);
-                }
-
-                unifiedTypes.Add(IndexType, IndexType);
+                Array.Clear(indexTypes, 0, indexTypes.Length);
+                PopulateTypeMapping();
             }
             finally
             {

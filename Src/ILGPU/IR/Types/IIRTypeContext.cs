@@ -29,11 +29,6 @@ namespace ILGPU.IR.Types
         StringType StringType { get; }
 
         /// <summary>
-        /// Returns the main index type.
-        /// </summary>
-        TypeNode IndexType { get; }
-
-        /// <summary>
         /// Resolves the primitive type that corresponds to the given
         /// <see cref="BasicValueType"/>.
         /// </summary>

@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -19,28 +20,29 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents an address space.
     /// </summary>
-    public enum MemoryAddressSpace
+    public enum MemoryAddressSpace : int
     {
         /// <summary>
         /// The generic address space (any space).
         /// </summary>
-        Generic,
+        Generic = 0,
 
         /// <summary>
         /// Represents the global address space.
         /// </summary>
-        Global,
+        Global = 1,
 
         /// <summary>
         /// Represents the shared address space.
         /// </summary>
-        Shared,
+        Shared = 2,
 
         /// <summary>
         /// Represents the local address space.
         /// </summary>
-        Local
+        Local = 3
     }
+
     /// <summary>
     /// Represents the base interface for all address spaces.
     /// </summary>
@@ -73,41 +75,45 @@ namespace ILGPU.IR
     }
 
     /// <summary>
-    /// Contains pre-defined address spaces.
+    /// Extensions to encode ILGPU address space information in the .Net type
+    /// system environment.
     /// </summary>
-    internal struct AddressSpaces
+    public static class AddressSpaces
     {
+        /// <summary>
+        /// A readonly array of all address spaces.
+        /// </summary>
+        public static readonly ImmutableArray<MemoryAddressSpace> Spaces =
+            ImmutableArray.Create(
+                MemoryAddressSpace.Generic,
+                MemoryAddressSpace.Global,
+                MemoryAddressSpace.Local,
+                MemoryAddressSpace.Shared);
+
         /// <summary>
         /// Represents the generic address space.
         /// </summary>
         [AddressSpace(MemoryAddressSpace.Generic)]
-        public struct Generic : IAddressSpace { }
+        internal struct Generic : IAddressSpace { }
 
         /// <summary>
         /// Represents the global address space.
         /// </summary>
         [AddressSpace(MemoryAddressSpace.Global)]
-        public struct Global : IAddressSpace { }
+        internal struct Global : IAddressSpace { }
 
         /// <summary>
         /// Represents the shared address space.
         /// </summary>
         [AddressSpace(MemoryAddressSpace.Shared)]
-        public struct Shared : IAddressSpace { }
+        internal struct Shared : IAddressSpace { }
 
         /// <summary>
         /// Represents the local address space.
         /// </summary>
         [AddressSpace(MemoryAddressSpace.Local)]
-        public struct Local : IAddressSpace { }
-    }
+        internal struct Local : IAddressSpace { }
 
-    /// <summary>
-    /// Extensions to encode ILGPU address space information in the .Net type
-    /// system environment.
-    /// </summary>
-    public static class AddressSpaceExtensions
-    {
         /// <summary>
         /// Resolves the managed type for the given address space.
         /// </summary>
@@ -117,10 +123,10 @@ namespace ILGPU.IR
         public static Type GetManagedType(this MemoryAddressSpace space) =>
             space switch
             {
-                MemoryAddressSpace.Global => typeof(AddressSpaces.Global),
-                MemoryAddressSpace.Local => typeof(AddressSpaces.Local),
-                MemoryAddressSpace.Shared => typeof(AddressSpaces.Shared),
-                _ => typeof(AddressSpaces.Generic),
+                MemoryAddressSpace.Global => typeof(Global),
+                MemoryAddressSpace.Local => typeof(Local),
+                MemoryAddressSpace.Shared => typeof(Shared),
+                _ => typeof(Generic),
             };
 
         /// <summary>

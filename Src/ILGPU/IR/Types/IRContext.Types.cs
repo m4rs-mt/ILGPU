@@ -32,11 +32,6 @@ namespace ILGPU.IR
         public HandleType HandleType => TypeContext.HandleType;
 
         /// <summary>
-        /// Returns the main index type.
-        /// </summary>
-        public TypeNode IndexType => TypeContext.IndexType;
-
-        /// <summary>
         /// Resolves the primitive type that corresponds to the given
         /// <see cref="BasicValueType"/>.
         /// </summary>

@@ -12,6 +12,7 @@
 using ILGPU.Backends;
 using ILGPU.Util;
 using System;
+using System.Diagnostics;
 
 namespace ILGPU.IR.Types
 {
@@ -50,6 +51,7 @@ namespace ILGPU.IR.Types
             MemoryAddressSpace addressSpace)
             : base(typeContext)
         {
+            Debug.Assert(elementType != null, "Invalid element type");
             ElementType = elementType;
             AddressSpace = addressSpace;
             AddFlags(elementType.Flags);

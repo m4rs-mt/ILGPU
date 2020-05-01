@@ -13,7 +13,6 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using ILGPU.Util;
-using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ILGPU.IR.Construction
@@ -68,11 +67,6 @@ namespace ILGPU.IR.Construction
         /// Returns the string type.
         /// </summary>
         public StringType StringType => Context.StringType;
-
-        /// <summary>
-        /// Returns the current index type.
-        /// </summary>
-        public TypeNode IndexType => Context.IndexType;
 
         /// <summary>
         /// True, if the IR builder should use constant propagation.
