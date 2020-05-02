@@ -124,6 +124,7 @@ namespace ILGPU.IR.Transformations
                     var targetBuilder = builder[variableEntry.Key.BasicBlock];
                     targetBuilder.SetupInsertPosition(variableEntry.Key);
                     var predicate = targetBuilder.CreatePredicate(
+                        condition.Location,
                         condition,
                         variable.TrueValue,
                         variable.FalseValue);

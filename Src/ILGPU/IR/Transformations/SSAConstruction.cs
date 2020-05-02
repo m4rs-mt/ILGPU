@@ -14,7 +14,6 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Transformations
 {
@@ -123,7 +122,9 @@ namespace ILGPU.IR.Transformations
             if (!data.ContainsAlloca(alloca))
                 return;
 
-            var initValue = context.Builder.CreateNull(alloca.AllocaType);
+            var initValue = context.Builder.CreateNull(
+                alloca.Location,
+                alloca.AllocaType);
             context.SetValue(context.Block, alloca, initValue);
 
             data.AddConverted(alloca, new FieldRef(alloca));
@@ -144,6 +145,7 @@ namespace ILGPU.IR.Transformations
                 if (!loadRef.IsDirect)
                 {
                     ssaValue = context.Builder.CreateGetField(
+                        load.Location,
                          ssaValue,
                          loadRef.FieldSpan);
                 }
@@ -172,6 +174,7 @@ namespace ILGPU.IR.Transformations
             {
                 ssaValue = context.GetValue(context.Block, storeRef.Source);
                 ssaValue = context.Builder.CreateSetField(
+                    store.Location,
                     ssaValue,
                     storeRef.FieldSpan,
                     store.Value);

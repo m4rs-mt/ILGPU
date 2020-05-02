@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Rewriting;
-using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
 
@@ -35,7 +34,9 @@ namespace ILGPU.IR.Transformations
             Value value,
             int constant)
         {
-            var newValue = context.Builder.CreatePrimitiveValue(constant);
+            var newValue = context.Builder.CreatePrimitiveValue(
+                value.Location,
+                constant);
             context.ReplaceAndRemove(value, newValue);
         }
 

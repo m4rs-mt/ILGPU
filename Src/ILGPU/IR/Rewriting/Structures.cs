@@ -40,7 +40,9 @@ namespace ILGPU.IR.Rewriting
             where T : IRewriterContext
             where TValue : Value
         {
-            var instance = context.Builder.CreateStructure(structureType);
+            var instance = context.Builder.CreateStructure(
+                value.Location,
+                structureType);
 
             // Invoke the lowering implementation for all fields
             for (int i = 0, e = structureType.NumFields; i < e; ++i)
@@ -75,6 +77,7 @@ namespace ILGPU.IR.Rewriting
             {
                 var access = new FieldAccess(i);
                 var getField = context.Builder.CreateGetField(
+                    value.Location,
                     value,
                     new FieldSpan(access));
 
@@ -121,6 +124,7 @@ namespace ILGPU.IR.Rewriting
                     {
                         // Extract field information
                         var getField = ctx.Builder.CreateGetField(
+                            source.Location,
                             variable,
                             new FieldSpan(access));
                         var result = lowering(ctx, source, getField);

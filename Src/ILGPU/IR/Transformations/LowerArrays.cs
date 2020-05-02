@@ -13,7 +13,6 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -89,14 +88,18 @@ namespace ILGPU.IR.Transformations
             ArrayValue value)
         {
             var builder = context.Builder;
+            var location = value.Location;
             int currentPosition = builder.InsertPosition;
 
             // Allocate a memory array in the entry block
             var methodBuilder = builder.MethodBuilder;
             var entryBlock = methodBuilder[methodBuilder.EntryBlock];
             entryBlock.InsertPosition = 0;
-            var arrayLength = entryBlock.ComputeArrayLength(value.Extent);
+            var arrayLength = entryBlock.ComputeArrayLength(
+                location,
+                value.Extent);
             var newArray = entryBlock.CreateStaticAllocaArray(
+                location,
                 arrayLength,
                 value.ArrayType.ElementType,
                 MemoryAddressSpace.Local);
@@ -104,6 +107,7 @@ namespace ILGPU.IR.Transformations
             // Create resulting structure in current block
             builder.InsertPosition = currentPosition;
             var instance = builder.CreateDynamicStructure(
+                location,
                 typeLowering.GetNumFields(value.ArrayType));
 
             // Insert pointer field
@@ -111,7 +115,12 @@ namespace ILGPU.IR.Transformations
 
             // Insert all dimensions
             for (int i = 0, e = value.ArrayType.Dimensions; i < e; ++i)
-                instance.Add(builder.CreateGetField(value.Extent, new FieldSpan(i)));
+            {
+                instance.Add(builder.CreateGetField(
+                    location,
+                    value.Extent,
+                    new FieldSpan(i)));
+            }
 
             var newStructure = instance.Seal();
             context.ReplaceAndRemove(value, newStructure);
@@ -129,12 +138,13 @@ namespace ILGPU.IR.Transformations
 
             // Create new extent structure based on all dimension entries
             int dimensions = StructureType.GetNumFields(typeLowering[value]);
-            var instance = builder.CreateDynamicStructure(dimensions);
+            var instance = builder.CreateDynamicStructure(value.Location, dimensions);
 
             // Insert all dimension values
             for (int i = 0; i < dimensions; ++i)
             {
                 instance.Add(builder.CreateGetField(
+                    value.Location,
                     value.ObjectValue,
                     new FieldSpan(i + ArrayTypeLowering.DimensionOffset)));
             }
@@ -154,9 +164,16 @@ namespace ILGPU.IR.Transformations
             out Value ptr)
         {
             var builder = context.Builder;
-            ptr = builder.CreateGetField(array, new FieldSpan(0));
-            var extent = builder.CreateGetField(array, new FieldSpan(1));
+            ptr = builder.CreateGetField(
+                array.Location,
+                array,
+                new FieldSpan(0));
+            var extent = builder.CreateGetField(
+                array.Location,
+                array,
+                new FieldSpan(1));
             return builder.ComputeArrayAddress(
+                index.Location,
                 index,
                 extent,
                 ArrayTypeLowering.DimensionOffset);
@@ -177,8 +194,13 @@ namespace ILGPU.IR.Transformations
                 out var ptr);
 
             var builder = context.Builder;
-            var address = builder.CreateLoadElementAddress(ptr, linearAddress);
-            var newLoad = builder.CreateLoad(address);
+            var address = builder.CreateLoadElementAddress(
+                value.Location,
+                ptr,
+                linearAddress);
+            var newLoad = builder.CreateLoad(
+                value.Location,
+                address);
             context.ReplaceAndRemove(value, newLoad);
         }
 
@@ -197,8 +219,14 @@ namespace ILGPU.IR.Transformations
                 out var ptr);
 
             var builder = context.Builder;
-            var address = builder.CreateLoadElementAddress(ptr, linearAddress);
-            var newStore = builder.CreateStore(address, value.Value);
+            var address = builder.CreateLoadElementAddress(
+                value.Location,
+                ptr,
+                linearAddress);
+            var newStore = builder.CreateStore(
+                value.Location,
+                address,
+                value.Value);
             context.ReplaceAndRemove(value, newStore);
         }
 
@@ -216,7 +244,10 @@ namespace ILGPU.IR.Transformations
                 value.ElementIndex,
                 out var ptr);
 
-            var newLea = context.Builder.CreateLoadElementAddress(ptr, linearAddress);
+            var newLea = context.Builder.CreateLoadElementAddress(
+                value.Location,
+                ptr,
+                linearAddress);
             context.ReplaceAndRemove(value, newLea);
         }
 

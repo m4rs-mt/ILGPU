@@ -79,7 +79,10 @@ namespace ILGPU.IR
             TypeContext = context.TypeContext;
 
             UndefinedValue = new UndefinedValue(
-                new ValueInitializer(this, null));
+                new ValueInitializer(
+                    this,
+                    null,
+                    Location.Nowhere));
 
             gcDelegate = (Method method) => method.GC();
         }
@@ -133,6 +136,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="flags">The flags to check.</param>
         /// <returns>True, if the current context has the given flags.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool HasFlags(ContextFlags flags) => Context.HasFlags(flags);
 
         /// <summary>
@@ -356,16 +360,22 @@ namespace ILGPU.IR
                 : declaration.Handle.Name ?? "Func";
             handle = new MethodHandle(methodId, methodName);
             var specializedDeclaration = declaration.Specialize(handle);
-            var method = new Method(this, specializedDeclaration);
+
+            // TODO: we might want to extend the method location information to point to
+            // the location of the first instruction instead
+            var method = new Method(
+                this,
+                specializedDeclaration,
+                Location.Unknown);
 
             // Check for external function
             if (declaration.HasFlags(
                 MethodFlags.External | MethodFlags.Intrinsic))
             {
                 using var builder = method.CreateBuilder();
+                var location = method.Location;
                 var bbBuilder = builder.CreateEntryBlock();
-                var returnValue = bbBuilder.CreateNull(declaration.ReturnType);
-                bbBuilder.CreateReturn(returnValue);
+                bbBuilder.CreateReturn(method.Location);
             }
             return method;
         }
@@ -447,9 +457,6 @@ namespace ILGPU.IR
             {
                 var targetMethod = methodMapping[sourceMethod];
 
-                // Store original sequence point
-                targetMethod.SequencePoint = sourceMethod.SequencePoint;
-
                 using var builder = targetMethod.CreateBuilder();
                 // Build new parameters to match the old ones
                 var parameterArguments = ImmutableArray.CreateBuilder<
@@ -472,7 +479,11 @@ namespace ILGPU.IR
                 // Create appropriate return instructions
                 var exitBlocks = rebuilder.Rebuild();
                 foreach (var (blockBuilder, returnValue) in exitBlocks)
-                    blockBuilder.CreateReturn(returnValue);
+                {
+                    blockBuilder.CreateReturn(
+                        returnValue.Location,
+                        returnValue);
+                }
 
                 // Wire entry block
                 builder.EntryBlock = rebuilder.EntryBlock.BasicBlock;

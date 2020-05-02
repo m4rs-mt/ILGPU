@@ -57,6 +57,7 @@ namespace ILGPU.IR.Transformations
                 Broadcast source,
                 Value newVariable) =>
                 blockBuilder.CreateBroadcast(
+                    source.Location,
                     newVariable,
                     source.Origin,
                     source.Kind);
@@ -76,6 +77,7 @@ namespace ILGPU.IR.Transformations
                 WarpShuffle source,
                 Value newVariable) =>
                 blockBuilder.CreateShuffle(
+                    source.Location,
                     newVariable,
                     source.Origin,
                     source.Kind);
@@ -95,6 +97,7 @@ namespace ILGPU.IR.Transformations
                 SubWarpShuffle source,
                 Value newVariable) =>
                 blockBuilder.CreateShuffle(
+                    source.Location,
                     newVariable,
                     source.Origin,
                     source.Width,
@@ -129,6 +132,7 @@ namespace ILGPU.IR.Transformations
             if (primitiveType.BasicValueType < BasicValueType.Int32)
             {
                 value = builder.CreateConvert(
+                    sourceValue.Location,
                     value,
                     builder.GetPrimitiveType(BasicValueType.Int32));
             }
@@ -139,7 +143,12 @@ namespace ILGPU.IR.Transformations
                 sourceValue,
                 value);
             if (primitiveType.BasicValueType < BasicValueType.Int32)
-                result = builder.CreateConvert(result, variable.Type);
+            {
+                result = builder.CreateConvert(
+                    sourceValue.Location,
+                    result,
+                    variable.Type);
+            }
             return result;
         }
 

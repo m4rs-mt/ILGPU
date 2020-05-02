@@ -225,9 +225,7 @@ namespace ILGPU.IR.Analyses
             var info = new AllocaInformation(builder.Count, alloca);
             if (info.IsDynamicArray)
             {
-                Debug.Assert(
-                    dynamicBuilder != null,
-                    "Invalid dynamic local memory allocation");
+                alloca.AssertNotNull(dynamicBuilder);
                 dynamicBuilder.Add(info);
             }
             else

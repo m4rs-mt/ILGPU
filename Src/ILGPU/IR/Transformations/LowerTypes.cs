@@ -13,7 +13,6 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -39,7 +38,9 @@ namespace ILGPU.IR.Transformations
             NullValue value)
         {
             var targetType = typeConverter.ConvertType(value);
-            var newValue = context.Builder.CreateNull(targetType);
+            var newValue = context.Builder.CreateNull(
+                value.Location,
+                targetType);
             context.ReplaceAndRemove(value, newValue);
         }
 
@@ -52,8 +53,12 @@ namespace ILGPU.IR.Transformations
             StructureValue value)
         {
             var builder = context.Builder;
+            var location = value.Location;
+
             var sourceType = typeConverter[value] as StructureType;
-            var instance = builder.CreateDynamicStructure(sourceType.NumFields);
+            var instance = builder.CreateDynamicStructure(
+                location,
+                sourceType.NumFields);
 
             for (int i = 0, e = sourceType.NumFields; i < e; ++i)
             {
@@ -63,6 +68,7 @@ namespace ILGPU.IR.Transformations
                     for (int j = 0; j < numFields; ++j)
                     {
                         var viewField = builder.CreateGetField(
+                            location,
                             value[i],
                             new FieldSpan(j));
                         instance.Add(viewField);
@@ -87,6 +93,7 @@ namespace ILGPU.IR.Transformations
             GetField getValue)
         {
             var builder = context.Builder;
+            var location = getValue.Location;
 
             // Compute the new base index
             var span = typeConverter.ComputeSpan(getValue, getValue.FieldSpan);
@@ -96,10 +103,11 @@ namespace ILGPU.IR.Transformations
             if (typeConverter[getValue] is TType)
             {
                 // We have to extract multiple elements from this structure
-                var instance = builder.CreateDynamicStructure(span.Span);
+                var instance = builder.CreateDynamicStructure(location, span.Span);
                 for (int i = 0; i < span.Span; ++i)
                 {
                     var viewField = builder.CreateGetField(
+                        location,
                         getValue.ObjectValue,
                         new FieldSpan(span.Index + i));
                     instance.Add(viewField);
@@ -109,7 +117,10 @@ namespace ILGPU.IR.Transformations
             else
             {
                 // Simple field access
-                newValue = builder.CreateGetField(getValue.ObjectValue, span);
+                newValue = builder.CreateGetField(
+                    location,
+                    getValue.ObjectValue,
+                    span);
             }
             context.ReplaceAndRemove(getValue, newValue);
         }
@@ -123,6 +134,7 @@ namespace ILGPU.IR.Transformations
             SetField setValue)
         {
             var builder = context.Builder;
+            var location = setValue.Location;
 
             // Compute the new base index
             var span = typeConverter.ComputeSpan(setValue, setValue.FieldSpan);
@@ -134,9 +146,11 @@ namespace ILGPU.IR.Transformations
                 for (int i = 0; i < span.Span; ++i)
                 {
                     var viewField = builder.CreateGetField(
+                        location,
                         setValue.Value,
                         new FieldSpan(i));
                     targetValue = builder.CreateSetField(
+                        location,
                         targetValue,
                         new FieldSpan(span.Index + i),
                         viewField);
@@ -146,6 +160,7 @@ namespace ILGPU.IR.Transformations
             {
                 // Simple field access
                 targetValue = builder.CreateSetField(
+                    location,
                     targetValue,
                     span,
                     setValue.Value);
@@ -164,6 +179,7 @@ namespace ILGPU.IR.Transformations
             // Compute the alloca type
             var newType = typeConverter.ConvertType(alloca);
             var newAlloca = context.Builder.CreateAlloca(
+                alloca.Location,
                 newType,
                 alloca.AddressSpace);
             context.ReplaceAndRemove(alloca, newAlloca);
@@ -179,7 +195,10 @@ namespace ILGPU.IR.Transformations
         {
             // Compute the cast type
             var newType = typeConverter.ConvertType(cast);
-            var newCast = context.Builder.CreatePointerCast(cast.Value, newType);
+            var newCast = context.Builder.CreatePointerCast(
+                cast.Location,
+                cast.Value,
+                newType);
             context.ReplaceAndRemove(cast, newCast);
         }
 
@@ -193,7 +212,10 @@ namespace ILGPU.IR.Transformations
         {
             // Compute the new span
             var span = typeConverter.ComputeSpan(lfa, lfa.FieldSpan);
-            var newValue = context.Builder.CreateLoadFieldAddress(lfa.Source, span);
+            var newValue = context.Builder.CreateLoadFieldAddress(
+                lfa.Location,
+                lfa.Source,
+                span);
             context.ReplaceAndRemove(lfa, newValue);
         }
 

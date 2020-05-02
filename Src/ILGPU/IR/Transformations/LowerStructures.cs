@@ -217,11 +217,12 @@ namespace ILGPU.IR.Transformations
             {
                 // Update source address
                 var address = builder.CreateLoadFieldAddress(
+                    load.Location,
                     load.Source,
                     new FieldSpan(fieldAccess));
 
                 // Load value and store its reference in the current block
-                var loweredLoad = builder.CreateLoad(address);
+                var loweredLoad = builder.CreateLoad(load.Location, address);
                 context.SetValue(
                     context.Block,
                     new FieldRef(load, fieldAccess),
@@ -243,7 +244,10 @@ namespace ILGPU.IR.Transformations
                 context,
                 store.Value.Type as StructureType,
                 store.Value);
-            var newStore = context.Builder.CreateStore(store.Target, newValue);
+            var newStore = context.Builder.CreateStore(
+                store.Location,
+                store.Target,
+                newValue);
             context.ReplaceAndRemove(store, newStore);
         }
 
@@ -260,6 +264,7 @@ namespace ILGPU.IR.Transformations
             {
                 // Update target address
                 var address = builder.CreateLoadFieldAddress(
+                    store.Location,
                     store.Target,
                     new FieldSpan(fieldAccess));
 
@@ -267,7 +272,10 @@ namespace ILGPU.IR.Transformations
                 var value = context.GetValue(
                     context.Block,
                     new FieldRef(store.Value, fieldAccess));
-                var loweredStore = builder.CreateStore(address, value);
+                var loweredStore = builder.CreateStore(
+                    store.Location,
+                    address,
+                    value);
                 context.MarkConverted(loweredStore);
             }
             context.Remove(store);
@@ -284,7 +292,9 @@ namespace ILGPU.IR.Transformations
             foreach (var (fieldType, fieldAccess) in nullValue.Type as StructureType)
             {
                 // Build the new target value
-                var value = context.Builder.CreateNull(fieldType);
+                var value = context.Builder.CreateNull(
+                    nullValue.Location,
+                    fieldType);
                 context.MarkConverted(value);
 
                 // Bind the new SSA value
@@ -405,7 +415,9 @@ namespace ILGPU.IR.Transformations
             foreach (var (fieldType, fieldAccess) in phi.Type as StructureType)
             {
                 // Build a new phi which might become dead in the future
-                var phiBuilder = context.Builder.CreatePhi(fieldType);
+                var phiBuilder = context.Builder.CreatePhi(
+                    phi.Location,
+                    fieldType);
 
                 // Register the lowered phi
                 data.AddPhi(new LoweredPhi(
@@ -448,6 +460,7 @@ namespace ILGPU.IR.Transformations
 
             // Create new call node
             var newCall = context.Builder.CreateCall(
+                call.Location,
                 call.Target,
                 newArgs.MoveToImmutable());
 
