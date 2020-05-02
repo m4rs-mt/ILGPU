@@ -182,6 +182,10 @@ namespace ILGPU
         /// <param name="flags">The context flags.</param>
         public Context(ContextFlags flags, OptimizationLevel optimizationLevel)
         {
+            // Enable debug information automatically when a debugger is attached
+            if (Debugger.IsAttached)
+                flags |= ContextFlags.EnableDebugInformation;
+
             OptimizationLevel = optimizationLevel;
             Flags = flags.Prepare();
             TargetPlatform = Backend.RuntimePlatform;

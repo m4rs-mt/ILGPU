@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
@@ -17,7 +18,7 @@ namespace ILGPU.Frontend.DebugInformation
     /// <summary>
     /// Represents a sequence-point enumerator for methods.
     /// </summary>
-    public struct SequencePointEnumerator : IDebugInformationEnumerator<SequencePoint>
+    public struct SequencePointEnumerator : IDebugInformationEnumerator<Location>
     {
         #region Constants
 
@@ -66,23 +67,12 @@ namespace ILGPU.Frontend.DebugInformation
         /// <summary>
         /// Returns the current sequence point.
         /// </summary>
-        public SequencePoint Current =>
-            IsValid ? SequencePoints[currentPoint] : SequencePoint.Invalid;
+        public Location Current =>
+            IsValid ? SequencePoints[currentPoint] : Location.Unknown;
 
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// Tries to resolve a debug-location string for the current debug location.
-        /// </summary>
-        /// <param name="debugLocationString">The location string (or null).</param>
-        /// <returns>True, if the requested location string could be resolved.</returns>
-        public bool TryGetCurrentDebugLocationString(out string debugLocationString)
-        {
-            debugLocationString = Current.ToString();
-            return Current != null;
-        }
 
         /// <summary>
         /// Tries to move the enumerator to the given offset in bytes.
