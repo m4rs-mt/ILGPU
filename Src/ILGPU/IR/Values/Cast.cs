@@ -12,8 +12,6 @@
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -137,8 +135,7 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer)
         {
-            var pointerType = SourceType as PointerType;
-            Debug.Assert(pointerType != null, "Invalid pointer type");
+            var pointerType = SourceType.As<PointerType>(Location);
             return initializer.Context.CreatePointerType(
                 TargetElementType,
                 pointerType.AddressSpace);
@@ -149,6 +146,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreatePointerCast(
+                Location,
                 rebuilder.Rebuild(Value),
                 TargetElementType);
 
@@ -189,10 +187,9 @@ namespace ILGPU.IR.Values
             : base(initializer, value)
         {
             TargetAddressSpace = targetAddressSpace;
-            Debug.Assert(
+            initializer.Assert(
                 value.Type.IsViewOrPointerType &&
-                (value.Type as AddressSpaceType).AddressSpace != targetAddressSpace,
-                "Invalid target address space");
+                (value.Type as AddressSpaceType).AddressSpace != targetAddressSpace);
         }
 
         #endregion
@@ -244,6 +241,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateAddressSpaceCast(
+                Location,
                 rebuilder.Rebuild(Value),
                 TargetAddressSpace);
 
@@ -310,8 +308,7 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer)
         {
-            var viewType = SourceType as ViewType;
-            Debug.Assert(viewType != null, "Invalid view type");
+            var viewType = SourceType.As<ViewType>(Location);
             return initializer.Context.CreateViewType(
                 TargetElementType,
                 viewType.AddressSpace);
@@ -322,6 +319,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateViewCast(
+                Location,
                 rebuilder.Rebuild(Value),
                 TargetElementType);
 
@@ -361,7 +359,7 @@ namespace ILGPU.IR.Values
             PrimitiveType targetType)
             : base(initializer, source)
         {
-            Debug.Assert(source.Type.IsPrimitiveType, "Invalid primitive type");
+            initializer.Assert(source.Type.IsPrimitiveType);
             TargetPrimitiveType = targetType;
         }
 
@@ -426,13 +424,12 @@ namespace ILGPU.IR.Values
                   targetType)
         {
             var basicValueType = source.Type.BasicValueType;
-            Debug.Assert(
+            initializer.Assert(
                 basicValueType == BasicValueType.Float32 ||
-                basicValueType == BasicValueType.Float64, "Invalid primitive type");
-            Debug.Assert(
+                basicValueType == BasicValueType.Float64);
+            initializer.Assert(
                 targetType.BasicValueType == BasicValueType.Int32 ||
-                targetType.BasicValueType == BasicValueType.Int64,
-                "Invalid primitive type");
+                targetType.BasicValueType == BasicValueType.Int64);
         }
 
         #endregion
@@ -451,6 +448,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateFloatAsIntCast(
+                Location,
                 rebuilder.Rebuild(Value));
 
         /// <summary cref="Value.Accept"/>
@@ -490,13 +488,12 @@ namespace ILGPU.IR.Values
                   targetType)
         {
             var basicValueType = source.Type.BasicValueType;
-            Debug.Assert(
+            initializer.Assert(
                 basicValueType == BasicValueType.Int32 ||
-                basicValueType == BasicValueType.Int64, "Invalid primitive type");
-            Debug.Assert(
+                basicValueType == BasicValueType.Int64);
+            initializer.Assert(
                 targetType.BasicValueType == BasicValueType.Float32 ||
-                targetType.BasicValueType == BasicValueType.Float64,
-                "Invalid primitive type");
+                targetType.BasicValueType == BasicValueType.Float64);
         }
 
         #endregion
@@ -515,6 +512,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateIntAsFloatCast(
+                Location,
                 rebuilder.Rebuild(Value));
 
         /// <summary cref="Value.Accept"/>

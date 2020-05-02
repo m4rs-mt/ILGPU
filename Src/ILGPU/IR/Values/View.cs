@@ -76,7 +76,7 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer)
         {
-            var type = Pointer.Type as PointerType;
+            var type = Pointer.Type.As<PointerType>(Location);
             return initializer.Context.CreateViewType(
                 type.ElementType,
                 type.AddressSpace);
@@ -87,6 +87,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateNewView(
+                Location,
                 rebuilder.Rebuild(Pointer),
                 rebuilder.Rebuild(Length));
 
@@ -185,6 +186,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateGetViewLength(
+                Location,
                 rebuilder.Rebuild(View));
 
         /// <summary cref="Value.Accept" />

@@ -696,6 +696,11 @@ namespace ILGPU.IR.Values
             IRBuilder IRBuilder { get; }
 
             /// <summary>
+            /// Returns the current location.
+            /// </summary>
+            Location Location { get; }
+
+            /// <summary>
             /// The number of field values.
             /// </summary>
             int Count { get; }
@@ -741,19 +746,24 @@ namespace ILGPU.IR.Values
         {
             #region Instance
 
-            private readonly ImmutableArray<ValueReference>.Builder builder; 
+            private readonly ImmutableArray<ValueReference>.Builder builder;
 
             /// <summary>
             /// Initializes a new instance builder.
             /// </summary>
             /// <param name="irBuilder">The current IR builder.</param>
+            /// <param name="location">The current location.</param>
             /// <param name="parent">The parent type.</param>
-            internal Builder(IRBuilder irBuilder, StructureType parent)
+            internal Builder(
+                IRBuilder irBuilder,
+                Location location,
+                StructureType parent)
             {
-                Debug.Assert(parent != null, "Invalid parent");
+                location.AssertNotNull(parent);
                 builder = ImmutableArray.CreateBuilder<ValueReference>(
                     parent.NumFields);
                 IRBuilder = irBuilder;
+                Location = location;
                 Parent = parent;
             }
 
@@ -765,6 +775,11 @@ namespace ILGPU.IR.Values
             /// Returns the parent builder.
             /// </summary>
             public IRBuilder IRBuilder { get; }
+
+            /// <summary>
+            /// Returns the current location.
+            /// </summary>
+            public Location Location { get; }
 
             /// <summary>
             /// Returns the corresponding parent type.
@@ -786,14 +801,11 @@ namespace ILGPU.IR.Values
                 get => builder[access.Index];
                 set
                 {
-                    Debug.Assert(value != null, "Invalid value");
-                    Debug.Assert(
-                        !value.Type.IsStructureType,
-                        "Invalid structure value");
-                    Debug.Assert(
+                    Location.Assert(!value.Type.IsStructureType);
+                    Location.Assert(
                         value.Type == Parent[Count] ||
-                        value.ResolveAs<UndefinedValue>() != null,
-                        "Invalid type");
+                        value.ResolveAs<UndefinedValue>() != null);
+
                     builder[access.Index] = value;
                 }
             }
@@ -808,14 +820,14 @@ namespace ILGPU.IR.Values
             /// <param name="value">The value to add.</param>
             public void Add(Value value)
             {
-                Debug.Assert(value != null, "Invalid value");
-                Debug.Assert(!value.Type.IsStructureType, "Invalid structure value");
-                Debug.Assert(
-                    value.Type == Parent[Count] || value is UndefinedValue,
-                    "Invalid type");
-                Debug.Assert(
-                    Count + 1 <= Parent.NumFields,
-                    "Number of fields out of range");
+                Location.AssertNotNull(value);
+                Location.Assert(
+                    !value.Type.IsStructureType &&
+                    Count + 1 <= Parent.NumFields);
+                Location.Assert(
+                    value.Type == Parent[Count] ||
+                    value is UndefinedValue);
+
                 builder.Add(value);
             }
 
@@ -833,7 +845,7 @@ namespace ILGPU.IR.Values
             ImmutableArray<ValueReference> IInternalBuilder.Seal(
                 out StructureType structureType)
             {
-                Debug.Assert(Count == Parent.NumFields, "Invalid structure instance");
+                Parent.Assert(Count == Parent.NumFields);
                 structureType = Parent;
                 return builder.MoveToImmutable();
             }
@@ -848,17 +860,24 @@ namespace ILGPU.IR.Values
         {
             #region Instance
 
-            private readonly ImmutableArray<ValueReference>.Builder builder; 
+            private readonly ImmutableArray<ValueReference>.Builder builder;
 
             /// <summary>
             /// Initializes a new instance builder.
             /// </summary>
             /// <param name="irBuilder">The current IR builder.</param>
+            /// <param name="location">The current location.</param>
             /// <param name="capacity">The initial capacity.</param>
-            internal DynamicBuilder(IRBuilder irBuilder, int capacity)
+            internal DynamicBuilder(
+                IRBuilder irBuilder,
+                Location location,
+                int capacity)
             {
+                location.Assert(capacity >= 0);
+
                 builder = ImmutableArray.CreateBuilder<ValueReference>(capacity);
                 IRBuilder = irBuilder;
+                Location = location;
             }
 
             #endregion
@@ -869,6 +888,11 @@ namespace ILGPU.IR.Values
             /// Returns the parent builder.
             /// </summary>
             public IRBuilder IRBuilder { get; }
+
+            /// <summary>
+            /// Returns the current location.
+            /// </summary>
+            public Location Location { get; }
 
             /// <summary>
             /// The number of field values.
@@ -896,8 +920,9 @@ namespace ILGPU.IR.Values
             /// <param name="value">The value to add.</param>
             public void Add(Value value)
             {
-                Debug.Assert(value != null, "Invalid value");
-                Debug.Assert(!value.Type.IsStructureType, "Invalid structure value");
+                Location.AssertNotNull(value);
+                Location.Assert(!value.Type.IsStructureType);
+
                 builder.Add(value);
             }
 
@@ -920,8 +945,7 @@ namespace ILGPU.IR.Values
                 var typeBuilder = IRBuilder.CreateStructureType(Count);
                 foreach (var value in builder)
                     typeBuilder.Add(value.Type);
-                structureType = typeBuilder.Seal() as StructureType;
-                Debug.Assert(structureType != null, "Invalid structure type");
+                structureType = typeBuilder.Seal().As<StructureType>(Location);
                 return Count == builder.Capacity
                     ? builder.MoveToImmutable()
                     : builder.ToImmutable();
@@ -975,18 +999,22 @@ namespace ILGPU.IR.Values
         /// Gets a new nested structure value.
         /// </summary>
         /// <param name="builder">The parent builder.</param>
+        /// <param name="location">The current location.</param>
         /// <param name="fieldSpan">The field span.</param>
         /// <returns>The resolved structure value.</returns>
-        public ValueReference Get(IRBuilder builder, FieldSpan fieldSpan)
+        public ValueReference Get(
+            IRBuilder builder,
+            Location location,
+            FieldSpan fieldSpan)
         {
             if (!fieldSpan.HasSpan)
                 return this[fieldSpan.Index];
             else if (fieldSpan.Index == 0 && fieldSpan.Span == NumFields)
                 return this;
 
-            var resultType = StructureType.Get(builder, fieldSpan) as StructureType;
-            Debug.Assert(resultType != null, "Invalid result type");
-            var instance = builder.CreateStructure(resultType);
+            var resultType = StructureType.Get(builder, fieldSpan)
+                .As<StructureType>(location);
+            var instance = builder.CreateStructure(location, resultType);
             for (int i = 0; i < fieldSpan.Span; ++i)
                 instance.Add(this[fieldSpan.Index + i]);
             return instance.Seal();
@@ -1001,7 +1029,9 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder)
         {
-            var instance = builder.CreateStructure(StructureType);
+            var instance = builder.CreateStructure(
+                Location,
+                StructureType);
             foreach (var value in Nodes)
                 instance.Add(rebuilder.Rebuild(value));
             return instance.Seal();
@@ -1112,6 +1142,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateGetField(
+                Location,
                 rebuilder.Rebuild(ObjectValue),
                 FieldSpan);
 
@@ -1178,6 +1209,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateSetField(
+                Location,
                 rebuilder.Rebuild(ObjectValue),
                 FieldSpan,
                 rebuilder.Rebuild(Value));

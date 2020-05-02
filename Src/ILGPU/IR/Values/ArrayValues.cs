@@ -74,7 +74,10 @@ namespace ILGPU.IR.Values
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
-            builder.CreateArray(ArrayType, rebuilder.Rebuild(Extent));
+            builder.CreateArray(
+                Location,
+                ArrayType,
+                rebuilder.Rebuild(Extent));
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -196,7 +199,9 @@ namespace ILGPU.IR.Values
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
-            builder.CreateGetArrayExtent(rebuilder.Rebuild(ObjectValue));
+            builder.CreateGetArrayExtent(
+                Location,
+                rebuilder.Rebuild(ObjectValue));
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -250,6 +255,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateGetArrayElement(
+                Location,
                 rebuilder.Rebuild(ObjectValue),
                 rebuilder.Rebuild(Index));
 
@@ -316,6 +322,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateSetArrayElement(
+                Location,
                 rebuilder.Rebuild(ObjectValue),
                 rebuilder.Rebuild(Index),
                 rebuilder.Rebuild(Value));

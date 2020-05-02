@@ -74,7 +74,10 @@ namespace ILGPU.IR.Values
             foreach (var arg in Nodes)
                 args.Add(rebuilder.Rebuild(arg));
             var target = rebuilder.LookupCallTarget(Target);
-            return builder.CreateCall(target, args.ToImmutable());
+            return builder.CreateCall(
+                Location,
+                target,
+                args.ToImmutable());
         }
 
         /// <summary cref="Value.Accept"/>

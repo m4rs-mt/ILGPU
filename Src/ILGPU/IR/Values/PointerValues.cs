@@ -12,8 +12,6 @@
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -99,6 +97,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateSubViewValue(
+                Location,
                 rebuilder.Rebuild(Source),
                 rebuilder.Rebuild(Offset),
                 rebuilder.Rebuild(Length));
@@ -182,7 +181,7 @@ namespace ILGPU.IR.Values
         protected override TypeNode ComputeType(in ValueInitializer initializer)
         {
             var sourceType = Source.Type as IAddressSpaceType;
-            Debug.Assert(sourceType != null, "Invalid address space type");
+            Location.AssertNotNull(sourceType);
 
             return sourceType is PointerType
                 ? Source.Type
@@ -196,6 +195,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateLoadElementAddress(
+                Location,
                 rebuilder.Rebuild(Source),
                 rebuilder.Rebuild(ElementIndex));
 
@@ -277,12 +277,10 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer)
         {
-            var pointerType = Source.Type as PointerType;
-            Debug.Assert(pointerType != null, "Invalid pointer type");
+            var pointerType = Source.Type.As<PointerType>(Location);
+            var structureType = pointerType.ElementType.As<StructureType>(Location);
 
-            var structureType = pointerType.ElementType as StructureType;
             var fieldType = structureType.Get(initializer.Context, FieldSpan);
-
             return initializer.Context.CreatePointerType(
                 fieldType,
                 pointerType.AddressSpace);
@@ -293,6 +291,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateLoadFieldAddress(
+                Location,
                 rebuilder.Rebuild(Source),
                 FieldSpan);
 

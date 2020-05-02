@@ -86,6 +86,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateDebug(
+                Location,
                 Kind,
                 rebuilder.Rebuild(Message));
 

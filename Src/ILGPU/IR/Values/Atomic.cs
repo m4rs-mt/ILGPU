@@ -202,6 +202,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateAtomic(
+                Location,
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value),
                 Kind,
@@ -277,6 +278,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateAtomicCAS(
+                Location,
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value),
                 rebuilder.Rebuild(CompareValue),

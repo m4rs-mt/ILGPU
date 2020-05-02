@@ -13,7 +13,6 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -129,6 +128,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateBarrier(
+                Location,
                 rebuilder.Rebuild(Predicate),
                 Kind);
 
@@ -211,7 +211,7 @@ namespace ILGPU.IR.Values
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
-            builder.CreateBarrier(Kind);
+            builder.CreateBarrier(Location, Kind);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -334,6 +334,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateBroadcast(
+                Location,
                 rebuilder.Rebuild(Variable),
                 rebuilder.Rebuild(Origin),
                 Kind);
@@ -468,6 +469,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateShuffle(
+                Location,
                 rebuilder.Rebuild(Variable),
                 rebuilder.Rebuild(Origin),
                 Kind);
@@ -534,6 +536,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateShuffle(
+                Location,
                 rebuilder.Rebuild(Variable),
                 rebuilder.Rebuild(Origin),
                 rebuilder.Rebuild(Width),

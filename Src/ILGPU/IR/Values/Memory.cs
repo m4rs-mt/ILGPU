@@ -126,6 +126,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateAlloca(
+                Location,
                 AllocaType,
                 AddressSpace,
                 rebuilder.Rebuild(ArrayLength));
@@ -218,7 +219,7 @@ namespace ILGPU.IR.Values
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
-            builder.CreateMemoryBarrier(Kind);
+            builder.CreateMemoryBarrier(Location, Kind);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -282,6 +283,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateLoad(
+                Location,
                 rebuilder.Rebuild(Source));
 
         /// <summary cref="Value.Accept"/>
@@ -353,6 +355,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateStore(
+                Location,
                 rebuilder.Rebuild(Target),
                 rebuilder.Rebuild(Value));
 

@@ -149,6 +149,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateConvert(
+                Location,
                 rebuilder.Rebuild(Value),
                 Type,
                 Flags);

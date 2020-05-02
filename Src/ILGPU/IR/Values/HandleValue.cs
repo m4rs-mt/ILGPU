@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Values
 {
@@ -33,7 +32,7 @@ namespace ILGPU.IR.Values
             object handle)
             : base(initializer)
         {
-            Debug.Assert(handle != null, "Invalid managed handle");
+            this.AssertNotNull(handle);
             Handle = handle;
         }
 
@@ -61,7 +60,7 @@ namespace ILGPU.IR.Values
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
-            builder.CreateRuntimeHandle(Handle);
+            builder.CreateRuntimeHandle(Location, Handle);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

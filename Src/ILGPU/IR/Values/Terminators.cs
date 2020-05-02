@@ -14,9 +14,7 @@ using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ILGPU.IR.Values
@@ -112,6 +110,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateReturn(
+                Location,
                 rebuilder.Rebuild(ReturnValue));
 
         /// <summary cref="Value.Accept"/>
@@ -206,6 +205,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateBranch(
+                Location,
                 rebuilder.LookupTarget(Target));
 
         /// <summary cref="Value.Accept"/>
@@ -319,10 +319,9 @@ namespace ILGPU.IR.Values
                   condition,
                   ImmutableArray.Create(trueTarget, falseTarget))
         {
-            Debug.Assert(
+            Location.Assert(
                 condition.Type.IsPrimitiveType &&
-                condition.Type.BasicValueType == BasicValueType.Int1,
-                "Invalid boolean predicate");
+                condition.Type.BasicValueType == BasicValueType.Int1);
         }
 
         #endregion
@@ -354,7 +353,7 @@ namespace ILGPU.IR.Values
             var target = condition.Int1Value ?
                 TrueTarget :
                 FalseTarget;
-            return builder.CreateBranch(target);
+            return builder.CreateBranch(Location, target);
         }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
@@ -362,6 +361,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateIfBranch(
+                Location,
                 rebuilder.Rebuild(Condition),
                 rebuilder.LookupTarget(TrueTarget),
                 rebuilder.LookupTarget(FalseTarget));
@@ -407,10 +407,9 @@ namespace ILGPU.IR.Values
                   value,
                   targets)
         {
-            Debug.Assert(
+            Location.Assert(
                 value.Type.IsPrimitiveType &&
-                value.Type.BasicValueType.IsInt(),
-                "Invalid integer selection value");
+                value.Type.BasicValueType.IsInt());
         }
 
         #endregion
@@ -445,7 +444,7 @@ namespace ILGPU.IR.Values
             Justification = "Exception checks avoided for performance reasons")]
         public BasicBlock GetCaseTarget(int i)
         {
-            Debug.Assert(i < Targets.Length - 1, "Invalid case argument");
+            Location.Assert(i < Targets.Length - 1);
             return Targets[i + 1];
         }
 
@@ -458,7 +457,7 @@ namespace ILGPU.IR.Values
             var target = caseValue < 0 || caseValue >= NumCasesWithoutDefault ?
                 Targets[0] :
                 GetCaseTarget(caseValue);
-            return builder.CreateBranch(target);
+            return builder.CreateBranch(Location, target);
         }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
@@ -471,6 +470,7 @@ namespace ILGPU.IR.Values
                 targets.Add(rebuilder.LookupTarget(target));
 
             return builder.CreateSwitchBranch(
+                Location,
                 rebuilder.Rebuild(Condition),
                 targets.MoveToImmutable());
         }

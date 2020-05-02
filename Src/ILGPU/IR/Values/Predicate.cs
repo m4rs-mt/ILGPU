@@ -35,9 +35,7 @@ namespace ILGPU.IR.Values
             ImmutableArray<ValueReference> arguments)
             : base(initializer)
         {
-            Debug.Assert(
-                arguments.Length > 0,
-                "Invalid condition arguments");
+            this.Assert(arguments.Length > 0);
             Arguments = arguments;
 
             var builder = ImmutableArray.CreateBuilder<ValueReference>(
@@ -129,6 +127,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreatePredicate(
+                Location,
                 rebuilder.Rebuild(Condition),
                 rebuilder.Rebuild(TrueValue),
                 rebuilder.Rebuild(FalseValue));

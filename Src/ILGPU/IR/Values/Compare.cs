@@ -14,7 +14,6 @@ using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -208,6 +207,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateCompare(
+                Location,
                 rebuilder.Rebuild(Left),
                 rebuilder.Rebuild(Right),
                 Kind,

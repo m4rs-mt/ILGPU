@@ -74,7 +74,7 @@ namespace ILGPU.IR.Values
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
-            builder.CreateNull(Type);
+            builder.CreateNull(Location, Type);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -221,7 +221,10 @@ namespace ILGPU.IR.Values
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
-            builder.CreatePrimitiveValue(BasicValueType, rawValue);
+            builder.CreatePrimitiveValue(
+                Location,
+                BasicValueType,
+                rawValue);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -303,7 +306,7 @@ namespace ILGPU.IR.Values
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
-            builder.CreatePrimitiveValue(String);
+            builder.CreatePrimitiveValue(Location, String);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

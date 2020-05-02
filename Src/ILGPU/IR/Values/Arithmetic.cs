@@ -408,6 +408,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateArithmetic(
+                Location,
                 rebuilder.Rebuild(Value),
                 Kind,
                 Flags);
@@ -499,6 +500,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateArithmetic(
+                Location,
                 rebuilder.Rebuild(Left),
                 rebuilder.Rebuild(Right),
                 Kind,
@@ -628,6 +630,7 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateArithmetic(
+                Location,
                 rebuilder.Rebuild(First),
                 rebuilder.Rebuild(Second),
                 rebuilder.Rebuild(Third),

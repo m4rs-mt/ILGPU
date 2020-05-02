@@ -310,11 +310,12 @@ namespace ILGPU.IR.Values
             TArgumentRemaper remapper)
             where TArgumentRemaper : IArgumentRemapper
         {
-            Debug.Assert(blockBuilder.BasicBlock == BasicBlock, "Invalid block builder");
+            // Check for a valid block association
+            this.Assert(blockBuilder.BasicBlock == BasicBlock);
             if (!remapper.CanRemap(Sources))
                 return this;
 
-            var phiBuilder = blockBuilder.CreatePhi(Type);
+            var phiBuilder = blockBuilder.CreatePhi(Location, Type);
             for (int i = 0, e = Nodes.Length; i < e; ++i)
             {
                 if (!remapper.TryRemap(Sources[i], out var newSource))
