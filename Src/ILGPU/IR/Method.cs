@@ -13,6 +13,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -278,6 +279,38 @@ namespace ILGPU.IR
             #endregion
         }
 
+        /// <summary>
+        /// Represents a location that is bound to a managed method.
+        /// </summary>
+        public sealed class MethodLocation : Location
+        {
+            /// <summary>
+            /// Constructs a new method location.
+            /// </summary>
+            /// <param name="method">The target method (if any).</param>
+            public MethodLocation(MethodBase method)
+            {
+                Method = method;
+            }
+
+            /// <summary>
+            /// Returns the managed method (if any).
+            /// </summary>
+            public MethodBase Method { get; }
+
+            /// <summary>
+            /// Tries to include managed method information if possible.
+            /// </summary>
+            public override string FormatErrorMessage(string message) =>
+                Method != null
+                ? string.Format(
+                    ErrorMessages.LocationMethodMessage,
+                    message,
+                    Method,
+                    Method.DeclaringType)
+                : message;
+        }
+
         #endregion
 
         #region Static
@@ -340,12 +373,20 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="context">The context this method belongs to.</param>
         /// <param name="declaration">The associated declaration.</param>
-        internal Method(IRContext context, in MethodDeclaration declaration)
+        /// <param name="location">The current location.</param>
+        internal Method(
+            IRContext context,
+            in MethodDeclaration declaration,
+            Location location)
+            : base(
+                  location.IsKnown
+                  ? location
+                  : new MethodLocation(declaration.Source))
         {
-            Debug.Assert(context != null, "Invalid context");
-            Debug.Assert(
-                declaration.HasHandle && declaration.ReturnType != null,
-                "Invalid declaration");
+            Location.AssertNotNull(context);
+            Location.Assert(
+                declaration.HasHandle && declaration.ReturnType != null);
+
             Context = context;
             Declaration = declaration;
         }

@@ -9,8 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Types
@@ -49,9 +49,20 @@ namespace ILGPU.IR.Types
     }
 
     /// <summary>
+    /// An abstract type node.
+    /// </summary>
+    public interface ITypeNode : INode
+    {
+        /// <summary>
+        /// The type representation in the managed world.
+        /// </summary>
+        Type ManagedType { get; }
+    }
+
+    /// <summary>
     /// Represents a type in the scope of the ILGPU IR.
     /// </summary>
-    public abstract class TypeNode : Node
+    public abstract class TypeNode : Node, ITypeNode
     {
         #region Static
 
@@ -82,8 +93,8 @@ namespace ILGPU.IR.Types
         /// </summary>
         /// <param name="typeContext">The parent type context.</param>
         protected TypeNode(IRTypeContext typeContext)
+            : base(Location.Unknown)
         {
-            Debug.Assert(typeContext != null, "Invalid type context");
             TypeContext = typeContext;
 
             Size = 1;
@@ -221,6 +232,35 @@ namespace ILGPU.IR.Types
         /// </summary>
         /// <returns>The created managed type.</returns>
         protected abstract Type GetManagedType();
+
+        /// <summary>
+        /// Converts the current type to the given type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The target type node.</typeparam>
+        /// <param name="location">The location to use for assertions.</param>
+        /// <returns>The converted type.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T As<T>(ILocation location)
+            where T : TypeNode
+        {
+            var result = this as T;
+            location.AssertNotNull(result);
+            return result;
+        }
+
+        #endregion
+
+        #region ILocation
+
+        /// <summary>
+        /// Formats an error message to include the current debug information.
+        /// </summary>
+        public override string FormatErrorMessage(string message) =>
+            string.Format(
+                ErrorMessages.LocationTypeMessage,
+                    message,
+                    ToString(),
+                    ManagedType.ToString());
 
         #endregion
 

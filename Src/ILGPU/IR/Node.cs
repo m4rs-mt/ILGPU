@@ -9,15 +9,16 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.DebugInformation;
 using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR
 {
     /// <summary>
     /// The base interface of all nodes.
     /// </summary>
-    public interface INode
+    public interface INode : ILocation
     {
         /// <summary>
         /// Returns the unique node id.
@@ -25,9 +26,9 @@ namespace ILGPU.IR
         NodeId Id { get; }
 
         /// <summary>
-        /// Returns the associated sequence point.
+        /// Returns the associated location.
         /// </summary>
-        SequencePoint SequencePoint { get; }
+        Location Location { get; }
     }
 
     /// <summary>
@@ -51,8 +52,13 @@ namespace ILGPU.IR
         /// <summary>
         /// Constructs a new node that is marked as replaceable.
         /// </summary>
-        protected Node()
+        /// <param name="location">The current location.</param>
+        protected Node(Location location)
         {
+            // Ensure that we have a valid location at this location
+            Locations.AssertNotNull(location, location);
+
+            Location = location;
             Id = NodeId.CreateNew();
         }
 
@@ -61,14 +67,44 @@ namespace ILGPU.IR
         #region Properties
 
         /// <summary>
-        /// Returns the associated sequence point.
+        /// Returns the associated location.
         /// </summary>
-        public SequencePoint SequencePoint { get; internal set; }
+        public Location Location { get; private set; }
 
         /// <summary>
         /// Returns the unique node id.
         /// </summary>
         public NodeId Id { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Infers the location (if required) of the current node.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TList">The list type.</typeparam>
+        /// <param name="elements">Elements we can infer the location from.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void InferLocation<T, TList>(TList elements)
+            where T : INode
+            where TList : IReadOnlyList<T>
+        {
+            if (Location.IsKnown)
+                return;
+
+            for (int i = 0, e = elements.Count; i < e; ++i)
+                Location = Location.Merge(Location, elements[i].Location);
+        }
+
+        /// <summary>
+        /// Formats an error message to include specific exception information.
+        /// </summary>
+        /// <param name="message">The source error message.</param>
+        /// <returns>The formatted error message.</returns>
+        public virtual string FormatErrorMessage(string message) =>
+            Location.FormatErrorMessage(message);
 
         #endregion
 

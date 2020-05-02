@@ -170,7 +170,7 @@ namespace ILGPU.IR
     /// <summary>
     /// A general value initializer.
     /// </summary>
-    public readonly struct ValueInitializer
+    public readonly struct ValueInitializer : ILocation
     {
         #region Instance
 
@@ -179,11 +179,19 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="context">The parent context.</param>
         /// <param name="parent">The associated parent.</param>
+        /// <param name="location">The current location.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValueInitializer(IRContext context, ValueParent parent)
+        public ValueInitializer(
+            IRContext context,
+            ValueParent parent,
+            Location location)
         {
+            // Enforce a valid location in all cases
+            Locations.AssertNotNull(location, location);
+
             Context = context;
             Parent = parent;
+            Location = location;
         }
 
         #endregion
@@ -199,6 +207,33 @@ namespace ILGPU.IR
         /// Returns the associated parent.
         /// </summary>
         public readonly ValueParent Parent { get; }
+
+        /// <summary>
+        /// Returns the associated location.
+        /// </summary>
+        public Location Location { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Returns true if the current context has the given flags.
+        /// </summary>
+        /// <param name="flags">The flags to check.</param>
+        /// <returns>True, if the current context has the given flags.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasFlags(ContextFlags flags) => Context.HasFlags(flags);
+
+        #endregion
+
+        #region ILocation
+
+        /// <summary>
+        /// Formats an error message to include specific location information.
+        /// </summary>
+        string ILocation.FormatErrorMessage(string message) =>
+            Location.FormatErrorMessage(message);
 
         #endregion
     }
@@ -332,6 +367,7 @@ namespace ILGPU.IR
             in ValueInitializer initializer,
             ValueFlags valueFlags,
             TypeNode staticType)
+            : base(initializer.Location)
         {
             parent = initializer.Parent;
             type = staticType;
@@ -368,7 +404,7 @@ namespace ILGPU.IR
             get => parent as BasicBlock;
             internal set
             {
-                Debug.Assert(parent.IsBasicBlock, "Invalid basic block binding");
+                this.Assert(parent.IsBasicBlock);
                 parent = value;
             }
         }
@@ -382,10 +418,11 @@ namespace ILGPU.IR
             {
                 if (type == null)
                 {
-                    Debug.Assert(!HasStaticType, "Invalid type computation");
+                    this.Assert(!HasStaticType);
                     type = ComputeType(new ValueInitializer(
                         Method.Context,
-                        parent));
+                        parent,
+                        Location));
                 }
                 return type;
             }
@@ -400,7 +437,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the associated value flags.
         /// </summary>
-        public ValueFlags ValueFlags { get; }
+        public ValueFlags ValueFlags { get; private set; }
 
         /// <summary>
         /// Returns true if the current value can be replaced.
@@ -507,9 +544,8 @@ namespace ILGPU.IR
         /// <param name="useIndex">The use index.</param>
         private void AddUse(Value target, int useIndex)
         {
-            Debug.Assert(CanHaveUses, "Value cannot have uses");
-            Debug.Assert(target != null, "Invalid target");
-            Debug.Assert(useIndex >= 0, "Invalid use index");
+            this.AssertNotNull(target);
+            this.Assert(CanHaveUses && useIndex >= 0);
             allUses.Add(new Use(target, useIndex));
         }
 
@@ -564,6 +600,10 @@ namespace ILGPU.IR
                 if (value.CanHaveUses)
                     value.AddUse(this, i);
             }
+
+            InferLocation<
+                ValueReference,
+                ImmutableArray<ValueReference>>(nodes);
         }
 
         /// <summary>
@@ -572,12 +612,11 @@ namespace ILGPU.IR
         /// <param name="other">The other value.</param>
         public void Replace(Value other)
         {
-            Debug.Assert(other != null, "Invalid other node");
-            Debug.Assert(CanBeReplaced, "Cannot replace a non-replaceable value");
-            Debug.Assert(!IsReplaced, "Cannot replace a replaced value");
+            this.AssertNotNull(other);
+            this.Assert(CanBeReplaced && !IsReplaced);
 
             var target = other.Resolve();
-            Debug.Assert(target != this, "Invalid replacement cycle");
+            this.Assert(target != this);
             Replacement = target;
 
             if (target.CanHaveUses)
@@ -693,6 +732,18 @@ namespace ILGPU.IR
     /// </summary>
     public abstract class ValueParent : Node
     {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new value parent.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        protected ValueParent(Location location)
+            : base(location)
+        { }
+
+        #endregion
+
         #region Properties
 
         /// <summary>

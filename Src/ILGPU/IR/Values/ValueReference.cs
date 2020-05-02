@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR.Types;
 using System;
 using System.Collections.Immutable;
@@ -76,9 +75,9 @@ namespace ILGPU.IR.Values
         public NodeId Id => Resolve().Id;
 
         /// <summary>
-        /// Returns the associated sequence point.
+        /// Returns the associated location.
         /// </summary>
-        public SequencePoint SequencePoint => Resolve().SequencePoint;
+        public Location Location => Resolve().Location;
 
         /// <summary>
         /// Returns all child nodes of the latest node.
@@ -149,6 +148,16 @@ namespace ILGPU.IR.Values
         /// <typeparam name="T">The target type.</typeparam>
         /// <returns>The actual node.</returns>
         public T ResolveAs<T>() where T : Value => Resolve() as T;
+
+        #endregion
+
+        #region ILocation
+
+        /// <summary>
+        /// Formats an error message to include specific location information.
+        /// </summary>
+        string ILocation.FormatErrorMessage(string message) =>
+            Location.FormatErrorMessage(message);
 
         #endregion
 

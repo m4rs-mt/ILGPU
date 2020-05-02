@@ -103,7 +103,8 @@ namespace ILGPU.IR.Types
             /// <param name="type">The type node to add.</param>
             public void Add(TypeNode type)
             {
-                Debug.Assert(type != null, "Invalid type");
+                type.AssertNotNull(type);
+
                 fieldsBuilder.Add(type);
                 if (type is StructureType structureType)
                 {
@@ -148,8 +149,9 @@ namespace ILGPU.IR.Types
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private void AddInternal(TypeNode type, int offset, int alignment)
             {
-                Debug.Assert(!type.IsStructureType, "Invalid nested structure type");
-                Debug.Assert(offset >= 0, "Invalid offset");
+                type.Assert(
+                    !type.IsStructureType &&
+                    offset >= 0);
 
                 allFieldsBuilder.Add(type);
 
@@ -502,13 +504,12 @@ namespace ILGPU.IR.Types
             }
 
             // Ensure that we did not lose any fields
-            Debug.Assert(
-                builder.Count >= NumFields,
-                "Larger or equal number if fields expected");
+            this.Assert(builder.Count >= NumFields);
 
             // Create final structure type
-            var result = builder.Seal() as StructureType;
-            Debug.Assert(changed || result == this, "Invalid type conversion");
+            var result = builder.Seal().As<StructureType>(this);
+            // Ensure that when we changed the type, we have created a new one
+            this.Assert(changed || result == this);
             return result;
         }
 
@@ -519,11 +520,13 @@ namespace ILGPU.IR.Types
         /// <param name="typeContext">The type context.</param>
         /// <param name="span">The span to slice.</param>
         /// <returns>The sliced structure type.</returns>
-        private TypeNode Slice<TTypeContext>(TTypeContext typeContext, FieldSpan span)
+        private TypeNode Slice<TTypeContext>(
+            TTypeContext typeContext,
+            FieldSpan span)
             where TTypeContext : IIRTypeContext
         {
             // If we reach this point we have to create a new structure type
-            Debug.Assert(span.HasSpan && span.Span < NumFields);
+            this.Assert(span.HasSpan && span.Span < NumFields);
             var builder = typeContext.CreateStructureType(span.Span);
 
             // Slice all field types into the builder

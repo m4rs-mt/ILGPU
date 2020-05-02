@@ -253,7 +253,8 @@ namespace ILGPU.IR.Types
         /// <returns>The IR type.</returns>
         public TypeNode CreateType(Type type, MemoryAddressSpace addressSpace)
         {
-            Debug.Assert(type != null, "Invalid type");
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
 
             // Avoid querying the cache for primitive types
             var basicValueType = type.GetBasicValueType();
@@ -375,7 +376,13 @@ namespace ILGPU.IR.Types
             else
             {
                 // Must be a structure type
-                Debug.Assert(type.IsValueType, "Invalid structure type");
+                if (!type.IsValueType)
+                {
+                    throw new NotSupportedException(
+                        string.Format(
+                            ErrorMessages.NotSupportedType,
+                            type));
+                }
                 var typeInfo = GetTypeInfo(type);
 
                 var builder = CreateStructureType(typeInfo.NumFlattendedFields);

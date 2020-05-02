@@ -173,8 +173,10 @@ namespace ILGPU.IR
         /// Constructs a new basic block.
         /// </summary>
         /// <param name="method">The parent method.</param>
+        /// <param name="location">The current location.</param>
         /// <param name="name">The name of the block (or null).</param>
-        internal BasicBlock(Method method, string name)
+        internal BasicBlock(Method method, Location location, string name)
+            : base(location)
         {
             Method = method;
             Name = name ?? "BB";
