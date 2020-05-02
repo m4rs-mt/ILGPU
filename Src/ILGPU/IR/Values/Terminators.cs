@@ -31,14 +31,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new terminator value that is marked.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="targets">The associated targets.</param>
-        /// <param name="initialType">The initial node type.</param>
         protected TerminatorValue(
-            BasicBlock basicBlock,
-            ImmutableArray<BasicBlock> targets,
-            TypeNode initialType)
-            : base(basicBlock, initialType)
+            in ValueInitializer initializer,
+            ImmutableArray<BasicBlock> targets)
+            : base(initializer)
         {
             Targets = targets;
         }
@@ -66,33 +64,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.Return)]
     public sealed class ReturnTerminator : TerminatorValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a return node type.
-        /// </summary>
-        /// <param name="returnType">The return type.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(TypeNode returnType) =>
-            returnType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new return terminator.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="returnValue">The current return value.</param>
         internal ReturnTerminator(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference returnValue)
             : base(
-                  basicBlock,
-                  ImmutableArray<BasicBlock>.Empty,
-                  ComputeType(returnValue.Type))
+                  initializer,
+                  ImmutableArray<BasicBlock>.Empty)
         {
             Seal(ImmutableArray.Create(returnValue));
         }
@@ -119,9 +103,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(ReturnValue.Type);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            ReturnValue.Type;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -151,37 +135,19 @@ namespace ILGPU.IR.Values
     /// </summary>
     public abstract class Branch : TerminatorValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a branch node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context) =>
-            context.VoidType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new branch terminator.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="targets">The jump targets.</param>
         /// <param name="arguments">The branch arguments.</param>
         internal Branch(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ImmutableArray<BasicBlock> targets,
             ImmutableArray<ValueReference> arguments)
-            : base(
-                  basicBlock,
-                  targets,
-                  ComputeType(context))
+            : base(initializer, targets)
         {
             Seal(arguments);
         }
@@ -190,9 +156,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.VoidType;
 
         #endregion
     }
@@ -208,16 +174,13 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new branch terminator.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="target">The jump target.</param>
         internal UnconditionalBranch(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             BasicBlock target)
             : base(
-                  context,
-                  basicBlock,
+                  initializer,
                   ImmutableArray.Create(target),
                   ImmutableArray<ValueReference>.Empty)
         { }
@@ -271,18 +234,15 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new conditional branch terminator.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="condition">The jump condition.</param>
         /// <param name="targets">The jump targets.</param>
         protected ConditionalBranch(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference condition,
             ImmutableArray<BasicBlock> targets)
             : base(
-                  context,
-                  basicBlock,
+                  initializer,
                   targets,
                   ImmutableArray.Create(condition))
         { }
@@ -345,20 +305,17 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new conditional branch terminator.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="condition">The jump condition.</param>
         /// <param name="falseTarget">The false jump target.</param>
         /// <param name="trueTarget">The true jump target.</param>
         internal IfBranch(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference condition,
             BasicBlock trueTarget,
             BasicBlock falseTarget)
             : base(
-                  context,
-                  basicBlock,
+                  initializer,
                   condition,
                   ImmutableArray.Create(trueTarget, falseTarget))
         {
@@ -438,18 +395,15 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new switch terminator.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="value">The value to switch over.</param>
         /// <param name="targets">The jump targets.</param>
         internal SwitchBranch(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference value,
             ImmutableArray<BasicBlock> targets)
             : base(
-                  context,
-                  basicBlock,
+                  initializer,
                   value,
                   targets)
         {
@@ -562,16 +516,13 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a temporary builder terminator.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="targets">The jump targets.</param>
         internal BuilderTerminator(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ImmutableArray<BasicBlock> targets)
             : base(
-                  context,
-                  basicBlock,
+                  initializer,
                   targets,
                   ImmutableArray<ValueReference>.Empty)
         { }

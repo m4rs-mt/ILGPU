@@ -15,7 +15,6 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ILGPU.IR.Values
@@ -938,14 +937,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new structure value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="structureType">The associated structure type.</param>
         /// <param name="fieldValues">The field values.</param>
         internal StructureValue(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             StructureType structureType,
             ImmutableArray<ValueReference> fieldValues)
-            : base(basicBlock, structureType)
+            : base(initializer)
         {
             StructureType = structureType;
             Seal(fieldValues);
@@ -993,8 +992,9 @@ namespace ILGPU.IR.Values
             return instance.Seal();
         }
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) => StructureType;
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            StructureType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -1030,14 +1030,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract structure operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="initialType">The initial node type.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="fieldSpan">The field span.</param>
         internal StructureOperationValue(
-            BasicBlock basicBlock,
-            TypeNode initialType,
+            in ValueInitializer initializer,
             FieldSpan fieldSpan)
-            : base(basicBlock, initialType)
+            : base(initializer)
         {
             FieldSpan = fieldSpan;
         }
@@ -1077,42 +1075,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.GetField)]
     public sealed class GetField : StructureOperationValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a get field node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="structValue">The current structure value.</param>
-        /// <param name="fieldSpan">The associated field span.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static TypeNode ComputeType(
-            IRContext context,
-            ValueReference structValue,
-            FieldSpan fieldSpan) =>
-            (structValue.Type as StructureType).Get(context, fieldSpan);
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new field load.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="structValue">The structure value.</param>
         /// <param name="fieldSpan">The field span.</param>
         internal GetField(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference structValue,
             FieldSpan fieldSpan)
-            : base(
-                  basicBlock,
-                  ComputeType(context, structValue, fieldSpan),
-                  fieldSpan)
+            : base(initializer, fieldSpan)
         {
             Seal(ImmutableArray.Create(structValue));
         }
@@ -1128,9 +1103,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, ObjectValue, FieldSpan);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            (ObjectValue.Type as StructureType).Get(initializer.Context, FieldSpan);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -1159,37 +1134,21 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.SetField)]
     public sealed class SetField : StructureOperationValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a set field node type.
-        /// </summary>
-        /// <param name="structValue">The current structure value.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(ValueReference structValue) =>
-            structValue.Type;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new field store.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="structValue">The structure value.</param>
         /// <param name="fieldSpan">The field access.</param>
         /// <param name="value">The value to store.</param>
         internal SetField(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference structValue,
             FieldSpan fieldSpan,
             ValueReference value)
-            : base(
-                  basicBlock,
-                  ComputeType(structValue),
-                  fieldSpan)
+            : base(initializer, fieldSpan)
         {
             Seal(ImmutableArray.Create(structValue, value));
         }
@@ -1210,9 +1169,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(ObjectValue);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            ObjectValue.Type;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

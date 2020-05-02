@@ -280,16 +280,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new arithmetic value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="operands">The operands.</param>
         /// <param name="flags">The operation flags.</param>
-        /// <param name="initialType">The initial node type.</param>
         internal ArithmeticValue(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ImmutableArray<ValueReference> operands,
-            ArithmeticFlags flags,
-            TypeNode initialType)
-            : base(basicBlock, initialType)
+            ArithmeticFlags flags)
+            : base(initializer)
         {
             Flags = flags;
 
@@ -347,55 +345,24 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.UnaryArithmetic)]
     public sealed class UnaryArithmeticValue : ArithmeticValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes an arithmetic node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="operand">The arithmetic operand.</param>
-        /// <param name="kind">The operation kind.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            IRContext context,
-            ValueReference operand,
-            UnaryArithmeticKind kind)
-        {
-            var type = operand.Type;
-            switch (kind)
-            {
-                case UnaryArithmeticKind.IsInfF:
-                case UnaryArithmeticKind.IsNaNF:
-                    type = context.GetPrimitiveType(BasicValueType.Int1);
-                    break;
-            }
-            return type;
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new unary arithmetic operation.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="value">The operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
         internal UnaryArithmeticValue(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference value,
             UnaryArithmeticKind kind,
             ArithmeticFlags flags)
             : base(
-                  basicBlock,
+                  initializer,
                   ImmutableArray.Create(value),
-                  flags,
-                  ComputeType(context, value, kind))
+                  flags)
         {
             Kind = kind;
         }
@@ -421,9 +388,20 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, Value, Kind);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer)
+        {
+            var type = Value.Type;
+            switch (Kind)
+            {
+                case UnaryArithmeticKind.IsInfF:
+                case UnaryArithmeticKind.IsNaNF:
+                    type = initializer.Context.GetPrimitiveType(
+                        BasicValueType.Int1);
+                    break;
+            }
+            return type;
+        }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -456,40 +434,26 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.BinaryArithmetic)]
     public sealed class BinaryArithmeticValue : ArithmeticValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes an arithmetic node type.
-        /// </summary>
-        /// <param name="operand">The first arithmetic operand.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(ValueReference operand) =>
-            operand.Type;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new binary arithmetic value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
         internal BinaryArithmeticValue(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference left,
             ValueReference right,
             BinaryArithmeticKind kind,
             ArithmeticFlags flags)
             : base(
-                  basicBlock,
+                  initializer,
                   ImmutableArray.Create(left, right),
-                  flags,
-                  ComputeType(left))
+                  flags)
         {
             Debug.Assert(
                 left.Type == right.Type ||
@@ -526,9 +490,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(Left);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            Left.Type;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -565,15 +529,6 @@ namespace ILGPU.IR.Values
         #region Static
 
         /// <summary>
-        /// Computes an arithmetic node type.
-        /// </summary>
-        /// <param name="operand">The first arithmetic operand.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(ValueReference operand) =>
-            operand.Type;
-
-        /// <summary>
         /// Returns the left hand binary operation of a fused ternary operation.
         /// </summary>
         /// <param name="kind">The arithmetic kind.</param>
@@ -608,24 +563,23 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new ternary arithmetic value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="first">The first operand.</param>
         /// <param name="second">The second operand.</param>
         /// <param name="third">The third operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
         internal TernaryArithmeticValue(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference first,
             ValueReference second,
             ValueReference third,
             TernaryArithmeticKind kind,
             ArithmeticFlags flags)
             : base(
-                  basicBlock,
+                  initializer,
                   ImmutableArray.Create(first, second, third),
-                  flags,
-                  ComputeType(first))
+                  flags)
         {
             Debug.Assert(
                 first.Type == second.Type &&
@@ -665,9 +619,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(First);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            First.Type;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

@@ -160,6 +160,47 @@ namespace ILGPU.IR
         /// The value cannot have uses.
         /// </summary>
         NoUses = 1 << 1,
+
+        /// <summary>
+        /// Static type
+        /// </summary>
+        StaticType = 1 << 2,
+    }
+
+    /// <summary>
+    /// A general value initializer.
+    /// </summary>
+    public readonly struct ValueInitializer
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new value initializer.
+        /// </summary>
+        /// <param name="context">The parent context.</param>
+        /// <param name="parent">The associated parent.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ValueInitializer(IRContext context, ValueParent parent)
+        {
+            Context = context;
+            Parent = parent;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the parent context.
+        /// </summary>
+        public readonly IRContext Context { get; }
+
+        /// <summary>
+        /// Returns the associated parent.
+        /// </summary>
+        public readonly ValueParent Parent { get; }
+
+        #endregion
     }
 
     /// <summary>
@@ -250,29 +291,54 @@ namespace ILGPU.IR
         /// <summary>
         /// Constructs a new value that is marked as replaceable.
         /// </summary>
-        /// <param name="parentValue">The parent.</param>
-        /// <param name="initialType">The initial node type.</param>
-        protected Value(ValueParent parentValue, TypeNode initialType)
-            : this(parentValue, initialType, DefaultFlags)
+        /// <param name="initializer">The value initializer.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected Value(in ValueInitializer initializer)
+            : this(initializer, ValueFlags.None)
         { }
 
         /// <summary>
-        /// Constructs a new value.
+        /// Constructs a new value that is marked as replaceable.
         /// </summary>
-        /// <param name="parentValue">The parent.</param>
-        /// <param name="initialType">The initial node type.</param>
-        /// <param name="valueFlags">Custom value flags.</param>
+        /// <param name="initializer">The value initializer.</param>
+        /// <param name="staticType">The static type.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected Value(
-            ValueParent parentValue,
-            TypeNode initialType,
-            ValueFlags valueFlags)
-        {
-            Debug.Assert(initialType != null, "Invalid initialType");
+            in ValueInitializer initializer,
+            TypeNode staticType)
+            : this(initializer, ValueFlags.None, staticType)
+        { }
 
-            parent = parentValue;
-            type = initialType;
+        /// <summary>
+        /// Constructs a new value that is marked as replaceable.
+        /// </summary>
+        /// <param name="initializer">The value initializer.</param>
+        /// <param name="valueFlags">The value flags.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected Value(
+            in ValueInitializer initializer,
+            ValueFlags valueFlags)
+            : this(initializer, valueFlags, null)
+        { }
+
+        /// <summary>
+        /// Constructs a new value that is marked as replaceable.
+        /// </summary>
+        /// <param name="initializer">The value initializer.</param>
+        /// <param name="valueFlags">The value flags.</param>
+        /// <param name="staticType">The static type (if any).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected Value(
+            in ValueInitializer initializer,
+            ValueFlags valueFlags,
+            TypeNode staticType)
+        {
+            parent = initializer.Parent;
+            type = staticType;
             Nodes = ImmutableArray<ValueReference>.Empty;
 
+            if (staticType != null)
+                valueFlags |= ValueFlags.StaticType;
             ValueFlags = valueFlags;
             Replacement = this;
         }
@@ -315,7 +381,12 @@ namespace ILGPU.IR
             get
             {
                 if (type == null)
-                    type = UpdateType(Method.Context);
+                {
+                    Debug.Assert(!HasStaticType, "Invalid type computation");
+                    type = ComputeType(new ValueInitializer(
+                        Method.Context,
+                        parent));
+                }
                 return type;
             }
         }
@@ -342,6 +413,12 @@ namespace ILGPU.IR
         /// </summary>
         public bool CanHaveUses =>
             (ValueFlags & ValueFlags.NoUses) != ValueFlags.NoUses;
+
+        /// <summary>
+        /// Returns true if the current value has a static type.
+        /// </summary>
+        public bool HasStaticType =>
+            (ValueFlags & ValueFlags.StaticType) != ValueFlags.None;
 
         /// <summary>
         /// Returns the replacement of this value (if any).
@@ -440,14 +517,20 @@ namespace ILGPU.IR
         /// Invalidates the current type and enforces a re-computation of the current
         /// type.
         /// </summary>
-        protected void InvalidateType() => type = null;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void InvalidateType()
+        {
+            if (!HasStaticType)
+                type = null;
+        }
 
         /// <summary>
         /// Computes the current type.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <returns>The resolved type node.</returns>
-        protected abstract TypeNode UpdateType(IRContext context);
+        protected virtual TypeNode ComputeType(in ValueInitializer initializer) =>
+            throw new InvalidOperationException();
 
         /// <summary>
         /// Accepts a value visitor.

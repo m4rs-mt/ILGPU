@@ -81,8 +81,7 @@ namespace ILGPU.IR.Construction
             }
 
             return Append(new CompareValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 left,
                 right,
                 kind,

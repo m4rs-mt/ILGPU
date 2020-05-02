@@ -223,7 +223,7 @@ namespace ILGPU.IR.Construction
             }
 
             return Append(new ConvertValue(
-                BasicBlock,
+                GetInitializer(),
                 node,
                 targetType,
                 flags));

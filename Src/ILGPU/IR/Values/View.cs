@@ -13,7 +13,6 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -23,42 +22,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.NewView)]
     public sealed class NewView : Value
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a view node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="pointerType">The underlying pointer type.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            IRContext context,
-            TypeNode pointerType)
-        {
-            var type = pointerType as PointerType;
-            return context.CreateViewType(
-                type.ElementType,
-                type.AddressSpace);
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a view.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="pointer">The underlying pointer.</param>
         /// <param name="length">The number of elements.</param>
         internal NewView(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference pointer,
             ValueReference length)
-            : base(basicBlock, ComputeType(context, pointer.Type))
+            : base(initializer)
         {
             Debug.Assert(
                 length.BasicValueType == BasicValueType.Int32,
@@ -97,9 +73,14 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, Pointer.Type);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer)
+        {
+            var type = Pointer.Type as PointerType;
+            return initializer.Context.CreateViewType(
+                type.ElementType,
+                type.AddressSpace);
+        }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -135,14 +116,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a view property.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="initialType">The initial node type.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="view">The underlying view.</param>
         internal ViewPropertyValue(
-            BasicBlock basicBlock,
-            ValueReference view,
-            TypeNode initialType)
-            : base(basicBlock, initialType)
+            in ValueInitializer initializer,
+            ValueReference view)
+            : base(initializer)
         {
             Seal(ImmutableArray.Create(view));
         }
@@ -173,35 +152,17 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.GetViewLength)]
     public sealed class GetViewLength : ViewPropertyValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a view length node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context) =>
-            context.GetPrimitiveType(BasicValueType.Int32);
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new view length property.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicblock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="view">The underlying view.</param>
         internal GetViewLength(
-            IRContext context,
-            BasicBlock basicblock,
+            in ValueInitializer initializer,
             ValueReference view)
-            : base(
-                  basicblock,
-                  view,
-                  ComputeType(context))
+            : base(initializer, view)
         { }
 
         #endregion
@@ -215,9 +176,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.GetPrimitiveType(BasicValueType.Int32);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

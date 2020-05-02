@@ -36,8 +36,7 @@ namespace ILGPU.IR.Construction
                 "Invalid predicate bool type");
 
             return Append(new PredicateBarrier(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 predicate,
                 kind));
         }
@@ -52,8 +51,7 @@ namespace ILGPU.IR.Construction
             "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public MemoryValue CreateBarrier(BarrierKind kind) =>
             Append(new Barrier(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 kind));
 
         /// <summary>
@@ -74,7 +72,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(origin != null, "Invalid origin value");
 
             return Append(new Broadcast(
-                BasicBlock,
+                GetInitializer(),
                 variable,
                 origin,
                 kind));
@@ -96,7 +94,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(origin != null, "Invalid origin value");
 
             return Append(new WarpShuffle(
-                BasicBlock,
+                GetInitializer(),
                 variable,
                 origin,
                 kind));
@@ -124,7 +122,7 @@ namespace ILGPU.IR.Construction
             return width is WarpSizeValue
                 ? CreateShuffle(variable, origin, kind)
                 : Append(new SubWarpShuffle(
-                    BasicBlock,
+                    GetInitializer(),
                     variable,
                     origin,
                     width,

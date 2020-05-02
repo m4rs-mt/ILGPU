@@ -31,7 +31,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(target != null, "Invalid target node");
 
             return Append(new MethodCall(
-                BasicBlock,
+                GetInitializer(),
                 target,
                 arguments));
         }
@@ -44,7 +44,9 @@ namespace ILGPU.IR.Construction
         public PhiValue.Builder CreatePhi(TypeNode type)
         {
             Debug.Assert(type != null, "Invalid type node");
-            var phiNode = CreatePhiValue(new PhiValue(BasicBlock, type));
+            var phiNode = CreatePhiValue(new PhiValue(
+                GetInitializer(),
+                type));
             return new PhiValue.Builder(phiNode);
         }
 

@@ -163,7 +163,7 @@ namespace ILGPU.IR.Construction
             // Construct structure instance
             var values = builder.Seal(out var structureType);
             return Append(new StructureValue(
-                BasicBlock,
+                GetInitializer(),
                 structureType,
                 values));
         }
@@ -193,8 +193,7 @@ namespace ILGPU.IR.Construction
             return objectValue is NullValue
                 ? CreateNull(structType.Get(Context, fieldSpan))
                 : Append(new GetField(
-                    Context,
-                    BasicBlock,
+                    GetInitializer(),
                     objectValue,
                     fieldSpan));
         }
@@ -240,7 +239,7 @@ namespace ILGPU.IR.Construction
             return objectValue is NullValue && fieldSpan.Span == structureType.NumFields
                 ? (ValueReference)value
                 : Append(new SetField(
-                    BasicBlock,
+                    GetInitializer(),
                     objectValue,
                     fieldSpan,
                     value));

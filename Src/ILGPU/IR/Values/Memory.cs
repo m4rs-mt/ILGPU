@@ -13,7 +13,6 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -27,14 +26,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new memory value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="values">All child values.</param>
-        /// <param name="initialType">The initial node type.</param>
         internal MemoryValue(
-            BasicBlock basicBlock,
-            ImmutableArray<ValueReference> values,
-            TypeNode initialType)
-            : base(basicBlock, initialType)
+            in ValueInitializer initializer,
+            ImmutableArray<ValueReference> values)
+            : base(initializer)
         {
             Seal(values);
         }
@@ -48,46 +45,23 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.Alloca)]
     public sealed class Alloca : MemoryValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes an alloca node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="allocaType">The allocation type.</param>
-        /// <param name="addressSpace">The target address space.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            IRContext context,
-            TypeNode allocaType,
-            MemoryAddressSpace addressSpace) =>
-            context.CreatePointerType(
-                allocaType,
-                addressSpace);
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new alloca node.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="arrayLength">The array length to allocate.</param>
         /// <param name="allocaType">The allocation type.</param>
         /// <param name="addressSpace">The target address space.</param>
         internal Alloca(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference arrayLength,
             TypeNode allocaType,
             MemoryAddressSpace addressSpace)
             : base(
-                  basicBlock,
-                  ImmutableArray.Create(arrayLength),
-                  ComputeType(context, allocaType, addressSpace))
+                  initializer,
+                  ImmutableArray.Create(arrayLength))
         {
             Debug.Assert(
                 addressSpace == MemoryAddressSpace.Local ||
@@ -141,9 +115,11 @@ namespace ILGPU.IR.Values
             return primitive != null;
         }
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, AllocaType, AddressSpace);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.CreatePointerType(
+                AllocaType,
+                AddressSpace);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -201,35 +177,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.MemoryBarrier)]
     public sealed class MemoryBarrier : MemoryValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a barrier node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context) =>
-            context.VoidType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new memory barrier.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="kind">The barrier kind.</param>
         internal MemoryBarrier(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             MemoryBarrierKind kind)
             : base(
-                  basicBlock,
-                  ImmutableArray<ValueReference>.Empty,
-                  ComputeType(context))
+                  initializer,
+                  ImmutableArray<ValueReference>.Empty)
         {
             Kind = kind;
         }
@@ -250,9 +210,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.VoidType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -282,41 +242,20 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.Load)]
     public sealed class Load : MemoryValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a load node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="sourceType">The source type.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            IRContext context,
-            TypeNode sourceType) =>
-            (sourceType as PointerType).ElementType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new load operation.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="source">The source view.</param>
         internal Load(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference source)
             : base(
-                  basicBlock,
-                  ImmutableArray.Create(source),
-                  ComputeType(context, source.Type))
-        {
-            InvalidateType();
-        }
+                  initializer,
+                  ImmutableArray.Create(source))
+        { }
 
         #endregion
 
@@ -334,9 +273,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, Source.Type);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            (Source.Type as PointerType).ElementType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -367,37 +306,21 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.Store)]
     public sealed class Store : MemoryValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a store node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context) =>
-            context.VoidType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new store operation.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="target">The target view.</param>
         /// <param name="value">The value to store.</param>
         internal Store(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference target,
             ValueReference value)
             : base(
-                  basicBlock,
-                  ImmutableArray.Create(target, value),
-                  ComputeType(context))
+                  initializer,
+                  ImmutableArray.Create(target, value))
         { }
 
         #endregion
@@ -421,9 +344,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.VoidType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

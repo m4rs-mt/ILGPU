@@ -281,7 +281,12 @@ namespace ILGPU.IR
             /// <param name="name">The parameter name (for debugging purposes).</param>
             /// <returns>The created parameter.</returns>
             private Parameter CreateParam(TypeNode type, string name) =>
-                new Parameter(Method, type, name)
+                new Parameter(
+                    new ValueInitializer(
+                        Context,
+                        Method),
+                    type,
+                    name)
                 {
                     SequencePoint = SequencePoint
                 };

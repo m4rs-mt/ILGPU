@@ -27,12 +27,9 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new pointer value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="initialType">The initial node type.</param>
-        internal PointerValue(
-            BasicBlock basicBlock,
-            TypeNode initialType)
-            : base(basicBlock, initialType)
+        /// <param name="initializer">The value initializer.</param>
+        internal PointerValue(in ValueInitializer initializer)
+            : base(initializer)
         { }
 
         #endregion
@@ -53,34 +50,21 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.SubView)]
     public sealed class SubViewValue : PointerValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a sub-view value node type.
-        /// </summary>
-        /// <param name="source">The source value.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            ValueReference source) => source.Type;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new sub-view computation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="source">The source view.</param>
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         internal SubViewValue(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference source,
             ValueReference offset,
             ValueReference length)
-            : base(basicBlock, ComputeType(source))
+            : base(initializer)
         {
             Seal(ImmutableArray.Create(source, offset, length));
         }
@@ -106,9 +90,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(Source);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            Source.Type;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -141,44 +125,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.LoadElementAddress)]
     public sealed class LoadElementAddress : PointerValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a lea value node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="source">The source value.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context, ValueReference source)
-        {
-            var sourceType = source.Type as IAddressSpaceType;
-            Debug.Assert(sourceType != null, "Invalid address space type");
-
-            return sourceType is PointerType
-                ? source.Type
-                : context.CreatePointerType(
-                    sourceType.ElementType,
-                    sourceType.AddressSpace);
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new address value.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="sourceView">The source address.</param>
         /// <param name="elementIndex">The address of the referenced element.</param>
         internal LoadElementAddress(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference sourceView,
             ValueReference elementIndex)
-            : base(basicBlock, ComputeType(context, sourceView))
+            : base(initializer)
         {
             Seal(ImmutableArray.Create(sourceView, elementIndex));
         }
@@ -219,9 +178,18 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, Source);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer)
+        {
+            var sourceType = Source.Type as IAddressSpaceType;
+            Debug.Assert(sourceType != null, "Invalid address space type");
+
+            return sourceType is PointerType
+                ? Source.Type
+                : initializer.Context.CreatePointerType(
+                    sourceType.ElementType,
+                    sourceType.AddressSpace);
+        }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -256,49 +224,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.LoadFieldAddress)]
     public sealed class LoadFieldAddress : Value
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a LFA value node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="source">The source value.</param>
-        /// <param name="fieldSpan">The structure field span.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            IRContext context,
-            ValueReference source,
-            FieldSpan fieldSpan)
-        {
-            var pointerType = source.Type as PointerType;
-            Debug.Assert(pointerType != null, "Invalid pointer type");
-
-            var structureType = pointerType.ElementType as StructureType;
-            var fieldType = structureType.Get(context, fieldSpan);
-
-            return context.CreatePointerType(
-                fieldType,
-                pointerType.AddressSpace);
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new address value.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="source">The source address.</param>
         /// <param name="fieldSpan">The structure field span.</param>
         internal LoadFieldAddress(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference source,
             FieldSpan fieldSpan)
-            : base(basicBlock, ComputeType(context, source, fieldSpan))
+            : base(initializer)
         {
             FieldSpan = fieldSpan;
             Seal(ImmutableArray.Create(source));
@@ -336,9 +274,19 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, Source, FieldSpan);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer)
+        {
+            var pointerType = Source.Type as PointerType;
+            Debug.Assert(pointerType != null, "Invalid pointer type");
+
+            var structureType = pointerType.ElementType as StructureType;
+            var fieldType = structureType.Get(initializer.Context, FieldSpan);
+
+            return initializer.Context.CreatePointerType(
+                fieldType,
+                pointerType.AddressSpace);
+        }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

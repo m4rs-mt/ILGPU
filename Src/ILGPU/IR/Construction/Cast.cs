@@ -42,8 +42,7 @@ namespace ILGPU.IR.Construction
                 node = pointerCast.Value;
 
             return Append(new PointerCast(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 node,
                 targetElementType));
         }
@@ -67,8 +66,7 @@ namespace ILGPU.IR.Construction
             return sourceAddressSpace == targetAddressSpace
                 ? (ValueReference)node
                 : Append(new AddressSpaceCast(
-                    Context,
-                    BasicBlock,
+                    GetInitializer(),
                     node,
                     targetAddressSpace));
         }
@@ -91,8 +89,7 @@ namespace ILGPU.IR.Construction
             return type.ElementType == targetElementType
                 ? (ValueReference)node
                 : Append(new ViewCast(
-                    Context,
-                    BasicBlock,
+                    GetInitializer(),
                     node,
                     targetElementType));
         }
@@ -133,7 +130,7 @@ namespace ILGPU.IR.Construction
             };
             var type = GetPrimitiveType(basicValueType);
             return Append(new FloatAsIntCast(
-                BasicBlock,
+                GetInitializer(),
                 node,
                 type));
         }
@@ -174,10 +171,9 @@ namespace ILGPU.IR.Construction
             };
             var type = GetPrimitiveType(basicValueType);
             return Append(new IntAsFloatCast(
-                BasicBlock,
+                GetInitializer(),
                 node,
                 type));
         }
-
     }
 }

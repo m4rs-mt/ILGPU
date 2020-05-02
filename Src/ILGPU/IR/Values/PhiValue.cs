@@ -263,10 +263,10 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new phi node.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="type">The phi type.</param>
-        internal PhiValue(BasicBlock basicBlock, TypeNode type)
-            : base(basicBlock, type)
+        internal PhiValue(in ValueInitializer initializer, TypeNode type)
+            : base(initializer)
         {
             Debug.Assert(type != null, "Invalid type");
             Debug.Assert(!type.IsVoidType, "Invalid void type");
@@ -329,8 +329,9 @@ namespace ILGPU.IR.Values
             return newPhi;
         }
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) => PhiType;
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            PhiType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

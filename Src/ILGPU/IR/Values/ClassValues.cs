@@ -24,10 +24,9 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract class value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
-        /// <param name="initialType">The initial node type.</param>
-        internal ClassValue(BasicBlock basicBlock, TypeNode initialType)
-            : base(basicBlock, initialType)
+        /// <param name="initializer">The value initializer.</param>
+        internal ClassValue(in ValueInitializer initializer)
+            : base(initializer)
         { }
 
         #endregion
@@ -43,14 +42,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract object operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="values">All child values.</param>
-        /// <param name="initialType">The initial node type.</param>
         internal ClassOperationValue(
-            BasicBlock basicBlock,
-            ImmutableArray<ValueReference> values,
-            TypeNode initialType)
-            : base(basicBlock, values, initialType)
+            in ValueInitializer initializer,
+            ImmutableArray<ValueReference> values)
+            : base(initializer, values)
         { }
 
         #endregion

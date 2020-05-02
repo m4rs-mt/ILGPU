@@ -26,14 +26,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new internal .Net runtime handle value.
         /// </summary>
-        /// <param name="block">The parent basic block.</param>
-        /// <param name="handleType">The handle type.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="handle">The managed handle.</param>
         internal HandleValue(
-            BasicBlock block,
-            TypeNode handleType,
+            in ValueInitializer initializer,
             object handle)
-            : base(block, handleType)
+            : base(initializer)
         {
             Debug.Assert(handle != null, "Invalid managed handle");
             Handle = handle;
@@ -55,9 +53,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            context.HandleType;
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.HandleType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

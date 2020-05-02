@@ -12,7 +12,6 @@
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -23,32 +22,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.MethodCall)]
     public sealed class MethodCall : Value
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a method call node type.
-        /// </summary>
-        /// <param name="target">The called target method.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(Method target) =>
-            target.ReturnType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new call.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="target">The jump target.</param>
         /// <param name="arguments">The arguments of the jump target.</param>
         internal MethodCall(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             Method target,
             ImmutableArray<ValueReference> arguments)
-            : base(basicBlock, ComputeType(target))
+            : base(initializer)
         {
             Target = target;
             Seal(arguments);
@@ -75,9 +61,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(Target);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            Target.ReturnType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

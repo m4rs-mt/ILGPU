@@ -13,7 +13,6 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -22,33 +21,19 @@ namespace ILGPU.IR.Values
     /// </summary>
     public abstract class Conditional : Value
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a conditional node type.
-        /// </summary>
-        /// <param name="arguments">The conditional arguments.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            ImmutableArray<ValueReference> arguments) =>
-            arguments[0].Type;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new conditional node.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="condition">The condition.</param>
         /// <param name="arguments">The condition arguments.</param>
         internal Conditional(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference condition,
             ImmutableArray<ValueReference> arguments)
-            : base(basicBlock, ComputeType(arguments))
+            : base(initializer)
         {
             Debug.Assert(
                 arguments.Length > 0,
@@ -80,9 +65,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(Arguments);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            Arguments[0].Type;
 
         #endregion
     }
@@ -98,17 +83,17 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new predicate.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="condition">The condition.</param>
         /// <param name="trueValue">The true value.</param>
         /// <param name="falseValue">The false value.</param>
         internal Predicate(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference condition,
             ValueReference trueValue,
             ValueReference falseValue)
             : base(
-                  basicBlock,
+                  initializer,
                   condition,
                   ImmutableArray.Create(trueValue, falseValue))
         {

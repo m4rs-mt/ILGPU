@@ -29,33 +29,15 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new constant value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="constantType">The type of the constant node.</param>
         internal ConstantNode(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             TypeNode constantType)
-            : base(basicBlock, constantType)
+            : base(initializer, constantType)
         {
-            ConstantType = constantType;
             Seal(ImmutableArray<ValueReference>.Empty);
         }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the associated constant type.
-        /// </summary>
-        protected TypeNode ConstantType { get; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected sealed override TypeNode UpdateType(IRContext context) =>
-            ConstantType;
 
         #endregion
     }
@@ -71,10 +53,10 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new object value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="type">The object type.</param>
-        internal NullValue(BasicBlock basicBlock, TypeNode type)
-            : base(basicBlock, type)
+        internal NullValue(in ValueInitializer initializer, TypeNode type)
+            : base(initializer, type)
         { }
 
         #endregion
@@ -124,18 +106,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new primitive constant.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="basicValueType">The basic value type.</param>
         /// <param name="value">The raw value.</param>
         internal PrimitiveValue(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             BasicValueType basicValueType,
             long value)
             : base(
-                  basicBlock,
-                  context.GetPrimitiveType(basicValueType))
+                  initializer,
+                  initializer.Context.GetPrimitiveType(basicValueType))
         {
             BasicValueType = basicValueType;
             rawValue = value;
@@ -290,14 +270,10 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new string constant.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="value">The string value.</param>
-        internal StringValue(
-            IRContext context,
-            BasicBlock basicBlock,
-            string value)
-            : base(basicBlock, context.StringType)
+        internal StringValue(in ValueInitializer initializer, string value)
+            : base(initializer, initializer.Context.StringType)
         {
             String = value;
         }

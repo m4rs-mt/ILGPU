@@ -27,14 +27,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new generic barrier operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="values">Additional values.</param>
-        /// <param name="initialType">The initial node type.</param>
         internal BarrierOperation(
-            BasicBlock basicBlock,
-            ImmutableArray<ValueReference> values,
-            TypeNode initialType)
-            : base(basicBlock, values, initialType)
+            in ValueInitializer initializer,
+            ImmutableArray<ValueReference> values)
+            : base(initializer, values)
         { }
 
         #endregion
@@ -77,42 +75,21 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.PredicateBarrier)]
     public sealed class PredicateBarrier : BarrierOperation
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a predicate barrier node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="kind">The barrier kind.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(
-            IRContext context,
-            PredicateBarrierKind kind) =>
-            kind == PredicateBarrierKind.PopCount
-            ? context.GetPrimitiveType(BasicValueType.Int32)
-            : context.GetPrimitiveType(BasicValueType.Int1);
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new predicate barrier.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="predicate">The predicate value.</param>
         /// <param name="kind">The operation kind.</param>
         internal PredicateBarrier(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference predicate,
             PredicateBarrierKind kind)
             : base(
-                  basicBlock,
-                  ImmutableArray.Create(predicate),
-                  ComputeType(context, kind))
+                  initializer,
+                  ImmutableArray.Create(predicate))
         {
             Debug.Assert(
                 predicate.BasicValueType == BasicValueType.Int1,
@@ -141,9 +118,11 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, Kind);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            Kind == PredicateBarrierKind.PopCount
+            ? initializer.Context.GetPrimitiveType(BasicValueType.Int32)
+            : initializer.Context.GetPrimitiveType(BasicValueType.Int1);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -191,35 +170,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.Barrier)]
     public sealed class Barrier : BarrierOperation
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a barrier node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context) =>
-            context.VoidType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new barrier.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="barrierKind">The barrier kind.</param>
         internal Barrier(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             BarrierKind barrierKind)
             : base(
-                  basicBlock,
-                  ImmutableArray<ValueReference>.Empty,
-                  ComputeType(context))
+                  initializer,
+                  ImmutableArray<ValueReference>.Empty)
         {
             Kind = barrierKind;
         }
@@ -240,9 +203,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.VoidType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -277,32 +240,17 @@ namespace ILGPU.IR.Values
     /// </summary>
     public abstract class ThreadValue : MemoryValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a node type.
-        /// </summary>
-        /// <param name="variableType">The variable type.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(TypeNode variableType) => variableType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new communication operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="values">The values.</param>
         internal ThreadValue(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ImmutableArray<ValueReference> values)
-            : base(
-                  basicBlock,
-                  values,
-                  ComputeType(values[0].Type))
+            : base(initializer, values)
         { }
 
         #endregion
@@ -324,9 +272,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected sealed override TypeNode UpdateType(IRContext context) =>
-            ComputeType(Variable.Type);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            Variable.Type;
 
         #endregion
     }
@@ -342,19 +290,19 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new broadcast operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="value">The value to broadcast.</param>
         /// <param name="origin">
         /// The source thread index within the group or warp.
         /// </param>
         /// <param name="broadcastKind">The operation kind.</param>
         internal Broadcast(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference value,
             ValueReference origin,
             BroadcastKind broadcastKind)
             : base(
-                  basicBlock,
+                  initializer,
                   ImmutableArray.Create(value, origin))
         {
             Kind = broadcastKind;
@@ -442,14 +390,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new shuffle operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="values">The values.</param>
         /// <param name="shuffleKind">The operation kind.</param>
         internal ShuffleOperation(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ImmutableArray<ValueReference> values,
             ShuffleKind shuffleKind)
-            : base(basicBlock, values)
+            : base(initializer, values)
         {
             Kind = shuffleKind;
         }
@@ -489,17 +437,17 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new shuffle operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="variable">The source variable value.</param>
         /// <param name="origin">The shuffle origin.</param>
         /// <param name="kind">The operation kind.</param>
         internal WarpShuffle(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference variable,
             ValueReference origin,
             ShuffleKind kind)
             : base(
-                  basicBlock,
+                  initializer,
                   ImmutableArray.Create(variable, origin),
                   kind)
         { }
@@ -548,19 +496,19 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new shuffle operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="variable">The source variable value.</param>
         /// <param name="origin">The shuffle origin.</param>
         /// <param name="width">The sub-warp width.</param>
         /// <param name="kind">The operation kind.</param>
         internal SubWarpShuffle(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference variable,
             ValueReference origin,
             ValueReference width,
             ShuffleKind kind)
             : base(
-                  basicBlock,
+                  initializer,
                   ImmutableArray.Create(variable, origin, width),
                   kind)
         { }

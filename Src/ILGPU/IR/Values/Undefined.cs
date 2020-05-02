@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Construction;
-using ILGPU.IR.Types;
 
 namespace ILGPU.IR.Values
 {
@@ -25,12 +24,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a undefined value.
         /// </summary>
-        /// <param name="voidType">The void type.</param>
-        internal UndefinedValue(TypeNode voidType)
+        /// <param name="initializer">The value initializer.</param>
+        internal UndefinedValue(in ValueInitializer initializer)
             : base(
-                  null,
-                  voidType,
-                  ValueFlags.NotReplacable | ValueFlags.NoUses)
+                  initializer,
+                  ValueFlags.NotReplacable | ValueFlags.NoUses,
+                  initializer.Context.VoidType)
         { }
 
         #endregion
@@ -43,9 +42,6 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Methods
-
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) => Type;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

@@ -14,6 +14,7 @@ using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Construction
 {
@@ -78,26 +79,34 @@ namespace ILGPU.IR.Construction
         #region Methods
 
         /// <summary>
+        /// Creates a new initializer that is bound to the current block.
+        /// </summary>
+        /// <returns>The created value initializer.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private ValueInitializer GetInitializer() =>
+            new ValueInitializer(Context, BasicBlock);
+
+        /// <summary>
         /// Creates a node that represents an <see cref="Accelerator.CurrentType"/>
         /// property.
         /// </summary>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateAcceleratorTypeValue() =>
-            Append(new AcceleratorTypeValue(Context, BasicBlock));
+            Append(new AcceleratorTypeValue(GetInitializer()));
 
         /// <summary>
         /// Creates a node that represents a <see cref="Warp.WarpSize"/> property.
         /// </summary>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateWarpSizeValue() =>
-            Append(new WarpSizeValue(Context, BasicBlock));
+            Append(new WarpSizeValue(GetInitializer()));
 
         /// <summary>
         /// Creates a node that represents a <see cref="Warp.LaneIdx"/> property.
         /// </summary>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateLaneIdxValue() =>
-            Append(new LaneIdxValue(Context, BasicBlock));
+            Append(new LaneIdxValue(GetInitializer()));
 
         /// <summary>
         /// Creates a node that represents a <see cref="Grid.Index"/> property.
@@ -111,8 +120,7 @@ namespace ILGPU.IR.Construction
                 dimension <= DeviceConstantDimension3D.Z,
                 "Invalid dimension value");
             return Append(new GridIndexValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 dimension));
         }
 
@@ -128,8 +136,7 @@ namespace ILGPU.IR.Construction
                 dimension <= DeviceConstantDimension3D.Z,
                 "Invalid dimension value");
             return Append(new GroupIndexValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 dimension));
         }
 
@@ -146,8 +153,7 @@ namespace ILGPU.IR.Construction
                 dimension <= DeviceConstantDimension3D.Z,
                 "Invalid dimension value");
             return Append(new GridDimensionValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 dimension));
         }
 
@@ -164,8 +170,7 @@ namespace ILGPU.IR.Construction
                 dimension <= DeviceConstantDimension3D.Z,
                 "Invalid dimension value");
             return Append(new GroupDimensionValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 dimension));
         }
 
@@ -211,8 +216,7 @@ namespace ILGPU.IR.Construction
         {
             Debug.Assert(handle != null, "Invalid runtime handle");
             return Append(new HandleValue(
-                BasicBlock,
-                Context.HandleType,
+                GetInitializer(),
                 handle));
         }
 

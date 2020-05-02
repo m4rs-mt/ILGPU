@@ -37,8 +37,7 @@ namespace ILGPU.IR.Construction
                 "Invalid length type");
 
             return Append(new NewView(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 pointer,
                 length));
         }
@@ -54,8 +53,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(view.Type.IsViewType, "Invalid view type");
 
             return Append(new GetViewLength(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 view));
         }
     }

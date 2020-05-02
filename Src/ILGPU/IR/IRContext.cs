@@ -78,7 +78,8 @@ namespace ILGPU.IR
             Context = context ?? throw new ArgumentNullException(nameof(context));
             TypeContext = context.TypeContext;
 
-            UndefinedValue = new UndefinedValue(TypeContext.VoidType);
+            UndefinedValue = new UndefinedValue(
+                new ValueInitializer(this, null));
 
             gcDelegate = (Method method) => method.GC();
         }

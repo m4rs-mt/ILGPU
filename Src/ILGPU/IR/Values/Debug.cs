@@ -12,7 +12,6 @@
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -38,37 +37,21 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.Debug)]
     public sealed class DebugOperation : MemoryValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a debug node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context) =>
-            context.VoidType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new debug operation.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="message">The debug message.</param>
         internal DebugOperation(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             DebugKind kind,
             ValueReference message)
             : base(
-                  basicBlock,
-                  ImmutableArray.Create(message),
-                  ComputeType(context))
+                  initializer,
+                  ImmutableArray.Create(message))
         {
             Kind = kind;
         }
@@ -94,9 +77,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected sealed override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.VoidType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

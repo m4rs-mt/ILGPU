@@ -46,7 +46,7 @@ namespace ILGPU.IR.Construction
                 extent.Type == GetIndexType(type.Dimensions),
                 "Invalid extent type");
             return Append(new ArrayValue(
-                BasicBlock,
+                GetInitializer(),
                 type,
                 extent));
         }
@@ -63,8 +63,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(arrayType != null, "Invalid array type");
 
             return Append(new GetArrayExtent(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 arrayValue));
         }
 
@@ -86,7 +85,7 @@ namespace ILGPU.IR.Construction
                 "Invalid index type");
 
             return Append(new GetArrayElement(
-                BasicBlock,
+                GetInitializer(),
                 arrayValue,
                 index));
         }
@@ -111,8 +110,7 @@ namespace ILGPU.IR.Construction
                 "Invalid index type");
 
             return Append(new SetArrayElement(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 arrayValue,
                 index,
                 value));

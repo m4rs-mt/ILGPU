@@ -42,7 +42,7 @@ namespace ILGPU.IR.Construction
                 "Incompatible pointer and element types");
 
             return Append(new GenericAtomic(
-                BasicBlock,
+                GetInitializer(),
                 target,
                 value,
                 kind,
@@ -77,7 +77,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(value.Type == compareValue.Type, "Incompatible value types");
 
             return Append(new AtomicCAS(
-                BasicBlock,
+                GetInitializer(),
                 target,
                 value,
                 compareValue,

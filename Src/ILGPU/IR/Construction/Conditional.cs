@@ -46,7 +46,7 @@ namespace ILGPU.IR.Construction
                 unary.Kind == UnaryArithmeticKind.Not
                 ? CreatePredicate(unary.Value, falseValue, trueValue)
                 : Append(new Predicate(
-                    BasicBlock,
+                    GetInitializer(),
                     condition,
                     trueValue,
                     falseValue));

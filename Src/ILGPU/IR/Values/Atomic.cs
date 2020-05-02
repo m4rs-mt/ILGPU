@@ -15,7 +15,6 @@ using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -41,39 +40,25 @@ namespace ILGPU.IR.Values
     /// </summary>
     public abstract class AtomicValue : MemoryValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes an atomic node type.
-        /// </summary>
-        /// <param name="value">The atomic value operand.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(ValueReference value) =>
-            value.Type;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new abstract atomic value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="target">The target.</param>
         /// <param name="value">The value to store.</param>
         /// <param name="arguments">Additional arguments.</param>
         /// <param name="flags">The operation flags.</param>
         internal AtomicValue(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference target,
             ValueReference value,
             ImmutableArray<ValueReference> arguments,
             AtomicFlags flags)
             : base(
-                  basicBlock,
-                  ImmutableArray.Create(target, value).AddRange(arguments),
-                  ComputeType(value))
+                  initializer,
+                  ImmutableArray.Create(target, value).AddRange(arguments))
 
         {
             Flags = flags;
@@ -114,9 +99,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected sealed override TypeNode UpdateType(IRContext context) =>
-            ComputeType(Value);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            Value.Type;
 
         #endregion
     }
@@ -173,19 +158,19 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new generic atomic operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="target">The target.</param>
         /// <param name="value">The value to store.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
         internal GenericAtomic(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference target,
             ValueReference value,
             AtomicKind kind,
             AtomicFlags flags)
             : base(
-                  basicBlock,
+                  initializer,
                   target,
                   value,
                   ImmutableArray<ValueReference>.Empty,
@@ -249,19 +234,19 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new atomic compare-and-swap operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="target">The target.</param>
         /// <param name="value">The value to store.</param>
         /// <param name="compareValue">The comparison value.</param>
         /// <param name="flags">The operation flags.</param>
         internal AtomicCAS(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference target,
             ValueReference value,
             ValueReference compareValue,
             AtomicFlags flags)
             : base(
-                  basicBlock,
+                  initializer,
                   target,
                   value,
                   ImmutableArray.Create(compareValue),

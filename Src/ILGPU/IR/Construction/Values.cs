@@ -31,7 +31,7 @@ namespace ILGPU.IR.Construction
             return type is PrimitiveType primitiveType
                 ? CreatePrimitiveValue(primitiveType.BasicValueType, 0)
                 : (ValueReference)Append(new NullValue(
-                    BasicBlock,
+                    GetInitializer(),
                     type));
         }
 
@@ -89,8 +89,7 @@ namespace ILGPU.IR.Construction
             if (@string == null)
                 throw new ArgumentNullException(nameof(@string));
             return Append(new StringValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 @string));
         }
 
@@ -101,8 +100,7 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(bool value) =>
             Append(new PrimitiveValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 BasicValueType.Int1,
                 value ? 1 : 0));
 
@@ -114,8 +112,7 @@ namespace ILGPU.IR.Construction
         [CLSCompliant(false)]
         public PrimitiveValue CreatePrimitiveValue(sbyte value) =>
             Append(new PrimitiveValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 BasicValueType.Int8,
                 value));
 
@@ -134,8 +131,7 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(short value) =>
             Append(new PrimitiveValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 BasicValueType.Int16,
                 value));
 
@@ -155,8 +151,7 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(int value) =>
             Append(new PrimitiveValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 BasicValueType.Int32,
                 value));
 
@@ -176,8 +171,7 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(long value) =>
             Append(new PrimitiveValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 BasicValueType.Int64,
                 value));
 
@@ -197,8 +191,7 @@ namespace ILGPU.IR.Construction
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(float value) =>
             Append(new PrimitiveValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 BasicValueType.Float32,
                 Unsafe.As<float, int>(ref value)));
 
@@ -211,8 +204,7 @@ namespace ILGPU.IR.Construction
             Context.HasFlags(ContextFlags.Force32BitFloats)
             ? CreatePrimitiveValue((float)value)
             : Append(new PrimitiveValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 BasicValueType.Float64,
                 Unsafe.As<double, long>(ref value)));
 
@@ -226,8 +218,7 @@ namespace ILGPU.IR.Construction
             BasicValueType type,
             long rawValue) =>
             Append(new PrimitiveValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 type,
                 rawValue));
 

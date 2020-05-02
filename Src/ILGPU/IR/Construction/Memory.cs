@@ -95,8 +95,7 @@ namespace ILGPU.IR.Construction
                 primitiveValue.Int32Value == 0
                 ? CreateNull(CreatePointerType(type, addressSpace))
                 : Append(new Alloca(
-                    Context,
-                    BasicBlock,
+                    GetInitializer(),
                     arrayLength,
                     type,
                     addressSpace));
@@ -116,8 +115,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(source.Type.IsPointerType, "Invalid source pointer type");
 
             return Append(new Load(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 source));
         }
 
@@ -140,8 +138,7 @@ namespace ILGPU.IR.Construction
                 "Not compatible element types");
 
             return Append(new Store(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 target,
                 value));
         }
@@ -156,8 +153,7 @@ namespace ILGPU.IR.Construction
             "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateMemoryBarrier(MemoryBarrierKind kind) =>
             Append(new MemoryBarrier(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 kind));
 
         /// <summary>
@@ -185,7 +181,7 @@ namespace ILGPU.IR.Construction
                 "Invalid length type");
 
             return Append(new SubViewValue(
-                BasicBlock,
+                GetInitializer(),
                 source,
                 offset,
                 length));
@@ -212,8 +208,7 @@ namespace ILGPU.IR.Construction
             return source.Type is PointerType && elementIndex.IsPrimitive(0)
                 ? (ValueReference)source
                 : Append(new LoadElementAddress(
-                    Context,
-                    BasicBlock,
+                    GetInitializer(),
                     source,
                     elementIndex));
         }
@@ -248,8 +243,7 @@ namespace ILGPU.IR.Construction
                     lfa.Source,
                     lfa.FieldSpan.Narrow(fieldSpan))
                 : Append(new LoadFieldAddress(
-                    Context,
-                    BasicBlock,
+                    GetInitializer(),
                     source,
                     fieldSpan));
         }

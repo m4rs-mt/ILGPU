@@ -25,12 +25,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="constantType">The constant type node.</param>
         internal DeviceConstantValue(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             TypeNode constantType)
-            : base(basicBlock, constantType)
+            : base(initializer, constantType)
         { }
 
         #endregion
@@ -47,14 +47,11 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="context">The current IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
-        internal AcceleratorTypeValue(
-            IRContext context,
-            BasicBlock basicBlock)
+        /// <param name="initializer">The value initializer.</param>
+        internal AcceleratorTypeValue(in ValueInitializer initializer)
             : base(
-                  basicBlock,
-                  context.GetPrimitiveType(BasicValueType.Int32))
+                  initializer,
+                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
         { }
 
         #endregion
@@ -118,16 +115,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="context">The current IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="dimension">The device constant dimension.</param>
         internal DeviceConstantDimensionValue(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             DeviceConstantDimension3D dimension)
             : base(
-                  basicBlock,
-                  context.GetPrimitiveType(BasicValueType.Int32))
+                  initializer,
+                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
         {
             Dimension = dimension;
         }
@@ -162,17 +157,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="context">The current IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="dimension">The constant dimension.</param>
         internal GridIndexValue(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             DeviceConstantDimension3D dimension)
-            : base(
-                  context,
-                  basicBlock,
-                  dimension)
+            : base(initializer, dimension)
         { }
 
         #endregion
@@ -216,17 +206,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="context">The current IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="dimension">The constant dimension.</param>
         internal GroupIndexValue(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             DeviceConstantDimension3D dimension)
-            : base(
-                  context,
-                  basicBlock,
-                  dimension)
+            : base(initializer, dimension)
         { }
 
         #endregion
@@ -270,17 +255,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="context">The current IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="dimension">The constant dimension.</param>
         internal GridDimensionValue(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             DeviceConstantDimension3D dimension)
-            : base(
-                  context,
-                  basicBlock,
-                  dimension)
+            : base(initializer, dimension)
         { }
 
         #endregion
@@ -324,17 +304,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="context">The current IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="dimension">The constant dimension.</param>
         internal GroupDimensionValue(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             DeviceConstantDimension3D dimension)
-            : base(
-                  context,
-                  basicBlock,
-                  dimension)
+            : base(initializer, dimension)
         { }
 
         #endregion
@@ -378,14 +353,11 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="context">The current IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
-        internal WarpSizeValue(
-            IRContext context,
-            BasicBlock basicBlock)
+        /// <param name="initializer">The value initializer.</param>
+        internal WarpSizeValue(in ValueInitializer initializer)
             : base(
-                  basicBlock,
-                  context.GetPrimitiveType(BasicValueType.Int32))
+                  initializer,
+                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
         { }
 
         #endregion
@@ -429,14 +401,11 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new value.
         /// </summary>
-        /// <param name="context">The current IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
-        internal LaneIdxValue(
-            IRContext context,
-            BasicBlock basicBlock)
+        /// <param name="initializer">The value initializer.</param>
+        internal LaneIdxValue(in ValueInitializer initializer)
             : base(
-                  basicBlock,
-                  context.GetPrimitiveType(BasicValueType.Int32))
+                  initializer,
+                  initializer.Context.GetPrimitiveType(BasicValueType.Int32))
         { }
 
         #endregion

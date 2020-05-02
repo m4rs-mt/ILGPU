@@ -14,7 +14,6 @@ using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
 {
@@ -73,36 +72,22 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.Convert)]
     public sealed class ConvertValue : Value
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a convert node type.
-        /// </summary>
-        /// <param name="targetType">The target type.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(TypeNode targetType) =>
-            targetType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new convert value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="value">The value to convert.</param>
         /// <param name="targetType">The target type to convert the value to.</param>
         /// <param name="flags">The operation flags.</param>
         internal ConvertValue(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference value,
             TypeNode targetType,
             ConvertFlags flags)
-            : base(basicBlock, ComputeType(targetType))
+            : base(initializer, targetType)
         {
-            ConvertType = targetType;
             Flags = flags;
 
             Seal(ImmutableArray.Create(value));
@@ -119,11 +104,6 @@ namespace ILGPU.IR.Values
         /// Returns the operand.
         /// </summary>
         public ValueReference Value => this[0];
-
-        /// <summary>
-        /// Returns the target type.
-        /// </summary>
-        public TypeNode ConvertType { get; }
 
         /// <summary>
         /// Returns the associated flags.
@@ -164,17 +144,13 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(ConvertType);
-
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
             builder.CreateConvert(
                 rebuilder.Rebuild(Value),
-                ConvertType,
+                Type,
                 Flags);
 
         /// <summary cref="Value.Accept"/>

@@ -129,15 +129,6 @@ namespace ILGPU.IR.Values
             ? kind
             : Invert(kind);
 
-        /// <summary>
-        /// Computes a compare node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TypeNode ComputeType(IRContext context) =>
-            context.GetPrimitiveType(BasicValueType.Int1);
-
         #endregion
 
         #region Instance
@@ -145,20 +136,18 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new compare value.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">The operation flags.</param>
         internal CompareValue(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference left,
             ValueReference right,
             CompareKind kind,
             CompareFlags flags)
-            : base(basicBlock, ComputeType(context))
+            : base(initializer)
         {
             Kind = kind;
             Flags = flags;
@@ -210,9 +199,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.GetPrimitiveType(BasicValueType.Int1);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

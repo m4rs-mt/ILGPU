@@ -37,7 +37,7 @@ namespace ILGPU.IR.Construction
                 returnValue.Type == Method.ReturnType,
                 "Incompatible return value");
             return CreateTerminator(new ReturnTerminator(
-                BasicBlock,
+                GetInitializer(),
                 returnValue));
         }
 
@@ -50,8 +50,7 @@ namespace ILGPU.IR.Construction
         {
             Debug.Assert(target != null, "Invalid target");
             return CreateTerminator(new UnconditionalBranch(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 target));
         }
 
@@ -72,8 +71,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(falseTarget != null, "Invalid false target");
 
             return CreateTerminator(new IfBranch(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 condition,
                 trueTarget,
                 falseTarget));
@@ -102,8 +100,7 @@ namespace ILGPU.IR.Construction
                     targets[0],
                     targets[1])
                 : CreateTerminator(new SwitchBranch(
-                    Context,
-                    BasicBlock,
+                    GetInitializer(),
                     value,
                     targets));
         }
@@ -116,8 +113,7 @@ namespace ILGPU.IR.Construction
         public BuilderTerminator CreateBuilderTerminator(
             ImmutableArray<BasicBlock> targets) =>
             CreateTerminator(new BuilderTerminator(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 targets)) as BuilderTerminator;
     }
 }

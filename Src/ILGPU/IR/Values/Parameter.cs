@@ -27,14 +27,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new parameter.
         /// </summary>
-        /// <param name="method">The parent method.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="type">The parameter type.</param>
         /// <param name="name">The parameter name (for debugging purposes).</param>
         internal Parameter(
-            Method method,
+            in ValueInitializer initializer,
             TypeNode type,
             string name)
-            : base(method, type)
+            : base(initializer)
         {
             ParameterType = type;
             Name = name ?? "param";
@@ -84,8 +84,9 @@ namespace ILGPU.IR.Values
             InvalidateType();
         }
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) => ParameterType;
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            ParameterType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

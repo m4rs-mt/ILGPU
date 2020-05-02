@@ -27,14 +27,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new array value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="arrayType">The associated array type.</param>
         /// <param name="extent">The array length.</param>
         internal ArrayValue(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ArrayType arrayType,
             ValueReference extent)
-            : base(basicBlock, arrayType)
+            : base(initializer)
         {
             ArrayType = arrayType;
             Seal(ImmutableArray.Create(extent));
@@ -66,8 +66,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) => ArrayType;
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            ArrayType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -99,14 +100,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new abstract structure operation.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="values">All child values.</param>
-        /// <param name="initialType">The initial node type.</param>
         internal ArrayOperationValue(
-            BasicBlock basicBlock,
-            ImmutableArray<ValueReference> values,
-            TypeNode initialType)
-            : base(basicBlock, values, initialType)
+            in ValueInitializer initializer,
+            ImmutableArray<ValueReference> values)
+            : base(initializer, values)
         { }
 
         #endregion
@@ -166,39 +165,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.GetArrayExtent)]
     public sealed class GetArrayExtent : ArrayOperationValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a get extent node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="arrayValue">The current array value.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static TypeNode ComputeType(
-            IRContext context,
-            ValueReference arrayValue) =>
-            context.GetIndexType(
-                (arrayValue.Type as ArrayType).Dimensions);
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new element load.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="arrayValue">The array value.</param>
         internal GetArrayExtent(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference arrayValue)
             : base(
-                basicBlock,
-                ImmutableArray.Create(arrayValue),
-                ComputeType(context, arrayValue))
+                initializer,
+                ImmutableArray.Create(arrayValue))
         { }
 
         #endregion
@@ -208,9 +187,10 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ValueKind"/>
         public override ValueKind ValueKind => ValueKind.GetArrayExtent;
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, ObjectValue);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.GetIndexType(
+                (ObjectValue.Type as ArrayType).Dimensions);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -237,35 +217,21 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.GetArrayElement)]
     public sealed class GetArrayElement : ArrayOperationValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a get element node type.
-        /// </summary>
-        /// <param name="arrayValue">The current array value.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static TypeNode ComputeType(ValueReference arrayValue) =>
-            (arrayValue.Type as ArrayType).ElementType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new element load.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="arrayValue">The array value.</param>
         /// <param name="arrayIndex">The array index.</param>
         internal GetArrayElement(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference arrayValue,
             ValueReference arrayIndex)
             : base(
-                basicBlock,
-                ImmutableArray.Create(arrayValue, arrayIndex),
-                ComputeType(arrayValue))
+                initializer,
+                ImmutableArray.Create(arrayValue, arrayIndex))
         { }
 
         #endregion
@@ -275,9 +241,9 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ValueKind"/>
         public override ValueKind ValueKind => ValueKind.GetArrayElement;
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(ObjectValue);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            (ObjectValue.Type as ArrayType).ElementType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -306,39 +272,23 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.SetArrayElement)]
     public sealed class SetArrayElement : ArrayOperationValue
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a set element node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static TypeNode ComputeType(IRContext context) =>
-            context.VoidType;
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new element store.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="arrayValue">The array value.</param>
         /// <param name="arrayIndex">The array index.</param>
         /// <param name="value">The value to store.</param>
         internal SetArrayElement(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference arrayValue,
             ValueReference arrayIndex,
             ValueReference value)
             : base(
-                basicBlock,
-                ImmutableArray.Create(arrayValue, arrayIndex, value),
-                ComputeType(context))
+                  initializer,
+                  ImmutableArray.Create(arrayValue, arrayIndex, value))
         { }
 
         #endregion
@@ -357,9 +307,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            initializer.Context.VoidType;
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(

@@ -29,8 +29,7 @@ namespace ILGPU.IR.Construction
             Debug.Assert(message != null, "Invalid message value");
 
             return Append(new DebugOperation(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 kind,
                 message));
         }

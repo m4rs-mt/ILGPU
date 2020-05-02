@@ -27,14 +27,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="value">The value to convert.</param>
-        /// <param name="targetType">The target type to convert the value to.</param>
         internal CastValue(
-            BasicBlock basicBlock,
-            ValueReference value,
-            TypeNode targetType)
-            : base(basicBlock, targetType)
+            in ValueInitializer initializer,
+            ValueReference value)
+            : base(initializer)
         {
             Seal(ImmutableArray.Create(value));
         }
@@ -72,14 +70,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="value">The value to convert.</param>
-        /// <param name="targetType">The target type to convert the value to.</param>
         internal BaseAddressSpaceCast(
-            BasicBlock basicBlock,
-            ValueReference value,
-            AddressSpaceType targetType)
-            : base(basicBlock, value, targetType)
+            in ValueInitializer initializer,
+            ValueReference value)
+            : base(initializer, value)
         { }
 
         #endregion
@@ -100,48 +96,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.PointerCast)]
     public sealed class PointerCast : BaseAddressSpaceCast
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a pointer cast node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="sourceType">The source pointer type.</param>
-        /// <param name="targetElementType">The target pointer element type.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static AddressSpaceType ComputeType(
-            IRContext context,
-            TypeNode sourceType,
-            TypeNode targetElementType)
-        {
-            var pointerType = sourceType as PointerType;
-            Debug.Assert(pointerType != null, "Invalid pointer type");
-            return context.CreatePointerType(
-                targetElementType,
-                pointerType.AddressSpace);
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new convert value.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="value">The value to convert.</param>
         /// <param name="targetElementType">The target element type.</param>
         internal PointerCast(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference value,
             TypeNode targetElementType)
-            : base(
-                  basicBlock,
-                  value,
-                  ComputeType(context, value.Type, targetElementType))
+            : base(initializer, value)
         {
             TargetElementType = targetElementType;
         }
@@ -167,9 +134,15 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, SourceType, TargetElementType);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer)
+        {
+            var pointerType = SourceType as PointerType;
+            Debug.Assert(pointerType != null, "Invalid pointer type");
+            return initializer.Context.CreatePointerType(
+                TargetElementType,
+                pointerType.AddressSpace);
+        }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -201,57 +174,21 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.AddressSpaceCast)]
     public sealed class AddressSpaceCast : BaseAddressSpaceCast
     {
-        #region Static
-
-        /// <summary>
-        /// Computes an address-space cast node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="sourceType">The source pointer type.</param>
-        /// <param name="targetAddressSpace">The target address space.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static AddressSpaceType ComputeType(
-            IRContext context,
-            TypeNode sourceType,
-            MemoryAddressSpace targetAddressSpace)
-        {
-            if (sourceType is ViewType viewType)
-            {
-                return context.CreateViewType(
-                    viewType.ElementType,
-                    targetAddressSpace);
-            }
-            else
-            {
-                var pointerType = sourceType as PointerType;
-                return context.CreatePointerType(
-                    pointerType.ElementType,
-                    targetAddressSpace);
-            }
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new convert value.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="value">The value to convert.</param>
         /// <param name="targetAddressSpace">The target address space.</param>
         internal AddressSpaceCast(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference value,
             MemoryAddressSpace targetAddressSpace)
-            : base(
-                  basicBlock,
-                  value,
-                  ComputeType(context, value.Type, targetAddressSpace))
+            : base(initializer, value)
         {
+            TargetAddressSpace = targetAddressSpace;
             Debug.Assert(
                 value.Type.IsViewOrPointerType &&
                 (value.Type as AddressSpaceType).AddressSpace != targetAddressSpace,
@@ -284,9 +221,23 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, SourceType, TargetAddressSpace);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer)
+        {
+            if (SourceType is ViewType viewType)
+            {
+                return initializer.Context.CreateViewType(
+                    viewType.ElementType,
+                    TargetAddressSpace);
+            }
+            else
+            {
+                var pointerType = SourceType as PointerType;
+                return initializer.Context.CreatePointerType(
+                    pointerType.ElementType,
+                    TargetAddressSpace);
+            }
+        }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -318,48 +269,19 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.ViewCast)]
     public sealed class ViewCast : BaseAddressSpaceCast
     {
-        #region Static
-
-        /// <summary>
-        /// Computes a view cast node type.
-        /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="sourceType">The source pointer type.</param>
-        /// <param name="targetElementType">The target pointer element type.</param>
-        /// <returns>The resolved type node.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static AddressSpaceType ComputeType(
-            IRContext context,
-            TypeNode sourceType,
-            TypeNode targetElementType)
-        {
-            var viewType = sourceType as ViewType;
-            Debug.Assert(viewType != null, "Invalid view type");
-            return context.CreateViewType(
-                targetElementType,
-                viewType.AddressSpace);
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="context">The parent IR context.</param>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="sourceView">The view to cast.</param>
         /// <param name="targetElementType">The target element type.</param>
         internal ViewCast(
-            IRContext context,
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference sourceView,
             TypeNode targetElementType)
-            : base(
-                  basicBlock,
-                  sourceView,
-                  ComputeType(context, sourceView.Type, targetElementType))
+            : base(initializer, sourceView)
         {
             TargetElementType = targetElementType;
         }
@@ -385,9 +307,15 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected override TypeNode UpdateType(IRContext context) =>
-            ComputeType(context, SourceType, TargetElementType);
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer)
+        {
+            var viewType = SourceType as ViewType;
+            Debug.Assert(viewType != null, "Invalid view type");
+            return initializer.Context.CreateViewType(
+                TargetElementType,
+                viewType.AddressSpace);
+        }
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -424,14 +352,14 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="source">The view to cast.</param>
         /// <param name="targetType">The primitive target type.</param>
         internal BitCast(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference source,
             PrimitiveType targetType)
-            : base(basicBlock, source, targetType)
+            : base(initializer, source)
         {
             Debug.Assert(source.Type.IsPrimitiveType, "Invalid primitive type");
             TargetPrimitiveType = targetType;
@@ -460,9 +388,9 @@ namespace ILGPU.IR.Values
 
         #region Methods
 
-        /// <summary cref="Value.UpdateType(IRContext)"/>
-        protected sealed override TypeNode UpdateType(IRContext context) =>
-            TargetPrimitiveType;
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected sealed override TypeNode ComputeType(
+            in ValueInitializer initializer) => TargetPrimitiveType;
 
         #endregion
 
@@ -485,15 +413,15 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="source">The view to cast.</param>
         /// <param name="targetType">The primitive target type.</param>
         internal FloatAsIntCast(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference source,
             PrimitiveType targetType)
             : base(
-                  basicBlock,
+                  initializer,
                   source,
                   targetType)
         {
@@ -549,15 +477,15 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Constructs a new cast value.
         /// </summary>
-        /// <param name="basicBlock">The parent basic block.</param>
+        /// <param name="initializer">The value initializer.</param>
         /// <param name="source">The view to cast.</param>
         /// <param name="targetType">The primitive target type.</param>
         internal IntAsFloatCast(
-            BasicBlock basicBlock,
+            in ValueInitializer initializer,
             ValueReference source,
             PrimitiveType targetType)
             : base(
-                  basicBlock,
+                  initializer,
                   source,
                   targetType)
         {

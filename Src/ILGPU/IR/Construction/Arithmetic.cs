@@ -82,8 +82,7 @@ namespace ILGPU.IR.Construction
             }
 
             return Append(new UnaryArithmeticValue(
-                Context,
-                BasicBlock,
+                GetInitializer(),
                 node,
                 kind,
                 flags));
@@ -199,7 +198,7 @@ namespace ILGPU.IR.Construction
             }
 
             return Append(new BinaryArithmeticValue(
-                BasicBlock,
+                GetInitializer(),
                 left,
                 right,
                 kind,
@@ -260,7 +259,7 @@ namespace ILGPU.IR.Construction
             }
 
             return Append(new TernaryArithmeticValue(
-                BasicBlock,
+                GetInitializer(),
                 first,
                 second,
                 third,
