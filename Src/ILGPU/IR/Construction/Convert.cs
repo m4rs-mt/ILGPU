@@ -14,7 +14,6 @@ using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Construction
 {
@@ -23,40 +22,44 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a compare operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="node">The operand.</param>
         /// <param name="targetType">The target type.</param>
         /// <returns>A node that represents the convert operation.</returns>
         public ValueReference CreateConvert(
+            Location location,
             Value node,
             TypeNode targetType) =>
-            CreateConvert(node, targetType, ConvertFlags.None);
+            CreateConvert(
+                location,
+                node,
+                targetType,
+                ConvertFlags.None);
 
         /// <summary>
         /// Creates a compare operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="node">The operand.</param>
         /// <param name="targetType">The target type.</param>
         /// <param name="flags">Operation flags.</param>
         /// <returns>A node that represents the convert operation.</returns>
         public ValueReference CreateConvert(
+            Location location,
             Value node,
             TypeNode targetType,
             ConvertFlags flags)
         {
-            Debug.Assert(node != null, "Invalid node");
-            Debug.Assert(
-                targetType.BasicValueType != BasicValueType.None,
-                "Invalid node type");
-
+            location.Assert(targetType.BasicValueType != BasicValueType.None);
             if (node.Type == targetType)
                 return node;
 
             if (!(targetType is PrimitiveType targetPrimitiveType))
             {
-                throw new NotSupportedException(string.Format(
+                throw location.GetNotSupportedException(
                     ErrorMessages.NotSupportedConversion,
                     node.Type,
-                    targetType));
+                    targetType);
             }
 
             bool isSourceUnsigned = (flags & ConvertFlags.SourceUnsigned) ==
@@ -84,6 +87,7 @@ namespace ILGPU.IR.Construction
                         flags & ~(ConvertFlags.SourceUnsigned |
                             ConvertFlags.OverflowSourceUnsigned);
                     return CreateConvert(
+                        location,
                         convert.Value,
                         targetType,
                         newFlags);
@@ -94,17 +98,28 @@ namespace ILGPU.IR.Construction
             if (targetPrimitiveType.IsBool)
             {
                 return CreateCompare(
+                    location,
                     node,
-                    CreatePrimitiveValue(node.BasicValueType, 0),
+                    CreatePrimitiveValue(
+                        location,
+                        node.BasicValueType,
+                        0),
                     CompareKind.NotEqual);
             }
             // Match bool to X
             else if (node.BasicValueType == BasicValueType.Int1)
             {
                 return CreatePredicate(
+                    location,
                     node,
-                    CreatePrimitiveValue(targetPrimitiveType.BasicValueType, 1),
-                    CreatePrimitiveValue(targetPrimitiveType.BasicValueType, 0));
+                    CreatePrimitiveValue(
+                        location,
+                        targetPrimitiveType.BasicValueType,
+                        1),
+                    CreatePrimitiveValue(
+                        location,
+                        targetPrimitiveType.BasicValueType,
+                        0));
             }
 
 
@@ -119,10 +134,13 @@ namespace ILGPU.IR.Construction
                         return targetBasicValueType switch
                         {
                             BasicValueType.Float32 => CreatePrimitiveValue(
+                                location,
                                Convert.ToSingle(value.Int1Value)),
                             BasicValueType.Float64 => CreatePrimitiveValue(
+                                location,
                                 Convert.ToDouble(value.Int1Value)),
                             _ => CreatePrimitiveValue(
+                                location,
                                 targetBasicValueType,
                                 value.Int1Value ? 1 : 0),
                         };
@@ -135,14 +153,18 @@ namespace ILGPU.IR.Construction
                             case BasicValueType.Float32:
                                 return isSourceUnsigned
                                     ? CreatePrimitiveValue(
+                                        location,
                                         Convert.ToSingle(value.UInt64Value))
                                     : (ValueReference)CreatePrimitiveValue(
+                                        location,
                                         Convert.ToSingle(value.Int64Value));
                             case BasicValueType.Float64:
                                 return isSourceUnsigned
                                     ? CreatePrimitiveValue(
+                                        location,
                                         Convert.ToDouble(value.UInt64Value))
                                     : (ValueReference)CreatePrimitiveValue(
+                                        location,
                                         Convert.ToDouble(value.Int64Value));
                             default:
                                 if (!isSourceUnsigned && !isTargetUnsigned)
@@ -151,19 +173,23 @@ namespace ILGPU.IR.Construction
                                     {
                                         case BasicValueType.Int8:
                                             return CreatePrimitiveValue(
+                                                location,
                                                 targetBasicValueType,
                                                 value.Int8Value);
                                         case BasicValueType.Int16:
                                             return CreatePrimitiveValue(
+                                                location,
                                                 targetBasicValueType,
                                                 value.Int16Value);
                                         case BasicValueType.Int32:
                                             return CreatePrimitiveValue(
+                                                location,
                                                 targetBasicValueType,
                                                 value.Int32Value);
                                     }
                                 }
                                 return CreatePrimitiveValue(
+                                    location,
                                     targetBasicValueType,
                                     value.RawValue);
                         }
@@ -172,6 +198,7 @@ namespace ILGPU.IR.Construction
                         {
                             case BasicValueType.Int1:
                                 return CreatePrimitiveValue(
+                                    location,
                                     targetBasicValueType,
                                     value.Float32Value != 0.0f ? 1 : 0);
                             case BasicValueType.Int8:
@@ -180,18 +207,22 @@ namespace ILGPU.IR.Construction
                             case BasicValueType.Int64:
                                 return isTargetUnsigned
                                     ? CreatePrimitiveValue(
+                                        location,
                                         targetBasicValueType,
                                         (long)(ulong)value.Float32Value)
                                     : (ValueReference)CreatePrimitiveValue(
+                                        location,
                                         targetBasicValueType,
                                         (long)value.Float32Value);
                             case BasicValueType.Float64:
-                                return CreatePrimitiveValue((double)value.Float32Value);
+                                return CreatePrimitiveValue(
+                                    location,
+                                    (double)value.Float32Value);
                         }
-                        throw new NotSupportedException(string.Format(
+                        throw location.GetNotSupportedException(
                             ErrorMessages.NotSupportedConversion,
                             value.BasicValueType,
-                            targetBasicValueType));
+                            targetBasicValueType);
                     case BasicValueType.Float64:
                         switch (targetBasicValueType)
                         {
@@ -202,28 +233,32 @@ namespace ILGPU.IR.Construction
                             case BasicValueType.Int64:
                                 return isTargetUnsigned
                                     ? CreatePrimitiveValue(
+                                        location,
                                         targetBasicValueType,
                                         (long)(ulong)value.Float64Value)
                                     : (ValueReference)CreatePrimitiveValue(
+                                        location,
                                         targetBasicValueType,
                                         (long)value.Float64Value);
                             case BasicValueType.Float32:
-                                return CreatePrimitiveValue((float)value.Float64Value);
+                                return CreatePrimitiveValue(
+                                    location,
+                                    (float)value.Float64Value);
                         }
-                        throw new NotSupportedException(string.Format(
+                        throw location.GetNotSupportedException(
                             ErrorMessages.NotSupportedConversion,
                             value.BasicValueType,
-                            targetBasicValueType));
+                            targetBasicValueType);
                     default:
-                        throw new NotSupportedException(string.Format(
+                        throw location.GetNotSupportedException(
                             ErrorMessages.NotSupportedConversion,
                             value.Type,
-                            targetType));
+                            targetType);
                 }
             }
 
             return Append(new ConvertValue(
-                GetInitializer(),
+                GetInitializer(location),
                 node,
                 targetType,
                 flags));

@@ -13,7 +13,6 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Construction
@@ -61,9 +60,6 @@ namespace ILGPU.IR.Construction
             Scope scope,
             Method.MethodMapping methodRemapping)
         {
-            Debug.Assert(builder != null, "Invalid method builder");
-            Debug.Assert(scope != null, "Invalid scope");
-
             methodMapping = methodRemapping;
             Builder = builder;
             Scope = scope;
@@ -75,23 +71,20 @@ namespace ILGPU.IR.Construction
             // Create blocks and prepare phi nodes
             foreach (var block in scope)
             {
-                // Setup debug information for the current block
-                Builder.SequencePoint = block.SequencePoint;
-
-                var newBlock = builder.CreateBasicBlock(block.Name);
+                var newBlock = builder.CreateBasicBlock(block.Location, block.Name);
                 blockMapping.Add(block, newBlock);
 
                 foreach (Value value in block)
                 {
                     if (value is PhiValue phiValue)
                     {
-                        Debug.Assert(
-                            !valueMapping.ContainsKey(value),
-                            "Phi already found");
+                        // Phi must not be defined at this point
+                        phiValue.Assert(!valueMapping.ContainsKey(value));
 
                         // Setup debug information for the current value
-                        Builder.SequencePoint = value.SequencePoint;
-                        var phiBuilder = newBlock.CreatePhi(phiValue.Type);
+                        var phiBuilder = newBlock.CreatePhi(
+                            value.Location,
+                            phiValue.Type);
 
                         phiMapping.Add((phiValue, phiBuilder));
                         Map(phiValue, phiBuilder.PhiValue);
@@ -188,13 +181,8 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="oldNode">The old node.</param>
         /// <param name="newNode">The new node.</param>
-        public void Map(Value oldNode, Value newNode)
-        {
-            Debug.Assert(oldNode != null, "Invalid old node");
-            Debug.Assert(newNode != null, "Invalid new node");
-
+        public void Map(Value oldNode, Value newNode) =>
             valueMapping[oldNode] = newNode;
-        }
 
         /// <summary>
         /// Exports the internal node mapping to the given target dictionary.
@@ -232,18 +220,14 @@ namespace ILGPU.IR.Construction
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Value Rebuild(Value source)
         {
-            Debug.Assert(source != null, "Invalid source node");
-            Debug.Assert(!source.IsReplaced, "Trying to rebuild a replaced node");
+            // Verify that we are not rebuilding a replaced node
+            source.Assert(!source.IsReplaced);
 
             if (TryGetNewNode(source, out Value node))
                 return node;
 
-            // Setup debug information for the source value
-            Builder.SequencePoint = source.SequencePoint;
-
-            Debug.Assert(
-                !(source is Parameter),
-                "Invalid recursive parameter rebuilding process");
+            // Verify that we are not rebuilding a parameter
+            source.Assert(!(source is Parameter));
             node = source.Rebuild(CurrentBlock, this);
             Map(source, node);
             return node;

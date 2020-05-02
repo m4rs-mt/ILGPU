@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Construction
 {
@@ -20,43 +19,57 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a compare operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <returns>A node that represents the compare operation.</returns>
         public ValueReference CreateCompare(
+            Location location,
             Value left,
             Value right,
             CompareKind kind) =>
-            CreateCompare(left, right, kind, CompareFlags.None);
+            CreateCompare(
+                location,
+                left,
+                right,
+                kind,
+                CompareFlags.None);
 
         /// <summary>
         /// Creates a compare operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">Operation flags.</param>
         /// <returns>A node that represents the compare operation.</returns>
         public ValueReference CreateCompare(
+            Location location,
             Value left,
             Value right,
             CompareKind kind,
             CompareFlags flags)
         {
-            Debug.Assert(left != null, "Invalid left node");
-            Debug.Assert(right != null, "Invalid right node");
-
             if (UseConstantPropagation)
             {
                 var leftValue = left as PrimitiveValue;
                 var rightValue = right as PrimitiveValue;
                 if (leftValue != null && rightValue != null)
-                    return CompareFoldConstants(leftValue, rightValue, kind, flags);
+                {
+                    return CompareFoldConstants(
+                        location,
+                        leftValue,
+                        rightValue,
+                        kind,
+                        flags);
+                }
 
                 if (leftValue != null)
                 {
                     return CreateCompare(
+                        location,
                         right,
                         left,
                         CompareValue.InvertIfNonCommutative(kind),
@@ -72,16 +85,22 @@ namespace ILGPU.IR.Construction
                         return kind == CompareKind.Equal
                             ? rightValue.Int1Value
                                 ? (ValueReference)left
-                                : CreateArithmetic(left, UnaryArithmeticKind.Not)
+                                : CreateArithmetic(
+                                    location,
+                                    left,
+                                    UnaryArithmeticKind.Not)
                             : rightValue.Int1Value
-                                ? CreateArithmetic(left, UnaryArithmeticKind.Not)
+                                ? CreateArithmetic(
+                                    location,
+                                    left,
+                                    UnaryArithmeticKind.Not)
                                 : (ValueReference)left;
                     }
                 }
             }
 
             return Append(new CompareValue(
-                GetInitializer(),
+                GetInitializer(location),
                 left,
                 right,
                 kind,

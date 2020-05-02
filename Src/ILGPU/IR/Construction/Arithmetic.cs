@@ -13,7 +13,6 @@ using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Construction
 {
@@ -22,33 +21,39 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a unary arithmetic operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="node">The operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <returns>A node that represents the arithmetic operation.</returns>
         public ValueReference CreateArithmetic(
+            Location location,
             Value node,
             UnaryArithmeticKind kind) =>
-            CreateArithmetic(node, kind, ArithmeticFlags.None);
+            CreateArithmetic(
+                location,
+                node,
+                kind,
+                ArithmeticFlags.None);
 
         /// <summary>
         /// Creates a unary arithmetic operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="node">The operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">Operation flags.</param>
         /// <returns>A node that represents the arithmetic operation.</returns>
         public ValueReference CreateArithmetic(
+            Location location,
             Value node,
             UnaryArithmeticKind kind,
             ArithmeticFlags flags)
         {
-            Debug.Assert(node != null, "Invalid node");
-
             if (UseConstantPropagation)
             {
                 // Check for constants
                 if (node is PrimitiveValue value)
-                    return UnaryArithmeticFoldConstants(value, kind);
+                    return UnaryArithmeticFoldConstants(location, value, kind);
 
                 var isUnsigned = (flags & ArithmeticFlags.Unsigned) ==
                     ArithmeticFlags.Unsigned;
@@ -64,6 +69,7 @@ namespace ILGPU.IR.Construction
                         if (node is CompareValue compareValue)
                         {
                             return CreateCompare(
+                                location,
                                 compareValue.Left,
                                 compareValue.Right,
                                 CompareValue.Invert(compareValue.Kind),
@@ -72,7 +78,12 @@ namespace ILGPU.IR.Construction
                         break;
                     case UnaryArithmeticKind.Neg:
                         if (node.BasicValueType == BasicValueType.Int1)
-                            return CreateArithmetic(node, UnaryArithmeticKind.Not);
+                        {
+                            return CreateArithmetic(
+                                location,
+                                node,
+                                UnaryArithmeticKind.Not);
+                        }
                         break;
                     case UnaryArithmeticKind.Abs:
                         if (isUnsigned)
@@ -82,7 +93,7 @@ namespace ILGPU.IR.Construction
             }
 
             return Append(new UnaryArithmeticValue(
-                GetInitializer(),
+                GetInitializer(location),
                 node,
                 kind,
                 flags));
@@ -91,33 +102,39 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a binary arithmetic operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <returns>A node that represents the arithmetic operation.</returns>
         public ValueReference CreateArithmetic(
+            Location location,
             Value left,
             Value right,
             BinaryArithmeticKind kind) =>
-            CreateArithmetic(left, right, kind, ArithmeticFlags.None);
+            CreateArithmetic(
+                location,
+                left,
+                right,
+                kind,
+                ArithmeticFlags.None);
 
         /// <summary>
         /// Creates a binary arithmetic operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="flags">Operation flags.</param>
         /// <returns>A node that represents the arithmetic operation.</returns>
         public ValueReference CreateArithmetic(
+            Location location,
             Value left,
             Value right,
             BinaryArithmeticKind kind,
             ArithmeticFlags flags)
         {
-            Debug.Assert(left != null, "Invalid left node");
-            Debug.Assert(right != null, "Invalid right node");
-
             // TODO: add additional partial arithmetic simplifications in a generic way
             if (UseConstantPropagation && left is PrimitiveValue leftValue)
             {
@@ -125,7 +142,11 @@ namespace ILGPU.IR.Construction
                 if (right is PrimitiveValue rightConstant)
                 {
                     return BinaryArithmeticFoldConstants(
-                        leftValue, rightConstant, kind, flags);
+                        location,
+                        leftValue,
+                        rightConstant,
+                        kind,
+                        flags);
                 }
 
                 if (kind == BinaryArithmeticKind.Div)
@@ -134,11 +155,21 @@ namespace ILGPU.IR.Construction
                     {
                         case BasicValueType.Float32:
                             if (leftValue.Float32Value == 1.0f)
-                                return CreateArithmetic(right, UnaryArithmeticKind.RcpF);
+                            {
+                                return CreateArithmetic(
+                                    location,
+                                    right,
+                                    UnaryArithmeticKind.RcpF);
+                            }
                             break;
                         case BasicValueType.Float64:
                             if (leftValue.Float64Value == 1.0)
-                                return CreateArithmetic(right, UnaryArithmeticKind.RcpF);
+                            {
+                                return CreateArithmetic(
+                                    location,
+                                    right,
+                                    UnaryArithmeticKind.RcpF);
+                            }
                             break;
                         default:
                             break;
@@ -151,11 +182,14 @@ namespace ILGPU.IR.Construction
                 left.BasicValueType.IsInt() &&
                 Utilities.IsPowerOf2(rightValue.RawValue))
             {
-                if (kind == BinaryArithmeticKind.Div || kind == BinaryArithmeticKind.Mul)
+                if (kind == BinaryArithmeticKind.Div ||
+                    kind == BinaryArithmeticKind.Mul)
                 {
-                    var shiftAmount = CreatePrimitiveValue((int)Math.Log(
-                        Math.Abs((double)rightValue.RawValue),
-                        2.0));
+                    var shiftAmount = CreatePrimitiveValue(
+                        location,
+                        (int)Math.Log(
+                            Math.Abs((double)rightValue.RawValue),
+                            2.0));
                     var leftKind = Utilities.Select(
                         kind == BinaryArithmeticKind.Div,
                         BinaryArithmeticKind.Shr,
@@ -165,9 +199,13 @@ namespace ILGPU.IR.Construction
                         BinaryArithmeticKind.Shl,
                         BinaryArithmeticKind.Shr);
                     return CreateArithmetic(
+                        location,
                         left,
                         shiftAmount,
-                        Utilities.Select(rightValue.RawValue > 0, leftKind, rightKind));
+                        Utilities.Select(
+                            rightValue.RawValue > 0,
+                            leftKind,
+                            rightKind));
                 }
             }
 
@@ -178,9 +216,9 @@ namespace ILGPU.IR.Construction
                 case BinaryArithmeticKind.Xor:
                     if (left.BasicValueType.IsFloat())
                     {
-                        throw new NotSupportedException(string.Format(
+                        throw location.GetNotSupportedException(
                             ErrorMessages.NotSupportedArithmeticArgumentType,
-                            left.BasicValueType));
+                            left.BasicValueType);
                     }
 
                     break;
@@ -189,16 +227,16 @@ namespace ILGPU.IR.Construction
                 case BinaryArithmeticKind.PowF:
                     if (!left.BasicValueType.IsFloat())
                     {
-                        throw new NotSupportedException(string.Format(
+                        throw location.GetNotSupportedException(
                             ErrorMessages.NotSupportedArithmeticArgumentType,
-                            left.BasicValueType));
+                            left.BasicValueType);
                     }
 
                     break;
             }
 
             return Append(new BinaryArithmeticValue(
-                GetInitializer(),
+                GetInitializer(location),
                 left,
                 right,
                 kind,
@@ -208,21 +246,30 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a ternary arithmetic operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="first">The first operand.</param>
         /// <param name="second">The second operand.</param>
         /// <param name="third">The second operand.</param>
         /// <param name="kind">The operation kind.</param>
         /// <returns>A node that represents the arithmetic operation.</returns>
         public ValueReference CreateArithmetic(
+            Location location,
             Value first,
             Value second,
             Value third,
             TernaryArithmeticKind kind) =>
-            CreateArithmetic(first, second, third, kind, ArithmeticFlags.None);
+            CreateArithmetic(
+                location,
+                first,
+                second,
+                third,
+                kind,
+                ArithmeticFlags.None);
 
         /// <summary>
         /// Creates a ternary arithmetic operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="first">The first operand.</param>
         /// <param name="second">The second operand.</param>
         /// <param name="third">The second operand.</param>
@@ -230,16 +277,13 @@ namespace ILGPU.IR.Construction
         /// <param name="flags">Operation flags.</param>
         /// <returns>A node that represents the arithmetic operation.</returns>
         public ValueReference CreateArithmetic(
+            Location location,
             Value first,
             Value second,
             Value third,
             TernaryArithmeticKind kind,
             ArithmeticFlags flags)
         {
-            Debug.Assert(first != null, "Invalid first node");
-            Debug.Assert(second != null, "Invalid second node");
-            Debug.Assert(third != null, "Invalid third node");
-
             if (UseConstantPropagation)
             {
                 // Check for constants
@@ -247,6 +291,7 @@ namespace ILGPU.IR.Construction
                     second is PrimitiveValue secondValue)
                 {
                     var value = BinaryArithmeticFoldConstants(
+                        location,
                         firstValue,
                         secondValue,
                         TernaryArithmeticValue.GetLeftBinaryKind(kind),
@@ -254,12 +299,16 @@ namespace ILGPU.IR.Construction
 
                     // Try to fold right hand side as well
                     var rightOperation = TernaryArithmeticValue.GetRightBinaryKind(kind);
-                    return CreateArithmetic(value, third, rightOperation);
+                    return CreateArithmetic(
+                        location,
+                        value,
+                        third,
+                        rightOperation);
                 }
             }
 
             return Append(new TernaryArithmeticValue(
-                GetInitializer(),
+                GetInitializer(location),
                 first,
                 second,
                 third,

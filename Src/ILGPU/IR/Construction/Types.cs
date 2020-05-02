@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Types;
 using System;
-using System.Collections.Immutable;
 
 namespace ILGPU.IR.Construction
 {

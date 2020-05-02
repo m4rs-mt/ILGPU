@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Construction
 {
@@ -20,33 +19,38 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a new array value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="elementType">The array element type.</param>
         /// <param name="dimensions">The array dimensions.</param>
         /// <param name="extent">The array length.</param>
         /// <returns>The created empty array value.</returns>
         public ValueReference CreateArray(
+            Location location,
             TypeNode elementType,
             int dimensions,
             Value extent)
         {
             var arrayType = CreateArrayType(elementType, dimensions);
-            return CreateArray(arrayType, extent);
+            return CreateArray(location, arrayType, extent);
         }
 
         /// <summary>
         /// Creates a new array value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="type">The array type.</param>
         /// <param name="extent">The array length.</param>
         /// <returns>The created empty array value.</returns>
-        public ValueReference CreateArray(ArrayType type, Value extent)
+        public ValueReference CreateArray(
+            Location location,
+            ArrayType type,
+            Value extent)
         {
-            Debug.Assert(extent != null, "Invalid extent");
-            Debug.Assert(
-                extent.Type == GetIndexType(type.Dimensions),
-                "Invalid extent type");
+            location.AssertNotNull(extent);
+            location.Assert(extent.Type == GetIndexType(type.Dimensions));
+
             return Append(new ArrayValue(
-                GetInitializer(),
+                GetInitializer(location),
                 type,
                 extent));
         }
@@ -54,38 +58,38 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates an operation to extract the extent from an array value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="arrayValue">The array value.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateGetArrayExtent(Value arrayValue)
+        public ValueReference CreateGetArrayExtent(
+            Location location,
+            Value arrayValue)
         {
-            Debug.Assert(arrayValue != null, "Invalid array value");
-            var arrayType = arrayValue.Type as ArrayType;
-            Debug.Assert(arrayType != null, "Invalid array type");
+            location.AssertNotNull(arrayValue);
 
             return Append(new GetArrayExtent(
-                GetInitializer(),
+                GetInitializer(location),
                 arrayValue));
         }
 
         /// <summary>
         /// Creates a load operation of an array element.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="arrayValue">The array value.</param>
         /// <param name="index">The field index to load.</param>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateGetArrayElement(
+            Location location,
             Value arrayValue,
             Value index)
         {
-            Debug.Assert(arrayValue != null, "Invalid array value");
-            var arrayType = arrayValue.Type as ArrayType;
-            Debug.Assert(arrayType != null, "Invalid array type");
-            Debug.Assert(
-                index.Type == GetIndexType(arrayType.Dimensions),
-                "Invalid index type");
+            location.AssertNotNull(arrayValue);
+            var arrayType = arrayValue.Type.As<ArrayType>(location);
+            location.Assert(index.Type == GetIndexType(arrayType.Dimensions));
 
             return Append(new GetArrayElement(
-                GetInitializer(),
+                GetInitializer(location),
                 arrayValue,
                 index));
         }
@@ -93,24 +97,23 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a store operation of an array element.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="arrayValue">The array value.</param>
         /// <param name="index">The array index to store.</param>
         /// <param name="value">The array value to store.</param>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateSetArrayElement(
+            Location location,
             Value arrayValue,
             Value index,
             Value value)
         {
-            Debug.Assert(arrayValue != null, "Invalid array value");
-            var arrayType = arrayValue.Type as ArrayType;
-            Debug.Assert(arrayType != null, "Invalid array type");
-            Debug.Assert(
-                index.Type == GetIndexType(arrayType.Dimensions),
-                "Invalid index type");
+            location.AssertNotNull(arrayValue);
+            var arrayType = arrayValue.Type.As<ArrayType>(location);
+            location.Assert(index.Type == GetIndexType(arrayType.Dimensions));
 
             return Append(new SetArrayElement(
-                GetInitializer(),
+                GetInitializer(location),
                 arrayValue,
                 index,
                 value));
@@ -119,28 +122,41 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a value reference that represents an array length.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="arrayValue">The array value to compute the length for.</param>
         /// <returns>The created value reference.</returns>
-        public ValueReference CreateGetArrayLength(Value arrayValue)
+        public ValueReference CreateGetArrayLength(
+            Location location,
+            Value arrayValue)
         {
-            var extent = CreateGetArrayExtent(arrayValue);
-            return ComputeArrayLength(extent);
+            var extent = CreateGetArrayExtent(location, arrayValue);
+            return ComputeArrayLength(location, extent);
         }
 
         /// <summary>
         /// Computes a linear array length based on an array extent.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="arrayExtent">The array extent.</param>
         /// <returns>The linear array length.</returns>
-        internal ValueReference ComputeArrayLength(Value arrayExtent)
+        internal ValueReference ComputeArrayLength(
+            Location location,
+            Value arrayExtent)
         {
             // Compute total number of elements
-            var size = CreateGetField(arrayExtent, new FieldSpan(0));
+            var size = CreateGetField(
+                location,
+                arrayExtent,
+                new FieldSpan(0));
             int dimensions = StructureType.GetNumFields(arrayExtent.Type);
             for (int i = 1; i < dimensions; ++i)
             {
-                var element = CreateGetField(arrayExtent, new FieldSpan(i));
+                var element = CreateGetField(
+                    location,
+                    arrayExtent,
+                    new FieldSpan(i));
                 size = CreateArithmetic(
+                    location,
                     size,
                     element,
                     BinaryArithmeticKind.Mul);
@@ -151,26 +167,34 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Computes a linear array address.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="arrayIndex">The array index.</param>
         /// <param name="arrayExtent">The array extent.</param>
         /// <param name="arrayExtentOffset">The extent offset.</param>
         /// <returns>The linear array address.</returns>
         internal ValueReference ComputeArrayAddress(
+            Location location,
             Value arrayIndex,
             Value arrayExtent,
             int arrayExtentOffset)
         {
             int dimensions = StructureType.GetNumFields(arrayExtent.Type);
             Value linearIndex = CreateGetField(
+                location,
                 arrayIndex,
                 new FieldSpan(dimensions - 1));
             for (int i = dimensions - 2; i >= 0; --i)
             {
                 var extent = CreateGetField(
+                    location,
                     arrayExtent,
                     new FieldSpan(i + arrayExtentOffset));
-                var index = CreateGetField(arrayIndex, new FieldSpan(i));
+                var index = CreateGetField(
+                    location,
+                    arrayIndex,
+                    new FieldSpan(i));
                 linearIndex = CreateArithmetic(
+                    location,
                     linearIndex,
                     extent,
                     index,

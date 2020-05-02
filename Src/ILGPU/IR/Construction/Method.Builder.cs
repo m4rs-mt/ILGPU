@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -28,7 +27,7 @@ namespace ILGPU.IR
         /// <summary>
         /// A builder to build methods.
         /// </summary>
-        public sealed class Builder : DisposeBase, IMethodMappingObject
+        public sealed class Builder : DisposeBase, IMethodMappingObject, ILocation
         {
             #region Instance
 
@@ -48,8 +47,6 @@ namespace ILGPU.IR
             {
                 Method = method;
                 parameters = method.parameters.ToBuilder();
-                EnableDebugInformation = Context.HasFlags(
-                    ContextFlags.EnableDebugInformation);
             }
 
             #endregion
@@ -62,14 +59,14 @@ namespace ILGPU.IR
             public IRContext Context => Method.Context;
 
             /// <summary>
-            /// Returns true if debug information is enabled.
-            /// </summary>
-            public bool EnableDebugInformation { get; }
-
-            /// <summary>
             /// Returns the associated method.
             /// </summary>
             public Method Method { get; }
+
+            /// <summary>
+            /// Returns the location of the underlying method.
+            /// </summary>
+            public Location Location => Method.Location;
 
             /// <summary>
             /// Gets or sets the current entry block.
@@ -128,27 +125,15 @@ namespace ILGPU.IR
             /// </summary>
             public int NumParams => parameters.Count;
 
-            /// <summary>
-            /// Gets or sets the current sequence point (if any).
-            /// </summary>
-            public SequencePoint SequencePoint { get; set; }
-
             #endregion
 
             #region Methods
 
             /// <summary>
-            /// Setups the initial sequence point by binding the method's and
-            /// the entry block's sequence points.
+            /// Formats an error message to include the current debug information.
             /// </summary>
-            /// <param name="sequencePoint">The sequence point to setup.</param>
-            public void SetupInitialSequencePoint(SequencePoint sequencePoint)
-            {
-                SequencePoint = sequencePoint;
-                Method.SequencePoint = sequencePoint;
-                if (EntryBlock != null)
-                    EntryBlock.SequencePoint = sequencePoint;
-            }
+            public string FormatErrorMessage(string message) =>
+                Method.FormatErrorMessage(message);
 
             /// <summary>
             /// Converts the return type.
@@ -217,13 +202,9 @@ namespace ILGPU.IR
                 Scope scope,
                 MethodMapping methodMapping)
             {
-                Debug.Assert(
-                    parameterMapping.Method == scope.Method,
-                    "Invalid parameter mapping");
-                Debug.Assert(scope != null, "Invalid scope");
-                Debug.Assert(
-                    scope.Method != Method,
-                    "Cannot rebuild a function into itself");
+                this.Assert(parameterMapping.Method == scope.Method);
+                this.Assert(scope != null);
+                this.Assert(scope.Method != Method);
 
                 return new IRRebuilder(
                     this,
@@ -284,12 +265,10 @@ namespace ILGPU.IR
                 new Parameter(
                     new ValueInitializer(
                         Context,
-                        Method),
+                        Method,
+                        Method.Location),
                     type,
-                    name)
-                {
-                    SequencePoint = SequencePoint
-                };
+                    name);
 
             /// <summary>
             /// Creates a new entry block.
@@ -297,7 +276,7 @@ namespace ILGPU.IR
             /// <returns>The created entry block.</returns>
             public BasicBlock.Builder CreateEntryBlock()
             {
-                var block = CreateBasicBlock("Entry");
+                var block = CreateBasicBlock(Method.Location, "Entry");
                 EntryBlock = block.BasicBlock;
                 return block;
             }
@@ -305,51 +284,22 @@ namespace ILGPU.IR
             /// <summary>
             /// Creates a new basic block.
             /// </summary>
+            /// <param name="location">The current location.</param>
             /// <returns>The created basic block.</returns>
-            public BasicBlock.Builder CreateBasicBlock() =>
-                CreateBasicBlock(null);
+            public BasicBlock.Builder CreateBasicBlock(Location location) =>
+                CreateBasicBlock(location, null);
 
             /// <summary>
             /// Creates a new basic block.
             /// </summary>
+            /// <param name="location">The current location.</param>
+            /// <param name="name">The block name.</param>
             /// <returns>The created basic block.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public BasicBlock.Builder CreateBasicBlock(string name)
+            public BasicBlock.Builder CreateBasicBlock(Location location, string name)
             {
-                var block = new BasicBlock(Method, name)
-                {
-                    SequencePoint = SequencePoint
-                };
+                var block = new BasicBlock(Method, location, name);
                 return this[block];
-            }
-
-            /// <summary>
-            /// Creates an instantiated value.
-            /// </summary>
-            /// <param name="node">The node to create.</param>
-            /// <returns>The created node.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal void Create(Value node)
-            {
-                // Check for enabled debug information
-                if (!EnableDebugInformation)
-                    return;
-
-                // Create sequence point information
-                var currentSequencePoint = SequencePoint;
-                if (currentSequencePoint is null)
-                {
-                    // Try to infer sequence points from all child nodes
-                    foreach (var childNode in node.Nodes)
-                    {
-                        currentSequencePoint = SequencePoint.Merge(
-                            currentSequencePoint,
-                            childNode.SequencePoint);
-                    }
-                }
-
-                // Store final sequence point
-                node.SequencePoint = currentSequencePoint;
             }
 
             /// <summary>

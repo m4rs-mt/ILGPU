@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
@@ -63,8 +62,6 @@ namespace ILGPU.IR
             internal Builder(Method.Builder methodBuilder, BasicBlock block)
                 : base(block)
             {
-                Debug.Assert(methodBuilder != null, "Invalid method builder");
-                Debug.Assert(block != null, "Invalid block");
                 MethodBuilder = methodBuilder;
 
                 values = block.values;
@@ -117,9 +114,7 @@ namespace ILGPU.IR
                 get => insertPosition;
                 set
                 {
-                    Debug.Assert(
-                        value >= 0 && value <= Count,
-                        "Invalid insert position");
+                    this.Assert(value >= 0 && value <= Count);
                     insertPosition = value;
                 }
             }
@@ -127,18 +122,6 @@ namespace ILGPU.IR
             #endregion
 
             #region Methods
-
-            /// <summary>
-            /// Setups the current sequence point of this basic block and
-            /// sets the current sequence point of the parent method builder to
-            /// the given point.
-            /// </summary>
-            /// <param name="sequencePoint">The sequence point to setup.</param>
-            public void SetupSequencePoint(SequencePoint sequencePoint)
-            {
-                BasicBlock.SequencePoint = sequencePoint;
-                MethodBuilder.SequencePoint = sequencePoint;
-            }
 
             /// <summary>
             /// Sets the insert position to the index stored in the given value entry.
@@ -161,9 +144,7 @@ namespace ILGPU.IR
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void SetupInsertPosition(Value value)
             {
-                Debug.Assert(
-                    value.BasicBlock == BasicBlock,
-                    "Invalid block association");
+                this.Assert(value.BasicBlock == BasicBlock);
                 InsertPosition = Values.IndexOf(value);
             }
 
@@ -174,10 +155,8 @@ namespace ILGPU.IR
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void InsertAtBeginning(Value value)
             {
-                Debug.Assert(value != null, "Invalid value");
-                Debug.Assert(
-                    value.BasicBlock == BasicBlock,
-                    "Invalid block association");
+                this.AssertNotNull(value);
+                this.Assert(value.BasicBlock == BasicBlock);
 
                 Values.Insert(0, value);
                 ++InsertPosition;
@@ -190,10 +169,8 @@ namespace ILGPU.IR
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Add(Value value)
             {
-                Debug.Assert(value != null, "Invalid value");
-                Debug.Assert(
-                    value.BasicBlock == BasicBlock,
-                    "Invalid block association");
+                this.AssertNotNull(value);
+                this.Assert(value.BasicBlock == BasicBlock);
 
                 if (insertPosition < Count)
                     Values.Insert(insertPosition, value);
@@ -227,10 +204,8 @@ namespace ILGPU.IR
             /// <param name="value">The value to remove.</param>
             public void Remove(Value value)
             {
-                Debug.Assert(value != null, "Invalid value");
-                Debug.Assert(
-                    value.BasicBlock == BasicBlock,
-                    "Invalid block association");
+                this.AssertNotNull(value);
+                this.Assert(value.BasicBlock == BasicBlock);
 
                 toRemove.Add(value);
             }
@@ -335,7 +310,7 @@ namespace ILGPU.IR
                 TScopeProvider scopeProvider)
                 where TScopeProvider : IScopeProvider
             {
-                Debug.Assert(call != null, "Invalid call");
+                this.AssertNotNull(call);
 
                 var scope = scopeProvider[call.Target];
                 return SpecializeCall(call, scope);
@@ -349,9 +324,7 @@ namespace ILGPU.IR
             /// <returns>The created target block.</returns>
             public Builder SpecializeCall(MethodCall call, Scope scope)
             {
-                Debug.Assert(call != null, "Invalid call");
-                Debug.Assert(scope != null, "Invalid scope");
-                Debug.Assert(scope.Method == call.Target, "Incompatible scope");
+                call.Assert(scope.Method == call.Target);
 
                 // Perform local rebuilding step
                 var callTarget = call.Target;
@@ -361,7 +334,9 @@ namespace ILGPU.IR
                 var exitBlocks = rebuilder.Rebuild();
 
                 // Wire current block with new entry block
-                CreateBranch(rebuilder.EntryBlock.BasicBlock);
+                CreateBranch(
+                    call.Location,
+                    rebuilder.EntryBlock.BasicBlock);
 
                 // Replace call with the appropriate return value
                 if (!callTarget.IsVoid)
@@ -374,7 +349,9 @@ namespace ILGPU.IR
                     else
                     {
                         // We require a custom phi parameter
-                        var phiBuilder = tempBlock.CreatePhi(callTarget.ReturnType);
+                        var phiBuilder = tempBlock.CreatePhi(
+                            call.Location,
+                            callTarget.ReturnType);
                         foreach (var (returnBuilder, returnValue) in exitBlocks)
                         {
                             phiBuilder.AddArgument(
@@ -388,7 +365,9 @@ namespace ILGPU.IR
                 else
                 {
                     // Replace call with an empty null value
-                    call.Replace(CreateNull(VoidType));
+                    call.Replace(CreateNull(
+                        call.Location,
+                        VoidType));
                 }
 
                 // Unlink call node from the current block
@@ -396,7 +375,11 @@ namespace ILGPU.IR
 
                 // Wire exit blocks with temp block
                 foreach (var (block, _) in exitBlocks)
-                    block.CreateBranch(tempBlock.BasicBlock);
+                {
+                    block.CreateBranch(
+                        call.Location,
+                        tempBlock.BasicBlock);
+                }
 
                 return tempBlock;
             }
@@ -421,7 +404,9 @@ namespace ILGPU.IR
                 Debug.Assert(valueIndex >= 0, "Invalid split point");
 
                 // Create temp block and move instructions
-                var tempBlock = MethodBuilder.CreateBasicBlock(BasicBlock.Name + "'");
+                var tempBlock = MethodBuilder.CreateBasicBlock(
+                    splitPoint.Location,
+                    BasicBlock.Name + "'");
                 for (int i = valueIndex + splitPointOffset, e = Count; i < e; ++i)
                 {
                     Value valueToMove = Values[i];
@@ -434,7 +419,9 @@ namespace ILGPU.IR
                 // Adjust terminators
                 tempBlock.Terminator = Terminator;
                 Terminator = null;
-                CreateBranch(tempBlock.BasicBlock);
+                CreateBranch(
+                    splitPoint.Location,
+                    tempBlock.BasicBlock);
 
                 // Update phi blocks
                 RemapPhiArguments(
@@ -451,8 +438,8 @@ namespace ILGPU.IR
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void MergeBlock(BasicBlock other)
             {
-                Debug.Assert(other != null, "Invalid other block");
-                Debug.Assert(other != BasicBlock, "Invalid block association");
+                this.AssertNotNull(other);
+                this.Assert(other != BasicBlock);
 
                 var otherBuilder = MethodBuilder[other];
 
@@ -486,17 +473,18 @@ namespace ILGPU.IR
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void ReplaceWithCall(Value value, Method implementationMethod)
             {
-                Debug.Assert(value != null, "Invalid value");
-                Debug.Assert(value.BasicBlock == BasicBlock, "Invalid value method");
-                Debug.Assert(implementationMethod != null, "Invalid method");
-                Debug.Assert(
-                    BasicBlock.Method != implementationMethod,
-                    "Cannot introduce recursive methods");
+                this.AssertNotNull(value);
+                this.Assert(value.BasicBlock == BasicBlock);
+                this.AssertNotNull(implementationMethod);
+                this.Assert(BasicBlock.Method != implementationMethod);
 
                 int oldPosition = InsertPosition;
                 SetupInsertPosition(value);
 
-                var call = CreateCall(implementationMethod, value.Nodes);
+                var call = CreateCall(
+                    value.Location,
+                    implementationMethod,
+                    value.Nodes);
                 value.Replace(call);
                 Remove(value);
 
@@ -506,7 +494,6 @@ namespace ILGPU.IR
             /// <summary cref="IRBuilder.CreateTerminator{T}(T)"/>
             protected override T CreateTerminator<T>(T node)
             {
-                MethodBuilder.Create(node);
                 Terminator?.Replace(node);
                 return (Terminator = node) as T;
             }
@@ -514,7 +501,6 @@ namespace ILGPU.IR
             /// <summary cref="IRBuilder.CreatePhiValue(PhiValue)"/>
             protected override PhiValue CreatePhiValue(PhiValue phiValue)
             {
-                MethodBuilder.Create(phiValue);
                 InsertAtBeginning(phiValue);
                 return phiValue;
             }
@@ -522,7 +508,6 @@ namespace ILGPU.IR
             /// <summary cref="IRBuilder.Append{T}(T)"/>
             protected override T Append<T>(T node)
             {
-                MethodBuilder.Create(node);
                 // Insert node into current basic block builder
                 Add(node);
                 return node;

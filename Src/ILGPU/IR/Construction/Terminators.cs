@@ -12,7 +12,6 @@
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Construction
 {
@@ -21,86 +20,93 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a new return terminator.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <returns>The created terminator.</returns>
-        public TerminatorValue CreateReturn() =>
-            CreateReturn(CreateUndefined());
+        public TerminatorValue CreateReturn(Location location) =>
+            CreateReturn(location, CreateUndefined());
 
         /// <summary>
         /// Creates a new return terminator.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="returnValue">The return value.</param>
         /// <returns>The created terminator.</returns>
-        public TerminatorValue CreateReturn(Value returnValue)
+        public TerminatorValue CreateReturn(
+            Location location,
+            Value returnValue)
         {
-            Debug.Assert(returnValue != null, "Invalid return value");
-            Debug.Assert(
-                returnValue.Type == Method.ReturnType,
-                "Incompatible return value");
+            location.Assert(returnValue.Type == Method.ReturnType);
             return CreateTerminator(new ReturnTerminator(
-                GetInitializer(),
+                GetInitializer(location),
                 returnValue));
         }
 
         /// <summary>
         /// Creates a new unconditional branch.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="target">The target block.</param>
         /// <returns>The created terminator.</returns>
-        public Branch CreateBranch(BasicBlock target)
-        {
-            Debug.Assert(target != null, "Invalid target");
-            return CreateTerminator(new UnconditionalBranch(
-                GetInitializer(),
+        public Branch CreateBranch(Location location, BasicBlock target) =>
+            CreateTerminator(new UnconditionalBranch(
+                GetInitializer(location),
                 target));
-        }
 
         /// <summary>
         /// Creates a new conditional branch.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="condition">The branch condition.</param>
         /// <param name="trueTarget">The true target block.</param>
         /// <param name="falseTarget">The false target block.</param>
         /// <returns>The created terminator.</returns>
         public Branch CreateIfBranch(
+            Location location,
             Value condition,
             BasicBlock trueTarget,
-            BasicBlock falseTarget)
-        {
-            Debug.Assert(condition != null, "Invalid condition");
-            Debug.Assert(trueTarget != null, "Invalid true target");
-            Debug.Assert(falseTarget != null, "Invalid false target");
-
-            return CreateTerminator(new IfBranch(
-                GetInitializer(),
+            BasicBlock falseTarget) =>
+            CreateTerminator(new IfBranch(
+                GetInitializer(location),
                 condition,
                 trueTarget,
                 falseTarget));
-        }
 
         /// <summary>
         /// Creates a switch terminator.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The selection value.</param>
         /// <param name="targets">All switch targets.</param>
         /// <returns>The created terminator.</returns>
         public Branch CreateSwitchBranch(
+            Location location,
             Value value,
             ImmutableArray<BasicBlock> targets)
         {
-            Debug.Assert(value != null, "Invalid value node");
-            Debug.Assert(value.BasicValueType.IsInt(), "Invalid value type");
-            Debug.Assert(targets.Length > 0, "Invalid number of targets");
+            location.Assert(
+                value.BasicValueType.IsInt() &&
+                targets.Length > 0);
 
-            value = CreateConvert(value, GetPrimitiveType(BasicValueType.Int32));
+            value = CreateConvert(
+                location,
+                value,
+                GetPrimitiveType(BasicValueType.Int32));
 
             // Transformation to create simple predicates
             return targets.Length == 2
                 ? CreateIfBranch(
-                    CreateCompare(value, CreatePrimitiveValue(0), CompareKind.Equal),
+                    location,
+                    CreateCompare(
+                        location,
+                        value,
+                        CreatePrimitiveValue(
+                            location,
+                            0),
+                        CompareKind.Equal),
                     targets[0],
                     targets[1])
                 : CreateTerminator(new SwitchBranch(
-                    GetInitializer(),
+                    GetInitializer(location),
                     value,
                     targets));
         }
@@ -113,7 +119,7 @@ namespace ILGPU.IR.Construction
         public BuilderTerminator CreateBuilderTerminator(
             ImmutableArray<BasicBlock> targets) =>
             CreateTerminator(new BuilderTerminator(
-                GetInitializer(),
+                GetInitializer(Location.Unknown),
                 targets)) as BuilderTerminator;
     }
 }

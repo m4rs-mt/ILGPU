@@ -11,8 +11,8 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Construction
@@ -22,234 +22,272 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a null value for the given type.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="type">The target type.</param>
         /// <returns>The null reference.</returns>
-        public ValueReference CreateNull(TypeNode type)
-        {
-            Debug.Assert(type != null, "Invalid type node");
-
-            return type is PrimitiveType primitiveType
-                ? CreatePrimitiveValue(primitiveType.BasicValueType, 0)
-                : (ValueReference)Append(new NullValue(
-                    GetInitializer(),
-                    type));
-        }
+        public ValueReference CreateNull(Location location, TypeNode type) =>
+            type is PrimitiveType primitiveType
+            ? CreatePrimitiveValue(
+                location,
+                primitiveType.BasicValueType,
+                0)
+            : (ValueReference)Append(new NullValue(
+                GetInitializer(location),
+                type));
 
         /// <summary>
         /// Creates a new primitive <see cref="Enum"/> constant.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The object value.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateEnumValue(object value)
+        public ValueReference CreateEnumValue(Location location, object value)
         {
             if (value == null)
-                throw new ArgumentNullException(nameof(value));
+                throw location.GetArgumentNullException(nameof(value));
             var type = value.GetType();
             if (!type.IsEnum)
-                throw new ArgumentOutOfRangeException(nameof(value));
+            {
+                throw location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedType,
+                    type);
+            }
+
             var baseType = type.GetEnumUnderlyingType();
             var baseValue = Convert.ChangeType(value, baseType);
-            return CreatePrimitiveValue(baseValue);
+            return CreatePrimitiveValue(location, baseValue);
         }
 
         /// <summary>
         /// Creates a new primitive constant.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The object value.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreatePrimitiveValue(object value)
+        public ValueReference CreatePrimitiveValue(Location location, object value)
         {
             if (value == null)
-                throw new ArgumentNullException(nameof(value));
+                throw location.GetArgumentNullException(nameof(value));
             return Type.GetTypeCode(value.GetType()) switch
             {
-                TypeCode.Boolean => CreatePrimitiveValue((bool)value),
-                TypeCode.SByte => CreatePrimitiveValue((sbyte)value),
-                TypeCode.Int16 => CreatePrimitiveValue((short)value),
-                TypeCode.Int32 => CreatePrimitiveValue((int)value),
-                TypeCode.Int64 => CreatePrimitiveValue((long)value),
-                TypeCode.Byte => CreatePrimitiveValue((byte)value),
-                TypeCode.UInt16 => CreatePrimitiveValue((ushort)value),
-                TypeCode.UInt32 => CreatePrimitiveValue((uint)value),
-                TypeCode.UInt64 => CreatePrimitiveValue((ulong)value),
-                TypeCode.Single => CreatePrimitiveValue((float)value),
-                TypeCode.Double => CreatePrimitiveValue((double)value),
-                TypeCode.String => CreatePrimitiveValue((string)value),
-                _ => throw new ArgumentOutOfRangeException(nameof(value)),
+                TypeCode.Boolean => CreatePrimitiveValue(location, (bool)value),
+                TypeCode.SByte => CreatePrimitiveValue(location, (sbyte)value),
+                TypeCode.Int16 => CreatePrimitiveValue(location, (short)value),
+                TypeCode.Int32 => CreatePrimitiveValue(location, (int)value),
+                TypeCode.Int64 => CreatePrimitiveValue(location, (long)value),
+                TypeCode.Byte => CreatePrimitiveValue(location, (byte)value),
+                TypeCode.UInt16 => CreatePrimitiveValue(location, (ushort)value),
+                TypeCode.UInt32 => CreatePrimitiveValue(location, (uint)value),
+                TypeCode.UInt64 => CreatePrimitiveValue(location, (ulong)value),
+                TypeCode.Single => CreatePrimitiveValue(location, (float)value),
+                TypeCode.Double => CreatePrimitiveValue(location, (double)value),
+                TypeCode.String => CreatePrimitiveValue(location, (string)value),
+                _ => throw location.GetArgumentException(nameof(value))
             };
         }
 
         /// <summary>
         /// Creates a new string constant.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="string">The string value.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreatePrimitiveValue(string @string)
+        public ValueReference CreatePrimitiveValue(
+            Location location,
+            string @string)
         {
             if (@string == null)
-                throw new ArgumentNullException(nameof(@string));
+                throw location.GetArgumentNullException(nameof(@string));
             return Append(new StringValue(
-                GetInitializer(),
+                GetInitializer(location),
                 @string));
         }
 
         /// <summary>
         /// Creates a primitive <see cref="bool"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(bool value) =>
+        public PrimitiveValue CreatePrimitiveValue(Location location, bool value) =>
             Append(new PrimitiveValue(
-                GetInitializer(),
+                GetInitializer(location),
                 BasicValueType.Int1,
                 value ? 1 : 0));
 
         /// <summary>
         /// Creates a primitive <see cref="sbyte"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
         [CLSCompliant(false)]
-        public PrimitiveValue CreatePrimitiveValue(sbyte value) =>
+        public PrimitiveValue CreatePrimitiveValue(Location location, sbyte value) =>
             Append(new PrimitiveValue(
-                GetInitializer(),
+                GetInitializer(location),
                 BasicValueType.Int8,
                 value));
 
         /// <summary>
         /// Creates a primitive <see cref="byte"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(byte value) =>
-            CreatePrimitiveValue((sbyte)value);
+        public PrimitiveValue CreatePrimitiveValue(Location location, byte value) =>
+            CreatePrimitiveValue(location, (sbyte)value);
 
         /// <summary>
         /// Creates a primitive <see cref="short"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(short value) =>
+        public PrimitiveValue CreatePrimitiveValue(Location location, short value) =>
             Append(new PrimitiveValue(
-                GetInitializer(),
+                GetInitializer(location),
                 BasicValueType.Int16,
                 value));
 
         /// <summary>
         /// Creates a primitive <see cref="ushort"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
         [CLSCompliant(false)]
-        public PrimitiveValue CreatePrimitiveValue(ushort value) =>
-            CreatePrimitiveValue((short)value);
+        public PrimitiveValue CreatePrimitiveValue(Location location, ushort value) =>
+            CreatePrimitiveValue(location, (short)value);
 
         /// <summary>
         /// Creates a primitive <see cref="int"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(int value) =>
+        public PrimitiveValue CreatePrimitiveValue(Location location, int value) =>
             Append(new PrimitiveValue(
-                GetInitializer(),
+                GetInitializer(location),
                 BasicValueType.Int32,
                 value));
 
         /// <summary>
         /// Creates a primitive <see cref="uint"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
         [CLSCompliant(false)]
-        public PrimitiveValue CreatePrimitiveValue(uint value) =>
-            CreatePrimitiveValue((int)value);
+        public PrimitiveValue CreatePrimitiveValue(Location location, uint value) =>
+            CreatePrimitiveValue(location, (int)value);
 
         /// <summary>
         /// Creates a primitive <see cref="long"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(long value) =>
+        public PrimitiveValue CreatePrimitiveValue(Location location, long value) =>
             Append(new PrimitiveValue(
-                GetInitializer(),
+                GetInitializer(location),
                 BasicValueType.Int64,
                 value));
 
         /// <summary>
         /// Creates a primitive <see cref="ulong"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
         [CLSCompliant(false)]
-        public PrimitiveValue CreatePrimitiveValue(ulong value) =>
-            CreatePrimitiveValue((long)value);
+        public PrimitiveValue CreatePrimitiveValue(Location location, ulong value) =>
+            CreatePrimitiveValue(location, (long)value);
 
         /// <summary>
         /// Creates a primitive <see cref="float"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(float value) =>
+        public PrimitiveValue CreatePrimitiveValue(Location location, float value) =>
             Append(new PrimitiveValue(
-                GetInitializer(),
+                GetInitializer(location),
                 BasicValueType.Float32,
                 Unsafe.As<float, int>(ref value)));
 
         /// <summary>
         /// Creates a primitive <see cref="double"/> value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <returns>The created primitive value.</returns>
-        public PrimitiveValue CreatePrimitiveValue(double value) =>
+        public PrimitiveValue CreatePrimitiveValue(Location location, double value) =>
             Context.HasFlags(ContextFlags.Force32BitFloats)
-            ? CreatePrimitiveValue((float)value)
+            ? CreatePrimitiveValue(location, (float)value)
             : Append(new PrimitiveValue(
-                GetInitializer(),
+                GetInitializer(location),
                 BasicValueType.Float64,
                 Unsafe.As<double, long>(ref value)));
 
         /// <summary>
         /// Creates a primitive value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="type">The value type.</param>
         /// <param name="rawValue">The raw value (sign-extended to long).</param>
         /// <returns>The created primitive value.</returns>
         public PrimitiveValue CreatePrimitiveValue(
+            Location location,
             BasicValueType type,
             long rawValue) =>
             Append(new PrimitiveValue(
-                GetInitializer(),
+                GetInitializer(location),
                 type,
                 rawValue));
 
         /// <summary>
         /// Creates a generic value.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="value">The value.</param>
         /// <param name="type">The value type.</param>
         /// <returns>The created value.</returns>
-        public ValueReference CreateValue(object value, Type type)
+        public ValueReference CreateValue(
+            Location location,
+            object value,
+            Type type)
         {
             if (type == null)
-                throw new ArgumentNullException(nameof(type));
+                throw location.GetArgumentNullException(nameof(type));
             if (value != null && type != value.GetType())
-                throw new ArgumentOutOfRangeException(nameof(type));
+                throw location.GetArgumentException(nameof(type));
             return Type.GetTypeCode(type) switch
             {
-                TypeCode.Boolean => CreatePrimitiveValue(Convert.ToBoolean(value)),
-                TypeCode.SByte => CreatePrimitiveValue(Convert.ToSByte(value)),
-                TypeCode.Byte => CreatePrimitiveValue(Convert.ToByte(value)),
-                TypeCode.Int16 => CreatePrimitiveValue(Convert.ToInt16(value)),
-                TypeCode.UInt16 => CreatePrimitiveValue(Convert.ToUInt16(value)),
-                TypeCode.Int32 => CreatePrimitiveValue(Convert.ToInt32(value)),
-                TypeCode.UInt32 => CreatePrimitiveValue(Convert.ToUInt32(value)),
-                TypeCode.Int64 => CreatePrimitiveValue(Convert.ToInt64(value)),
-                TypeCode.UInt64 => CreatePrimitiveValue(Convert.ToUInt64(value)),
-                TypeCode.Single => CreatePrimitiveValue(Convert.ToSingle(value)),
-                TypeCode.Double => CreatePrimitiveValue(Convert.ToDouble(value)),
+                TypeCode.Boolean =>
+                    CreatePrimitiveValue(location, Convert.ToBoolean(value)),
+                TypeCode.SByte =>
+                    CreatePrimitiveValue(location, Convert.ToSByte(value)),
+                TypeCode.Byte =>
+                    CreatePrimitiveValue(location, Convert.ToByte(value)),
+                TypeCode.Int16 =>
+                    CreatePrimitiveValue(location, Convert.ToInt16(value)),
+                TypeCode.UInt16 =>
+                    CreatePrimitiveValue(location, Convert.ToUInt16(value)),
+                TypeCode.Int32 =>
+                    CreatePrimitiveValue(location, Convert.ToInt32(value)),
+                TypeCode.UInt32 =>
+                    CreatePrimitiveValue(location, Convert.ToUInt32(value)),
+                TypeCode.Int64 =>
+                    CreatePrimitiveValue(location, Convert.ToInt64(value)),
+                TypeCode.UInt64 =>
+                    CreatePrimitiveValue(location, Convert.ToUInt64(value)),
+                TypeCode.Single =>
+                    CreatePrimitiveValue(location, Convert.ToSingle(value)),
+                TypeCode.Double =>
+                    CreatePrimitiveValue(location, Convert.ToDouble(value)),
                 _ => value == null
-                    ? CreateNull(CreateType(type))
-                    : CreateObjectValue(value),
+                    ? CreateNull(location, CreateType(type))
+                    : CreateObjectValue(location, value),
             };
         }
     }

@@ -143,6 +143,11 @@ namespace ILGPU.IR.Construction
                 /// Returns the type of the underlying phi node.
                 /// </summary>
                 public TypeNode PhiType => PhiBuilder.Type;
+
+                /// <summary>
+                /// Returns the location of the phi node.
+                /// </summary>
+                public Location Location => PhiBuilder.PhiValue.Location;
             }
 
             #endregion
@@ -331,9 +336,12 @@ namespace ILGPU.IR.Construction
                 }
                 else
                 {
-                    // Insert the actual phi param
+                    // Insert the actual phi value
                     var peekedValue = PeekValue(var, markerProvider.CreateMarker());
-                    var phiBuilder = Builder.CreatePhi(peekedValue.Type);
+                    // Let the phi point to the beginning of the current block
+                    var phiBuilder = Builder.CreatePhi(
+                        blockBuilder.BasicBlock.Location,
+                        peekedValue.Type);
                     value = phiBuilder.PhiValue;
 
                     var incompletePhi = new IncompletePhi(var, phiBuilder);
@@ -377,6 +385,7 @@ namespace ILGPU.IR.Construction
                     {
                         // Use the predecessor block to convert the value
                         value = valueContainer.Builder.CreateConvert(
+                            incompletePhi.Location,
                             value,
                             primitiveType);
                     }
@@ -384,9 +393,8 @@ namespace ILGPU.IR.Construction
                     // Set argument value
                     phiBuilder.AddArgument(predecessor.Block, value);
                 }
-                Debug.Assert(
-                    phiBuilder.Count == Node.Predecessors.Count,
-                    "Invalid phi configuration");
+                incompletePhi.Location.Assert(
+                    phiBuilder.Count == Node.Predecessors.Count);
                 var phiValue = phiBuilder.Seal();
                 return phiValue.TryRemoveTrivialPhi(Parent.MethodBuilder);
             }

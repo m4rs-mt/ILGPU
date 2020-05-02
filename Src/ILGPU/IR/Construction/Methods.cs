@@ -12,7 +12,6 @@
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Construction
 {
@@ -21,31 +20,31 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a new call node.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="target">The jump target.</param>
         /// <param name="arguments">The target arguments.</param>
         /// <returns>A function call.</returns>
         public ValueReference CreateCall(
+            Location location,
             Method target,
-            ImmutableArray<ValueReference> arguments)
-        {
-            Debug.Assert(target != null, "Invalid target node");
-
-            return Append(new MethodCall(
-                GetInitializer(),
+            ImmutableArray<ValueReference> arguments) =>
+            Append(new MethodCall(
+                GetInitializer(location),
                 target,
                 arguments));
-        }
 
         /// <summary>
         /// Creates a new phi node builder.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="type">The given node type.</param>
         /// <returns>The created phi builder.</returns>
-        public PhiValue.Builder CreatePhi(TypeNode type)
+        public PhiValue.Builder CreatePhi(Location location, TypeNode type)
         {
-            Debug.Assert(type != null, "Invalid type node");
+            location.AssertNotNull(type);
+
             var phiNode = CreatePhiValue(new PhiValue(
-                GetInitializer(),
+                GetInitializer(location),
                 type));
             return new PhiValue.Builder(phiNode);
         }

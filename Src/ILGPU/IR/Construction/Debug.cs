@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Construction
 {
@@ -19,19 +18,17 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a new failed debug assertion.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="kind">The operation kind.</param>
         /// <param name="message">The assertion message.</param>
         /// <returns>A node that represents the debug assertion.</returns>
         public ValueReference CreateDebug(
+            Location location,
             DebugKind kind,
-            Value message)
-        {
-            Debug.Assert(message != null, "Invalid message value");
-
-            return Append(new DebugOperation(
-                GetInitializer(),
+            Value message) =>
+            Append(new DebugOperation(
+                GetInitializer(location),
                 kind,
                 message));
-        }
     }
 }

@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.IR.Construction
@@ -21,6 +20,7 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a local allocation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="type">The type of the allocation.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <returns>A node that represents the alloca operation.</returns>
@@ -28,13 +28,19 @@ namespace ILGPU.IR.Construction
             "Microsoft.Design",
             "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateAlloca(
+            Location location,
             TypeNode type,
             MemoryAddressSpace addressSpace) =>
-            CreateAlloca(type, addressSpace, CreateUndefined());
+            CreateAlloca(
+                location,
+                type,
+                addressSpace,
+                CreateUndefined());
 
         /// <summary>
         /// Creates an array based local allocation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="arrayLength">
         /// The array length (number of elements to allocate).
         /// </param>
@@ -45,14 +51,20 @@ namespace ILGPU.IR.Construction
             "Microsoft.Design",
             "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateStaticAllocaArray(
+            Location location,
             Value arrayLength,
             TypeNode type,
             MemoryAddressSpace addressSpace) =>
-            CreateAlloca(type, addressSpace, arrayLength);
+            CreateAlloca(
+                location,
+                type,
+                addressSpace,
+                arrayLength);
 
         /// <summary>
         /// Creates a dynamic local memory allocation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="type">The type of the allocation.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <returns>A node that represents the alloca operation.</returns>
@@ -60,16 +72,19 @@ namespace ILGPU.IR.Construction
             "Microsoft.Design",
             "CA1011:ConsiderPassingBaseTypesAsParameters")]
         public ValueReference CreateDynamicAllocaArray(
+            Location location,
             TypeNode type,
             MemoryAddressSpace addressSpace) =>
             CreateStaticAllocaArray(
-                CreatePrimitiveValue(-1),
+                location,
+                CreatePrimitiveValue(location, -1),
                 type,
                 addressSpace);
 
         /// <summary>
         /// Creates a local allocation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="type">The type of the allocation.</param>
         /// <param name="addressSpace">The target address space.</param>
         /// <param name="arrayLength">
@@ -80,22 +95,22 @@ namespace ILGPU.IR.Construction
             "Microsoft.Design",
             "CA1011:ConsiderPassingBaseTypesAsParameters")]
         internal ValueReference CreateAlloca(
+            Location location,
             TypeNode type,
             MemoryAddressSpace addressSpace,
             Value arrayLength)
         {
-            Debug.Assert(arrayLength != null, "Invalid array length");
-            Debug.Assert(type != null, "Invalid alloca type");
-            Debug.Assert(
+            location.Assert(
                 addressSpace == MemoryAddressSpace.Local ||
-                addressSpace == MemoryAddressSpace.Shared,
-                "Invalid address space");
+                addressSpace == MemoryAddressSpace.Shared);
 
             return arrayLength is PrimitiveValue primitiveValue &&
                 primitiveValue.Int32Value == 0
-                ? CreateNull(CreatePointerType(type, addressSpace))
+                ? CreateNull(
+                    location,
+                    CreatePointerType(type, addressSpace))
                 : Append(new Alloca(
-                    GetInitializer(),
+                    GetInitializer(location),
                     arrayLength,
                     type,
                     addressSpace));
@@ -104,41 +119,44 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a load operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="source">The source address.</param>
         /// <returns>A node that represents the load operation.</returns>
         [SuppressMessage(
             "Microsoft.Design",
             "CA1011:ConsiderPassingBaseTypesAsParameters")]
-        public ValueReference CreateLoad(Value source)
+        public ValueReference CreateLoad(
+            Location location,
+            Value source)
         {
-            Debug.Assert(source != null, "Invalid source value");
-            Debug.Assert(source.Type.IsPointerType, "Invalid source pointer type");
+            location.Assert(source.Type.IsPointerType);
 
             return Append(new Load(
-                GetInitializer(),
+                GetInitializer(location),
                 source));
         }
 
         /// <summary>
         /// Creates a store operation.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="target">The target address.</param>
         /// <param name="value">The value to store.</param>
         /// <returns>A node that represents the store operation.</returns>
         [SuppressMessage(
             "Microsoft.Design",
             "CA1011:ConsiderPassingBaseTypesAsParameters")]
-        public ValueReference CreateStore(Value target, Value value)
+        public ValueReference CreateStore(
+            Location location,
+            Value target,
+            Value value)
         {
-            Debug.Assert(target != null, "Invalid target value");
-            Debug.Assert(target.Type.IsPointerType, "Invalid target pointer type");
-            Debug.Assert(
+            location.Assert(
                 target.Type is PointerType pointerType &&
-                pointerType.ElementType == value.Type,
-                "Not compatible element types");
+                pointerType.ElementType == value.Type);
 
             return Append(new Store(
-                GetInitializer(),
+                GetInitializer(location),
                 target,
                 value));
         }
@@ -146,42 +164,40 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a memory barrier.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="kind">The type of the memory barrier.</param>
         /// <returns>A node that represents the memory barrier.</returns>
         [SuppressMessage(
             "Microsoft.Design",
             "CA1011:ConsiderPassingBaseTypesAsParameters")]
-        public ValueReference CreateMemoryBarrier(MemoryBarrierKind kind) =>
+        public ValueReference CreateMemoryBarrier(
+            Location location,
+            MemoryBarrierKind kind) =>
             Append(new MemoryBarrier(
-                GetInitializer(),
+                GetInitializer(location),
                 kind));
 
         /// <summary>
         /// Computes a new sub view from a given view.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="source">The source.</param>
         /// <param name="offset">The offset.</param>
         /// <param name="length">The length.</param>
         /// <returns>A node that represents the new sub view.</returns>
         public ValueReference CreateSubViewValue(
+            Location location,
             Value source,
             Value offset,
             Value length)
         {
-            Debug.Assert(source != null, "Invalid source value");
-            Debug.Assert(offset != null, "Invalid offset value");
-            Debug.Assert(length != null, "Invalid length value");
-
-            Debug.Assert(source.Type.IsViewType, "Invalid source view type");
-            Debug.Assert(
-                offset.BasicValueType == IRTypeContext.ViewIndexType,
-                "Invalid offset type");
-            Debug.Assert(
-                length.BasicValueType == IRTypeContext.ViewIndexType,
-                "Invalid length type");
+            location.Assert(
+                source.Type.IsViewType &&
+                offset.BasicValueType == IRTypeContext.ViewIndexType &&
+                length.BasicValueType == IRTypeContext.ViewIndexType);
 
             return Append(new SubViewValue(
-                GetInitializer(),
+                GetInitializer(location),
                 source,
                 offset,
                 length));
@@ -190,25 +206,25 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Computes the address of a single element in the scope of a view or a pointer.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="source">The source view.</param>
         /// <param name="elementIndex">The element index to load.</param>
         /// <returns>A node that represents the element address.</returns>
-        public ValueReference CreateLoadElementAddress(Value source, Value elementIndex)
+        public ValueReference CreateLoadElementAddress(
+            Location location,
+            Value source,
+            Value elementIndex)
         {
-            Debug.Assert(source != null, "Invalid source value");
-            Debug.Assert(elementIndex != null, "Invalid element index");
-
+            location.Assert(
+                elementIndex.BasicValueType == IRTypeContext.ViewIndexType);
             var addressSpaceType = source.Type as IAddressSpaceType;
-            Debug.Assert(addressSpaceType != null, "Invalid address space type");
-            Debug.Assert(
-                elementIndex.BasicValueType == IRTypeContext.ViewIndexType,
-                "Incompatible index type");
+            location.AssertNotNull(addressSpaceType);
 
             // Fold primitive pointer arithmetic that does not change anything
             return source.Type is PointerType && elementIndex.IsPrimitive(0)
                 ? (ValueReference)source
                 : Append(new LoadElementAddress(
-                    GetInitializer(),
+                    GetInitializer(location),
                     source,
                     elementIndex));
         }
@@ -216,15 +232,16 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Computes the address of a single field.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="source">The source.</param>
         /// <param name="fieldSpan">The associated field span (if any).</param>
         /// <returns>A node that represents the field address.</returns>
-        public ValueReference CreateLoadFieldAddress(Value source, FieldSpan fieldSpan)
+        public ValueReference CreateLoadFieldAddress(
+            Location location,
+            Value source,
+            FieldSpan fieldSpan)
         {
-            Debug.Assert(source != null, "Invalid source value");
-
-            var pointerType = source.Type as PointerType;
-            Debug.Assert(pointerType != null, "Invalid source pointer type");
+            var pointerType = source.Type.As<PointerType>(location);
 
             // Simplify pseudo-structure accesses
             if (!pointerType.ElementType.IsStructureType && fieldSpan.Span < 2)
@@ -240,10 +257,11 @@ namespace ILGPU.IR.Construction
             // Fold nested field addresses
             return source is LoadFieldAddress lfa
                 ? CreateLoadFieldAddress(
+                    location,
                     lfa.Source,
                     lfa.FieldSpan.Narrow(fieldSpan))
                 : Append(new LoadFieldAddress(
-                    GetInitializer(),
+                    GetInitializer(location),
                     source,
                     fieldSpan));
         }

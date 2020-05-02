@@ -13,7 +13,6 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
 using ILGPU.Util;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Construction
@@ -22,7 +21,7 @@ namespace ILGPU.IR.Construction
     /// An IR builder that can construct IR nodes.
     /// </summary>
     /// <remarks>Members of this class are thread safe.</remarks>
-    public abstract partial class IRBuilder : DisposeBase
+    public abstract partial class IRBuilder : DisposeBase, ILocation
     {
         #region Instance
 
@@ -32,8 +31,6 @@ namespace ILGPU.IR.Construction
         /// <param name="basicBlock">The current basic block.</param>
         protected IRBuilder(BasicBlock basicBlock)
         {
-            Debug.Assert(basicBlock != null, "Invalid basic block");
-
             BasicBlock = basicBlock;
             Context = Method.Context;
             UseConstantPropagation = !Context.HasFlags(
@@ -79,123 +76,155 @@ namespace ILGPU.IR.Construction
         #region Methods
 
         /// <summary>
+        /// Formats an error message to include specific exception information.
+        /// </summary>
+        /// <param name="message">The source error message.</param>
+        /// <returns>The formatted error message.</returns>
+        public string FormatErrorMessage(string message) =>
+            BasicBlock.FormatErrorMessage(message);
+
+        /// <summary>
         /// Creates a new initializer that is bound to the current block.
         /// </summary>
         /// <returns>The created value initializer.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ValueInitializer GetInitializer() =>
-            new ValueInitializer(Context, BasicBlock);
+        private ValueInitializer GetInitializer(Location location) =>
+            new ValueInitializer(Context, BasicBlock, location);
 
         /// <summary>
         /// Creates a node that represents an <see cref="Accelerator.CurrentType"/>
         /// property.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateAcceleratorTypeValue() =>
-            Append(new AcceleratorTypeValue(GetInitializer()));
+        public ValueReference CreateAcceleratorTypeValue(Location location) =>
+            Append(new AcceleratorTypeValue(GetInitializer(location)));
 
         /// <summary>
         /// Creates a node that represents a <see cref="Warp.WarpSize"/> property.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateWarpSizeValue() =>
-            Append(new WarpSizeValue(GetInitializer()));
+        public ValueReference CreateWarpSizeValue(Location location) =>
+            Append(new WarpSizeValue(GetInitializer(location)));
 
         /// <summary>
         /// Creates a node that represents a <see cref="Warp.LaneIdx"/> property.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateLaneIdxValue() =>
-            Append(new LaneIdxValue(GetInitializer()));
+        public ValueReference CreateLaneIdxValue(Location location) =>
+            Append(new LaneIdxValue(GetInitializer(location)));
 
         /// <summary>
         /// Creates a node that represents a <see cref="Grid.Index"/> property.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="dimension">The constant dimension.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateGridIndexValue(DeviceConstantDimension3D dimension)
+        public ValueReference CreateGridIndexValue(
+            Location location,
+            DeviceConstantDimension3D dimension)
         {
-            Debug.Assert(
-                dimension >= DeviceConstantDimension3D.X &&
-                dimension <= DeviceConstantDimension3D.Z,
-                "Invalid dimension value");
+            if (dimension < DeviceConstantDimension3D.X ||
+                dimension > DeviceConstantDimension3D.Z)
+            {
+                throw location.GetArgumentException(nameof(dimension));
+            }
             return Append(new GridIndexValue(
-                GetInitializer(),
+                GetInitializer(location),
                 dimension));
         }
 
         /// <summary>
         /// Creates a node that represents a <see cref="Group.Index"/> property.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="dimension">The constant dimension.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateGroupIndexValue(DeviceConstantDimension3D dimension)
+        public ValueReference CreateGroupIndexValue(
+            Location location,
+            DeviceConstantDimension3D dimension)
         {
-            Debug.Assert(
-                dimension >= DeviceConstantDimension3D.X &&
-                dimension <= DeviceConstantDimension3D.Z,
-                "Invalid dimension value");
+            if (dimension < DeviceConstantDimension3D.X ||
+                dimension > DeviceConstantDimension3D.Z)
+            {
+                throw location.GetArgumentException(nameof(dimension));
+            }
             return Append(new GroupIndexValue(
-                GetInitializer(),
+                GetInitializer(location),
                 dimension));
         }
 
         /// <summary>
         /// Creates a node that represents a <see cref="Grid.Dimension"/> property.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="dimension">The constant dimension.</param>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateGridDimensionValue(
+            Location location,
             DeviceConstantDimension3D dimension)
         {
-            Debug.Assert(
-                dimension >= DeviceConstantDimension3D.X &&
-                dimension <= DeviceConstantDimension3D.Z,
-                "Invalid dimension value");
+            if (dimension < DeviceConstantDimension3D.X ||
+                dimension > DeviceConstantDimension3D.Z)
+            {
+                throw location.GetArgumentException(nameof(dimension));
+            }
             return Append(new GridDimensionValue(
-                GetInitializer(),
+                GetInitializer(location),
                 dimension));
         }
 
         /// <summary>
         /// Creates a node that represents of a <see cref="Group.Dimension"/> property.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="dimension">The constant dimension.</param>
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreateGroupDimensionValue(
+            Location location,
             DeviceConstantDimension3D dimension)
         {
-            Debug.Assert(
-                dimension >= DeviceConstantDimension3D.X &&
-                dimension <= DeviceConstantDimension3D.Z,
-                "Invalid dimension value");
+            if (dimension < DeviceConstantDimension3D.X ||
+                dimension > DeviceConstantDimension3D.Z)
+            {
+                throw location.GetArgumentException(nameof(dimension));
+            }
             return Append(new GroupDimensionValue(
-                GetInitializer(),
+                GetInitializer(location),
                 dimension));
         }
 
         /// <summary>
         /// Creates a node that represents the native size of the given type.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="type">The type.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateSizeOf(TypeNode type)
+        public ValueReference CreateSizeOf(Location location, TypeNode type)
         {
-            Debug.Assert(type != null, "Invalid type node");
-            return CreatePrimitiveValue(type.Size);
+            location.AssertNotNull(type);
+            return CreatePrimitiveValue(location, type.Size);
         }
 
         /// <summary>
         /// Creates a node that represents the native offset of the specified field
         /// index.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="type">The type.</param>
         /// <param name="fieldIndex">The field index.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateOffsetOf(TypeNode type, int fieldIndex)
+        public ValueReference CreateOffsetOf(
+            Location location,
+            TypeNode type,
+            int fieldIndex)
         {
-            Debug.Assert(type != null, "Invalid type node");
+            location.AssertNotNull(type);
+
             return CreatePrimitiveValue(
+                location,
                 type is StructureType structureType
                 ? structureType.GetOffset(fieldIndex)
                 : 0);
@@ -210,24 +239,27 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Creates a node that represents a managed runtime handle.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="handle">The runtime handle.</param>
         /// <returns>A reference to the requested value.</returns>
-        public ValueReference CreateRuntimeHandle(object handle)
+        public ValueReference CreateRuntimeHandle(Location location, object handle)
         {
-            Debug.Assert(handle != null, "Invalid runtime handle");
+            if (handle == null)
+                throw location.GetArgumentNullException(nameof(handle));
             return Append(new HandleValue(
-                GetInitializer(),
+                GetInitializer(location),
                 handle));
         }
 
         /// <summary>
         /// Creates a new index structure instance.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="dimension">The dimension value.</param>
         /// <returns>The created index type.</returns>
-        public ValueReference CreateIndex(ValueReference dimension)
+        public ValueReference CreateIndex(Location location, ValueReference dimension)
         {
-            var instance = CreateDynamicStructure(1);
+            var instance = CreateDynamicStructure(location, 1);
             instance.Add(dimension);
             return instance.Seal();
         }
