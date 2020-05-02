@@ -133,6 +133,24 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to An internal compiler error has been detected.
+        /// </summary>
+        internal static string InternalCompilerError {
+            get {
+                return ResourceManager.GetString("InternalCompilerError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid null value.
+        /// </summary>
+        internal static string InternalCompilerErrorNull {
+            get {
+                return ResourceManager.GetString("InternalCompilerErrorNull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Intrinsic accelerators broken (contact developers).
         /// </summary>
         internal static string IntrinsicAcceleratorsBroken {
@@ -210,6 +228,33 @@ namespace ILGPU.Resources {
         internal static string InvalidKernelOperation {
             get {
                 return ResourceManager.GetString("InvalidKernelOperation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; in file &apos;{1}&apos; lines {2} - {3}.
+        /// </summary>
+        internal static string LocationFileMessage {
+            get {
+                return ResourceManager.GetString("LocationFileMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; in method {1} declared in type {2}.
+        /// </summary>
+        internal static string LocationMethodMessage {
+            get {
+                return ResourceManager.GetString("LocationMethodMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; related to type {1} (managed type &apos;{2}&apos;).
+        /// </summary>
+        internal static string LocationTypeMessage {
+            get {
+                return ResourceManager.GetString("LocationTypeMessage", resourceCulture);
             }
         }
         
@@ -349,7 +394,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported IL instruction in method &apos;{0}&apos; of type &apos;{1}&apos;.
+        ///   Looks up a localized string similar to Not supported IL instruction of type &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedILInstruction {
             get {
@@ -358,16 +403,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported IL instruction in method &apos;{0}&apos; of type &apos;{1}&apos; (see {2}).
-        /// </summary>
-        internal static string NotSupportedILInstructionDebugLoc {
-            get {
-                return ResourceManager.GetString("NotSupportedILInstructionDebugLoc", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Not supported IL instruction in method &apos;{0}&apos; of type &apos;{1}&apos;. Are you using a lambda closure? (see {2}).
+        ///   Looks up a localized string similar to Not supported IL instruction in method &apos;{0}&apos;. Are you using a lambda closure?.
         /// </summary>
         internal static string NotSupportedILInstructionPossibleLambda {
             get {
@@ -385,7 +421,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported instruction in method &apos;{0}&apos; of type &apos;{1}&apos;..
+        ///   Looks up a localized string similar to Not supported instruction in method &apos;{0}&apos;..
         /// </summary>
         internal static string NotSupportedInstruction {
             get {

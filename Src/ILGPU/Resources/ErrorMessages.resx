@@ -148,16 +148,16 @@
     <value>Not supported compare or arithmetic value of type '{0}'</value>
   </data>
   <data name="NotSupportedILInstruction" xml:space="preserve">
-    <value>Not supported IL instruction in method '{0}' of type '{1}'</value>
+    <value>Not supported IL instruction of type '{0}'</value>
   </data>
   <data name="NotSupportedILInstructionPossibleLambda" xml:space="preserve">
-    <value>Not supported IL instruction in method '{0}' of type '{1}'. Are you using a lambda closure? (see {2})</value>
+    <value>Not supported IL instruction in method '{0}'. Are you using a lambda closure?</value>
   </data>
   <data name="NotSupportedIndirectMethodCall" xml:space="preserve">
     <value>Not supported indirect call to a method with the signature '{0}'</value>
   </data>
   <data name="NotSupportedInstruction" xml:space="preserve">
-    <value>Not supported instruction in method '{0}' of type '{1}'.</value>
+    <value>Not supported instruction in method '{0}'.</value>
   </data>
   <data name="NotSupportedInterfaceType" xml:space="preserve">
     <value>Interface type '{0}' is not supported</value>
@@ -240,9 +240,6 @@
   <data name="InvalidEntryPointWithoutDotNetMethod" xml:space="preserve">
     <value>Not supported entry point without a valid .Net runtime entry</value>
   </data>
-  <data name="NotSupportedILInstructionDebugLoc" xml:space="preserve">
-    <value>Not supported IL instruction in method '{0}' of type '{1}' (see {2})</value>
-  </data>
   <data name="NotSupportedWarpIntrinsic" xml:space="preserve">
     <value>The warp intrinsic '{0}' is not supported</value>
   </data>
@@ -299,5 +296,20 @@
   </data>
   <data name="NotSupportedDynamicSharedMemoryAllocations" xml:space="preserve">
     <value>Dynamic shared memory allocations are not supported by this accelerator</value>
+  </data>
+  <data name="InternalCompilerError" xml:space="preserve">
+    <value>An internal compiler error has been detected</value>
+  </data>
+  <data name="InternalCompilerErrorNull" xml:space="preserve">
+    <value>Invalid null value</value>
+  </data>
+  <data name="LocationFileMessage" xml:space="preserve">
+    <value>'{0}' in file '{1}' lines {2} - {3}</value>
+  </data>
+  <data name="LocationMethodMessage" xml:space="preserve">
+    <value>'{0}' in method {1} declared in type {2}</value>
+  </data>
+  <data name="LocationTypeMessage" xml:space="preserve">
+    <value>'{0}' related to type {1} (managed type '{2}')</value>
   </data>
 </root>
