@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
@@ -108,6 +109,7 @@ namespace ILGPU.Frontend.Intrinsic
             {
                 case 1:
                     return context.Builder.CreateArithmetic(
+                        context.Location,
                         context[0],
                         (UnaryArithmeticKind)attribute.IntrinsicKind,
                         attribute.IntrinsicFlags);
@@ -115,6 +117,7 @@ namespace ILGPU.Frontend.Intrinsic
                     var kindIndex = attribute.IntrinsicKind -
                         MathIntrinsicKind._BinaryFunctions - 1;
                     return context.Builder.CreateArithmetic(
+                        context.Location,
                         context[0],
                         context[1],
                         (BinaryArithmeticKind)kindIndex,

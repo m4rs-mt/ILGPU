@@ -10,9 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
-using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
-using System.Diagnostics;
 
 namespace ILGPU.Frontend
 {
@@ -21,55 +19,45 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Realizes a compare instruction of the given type.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="compareKind">The comparison kind.</param>
         /// <param name="instructionFlags">The instruction flags.</param>
-        private static void MakeCompare(
-            Block block,
-            IRBuilder builder,
+        private void MakeCompare(
             CompareKind compareKind,
             ILInstructionFlags instructionFlags)
         {
-            var value = CreateCompare(block, builder, compareKind, instructionFlags);
-            block.Push(value);
+            var value = CreateCompare(compareKind, instructionFlags);
+            Block.Push(value);
         }
 
         /// <summary>
         /// Creates a compare instruction of the given type.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="compareKind">The comparison kind.</param>
         /// <param name="instructionFlags">The instruction flags.</param>
-        private static Value CreateCompare(
-            Block block,
-            IRBuilder builder,
+        private Value CreateCompare(
             CompareKind compareKind,
             ILInstructionFlags instructionFlags)
         {
             var compareFlags = CompareFlags.None;
             if (instructionFlags.HasFlags(ILInstructionFlags.Unsigned))
                 compareFlags |= CompareFlags.UnsignedOrUnordered;
-            return CreateCompare(block, builder, compareKind, compareFlags);
+            return CreateCompare(compareKind, compareFlags);
         }
 
         /// <summary>
         /// Creates a compare instruction of the given type.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="compareKind">The comparison kind.</param>
         /// <param name="flags">The comparison flags.</param>
-        private static Value CreateCompare(
-            Block block,
-            IRBuilder builder,
-            CompareKind compareKind,
-            CompareFlags flags)
+        private Value CreateCompare(CompareKind compareKind, CompareFlags flags)
         {
-            var right = block.PopCompareValue(ConvertFlags.None);
-            var left = block.PopCompareValue(ConvertFlags.None);
-            return CreateCompare(builder, left, right, compareKind, flags);
+            var right = Block.PopCompareValue(Location, ConvertFlags.None);
+            var left = Block.PopCompareValue(Location, ConvertFlags.None);
+            return CreateCompare(
+                left,
+                right,
+                compareKind,
+                flags);
         }
 
         /// <summary>
@@ -77,11 +65,9 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="compareKind">The comparison kind.</param>
         /// <param name="flags">The comparison flags.</param>
-        private static Value CreateCompare(
-            IRBuilder builder,
+        private Value CreateCompare(
             Value left,
             Value right,
             CompareKind compareKind,
@@ -93,10 +79,15 @@ namespace ILGPU.Frontend
             {
                 convertFlags = ConvertFlags.SourceUnsigned;
             }
-            right = CreateConversion(builder, right, left.Type, convertFlags);
-            left = CreateConversion(builder, left, right.Type, convertFlags);
-            Debug.Assert(left.BasicValueType == right.BasicValueType);
-            return builder.CreateCompare(left, right, compareKind, flags);
+            right = CreateConversion(right, left.Type, convertFlags);
+            left = CreateConversion(left, right.Type, convertFlags);
+            Location.Assert(left.BasicValueType == right.BasicValueType);
+            return Builder.CreateCompare(
+                Location,
+                left,
+                right,
+                compareKind,
+                flags);
         }
     }
 }

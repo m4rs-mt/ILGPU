@@ -19,13 +19,10 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-
-// disable: max_line_length
 
 namespace ILGPU.Frontend
 {
@@ -33,7 +30,7 @@ namespace ILGPU.Frontend
     {
         [SuppressMessage("Microsoft.Maintainability", "CA1505:AvoidUnmaintainableCode")]
         [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
-        private bool TryGenerateCode(Block block, IRBuilder builder, ILInstruction instruction)
+        private bool TryGenerateCode(ILInstruction instruction)
         {
             switch (instruction.InstructionType)
             {
@@ -44,59 +41,77 @@ namespace ILGPU.Frontend
                     MakeTrap();
                     return true;
                 case ILInstructionType.LdToken:
-                    MakeLoadToken(block, builder, instruction.Argument);
+                    MakeLoadToken(instruction.Argument);
                     return true;
 
                 case ILInstructionType.Ldarg:
-                    LoadVariable(block, builder, new VariableRef(instruction.GetArgumentAs<int>(), VariableRefType.Argument));
+                    LoadVariable(
+                        new VariableRef(
+                            instruction.GetArgumentAs<int>(),
+                            VariableRefType.Argument));
                     return true;
                 case ILInstructionType.Ldarga:
-                    LoadVariableAddress(block, new VariableRef(instruction.GetArgumentAs<int>(), VariableRefType.Argument));
+                    LoadVariableAddress(
+                        new VariableRef(
+                            instruction.GetArgumentAs<int>(),
+                            VariableRefType.Argument));
                     return true;
                 case ILInstructionType.Starg:
-                    StoreVariable(block, builder, new VariableRef(instruction.GetArgumentAs<int>(), VariableRefType.Argument));
+                    StoreVariable(
+                        new VariableRef(
+                            instruction.GetArgumentAs<int>(),
+                            VariableRefType.Argument));
                     return true;
 
                 case ILInstructionType.Ldloc:
-                    LoadVariable(block, builder, new VariableRef(instruction.GetArgumentAs<int>(), VariableRefType.Local));
+                    LoadVariable(
+                        new VariableRef(
+                            instruction.GetArgumentAs<int>(),
+                            VariableRefType.Local));
                     return true;
                 case ILInstructionType.Ldloca:
-                    LoadVariableAddress(block, new VariableRef(instruction.GetArgumentAs<int>(), VariableRefType.Local));
+                    LoadVariableAddress(
+                        new VariableRef(
+                            instruction.GetArgumentAs<int>(),
+                            VariableRefType.Local));
                     return true;
                 case ILInstructionType.Stloc:
-                    StoreVariable(block, builder, new VariableRef(instruction.GetArgumentAs<int>(), VariableRefType.Local));
+                    StoreVariable(
+                        new VariableRef(
+                            instruction.GetArgumentAs<int>(),
+                            VariableRefType.Local));
                     return true;
 
                 case ILInstructionType.LdI4:
-                    Load(block, builder, instruction.GetArgumentAs<int>());
+                    Load(instruction.GetArgumentAs<int>());
                     return true;
                 case ILInstructionType.LdI8:
-                    Load(block, builder, instruction.GetArgumentAs<long>());
+                    Load(instruction.GetArgumentAs<long>());
                     return true;
                 case ILInstructionType.LdR4:
-                    Load(block, builder, instruction.GetArgumentAs<float>());
+                    Load(instruction.GetArgumentAs<float>());
                     return true;
                 case ILInstructionType.LdR8:
-                    Load(block, builder, instruction.GetArgumentAs<double>());
+                    Load(instruction.GetArgumentAs<double>());
                     return true;
                 case ILInstructionType.Ldstr:
-                    LoadString(block, builder, instruction.GetArgumentAs<string>());
+                    LoadString(instruction.GetArgumentAs<string>());
                     return true;
 
                 case ILInstructionType.Dup:
-                    MakeDup(block);
+                    MakeDup();
                     return true;
                 case ILInstructionType.Pop:
-                    MakePop(block);
+                    MakePop();
                     return true;
                 case ILInstructionType.Ret:
-                    MakeReturn(block, builder);
+                    MakeReturn();
                     return true;
                 case ILInstructionType.Call:
-                    MakeCall(block, builder, instruction.GetArgumentAs<MethodBase>());
+                    MakeCall(instruction.GetArgumentAs<MethodBase>());
                     return true;
                 case ILInstructionType.Callvirt:
-                    MakeVirtualCall(block, builder, instruction);
+                    MakeVirtualCall(instruction);
                     return true;
                 case ILInstructionType.Calli:
                     MakeCalli(instruction.Argument);
@@ -106,149 +121,149 @@ namespace ILGPU.Frontend
                     return true;
 
                 case ILInstructionType.Box:
-                    MakeBox(block, builder);
+                    MakeBox();
                     return true;
                 case ILInstructionType.Unbox:
-                    MakeUnbox(block, builder, instruction.GetArgumentAs<Type>());
+                    MakeUnbox(instruction.GetArgumentAs<Type>());
                     return true;
 
                 case ILInstructionType.Br:
-                    MakeBranch(block, builder);
+                    MakeBranch();
                     return true;
 
                 case ILInstructionType.Brfalse:
-                    MakeBranchFalse(block, builder);
+                    MakeBranchFalse();
                     return true;
                 case ILInstructionType.Brtrue:
-                    MakeBranchTrue(block, builder);
+                    MakeBranchTrue();
                     return true;
 
                 case ILInstructionType.Beq:
-                    MakeBranch(block, builder, CompareKind.Equal, instruction.Flags);
+                    MakeBranch(CompareKind.Equal, instruction.Flags);
                     return true;
                 case ILInstructionType.Bne:
-                    MakeBranch(block, builder, CompareKind.NotEqual, instruction.Flags);
+                    MakeBranch(CompareKind.NotEqual, instruction.Flags);
                     return true;
                 case ILInstructionType.Bge:
-                    MakeBranch(block, builder, CompareKind.GreaterEqual, instruction.Flags);
+                    MakeBranch(CompareKind.GreaterEqual, instruction.Flags);
                     return true;
                 case ILInstructionType.Bgt:
-                    MakeBranch(block, builder, CompareKind.GreaterThan, instruction.Flags);
+                    MakeBranch(CompareKind.GreaterThan, instruction.Flags);
                     return true;
                 case ILInstructionType.Ble:
-                    MakeBranch(block, builder, CompareKind.LessEqual, instruction.Flags);
+                    MakeBranch(CompareKind.LessEqual, instruction.Flags);
                     return true;
                 case ILInstructionType.Blt:
-                    MakeBranch(block, builder, CompareKind.LessThan, instruction.Flags);
+                    MakeBranch(CompareKind.LessThan, instruction.Flags);
                     return true;
 
                 case ILInstructionType.Switch:
-                    MakeSwitch(block, builder, instruction.GetArgumentAs<ILInstructionBranchTargets>());
+                    MakeSwitch(instruction.GetArgumentAs<ILInstructionBranchTargets>());
                     return true;
 
                 case ILInstructionType.Add:
-                    MakeArithmetic(block, builder, BinaryArithmeticKind.Add, instruction);
+                    MakeArithmetic(BinaryArithmeticKind.Add, instruction);
                     return true;
                 case ILInstructionType.Sub:
-                    MakeArithmetic(block, builder, BinaryArithmeticKind.Sub, instruction);
+                    MakeArithmetic(BinaryArithmeticKind.Sub, instruction);
                     return true;
                 case ILInstructionType.Mul:
-                    MakeArithmetic(block, builder, BinaryArithmeticKind.Mul, instruction);
+                    MakeArithmetic(BinaryArithmeticKind.Mul, instruction);
                     return true;
                 case ILInstructionType.Div:
-                    MakeArithmetic(block, builder, BinaryArithmeticKind.Div, instruction);
+                    MakeArithmetic(BinaryArithmeticKind.Div, instruction);
                     return true;
                 case ILInstructionType.Rem:
-                    MakeArithmetic(block, builder, BinaryArithmeticKind.Rem, instruction);
+                    MakeArithmetic(BinaryArithmeticKind.Rem, instruction);
                     return true;
                 case ILInstructionType.And:
-                    MakeArithmetic(block, builder, BinaryArithmeticKind.And, instruction);
+                    MakeArithmetic(BinaryArithmeticKind.And, instruction);
                     return true;
                 case ILInstructionType.Or:
-                    MakeArithmetic(block, builder, BinaryArithmeticKind.Or, instruction);
+                    MakeArithmetic(BinaryArithmeticKind.Or, instruction);
                     return true;
                 case ILInstructionType.Xor:
-                    MakeArithmetic(block, builder, BinaryArithmeticKind.Xor, instruction);
+                    MakeArithmetic(BinaryArithmeticKind.Xor, instruction);
                     return true;
                 case ILInstructionType.Shl:
-                    MakeArithmetic(block, builder, BinaryArithmeticKind.Shl, instruction);
+                    MakeArithmetic(BinaryArithmeticKind.Shl, instruction);
                     return true;
                 case ILInstructionType.Shr:
-                    MakeArithmetic(block, builder, BinaryArithmeticKind.Shr, instruction);
+                    MakeArithmetic(BinaryArithmeticKind.Shr, instruction);
                     return true;
                 case ILInstructionType.Neg:
-                    MakeArithmetic(block, builder, UnaryArithmeticKind.Neg);
+                    MakeArithmetic(UnaryArithmeticKind.Neg);
                     return true;
                 case ILInstructionType.Not:
-                    MakeArithmetic(block, builder, UnaryArithmeticKind.Not);
+                    MakeArithmetic(UnaryArithmeticKind.Not);
                     return true;
 
                 case ILInstructionType.Conv:
-                    MakeConvert(block, builder, instruction.GetArgumentAs<Type>(), instruction.Flags);
+                    MakeConvert(instruction.GetArgumentAs<Type>(), instruction.Flags);
                     return true;
 
                 case ILInstructionType.Initobj:
-                    MakeInitObject(block, builder, instruction.GetArgumentAs<Type>());
+                    MakeInitObject(instruction.GetArgumentAs<Type>());
                     return true;
                 case ILInstructionType.Newobj:
-                    MakeNewObject(block, builder, instruction.GetArgumentAs<MethodBase>());
+                    MakeNewObject(instruction.GetArgumentAs<MethodBase>());
                     return true;
                 case ILInstructionType.Isinst:
-                    MakeIsInstance(block, instruction.GetArgumentAs<Type>());
+                    MakeIsInstance(instruction.GetArgumentAs<Type>());
                     return true;
 
                 case ILInstructionType.Ldfld:
-                    MakeLoadField(block, builder, instruction.GetArgumentAs<FieldInfo>());
+                    MakeLoadField(instruction.GetArgumentAs<FieldInfo>());
                     return true;
                 case ILInstructionType.Ldsfld:
-                    MakeLoadStaticField(block, builder, instruction.GetArgumentAs<FieldInfo>());
+                    MakeLoadStaticField(instruction.GetArgumentAs<FieldInfo>());
                     return true;
                 case ILInstructionType.Ldflda:
-                    MakeLoadFieldAddress(block, builder, instruction.GetArgumentAs<FieldInfo>());
+                    MakeLoadFieldAddress(instruction.GetArgumentAs<FieldInfo>());
                     return true;
                 case ILInstructionType.Ldsflda:
-                    MakeLoadStaticFieldAddress(block, builder, instruction.GetArgumentAs<FieldInfo>());
+                    MakeLoadStaticFieldAddress(instruction.GetArgumentAs<FieldInfo>());
                     return true;
                 case ILInstructionType.Stfld:
-                    MakeStoreField(block, builder, instruction.GetArgumentAs<FieldInfo>());
+                    MakeStoreField(instruction.GetArgumentAs<FieldInfo>());
                     return true;
                 case ILInstructionType.Stsfld:
-                    MakeStoreStaticField(block, instruction.GetArgumentAs<FieldInfo>());
+                    MakeStoreStaticField(instruction.GetArgumentAs<FieldInfo>());
                     return true;
 
                 case ILInstructionType.Ceq:
-                    MakeCompare(block, builder, CompareKind.Equal, instruction.Flags);
+                    MakeCompare(CompareKind.Equal, instruction.Flags);
                     return true;
                 case ILInstructionType.Cgt:
-                    MakeCompare(block, builder, CompareKind.GreaterThan, instruction.Flags);
+                    MakeCompare(CompareKind.GreaterThan, instruction.Flags);
                     return true;
                 case ILInstructionType.Clt:
-                    MakeCompare(block, builder, CompareKind.LessThan, instruction.Flags);
+                    MakeCompare(CompareKind.LessThan, instruction.Flags);
                     return true;
 
                 case ILInstructionType.Ldobj:
                 case ILInstructionType.Ldind:
-                    MakeLoadObject(block, builder, instruction.GetArgumentAs<Type>());
+                    MakeLoadObject(instruction.GetArgumentAs<Type>());
                     return true;
                 case ILInstructionType.Stobj:
                 case ILInstructionType.Stind:
-                    MakeStoreObject(block, builder, instruction.GetArgumentAs<Type>());
+                    MakeStoreObject(instruction.GetArgumentAs<Type>());
                     return true;
 
                 case ILInstructionType.Newarr:
-                    MakeNewArray(block, builder, instruction.GetArgumentAs<Type>());
+                    MakeNewArray(instruction.GetArgumentAs<Type>());
                     return true;
                 case ILInstructionType.Ldelem:
-                    MakeLoadElement(block, builder, instruction.GetArgumentAs<Type>());
+                    MakeLoadElement(instruction.GetArgumentAs<Type>());
                     return true;
                 case ILInstructionType.Ldelema:
-                    MakeLoadElementAddress(block, builder, instruction.GetArgumentAs<Type>());
+                    MakeLoadElementAddress(instruction.GetArgumentAs<Type>());
                     return true;
                 case ILInstructionType.Stelem:
-                    MakeStoreElement(block, builder, instruction.GetArgumentAs<Type>());
+                    MakeStoreElement(instruction.GetArgumentAs<Type>());
                     return true;
                 case ILInstructionType.Ldlen:
-                    MakeLoadArrayLength(block, builder);
+                    MakeLoadArrayLength();
                     return true;
 
                 default:

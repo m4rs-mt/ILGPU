@@ -50,6 +50,7 @@ namespace ILGPU.Frontend.Intrinsic
             in InvocationContext context,
             UtilityIntrinsicAttribute attribute) =>
             context.Builder.CreatePredicate(
+                context.Location,
                 context[0],
                 context[1],
                 context[2]);

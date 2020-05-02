@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -63,47 +64,62 @@ namespace ILGPU.Frontend.Intrinsic
             ViewIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
+            var location = context.Location;
             // These methods are instance calls -> load instance value
             var paramOffset = 0;
-            var instanceValue = builder.CreateLoad(context[paramOffset++]);
+            var instanceValue = builder.CreateLoad(
+                location,
+                context[paramOffset++]);
             return attribute.IntrinsicKind switch
             {
                 ViewIntrinsicKind.GetViewLength => builder.CreateGetViewLength(
+                    location,
                     instanceValue),
                 ViewIntrinsicKind.GetViewLengthInBytes => builder.CreateArithmetic(
-                    builder.CreateGetViewLength(instanceValue),
+                    location,
+                    builder.CreateGetViewLength(location, instanceValue),
                     builder.CreateSizeOf(
+                        location,
                         (instanceValue.Type as AddressSpaceType).ElementType),
                     BinaryArithmeticKind.Mul),
                 ViewIntrinsicKind.GetSubView => builder.CreateSubViewValue(
+                    location,
                     instanceValue,
                     context[paramOffset++],
                     context[paramOffset++]),
                 ViewIntrinsicKind.GetSubViewImplicitLength =>
                     builder.CreateSubViewValue(
+                        location,
                         instanceValue,
                         context[paramOffset],
                         builder.CreateArithmetic(
-                            builder.CreateGetViewLength(instanceValue),
+                            location,
+                            builder.CreateGetViewLength(location, instanceValue),
                             context[paramOffset],
                             BinaryArithmeticKind.Sub)),
                 ViewIntrinsicKind.GetViewElementAddress =>
                     builder.CreateLoadElementAddress(
+                        location,
                         instanceValue,
                         context[paramOffset++]),
                 ViewIntrinsicKind.CastView => builder.CreateViewCast(
+                    location,
                     instanceValue,
                     builder.CreateType(context.GetMethodGenericArguments()[0])),
                 ViewIntrinsicKind.IsValidView => builder.CreateCompare(
-                    builder.CreateGetViewLength(instanceValue),
-                    builder.CreatePrimitiveValue(0),
+                    location,
+                    builder.CreateGetViewLength(location, instanceValue),
+                    builder.CreatePrimitiveValue(location, 0),
                     CompareKind.GreaterThan),
                 ViewIntrinsicKind.GetViewExtent => builder.CreateIndex(
-                    builder.CreateGetViewLength(instanceValue)),
+                    location,
+                    builder.CreateGetViewLength(location, instanceValue)),
                 ViewIntrinsicKind.GetViewElementAddressByIndex =>
                     builder.CreateLoadElementAddress(
+                        location,
                         instanceValue,
                         builder.CreateGetField(
+                            location,
                             context[paramOffset++],
                             new FieldAccess(0))),
                 ViewIntrinsicKind.AsLinearView => instanceValue,

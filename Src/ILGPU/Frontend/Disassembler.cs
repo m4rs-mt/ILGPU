@@ -10,11 +10,11 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.DebugInformation;
+using ILGPU.IR;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -25,7 +25,7 @@ namespace ILGPU.Frontend
     /// Represents a disassembler for .Net methods.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed partial class Disassembler
+    public sealed partial class Disassembler : ILocation
     {
         #region Constants
 
@@ -101,6 +101,7 @@ namespace ILGPU.Frontend
             il = MethodBody.GetILAsByteArray();
             instructions = ImmutableArray.CreateBuilder<ILInstruction>(il.Length);
             debugInformationEnumerator = sequencePointEnumerator;
+            CurrentLocation = new Method.MethodLocation(methodBase);
         }
 
         #endregion
@@ -138,9 +139,19 @@ namespace ILGPU.Frontend
         internal Type[] TypeGenericArguments { get; }
 
         /// <summary>
-        /// Returns the current sequence point.
+        /// Returns the current location.
         /// </summary>
-        public SequencePoint CurrentSequencePoint { get; private set; }
+        public Location CurrentLocation { get; private set; }
+
+        #endregion
+
+        #region ILocation
+
+        /// <summary>
+        /// Formats an error message to include the current sequence point.
+        /// </summary>
+        string ILocation.FormatErrorMessage(string message) =>
+            CurrentLocation.FormatErrorMessage(message);
 
         #endregion
 
@@ -158,8 +169,11 @@ namespace ILGPU.Frontend
                 instructionOffset = ilOffset;
                 var opCode = ReadOpCode();
 
-                if (debugInformationEnumerator.MoveTo(instructionOffset))
-                    CurrentSequencePoint = debugInformationEnumerator.Current;
+                if (debugInformationEnumerator.MoveTo(instructionOffset) &&
+                    debugInformationEnumerator.Current.IsKnown)
+                {
+                    CurrentLocation = debugInformationEnumerator.Current;
+                }
 
                 if (TryDisassemblePrefix(opCode))
                     continue;
@@ -172,30 +186,16 @@ namespace ILGPU.Frontend
                 }
                 else
                 {
-                    if (debugInformationEnumerator.TryGetCurrentDebugLocationString(
-                        out string debugLocation))
+                    throw opCode switch
                     {
-                        throw opCode switch
-                        {
-                            ILOpCode.Ldftn => new NotSupportedException(string.Format(
+                        ILOpCode.Ldftn =>
+                            this.GetNotSupportedException(
                                 ErrorMessages.NotSupportedILInstructionPossibleLambda,
-                                MethodBase.ToString(),
-                                opCode,
-                                debugLocation)),
-                            _ => new NotSupportedException(string.Format(
-                                ErrorMessages.NotSupportedILInstructionDebugLoc,
-                                MethodBase.ToString(),
-                                opCode,
-                                debugLocation)),
-                        };
-                    }
-                    else
-                    {
-                        throw new NotSupportedException(string.Format(
+                                opCode),
+                        _ => this.GetNotSupportedException(
                             ErrorMessages.NotSupportedILInstruction,
-                            MethodBase.ToString(),
-                            opCode));
-                    }
+                            opCode)
+                    };
                 }
             }
 
@@ -231,9 +231,8 @@ namespace ILGPU.Frontend
                 }
                 else
                 {
-                    Debug.Assert(
-                        type == ILInstructionType.Call,
-                        "Invalid constructor call");
+                    // Check for an invalid constructor call
+                    this.Assert(type == ILInstructionType.Call);
                     popCount += 1;
                 }
             }
@@ -297,7 +296,7 @@ namespace ILGPU.Frontend
                 popCount,
                 pushCount,
                 argument,
-                CurrentSequencePoint));
+                CurrentLocation));
 
         #region Metadata
 
@@ -354,7 +353,7 @@ namespace ILGPU.Frontend
             {
                 // This is a two-byte command
                 ++ilOffset;
-                Debug.Assert(il.Length > ilOffset, "Invalid two-byte instruction");
+                this.Assert(il.Length > ilOffset);
                 instructionCode = (instructionCode << 8) | il[ilOffset];
             }
             else

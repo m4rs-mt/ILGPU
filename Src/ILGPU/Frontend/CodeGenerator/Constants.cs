@@ -9,8 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
-
 namespace ILGPU.Frontend
 {
     partial class CodeGenerator
@@ -18,61 +16,36 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Loads an int.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="value">The value.</param>
-        private static void Load(
-            Block block,
-            IRBuilder builder,
-            int value) =>
-            block.Push(builder.CreatePrimitiveValue(value));
+        private void Load(int value) =>
+            Block.Push(Builder.CreatePrimitiveValue(Location, value));
 
         /// <summary>
         /// Loads a long.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="value">The value.</param>
-        private static void Load(
-            Block block,
-            IRBuilder builder,
-            long value) =>
-            block.Push(builder.CreatePrimitiveValue(value));
+        private void Load(long value) =>
+            Block.Push(Builder.CreatePrimitiveValue(Location, value));
 
         /// <summary>
         /// Loads a float.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="value">The value.</param>
-        private static void Load(
-            Block block,
-            IRBuilder builder,
-            float value) =>
-            block.Push(builder.CreatePrimitiveValue(value));
+        private void Load(float value) =>
+            Block.Push(Builder.CreatePrimitiveValue(Location, value));
 
         /// <summary>
         /// Loads a double.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="value">The value.</param>
-        private static void Load(
-            Block block,
-            IRBuilder builder,
-            double value) =>
-            block.Push(builder.CreatePrimitiveValue(value));
+        private void Load(double value) =>
+            Block.Push(Builder.CreatePrimitiveValue(Location, value));
 
         /// <summary>
         /// Loads a string.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="value">The value.</param>
-        private static void LoadString(
-            Block block,
-            IRBuilder builder,
-            string value) =>
-            block.Push(builder.CreatePrimitiveValue(value));
+        private void LoadString(string value) =>
+            Block.Push(Builder.CreatePrimitiveValue(Location, value));
     }
 }

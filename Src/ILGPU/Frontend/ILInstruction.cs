@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.DebugInformation;
+using ILGPU.IR;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -642,36 +642,7 @@ namespace ILGPU.Frontend
         /// The number of elements to push onto the stack.
         /// </param>
         /// <param name="argument">The instruction argument.</param>
-        [CLSCompliant(false)]
-        public ILInstruction(
-            int offset,
-            ILInstructionType type,
-            ILInstructionFlagsContext flagsContext,
-            ushort popCount,
-            ushort pushCount,
-            object argument)
-            : this(
-                  offset,
-                  type,
-                  flagsContext,
-                  popCount,
-                  pushCount,
-                  argument,
-                  SequencePoint.Invalid)
-        { }
-
-        /// <summary>
-        /// Constructs a new IL instruction.
-        /// </summary>
-        /// <param name="offset">The instruction offset in bytes.</param>
-        /// <param name="type">The instruction type.</param>
-        /// <param name="flagsContext">The flags context.</param>
-        /// <param name="popCount">The number of elements to pop from the stack.</param>
-        /// <param name="pushCount">
-        /// The number of elements to push onto the stack.
-        /// </param>
-        /// <param name="argument">The instruction argument.</param>
-        /// <param name="sequencePoint">The current sequence point.</param>
+        /// <param name="location">The current location.</param>
         [CLSCompliant(false)]
         public ILInstruction(
             int offset,
@@ -680,7 +651,7 @@ namespace ILGPU.Frontend
             ushort popCount,
             ushort pushCount,
             object argument,
-            SequencePoint sequencePoint)
+            Location location)
         {
             Offset = offset;
             InstructionType = type;
@@ -688,7 +659,7 @@ namespace ILGPU.Frontend
             PopCount = popCount;
             PushCount = pushCount;
             Argument = argument;
-            SequencePoint = sequencePoint;
+            Location = location ?? Location.Unknown;
         }
 
         #endregion
@@ -762,14 +733,9 @@ namespace ILGPU.Frontend
             Argument is ILInstructionBranchTargets;
 
         /// <summary>
-        /// Returns the associated sequence point.
+        /// Returns the associated location.
         /// </summary>
-        public SequencePoint SequencePoint { get; }
-
-        /// <summary>
-        /// Returns true if this instruction has a valid sequence point.
-        /// </summary>
-        public bool HasValidSequencePoint => SequencePoint != null;
+        public Location Location { get; }
 
         #endregion
 

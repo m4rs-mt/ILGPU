@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
+using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
@@ -23,34 +23,26 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Realizes a boxing operation that boxes a value.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
-        private void MakeBox(Block block, IRBuilder builder)
+        private void MakeBox()
         {
-            var value = block.Pop();
+            var value = Block.Pop();
             if (!value.Type.IsObjectType)
-                throw this.GetInvalidILCodeException();
+                throw Location.GetInvalidOperationException();
             var alloca = CreateTempAlloca(value.Type);
-            CreateStore(builder, alloca, value);
+            CreateStore(alloca, value);
         }
 
         /// <summary>
         /// Realizes an unboxing operation that unboxes a previously boxed value.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="type">The target type.</param>
-        private void MakeUnbox(
-            Block block,
-            IRBuilder builder,
-            Type type)
+        private void MakeUnbox(Type type)
         {
             if (type == null || !type.IsValueType)
-                throw this.GetInvalidILCodeException();
-            var address = block.Pop();
-            var typeNode = builder.CreateType(type);
-            block.Push(CreateLoad(
-                builder,
+                throw Location.GetInvalidOperationException();
+            var address = Block.Pop();
+            var typeNode = Builder.CreateType(type);
+            Block.Push(CreateLoad(
                 address,
                 typeNode,
                 type.ToTargetUnsignedFlags()));
@@ -60,32 +52,26 @@ namespace ILGPU.Frontend
         /// Realizes a new-object operation that creates a new instance of a specified
         /// type.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="method">The target method.</param>
-        private void MakeNewObject(
-            Block block,
-            IRBuilder builder,
-            MethodBase method)
+        private void MakeNewObject(MethodBase method)
         {
             var constructor = method as ConstructorInfo;
             if (constructor == null)
-                throw this.GetInvalidILCodeException();
+                throw Location.GetInvalidOperationException();
 
             var type = constructor.DeclaringType;
-            var typeNode = builder.CreateType(type);
+            var typeNode = Builder.CreateType(type);
             var alloca = CreateTempAlloca(typeNode);
 
-            var value = builder.CreateNull(typeNode);
-            CreateStore(builder, alloca, value);
+            var value = Builder.CreateNull(Location, typeNode);
+            CreateStore(alloca, value);
 
             // Invoke constructor for type
-            var values = block.PopMethodArgs(method, alloca);
-            CreateCall(block, builder, constructor, values);
+            var values = Block.PopMethodArgs(Location, method, alloca);
+            CreateCall(constructor, values);
 
             // Push created instance on the stack
-            block.Push(CreateLoad(
-                builder,
+            Block.Push(CreateLoad(
                 alloca,
                 typeNode,
                 ConvertFlags.None));
@@ -94,46 +80,35 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Realizes a managed-object initialization.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="type">The target type.</param>
-        private void MakeInitObject(
-            Block block,
-            IRBuilder builder,
-            Type type)
+        private void MakeInitObject(Type type)
         {
             if (type == null)
-                throw this.GetInvalidILCodeException();
+                throw Location.GetInvalidOperationException();
 
-            var address = block.Pop();
-            var typeNode = builder.CreateType(type);
-            var value = builder.CreateNull(typeNode);
-            CreateStore(builder, address, value);
+            var address = Block.Pop();
+            var typeNode = Builder.CreateType(type);
+            var value = Builder.CreateNull(Location, typeNode);
+            CreateStore(address, value);
         }
 
         /// <summary>
         /// Realizes an is-instance instruction.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
         /// <param name="type">The target type.</param>
-        private void MakeIsInstance(Block block, Type type) =>
-            throw this.GetNotSupportedException(ErrorMessages.NotSupportedIsInstance);
+        private void MakeIsInstance(Type type) =>
+            throw Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedIsInstance);
 
         /// <summary>
         /// Realizes an indirect load instruction.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="type">The target type.</param>
-        private void MakeLoadObject(
-            Block block,
-            IRBuilder builder,
-            Type type)
+        private void MakeLoadObject(Type type)
         {
-            var address = block.Pop();
-            var targetElementType = builder.CreateType(type);
-            block.Push(CreateLoad(
-                builder,
+            var address = Block.Pop();
+            var targetElementType = Builder.CreateType(type);
+            Block.Push(CreateLoad(
                 address,
                 targetElementType,
                 type.ToTargetUnsignedFlags()));
@@ -142,18 +117,13 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Realizes an indirect store instruction.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="type">The target type.</param>
-        private void MakeStoreObject(
-            Block block,
-            IRBuilder builder,
-            Type type)
+        private void MakeStoreObject(Type type)
         {
-            var typeNode = builder.CreateType(type);
-            var value = block.Pop(typeNode, ConvertFlags.None);
-            var address = block.Pop();
-            CreateStore(builder, address, value);
+            var typeNode = Builder.CreateType(type);
+            var value = Block.Pop(typeNode, ConvertFlags.None);
+            var address = Block.Pop();
+            CreateStore(address, value);
         }
     }
 }

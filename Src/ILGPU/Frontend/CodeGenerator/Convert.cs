@@ -10,12 +10,10 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
-using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
-using System.Diagnostics;
 
 namespace ILGPU.Frontend
 {
@@ -24,17 +22,13 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Realizes a convert instruction.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="targetType">The target type.</param>
         /// <param name="instructionFlags">The instruction flags.</param>
-        private static void MakeConvert(
-            Block block,
-            IRBuilder builder,
+        private void MakeConvert(
             Type targetType,
             ILInstructionFlags instructionFlags)
         {
-            var value = block.Pop();
+            var value = Block.Pop();
             var convertFlags = ConvertFlags.None;
             if (instructionFlags.HasFlags(ILInstructionFlags.Unsigned))
                 convertFlags |= ConvertFlags.SourceUnsigned;
@@ -45,9 +39,8 @@ namespace ILGPU.Frontend
                 convertFlags |= ConvertFlags.SourceUnsigned;
                 convertFlags |= ConvertFlags.TargetUnsigned;
             }
-            var targetTypeNode = block.Builder.CreateType(targetType);
-            block.Push(CreateConversion(
-                builder,
+            var targetTypeNode = Builder.CreateType(targetType);
+            Block.Push(CreateConversion(
                 value,
                 targetTypeNode,
                 convertFlags));
@@ -56,14 +49,12 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Coverts the given value to the target type.
         /// </summary>
-        /// <param name="builder">The current builder.</param>
         /// <param name="value">The value.</param>
         /// <param name="targetType">The target type.</param>
         /// <param name="flags">
         /// True, if the comparison should be forced to be unsigned.
         /// </param>
-        public static Value CreateConversion(
-            IRBuilder builder,
+        public Value CreateConversion(
             Value value,
             TypeNode targetType,
             ConvertFlags flags)
@@ -71,10 +62,19 @@ namespace ILGPU.Frontend
             if (value.Type is AddressSpaceType)
             {
                 var otherType = targetType as AddressSpaceType;
-                value = builder.CreateAddressSpaceCast(value, otherType.AddressSpace);
+                value = Builder.CreateAddressSpaceCast(
+                    Location,
+                    value,
+                    otherType.AddressSpace);
                 return otherType is ViewType
-                    ? (Value)builder.CreateViewCast(value, otherType.ElementType)
-                    : (Value)builder.CreatePointerCast(value, otherType.ElementType);
+                    ? (Value)Builder.CreateViewCast(
+                        Location,
+                        value,
+                        otherType.ElementType)
+                    : (Value)Builder.CreatePointerCast(
+                        Location,
+                        value,
+                        otherType.ElementType);
             }
             else if (
                 targetType is PointerType targetPointerType &&
@@ -83,11 +83,14 @@ namespace ILGPU.Frontend
                 // Must be a reflection array call
                 // FIXME: note that we have to update this spot once
                 // we add support for class types
-                Debug.Assert(value.Type is StructureType);
+                Location.Assert(value.Type is StructureType);
                 return value;
             }
-            return builder.CreateConvert(value, targetType, flags);
+            return Builder.CreateConvert(
+                Location,
+                value,
+                targetType,
+                flags);
         }
-
     }
 }

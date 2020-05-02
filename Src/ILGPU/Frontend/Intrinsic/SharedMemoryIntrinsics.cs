@@ -55,6 +55,7 @@ namespace ILGPU.Frontend.Intrinsic
             SharedMemoryIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
+            var location = context.Location;
             var genericArgs = context.GetMethodGenericArguments();
             var allocationType = builder.CreateType(genericArgs[0]);
 
@@ -62,20 +63,25 @@ namespace ILGPU.Frontend.Intrinsic
             {
                 case SharedMemoryIntrinsicKind.AllocateElement:
                     return builder.CreateAlloca(
+                        location,
                         allocationType,
                         MemoryAddressSpace.Shared);
                 case SharedMemoryIntrinsicKind.Allocate:
                     return builder.CreateNewView(
+                        location,
                         builder.CreateStaticAllocaArray(
+                            location,
                             context[0],
                             allocationType,
                             MemoryAddressSpace.Shared),
                         context[0]);
                 case SharedMemoryIntrinsicKind.AllocateDynamic:
                     var alloca = builder.CreateDynamicAllocaArray(
+                        location,
                         allocationType,
                         MemoryAddressSpace.Shared).ResolveAs<Alloca>();
                     return builder.CreateNewView(
+                        location,
                         alloca,
                         alloca.ArrayLength);
             }

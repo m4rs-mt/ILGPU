@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
-using ILGPU.IR.Construction;
+using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
@@ -24,19 +24,16 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Creates a call instruction to the given method with the given arguments.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="method">The target method to invoke.</param>
         /// <param name="arguments">The call arguments.</param>
         private void CreateCall(
-            Block block,
-            IRBuilder builder,
             MethodBase method,
             ImmutableArray<ValueReference> arguments)
         {
             var intrinsicContext = new InvocationContext(
                 this,
-                block,
+                Location,
+                Block,
                 Method,
                 method,
                 arguments);
@@ -52,31 +49,27 @@ namespace ILGPU.Frontend
             {
                 var targetFunction = DeclareMethod(intrinsicContext.Method);
 
-                result = builder.CreateCall(
+                result = Builder.CreateCall(
+                    Location,
                     targetFunction,
                     intrinsicContext.Arguments);
             }
 
             // Setup result
             if (result.IsValid && !result.Type.IsVoidType)
-                block.Push(result);
+                Block.Push(result);
         }
 
         /// <summary>
         /// Realizes a call instruction.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="target">The target method to invoke.</param>
-        private void MakeCall(
-            Block block,
-            IRBuilder builder,
-            MethodBase target)
+        private void MakeCall(MethodBase target)
         {
             if (target == null)
-                throw this.GetInvalidILCodeException();
-            var values = block.PopMethodArgs(target, null);
-            CreateCall(block, builder, target, values);
+                throw Location.GetInvalidOperationException();
+            var values = Block.PopMethodArgs(Location, target, null);
+            CreateCall(target, values);
         }
 
         /// <summary>
@@ -98,7 +91,7 @@ namespace ILGPU.Frontend
                 return target;
             if (constrainedType == null)
             {
-                throw this.GetNotSupportedException(
+                throw Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedVirtualMethodCallToUnconstrainedInstance,
                     target.Name);
             }
@@ -128,7 +121,7 @@ namespace ILGPU.Frontend
                 if (actualTarget != null &&
                     actualTarget.DeclaringType != constrainedType)
                 {
-                    throw this.GetNotSupportedException(
+                    throw Location.GetNotSupportedException(
                         ErrorMessages.NotSupportedVirtualMethodCallToObject,
                         target.Name,
                         actualTarget.DeclaringType,
@@ -155,7 +148,7 @@ namespace ILGPU.Frontend
             }
             if (actualTarget == null)
             {
-                throw this.GetNotSupportedException(
+                throw Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedVirtualMethodCall,
                     target.Name);
             }
@@ -167,46 +160,33 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Realizes a virtual-call instruction.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="instruction">The current IL instruction.</param>
-        private void MakeVirtualCall(
-            Block block,
-            IRBuilder builder,
-            ILInstruction instruction)
+        private void MakeVirtualCall(ILInstruction instruction)
         {
             var method = instruction.GetArgumentAs<MethodInfo>();
             if (instruction.HasFlags(ILInstructionFlags.Constrained))
             {
                 MakeVirtualCall(
-                    block,
-                    builder,
                     method,
                     instruction.FlagsContext.Argument as Type);
             }
             else
             {
-                MakeVirtualCall(block, builder, method, null);
+                MakeVirtualCall(method, null);
             }
         }
 
         /// <summary>
         /// Realizes a virtual-call instruction.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="target">The target method to invoke.</param>
         /// <param name="constrainedType">
         /// The target type on which to invoke the method.
         /// </param>
-        private void MakeVirtualCall(
-            Block block,
-            IRBuilder builder,
-            MethodInfo target,
-            Type constrainedType)
+        private void MakeVirtualCall(MethodInfo target, Type constrainedType)
         {
             target = ResolveVirtualCallTarget(target, constrainedType);
-            MakeCall(block, builder, target);
+            MakeCall(target);
         }
 
         /// <summary>
@@ -214,7 +194,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="signature">The target signature.</param>
         private void MakeCalli(object signature) =>
-            throw this.GetNotSupportedException(
+            throw Location.GetNotSupportedException(
                 ErrorMessages.NotSupportedIndirectMethodCall,
                 signature);
 
@@ -223,7 +203,7 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="target">The target method to invoke.</param>
         private void MakeJump(MethodBase target) =>
-            throw this.GetNotSupportedException(
+            throw Location.GetNotSupportedException(
                 ErrorMessages.NotSupportedMethodJump,
                 target.Name);
     }

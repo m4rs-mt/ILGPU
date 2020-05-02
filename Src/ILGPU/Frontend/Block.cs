@@ -37,9 +37,6 @@ namespace ILGPU.Frontend
         /// <param name="builder">The current basic block builder.</param>
         private Block(CodeGenerator codeGenerator, BasicBlock.Builder builder)
         {
-            Debug.Assert(codeGenerator != null, "Invalid code generator");
-            Debug.Assert(builder != null, "Invalid builder");
-
             CodeGenerator = codeGenerator;
             Builder = builder;
         }
@@ -128,7 +125,7 @@ namespace ILGPU.Frontend
         public ImmutableArray<BasicBlock> GetBuilderTerminator(int count)
         {
             var targets = ((BuilderTerminator)Terminator).Targets;
-            Debug.Assert(targets.Length == count, "Invalid number of branch targets");
+            Terminator.Assert(targets.Length == count);
             return targets;
         }
 
@@ -139,10 +136,11 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Peeks the basic-value type of the element on the top of the stack.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <returns>The peeked basic-value type.</returns>
-        public BasicValueType PeekBasicValueType()
+        public BasicValueType PeekBasicValueType(Location location)
         {
-            Debug.Assert(StackCounter > 0, "Stack empty");
+            location.Assert(StackCounter > 0);
             var value = GetValue(
                 new VariableRef(StackCounter - 1, VariableRefType.Stack));
             return value.BasicValueType;
@@ -175,7 +173,9 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="targetType">The required target type.</param>
         /// <param name="flags">The conversion flags.</param>
-        public Value Pop(TypeNode targetType, ConvertFlags flags)
+        public Value Pop(
+            TypeNode targetType,
+            ConvertFlags flags)
         {
             var op = Pop();
             return Convert(op, targetType, flags);
@@ -187,11 +187,13 @@ namespace ILGPU.Frontend
         /// <param name="value">The value to convert.</param>
         /// <param name="targetType">The required target type.</param>
         /// <param name="flags">The conversion flags.</param>
-        private Value Convert(Value value, TypeNode targetType, ConvertFlags flags) =>
+        private Value Convert(
+            Value value,
+            TypeNode targetType,
+            ConvertFlags flags) =>
             value.Type == targetType || targetType.IsRootType
             ? value
             : CodeGenerator.CreateConversion(
-                Builder,
                 value,
                 targetType,
                 flags);
@@ -199,11 +201,12 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Pops an element as integer from the stack.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="flags">The conversion flags.</param>
         /// <returns>The popped element as integer.</returns>
-        public Value PopInt(ConvertFlags flags)
+        public Value PopInt(Location location, ConvertFlags flags)
         {
-            var type = PeekBasicValueType();
+            var type = PeekBasicValueType(location);
             switch (type)
             {
                 case BasicValueType.Int32:
@@ -221,17 +224,20 @@ namespace ILGPU.Frontend
                         Builder.GetPrimitiveType(BasicValueType.Int64),
                         flags);
                 default:
-                    throw CodeGenerator.GetNotSupportedException(
-                        ErrorMessages.NotSupportedIntOperand, type);
+                    throw location.GetNotSupportedException(
+                        ErrorMessages.NotSupportedIntOperand,
+                        type);
             }
         }
 
         /// <summary>
         /// Pops the required arguments from the stack.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="methodBase">The method to use for the argument types.</param>
         /// <param name="instanceValue">The instance value (if available).</param>
         public ImmutableArray<ValueReference> PopMethodArgs(
+            Location location,
             MethodBase methodBase,
             Value instanceValue)
         {
@@ -245,8 +251,7 @@ namespace ILGPU.Frontend
             {
                 var param = parameters[i];
                 var argument = Pop(
-                    Builder.CreateType(
-                        param.ParameterType),
+                    Builder.CreateType(param.ParameterType),
                     param.ParameterType.IsUnsignedInt() ?
                         ConvertFlags.TargetUnsigned : ConvertFlags.None);
                 result.Add(argument);
@@ -264,12 +269,15 @@ namespace ILGPU.Frontend
                             declaringType,
                             MemoryAddressSpace.Generic);
                     }
-                    instanceValue = Pop(declaringType, ConvertFlags.None);
+                    instanceValue = Pop(
+                        declaringType,
+                        ConvertFlags.None);
                 }
                 else
                 {
                     // Wire instance
                     instanceValue = Builder.CreateAddressSpaceCast(
+                        location,
                         instanceValue,
                         MemoryAddressSpace.Generic);
                 }
@@ -285,26 +293,28 @@ namespace ILGPU.Frontend
         /// Pops a value from the stack that can be used in the context of
         /// compare operations.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="flags">The conversion flags.</param>
         /// <returns>
         /// The popped value from the stack that can be used in the
         /// context of compare and arithmetic operations.</returns>
-        public Value PopCompareValue(ConvertFlags flags) =>
-            PeekBasicValueType() == BasicValueType.Int1
+        public Value PopCompareValue(Location location, ConvertFlags flags) =>
+            PeekBasicValueType(location) == BasicValueType.Int1
             ? Pop()
-            : PopCompareOrArithmeticValue(flags);
+            : PopCompareOrArithmeticValue(location, flags);
 
         /// <summary>
         /// Pops a value from the stack that can be used in the context of
         /// compare and arithmetic operations.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="flags">The conversion flags.</param>
         /// <returns>
         /// The popped value from the stack that can be used in the
         /// context of compare and arithmetic operations.</returns>
-        public Value PopCompareOrArithmeticValue(ConvertFlags flags)
+        public Value PopCompareOrArithmeticValue(Location location, ConvertFlags flags)
         {
-            var type = PeekBasicValueType();
+            var type = PeekBasicValueType(location);
             switch (type)
             {
                 case BasicValueType.Int1:
@@ -319,7 +329,7 @@ namespace ILGPU.Frontend
                         Builder.GetPrimitiveType(BasicValueType.Int32),
                         flags);
                 default:
-                    throw CodeGenerator.GetNotSupportedException(
+                    throw location.GetNotSupportedException(
                         ErrorMessages.NotSupportedCompareOrArithmeticValue, type);
             }
         }
@@ -327,17 +337,19 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Pops two compatible arithmetic arguments from the execution stack.
         /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="flags">The conversion flags.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
         /// <returns>The type of the two operands.</returns>
         public void PopArithmeticArgs(
+            Location location,
             ConvertFlags flags,
             out Value left,
             out Value right)
         {
-            right = PopCompareOrArithmeticValue(flags);
-            left = PopCompareOrArithmeticValue(flags);
+            right = PopCompareOrArithmeticValue(location, flags);
+            left = PopCompareOrArithmeticValue(location, flags);
 
             Value result;
             bool swapped = Utilities.Swap(
@@ -355,7 +367,7 @@ namespace ILGPU.Frontend
                     result = Convert(right, left.Type, flags);
                     break;
                 default:
-                    throw CodeGenerator.GetNotSupportedException(
+                    throw location.GetNotSupportedException(
                         ErrorMessages.NotSupportedArithmeticOperandTypes,
                         left.BasicValueType,
                         right.BasicValueType);

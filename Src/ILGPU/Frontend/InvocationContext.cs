@@ -23,9 +23,7 @@ namespace ILGPU.Frontend
     /// Represents an invocation context for compiler-known methods
     /// that are supported in the scope of ILGPU programs.
     /// </summary>
-    public readonly struct InvocationContext :
-        ICodeGenerationContext,
-        IEquatable<InvocationContext>
+    public readonly struct InvocationContext : ILocation
     {
         #region Instance
 
@@ -33,18 +31,21 @@ namespace ILGPU.Frontend
         /// Constructs a new invocation context.
         /// </summary>
         /// <param name="codeGenerator">The associated code generator.</param>
+        /// <param name="location">The current location.</param>
         /// <param name="block">The current block.</param>
         /// <param name="callerMethod">The caller.</param>
         /// <param name="method">The called method.</param>
         /// <param name="arguments">The method arguments.</param>
         internal InvocationContext(
             CodeGenerator codeGenerator,
+            Location location,
             Block block,
             MethodBase callerMethod,
             MethodBase method,
             ImmutableArray<ValueReference> arguments)
         {
             CodeGenerator = codeGenerator;
+            Location = location;
             Block = block;
             CallerMethod = callerMethod;
             Method = method;
@@ -59,6 +60,11 @@ namespace ILGPU.Frontend
         /// Returns the associated code generator.
         /// </summary>
         internal CodeGenerator CodeGenerator { get; }
+
+        /// <summary>
+        /// Returns the current location.
+        /// </summary>
+        public Location Location { get; }
 
         /// <summary>
         /// Return the current basic block.
@@ -112,6 +118,12 @@ namespace ILGPU.Frontend
         #region Methods
 
         /// <summary>
+        /// Formats an error message to include specific exception information.
+        /// </summary>
+        public string FormatErrorMessage(string message) =>
+            Location.FormatErrorMessage(message);
+
+        /// <summary>
         /// Returns the generic arguments of the used method.
         /// </summary>
         /// <returns>The generic arguments of the used method.</returns>
@@ -125,23 +137,6 @@ namespace ILGPU.Frontend
             Method.DeclaringType.GetGenericArguments();
 
         /// <summary>
-        /// Constructs a new exception of the given type based on the given
-        /// message, the formatting arguments and the current general compilation
-        /// information.
-        /// </summary>
-        /// <typeparam name="TException">The exception type.</typeparam>
-        /// <param name="message">The main content of the error message.</param>
-        /// <param name="args">The formatting arguments.</param>
-        /// <returns>
-        /// A new exception of type <typeparamref name="TException"/>.
-        /// </returns>
-        public TException GetException<TException>(
-            string message,
-            params object[] args)
-            where TException : Exception =>
-            CodeGenerator.GetException<TException>(message, args);
-
-        /// <summary>
         /// Declares a new top-level function.
         /// </summary>
         /// <param name="methodBase">The method to declare.</param>
@@ -149,7 +144,7 @@ namespace ILGPU.Frontend
         public Method DeclareFunction(MethodBase methodBase)
         {
             if (methodBase == null)
-                throw new ArgumentNullException(nameof(methodBase));
+                throw Location.GetArgumentNullException(nameof(methodBase));
             return CodeGenerator.DeclareMethod(methodBase);
         }
 
@@ -164,9 +159,10 @@ namespace ILGPU.Frontend
             ImmutableArray<ValueReference> arguments)
         {
             if (targetMethod == null)
-                throw new ArgumentNullException(nameof(targetMethod));
+                throw Location.GetArgumentNullException(nameof(targetMethod));
             return new InvocationContext(
                 CodeGenerator,
+                Location,
                 Block,
                 CallerMethod,
                 targetMethod,
@@ -175,39 +171,7 @@ namespace ILGPU.Frontend
 
         #endregion
 
-        #region IEquatable
-
-        /// <summary>
-        /// Returns true if the given invocation context is equal to the current
-        /// invocation context.
-        /// </summary>
-        /// <param name="other">The other invocation context.</param>
-        /// <returns>
-        /// True, if the given invocation context is equal to the current invocation
-        /// context.
-        /// </returns>
-        public bool Equals(InvocationContext other) => this == other;
-
-        #endregion
-
         #region Object
-
-        /// <summary>
-        /// Returns true if the given object is equal to the current invocation context.
-        /// </summary>
-        /// <param name="obj">The other object.</param>
-        /// <returns>
-        /// True, if the given object is equal to the current invocation context.
-        /// </returns>
-        public override bool Equals(object obj) =>
-            obj is InvocationContext context && Equals(context);
-
-        /// <summary>
-        /// Returns the hash code of this invocation context.
-        /// </summary>
-        /// <returns>The hash code of this invocation context.</returns>
-        public override int GetHashCode() =>
-            Builder.GetHashCode() ^ Method.GetHashCode();
 
         /// <summary>
         /// Returns the string representation of this invocation context.
@@ -230,48 +194,6 @@ namespace ILGPU.Frontend
             builder.Append(')');
             return builder.ToString();
         }
-
-        #endregion
-
-        #region Operators
-
-        /// <summary>
-        /// Returns true if the first and second invocation contexts are the same.
-        /// </summary>
-        /// <param name="first">The first invocation context.</param>
-        /// <param name="second">The second invocation context.</param>
-        /// <returns>
-        /// True, if the first and second invocation contexts are the same.
-        /// </returns>
-        public static bool operator ==(
-            InvocationContext first,
-            InvocationContext second)
-        {
-            if (first.Method != second.Method)
-                return false;
-            var firstLength = first.Arguments.Length;
-            if (firstLength != second.Arguments.Length)
-                return false;
-            for (int i = 0; i < firstLength; ++i)
-            {
-                if (first.Arguments[i] != second.Arguments[i])
-                    return false;
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Returns true if the first and second invocation contexts are not the same.
-        /// </summary>
-        /// <param name="first">The first invocation context.</param>
-        /// <param name="second">The second invocation context.</param>
-        /// <returns>
-        /// True, if the first and second invocation contexts are not the same.
-        /// </returns>
-        public static bool operator !=(
-            InvocationContext first,
-            InvocationContext second) =>
-            !(first == second);
 
         #endregion
     }

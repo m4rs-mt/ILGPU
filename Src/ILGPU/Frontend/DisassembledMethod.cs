@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.DebugInformation;
+using ILGPU.IR;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
@@ -54,9 +55,9 @@ namespace ILGPU.Frontend
         public ILInstruction FirstInstruction => Instructions[0];
 
         /// <summary>
-        /// Returns the first sequence point of this function.
+        /// Returns the first location of this function.
         /// </summary>
-        public SequencePoint FirstSequencePoint => FirstInstruction.SequencePoint;
+        public Location FirstLocation => FirstInstruction.Location;
 
         /// <summary>
         /// Returns the disassembled instructions.

@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
@@ -59,11 +60,14 @@ namespace ILGPU.Frontend.Intrinsic
             return attribute.IntrinsicKind switch
             {
                 InteropIntrinsicKind.SizeOf => builder.CreateSizeOf(
+                    context.Location,
                     builder.CreateType(context.GetMethodGenericArguments()[0])),
                 InteropIntrinsicKind.OffsetOf => CreateOffsetOf(context),
                 InteropIntrinsicKind.FloatAsInt => builder.CreateFloatAsIntCast(
+                    context.Location,
                     context[0]),
                 InteropIntrinsicKind.IntAsFloat => builder.CreateIntAsFloatCast(
+                    context.Location,
                     context[0]),
                 _ => throw context.GetNotSupportedException(
                     ErrorMessages.NotSupportedInteropIntrinsic,
@@ -92,6 +96,7 @@ namespace ILGPU.Frontend.Intrinsic
             }
             var irType = context.Builder.CreateType(typeInfo.ManagedType);
             return context.Builder.CreateOffsetOf(
+                context.Location,
                 irType,
                 fieldIndex);
         }

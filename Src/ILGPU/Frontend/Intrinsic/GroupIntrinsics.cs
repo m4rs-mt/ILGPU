@@ -60,12 +60,15 @@ namespace ILGPU.Frontend.Intrinsic
             return attribute.IntrinsicKind switch
             {
                 GroupIntrinsicKind.Barrier => builder.CreateBarrier(
+                    context.Location,
                     BarrierKind.GroupLevel),
                 GroupIntrinsicKind.Broadcast => builder.CreateBroadcast(
+                    context.Location,
                     context[0],
                     context[1],
                     BroadcastKind.GroupLevel),
                 _ => builder.CreateBarrier(
+                    context.Location,
                     context[0],
                     (PredicateBarrierKind)attribute.IntrinsicKind),
             };

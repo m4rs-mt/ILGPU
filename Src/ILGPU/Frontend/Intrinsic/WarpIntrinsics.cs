@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
@@ -66,6 +67,7 @@ namespace ILGPU.Frontend.Intrinsic
             WarpIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
+            var location = context.Location;
             switch (attribute.IntrinsicKind)
             {
                 case WarpIntrinsicKind.Shuffle:
@@ -73,6 +75,7 @@ namespace ILGPU.Frontend.Intrinsic
                 case WarpIntrinsicKind.ShuffleUp:
                 case WarpIntrinsicKind.ShuffleXor:
                     return builder.CreateShuffle(
+                        location,
                         context[0],
                         context[1],
                         (ShuffleKind)attribute.IntrinsicKind);
@@ -81,19 +84,21 @@ namespace ILGPU.Frontend.Intrinsic
                 case WarpIntrinsicKind.SubShuffleUp:
                 case WarpIntrinsicKind.SubShuffleXor:
                     return builder.CreateShuffle(
+                        location,
                         context[0],
                         context[1],
                         context[2],
                         (ShuffleKind)(
                             attribute.IntrinsicKind - WarpIntrinsicKind.SubShuffle));
                 case WarpIntrinsicKind.Barrier:
-                    return builder.CreateBarrier(BarrierKind.WarpLevel);
+                    return builder.CreateBarrier(location, BarrierKind.WarpLevel);
                 case WarpIntrinsicKind.WarpSize:
-                    return builder.CreateWarpSizeValue();
+                    return builder.CreateWarpSizeValue(location);
                 case WarpIntrinsicKind.LaneIdx:
-                    return builder.CreateLaneIdxValue();
+                    return builder.CreateLaneIdxValue(location);
                 case WarpIntrinsicKind.Broadcast:
                     return builder.CreateBroadcast(
+                        location,
                         context[0],
                         context[1],
                         BroadcastKind.WarpLevel);

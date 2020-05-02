@@ -171,6 +171,8 @@ namespace ILGPU.Frontend.Intrinsic
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleActivator(in InvocationContext context)
         {
+            var location = context.Location;
+
             var genericArgs = context.GetMethodGenericArguments();
             if (context.Method.Name != nameof(Activator.CreateInstance) ||
                 context.NumArguments != 0 ||
@@ -182,6 +184,7 @@ namespace ILGPU.Frontend.Intrinsic
             }
 
             return context.Builder.CreateNull(
+                location,
                 context.Builder.CreateType(genericArgs[0]));
         }
 
@@ -193,6 +196,7 @@ namespace ILGPU.Frontend.Intrinsic
         private static ValueReference HandleDebug(in InvocationContext context)
         {
             var builder = context.Builder;
+            var location = context.Location;
 
             switch (context.Method.Name)
             {
@@ -201,6 +205,7 @@ namespace ILGPU.Frontend.Intrinsic
                     {
                         case 1:
                             return builder.CreateDebug(
+                                location,
                                 DebugKind.Trace,
                                 context[0]);
                     }
@@ -210,6 +215,7 @@ namespace ILGPU.Frontend.Intrinsic
                     {
                         case 1:
                             return builder.CreateDebug(
+                                location,
                                 DebugKind.AssertFailed,
                                 context[0]);
                     }
@@ -261,6 +267,7 @@ namespace ILGPU.Frontend.Intrinsic
 
             // Convert values to IR values
             var builder = context.Builder;
+            var location = context.Location;
             int elementSize = Marshal.SizeOf(Activator.CreateInstance(elementType));
             for (int i = 0, e = valueSize / elementSize; i < e; ++i)
             {
@@ -268,10 +275,14 @@ namespace ILGPU.Frontend.Intrinsic
                 var instance = Marshal.PtrToStructure(new IntPtr(address), elementType);
 
                 // Convert element to IR value
-                var irValue = builder.CreateValue(instance, elementType);
-                var targetIndex = builder.CreatePrimitiveValue(i);
+                var irValue = builder.CreateValue(
+                    location,
+                    instance,
+                    elementType);
+                var targetIndex = builder.CreatePrimitiveValue(location, i);
 
                 builder.CreateSetArrayElement(
+                    location,
                     target,
                     targetIndex,
                     irValue);
@@ -286,13 +297,16 @@ namespace ILGPU.Frontend.Intrinsic
         private static ValueReference HandleArrays(in InvocationContext context)
         {
             var builder = context.Builder;
+            var location = context.Location;
             if (context.Method is ConstructorInfo)
             {
                 var newExtent = builder.CreateDynamicStructure(
+                    location,
                     context.Arguments.RemoveAt(0));
                 var newElementType = builder.CreateType(
                     context.Method.DeclaringType.GetElementType());
                 return builder.CreateArray(
+                    location,
                     newElementType,
                     context.NumArguments - 1,
                     newExtent);
@@ -302,40 +316,68 @@ namespace ILGPU.Frontend.Intrinsic
                 return context.Method.Name switch
                 {
                     "Get" => builder.CreateGetArrayElement(
+                           location,
                        context[0],
-                       builder.CreateDynamicStructure(context.Arguments.RemoveAt(0))),
+                       builder.CreateDynamicStructure(
+                           location,
+                           context.Arguments.RemoveAt(0))),
                     "Set" => builder.CreateSetArrayElement(
+                           location,
                         context[0],
                         builder.CreateDynamicStructure(
+                           location,
                             context.Arguments.RemoveAt(0).RemoveAt(
                                 context.NumArguments - 2)),
                         context[context.NumArguments - 1]),
-                    "get_Length" => builder.CreateGetArrayLength(context[0]),
+                    "get_Length" => builder.CreateGetArrayLength(
+                        location,
+                        context[0]),
                     "get_LongLength" => builder.CreateConvert(
-                        builder.CreateGetArrayLength(context[0]),
+                        location,
+                        builder.CreateGetArrayLength(
+                            location,
+                            context[0]),
                         builder.GetPrimitiveType(BasicValueType.Int64)),
-                    nameof(Array.GetLowerBound) => builder.CreatePrimitiveValue(0),
+                    nameof(Array.GetLowerBound) => builder.CreatePrimitiveValue(
+                        location,
+                        0),
                     nameof(Array.GetUpperBound) => builder.CreateArithmetic(
+                        location,
                         builder.CreateGetField(
-                        builder.CreateGetArrayExtent(context[0]),
-                        new FieldSpan(
-                            context[1].ResolveAs<PrimitiveValue>().Int32Value)),
-                        builder.CreatePrimitiveValue(1),
+                            location,
+                            builder.CreateGetArrayExtent(
+                                location,
+                                context[0]),
+                            new FieldSpan(
+                                context[1].ResolveAs<PrimitiveValue>().Int32Value)),
+                        builder.CreatePrimitiveValue(
+                            location,
+                            1),
                         BinaryArithmeticKind.Sub),
                     nameof(Array.GetLength) => builder.CreateGetField(
-                        builder.CreateGetArrayExtent(context[0]),
+                        location,
+                        builder.CreateGetArrayExtent(
+                            location,
+                            context[0]),
                         new FieldSpan(
                             context[1].ResolveAs<PrimitiveValue>().Int32Value)),
                     nameof(Array.GetLongLength) => builder.CreateConvert(
+                        location,
                         builder.CreateGetField(
-                        builder.CreateGetArrayExtent(context[0]),
-                            new FieldSpan(
-                            context[1].ResolveAs<PrimitiveValue>().Int32Value)),
+                            location,
+                            builder.CreateGetArrayExtent(
+                                location,
+                                context[0]),
+                                new FieldSpan(
+                                context[1].ResolveAs<PrimitiveValue>().Int32Value)),
                         builder.GetPrimitiveType(BasicValueType.Int64)),
                     nameof(Array.Empty) => builder.CreateArray(
+                        location,
                         builder.CreateType(context.Method.GetGenericArguments()[0]),
                         1,
-                        builder.CreatePrimitiveValue(0)),
+                        builder.CreatePrimitiveValue(
+                            location,
+                            0)),
                     _ => throw context.GetNotSupportedException(
                         ErrorMessages.NotSupportedIntrinsic,
                         context.Method.Name),

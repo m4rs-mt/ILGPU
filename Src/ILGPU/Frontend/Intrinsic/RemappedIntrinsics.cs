@@ -9,6 +9,9 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+// Enforce DEBUG mode in all cases to preserve Debug calls
+#define DEBUG
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -154,15 +157,12 @@ namespace ILGPU.Frontend.Intrinsic
                 null,
                 paramTypes,
                 null);
-            Debug.Assert(mathFunc != null, "Invalid source function");
-
             var gpuMathFunc = targetType.GetMethod(
                 functionName,
                 BindingFlags.Public | BindingFlags.Static,
                 null,
                 paramTypes,
                 null);
-            Debug.Assert(gpuMathFunc != null, "Invalid target function");
 
             AddRemapping(
                 mathFunc,

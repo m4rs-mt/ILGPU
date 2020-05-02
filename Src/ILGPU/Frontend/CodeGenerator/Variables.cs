@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
+using ILGPU.IR;
 using System.Diagnostics;
 
 namespace ILGPU.Frontend
@@ -19,31 +19,24 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Loads a variable. This can be an argument or a local reference.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="var">The variable reference.</param>
-        private void LoadVariable(
-            Block block,
-            IRBuilder builder,
-            VariableRef var)
+        private void LoadVariable(VariableRef var)
         {
             Debug.Assert(
                 var.RefType == VariableRefType.Argument ||
                 var.RefType == VariableRefType.Local);
-            var addressOrValue = block.GetValue(var);
+            var addressOrValue = Block.GetValue(var);
             var type = variableTypes[var];
             if (variables.Contains(var))
             {
-                block.Push(CreateLoad(
-                    builder,
+                Block.Push(CreateLoad(
                     addressOrValue,
                     type.Item1,
                     type.Item2));
             }
             else
             {
-                block.Push(LoadOntoEvaluationStack(
-                    builder,
+                Block.Push(LoadOntoEvaluationStack(
                     addressOrValue,
                     type.Item2));
             }
@@ -52,42 +45,39 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Loads a variable address. This can be an argument or a local reference.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
         /// <param name="var">The variable reference.</param>
-        private void LoadVariableAddress(Block block, VariableRef var)
+        private void LoadVariableAddress(VariableRef var)
         {
-            Debug.Assert(
+            Location.Assert(
                 var.RefType == VariableRefType.Argument ||
                 var.RefType == VariableRefType.Local);
-            Debug.Assert(variables.Contains(var), "Cannot load address of SSA value");
-            var address = block.GetValue(var);
-            block.Push(address);
+            // Check whether we can load the address of a non-SSA value
+            Location.Assert(variables.Contains(var));
+            var address = Block.GetValue(var);
+            Block.Push(address);
         }
 
         /// <summary>
         /// Stores a value to the given variable slot.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="var">The variable reference.</param>
-        private void StoreVariable(
-            Block block,
-            IRBuilder builder,
-            VariableRef var)
+        private void StoreVariable(VariableRef var)
         {
-            Debug.Assert(
+            Location.Assert(
                 var.RefType == VariableRefType.Argument ||
                 var.RefType == VariableRefType.Local);
             var variableType = variableTypes[var];
-            var storeValue = block.Pop(variableType.Item1, variableType.Item2);
+            var storeValue = Block.Pop(
+                variableType.Item1,
+                variableType.Item2);
             if (variables.Contains(var))
             {
-                var address = block.GetValue(var);
-                builder.CreateStore(address, storeValue);
+                var address = Block.GetValue(var);
+                Builder.CreateStore(Location, address, storeValue);
             }
             else
             {
-                block.SetValue(var, storeValue);
+                Block.SetValue(var, storeValue);
             }
         }
     }

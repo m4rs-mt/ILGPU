@@ -52,7 +52,7 @@ namespace ILGPU.Frontend
                 CodeGenerator = codeGenerator;
                 Builder = methodBuilder;
 
-                EntryBlock = AppendBasicBlock(0);
+                EntryBlock = AppendBasicBlock(methodBuilder.Location, 0);
                 BuildBasicBlocks();
                 methodBuilder.EntryBlock = EntryBlock.BasicBlock;
 
@@ -75,13 +75,14 @@ namespace ILGPU.Frontend
             /// <summary>
             /// Appends a basic block with the given target.
             /// </summary>
+            /// <param name="location">The current location.</param>
             /// <param name="target">The block target.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private Block AppendBasicBlock(int target)
+            private Block AppendBasicBlock(Location location, int target)
             {
                 if (!blockMapping.TryGetValue(target, out Block block))
                 {
-                    var basicBlock = Builder.CreateBasicBlock();
+                    var basicBlock = Builder.CreateBasicBlock(location);
                     block = new Block(CodeGenerator, basicBlock);
                     blockMapping.Add(target, block);
                     basicBlockMapping.Add(block.BasicBlock, block);
@@ -107,7 +108,7 @@ namespace ILGPU.Frontend
                         {
                             if (blockMapping.ContainsKey(target))
                                 continue;
-                            AppendBasicBlock(target);
+                            AppendBasicBlock(instruction.Location, target);
                         }
                     }
                 }

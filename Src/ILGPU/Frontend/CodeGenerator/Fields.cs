@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
-using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System.Reflection;
@@ -22,27 +21,21 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Loads the value of a field specified by the given metadata token.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="field">The field.</param>
-        private void MakeLoadField(
-            Block block,
-            IRBuilder builder,
-            FieldInfo field)
+        private void MakeLoadField(FieldInfo field)
         {
             if (field == null)
-                throw this.GetInvalidILCodeException();
+                throw Location.GetInvalidOperationException();
 
-            var fieldValue = block.Pop();
+            var fieldValue = Block.Pop();
             if (fieldValue.Type.IsPointerType)
             {
                 // Load field from address
-                block.Push(fieldValue);
-                MakeLoadFieldAddress(block, builder, field);
-                var fieldAddress = block.Pop();
-                var fieldType = builder.CreateType(field.FieldType);
-                block.Push(CreateLoad(
-                    builder,
+                Block.Push(fieldValue);
+                MakeLoadFieldAddress(field);
+                var fieldAddress = Block.Pop();
+                var fieldType = Builder.CreateType(field.FieldType);
+                Block.Push(CreateLoad(
                     fieldAddress,
                     fieldType,
                     field.FieldType.ToTargetUnsignedFlags()));
@@ -55,115 +48,99 @@ namespace ILGPU.Frontend
                 int absoluteIndex = parentInfo.GetAbsoluteIndex(field);
 
                 // Check whether we have to get multiple elements
-                var getField = builder.CreateGetField(fieldValue, new FieldSpan(
-                    absoluteIndex,
-                    typeInfo.NumFlattendedFields));
-                block.Push(getField);
+                var getField = Builder.CreateGetField(
+                    Location,
+                    fieldValue,
+                    new FieldSpan(
+                        absoluteIndex,
+                        typeInfo.NumFlattendedFields));
+                Block.Push(getField);
             }
         }
 
         /// <summary>
         /// Loads the address of a field specified by the given metadata token.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="field">The field.</param>
-        private void MakeLoadFieldAddress(
-            Block block,
-            IRBuilder builder,
-            FieldInfo field)
+        private void MakeLoadFieldAddress(FieldInfo field)
         {
             if (field == null)
-                throw this.GetInvalidILCodeException();
+                throw Location.GetInvalidOperationException();
             var parentType = field.DeclaringType;
-            var targetPointerType = builder.CreatePointerType(
-                builder.CreateType(parentType),
+            var targetPointerType = Builder.CreatePointerType(
+                Builder.CreateType(parentType),
                 MemoryAddressSpace.Generic);
-            var address = block.Pop(targetPointerType, ConvertFlags.None);
+            var address = Block.Pop(
+                targetPointerType,
+                ConvertFlags.None);
 
             var typeInfo = Context.TypeContext.GetTypeInfo(field.FieldType);
             var parentInfo = Context.TypeContext.GetTypeInfo(parentType);
             int absoluteIndex = parentInfo.GetAbsoluteIndex(field);
 
-            var fieldAddress = builder.CreateLoadFieldAddress(
+            var fieldAddress = Builder.CreateLoadFieldAddress(
+                Location,
                 address,
                 new FieldSpan(absoluteIndex, typeInfo.NumFlattendedFields));
-            block.Push(fieldAddress);
+            Block.Push(fieldAddress);
         }
 
         /// <summary>
         /// Loads a static field value and returns the created IR node.
         /// </summary>
-        /// <param name="builder">The current builder.</param>
         /// <param name="field">The field.</param>
         /// <returns>The loaded field value.</returns>
-        private ValueReference CreateLoadStaticFieldValue(
-            IRBuilder builder,
-            FieldInfo field)
+        private ValueReference CreateLoadStaticFieldValue(FieldInfo field)
         {
             if (field == null)
-                throw this.GetInvalidILCodeException();
+                throw Location.GetInvalidOperationException();
             VerifyStaticFieldLoad(field);
 
             var fieldValue = field.GetValue(null);
             return fieldValue == null ?
-                builder.CreateObjectValue(field.FieldType) :
-                builder.CreateObjectValue(fieldValue);
+                Builder.CreateObjectValue(Location, field.FieldType) :
+                Builder.CreateObjectValue(Location, fieldValue);
         }
 
         /// <summary>
         /// Loads a static field value.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="field">The field.</param>
-        private void MakeLoadStaticField(
-            Block block,
-            IRBuilder builder,
-            FieldInfo field) =>
-            block.Push(CreateLoadStaticFieldValue(builder, field));
+        private void MakeLoadStaticField(FieldInfo field) =>
+            Block.Push(CreateLoadStaticFieldValue(field));
 
         /// <summary>
         /// Loads the address of a static field specified by the given metadata token.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="field">The field.</param>
-        private void MakeLoadStaticFieldAddress(
-            Block block,
-            IRBuilder builder,
-            FieldInfo field)
+        private void MakeLoadStaticFieldAddress( FieldInfo field)
         {
-            var fieldValue = CreateLoadStaticFieldValue(builder, field);
+            var fieldValue = CreateLoadStaticFieldValue(field);
             var tempAlloca = CreateTempAlloca(fieldValue.Type);
-            builder.CreateStore(tempAlloca, fieldValue);
-            block.Push(tempAlloca);
+            Builder.CreateStore(Location, tempAlloca, fieldValue);
+            Block.Push(tempAlloca);
         }
 
         /// <summary>
         /// Stores a value to a field.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="field">The field.</param>
-        private void MakeStoreField(
-            Block block,
-            IRBuilder builder,
-            FieldInfo field)
+        private void MakeStoreField(FieldInfo field)
         {
-            var fieldType = block.Builder.CreateType(field.FieldType);
-            var value = block.Pop(fieldType, field.FieldType.ToTargetUnsignedFlags());
-            MakeLoadFieldAddress(block, builder, field);
-            var address = block.Pop();
-            CreateStore(builder, address, value);
+            var fieldType = Builder.CreateType(field.FieldType);
+            var value = Block.Pop(
+                fieldType,
+                field.FieldType.ToTargetUnsignedFlags());
+            MakeLoadFieldAddress(field);
+            var address = Block.Pop();
+            CreateStore(address, value);
         }
 
         /// <summary>
         /// Stores a value to a static field.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
         /// <param name="field">The field.</param>
-        private void MakeStoreStaticField(Block block, FieldInfo field)
+        private void MakeStoreStaticField(FieldInfo field)
         {
             VerifyStaticFieldStore(field);
 
@@ -172,7 +149,7 @@ namespace ILGPU.Frontend
             // TODO: Stores to static fields could be automatically propagated to the
             // .Net runtime after kernel invocation. However, this remains as a future
             // feature.
-            block.Pop();
+            Block.Pop();
         }
     }
 }

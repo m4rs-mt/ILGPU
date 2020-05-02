@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
 using System;
 
@@ -20,89 +19,82 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Realizes an array creation.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="elementType">The element type.</param>
-        private void MakeNewArray(
-            Block block,
-            IRBuilder builder,
-            Type elementType)
+        private void MakeNewArray(Type elementType)
         {
             // Resolve length and type
-            var type = builder.CreateType(elementType);
-            var extent = block.PopInt(ConvertFlags.None);
-            var value = builder.CreateArray(type, 1, extent);
-            block.Push(value);
+            var type = Builder.CreateType(elementType);
+            var extent = Block.PopInt(Location, ConvertFlags.None);
+            var value = Builder.CreateArray(
+                Location,
+                type,
+                1,
+                extent);
+            Block.Push(value);
         }
 
         /// <summary>
         /// Realizes an array load-element operation.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="_">The element type to load.</param>
-        private void MakeLoadElementAddress(
-            Block block,
-            IRBuilder builder,
-            Type _)
+        private void MakeLoadElementAddress(Type _)
         {
             // TODO: make sure that element loads are converted properly in all cases
-            var index = block.PopInt(ConvertFlags.None);
-            var array = block.Pop();
-            var linearAddress = builder.ComputeArrayAddress(
+            var index = Block.PopInt(Location, ConvertFlags.None);
+            var array = Block.Pop();
+            var linearAddress = Builder.ComputeArrayAddress(
+                Location,
                 index,
                 array,
                 0);
-            var value = builder.CreateLoadElementAddress(array, linearAddress);
-            block.Push(value);
+            var value = Builder.CreateLoadElementAddress(
+                Location,
+                array,
+                linearAddress);
+            Block.Push(value);
         }
 
         /// <summary>
         /// Realizes an array load-element operation.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="_">The element type to load.</param>
-        private void MakeLoadElement(
-            Block block,
-            IRBuilder builder,
-            Type _)
+        private void MakeLoadElement(Type _)
         {
             // TODO: make sure that element loads are converted properly in all cases
-            var index = block.PopInt(ConvertFlags.None);
-            var array = block.Pop();
-            var value = builder.CreateGetArrayElement(array, index);
-            block.Push(value);
+            var index = Block.PopInt(Location, ConvertFlags.None);
+            var array = Block.Pop();
+            var value = Builder.CreateGetArrayElement(
+                Location,
+                array,
+                index);
+            Block.Push(value);
         }
 
         /// <summary>
         /// Realizes an array store-element operation.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="elementType">The element type to store.</param>
-        private void MakeStoreElement(
-            Block block,
-            IRBuilder builder,
-            Type elementType)
+        private void MakeStoreElement(Type elementType)
         {
-            var typeNode = builder.CreateType(elementType);
-            var value = block.Pop(typeNode, ConvertFlags.None);
-            var index = block.PopInt(ConvertFlags.None);
-            var array = block.Pop();
-            builder.CreateSetArrayElement(array, index, value);
+            var typeNode = Builder.CreateType(elementType);
+            var value = Block.Pop(typeNode, ConvertFlags.None);
+            var index = Block.PopInt(Location, ConvertFlags.None);
+            var array = Block.Pop();
+            Builder.CreateSetArrayElement(
+                Location,
+                array,
+                index,
+                value);
         }
 
         /// <summary>
         /// Realizes an array length value.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
-        private static void MakeLoadArrayLength(Block block, IRBuilder builder)
+        private void MakeLoadArrayLength()
         {
-            var array = block.Pop();
-            var length = builder.CreateGetArrayLength(array);
-            block.Push(length);
+            var array = Block.Pop();
+            var length = Builder.CreateGetArrayLength(Location, array);
+            Block.Push(length);
         }
     }
 }

@@ -44,6 +44,8 @@ namespace ILGPU.Frontend.Intrinsic
         private static ValueReference HandleMemoryBarrierOperation(
             in InvocationContext context,
             MemoryBarrierIntrinsicAttribute attribute) =>
-            context.Builder.CreateMemoryBarrier(attribute.IntrinsicKind);
+            context.Builder.CreateMemoryBarrier(
+                context.Location,
+                attribute.IntrinsicKind);
     }
 }

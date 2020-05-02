@@ -66,12 +66,17 @@ namespace ILGPU.Frontend.Intrinsic
             return attribute.IntrinsicKind switch
             {
                 GridIntrinsicKind.GetGridIndex => builder.CreateGridIndexValue(
+                    context.Location,
                     attribute.Dimension),
                 GridIntrinsicKind.GetGroupIndex => builder.CreateGroupIndexValue(
+                    context.Location,
                     attribute.Dimension),
                 GridIntrinsicKind.GetGridDimension => builder.CreateGridDimensionValue(
+                    context.Location,
                     attribute.Dimension),
-                _ => builder.CreateGroupDimensionValue(attribute.Dimension),
+                _ => builder.CreateGroupDimensionValue(
+                    context.Location,
+                    attribute.Dimension),
             };
         }
     }

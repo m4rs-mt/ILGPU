@@ -20,7 +20,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace ILGPU.Frontend
 {
@@ -28,7 +27,7 @@ namespace ILGPU.Frontend
     /// Represents an IR code generator for .Net methods.
     /// </summary>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    sealed partial class CodeGenerator : ICodeGenerationContext
+    sealed partial class CodeGenerator
     {
         #region Instance
 
@@ -59,14 +58,12 @@ namespace ILGPU.Frontend
 
             cfgBuilder = new Block.CFGBuilder(this, methodBuilder);
             EntryBlock = cfgBuilder.EntryBlock;
+            Location = disassembledMethod.FirstLocation;
 
             SSABuilder = SSABuilder<VariableRef>.Create(
                 methodBuilder,
                 cfgBuilder.CFG);
 
-            // Setup the initial sequence point of the first instruction
-            methodBuilder.SetupInitialSequencePoint(
-                disassembledMethod.FirstSequencePoint);
             SetupVariables();
         }
 
@@ -104,7 +101,7 @@ namespace ILGPU.Frontend
                 var paramRef = new VariableRef(0, VariableRefType.Argument);
                 EntryBlock.SetValue(
                     paramRef,
-                    Builder.InsertParameter(declaringType, "this"));
+                    MethodBuilder.InsertParameter(declaringType, "this"));
                 variableTypes[paramRef] = (declaringType, ConvertFlags.None);
             }
 
@@ -114,7 +111,7 @@ namespace ILGPU.Frontend
             {
                 var parameter = methodParameters[i];
                 var paramType = builder.CreateType(parameter.ParameterType);
-                Value ssaValue = Builder.AddParameter(paramType, parameter.Name);
+                Value ssaValue = MethodBuilder.AddParameter(paramType, parameter.Name);
                 var argRef = new VariableRef(
                     i + parameterOffset,
                     VariableRefType.Argument);
@@ -123,7 +120,10 @@ namespace ILGPU.Frontend
                     // Address was taken... emit a temporary alloca and store
                     // the argument value to it
                     var alloca = CreateTempAlloca(paramType);
-                    builder.CreateStore(alloca, ssaValue);
+                    builder.CreateStore(
+                        Location,
+                        alloca,
+                        ssaValue);
                     ssaValue = alloca;
                 }
                 EntryBlock.SetValue(argRef, ssaValue);
@@ -139,13 +139,18 @@ namespace ILGPU.Frontend
                 var variable = localVariables[i];
                 var variableType = builder.CreateType(variable.LocalType);
                 var localRef = new VariableRef(i, VariableRefType.Local);
-                Value initValue = builder.CreateNull(variableType);
+                Value initValue = builder.CreateNull(
+                    Location,
+                    variableType);
                 if (variables.Contains(localRef))
                 {
                     // Address was taken... emit a temporary alloca and store
                     // an empty value to it
                     var alloca = CreateTempAlloca(variableType);
-                    builder.CreateStore(alloca, initValue);
+                    builder.CreateStore(
+                        Location,
+                        alloca,
+                        initValue);
                     initValue = alloca;
                 }
 
@@ -173,12 +178,12 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the current IR context.
         /// </summary>
-        public IRContext Context => Builder.Context;
+        public IRContext Context => MethodBuilder.Context;
 
         /// <summary>
         /// Returns the current method builder.
         /// </summary>
-        public Method.Builder Builder => SSABuilder.MethodBuilder;
+        public Method.Builder MethodBuilder => SSABuilder.MethodBuilder;
 
         /// <summary>
         /// Returns the current disassembled method.
@@ -202,6 +207,25 @@ namespace ILGPU.Frontend
 
         #endregion
 
+        #region Builder Properties
+
+        /// <summary>
+        /// Gets or sets the current block being processing.
+        /// </summary>
+        private Block Block { get; set; }
+
+        /// <summary>
+        /// Returns the current block builder.
+        /// </summary>
+        private BasicBlock.Builder Builder => Block.Builder;
+
+        /// <summary>
+        /// Gets or sets the current location.
+        /// </summary>
+        private Location Location { get; set; }
+
+        #endregion
+
         #region Methods
 
         /// <summary>
@@ -212,7 +236,7 @@ namespace ILGPU.Frontend
         public Method DeclareMethod(MethodBase methodBase)
         {
             Debug.Assert(methodBase != null, "Invalid function to declare");
-            var result = Builder.DeclareMethod(methodBase, out bool created);
+            var result = MethodBuilder.DeclareMethod(methodBase, out bool created);
             if (created && result.HasImplementation)
                 DetectedMethods.Add(methodBase);
             return result;
@@ -224,7 +248,10 @@ namespace ILGPU.Frontend
         /// <param name="type">The type to allocate.</param>
         /// <returns>The created alloca.</returns>
         public ValueReference CreateTempAlloca(TypeNode type) =>
-            EntryBlock.Builder.CreateAlloca(type, MemoryAddressSpace.Local);
+            EntryBlock.Builder.CreateAlloca(
+                Location,
+                type,
+                MemoryAddressSpace.Local);
 
         /// <summary>
         /// Generates code for the current function.
@@ -235,39 +262,36 @@ namespace ILGPU.Frontend
             // Iterate over all blocks in reverse postorder
             foreach (BasicBlock basicBlock in cfgBuilder.Scope)
             {
-                var block = cfgBuilder[basicBlock];
-                GenerateCodeForBlock(block);
+                Block = cfgBuilder[basicBlock];
+                Location = basicBlock.Location;
+
+                GenerateCodeForBlock();
             }
 
-            return Builder.Method;
+            return MethodBuilder.Method;
         }
 
         /// <summary>
         /// Generates code for the given block.
         /// </summary>
-        /// <param name="block">The current block.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void GenerateCodeForBlock(Block block)
+        private void GenerateCodeForBlock()
         {
-            if (!SSABuilder.ProcessAndSeal(block.CFGNode))
+            if (!SSABuilder.ProcessAndSeal(Block.CFGNode))
                 return;
 
-            var blockBuilder = block.Builder;
-            blockBuilder.SetupSequencePoint(
-                DisassembledMethod[block.InstructionOffset].SequencePoint);
-
-            int endOffset = block.InstructionOffset + block.InstructionCount;
-            for (int i = block.InstructionOffset; i < endOffset; ++i)
+            int endOffset = Block.InstructionOffset + Block.InstructionCount;
+            for (int i = Block.InstructionOffset; i < endOffset; ++i)
             {
                 var instruction = DisassembledMethod[i];
 
                 // Setup debug information
-                Builder.SequencePoint = instruction.SequencePoint;
+                Location = instruction.Location;
 
                 // Try to generate code for this instruction
-                if (!TryGenerateCode(block, blockBuilder, instruction))
+                if (!TryGenerateCode(instruction))
                 {
-                    throw this.GetNotSupportedException(
+                    throw Location.GetNotSupportedException(
                         ErrorMessages.NotSupportedInstruction,
                         Method.Name,
                         instruction);
@@ -275,51 +299,20 @@ namespace ILGPU.Frontend
             }
 
             // Handle implicit branches to successor blocks
-            if (blockBuilder.Terminator is BuilderTerminator builderTerminator)
+            if (Builder.Terminator is BuilderTerminator builderTerminator)
             {
-                Debug.Assert(
-                    builderTerminator.NumTargets == 1,
-                    "Implicit branches can have one successor only");
-                blockBuilder.CreateBranch(builderTerminator.Targets[0]);
+                Location = DisassembledMethod[endOffset].Location;
+                // Verify that implicit branches have one successor only
+                Location.Assert(builderTerminator.NumTargets == 1);
+                Builder.CreateBranch(
+                    Location,
+                    builderTerminator.Targets[0]);
             }
         }
 
         #endregion
 
         #region Verification
-
-        /// <summary>
-        /// Constructs a new exception of the given type based on the given
-        /// message, the formatting arguments and the current general compilation
-        /// information.
-        /// </summary>
-        /// <typeparam name="TException">The exception type.</typeparam>
-        /// <param name="message">The main content of the error message.</param>
-        /// <param name="args">The formatting arguments.</param>
-        /// <returns>
-        /// A new exception of type
-        /// <typeparamref name="TException"/>.</returns>
-        public TException GetException<TException>(
-            string message,
-            params object[] args)
-            where TException : Exception
-        {
-            var builder = new StringBuilder();
-            builder.AppendFormat(message, args);
-            var currentMethod = Method;
-            if (currentMethod != null)
-            {
-                builder.AppendLine();
-                builder.Append("Current method: ");
-                builder.Append(Method.DeclaringType.Name);
-                builder.Append('.');
-                builder.Append(Method.Name);
-            }
-            var instance = Activator.CreateInstance(
-                typeof(TException),
-                builder.ToString()) as TException;
-            return instance;
-        }
 
         /// <summary>
         /// Verifies that the given method is not a .Net-runtime-dependent method.
@@ -346,8 +339,9 @@ namespace ILGPU.Frontend
                     "System.Reflection",
                     StringComparison.OrdinalIgnoreCase))
             {
-                throw this.GetNotSupportedException(
-                    ErrorMessages.NotSupportedRuntimeMethod, method.Name);
+                throw Location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedRuntimeMethod,
+                    method.Name);
             }
         }
 
@@ -365,7 +359,7 @@ namespace ILGPU.Frontend
             if (isInitOnly &&
                 !Context.HasFlags(ContextFlags.InlineMutableStaticFieldValues))
             {
-                throw this.GetNotSupportedException(
+                throw Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedLoadOfStaticField,
                     field);
             }
@@ -382,7 +376,7 @@ namespace ILGPU.Frontend
 
             if (!Context.HasFlags(ContextFlags.IgnoreStaticFieldStores))
             {
-                throw this.GetNotSupportedException(
+                throw Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedStoreToStaticField,
                     field);
             }
@@ -406,14 +400,10 @@ namespace ILGPU.Frontend
         /// Converts the given value (already loaded) into its corresponding
         /// evaluation-stack representation.
         /// </summary>
-        /// <param name="builder">The current builder.</param>
         /// <param name="value">The source value to load (already loaded).</param>
         /// <param name="flags">The conversion flags.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static Value LoadOntoEvaluationStack(
-            IRBuilder builder,
-            Value value,
-            ConvertFlags flags)
+        private Value LoadOntoEvaluationStack(Value value, ConvertFlags flags)
         {
             Debug.Assert(value != null, "Invalid value to load");
 
@@ -423,9 +413,8 @@ namespace ILGPU.Frontend
                 case BasicValueType.Int8:
                 case BasicValueType.Int16:
                     return CreateConversion(
-                        builder,
                         value,
-                        builder.GetPrimitiveType(BasicValueType.Int32),
+                        Builder.GetPrimitiveType(BasicValueType.Int32),
                         flags.ToSourceUnsignedFlags());
                 default:
                     return value;
@@ -435,81 +424,64 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Realizes an indirect load instruction.
         /// </summary>
-        /// <param name="builder">The current builder.</param>
         /// <param name="address">The source address.</param>
         /// <param name="type">The target type.</param>
         /// <param name="flags">The conversion flags.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Value CreateLoad(
-            IRBuilder builder,
             Value address,
             TypeNode type,
             ConvertFlags flags)
         {
             if (type == null || !address.Type.IsPointerType)
-                throw this.GetInvalidILCodeException();
+                throw Location.GetInvalidOperationException();
 
             address = CreateConversion(
-                builder,
                 address,
-                builder.CreatePointerType(
-                    type,
-                    MemoryAddressSpace.Generic),
+                Builder.CreatePointerType(type, MemoryAddressSpace.Generic),
                 ConvertFlags.None);
-            var value = builder.CreateLoad(address);
-            return LoadOntoEvaluationStack(builder, value, flags);
+            var value = Builder.CreateLoad(Location, address);
+            return LoadOntoEvaluationStack(value, flags);
         }
 
         /// <summary>
         /// Realizes an indirect store instruction.
         /// </summary>
-        /// <param name="builder">The current builder.</param>
         /// <param name="address">The target address.</param>
         /// <param name="value">The value to store.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CreateStore(
-            IRBuilder builder,
-            Value address,
-            Value value)
+        private void CreateStore(Value address, Value value)
         {
             if (!address.Type.IsPointerType)
-                throw this.GetInvalidILCodeException();
+                throw Location.GetInvalidOperationException();
 
             address = CreateConversion(
-                builder,
                 address,
-                builder.CreatePointerType(
-                    value.Type,
-                    MemoryAddressSpace.Generic),
+                Builder.CreatePointerType(value.Type, MemoryAddressSpace.Generic),
                 ConvertFlags.None);
-            builder.CreateStore(address, value);
+            Builder.CreateStore(Location, address, value);
         }
 
         /// <summary>
         /// Realizes a duplicate operation.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        private static void MakeDup(Block block) => block.Dup();
+        private void MakeDup() => Block.Dup();
 
         /// <summary>
         /// Realizes a pop operation.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        private static void MakePop(Block block) => block.Pop();
+        private void MakePop() => Block.Pop();
 
         /// <summary>
         /// Realizes an internal load-token operation.
         /// </summary>
-        /// <param name="block">The current basic block.</param>
-        /// <param name="builder">The current builder.</param>
         /// <param name="handleValue">The managed handle object.</param>
-        private static void MakeLoadToken(
-            Block block,
-            IRBuilder builder,
-            object handleValue)
+        private void MakeLoadToken(object handleValue)
         {
-            var handle = builder.CreateRuntimeHandle(handleValue);
-            block.Push(handle);
+            var handle = Builder.CreateRuntimeHandle(
+                Location,
+                handleValue);
+            Block.Push(handle);
         }
 
         #endregion

@@ -53,7 +53,7 @@ namespace ILGPU.Frontend.Intrinsic
         {
             var builder = context.Builder;
             Debug.Assert(attribute.IntrinsicKind == AcceleratorIntrinsicKind.CurrentType);
-            return builder.CreateAcceleratorTypeValue();
+            return builder.CreateAcceleratorTypeValue(context.Location);
         }
     }
 }
