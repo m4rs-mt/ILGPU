@@ -495,10 +495,10 @@ namespace ILGPU.IR.Types
             // Populate unified types
             unifiedTypes.Add(VoidType, VoidType);
             unifiedTypes.Add(StringType, StringType);
-            foreach (var basicType in BasicValueTypes)
+            for (int i = 1, e = basicValueTypes.Length; i < e; ++i)
             {
-                var type = GetPrimitiveType(basicType);
-                unifiedTypes.Add(type, type);
+                var basicType = basicValueTypes[i];
+                unifiedTypes[basicType] = basicType;
             }
         }
 
