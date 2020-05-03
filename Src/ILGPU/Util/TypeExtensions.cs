@@ -364,6 +364,23 @@ namespace ILGPU.Util
         }
 
         /// <summary>
+        /// Returns true if the given arithmetic basic value type represents a float.
+        /// </summary>
+        /// <param name="value">The arithmetic basic value type.</param>
+        /// <returns>True, if the given arithmetic basic value represents a float.</returns>
+        public static bool IsFloat(this ArithmeticBasicValueType value)
+        {
+            switch (value)
+            {
+                case ArithmeticBasicValueType.Float32:
+                case ArithmeticBasicValueType.Float64:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
         /// Converts the given type into conversion target flags.
         /// </summary>
         /// <param name="type">The type to convert.</param>
