@@ -9,7 +9,7 @@ namespace ILGPU.Tests
         public const uint SignBitFloat = 1U << 31;
         public const ulong SignBitDouble = 1UL << 63;
 
-        protected ReinterpretCasts(ITestOutputHelper output, ContextProvider contextProvider)
+        protected ReinterpretCasts(ITestOutputHelper output, TestContext contextProvider)
             : base(output, contextProvider)
         { }
 

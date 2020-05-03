@@ -7,8 +7,8 @@ namespace ILGPU.Tests
 {
     public abstract class DebugTests : TestBase
     {
-        protected DebugTests(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected DebugTests(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal static void DebugAssertKernel(

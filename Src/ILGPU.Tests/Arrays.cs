@@ -11,8 +11,8 @@ namespace ILGPU.Tests
 {
     public abstract class Arrays : TestBase
     {
-        protected Arrays(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected Arrays(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         public static TheoryData<object, object> ArraySimpleTestData =>

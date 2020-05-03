@@ -5,8 +5,8 @@ namespace ILGPU.Tests
 {
     public abstract class EnumValues : TestBase
     {
-        protected EnumValues(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected EnumValues(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal enum BasicEnum1 : byte

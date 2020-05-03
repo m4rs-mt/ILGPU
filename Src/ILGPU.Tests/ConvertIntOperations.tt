@@ -16,8 +16,8 @@ namespace ILGPU.Tests
 {
     public abstract class ConvertIntOperations : TestBase
     {
-        protected ConvertIntOperations(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected ConvertIntOperations(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
 <# foreach (var (typeName, type) in IntTypes) { #>

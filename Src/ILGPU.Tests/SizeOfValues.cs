@@ -7,8 +7,8 @@ namespace ILGPU.Tests
 {
     public abstract class SizeOfValues : TestBase
     {
-        protected SizeOfValues(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected SizeOfValues(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         public static TheoryData<object> SizeOfTestData => new TheoryData<object>

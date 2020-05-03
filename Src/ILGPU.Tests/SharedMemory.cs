@@ -6,8 +6,8 @@ namespace ILGPU.Tests
 {
     public abstract class SharedMemory : TestBase
     {
-        protected SharedMemory(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected SharedMemory(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal static void SharedMemoryVariableKernel(ArrayView<int> data)

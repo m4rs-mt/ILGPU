@@ -7,8 +7,8 @@ namespace ILGPU.Tests
     {
         protected StructureValues(
             ITestOutputHelper output,
-            ContextProvider contextProvider)
-            : base(output, contextProvider)
+            TestContext testContext)
+            : base(output, testContext)
         { }
 
         public static TheoryData<object> StructureInteropData => new TheoryData<object>

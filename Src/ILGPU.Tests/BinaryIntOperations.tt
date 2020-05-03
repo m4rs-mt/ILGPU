@@ -32,8 +32,8 @@ namespace ILGPU.Tests
 {
     public abstract class BinaryIntOperations : TestBase
     {
-        protected BinaryIntOperations(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected BinaryIntOperations(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
 <# foreach (var (operationName, prefix, infix, postfix) in operationConfigurations) { #>

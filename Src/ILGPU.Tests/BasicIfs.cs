@@ -10,8 +10,8 @@ namespace ILGPU.Tests
     {
         private const int Length = 32;
 
-        protected BasicIfs(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected BasicIfs(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal static void IfTrueKernel(

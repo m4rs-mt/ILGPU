@@ -53,26 +53,19 @@ namespace ILGPU.Tests
         /// Constructs a new test base.
         /// </summary>
         /// <param name="output">The associated output module.</param>
-        /// <param name="contextProvider">The context provider to use.</param>
-        protected TestBase(ITestOutputHelper output, ContextProvider contextProvider)
+        /// <param name="testContext">The test context instance to use.</param>
+        protected TestBase(ITestOutputHelper output, TestContext testContext)
         {
             Output = output;
-            ContextProvider = contextProvider;
 
-            Context = contextProvider.CreateContext();
-            Assert.True(Context != null, "Invalid context");
-            Accelerator = contextProvider.CreateAccelerator(Context);
-            Assert.True(Accelerator != null, "Accelerator not supported");
+            TestContext = testContext;
 
             TestType = GetType();
         }
 
         #region Properties
 
-        /// <summary>
-        /// Returns the associated context provider.
-        /// </summary>
-        public ContextProvider ContextProvider { get; }
+        private TestContext TestContext { get; }
 
         /// <summary>
         /// Returns the output helper.
@@ -82,12 +75,12 @@ namespace ILGPU.Tests
         /// <summary>
         /// Returns the associated context.
         /// </summary>
-        public Context Context { get; }
+        public Context Context => TestContext.Context;
 
         /// <summary>
         /// Returns the associated accelerator.
         /// </summary>
-        public Accelerator Accelerator { get; }
+        public Accelerator Accelerator => TestContext.Accelerator;
 
         /// <summary>
         /// Returns the associated test type.
@@ -111,8 +104,7 @@ namespace ILGPU.Tests
             params object[] arguments)
             where TIndex : struct, IIndex
         {
-            Accelerator.DefaultStream.Synchronize();
-            Accelerator.Synchronize();
+            using var stream = Accelerator.CreateStream();
 
             // Compile kernel manually and load the compiled kernel into the accelerator
             var backend = Accelerator.Backend;
@@ -128,10 +120,9 @@ namespace ILGPU.Tests
 
             // Launch the kernel
             Output.WriteLine($"Launching '{kernel.Name}'");
-            acceleratorKernel.Launch(Accelerator.DefaultStream, dimension, arguments);
+            acceleratorKernel.Launch(stream, dimension, arguments);
 
-            Accelerator.DefaultStream.Synchronize();
-            Accelerator.Synchronize();
+            stream.Synchronize();
         }
 
         /// <summary>
@@ -251,11 +242,7 @@ namespace ILGPU.Tests
         /// <summary cref="IDisposable.Dispose"/>
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                Accelerator.Dispose();
-                Context.Dispose();
-            }
+            TestContext.ClearCaches();
             base.Dispose(disposing);
         }
 

@@ -9,8 +9,8 @@ namespace ILGPU.Tests
     {
         protected SpecializedKernels(
             ITestOutputHelper output,
-            ContextProvider contextProvider)
-            : base(output, contextProvider)
+            TestContext testContext)
+            : base(output, testContext)
         { }
 
         public static TheoryData<object> SpecializedValueTestData =>

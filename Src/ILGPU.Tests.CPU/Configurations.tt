@@ -4,21 +4,39 @@
 <#@ import namespace="System.IO" #>
 <#@ output extension=".cs" #>
 using ILGPU.IR.Transformations;
+using Xunit;
 using Xunit.Abstractions;
 
 <#
 var configurationFile = Host.ResolvePath("../ILGPU.Tests/Configurations.txt");
-var configurations = TestConfig.Parse(configurationFile);
+var configurations = TestConfig.Parse(configurationFile, out var levels);
 #>
 namespace ILGPU.Tests.CPU
 {
+<# foreach (var optLevel in levels) { #>
+    public sealed class CPUTestContext<#= optLevel #> : CPUTestContext
+    {
+        public CPUTestContext<#= optLevel #>()
+            : base(OptimizationLevel.<#= optLevel #>)
+        { }
+    }
+
+    [CollectionDefinition("CPUContextCollection<#= optLevel #>")]
+    public class CPUContextCollection<#= optLevel #> :
+        ICollectionFixture<CPUTestContext<#= optLevel #>> { }
+
+<# } #>
+
 <# foreach (var config in configurations) { #>
 <#      foreach (var optLevel in config.OptimizationLevels) { #>
 <#      var name = "CPU" + config.Name + "_" + optLevel; #>
+    [Collection("CPUContextCollection<#= optLevel #>")]
     public sealed partial class <#= name #> : <#= config.Name #>
     {
-        public <#= name #>(ITestOutputHelper output)
-            : base(output, new CPUContextProvider(OptimizationLevel.<#= optLevel #>))
+        public <#= name #>(
+            ITestOutputHelper output,
+            CPUTestContext<#= optLevel #> context)
+            : base(output, context)
         { }
     }
 

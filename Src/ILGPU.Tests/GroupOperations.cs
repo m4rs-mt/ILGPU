@@ -11,8 +11,8 @@ namespace ILGPU.Tests
     [Collection("DimensionOperations")]
     public abstract class GroupOperations : TestBase
     {
-        protected GroupOperations(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected GroupOperations(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal static void GroupDimensionKernel(ArrayView<int> data)

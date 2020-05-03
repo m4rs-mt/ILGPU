@@ -100,12 +100,16 @@ public sealed class TestConfig
 
     public string[] OptimizationLevels { get; }
 
-    public static IEnumerable<TestConfig> Parse(string fileName)
+    public static IEnumerable<TestConfig> Parse(
+        string fileName,
+        out IEnumerable<string> levels)
     {
-        return Parse(System.IO.File.ReadAllLines(fileName));
+        return Parse(System.IO.File.ReadAllLines(fileName), out levels);
     }
 
-    public static IEnumerable<TestConfig> Parse(string[] lines)
+    public static IEnumerable<TestConfig> Parse(
+        string[] lines,
+        out IEnumerable<string> levels)
     {
         var result = new List<TestConfig>(lines.Length);
 
@@ -119,14 +123,15 @@ public sealed class TestConfig
             string[] optimizationLevels = null;
             if (parts.Length > 1)
             {
-                var levels = parts[1].Split(',');
-                optimizationLevels = new string[Math.Min(levels.Length, 2)];
+                var levelString = parts[1].Split(',');
+                optimizationLevels = new string[Math.Min(levelString.Length, 2)];
                 for (int j = 0; j < optimizationLevels.Length; ++j)
-                    optimizationLevels[j] = levels[j].Trim();
+                    optimizationLevels[j] = levelString[j].Trim();
             }
             result.Add(new TestConfig(testName, optimizationLevels));
         }
 
+        levels = result.SelectMany(t => t.OptimizationLevels).Distinct();
         return result;
     }
 }

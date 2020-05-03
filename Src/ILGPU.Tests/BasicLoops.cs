@@ -10,8 +10,8 @@ namespace ILGPU.Tests
     {
         private const int Length = 128;
 
-        protected BasicLoops(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected BasicLoops(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal static void WhileFalseKernel(

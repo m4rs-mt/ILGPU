@@ -4,21 +4,39 @@
 <#@ import namespace="System.IO" #>
 <#@ output extension=".cs" #>
 using ILGPU.IR.Transformations;
+using Xunit;
 using Xunit.Abstractions;
 
 <#
 var configurationFile = Host.ResolvePath("../ILGPU.Tests/Configurations.txt");
-var configurations = TestConfig.Parse(configurationFile);
+var configurations = TestConfig.Parse(configurationFile, out var levels);
 #>
 namespace ILGPU.Tests.Cuda
 {
+<# foreach (var optLevel in levels) { #>
+    public sealed class CudaTestContext<#= optLevel #> : CudaTestContext
+    {
+        public CudaTestContext<#= optLevel #>()
+            : base(OptimizationLevel.<#= optLevel #>)
+        { }
+    }
+
+    [CollectionDefinition("CudaContextCollection<#= optLevel #>")]
+    public class CudaContextCollection<#= optLevel #> :
+        ICollectionFixture<CudaTestContext<#= optLevel #>> { }
+
+<# } #>
+
 <# foreach (var config in configurations) { #>
 <#      foreach (var optLevel in config.OptimizationLevels) { #>
 <#      var name = "Cuda" + config.Name + "_" + optLevel; #>
+    [Collection("CudaContextCollection<#= optLevel #>")]
     public sealed partial class <#= name #> : <#= config.Name #>
     {
-        public <#= name #>(ITestOutputHelper output)
-            : base(output, new CudaContextProvider(OptimizationLevel.<#= optLevel #>))
+        public <#= name #>(
+            ITestOutputHelper output,
+            CudaTestContext<#= optLevel #> testContext)
+            : base(output, testContext)
         { }
     }
 

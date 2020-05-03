@@ -8,8 +8,10 @@ namespace ILGPU.Tests
     {
         private const int Length = 1024;
 
-        protected MemoryFenceOperations(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected MemoryFenceOperations(
+            ITestOutputHelper output,
+            TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal static void MemoryFenceGroupLevelKernel(ArrayView<int> data)

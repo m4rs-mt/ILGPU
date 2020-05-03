@@ -8,8 +8,8 @@ namespace ILGPU.Tests
     [Collection("DimensionOperations")]
     public abstract class GridOperations : TestBase
     {
-        protected GridOperations(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected GridOperations(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal static void GridDimensionKernel(ArrayView<int> data)

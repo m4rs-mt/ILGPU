@@ -1,21 +1,20 @@
 ﻿using ILGPU.IR.Transformations;
-using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 using System;
 
 namespace ILGPU.Tests.Cuda
 {
-    sealed class CudaContextProvider : ContextProvider
+    public abstract class CudaTestContext : TestContext
     {
-        public CudaContextProvider(OptimizationLevel optimizationLevel)
-            : base(optimizationLevel)
-        { }
-
-        public override Accelerator CreateAccelerator(Context context)
+        private static CudaAccelerator CreateAccelerator(Context context)
         {
             if (CudaAccelerator.CudaAccelerators.Length < 1)
                 throw new NotSupportedException();
             return new CudaAccelerator(context);
         }
+
+        public CudaTestContext(OptimizationLevel optimizationLevel)
+            : base(optimizationLevel, CreateAccelerator)
+        { }
     }
 }

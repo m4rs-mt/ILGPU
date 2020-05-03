@@ -7,8 +7,8 @@ namespace ILGPU.Tests
 {
     public abstract class WarpOperations : TestBase
     {
-        protected WarpOperations(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected WarpOperations(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal static void WarpDimensionKernel(

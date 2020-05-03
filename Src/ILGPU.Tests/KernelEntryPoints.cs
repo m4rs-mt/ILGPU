@@ -9,8 +9,8 @@ namespace ILGPU.Tests
     {
         protected KernelEntryPoints(
             ITestOutputHelper output,
-            ContextProvider contextProvider)
-            : base(output, contextProvider)
+            TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal static void Index1EntryPointKernel(Index1 index, ArrayView<int> output)

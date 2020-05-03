@@ -8,8 +8,8 @@ namespace ILGPU.Tests
 {
     public abstract class BasicJumps : TestBase
     {
-        protected BasicJumps(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected BasicJumps(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "Testing unconditional jump")]

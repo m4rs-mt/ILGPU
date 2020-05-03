@@ -6,8 +6,8 @@ namespace ILGPU.Tests
 {
     public abstract class ArrayViews : TestBase
     {
-        protected ArrayViews(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected ArrayViews(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal static void ArrayViewValidKernel(Index1 index, ArrayView<int> data)
