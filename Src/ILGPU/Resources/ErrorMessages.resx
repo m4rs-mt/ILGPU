@@ -138,8 +138,8 @@
   <data name="NotSupportedArrayCreation" xml:space="preserve">
     <value>Cannot create a dynamically sized array on an accelerator</value>
   </data>
-  <data name="NotSupportedArrayElementType" xml:space="preserve">
-    <value>The array type '{0}' uses a non-value element type</value>
+  <data name="NotSupportedArrayDimension" xml:space="preserve">
+    <value>The array dimension '{0}' is multidimensional. Currently only liner arrays are supported</value>
   </data>
   <data name="NotSupportedClassType" xml:space="preserve">
     <value>Class type '{0}' is not supported</value>

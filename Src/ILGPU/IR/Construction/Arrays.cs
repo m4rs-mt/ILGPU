@@ -11,11 +11,31 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Construction
 {
     partial class IRBuilder
     {
+        /// <summary>
+        /// Verifies that array operations work on linear arrays only.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="dimensions">The array dimensions.</param>
+        /// <remarks>
+        /// TODO: remove this constraint in future releases.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void VerifyLinearArray(Location location, int dimensions)
+        {
+            if (dimensions < 2)
+                return;
+            throw location.GetNotSupportedException(
+                ErrorMessages.NotSupportedArrayDimension,
+                dimensions.ToString());
+        }
+
         /// <summary>
         /// Creates a new array value.
         /// </summary>
@@ -48,6 +68,7 @@ namespace ILGPU.IR.Construction
         {
             location.AssertNotNull(extent);
             location.Assert(extent.Type == GetIndexType(type.Dimensions));
+            VerifyLinearArray(location, type.Dimensions);
 
             return Append(new ArrayValue(
                 GetInitializer(location),
@@ -66,6 +87,8 @@ namespace ILGPU.IR.Construction
             Value arrayValue)
         {
             location.AssertNotNull(arrayValue);
+            var arrayType = arrayValue.Type.As<ArrayType>(location);
+            VerifyLinearArray(location, arrayType.Dimensions);
 
             return Append(new GetArrayExtent(
                 GetInitializer(location),
@@ -87,6 +110,7 @@ namespace ILGPU.IR.Construction
             location.AssertNotNull(arrayValue);
             var arrayType = arrayValue.Type.As<ArrayType>(location);
             location.Assert(index.Type == GetIndexType(arrayType.Dimensions));
+            VerifyLinearArray(location, arrayType.Dimensions);
 
             return Append(new GetArrayElement(
                 GetInitializer(location),
@@ -111,6 +135,7 @@ namespace ILGPU.IR.Construction
             location.AssertNotNull(arrayValue);
             var arrayType = arrayValue.Type.As<ArrayType>(location);
             location.Assert(index.Type == GetIndexType(arrayType.Dimensions));
+            VerifyLinearArray(location, arrayType.Dimensions);
 
             return Append(new SetArrayElement(
                 GetInitializer(location),

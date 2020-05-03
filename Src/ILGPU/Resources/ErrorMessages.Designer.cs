@@ -313,11 +313,11 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The array type &apos;{0}&apos; uses a non-value element type.
+        ///   Looks up a localized string similar to The array dimension &apos;{0}&apos; is multidimensional. Currently only liner arrays are supported.
         /// </summary>
-        internal static string NotSupportedArrayElementType {
+        internal static string NotSupportedArrayDimension {
             get {
-                return ResourceManager.GetString("NotSupportedArrayElementType", resourceCulture);
+                return ResourceManager.GetString("NotSupportedArrayDimension", resourceCulture);
             }
         }
         
