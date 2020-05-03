@@ -234,8 +234,7 @@ namespace ILGPU.Backends.OpenCL
                 Bind(param, targetVariable);
 
                 // The current type must be a structure type
-                var structureType = param.Type as StructureType;
-                Debug.Assert(structureType != null, "Param must have a structure type");
+                var structureType = param.Type.As<StructureType>(param.Location);
 
                 // Map each field
                 for (

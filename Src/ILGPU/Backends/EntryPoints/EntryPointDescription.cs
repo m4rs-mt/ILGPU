@@ -172,7 +172,6 @@ namespace ILGPU.Backends.EntryPoints
             Context context,
             Type instanceType = null)
         {
-            Debug.Assert(context != null, "Invalid context");
             var parameterTypes = new Type[
                 Parameters.Count + Kernel.KernelParameterOffset];
 

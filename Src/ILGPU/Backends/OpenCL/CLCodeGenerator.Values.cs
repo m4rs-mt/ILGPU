@@ -651,6 +651,7 @@ namespace ILGPU.Backends.OpenCL
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(DebugOperation)"/>
         public void GenerateCode(DebugOperation debug) =>
-            Debug.Assert(false, "Invalid debug node -> should have been removed");
+            // Invalid debug node -> should have been removed
+            debug.Assert(false);
     }
 }

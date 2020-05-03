@@ -184,7 +184,8 @@ namespace ILGPU.Backends.EntryPoints
         /// </param>
         public SharedMemorySpecification(int staticSize, bool hasDynamicMemory)
         {
-            Debug.Assert(staticSize >= 0, "Invalid static memory size");
+            if (staticSize < 0)
+                throw new ArgumentOutOfRangeException(nameof(staticSize));
 
             StaticSize = staticSize;
             HasDynamicMemory = hasDynamicMemory;

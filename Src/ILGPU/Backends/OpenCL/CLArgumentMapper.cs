@@ -16,7 +16,6 @@ using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using ILGPU.Runtime.OpenCL.API;
 using System;
-using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -336,7 +335,8 @@ namespace ILGPU.Backends.OpenCL
             SeparateViewEntryPoint entryPoint)
             where TILEmitter : IILEmitter
         {
-            Debug.Assert(entryPoint != null, "Invalid entry point");
+            if (entryPoint == null)
+                throw new ArgumentNullException(nameof(entryPoint));
 
             // Declare local
             var resultLocal = emitter.DeclareLocal(typeof(int));

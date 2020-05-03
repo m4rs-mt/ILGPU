@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend.DebugInformation;
 using ILGPU.IR;
 using ILGPU.Util;
 using System.Collections.Generic;
@@ -31,7 +30,7 @@ namespace ILGPU.Backends.PTX
         internal PTXDebugInfoGeneratorScope(PTXDebugInfoGenerator parent)
         {
             Parent = parent;
-            Current = SequencePoint.Invalid;
+            ResetLocation();
         }
 
         #endregion
@@ -44,9 +43,9 @@ namespace ILGPU.Backends.PTX
         public PTXDebugInfoGenerator Parent { get; }
 
         /// <summary>
-        /// Returns the current sequence point.
+        /// Returns the current location.
         /// </summary>
-        public SequencePoint Current { get; private set; }
+        public FileLocation Current { get; private set; }
 
         #endregion
 
@@ -59,20 +58,16 @@ namespace ILGPU.Backends.PTX
         /// <param name="node">The node.</param>
         public void GenerateDebugInfo(StringBuilder builder, Node node)
         {
-            Debug.Assert(builder != null, "Invalid builder");
-            Debug.Assert(node != null, "Invalid node");
-
-            var sequencePoint = node.SequencePoint;
-            if (sequencePoint is null || Current == sequencePoint)
+            if (!(node.Location is FileLocation location) || Current == location)
                 return;
-            Parent.GenerateDebugInfo(builder, node, sequencePoint);
-            Current = sequencePoint;
+            Parent.GenerateDebugInfo(builder, node, location);
+            Current = location;
         }
 
         /// <summary>
-        /// Reset all sequence point information.
+        /// Reset all location information.
         /// </summary>
-        public void ResetSequencePoints() => Current = SequencePoint.Invalid;
+        public void ResetLocation() => Current = null;
 
         #endregion
     }
@@ -104,11 +99,11 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="builder">The target string builder to write to.</param>
         /// <param name="node">The node.</param>
-        /// <param name="sequencePoint">The current sequence point.</param>
+        /// <param name="location">The current location.</param>
         protected internal abstract void GenerateDebugInfo(
             StringBuilder builder,
             Node node,
-            in SequencePoint sequencePoint);
+            FileLocation location);
 
         /// <summary>
         /// Generate required debug-information sections in PTX code.
@@ -148,7 +143,7 @@ namespace ILGPU.Backends.PTX
         protected internal override void GenerateDebugInfo(
             StringBuilder builder,
             Node node,
-            in SequencePoint sequencePoint)
+            FileLocation location)
         { }
 
         /// <summary>
@@ -190,23 +185,23 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Gets or creates a new file entry.
         /// </summary>
-        /// <param name="sequencePoint">The current sequence point.</param>
+        /// <param name="location">The current location.</param>
         /// <returns>The file index.</returns>
-        private int RegisterFile(in SequencePoint sequencePoint)
+        private int RegisterFile(FileLocation location)
         {
             SyncLock.EnterUpgradeableReadLock();
             try
             {
                 if (!fileMapping.TryGetValue(
-                    sequencePoint.FileName,
+                    location.FileName,
                     out int fileIndex))
                 {
                     SyncLock.EnterWriteLock();
                     try
                     {
                         fileIndex = fileMapping.Count + 1;
-                        fileMapping.Add(sequencePoint.FileName, fileIndex);
-                        OnRegisterFile(sequencePoint);
+                        fileMapping.Add(location.FileName, fileIndex);
+                        OnRegisterFile(location);
                     }
                     finally
                     {
@@ -224,8 +219,8 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Invoked when a new file mapping entry has been registered.
         /// </summary>
-        /// <param name="sequencePoint">The current sequence point.</param>
-        protected virtual void OnRegisterFile(in SequencePoint sequencePoint) { }
+        /// <param name="location">The current location.</param>
+        protected virtual void OnRegisterFile(FileLocation location) { }
 
         /// <summary>
         /// Generates a line-based debug information string.
@@ -233,19 +228,19 @@ namespace ILGPU.Backends.PTX
         protected internal override void GenerateDebugInfo(
             StringBuilder builder,
             Node node,
-            in SequencePoint sequencePoint)
+            FileLocation location)
         {
             // Register file or reuse an existing index
-            int fileIndex = RegisterFile(sequencePoint);
+            int fileIndex = RegisterFile(location);
 
             // Append a debug annotation for this value
             builder.AppendLine();
             builder.Append("\t.loc\t");
             builder.Append(fileIndex);
             builder.Append(' ');
-            builder.Append(sequencePoint.StartLine);
+            builder.Append(location.StartLine);
             builder.Append(' ');
-            builder.AppendLine(sequencePoint.StartColumn.ToString());
+            builder.AppendLine(location.StartColumn.ToString());
         }
 
         /// <summary>
@@ -311,21 +306,21 @@ namespace ILGPU.Backends.PTX
             "CA1031:DoNotCatchGeneralExceptionTypes",
             Justification = "Exceptions of any kind are ignored when trying to load" +
             "the referenced source files")]
-        protected override void OnRegisterFile(in SequencePoint sequencePoint)
+        protected override void OnRegisterFile(FileLocation location)
         {
-            base.OnRegisterFile(sequencePoint);
+            base.OnRegisterFile(location);
 
             // Try to load file
-            if (!File.Exists(sequencePoint.FileName) ||
-                fileMapping.ContainsKey(sequencePoint.FileName))
+            if (!File.Exists(location.FileName) ||
+                fileMapping.ContainsKey(location.FileName))
             {
                 return;
             }
 
             try
             {
-                var lines = File.ReadAllLines(sequencePoint.FileName);
-                fileMapping.Add(sequencePoint.FileName, lines);
+                var lines = File.ReadAllLines(location.FileName);
+                fileMapping.Add(location.FileName, lines);
             }
             catch
             {
@@ -340,20 +335,20 @@ namespace ILGPU.Backends.PTX
         protected internal override void GenerateDebugInfo(
             StringBuilder builder,
             Node node,
-            in SequencePoint sequencePoint)
+            FileLocation location)
         {
-            base.GenerateDebugInfo(builder, node, sequencePoint);
+            base.GenerateDebugInfo(builder, node, location);
 
             // Try to load file contents
             SyncLock.EnterReadLock();
             try
             {
-                if (fileMapping.TryGetValue(sequencePoint.FileName, out var lines))
+                if (fileMapping.TryGetValue(location.FileName, out var lines))
                 {
                     // Append associated source lines
                     for (
-                        int i = sequencePoint.StartLine;
-                        i <= sequencePoint.EndLine;
+                        int i = location.StartLine;
+                        i <= location.EndLine;
                         ++i)
                     {
                         builder.Append("\t// ");

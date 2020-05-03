@@ -447,7 +447,7 @@ namespace ILGPU.Backends.PTX
         protected void PrepareCodeGeneration()
         {
             // Emit debug information
-            DebugInfoGenerator.ResetSequencePoints();
+            DebugInfoGenerator.ResetLocation();
             DebugInfoGenerator.GenerateDebugInfo(Builder, Method);
         }
 
@@ -495,7 +495,7 @@ namespace ILGPU.Backends.PTX
                     }
                 }
 
-                DebugInfoGenerator.ResetSequencePoints();
+                DebugInfoGenerator.ResetLocation();
 
                 // Wire phi nodes
                 if (phiBindings.TryGetBindings(block, out var bindings))

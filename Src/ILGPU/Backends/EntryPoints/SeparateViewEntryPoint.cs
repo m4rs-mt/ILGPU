@@ -212,14 +212,8 @@ namespace ILGPU.Backends.EntryPoints
             /// </summary>
             /// <param name="index">The index of the view parameter to get.</param>
             /// <returns>The desired view parameter.</returns>
-            public ViewParameter this[int index]
-            {
-                get
-                {
-                    Debug.Assert(index < Count, "Index out of range");
-                    return EntryPoint.ViewParameters[StartIndex + index];
-                }
-            }
+            public ViewParameter this[int index] =>
+                EntryPoint.ViewParameters[StartIndex + index];
 
             #endregion
 

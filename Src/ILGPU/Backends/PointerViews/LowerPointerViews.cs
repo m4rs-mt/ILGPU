@@ -68,6 +68,7 @@ namespace ILGPU.Backends.PointerViews
             NewView value)
         {
             var viewInstance = context.Builder.CreateDynamicStructure(
+                value.Location,
                 value.Pointer,
                 value.Length);
             context.ReplaceAndRemove(value, viewInstance);
@@ -82,6 +83,7 @@ namespace ILGPU.Backends.PointerViews
             GetViewLength value)
         {
             var length = context.Builder.CreateGetField(
+                value.Location,
                 value.View,
                 new FieldSpan(1));
             context.ReplaceAndRemove(value, length);
@@ -96,10 +98,18 @@ namespace ILGPU.Backends.PointerViews
             SubViewValue value)
         {
             var builder = context.Builder;
-            var pointer = builder.CreateGetField(value.Source, new FieldSpan(0));
-            var newPointer = builder.CreateLoadElementAddress(pointer, value.Offset);
+            var location = value.Location;
+            var pointer = builder.CreateGetField(
+                location,
+                value.Source,
+                new FieldSpan(0));
+            var newPointer = builder.CreateLoadElementAddress(
+                location,
+                pointer,
+                value.Offset);
 
             var subView = builder.CreateDynamicStructure(
+                location,
                 newPointer,
                 value.Length);
             context.ReplaceAndRemove(value, subView);
@@ -114,13 +124,22 @@ namespace ILGPU.Backends.PointerViews
             AddressSpaceCast value)
         {
             var builder = context.Builder;
-            var pointer = builder.CreateGetField(value.Value, new FieldSpan(0));
-            var length = builder.CreateGetField(value.Value, new FieldSpan(1));
+            var location = value.Location;
+            var pointer = builder.CreateGetField(
+                location,
+                value.Value,
+                new FieldSpan(0));
+            var length = builder.CreateGetField(
+                location,
+                value.Value,
+                new FieldSpan(1));
 
             var newPointer = builder.CreateAddressSpaceCast(
+                location,
                 pointer,
                 value.TargetAddressSpace);
             var newInstance = builder.CreateDynamicStructure(
+                location,
                 newPointer,
                 length);
             context.ReplaceAndRemove(value, newInstance);
@@ -135,25 +154,42 @@ namespace ILGPU.Backends.PointerViews
             ViewCast value)
         {
             var builder = context.Builder;
-            var pointer = builder.CreateGetField(value.Value, new FieldSpan(0));
-            var length = builder.CreateGetField(value.Value, new FieldSpan(1));
+            var location = value.Location;
+            var pointer = builder.CreateGetField(
+                location,
+                value.Value,
+                new FieldSpan(0));
+            var length = builder.CreateGetField(
+                location,
+                value.Value,
+                new FieldSpan(1));
 
             // New pointer
-            var newPointer = builder.CreatePointerCast(pointer, value.TargetElementType);
+            var newPointer = builder.CreatePointerCast(
+                location,
+                pointer,
+                value.TargetElementType);
 
             // Compute new length:
             // newLength = length * sourceElementSize / targetElementSize;
             var sourceElementType = (typeLowering[value] as ViewType).ElementType;
-            var sourceElementSize = builder.CreateSizeOf(sourceElementType);
-            var targetElementSize = builder.CreateSizeOf(value.TargetElementType);
+            var sourceElementSize = builder.CreateSizeOf(
+                location,
+                sourceElementType);
+            var targetElementSize = builder.CreateSizeOf(
+                location,
+                value.TargetElementType);
             var newLength = builder.CreateArithmetic(
+                location,
                 builder.CreateArithmetic(
+                    location,
                     length,
                     sourceElementSize,
                     BinaryArithmeticKind.Mul),
                 targetElementSize, BinaryArithmeticKind.Div);
 
             var newInstance = builder.CreateDynamicStructure(
+                location,
                 newPointer,
                 newLength);
             context.ReplaceAndRemove(value, newInstance);
@@ -168,8 +204,15 @@ namespace ILGPU.Backends.PointerViews
             LoadElementAddress value)
         {
             var builder = context.Builder;
-            var pointer = builder.CreateGetField(value.Source, new FieldSpan(0));
-            var newLea = builder.CreateLoadElementAddress(pointer, value.ElementIndex);
+            var location = value.Location;
+            var pointer = builder.CreateGetField(
+                location,
+                value.Source,
+                new FieldSpan(0));
+            var newLea = builder.CreateLoadElementAddress(
+                location,
+                pointer,
+                value.ElementIndex);
             context.ReplaceAndRemove(value, newLea);
         }
 
