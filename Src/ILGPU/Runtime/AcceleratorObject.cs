@@ -58,8 +58,6 @@ namespace ILGPU.Runtime
         /// <param name="accelerator">The associated accelerator.</param>
         protected AcceleratorObject(Accelerator accelerator)
         {
-            Debug.Assert(accelerator != null, "Invalid accelerator");
-
             Accelerator = accelerator;
             AcceleratorType = accelerator.AcceleratorType;
             accelerator.RegisterChildObject(this);

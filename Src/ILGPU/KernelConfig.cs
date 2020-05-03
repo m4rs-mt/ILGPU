@@ -12,7 +12,6 @@
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Resources;
 using System;
-using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -151,8 +150,10 @@ namespace ILGPU
             Index3 groupDim,
             SharedMemoryConfig sharedMemoryConfig)
         {
-            Debug.Assert(gridDim.Size >= 0, "Invalid grid dimension");
-            Debug.Assert(groupDim.Size >= 0, "Invalid group dimension");
+            if (gridDim.Size < 0)
+                throw new ArgumentOutOfRangeException(nameof(gridDim));
+            if (groupDim.Size < 0)
+                throw new ArgumentOutOfRangeException(nameof(groupDim));
 
             GridDim = gridDim;
             GroupDim = groupDim;
