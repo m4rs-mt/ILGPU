@@ -381,12 +381,28 @@ namespace ILGPU.Backends.OpenCL
             public void AppendConstant(float value)
             {
                 AppendArgument();
-                stringBuilder.Append(
-                    value.ToString(CultureInfo.InvariantCulture));
-                if (value % 1.0f == 0.0f)
-                    stringBuilder.Append(".0f");
+
+                if (float.IsNaN(value))
+                {
+                    stringBuilder.Append("NAN");
+                }
+                else if (float.IsPositiveInfinity(value))
+                {
+                    stringBuilder.Append("INFINITY");
+                }
+                else if (float.IsNegativeInfinity(value))
+                {
+                    stringBuilder.Append("-INFINITY");
+                }
                 else
-                    stringBuilder.Append('f');
+                {
+                    stringBuilder.Append(
+                        value.ToString(CultureInfo.InvariantCulture));
+                    if (value % 1.0f == 0.0f)
+                        stringBuilder.Append(".0f");
+                    else
+                        stringBuilder.Append('f');
+                }
             }
 
             /// <summary>
@@ -396,8 +412,24 @@ namespace ILGPU.Backends.OpenCL
             public void AppendConstant(double value)
             {
                 AppendArgument();
-                stringBuilder.Append(
-                    value.ToString(CultureInfo.InvariantCulture));
+
+                if (double.IsNaN(value))
+                {
+                    stringBuilder.Append("NAN");
+                }
+                else if (double.IsPositiveInfinity(value))
+                {
+                    stringBuilder.Append("INFINITY");
+                }
+                else if (double.IsNegativeInfinity(value))
+                {
+                    stringBuilder.Append("-INFINITY");
+                }
+                else
+                {
+                    stringBuilder.Append(
+                        value.ToString(CultureInfo.InvariantCulture));
+                }
             }
 
             /// <summary>
