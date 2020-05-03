@@ -22,7 +22,11 @@ var unaryMathFunctions = new ValueTuple<string, Type, string, string>[]
         UnaryMathFunctions[18], // Rcp
         UnaryMathFunctions[19], // Rcp
     };
-var binaryMathFunctions = BinaryMathFunctions;
+var binaryMathFunctions = new ValueTuple<string, Type, string, string>[]
+    {
+        BinaryMathFunctions[6], // Log
+        BinaryMathFunctions[7], // Log
+    };
 #>
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;

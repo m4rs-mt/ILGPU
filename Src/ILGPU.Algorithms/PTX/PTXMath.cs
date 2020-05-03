@@ -185,6 +185,13 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Asin(double value)
         {
+            if (XMath.IsNaN(value) ||
+                value < -1.0 ||
+                value > 1.0)
+            {
+                return double.NaN;
+            }
+
             if (value == 1.0)
                 return XMath.PIHalfD;
             else if (value == -1.0)
@@ -198,6 +205,13 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Asin(float value)
         {
+            if (XMath.IsNaN(value) ||
+                value < -1.0f ||
+                value > 1.0f)
+            {
+                return float.NaN;
+            }
+
             if (value == 1.0f)
                 return XMath.PIHalf;
             else if (value == -1.0f)
@@ -250,6 +264,13 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Tanh(double value)
         {
+            if (XMath.IsNaN(value))
+                return value;
+            else if (value == double.PositiveInfinity)
+                return 1.0;
+            else if (value == double.NegativeInfinity)
+                return -1.0;
+
             var exp = Exp(2.0 * value);
             var denominator = XMath.Rcp(exp + 1.0);
             return (exp - 1.0) * denominator;
@@ -259,6 +280,13 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Tanh(float value)
         {
+            if (XMath.IsNaN(value))
+                return value;
+            else if (value == float.PositiveInfinity)
+                return 1.0f;
+            else if (value == float.NegativeInfinity)
+                return -1.0f;
+
             var exp = Exp(2.0f * value);
             var denominator = XMath.Rcp(exp + 1.0f);
             return (exp - 1.0f) * denominator;
@@ -323,13 +351,77 @@ namespace ILGPU.Algorithms.PTX
 
         /// <summary cref="XMath.Log(double, double)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Log(double value, double newBase) =>
-            Log(value) * XMath.Rcp(Log(newBase));
+        public static double Log(double value, double newBase)
+        {
+            if (value < 0.0 ||
+                newBase < 0.0 ||
+                (value != 1.0 && newBase == 0.0) ||
+                (value != 1.0 && newBase == double.PositiveInfinity) ||
+                XMath.IsNaN(value) ||
+                XMath.IsNaN(newBase) ||
+                newBase == 1.0)
+            {
+                return double.NaN;
+            }
+
+            if (value == 0.0)
+            {
+                if (0.0 < newBase && newBase < 1.0)
+                    return double.PositiveInfinity;
+                else if (newBase > 1.0)
+                    return double.NegativeInfinity;
+            }
+
+            if (value == double.PositiveInfinity)
+            {
+                if (0.0 < newBase && newBase < 1.0)
+                    return double.NegativeInfinity;
+                else if (newBase > 1.0)
+                    return double.PositiveInfinity;
+            }
+
+            if (value == 1.0 && (newBase == 0.0 || newBase == double.PositiveInfinity))
+                return 0.0;
+
+            return Log(value) * XMath.Rcp(Log(newBase));
+        }
 
         /// <summary cref="XMath.Log(float, float)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Log(float value, float newBase) =>
-            Log(value) * XMath.Rcp(Log(newBase));
+        public static float Log(float value, float newBase)
+        {
+            if (value < 0.0f ||
+                newBase < 0.0f ||
+                (value != 1.0f && newBase == 0.0f) ||
+                (value != 1.0f && newBase == float.PositiveInfinity) ||
+                XMath.IsNaN(value) ||
+                XMath.IsNaN(newBase) ||
+                newBase == 1.0f)
+            {
+                return float.NaN;
+            }
+
+            if (value == 0.0f)
+            {
+                if (0.0f < newBase && newBase < 1.0f)
+                    return float.PositiveInfinity;
+                else if (newBase > 1.0f)
+                    return float.NegativeInfinity;
+            }
+
+            if (value == float.PositiveInfinity)
+            {
+                if (0.0f < newBase && newBase < 1.0f)
+                    return float.NegativeInfinity;
+                else if (newBase > 1.0f)
+                    return float.PositiveInfinity;
+            }
+
+            if (value == 1.0f && (newBase == 0.0f || newBase == float.PositiveInfinity))
+                return 0.0f;
+
+            return Log(value) * XMath.Rcp(Log(newBase));
+        }
 
         /// <summary cref="XMath.Log(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

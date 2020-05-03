@@ -34,6 +34,14 @@ namespace ILGPU.Algorithms
             /// <returns>The exponent of a input value raised to base e</returns>
             public static <#= operation.DataType #> Log(<#= operation.DataType #> value)
             {
+                // Deal with edge cases
+                if (IsNaN(value) || value == <#= operation.DataType #>.PositiveInfinity)
+                    return value;
+                if (value == 0.0<#= operation.ValueSuffix #>)
+                    return <#= operation.DataType #>.NegativeInfinity;
+                if (value < 0.0<#= operation.ValueSuffix #>)
+                    return <#= operation.DataType #>.NaN;
+
                 // The exponential function is related to hyperbolic functions with the identity:
                 //  exp(x) = cosh(x) + sinh(x)
                 //

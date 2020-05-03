@@ -34,6 +34,12 @@ namespace ILGPU.Algorithms
             /// <returns>The number e raised to the specified power</returns>
             public static <#= operation.DataType #> Exp(<#= operation.DataType #> value)
             {
+                // Deal with edge cases
+                if (IsNaN(value) || value == <#= operation.DataType #>.PositiveInfinity)
+                    return value;
+                if (value == <#= operation.DataType #>.NegativeInfinity)
+                    return 0.0<#= operation.ValueSuffix #>;
+
                 // Deal with negative exponents
                 if (value < 0)
                     return 1.0<#= operation.ValueSuffix #> / Exp(-1.0<#= operation.ValueSuffix #> * value);

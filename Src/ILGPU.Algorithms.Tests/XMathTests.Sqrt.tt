@@ -48,6 +48,10 @@ namespace ILGPU.Algorithms.Tests
             for (var x = <#= start.ToString("F1") #><#= function.ValueSuffix #>; x <= <#= end #><#= function.ValueSuffix #>; x += <#= step #><#= function.ValueSuffix #>)
                 inputValues.Add(x);
 
+            var edgeCases = new <#= function.DataType #>[] { <#= function.DataType #>.NaN, <#= function.DataType #>.PositiveInfinity, <#= function.DataType #>.NegativeInfinity };
+            for (var x = 0; x < edgeCases.Length; x++)
+                inputValues.Add(edgeCases[x]);
+
             var inputArray = inputValues.ToArray();
             using var input = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
             using var output = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
@@ -84,6 +88,10 @@ namespace ILGPU.Algorithms.Tests
             var inputValues = new List<<#= function.DataType #>>();
             for (var x = <#= start #><#= function.ValueSuffix #>; x <= <#= end #><#= function.ValueSuffix #>; x += <#= step #><#= function.ValueSuffix #>)
                 inputValues.Add(x);
+
+            var edgeCases = new <#= function.DataType #>[] { <#= function.DataType #>.NaN, <#= function.DataType #>.PositiveInfinity, <#= function.DataType #>.NegativeInfinity };
+            for (var x = 0; x < edgeCases.Length; x++)
+                inputValues.Add(edgeCases[x]);
 
             var inputArray = inputValues.ToArray();
             using var input = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);

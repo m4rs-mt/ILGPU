@@ -35,8 +35,22 @@ namespace ILGPU.Algorithms.Tests
             public FloatPrecisionComparer(uint decimalPlaces) =>
                 Margin = MathF.Pow(10, -decimalPlaces);
 
-            public override bool Equals(float x, float y) =>
-                Math.Abs(x - y) < Margin;
+            public override bool Equals(float x, float y)
+            {
+                if ((float.IsNaN(x) && float.IsNaN(y)) ||
+                    (float.IsPositiveInfinity(x) && float.IsPositiveInfinity(y)) ||
+                    (float.IsNegativeInfinity(x) && float.IsNegativeInfinity(y)))
+                {
+                    return true;
+                }
+                else if ((float.IsPositiveInfinity(x) && float.IsNegativeInfinity(y)) ||
+                    (float.IsNegativeInfinity(x) && float.IsPositiveInfinity(y)))
+                {
+                    return false;
+                }
+
+                return Math.Abs(x - y) < Margin;
+            }
 
             public override int GetHashCode(float obj) =>
                 obj.GetHashCode();
@@ -53,8 +67,22 @@ namespace ILGPU.Algorithms.Tests
             public DoublePrecisionComparer(uint decimalPlaces) =>
                 Margin = Math.Pow(10, -decimalPlaces);
 
-            public override bool Equals(double x, double y) =>
-                Math.Abs(x - y) < Margin;
+            public override bool Equals(double x, double y)
+            {
+                if ((double.IsNaN(x) && double.IsNaN(y)) ||
+                    (double.IsPositiveInfinity(x) && double.IsPositiveInfinity(y)) ||
+                    (double.IsNegativeInfinity(x) && double.IsNegativeInfinity(y)))
+                {
+                    return true;
+                }
+                else if ((double.IsPositiveInfinity(x) && double.IsNegativeInfinity(y)) ||
+                    (double.IsNegativeInfinity(x) && double.IsPositiveInfinity(y)))
+                {
+                    return false;
+                }
+
+                return Math.Abs(x - y) < Margin;
+            }
 
             public override int GetHashCode(double obj) =>
                 obj.GetHashCode();
@@ -73,6 +101,13 @@ namespace ILGPU.Algorithms.Tests
 
             public override bool Equals(float x, float y)
             {
+                if ((float.IsNaN(x) && float.IsNaN(y)) ||
+                    (float.IsPositiveInfinity(x) && float.IsPositiveInfinity(y)) ||
+                    (float.IsNegativeInfinity(x) && float.IsNegativeInfinity(y)))
+                {
+                    return true;
+                }
+
                 var diff = Math.Abs(x - y);
 
                 if (diff == 0)
@@ -101,6 +136,13 @@ namespace ILGPU.Algorithms.Tests
 
             public override bool Equals(double x, double y)
             {
+                if ((double.IsNaN(x) && double.IsNaN(y)) ||
+                    (double.IsPositiveInfinity(x) && double.IsPositiveInfinity(y)) ||
+                    (double.IsNegativeInfinity(x) && double.IsNegativeInfinity(y)))
+                {
+                    return true;
+                }
+
                 var diff = Math.Abs(x - y);
 
                 if (diff == 0)

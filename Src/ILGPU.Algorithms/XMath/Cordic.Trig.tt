@@ -61,6 +61,14 @@ namespace ILGPU.Algorithms
             /// <param name="cos">The cosine result</param>
             public static void SinCos(<#= operation.DataType #> radians, out <#= operation.DataType #> sin, out <#= operation.DataType #> cos)
             {
+                // Deal with edge cases
+                if (IsNaN(radians) || IsInfinity(radians))
+                {
+                    sin = <#= operation.DataType #>.NaN;
+                    cos = <#= operation.DataType #>.NaN;
+                    return;
+                }
+
                 // Ensure that the radians are between [-PI, PI]
                 radians = RangeLimit(radians);
 
@@ -102,6 +110,10 @@ namespace ILGPU.Algorithms
                 // second or third quadrant, and without correcting for the "gain" from
                 // rotations - both are redudant multiplications for our calculation.
 
+                // Deal with edge cases
+                if (IsNaN(radians) || IsInfinity(radians))
+                    return <#= operation.DataType #>.NaN;
+
                 // Ensure that the radians are between [-PI, PI]
                 radians = RangeLimit(radians);
 
@@ -130,6 +142,14 @@ namespace ILGPU.Algorithms
             /// <returns>The angle in radians</returns>
             public static <#= operation.DataType #> Atan(<#= operation.DataType #> value)
             {
+                // Deal with edge cases
+                if (IsNaN(value))
+                    return <#= operation.DataType #>.NaN;
+                else if (value == <#= operation.DataType #>.PositiveInfinity)
+                    return PIHalf<#= operation.XMathSuffix #>;
+                else if (value == <#= operation.DataType #>.NegativeInfinity)
+                    return -PIHalf<#= operation.XMathSuffix #>;
+
                 // Apply <#= operation.Iterations #> iterations.
                 return VectorIterations(value);
             }
@@ -144,6 +164,18 @@ namespace ILGPU.Algorithms
             /// <returns>The angle in radians</returns>
             public static <#= operation.DataType #> Atan2(<#= operation.DataType #> y, <#= operation.DataType #> x)
             {
+                // Deal with edge cases
+                if (IsNaN(x) || IsNaN(y))
+                    return <#= operation.DataType #>.NaN;
+                else if ((x == <#= operation.DataType #>.NegativeInfinity && y == <#= operation.DataType #>.PositiveInfinity))
+                    return 3.0<#= operation.ValueSuffix #> * PIFourth<#= operation.XMathSuffix #>;
+                else if ((x == <#= operation.DataType #>.NegativeInfinity && y == <#= operation.DataType #>.NegativeInfinity))
+                    return -3.0<#= operation.ValueSuffix #> * PIFourth<#= operation.XMathSuffix #>;
+                else if ((x == <#= operation.DataType #>.PositiveInfinity && y == <#= operation.DataType #>.PositiveInfinity))
+                    return PIFourth<#= operation.XMathSuffix #>;
+                else if ((x == <#= operation.DataType #>.PositiveInfinity && y == <#= operation.DataType #>.NegativeInfinity))
+                    return -PIFourth<#= operation.XMathSuffix #>;
+
                 // Tranform to equivalent Atan calculation, as defined in:
                 // https://en.wikipedia.org/wiki/Atan2
                 if (x > 0)

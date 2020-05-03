@@ -132,6 +132,11 @@ namespace ILGPU.Algorithms
         public const float PIFourth = PI / 4.0f;
 
         /// <summary>
+        /// The PI/4 constant.
+        /// </summary>
+        public const double PIFourthD = PID / 4.0;
+
+        /// <summary>
         /// The 1/PI constant.
         /// </summary>
         public const float OneOverPI = 1.0f / PI;
