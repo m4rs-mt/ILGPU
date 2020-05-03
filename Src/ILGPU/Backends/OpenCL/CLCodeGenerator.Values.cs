@@ -72,7 +72,7 @@ namespace ILGPU.Backends.OpenCL
             statement.AppendCast(value.ArithmeticBasicValueType);
             var operation = CLInstructions.GetArithmeticOperation(
                 value.Kind,
-                value.BasicValueType.IsFloat(),
+                value.ArithmeticBasicValueType.IsFloat(),
                 out bool isFunction);
 
             if (isFunction)
