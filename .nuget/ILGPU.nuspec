@@ -20,8 +20,8 @@
     <copyright>Copyright (c) 2016-2020 Marcel Koester. All rights reserved.</copyright>
     <tags>ilgpu gpu msil il cil cpu ptx nvidia amd amp opencl cuda compiler jit</tags>
     <dependencies>
-      <dependency id="System.Collections.Immutable" version="1.5.0" />
-      <dependency id="System.Reflection.Metadata" version="1.6.0" />
+      <dependency id="System.Collections.Immutable" version="1.7.0" />
+      <dependency id="System.Reflection.Metadata" version="1.8.0" />
       <dependency id="System.Runtime.CompilerServices.Unsafe" version="4.5.2" />
     </dependencies>
   </metadata>
