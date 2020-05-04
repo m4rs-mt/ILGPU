@@ -316,15 +316,326 @@ namespace ILGPU.Algorithms.PTX
 
         #region Pow
 
+        //
+        // List of expected return values for Math.Pow
+        //
+        // Source: https://docs.microsoft.com/en-us/dotnet/api/system.math.pow
+        //
+        // IMPORTANT: There are implementation differences between .NET Framework and .NET Core.
+        // For example, calling Math.Pow(NaN, 0.0) :
+        //  net47 returns NaN, following rule #1
+        //  netcoreapp2.1 returns 1.0, following rule #2
+        //
+        // IMPORTANT: Our unit tests currently run using netcoreapp2.1, so we are matching that implementation.
+        // Also, netcoreapp2.1 appears to more closely match the IEEE 754 standard.
+        //
+        // Rule #   Parameters                                  Return value            Notes
+        // (1)      x or y = NaN.                               NaN
+        //
+        // (2)      x = Any value except NaN; y = 0.            1                       * netcoreapp2.1 returns 1 even when y = NaN
+        //                                                                              * netcoreapp2.1 applies this first, before Rule #1
+        //
+        // (3)      x = NegativeInfinity; y < 0.                0
+        //
+        // (4)      x = NegativeInfinity; y is a positive       NegativeInfinity
+        //          odd integer.
+        //
+        // (5)      x = NegativeInfinity; y is positive         PositiveInfinity
+        //          but not an odd integer.
+        //
+        // (6)      x < 0 but not NegativeInfinity; y is        NaN
+        //          not an integer, NegativeInfinity, or
+        //          PositiveInfinity.
+        //
+        // (7)      x = -1; y = NegativeInfinity or             NaN                     * netcoreapp2.1 returns 1
+        //          PositiveInfinity.                                                   * net47 returns NaN
+        //
+        // (8)      -1 < x < 1; y = NegativeInfinity.           PositiveInfinity
+        //
+        // (9)      -1 < x < 1; y = PositiveInfinity.           0
+        //
+        // (10)     x < -1 or x > 1; y = NegativeInfinity.      0
+        //
+        // (11)     x < -1 or x > 1; y = PositiveInfinity.      PositiveInfinity
+        //
+        // (12)     x = 0; y < 0.                               PositiveInfinity
+        //
+        // (13)     x = 0; y > 0.                               0
+        //
+        // (14)     x = 1; y is any value except NaN.           1                       * netcoreapp2.1 applies this first, before Rule #1
+        //
+        // (15)     x = PositiveInfinity; y < 0.                0
+        //
+        // (16)     x = PositiveInfinity; y > 0.                PositiveInfinity
+        //
+
         /// <summary cref="XMath.Pow(double, double)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Pow(double @base, double exp) =>
-            Exp(exp * Log(@base));
+        public static double Pow(double @base, double exp)
+        {
+            // TODO: The second condition of !XMath.IsNaN(), for the first two if/else conditions,
+            // can be removed after fixing https://github.com/m4rs-mt/ILGPU/issues/93
+            if (exp == 0.0 && !XMath.IsNaN(exp))
+            {
+                // Rule #2
+                // Ignoring Rule #1
+                return 1.0;
+            }
+            else if (@base == 1.0 && !XMath.IsNaN(@base))
+            {
+                // Rule #14 but ignoring second part about y = NaN
+                // Ignoring Rule #1
+                return 1.0;
+            }
+            else if (XMath.IsNaN(@base) || XMath.IsNaN(exp))
+            {
+                // Rule #1
+                return double.NaN;
+            }
+            else if (@base == double.NegativeInfinity)
+            {
+                if (exp < 0.0)
+                {
+                    // Rule #3
+                    return 0.0;
+                }
+                else if (IsOddInteger(exp))
+                {
+                    // Rule #4
+                    return double.NegativeInfinity;
+                }
+                else
+                {
+                    // Rule #5
+                    return double.PositiveInfinity;
+                }
+            }
+            else if (@base < 0.0 && !IsInteger(exp) && !XMath.IsInfinity(exp))
+            {
+                // Rule #6
+                return double.NaN;
+            }
+            else if (@base == -1.0 && XMath.IsInfinity(exp))
+            {
+                // Rule #7
+                return 1.0;
+            }
+            else if (-1.0 < @base && @base < 1.0 && exp == double.NegativeInfinity)
+            {
+                // Rule #8
+                return double.PositiveInfinity;
+            }
+            else if (-1.0 < @base && @base < 1.0 && exp == double.PositiveInfinity)
+            {
+                // Rule #9
+                return 0.0;
+            }
+            else if ((@base < -1.0 || @base > 1.0) && exp == double.NegativeInfinity)
+            {
+                // Rule #10
+                return 0.0;
+            }
+            else if ((@base < -1.0 || @base > 1.0) && exp == double.PositiveInfinity)
+            {
+                // Rule #11
+                return double.PositiveInfinity;
+            }
+            else if (@base == 0.0)
+            {
+                if (exp < 0.0)
+                {
+                    // Rule #12
+                    return double.PositiveInfinity;
+                }
+                else
+                {
+                    // Rule #13
+                    // NB: exp == 0.0 already handled by Rule #2
+                    return 0.0;
+                }
+            }
+            else if (@base == double.PositiveInfinity)
+            {
+                if (exp < 0.0)
+                {
+                    // Rule #14
+                    return 0.0;
+                }
+                else
+                {
+                    // Rule #15
+                    // NB: exp == 0.0 already handled by Rule #2
+                    return double.PositiveInfinity;
+                }
+            }
+
+            if (@base < 0.0)
+            {
+                // 'exp' is an integer, due to Rule #6.
+                var sign = IsOddInteger(exp) ? -1.0 : 1.0;
+                return sign * Exp(exp * Log(XMath.Abs(@base)));
+            }
+
+            return Exp(exp * Log(@base));
+        }
 
         /// <summary cref="XMath.Pow(float, float)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Pow(float @base, float exp) =>
-            Exp(exp * Log(@base));
+        public static float Pow(float @base, float exp)
+        {
+            // TODO: The second condition of !XMath.IsNaN(), for the first two if/else conditions,
+            // can be removed after fixing https://github.com/m4rs-mt/ILGPU/issues/93
+            if (exp == 0.0f && !XMath.IsNaN(exp))
+            {
+                // Rule #2
+                // Ignoring Rule #1
+                return 1.0f;
+            }
+            else if (@base == 1.0f && !XMath.IsNaN(@base))
+            {
+                // Rule #14 but ignoring second part about y = NaN
+                // Ignoring Rule #1
+                return 1.0f;
+            }
+            else if (XMath.IsNaN(@base) || XMath.IsNaN(exp))
+            {
+                // Rule #1
+                return float.NaN;
+            }
+            else if (@base == float.NegativeInfinity)
+            {
+                if (exp < 0.0f)
+                {
+                    // Rule #3
+                    return 0.0f;
+                }
+                else if (IsOddInteger(exp))
+                {
+                    // Rule #4
+                    return float.NegativeInfinity;
+                }
+                else
+                {
+                    // Rule #5
+                    return float.PositiveInfinity;
+                }
+            }
+            else if (@base < 0.0f && !IsInteger(exp) && !XMath.IsInfinity(exp))
+            {
+                // Rule #6
+                return float.NaN;
+            }
+            else if (@base == -1.0f && XMath.IsInfinity(exp))
+            {
+                // Rule #7
+                return 1.0f;
+            }
+            else if (-1.0f < @base && @base < 1.0f && exp == float.NegativeInfinity)
+            {
+                // Rule #8
+                return float.PositiveInfinity;
+            }
+            else if (-1.0f < @base && @base < 1.0f && exp == float.PositiveInfinity)
+            {
+                // Rule #9
+                return 0.0f;
+            }
+            else if ((@base < -1.0f || @base > 1.0f) && exp == float.NegativeInfinity)
+            {
+                // Rule #10
+                return 0.0f;
+            }
+            else if ((@base < -1.0f || @base > 1.0f) && exp == float.PositiveInfinity)
+            {
+                // Rule #11
+                return float.PositiveInfinity;
+            }
+            else if (@base == 0.0f)
+            {
+                if (exp < 0.0f)
+                {
+                    // Rule #12
+                    return float.PositiveInfinity;
+                }
+                else
+                {
+                    // Rule #13
+                    // NB: exp == 0.0 already handled by Rule #2
+                    return 0.0f;
+                }
+            }
+            else if (@base == float.PositiveInfinity)
+            {
+                if (exp < 0.0f)
+                {
+                    // Rule #14
+                    return 0.0f;
+                }
+                else
+                {
+                    // Rule #15
+                    // NB: exp == 0.0 already handled by Rule #2
+                    return float.PositiveInfinity;
+                }
+            }
+
+            if (@base < 0.0)
+            {
+                // 'exp' is an integer, due to Rule #6.
+                var sign = IsOddInteger(exp) ? -1.0f : 1.0f;
+                return sign * Exp(exp * Log(XMath.Abs(@base)));
+            }
+
+            return Exp(exp * Log(@base));
+        }
+
+        /// <summary>
+        /// Tests if a floating point value is an integer
+        /// </summary>
+        /// <param name="value">The value to check</param>
+        /// <returns>True, if the value is an integer</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsInteger(double value)
+        {
+            var remainder = XMath.Abs(value) % 2.0;
+            return remainder == 0.0 || remainder == 1.0;
+        }
+
+        /// <summary>
+        /// Tests if a floating point value is an integer
+        /// </summary>
+        /// <param name="value">The value to check</param>
+        /// <returns>True, if the value is an integer</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsInteger(float value)
+        {
+            var remainder = XMath.Abs(value) % 2.0f;
+            return remainder == 0.0f || remainder == 1.0f;
+        }
+
+        /// <summary>
+        /// Tests if a floating point value is an odd integer
+        /// </summary>
+        /// <param name="value">The value to check</param>
+        /// <returns>True, if the value is an odd integer</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsOddInteger(double value)
+        {
+            var remainder = XMath.Abs(value) % 2.0;
+            return remainder == 1.0;
+        }
+
+        /// <summary>
+        /// Tests if a floating point value is an odd integer
+        /// </summary>
+        /// <param name="value">The value to check</param>
+        /// <returns>True, if the value is an odd integer</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsOddInteger(float value)
+        {
+            var remainder = XMath.Abs(value) % 2.0f;
+            return remainder == 1.0f;
+        }
 
         /// <summary cref="XMath.Exp(double)" />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

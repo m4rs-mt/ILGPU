@@ -45,17 +45,40 @@ namespace ILGPU.Algorithms.Tests
         public void <#= function.TestName #>()
         {
 <#
-            var start = 0.5;
+            var start = -20.0;
             var end = 20.0;
             var step = 0.5;
 #>
             // [<#= start #>, <#= end #>]
             var inputValues = new List<XMathTuple<<#= function.DataType #>>>();
-            for (var x = <#= start #><#= function.ValueSuffix #>; x <= <#= end #><#= function.ValueSuffix #>; x += <#= step #><#= function.ValueSuffix #>)
+            for (var x = <#= start.ToString("F1") #><#= function.ValueSuffix #>; x <= <#= end #><#= function.ValueSuffix #>; x += <#= step #><#= function.ValueSuffix #>)
             {
-                for (var y = <#= start #><#= function.ValueSuffix #>; y <= <#= end #><#= function.ValueSuffix #>; y += <#= step #><#= function.ValueSuffix #>)
+                for (var y = <#= start.ToString("F1") #><#= function.ValueSuffix #>; y <= <#= end #><#= function.ValueSuffix #>; y += <#= step #><#= function.ValueSuffix #>)
                 {
                     inputValues.Add(new XMathTuple<<#= function.DataType #>>(x, y));
+                }
+            }
+
+            var edgeCases = new <#= function.DataType #>[]
+            {
+                -8.0<#= function.ValueSuffix #>,
+                -2.0<#= function.ValueSuffix #>,
+                -1.0<#= function.ValueSuffix #>,
+                -0.5<#= function.ValueSuffix #>,
+                0.0<#= function.ValueSuffix #>,
+                0.5<#= function.ValueSuffix #>,
+                1.0<#= function.ValueSuffix #>,
+                2.0<#= function.ValueSuffix #>,
+                8.0<#= function.ValueSuffix #>,
+                <#= function.DataType #>.NaN,
+                <#= function.DataType #>.PositiveInfinity,
+                <#= function.DataType #>.NegativeInfinity
+            };
+            for (var x = 0; x < edgeCases.Length; x++)
+            {
+                for (var y = 0; y < edgeCases.Length; y++)
+                {
+                    inputValues.Add(new XMathTuple<<#= function.DataType #>>(edgeCases[x], edgeCases[y]));
                 }
             }
 
