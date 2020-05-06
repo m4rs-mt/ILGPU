@@ -64,6 +64,7 @@ namespace ILGPU.Backends.PTX
                 // Emit less than
                 var lessThanCommand = PTXInstructions.GetCompareOperation(
                     CompareKind.LessThan,
+                    CompareFlags.None,
                     ArithmeticBasicValueType.Int32);
                 using (var command = BeginCommand(
                     lessThanCommand))

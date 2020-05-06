@@ -213,6 +213,28 @@ namespace ILGPU.Backends.PTX
                 { (CompareKind.GreaterEqual, ArithmeticBasicValueType.Float64), "setp.ge.f64" },
             };
 
+        private static readonly Dictionary<(CompareKind, ArithmeticBasicValueType), string> CompareUnorderedFloatOperations =
+            new Dictionary<(CompareKind, ArithmeticBasicValueType), string>()
+            {
+                { (CompareKind.Equal, ArithmeticBasicValueType.Float32), "setp.equ.f32" },
+                { (CompareKind.Equal, ArithmeticBasicValueType.Float64), "setp.equ.f64" },
+
+                { (CompareKind.NotEqual, ArithmeticBasicValueType.Float32), "setp.neu.f32" },
+                { (CompareKind.NotEqual, ArithmeticBasicValueType.Float64), "setp.neu.f64" },
+
+                { (CompareKind.LessThan, ArithmeticBasicValueType.Float32), "setp.ltu.f32" },
+                { (CompareKind.LessThan, ArithmeticBasicValueType.Float64), "setp.ltu.f64" },
+
+                { (CompareKind.LessEqual, ArithmeticBasicValueType.Float32), "setp.leu.f32" },
+                { (CompareKind.LessEqual, ArithmeticBasicValueType.Float64), "setp.leu.f64" },
+
+                { (CompareKind.GreaterThan, ArithmeticBasicValueType.Float32), "setp.gtu.f32" },
+                { (CompareKind.GreaterThan, ArithmeticBasicValueType.Float64), "setp.gtu.f64" },
+
+                { (CompareKind.GreaterEqual, ArithmeticBasicValueType.Float32), "setp.geu.f32" },
+                { (CompareKind.GreaterEqual, ArithmeticBasicValueType.Float64), "setp.geu.f64" },
+            };
+
         private static readonly Dictionary<(ArithmeticBasicValueType, ArithmeticBasicValueType), string> ConvertOperations =
             new Dictionary<(ArithmeticBasicValueType, ArithmeticBasicValueType), string>()
             {

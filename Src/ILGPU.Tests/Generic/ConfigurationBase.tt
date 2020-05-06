@@ -36,7 +36,8 @@ public static IEnumerable<string> GetFloatRanges(
     bool maxRanges,
     bool useZero = true,
     bool useInfinity = true,
-    bool useMultiplesOfPi = true)
+    bool useMultiplesOfPi = true,
+    bool useNaN = true)
 {
     var isFloat = suffix != string.Empty;
     var pi = isFloat ? "(float)Math.PI" : "Math.PI";
@@ -80,6 +81,13 @@ public static IEnumerable<string> GetFloatRanges(
                 "0.5" + suffix + " * " + pi,
                 "-0.5" + suffix + " * " + pi,
             });
+    }
+    if (useNaN)
+    {
+        result = result.Concat(new string[]
+        {
+            typeName + ".NaN"
+        });
     }
     return result;
 }

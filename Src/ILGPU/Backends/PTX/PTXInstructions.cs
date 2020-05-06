@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Util;
 
 namespace ILGPU.Backends.PTX
 {
@@ -38,14 +39,25 @@ namespace ILGPU.Backends.PTX
         /// Resolves a compare operation.
         /// </summary>
         /// <param name="kind">The compare kind.</param>
+        /// <param name="flags">The compare flags.</param>
         /// <param name="type">The type to compare.</param>
         /// <returns>The resolved compare operation.</returns>
         public static string GetCompareOperation(
             CompareKind kind,
+            CompareFlags flags,
             ArithmeticBasicValueType type)
         {
-            if (CompareOperations.TryGetValue((kind, type), out string operation))
-                return operation;
+            var unorderedFloatComparison = type.IsFloat() && flags.HasFlag(CompareFlags.UnsignedOrUnordered);
+            if (unorderedFloatComparison)
+            {
+                if (CompareUnorderedFloatOperations.TryGetValue((kind, type), out string operation))
+                    return operation;
+            }
+            else
+            {
+                if (CompareOperations.TryGetValue((kind, type), out string operation))
+                    return operation;
+            }
             throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
