@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.OpenCL;
+using ILGPU.Util;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -54,19 +55,18 @@ namespace ILGPU.Backends.OpenCL
         /// Resolves an unary arithmetic operation.
         /// </summary>
         /// <param name="kind">The arithmetic kind.</param>
-        /// <param name="isFloat">True, if this is a floating-point operation.</param>
+        /// <param name="basicValueType">The arithmetic basic value type.</param>
         /// <param name="isFunction">
         /// True, if the resolved operation is a function call.
         /// </param>
         /// <returns>The resolved arithmetic operation.</returns>
         public static string GetArithmeticOperation(
             UnaryArithmeticKind kind,
-            bool isFloat,
+            ArithmeticBasicValueType basicValueType,
             out bool isFunction)
         {
-            if (!UnaryArithmeticOperations.TryGetValue(
-                (kind, isFloat),
-                out var operation))
+            if (!UnaryCategoryLookup.TryGetValue(basicValueType, out var category) ||
+                !UnaryArithmeticOperations.TryGetValue((kind, category), out var operation))
             {
                 throw new NotSupportedIntrinsicException(kind.ToString());
             }
