@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 
 namespace ILGPU.IR.Construction
 {
@@ -68,12 +69,23 @@ namespace ILGPU.IR.Construction
 
                 if (leftValue != null)
                 {
+                    // If the comparison was inverted, and we are comparing floats,
+                    // toggle between ordered/unordered float comparison.
+                    var compareKind = CompareValue.InvertIfNonCommutative(kind);
+                    var compareFlags = flags;
+                    if (compareKind != kind &&
+                        left.BasicValueType.IsFloat() &&
+                        right.BasicValueType.IsFloat())
+                    {
+                        compareFlags ^= CompareFlags.UnsignedOrUnordered;
+                    }
+
                     return CreateCompare(
                         location,
                         right,
                         left,
-                        CompareValue.InvertIfNonCommutative(kind),
-                        flags);
+                        compareKind,
+                        compareFlags);
                 }
 
                 if (left.Type is PrimitiveType leftType &&

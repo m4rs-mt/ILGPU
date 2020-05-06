@@ -68,12 +68,21 @@ namespace ILGPU.IR.Construction
 
                         if (node is CompareValue compareValue)
                         {
+                            // When the comparison is inverted, and we are comparing floats,
+                            // toggle between ordered/unordered float comparison.
+                            var compareFlags = compareValue.Flags;
+                            if (compareValue.Left.BasicValueType.IsFloat() &&
+                                compareValue.Right.BasicValueType.IsFloat())
+                            {
+                                compareFlags ^= CompareFlags.UnsignedOrUnordered;
+                            }
+
                             return CreateCompare(
                                 location,
                                 compareValue.Left,
                                 compareValue.Right,
                                 CompareValue.Invert(compareValue.Kind),
-                                compareValue.Flags);
+                                compareFlags);
                         }
                         break;
                     case UnaryArithmeticKind.Neg:

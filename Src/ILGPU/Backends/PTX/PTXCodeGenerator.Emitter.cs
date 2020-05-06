@@ -687,6 +687,7 @@ namespace ILGPU.Backends.PTX
             using var command = BeginCommand(
                 PTXInstructions.GetCompareOperation(
                     CompareKind.NotEqual,
+                    CompareFlags.None,
                     ArithmeticBasicValueType.UInt32));
             command.AppendArgument(targetRegister);
             command.AppendArgument(register);
