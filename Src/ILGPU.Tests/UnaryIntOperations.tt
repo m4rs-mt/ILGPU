@@ -10,7 +10,10 @@ using Xunit.Abstractions;
 <#
 var operationConfigurations = new (string, string, string, bool)[]
     {
-        ("Neg", "~", "", true),
+        ("Neg", "-", "", false),
+
+        ("BitwiseNot", "~", "", true),
+        ("BitwiseNot", "~", "", false),
 
         ("Abs", "IntrinsicMath.Abs(", ")", false),
     };

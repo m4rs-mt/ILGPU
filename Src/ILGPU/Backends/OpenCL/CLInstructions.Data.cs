@@ -238,51 +238,92 @@ namespace ILGPU.Backends.OpenCL
             ">="
         };
 
+        /// <summary>
+        /// Identifies the permitted value types for unary arithmetic operations.
+        /// </summary>
+        private enum CLUnaryCategory
+        {
+            /// <summary>
+            /// Unary operation on booleans.
+            /// </summary>
+            Boolean,
+
+            /// <summary>
+            /// Unary operation on signed or unsigned integers.
+            /// </summary>
+            Int,
+
+            /// <summary>
+            /// Unary operation on 32-bit or 64-bit floats.
+            /// </summary>
+            Float
+        }
+
+        private static readonly Dictionary<ArithmeticBasicValueType, CLUnaryCategory> UnaryCategoryLookup =
+            new Dictionary<ArithmeticBasicValueType, CLUnaryCategory>()
+            {
+                { ArithmeticBasicValueType.UInt1, CLUnaryCategory.Boolean },
+
+                { ArithmeticBasicValueType.Int8, CLUnaryCategory.Int },
+                { ArithmeticBasicValueType.Int16, CLUnaryCategory.Int },
+                { ArithmeticBasicValueType.Int32, CLUnaryCategory.Int },
+                { ArithmeticBasicValueType.Int64, CLUnaryCategory.Int },
+
+                { ArithmeticBasicValueType.UInt8, CLUnaryCategory.Int },
+                { ArithmeticBasicValueType.UInt16, CLUnaryCategory.Int },
+                { ArithmeticBasicValueType.UInt32, CLUnaryCategory.Int },
+                { ArithmeticBasicValueType.UInt64, CLUnaryCategory.Int },
+
+                { ArithmeticBasicValueType.Float32, CLUnaryCategory.Float },
+                { ArithmeticBasicValueType.Float64, CLUnaryCategory.Float },
+            };
+
         private static readonly Dictionary<
-            (UnaryArithmeticKind, bool),
+            (UnaryArithmeticKind, CLUnaryCategory),
             (string, bool)> UnaryArithmeticOperations =
-            new Dictionary<(UnaryArithmeticKind, bool), (string, bool)>()
+            new Dictionary<(UnaryArithmeticKind, CLUnaryCategory), (string, bool)>()
             {
                 // Basic arithmetic
                 
-                { (UnaryArithmeticKind.Neg, false), ("-", false) },
-                { (UnaryArithmeticKind.Neg, true), ("-", false) },
+                { (UnaryArithmeticKind.Neg, CLUnaryCategory.Int), ("-", false) },
+                { (UnaryArithmeticKind.Neg, CLUnaryCategory.Float), ("-", false) },
 
-                { (UnaryArithmeticKind.Not, false), ("~", false) },
-                { (UnaryArithmeticKind.Not, true), ("~", false) },
+                { (UnaryArithmeticKind.Not, CLUnaryCategory.Boolean), ("!", false) },
+                { (UnaryArithmeticKind.Not, CLUnaryCategory.Int), ("~", false) },
+                { (UnaryArithmeticKind.Not, CLUnaryCategory.Float), ("~", false) },
 
                 // Functions
 
-                { (UnaryArithmeticKind.Abs, false), ("abs", true) },
-                { (UnaryArithmeticKind.Abs, true), ("fabs", true) },
+                { (UnaryArithmeticKind.Abs, CLUnaryCategory.Int), ("abs", true) },
+                { (UnaryArithmeticKind.Abs, CLUnaryCategory.Float), ("fabs", true) },
 
-                { (UnaryArithmeticKind.IsNaNF, true), ("isnan", true) },
-                { (UnaryArithmeticKind.IsInfF, true), ("isinf", true) },
+                { (UnaryArithmeticKind.IsNaNF, CLUnaryCategory.Float), ("isnan", true) },
+                { (UnaryArithmeticKind.IsInfF, CLUnaryCategory.Float), ("isinf", true) },
 
-                { (UnaryArithmeticKind.SqrtF, true), ("sqrt", true) },
-                { (UnaryArithmeticKind.RsqrtF, true), ("rsqrt", true) },
+                { (UnaryArithmeticKind.SqrtF, CLUnaryCategory.Float), ("sqrt", true) },
+                { (UnaryArithmeticKind.RsqrtF, CLUnaryCategory.Float), ("rsqrt", true) },
 
-                { (UnaryArithmeticKind.SinF, true), ("sin", true) },
-                { (UnaryArithmeticKind.AsinF, true), ("asin", true) },
-                { (UnaryArithmeticKind.SinHF, true), ("sinh", true) },
+                { (UnaryArithmeticKind.SinF, CLUnaryCategory.Float), ("sin", true) },
+                { (UnaryArithmeticKind.AsinF, CLUnaryCategory.Float), ("asin", true) },
+                { (UnaryArithmeticKind.SinHF, CLUnaryCategory.Float), ("sinh", true) },
 
-                { (UnaryArithmeticKind.CosF, true), ("cos", true) },
-                { (UnaryArithmeticKind.AcosF, true), ("acos", true) },
-                { (UnaryArithmeticKind.CosHF, true), ("cosh", true) },
+                { (UnaryArithmeticKind.CosF, CLUnaryCategory.Float), ("cos", true) },
+                { (UnaryArithmeticKind.AcosF, CLUnaryCategory.Float), ("acos", true) },
+                { (UnaryArithmeticKind.CosHF, CLUnaryCategory.Float), ("cosh", true) },
 
-                { (UnaryArithmeticKind.TanF, true), ("tan", true) },
-                { (UnaryArithmeticKind.AtanF, true), ("atan", true) },
-                { (UnaryArithmeticKind.TanHF, true), ("tanh", true) },
+                { (UnaryArithmeticKind.TanF, CLUnaryCategory.Float), ("tan", true) },
+                { (UnaryArithmeticKind.AtanF, CLUnaryCategory.Float), ("atan", true) },
+                { (UnaryArithmeticKind.TanHF, CLUnaryCategory.Float), ("tanh", true) },
 
-                { (UnaryArithmeticKind.ExpF, true), ("exp", true) },
-                { (UnaryArithmeticKind.Exp2F, true), ("exp2", true) },
+                { (UnaryArithmeticKind.ExpF, CLUnaryCategory.Float), ("exp", true) },
+                { (UnaryArithmeticKind.Exp2F, CLUnaryCategory.Float), ("exp2", true) },
 
-                { (UnaryArithmeticKind.Log2F, true), ("log2", true) },
-                { (UnaryArithmeticKind.LogF, true), ("log", true) },
-                { (UnaryArithmeticKind.Log10F, true), ("log10", true) },
+                { (UnaryArithmeticKind.Log2F, CLUnaryCategory.Float), ("log2", true) },
+                { (UnaryArithmeticKind.LogF, CLUnaryCategory.Float), ("log", true) },
+                { (UnaryArithmeticKind.Log10F, CLUnaryCategory.Float), ("log10", true) },
 
-                { (UnaryArithmeticKind.FloorF, true), ("floor", true) },
-                { (UnaryArithmeticKind.CeilingF, true), ("ceil", true) },
+                { (UnaryArithmeticKind.FloorF, CLUnaryCategory.Float), ("floor", true) },
+                { (UnaryArithmeticKind.CeilingF, CLUnaryCategory.Float), ("ceil", true) },
             };
 
         private static readonly Dictionary<
