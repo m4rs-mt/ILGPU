@@ -13,7 +13,6 @@ using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
-using System.Diagnostics;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -273,34 +272,31 @@ namespace ILGPU.Backends.OpenCL
             var value = Load(atomicCAS.Value);
             var compare = Load(atomicCAS.CompareValue);
 
-            var tempVariable = AllocateType(BasicValueType.Int1) as PrimitiveVariable;
+            // The internal AtomicCAS value "returns" the old value that was stored
+            // at the memory location. If the emitted operation fails the comparison
+            // check, we will "return" the updated value stored in "targetVariable". If
+            // the operation succeeds we will return the old value stored in
+            // "targetVariable". Consequently, we will always assign the value stored in
+            // "targetVariable" the be the "result" of the computation.
             var targetVariable = Allocate(atomicCAS);
-            using (var statement = BeginStatement(tempVariable))
-            {
-                statement.AppendCommand(CLInstructions.AtomicCASOperation);
-                statement.BeginArguments();
-                statement.AppendAtomicCast(atomicCAS.ArithmeticBasicValueType);
-                statement.AppendArgument(target);
-                statement.AppendArgumentAddressWithCast(value, atomicCAS.Target.Type);
-                statement.AppendArgument(compare);
-                statement.EndArguments();
-            }
 
-            // The OpenCL way is not compatible with the internal CAS semantic
-            // We should adapt to the more general way of returning a bool in the future
-            // For now, check the result of the operation and emit an atomic load
-            // in the case of a failure.
+            // Copy the compare value into the target variable to avoid modifications of
+            // the input value
             using (var statement = BeginStatement(targetVariable))
-            {
-                statement.Append(tempVariable);
-                statement.AppendCommand(CLInstructions.SelectOperation1);
                 statement.Append(value);
-                statement.AppendCommand(CLInstructions.SelectOperation2);
 
-                statement.AppendCommand(CLInstructions.AtomicLoadOperation);
+            // Perform the atomic operation and ignore the resulting bool value
+            using (var statement = BeginStatement(CLInstructions.AtomicCASOperation))
+            {
                 statement.BeginArguments();
                 statement.AppendAtomicCast(atomicCAS.ArithmeticBasicValueType);
                 statement.AppendArgument(target);
+                statement.AppendArgumentAddressWithCast(
+                    targetVariable,
+                    atomicCAS.ArithmeticBasicValueType);
+                statement.AppendArgumentWithCast(
+                    compare,
+                    atomicCAS.ArithmeticBasicValueType);
                 statement.EndArguments();
             }
         }

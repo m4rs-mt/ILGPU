@@ -324,6 +324,20 @@ namespace ILGPU.Backends.OpenCL
             }
 
             /// <summary>
+            /// Appends the given register argument.
+            /// </summary>
+            /// <param name="argument">The argument to append.</param>
+            /// <param name="valueType">The value type.</param>
+            public void AppendArgumentWithCast(
+                Variable argument,
+                ArithmeticBasicValueType valueType)
+            {
+                AppendArgument();
+                AppendCast(valueType);
+                Append(argument);
+            }
+
+            /// <summary>
             /// Appends the address of the given register argument.
             /// </summary>
             /// <param name="argument">The argument to append.</param>
@@ -333,15 +347,22 @@ namespace ILGPU.Backends.OpenCL
                 AppendCommand(CLInstructions.AddressOfOperation);
                 Append(argument);
             }
+
             /// <summary>
             /// Appends the address of the given register argument with a cast.
             /// </summary>
             /// <param name="argument">The argument to append.</param>
-            /// <param name="type">The target type to cast to.</param>
-            public void AppendArgumentAddressWithCast(Variable argument, TypeNode type)
+            /// <param name="valueType">The value type.</param>
+            public void AppendArgumentAddressWithCast(
+                Variable argument,
+                ArithmeticBasicValueType valueType)
             {
                 AppendArgument();
-                AppendCast(type);
+                stringBuilder.Append('(');
+                stringBuilder.Append(
+                    CLTypeGenerator.GetBasicValueType(valueType));
+                stringBuilder.Append(CLInstructions.DereferenceOperation);
+                stringBuilder.Append(')');
                 AppendCommand(CLInstructions.AddressOfOperation);
                 Append(argument);
             }
