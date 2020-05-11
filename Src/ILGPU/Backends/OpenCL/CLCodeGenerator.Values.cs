@@ -490,9 +490,10 @@ namespace ILGPU.Backends.OpenCL
                 // Update field values
                 for (int i = 0; i < span.Span; ++i)
                 {
-                    using var statement = BeginStatement(target, i);
+                    var targetAccess = span.Access.Add(i);
+                    using var statement = BeginStatement(target, targetAccess);
                     statement.AppendArgument(set);
-                    statement.AppendField(span.Access.Add(i));
+                    statement.AppendField(new FieldAccess(i));
                 }
             }
         }

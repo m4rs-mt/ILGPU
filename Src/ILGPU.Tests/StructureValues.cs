@@ -1,4 +1,6 @@
-﻿using Xunit;
+﻿using System;
+using System.Linq;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace ILGPU.Tests
@@ -141,6 +143,85 @@ namespace ILGPU.Tests
             Verify(nestedBuffer, expected);
             Verify(nestedBuffer2, expected);
             Verify(nestedBuffer3, expected);
+        }
+
+        internal struct Parent : IEquatable<Parent>
+        {
+            public Nested First;
+            public Nested Second;
+
+            public bool Equals(Parent other) =>
+                First.Equals(other.First) &&
+                Second.Equals(other.Second);
+        }
+
+        internal struct Nested : IEquatable<Nested>
+        {
+            public int Value1;
+            public int Value2;
+
+            public bool Equals(Nested other) =>
+                Value1.Equals(other.Value1) &&
+                Value2.Equals(other.Value2);
+        }
+
+        internal static void StructureGetNestedKernel(
+            Index1 index,
+            ArrayView<Nested> data,
+            Parent value)
+        {
+            data[index] = value.Second;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(StructureGetNestedKernel))]
+        public void StructureGetNested()
+        {
+            var nested = new Nested()
+            {
+                Value1 = int.MinValue,
+                Value2 = int.MaxValue,
+            };
+            var value = new Parent()
+            {
+                First = nested,
+                Second = nested,
+            };
+
+            using var buffer = Accelerator.Allocate<Nested>(1);
+            Execute(buffer.Length, buffer.View, value);
+            Verify(buffer, new Nested[] { nested });
+        }
+
+        internal static void StructureSetNestedKernel(
+            Index1 index,
+            ArrayView<Parent> data,
+            Nested value)
+        {
+            var dataValue = new Parent();
+            dataValue.First = value;
+            dataValue.Second = value;
+            data[index] = dataValue;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(StructureSetNestedKernel))]
+        public void StructureSetNested()
+        {
+            var nested = new Nested()
+            {
+                Value1 = int.MinValue,
+                Value2 = int.MaxValue,
+            };
+            var value = new Parent()
+            {
+                First = nested,
+                Second = nested,
+            };
+
+            using var buffer = Accelerator.Allocate<Parent>(1);
+            Execute(buffer.Length, buffer.View, nested);
+            Verify(buffer, new Parent[] { value });
         }
     }
 }
