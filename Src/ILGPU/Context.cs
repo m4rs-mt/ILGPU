@@ -11,6 +11,7 @@
 
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
+using ILGPU.Backends.OpenCL;
 using ILGPU.Backends.PTX;
 using ILGPU.Frontend;
 using ILGPU.Frontend.DebugInformation;
@@ -285,7 +286,11 @@ namespace ILGPU
         /// <summary>
         /// Initializes all intrinsics.
         /// </summary>
-        private void InitIntrinsics() => PTXIntrinsics.Register(IntrinsicManager);
+        private void InitIntrinsics()
+        {
+            PTXIntrinsics.Register(IntrinsicManager);
+            CLIntrinsics.Register(IntrinsicManager);
+        }
 
         /// <summary>
         /// Reloads the assembly builder.
