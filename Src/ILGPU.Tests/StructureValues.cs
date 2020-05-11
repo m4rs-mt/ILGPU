@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -145,6 +146,10 @@ namespace ILGPU.Tests
             Verify(nestedBuffer3, expected);
         }
 
+        [SuppressMessage(
+            "Design",
+            "CA1067:Override Object.Equals(object) when implementing IEquatable<T>",
+            Justification = "Test object")]
         internal struct Parent : IEquatable<Parent>
         {
             public Nested First;
@@ -155,6 +160,10 @@ namespace ILGPU.Tests
                 Second.Equals(other.Second);
         }
 
+        [SuppressMessage(
+            "Design",
+            "CA1067:Override Object.Equals(object) when implementing IEquatable<T>",
+            Justification = "Test object")]
         internal struct Nested : IEquatable<Nested>
         {
             public int Value1;
