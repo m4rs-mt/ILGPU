@@ -10,8 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Rewriting;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Transformations
 {
@@ -27,21 +27,37 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         /// <param name="cast">The cast to check.</param>
         /// <returns>True, if the given cast is redundant.</returns>
-        private static bool IsRedundant(AddressSpaceCast cast)
+        private static bool IsRedundant(AddressSpaceCast cast) =>
+            IsRedundantRecursive(cast.TargetAddressSpace, cast);
+
+        /// <summary>
+        /// Returns true if the parent cast is redundant.
+        /// </summary>
+        /// <param name="targetSpace">The target address space.</param>
+        /// <param name="value">The current value to check.</param>
+        /// <returns>True, if the parent cast is redundant.</returns>
+        private static bool IsRedundantRecursive(
+            MemoryAddressSpace targetSpace,
+            Value value)
         {
-            Debug.Assert(cast != null, "Invalid cast");
-            foreach (var use in cast.Uses)
+            foreach (var use in value.Uses)
             {
                 var node = use.Resolve();
-
                 switch (node)
                 {
-                    case MethodCall _:
-                        // We cannot remove casts to other address spaces in case
-                        // of a method invocation.
-                        return false;
+                    case MethodCall call:
+                        // We cannot remove casts to other address spaces in case of a
+                        // method invocation if the address spaces do not match
+                        var targetParam = call.Target.Parameters[use.Index];
+                        if (targetParam.ParameterType is IAddressSpaceType paramType &&
+                            paramType.AddressSpace == targetSpace)
+                        {
+                            return false;
+                        }
+
+                        break;
                     case PhiValue _:
-                        // We are not allowed to remove casts from phi node operands.
+                        // We are not allowed to remove casts in the case of phi values
                         return false;
                     case Store _:
                         // We are not allowed to remove casts in the case of alloca
@@ -50,12 +66,14 @@ namespace ILGPU.IR.Transformations
                             return false;
                         break;
                     case SetArrayElement _:
-                        return false;
-                    case SetField setField:
-                        // We are not allowed to remove field stores to tuples
+                    case SetField _:
+                        // We are not allowed to remove field or array stores to tuples
                         // with different field types
-                        var structureType = setField.StructureType;
-                        if (structureType[setField.FieldSpan.Access] != cast.SourceType)
+                        return false;
+                    case PointerCast _:
+                    case LoadElementAddress _:
+                    case LoadFieldAddress _:
+                        if (!IsRedundantRecursive(targetSpace, node))
                             return false;
                         break;
                 }
