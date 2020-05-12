@@ -117,7 +117,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(GroupBarrierKernel))]
         public void GroupBarrier(int length)
         {
-            for (int i = 1; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
+            for (int i = 1; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
                 var extent = new KernelConfig(
@@ -145,7 +145,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(GroupBarrierAndKernel))]
         public void GroupBarrierAnd(int length)
         {
-            for (int i = 2; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
+            for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
                 var extent = new KernelConfig(length, i);
@@ -176,7 +176,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(GroupBarrierOrKernel))]
         public void GroupBarrierOr(int length)
         {
-            for (int i = 2; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
+            for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
                 var extent = new KernelConfig(length, i);
@@ -225,7 +225,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(GroupBroadcastKernel))]
         public void GroupBroadcast(int length)
         {
-            for (int i = 2; i < Accelerator.MaxNumThreadsPerGroup; i <<= 1)
+            for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
                 var extent = new KernelConfig(length, i);
