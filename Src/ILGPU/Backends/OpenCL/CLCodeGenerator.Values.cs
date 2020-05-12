@@ -362,37 +362,8 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PrimitiveValue)"/>
-        public void GenerateCode(PrimitiveValue value)
-        {
-            var variable = Allocate(value);
-            using var statement = BeginStatement(variable);
-            switch (value.BasicValueType)
-            {
-                case BasicValueType.Int1:
-                    statement.AppendConstant(value.Int1Value ? 1 : 0);
-                    break;
-                case BasicValueType.Int8:
-                    statement.AppendConstant(value.UInt8Value);
-                    break;
-                case BasicValueType.Int16:
-                    statement.AppendConstant(value.UInt16Value);
-                    break;
-                case BasicValueType.Int32:
-                    statement.AppendConstant(value.UInt32Value);
-                    break;
-                case BasicValueType.Int64:
-                    statement.AppendConstant(value.UInt64Value);
-                    break;
-                case BasicValueType.Float32:
-                    statement.AppendConstant(value.Float32Value);
-                    break;
-                case BasicValueType.Float64:
-                    statement.AppendConstant(value.Float64Value);
-                    break;
-                default:
-                    throw new InvalidCodeGenerationException();
-            }
-        }
+        public void GenerateCode(PrimitiveValue value) =>
+            Allocate(value);
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(StringValue)"/>
         public void GenerateCode(StringValue value)

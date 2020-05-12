@@ -123,8 +123,15 @@ namespace ILGPU.Backends.OpenCL
             /// Appends an indexer.
             /// </summary>
             /// <param name="indexer">The indexer variable.</param>
-            public void AppendIndexer(Variable indexer) =>
-                AppendIndexer(indexer.ToString());
+            public void AppendIndexer(Variable indexer)
+            {
+                stringBuilder.Append('[');
+                if (indexer is ConstantVariable constantVariable)
+                    Append(constantVariable);
+                else
+                    stringBuilder.Append(indexer.ToString());
+                stringBuilder.Append(']');
+            }
 
             /// <summary>
             /// Appends an indexer.
@@ -307,11 +314,51 @@ namespace ILGPU.Backends.OpenCL
             }
 
             /// <summary>
+            /// Appends the given constant variable.
+            /// </summary>
+            /// <param name="variable">The variable to append.</param>
+            public void Append(ConstantVariable variable)
+            {
+                var value = variable.Value;
+                switch (value.BasicValueType)
+                {
+                    case BasicValueType.Int1:
+                        AppendConstant(value.Int1Value ? 1 : 0);
+                        break;
+                    case BasicValueType.Int8:
+                        AppendConstant(value.UInt8Value);
+                        break;
+                    case BasicValueType.Int16:
+                        AppendConstant(value.UInt16Value);
+                        break;
+                    case BasicValueType.Int32:
+                        AppendConstant(value.UInt32Value);
+                        break;
+                    case BasicValueType.Int64:
+                        AppendConstant(value.UInt64Value);
+                        break;
+                    case BasicValueType.Float32:
+                        AppendConstant(value.Float32Value);
+                        break;
+                    case BasicValueType.Float64:
+                        AppendConstant(value.Float64Value);
+                        break;
+                    default:
+                        throw new InvalidCodeGenerationException();
+                }
+            }
+
+            /// <summary>
             /// Appends the given variable directly.
             /// </summary>
             /// <param name="variable">The variable to append.</param>
-            public void Append(Variable variable) =>
-                stringBuilder.Append(variable.ToString());
+            public void Append(Variable variable)
+            {
+                if (variable is ConstantVariable constantVariable)
+                    Append(constantVariable);
+                else
+                    stringBuilder.Append(variable.ToString());
+            }
 
             /// <summary>
             /// Appends the given register argument.

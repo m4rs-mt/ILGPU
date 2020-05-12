@@ -11,6 +11,7 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Types;
+using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
@@ -60,7 +61,7 @@ namespace ILGPU.Backends
         /// <summary>
         /// A primitive variable.
         /// </summary>
-        public sealed class PrimitiveVariable : Variable
+        public class PrimitiveVariable : Variable
         {
             /// <summary>
             /// Constructs a new primitive variable.
@@ -77,6 +78,31 @@ namespace ILGPU.Backends
             /// Returns the associated basic value type.
             /// </summary>
             public ArithmeticBasicValueType BasicValueType { get; }
+        }
+
+        /// <summary>
+        /// A constant "variable".
+        /// </summary>
+        public sealed class ConstantVariable : PrimitiveVariable
+        {
+            /// <summary>
+            /// Constructs a new constant register.
+            /// </summary>
+            /// <param name="id">The current variable id.</param>
+            /// <param name="value">The primitive value.</param>
+            public ConstantVariable(int id, PrimitiveValue value)
+                : base(
+                      id,
+                      value.BasicValueType.GetArithmeticBasicValueType(
+                          isUnsigned: false))
+            {
+                Value = value;
+            }
+
+            /// <summary>
+            /// Returns the associated value.
+            /// </summary>
+            public PrimitiveValue Value { get; }
         }
 
         /// <summary>
@@ -169,7 +195,9 @@ namespace ILGPU.Backends
         {
             if (variableLookup.TryGetValue(value, out Variable variable))
                 return variable;
-            variable = AllocateType(value.Type);
+            variable = value is PrimitiveValue primitiveValue
+                ? new ConstantVariable(idCounter++, primitiveValue)
+                : AllocateType(value.Type);
             variableLookup.Add(value, variable);
             return variable;
         }
