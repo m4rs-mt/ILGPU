@@ -80,7 +80,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="target">The target address.</param>
         /// <param name="value">The value to add.</param>
-        private static void AtomicAddF32(ref float target, float value) =>
+        private static float AtomicAddF32(ref float target, float value) =>
             Atomic.MakeAtomic(
                 ref target,
                 value,
@@ -100,7 +100,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="target">The target address.</param>
         /// <param name="value">The value to add.</param>
-        private static void AtomicAddF64(ref double target, double value) =>
+        private static double AtomicAddF64(ref double target, double value) =>
             Atomic.MakeAtomic(
                 ref target,
                 value,
