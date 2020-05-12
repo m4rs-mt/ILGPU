@@ -207,7 +207,8 @@ namespace ILGPU.Runtime.CPU
             int groupSize,
             int chunkSize,
             int chunkOffset,
-            int targetDimension) =>
+            int targetDimension)
+        {
             KernelExecutionDelegate(
                 this,
                 groupContext,
@@ -216,6 +217,8 @@ namespace ILGPU.Runtime.CPU
                 chunkSize,
                 chunkOffset,
                 targetDimension);
+            groupContext.OnKernelExecutionCompleted();
+        }
 
         #endregion
     }

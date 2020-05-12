@@ -365,6 +365,14 @@ namespace ILGPU.Runtime.CPU
         }
 
         /// <summary>
+        /// Called when a CPU kernel has finished, reducing the number of participants in
+        /// future calls to Barrier-related methods.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void OnKernelExecutionCompleted() =>
+            groupBarrier.RemoveParticipant();
+
+        /// <summary>
         /// Performs cleanup operations with respect to the previously allocated
         /// shared memory
         /// </summary>

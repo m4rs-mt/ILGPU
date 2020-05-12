@@ -235,5 +235,37 @@ namespace ILGPU.Tests
                 Verify(buffer, expected);
             }
         }
+
+        internal static void GroupDivergentControlFlowKernel(ArrayView<int> data)
+        {
+            var idx = Grid.IdxX * Group.DimX + Group.IdxX;
+
+            Group.Barrier();
+            for (var i = 0; i < Group.IdxX; i++)
+            {
+                Group.Barrier();
+                Atomic.Add(ref data[idx], 1);
+            }
+        }
+
+        [Theory]
+        [InlineData(32)]
+        [InlineData(256)]
+        [InlineData(1024)]
+        [KernelMethod(nameof(GroupDivergentControlFlowKernel))]
+        public void GroupDivergentControlFlow(int length)
+        {
+            for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
+            {
+                using var buffer = Accelerator.Allocate<int>(length * i);
+                buffer.MemSetToZero();
+
+                var extent = new KernelConfig(length, i);
+                Execute(extent, buffer.View);
+
+                var expected = Enumerable.Repeat(Enumerable.Range(0, i), length).SelectMany(x => x).ToArray();
+                Verify(buffer, expected);
+            }
+        }
     }
 }
