@@ -37,14 +37,24 @@ namespace ILGPU.Backends.OpenCL
             // See also EmitImplicitKernelIndex
 
             var condition = Load(branch.Condition);
-            AppendIndent();
-            Builder.Append("if (");
-            Builder.Append(condition.ToString());
-            Builder.AppendLine(")");
-            PushIndent();
-            GotoStatement(branch.TrueTarget);
-            PopIndent();
-            GotoStatement(branch.FalseTarget);
+            if (condition is ConstantVariable constantVariable)
+            {
+                if (constantVariable.Value.RawValue != 0)
+                    GotoStatement(branch.TrueTarget);
+                else
+                    GotoStatement(branch.FalseTarget);
+            }
+            else
+            {
+                AppendIndent();
+                Builder.Append("if (");
+                Builder.Append(condition.ToString());
+                Builder.AppendLine(")");
+                PushIndent();
+                GotoStatement(branch.TrueTarget);
+                PopIndent();
+                GotoStatement(branch.FalseTarget);
+            }
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(SwitchBranch)"/>

@@ -425,22 +425,16 @@ namespace ILGPU.Backends.OpenCL
             /// Appends a constant.
             /// </summary>
             /// <param name="value">The constant to append.</param>
-            public void AppendConstant(long value)
-            {
-                AppendArgument();
+            public void AppendConstant(long value) =>
                 stringBuilder.Append(value);
-            }
 
             /// <summary>
             /// Appends a constant.
             /// </summary>
             /// <param name="value">The constant to append.</param>
             [CLSCompliant(false)]
-            public void AppendConstant(ulong value)
-            {
-                AppendArgument();
+            public void AppendConstant(ulong value) =>
                 stringBuilder.Append(value);
-            }
 
             /// <summary>
             /// Appends a constant.
@@ -448,8 +442,6 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="value">The constant to append.</param>
             public void AppendConstant(float value)
             {
-                AppendArgument();
-
                 if (float.IsNaN(value))
                 {
                     stringBuilder.Append("NAN");
@@ -479,8 +471,6 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="value">The constant to append.</param>
             public void AppendConstant(double value)
             {
-                AppendArgument();
-
                 if (double.IsNaN(value))
                 {
                     stringBuilder.Append("NAN");
