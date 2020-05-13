@@ -259,6 +259,7 @@ namespace ILGPU.Tests
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
                 buffer.MemSetToZero();
+                Accelerator.Synchronize();
 
                 var extent = new KernelConfig(length, i);
                 Execute(extent, buffer.View);
