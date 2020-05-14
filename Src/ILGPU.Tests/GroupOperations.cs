@@ -255,7 +255,16 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(GroupDivergentControlFlowKernel))]
         public void GroupDivergentControlFlow(int length)
         {
-            for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
+            // IMPORTANT: Iteration range has been limited to the warp size of the accelerator.
+            //
+            // Some OpenCL drivers have been known to deadlock when the group dimensions are
+            // larger than the warp size. It is also important to use the latest drivers.
+            //
+            // e.g. Intel HD Graphics 630 drivers for OpenCL v1.2, with WarpSize = 16
+            //  v21.20.16.4550 deadlocks when group dimensions are larger than 8
+            //  v26.20.100.7263 deadlocks when group dimensions are larger than 16
+            //
+            for (int i = 2; i <= Accelerator.WarpSize; i <<= 1)
             {
                 using var buffer = Accelerator.Allocate<int>(length * i);
                 buffer.MemSetToZero();
