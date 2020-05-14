@@ -219,6 +219,15 @@ namespace ILGPU.IR.Transformations
             context.ReplaceAndRemove(lfa, newValue);
         }
 
+        /// <summary>
+        /// Lowers Phi nodes into an adapted version.
+        /// </summary>
+        protected static void Lower(
+            RewriterContext context,
+            TypeLowering<TType> typeConverter,
+            PhiValue phi) =>
+            context.Builder.UpdatePhiType(phi, typeConverter);
+
         #endregion
 
         #region Rewriter
@@ -286,6 +295,10 @@ namespace ILGPU.IR.Transformations
             rewriter.Add<LoadFieldAddress>(
                 (typeConverter, value) =>
                     IsTypeDependent(typeConverter, value, value.StructureType),
+                Lower);
+            rewriter.Add<PhiValue>(
+                (typeConverter, value) =>
+                    IsTypeDependent(typeConverter, value, value.PhiType),
                 Lower);
         }
 
