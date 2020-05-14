@@ -268,9 +268,7 @@ namespace ILGPU.IR.Values
         internal PhiValue(in ValueInitializer initializer, TypeNode type)
             : base(initializer)
         {
-            Debug.Assert(type != null, "Invalid type");
-            Debug.Assert(!type.IsVoidType, "Invalid void type");
-
+            Location.Assert(!type.IsVoidType);
             PhiType = type;
         }
 
@@ -284,7 +282,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the basic phi type.
         /// </summary>
-        public TypeNode PhiType { get; }
+        public TypeNode PhiType { get; private set; }
 
         /// <summary>
         /// Returns all associated blocks from which the values have to be resolved
@@ -296,6 +294,23 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Updates the current phi type.
+        /// </summary>
+        /// <typeparam name="TTypeContext">The type context.</typeparam>
+        /// <typeparam name="TTypeConverter">The type converter.</typeparam>
+        /// <param name="typeContext">The type context instance.</param>
+        /// <param name="typeConverter">The type converter instance.</param>
+        internal void UpdateType<TTypeContext, TTypeConverter>(
+            TTypeContext typeContext,
+            TTypeConverter typeConverter)
+            where TTypeContext : IIRTypeContext
+            where TTypeConverter : ITypeConverter<TypeNode>
+        {
+            PhiType = typeConverter.ConvertType(typeContext, PhiType);
+            InvalidateType();
+        }
 
         /// <summary>
         /// Remaps the current phi arguments.

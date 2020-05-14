@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System.Collections;
@@ -294,6 +295,18 @@ namespace ILGPU.IR
                     blockBuilder.RemapPhiArguments(remapper);
                 }
             }
+
+            /// <summary>
+            /// Updates the type of the given phi value.
+            /// </summary>
+            /// <typeparam name="TTypeConverter">The type converter.</typeparam>
+            /// <param name="phiValue">The phi value.</param>
+            /// <param name="typeConverter">The type converter instance.</param>
+            public void UpdatePhiType<TTypeConverter>(
+                PhiValue phiValue,
+                TTypeConverter typeConverter)
+                where TTypeConverter : ITypeConverter<TypeNode> =>
+                phiValue.UpdateType(Context, typeConverter);
 
             /// <summary>
             /// Specializes a function call.
