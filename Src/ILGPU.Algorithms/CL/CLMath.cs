@@ -42,35 +42,33 @@ namespace ILGPU.Algorithms.CL
                 BinaryArithmeticKind.Div,
                 arithmeticValue.BasicValueType.IsFloat(),
                 out var isFunction);
-            using (var statement = codeGenerator.BeginStatement(target))
+            using var statement = codeGenerator.BeginStatement(target);
+            statement.AppendCast(arithmeticValue.ArithmeticBasicValueType);
+            if (isFunction)
             {
-                statement.AppendCast(arithmeticValue.ArithmeticBasicValueType);
-                if (isFunction)
-                {
-                    statement.AppendCommand(operation);
-                    statement.BeginArguments();
-                }
-                else
-                    statement.OpenParen();
-
-                statement.AppendCast(arithmeticValue.ArithmeticBasicValueType);
-                if (arithmeticValue.BasicValueType == BasicValueType.Float32)
-                    statement.AppendConstant(1.0f);
-                else
-                    statement.AppendConstant(1.0);
-
-                if (!isFunction)
-                    statement.AppendCommand(operation);
-
-                statement.AppendArgument();
-                statement.AppendCast(arithmeticValue.ArithmeticBasicValueType);
-                statement.Append(argument);
-
-                if (isFunction)
-                    statement.EndArguments();
-                else
-                    statement.CloseParen();
+                statement.AppendCommand(operation);
+                statement.BeginArguments();
             }
+            else
+                statement.OpenParen();
+
+            statement.AppendCast(arithmeticValue.ArithmeticBasicValueType);
+            if (arithmeticValue.BasicValueType == BasicValueType.Float32)
+                statement.AppendConstant(1.0f);
+            else
+                statement.AppendConstant(1.0);
+
+            if (!isFunction)
+                statement.AppendCommand(operation);
+
+            statement.AppendArgument();
+            statement.AppendCast(arithmeticValue.ArithmeticBasicValueType);
+            statement.Append(argument);
+
+            if (isFunction)
+                statement.EndArguments();
+            else
+                statement.CloseParen();
         }
 
         #endregion

@@ -81,7 +81,7 @@ namespace ILGPU.Algorithms
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     public readonly struct SequentialGroupExecutor<T>
-        where T : struct
+        where T : unmanaged
     {
         #region Instance
 

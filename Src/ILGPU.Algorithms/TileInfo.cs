@@ -18,7 +18,7 @@ namespace ILGPU.Algorithms
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     public readonly struct TileInfo<T>
-        where T : struct
+        where T : unmanaged
     {
         /// <summary>
         /// Constructs a new tile information instance.

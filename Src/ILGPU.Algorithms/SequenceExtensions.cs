@@ -31,7 +31,7 @@ namespace ILGPU.Algorithms
         AcceleratorStream stream,
         ArrayView<T> view,
         TSequencer sequencer)
-        where T : struct
+        where T : unmanaged
         where TSequencer : struct, ISequencer<T>;
 
     /// <summary>
@@ -52,7 +52,7 @@ namespace ILGPU.Algorithms
         ArrayView<T> view,
         Index1 sequenceBatchLength,
         TSequencer sequencer)
-        where T : struct
+        where T : unmanaged
         where TSequencer : struct, ISequencer<T>;
 
     /// <summary>
@@ -73,7 +73,7 @@ namespace ILGPU.Algorithms
         ArrayView<T> view,
         Index1 sequenceLength,
         TSequencer sequencer)
-        where T : struct
+        where T : unmanaged
         where TSequencer : struct, ISequencer<T>;
 
     /// <summary>
@@ -102,7 +102,7 @@ namespace ILGPU.Algorithms
         Index1 sequenceLength,
         Index1 sequenceBatchLength,
         TSequencer sequencer)
-        where T : struct
+        where T : unmanaged
         where TSequencer : struct, ISequencer<T>;
 
     #endregion
@@ -130,7 +130,7 @@ namespace ILGPU.Algorithms
             Index1 sequenceLength,
             Index1 sequenceBatchLength,
             TSequencer sequencer)
-            where T : struct
+            where T : unmanaged
             where TSequencer : struct, ISequencer<T>
         {
             var stride = GridExtensions.GridStrideLoopStride;
@@ -157,7 +157,7 @@ namespace ILGPU.Algorithms
             TSequencer> CreateRawSequencer<T, TSequencer>(
             this Accelerator accelerator,
             out Index1 minDataSize)
-            where T : struct
+            where T : unmanaged
             where TSequencer : struct, ISequencer<T>
         {
             var result = accelerator.LoadAutoGroupedKernel(
@@ -179,7 +179,7 @@ namespace ILGPU.Algorithms
         /// <returns>The loaded sequencer.</returns>
         public static Sequencer<T, TSequencer> CreateSequencer<T, TSequencer>(
             this Accelerator accelerator)
-            where T : struct
+            where T : unmanaged
             where TSequencer : struct, ISequencer<T>
         {
             var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(
@@ -208,7 +208,7 @@ namespace ILGPU.Algorithms
         /// <returns>The loaded sequencer.</returns>
         public static BatchedSequencer<T, TSequencer> CreateBatchedSequencer<T, TSequencer>(
             this Accelerator accelerator)
-            where T : struct
+            where T : unmanaged
             where TSequencer : struct, ISequencer<T>
         {
             var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(
@@ -240,7 +240,7 @@ namespace ILGPU.Algorithms
         /// <returns>The loaded sequencer.</returns>
         public static RepeatedSequencer<T, TSequencer> CreateRepeatedSequencer<T, TSequencer>(
             this Accelerator accelerator)
-            where T : struct
+            where T : unmanaged
             where TSequencer : struct, ISequencer<T>
         {
             var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(
@@ -267,7 +267,7 @@ namespace ILGPU.Algorithms
         /// <returns>The loaded sequencer.</returns>
         public static RepeatedBatchedSequencer<T, TSequencer> CreateRepeatedBatchedSequencer<T, TSequencer>(
             this Accelerator accelerator)
-            where T : struct
+            where T : unmanaged
             where TSequencer : struct, ISequencer<T>
         {
             var rawSequencer = accelerator.CreateRawSequencer<T, TSequencer>(
@@ -307,7 +307,7 @@ namespace ILGPU.Algorithms
             AcceleratorStream stream,
             ArrayView<T> view,
             TSequencer sequencer)
-            where T : struct
+            where T : unmanaged
             where TSequencer : struct, ISequencer<T>
         {
             accelerator.CreateSequencer<T, TSequencer>()(
@@ -336,7 +336,7 @@ namespace ILGPU.Algorithms
             ArrayView<T> view,
             Index1 sequenceLength,
             TSequencer sequencer)
-            where T : struct
+            where T : unmanaged
             where TSequencer : struct, ISequencer<T>
         {
             accelerator.CreateRepeatedSequencer<T, TSequencer>()(
@@ -366,7 +366,7 @@ namespace ILGPU.Algorithms
             ArrayView<T> view,
             Index1 sequenceBatchLength,
             TSequencer sequencer)
-            where T : struct
+            where T : unmanaged
             where TSequencer : struct, ISequencer<T>
         {
             accelerator.CreateBatchedSequencer<T, TSequencer>()(
@@ -404,7 +404,7 @@ namespace ILGPU.Algorithms
             Index1 sequenceLength,
             Index1 sequenceBatchLength,
             TSequencer sequencer)
-            where T : struct
+            where T : unmanaged
             where TSequencer : struct, ISequencer<T>
         {
             accelerator.CreateRepeatedBatchedSequencer<T, TSequencer>()(

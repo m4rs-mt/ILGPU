@@ -50,7 +50,7 @@ namespace ILGPU.Algorithms
         ArrayView<T> input,
         ArrayView<T> output,
         ArrayView<int> temp)
-        where T : struct;
+        where T : unmanaged;
 
     /// <summary>
     /// Represents a scan operation using a shuffle and operation logic.
@@ -63,7 +63,7 @@ namespace ILGPU.Algorithms
         AcceleratorStream stream,
         ArrayView<T> input,
         ArrayView<T> output)
-        where T : struct;
+        where T : unmanaged;
 
     #endregion
 
@@ -95,7 +95,7 @@ namespace ILGPU.Algorithms
         /// <returns>The allocated temporary view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private ArrayView<int> AllocateTempScanView<T>(ArrayView<T> input)
-            where T : struct
+            where T : unmanaged
         {
             var tempSize = Accelerator.ComputeScanTempStorageSize<T>(input.Length);
             return bufferCache.Allocate<int>(tempSize);
@@ -110,7 +110,7 @@ namespace ILGPU.Algorithms
         /// <returns>The created scan handler.</returns>
         public BufferedScan<T> CreateScan<T, TScanOperation>(
             ScanKind kind)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             var scan = Accelerator.CreateScan<T, TScanOperation>(kind);
@@ -128,7 +128,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="TScanOperation">The type of the scan operation.</typeparam>
         /// <returns>The created inclusive scan handler.</returns>
         public BufferedScan<T> CreateInclusiveScan<T, TScanOperation>()
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             CreateScan<T, TScanOperation>(ScanKind.Inclusive);
 
@@ -139,7 +139,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="TScanOperation">The type of the scan operation.</typeparam>
         /// <returns>The created exclusive scan handler.</returns>
         public BufferedScan<T> CreateExclusiveScan<T, TScanOperation>()
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             CreateScan<T, TScanOperation>(ScanKind.Exclusive);
 
@@ -175,18 +175,15 @@ namespace ILGPU.Algorithms
         public static Index1 ComputeScanTempStorageSize<T>(
             this Accelerator accelerator,
             Index1 dataLength)
-            where T : struct
+            where T : unmanaged
         {
-            switch (accelerator.AcceleratorType)
+            return accelerator.AcceleratorType switch
             {
-                case AcceleratorType.CPU:
-                    return 1;
-                case AcceleratorType.Cuda:
-                    return ComputeNumIntElementsForSinglePassScan<T>();
-                default:
-                    return accelerator.MaxNumGroupsExtent.Item1 *
-                        Interop.ComputeRelativeSizeOf<int, T>();
-            }
+                AcceleratorType.CPU => 1,
+                AcceleratorType.Cuda => ComputeNumIntElementsForSinglePassScan<T>(),
+                _ => accelerator.MaxNumGroupsExtent.Item1 *
+                    Interop.ComputeRelativeSizeOf<int, T>(),
+            };
         }
 
         #endregion
@@ -199,7 +196,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The scan operation.</typeparam>
         internal interface IScanImplementation<T, TScanOperation> : IGroupScan<T, TScanOperation>
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             /// <summary>
@@ -216,7 +213,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The scan operation.</typeparam>
         readonly struct InclusiveScanImplementation<T, TScanOperation> : IScanImplementation<T, TScanOperation>
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             /// <summary cref="IGroupScan{T, TScanOperation}.Scan(T)"/>
@@ -240,7 +237,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The scan operation.</typeparam>
         readonly struct ExclusiveScanImplementation<T, TScanOperation> : IScanImplementation<T, TScanOperation>
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             /// <summary cref="IGroupScan{T, TScanOperation}.Scan(T)"/>
@@ -271,9 +268,9 @@ namespace ILGPU.Algorithms
         private static T ComputeTileRightBoundary<T, TScanOperation, TGroupScanImplementation>(
             TileInfo<T> tileInfo,
             ArrayView<T> input)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
-            where TGroupScanImplementation : IScanImplementation<T, TScanOperation>
+            where TGroupScanImplementation : struct, IScanImplementation<T, TScanOperation>
         {
             TScanOperation scanOperation = default;
             TGroupScanImplementation groupScan = default;
@@ -312,9 +309,9 @@ namespace ILGPU.Algorithms
             ArrayView<T> input,
             ArrayView<T> output,
             T leftBoundary)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
-            where TGroupScanImplementation : IScanImplementation<T, TScanOperation>
+            where TGroupScanImplementation : struct, IScanImplementation<T, TScanOperation>
         {
             TScanOperation scanOperation = default;
             TGroupScanImplementation groupScan = default;
@@ -360,9 +357,9 @@ namespace ILGPU.Algorithms
         internal static void SingleGroupScanKernel<T, TScanOperation, TGroupScanImplementation>(
             ArrayView<T> input,
             ArrayView<T> output)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
-            where TGroupScanImplementation : IScanImplementation<T, TScanOperation>
+            where TGroupScanImplementation : struct, IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(input, XMath.DivRoundUp(input.Length, Group.DimX));
 
@@ -386,7 +383,7 @@ namespace ILGPU.Algorithms
         private static Scan<T> CreateSingleGroupScan<T, TScanOperation>(
             Accelerator accelerator,
             ScanKind kind)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             Action<AcceleratorStream, KernelConfig, ArrayView<T>, ArrayView<T>> kernel;
@@ -427,9 +424,9 @@ namespace ILGPU.Algorithms
             SequentialGroupExecutor sequentialGroupExecutor,
             VariableView<T> boundaryValue,
             Index1 numIterationsPerGroup)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
-            where TGroupScanImplementation : IScanImplementation<T, TScanOperation>
+            where TGroupScanImplementation : struct, IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
@@ -474,7 +471,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <returns>The required number of <see cref="int"/> elements in temporary memory.</returns>
         private static int ComputeNumIntElementsForSinglePassScan<T>()
-            where T : struct =>
+            where T : unmanaged =>
             Interop.ComputeRelativeSizeOf<int, T>() + 1;
 
         /// <summary>
@@ -488,7 +485,7 @@ namespace ILGPU.Algorithms
         private static Scan<T> CreateSinglePassScan<T, TScanOperation>(
             Accelerator accelerator,
             ScanKind kind)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             var initializer = accelerator.CreateInitializer<int>();
@@ -575,9 +572,9 @@ namespace ILGPU.Algorithms
             ArrayView<T> input,
             ArrayView<T> rightBoundaries,
             Index1 numIterationsPerGroup)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
-            where TGroupScanImplementation : IScanImplementation<T, TScanOperation>
+            where TGroupScanImplementation : struct, IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
@@ -604,9 +601,9 @@ namespace ILGPU.Algorithms
             ArrayView<T> rightBoundaries,
             ArrayView<T> output,
             Index1 numIterationsPerGroup)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
-            where TGroupScanImplementation : IScanImplementation<T, TScanOperation>
+            where TGroupScanImplementation : struct, IScanImplementation<T, TScanOperation>
         {
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
@@ -642,7 +639,7 @@ namespace ILGPU.Algorithms
         private static Scan<T> CreateMultiPassScan<T, TScanOperation>(
             Accelerator accelerator,
             ScanKind kind)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             var initializer = accelerator.CreateInitializer<T>();
@@ -714,21 +711,17 @@ namespace ILGPU.Algorithms
         public static Scan<T> CreateScan<T, TScanOperation>(
             this Accelerator accelerator,
             ScanKind kind)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
-            switch (accelerator.AcceleratorType)
+            return accelerator.AcceleratorType switch
             {
-                case AcceleratorType.CPU:
-                    // We use a single-grouped kernel
-                    return CreateSingleGroupScan<T, TScanOperation>(accelerator, kind);
-                case AcceleratorType.OpenCL:
-                    return CreateMultiPassScan<T, TScanOperation>(accelerator, kind);
-                case AcceleratorType.Cuda:
-                    return CreateSinglePassScan<T, TScanOperation>(accelerator, kind);
-                default:
-                    throw new NotSupportedException();
-            }
+                // We use a single-grouped kernel
+                AcceleratorType.CPU => CreateSingleGroupScan<T, TScanOperation>(accelerator, kind),
+                AcceleratorType.OpenCL => CreateMultiPassScan<T, TScanOperation>(accelerator, kind),
+                AcceleratorType.Cuda => CreateSinglePassScan<T, TScanOperation>(accelerator, kind),
+                _ => throw new NotSupportedException(),
+            };
         }
 
         /// <summary>
@@ -740,7 +733,7 @@ namespace ILGPU.Algorithms
         /// <returns>The created inclusive scan handler.</returns>
         public static Scan<T> CreateInclusiveScan<T, TScanOperation>(
             this Accelerator accelerator)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             CreateScan<T, TScanOperation>(accelerator, ScanKind.Inclusive);
 
@@ -753,7 +746,7 @@ namespace ILGPU.Algorithms
         /// <returns>The created exclusive scan handler.</returns>
         public static Scan<T> CreateExclusiveScan<T, TScanOperation>(
             this Accelerator accelerator)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             CreateScan<T, TScanOperation>(accelerator, ScanKind.Exclusive);
 

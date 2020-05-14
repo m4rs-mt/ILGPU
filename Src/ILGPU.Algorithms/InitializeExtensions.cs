@@ -26,7 +26,7 @@ namespace ILGPU.Algorithms
         AcceleratorStream stream,
         ArrayView<T> view,
         T value)
-        where T : struct;
+        where T : unmanaged;
 
     /// <summary>
     /// Initialize functionality for accelerators.
@@ -43,7 +43,7 @@ namespace ILGPU.Algorithms
         /// <param name="view">The target view.</param>
         /// <param name="value">The value.</param>
         internal static void InitializeKernel<T>(Index1 index, ArrayView<T> view, T value)
-            where T : struct
+            where T : unmanaged
         {
             var stride = GridExtensions.GridStrideLoopStride;
             for (var idx = index; idx < view.Length; idx += stride)
@@ -60,7 +60,7 @@ namespace ILGPU.Algorithms
         private static Action<AcceleratorStream, Index1, ArrayView<T>, T> CreateRawInitializer<T>(
             this Accelerator accelerator,
             out Index1 minDataSize)
-            where T : struct
+            where T : unmanaged
         {
             var result = accelerator.LoadAutoGroupedKernel(
                 (Action<Index1, ArrayView<T>, T>)InitializeKernel,
@@ -78,7 +78,7 @@ namespace ILGPU.Algorithms
         /// <returns>The loaded transformer.</returns>
         public static Initializer<T> CreateInitializer<T>(
             this Accelerator accelerator)
-            where T : struct
+            where T : unmanaged
         {
             var rawInitializer = accelerator.CreateRawInitializer<T>(out Index1 minDataSize);
             return (stream, view, value) =>
@@ -104,7 +104,7 @@ namespace ILGPU.Algorithms
             AcceleratorStream stream,
             ArrayView<T> view,
             T value)
-            where T : struct
+            where T : unmanaged
         {
             accelerator.CreateInitializer<T>()(
                 stream,

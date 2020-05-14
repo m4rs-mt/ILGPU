@@ -170,7 +170,7 @@ namespace ILGPU.Algorithms.Tests
             T[] expected,
             int? offset = null,
             int? length = null)
-            where T : struct
+            where T : unmanaged
         {
             var data = buffer.GetAsArray(Accelerator.DefaultStream);
             Assert.Equal(data.Length, expected.Length);
@@ -185,7 +185,7 @@ namespace ILGPU.Algorithms.Tests
         /// <param name="buffer">The target buffer.</param>
         /// <param name="value">The value.</param>
         public void Initialize<T>(MemoryBuffer<T> buffer, T value)
-            where T : struct
+            where T : unmanaged
         {
             var data = new T[buffer.Length];
             for (int i = 0, e = data.Length; i < e; ++i)
@@ -200,7 +200,7 @@ namespace ILGPU.Algorithms.Tests
         /// <param name="buffer">The target buffer.</param>
         /// <param name="sequencer">The sequencer function.</param>
         public void Sequence<T>(MemoryBuffer<T> buffer, Func<int, T> sequencer)
-            where T : struct
+            where T : unmanaged
         {
             var data = new T[buffer.Length];
             for (int i = 0, e = data.Length; i < e; ++i)

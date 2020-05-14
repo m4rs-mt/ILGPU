@@ -59,8 +59,8 @@ namespace ILGPU.Algorithms
     /// <typeparam name="TTarget">The target value type of the transformation.</typeparam>
     /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
     static class TransformImpl<TSource, TTarget, TTransformer>
-        where TSource : struct
-        where TTarget : struct
+        where TSource : unmanaged
+        where TTarget : unmanaged
         where TTransformer : struct, ITransformer<TSource, TTarget>
     {
         /// <summary>
@@ -89,8 +89,8 @@ namespace ILGPU.Algorithms
         ArrayView<TSource> source,
         ArrayView<TTarget> target,
         TTransformer transformer)
-        where TSource : struct
-        where TTarget : struct
+        where TSource : unmanaged
+        where TTarget : unmanaged
         where TTransformer : struct, ITransformer<TSource, TTarget>;
 
     /// <summary>
@@ -115,8 +115,8 @@ namespace ILGPU.Algorithms
             ArrayView<TSource> source,
             ArrayView<TTarget> target,
             TTransformer transformer)
-            where TSource : struct
-            where TTarget : struct
+            where TSource : unmanaged
+            where TTarget : unmanaged
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
             var stride = GridExtensions.GridStrideLoopStride;
@@ -142,8 +142,8 @@ namespace ILGPU.Algorithms
             TTransformer> CreateRawTransformer<TSource, TTarget, TTransformer>(
             this Accelerator accelerator,
             out Index1 minDataSize)
-            where TSource : struct
-            where TTarget : struct
+            where TSource : unmanaged
+            where TTarget : unmanaged
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
             var result = accelerator.LoadAutoGroupedKernel<
@@ -172,8 +172,8 @@ namespace ILGPU.Algorithms
         public static Transformer<TSource, TTarget, TTransformer>
             CreateTransformer<TSource, TTarget, TTransformer>(
             this Accelerator accelerator)
-            where TSource : struct
-            where TTarget : struct
+            where TSource : unmanaged
+            where TTarget : unmanaged
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
             var rawTransformer = accelerator.CreateRawTransformer<
@@ -210,7 +210,7 @@ namespace ILGPU.Algorithms
         /// <returns>The loaded transformer.</returns>
         public static Transformer<T, T, TTransformer> CreateTransformer<T, TTransformer>(
             this Accelerator accelerator)
-            where T : struct
+            where T : unmanaged
             where TTransformer : struct, ITransformer<T, T>
         {
             return accelerator.CreateTransformer<T, T, TTransformer>();
@@ -232,7 +232,7 @@ namespace ILGPU.Algorithms
             ArrayView<T> source,
             ArrayView<T> target,
             TTransformer transformer)
-            where T : struct
+            where T : unmanaged
             where TTransformer : struct, ITransformer<T, T>
         {
             accelerator.CreateTransformer<T, TTransformer>()(
@@ -259,8 +259,8 @@ namespace ILGPU.Algorithms
             ArrayView<TSource> source,
             ArrayView<TTarget> target,
             TTransformer transformer)
-            where TSource : struct
-            where TTarget : struct
+            where TSource : unmanaged
+            where TTarget : unmanaged
             where TTransformer : struct, ITransformer<TSource, TTarget>
         {
             accelerator.CreateTransformer<TSource, TTarget, TTransformer>()(

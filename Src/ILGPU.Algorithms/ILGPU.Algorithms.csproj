@@ -2,12 +2,13 @@
 
   <PropertyGroup>
     <TargetFrameworks>net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
-    <Version>0.7.1</Version>
+    <Version>0.8.0</Version>
     <Platforms>AnyCPU</Platforms>
     <Copyright>Copyright © 2019-2020 ILGPU Algorithms Project, Copyright © 2017-2018 ILGPU Lightning Project</Copyright>
-    <AssemblyVersion>0.7.1.0</AssemblyVersion>
-    <FileVersion>0.7.1.0</FileVersion>
-    <LangVersion>7.2</LangVersion>
+    <AssemblyVersion>0.8.0.0</AssemblyVersion>
+    <FileVersion>0.8.0.0</FileVersion>
+    <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
+    <LangVersion>8.0</LangVersion>
     <Authors>ILGPU Algorithms Project</Authors>
     <Description>ILGPU Algorithms library for high-level GPU programming.</Description>
   </PropertyGroup>
@@ -42,7 +43,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="ILGPU" Version="0.8.0-beta1" />
+    <PackageReference Include="ILGPU" Version="0.8.0-beta3" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
   </ItemGroup>
 

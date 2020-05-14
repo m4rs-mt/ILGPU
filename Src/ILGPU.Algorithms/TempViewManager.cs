@@ -67,7 +67,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type to allocate.</typeparam>
         /// <returns>The allocated variable view.</returns>
         public VariableView<T> Allocate<T>()
-            where T : struct =>
+            where T : unmanaged =>
             Allocate<T>(1).GetVariableView(0);
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace ILGPU.Algorithms
         /// <returns>The allocated array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T> Allocate<T>(int length)
-            where T : struct
+            where T : unmanaged
         {
             var numIntElements = Interop.ComputeRelativeSizeOf<int, T>();
             var viewLength = length * numIntElements;

@@ -35,7 +35,7 @@ namespace ILGPU.Algorithms.CL
             CLBackend backend,
             CLCodeGenerator codeGenerator,
             Value value)
-            where T : struct
+            where T : unmanaged
             where TReduction : struct, IScanReduceOperation<T> =>
             GenerateAllReduce<T, TReduction>(
                 backend,
@@ -54,7 +54,7 @@ namespace ILGPU.Algorithms.CL
             CLBackend backend,
             CLCodeGenerator codeGenerator,
             Value value)
-            where T : struct
+            where T : unmanaged
             where TReduction : struct, IScanReduceOperation<T> =>
             CLContext.GenerateScanReduce<T, TReduction>(
                 backend,
@@ -78,7 +78,7 @@ namespace ILGPU.Algorithms.CL
             CLBackend backend,
             CLCodeGenerator codeGenerator,
             Value value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             CLContext.GenerateScanReduce<T, TScanOperation>(
                 backend,
@@ -98,7 +98,7 @@ namespace ILGPU.Algorithms.CL
             CLBackend backend,
             CLCodeGenerator codeGenerator,
             Value value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             CLContext.GenerateScanReduce<T, TScanOperation>(
                 backend,
@@ -109,7 +109,7 @@ namespace ILGPU.Algorithms.CL
         /// <summary cref="GroupExtensions.ExclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ExclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             var scanned = GroupExtensions.ExclusiveScan<T, TScanOperation>(value);
@@ -122,7 +122,7 @@ namespace ILGPU.Algorithms.CL
         /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T InclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             var scanned = GroupExtensions.InclusiveScan<T, TScanOperation>(value);

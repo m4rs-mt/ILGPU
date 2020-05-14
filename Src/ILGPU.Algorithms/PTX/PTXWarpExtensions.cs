@@ -25,7 +25,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="WarpExtensions.Reduce{T, TReduction}"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Reduce<T, TReduction>(T value)
-            where T : struct
+            where T : unmanaged
             where TReduction : IScanReduceOperation<T>
         {
             TReduction reduction = default;
@@ -40,7 +40,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="WarpExtensions.AllReduce{T, TReduction}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T AllReduce<T, TReduction>(T value)
-            where T : struct
+            where T : unmanaged
             where TReduction : IScanReduceOperation<T>
         {
             TReduction reduction = default;
@@ -59,7 +59,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="WarpExtensions.ExclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ExclusiveScan<T, TScanOperation>(T value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             var inclusive = InclusiveScan<T, TScanOperation>(value);
@@ -71,7 +71,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="WarpExtensions.InclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T InclusiveScan<T, TScanOperation>(T value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             TScanOperation warpScan = default;

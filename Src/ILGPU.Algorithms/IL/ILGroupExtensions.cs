@@ -25,14 +25,14 @@ namespace ILGPU.Algorithms.IL
         /// <summary cref="GroupExtensions.Reduce{T, TReduction}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Reduce<T, TReduction>(T value)
-            where T : struct
+            where T : unmanaged
             where TReduction : IScanReduceOperation<T> =>
             AllReduce<T, TReduction>(value);
 
         /// <summary cref="GroupExtensions.AllReduce{T, TReduction}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T AllReduce<T, TReduction>(T value)
-            where T : struct
+            where T : unmanaged
             where TReduction : IScanReduceOperation<T>
         {
             ref var sharedMemory = ref SharedMemory.Allocate<T>();
@@ -61,21 +61,21 @@ namespace ILGPU.Algorithms.IL
         /// <summary cref="GroupExtensions.ExclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ExclusiveScan<T, TScanOperation>(T value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             ExclusiveScanWithBoundaries<T, TScanOperation>(value, out var _);
 
         /// <summary cref="GroupExtensions.InclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T InclusiveScan<T, TScanOperation>(T value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             InclusiveScanWithBoundaries<T, TScanOperation>(value, out var _);
 
         /// <summary cref="GroupExtensions.ExclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ExclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(value);
@@ -86,7 +86,7 @@ namespace ILGPU.Algorithms.IL
         /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T InclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(value);
@@ -103,7 +103,7 @@ namespace ILGPU.Algorithms.IL
         /// <returns>The resulting value for the current lane.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ArrayView<T> InclusiveScanImplementation<T, TScanOperation>(T value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             // Load values into shared memory

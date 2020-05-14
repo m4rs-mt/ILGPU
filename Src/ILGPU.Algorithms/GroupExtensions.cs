@@ -33,7 +33,7 @@ namespace ILGPU.Algorithms
         /// <returns>All lanes in the first warp contain the reduced value.</returns>
         [IntrinsicImplementation]
         public static T Reduce<T, TReduction>(T value)
-            where T : struct
+            where T : unmanaged
             where TReduction : IScanReduceOperation<T> =>
             ILGroupExtensions.Reduce<T, TReduction>(value);
 
@@ -47,7 +47,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static T AllReduce<T, TReduction>(T value)
-            where T : struct
+            where T : unmanaged
             where TReduction : IScanReduceOperation<T> =>
             ILGroupExtensions.AllReduce<T, TReduction>(value);
 
@@ -65,7 +65,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static T ExclusiveScan<T, TScanOperation>(T value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             ILGroupExtensions.ExclusiveScan<T, TScanOperation>(value);
 
@@ -79,7 +79,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static T InclusiveScan<T, TScanOperation>(T value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             ILGroupExtensions.InclusiveScan<T, TScanOperation>(value);
 
@@ -94,7 +94,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static T ExclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             ILGroupExtensions.ExclusiveScanWithBoundaries<T, TScanOperation>(value, out boundaries);
 
@@ -109,7 +109,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static T InclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             ILGroupExtensions.InclusiveScanWithBoundaries<T, TScanOperation>(value, out boundaries);
 
@@ -123,7 +123,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
         public interface IGroupScan<T, TScanOperation>
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             /// <summary>
@@ -148,7 +148,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
         public readonly struct InclusiveGroupScan<T, TScanOperation> : IGroupScan<T, TScanOperation>
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             /// <summary>
@@ -176,7 +176,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
         public readonly struct ExclusiveGroupScan<T, TScanOperation> : IGroupScan<T, TScanOperation>
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             /// <summary>

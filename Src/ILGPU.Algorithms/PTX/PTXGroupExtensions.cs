@@ -22,14 +22,14 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="GroupExtensions.Reduce{T, TReduction}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Reduce<T, TReduction>(T value)
-            where T : struct
+            where T : unmanaged
             where TReduction : IScanReduceOperation<T> =>
             AllReduce<T, TReduction>(value);
 
         /// <summary cref="GroupExtensions.AllReduce{T, TReduction}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T AllReduce<T, TReduction>(T value)
-            where T : struct
+            where T : unmanaged
             where TReduction : IScanReduceOperation<T>
         {
             // A fixed number of memory banks to distribute the workload
@@ -72,7 +72,7 @@ namespace ILGPU.Algorithms.PTX
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The actual scan operation type.</typeparam>
         private interface IScanImplementation<T, TScanOperation>
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             /// <summary>
@@ -106,7 +106,7 @@ namespace ILGPU.Algorithms.PTX
         /// <typeparam name="TScanOperation">The actual scan operation type.</typeparam>
         private readonly struct InclusiveScanImplementation<T, TScanOperation>
             : IScanImplementation<T, TScanOperation>
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             /// <summary cref="IScanImplementation{T, TScanOperation}.Scan(T)"/>
@@ -136,7 +136,7 @@ namespace ILGPU.Algorithms.PTX
         /// <typeparam name="TScanOperation">The actual scan operation type.</typeparam>
         private readonly struct ExclusiveScanImplementation<T, TScanOperation>
             : IScanImplementation<T, TScanOperation>
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             /// <summary cref="IScanImplementation{T, TScanOperation}.Scan(T)"/>
@@ -172,7 +172,7 @@ namespace ILGPU.Algorithms.PTX
         private static T ComputeScan<T, TScanOperation, TScanImplementation>(
             T value,
             out ArrayView<T> sharedMemory)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
             where TScanImplementation : struct, IScanImplementation<T, TScanOperation>
         {
@@ -219,7 +219,7 @@ namespace ILGPU.Algorithms.PTX
         /// <returns>The scanned value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static T PerformScan<T, TScanOperation, TScanImplementation>(T value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
             where TScanImplementation : struct, IScanImplementation<T, TScanOperation>
         {
@@ -241,7 +241,7 @@ namespace ILGPU.Algorithms.PTX
         private static T PerformScan<T, TScanOperation, TScanImplementation>(
             T value,
             out ScanBoundaries<T> boundaries)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
             where TScanImplementation : struct, IScanImplementation<T, TScanOperation>
         {
@@ -260,7 +260,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="GroupExtensions.ExclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ExclusiveScan<T, TScanOperation>(T value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             PerformScan<T, TScanOperation, ExclusiveScanImplementation<T, TScanOperation>>(
                 value);
@@ -268,7 +268,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="GroupExtensions.InclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T InclusiveScan<T, TScanOperation>(T value)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             PerformScan<T, TScanOperation, InclusiveScanImplementation<T, TScanOperation>>(
                 value);
@@ -276,7 +276,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="GroupExtensions.ExclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ExclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             PerformScan<T, TScanOperation, ExclusiveScanImplementation<T, TScanOperation>>(
                 value,
@@ -285,7 +285,7 @@ namespace ILGPU.Algorithms.PTX
         /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T InclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
-            where T : struct
+            where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
             PerformScan<T, TScanOperation, InclusiveScanImplementation<T, TScanOperation>>(
                 value,

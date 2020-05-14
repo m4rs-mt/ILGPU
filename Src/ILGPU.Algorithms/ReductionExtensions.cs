@@ -30,7 +30,7 @@ namespace ILGPU.Algorithms
         AcceleratorStream stream,
         ArrayView<T> input,
         ArrayView<T> output)
-        where T : struct;
+        where T : unmanaged;
 
     #endregion
 
@@ -77,7 +77,7 @@ namespace ILGPU.Algorithms
         internal static void ReductionKernel<T, TReduction>(
             ArrayView<T> input,
             ArrayView<T> output)
-            where T : struct
+            where T : unmanaged
             where TReduction : struct, IScanReduceOperation<T>
         {
             var stride = GridExtensions.GridStrideLoopStride;
@@ -103,7 +103,7 @@ namespace ILGPU.Algorithms
         /// <returns>The created reduction handler.</returns>
         public static Reduction<T> CreateReduction<T, TReduction>(
             this Accelerator accelerator)
-            where T : struct
+            where T : unmanaged
             where TReduction : struct, IScanReduceOperation<T>
         {
             var initializer = accelerator.CreateInitializer<T>();
@@ -144,7 +144,7 @@ namespace ILGPU.Algorithms
             AcceleratorStream stream,
             ArrayView<T> input,
             ArrayView<T> output)
-            where T : struct
+            where T : unmanaged
             where TReduction : struct, IScanReduceOperation<T>
         {
             accelerator.CreateReduction<T, TReduction>()(
@@ -167,7 +167,7 @@ namespace ILGPU.Algorithms
             this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> input)
-            where T : struct
+            where T : unmanaged
             where TReduction : struct, IScanReduceOperation<T>
         {
             var output = accelerator.MemoryCache.Allocate<T>(1);
@@ -191,7 +191,7 @@ namespace ILGPU.Algorithms
             this Accelerator accelerator,
             AcceleratorStream stream,
             ArrayView<T> input)
-            where T : struct
+            where T : unmanaged
             where TReduction : struct, IScanReduceOperation<T>
         {
             return Task.Run(() =>

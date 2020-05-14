@@ -34,7 +34,7 @@ namespace ILGPU.Algorithms
         AcceleratorStream stream,
         ArrayView<T> view,
         ArrayView<int> temp)
-        where T : struct;
+        where T : unmanaged;
 
     /// <summary>
     /// Represents a radix sort operation using a shuffle and operation logic.
@@ -44,7 +44,7 @@ namespace ILGPU.Algorithms
     /// <param name="view">The elements to sort.</param>
     /// <remarks>The view buffer will be changed during the sorting operation.</remarks>
     public delegate void BufferedRadixSort<T>(AcceleratorStream stream, ArrayView<T> view)
-        where T : struct;
+        where T : unmanaged;
 
     #endregion
 
@@ -77,7 +77,7 @@ namespace ILGPU.Algorithms
         /// <returns>The allocated temporary view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private ArrayView<int> AllocateTempRadixSortView<T, TRadixSortOperation>(ArrayView<T> input)
-            where T : struct
+            where T : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
             var tempSize = Accelerator.ComputeRadixSortTempStorageSize<T, TRadixSortOperation>(input.Length);
@@ -91,7 +91,7 @@ namespace ILGPU.Algorithms
         /// <typeparam name="TRadixSortOperation">The type of the radix-sort operation.</typeparam>
         /// <returns>The created radix sort handler.</returns>
         public BufferedRadixSort<T> CreateRadixSort<T, TRadixSortOperation>()
-            where T : struct
+            where T : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
             var radixSort = Accelerator.CreateRadixSort<T, TRadixSortOperation>();
@@ -135,7 +135,7 @@ namespace ILGPU.Algorithms
             int numGroups,
             int paddedLength,
             int shift)
-            where T : struct;
+            where T : unmanaged;
 
         /// <summary>
         /// A pass delegate for the first pass.
@@ -149,7 +149,7 @@ namespace ILGPU.Algorithms
             int numGroups,
             int numIterationsPerGroup,
             int shift)
-            where T : struct;
+            where T : unmanaged;
 
         /// <summary>
         /// A pass delegate for the second pass.
@@ -163,7 +163,7 @@ namespace ILGPU.Algorithms
             int numGroups,
             int paddedLength,
             int shift)
-            where T : struct;
+            where T : unmanaged;
 
         /// <summary>
         /// A pass delegate for the second pass.
@@ -177,7 +177,7 @@ namespace ILGPU.Algorithms
             int numGroups,
             int numIterationsPerGroup,
             int shift)
-            where T : struct;
+            where T : unmanaged;
 
         /// <summary>
         /// Computes the required number of temp-storage elements for a radix sort operation and the given data length.
@@ -190,7 +190,7 @@ namespace ILGPU.Algorithms
         public static Index1 ComputeRadixSortTempStorageSize<T, TRadixSortOperation>(
             this Accelerator accelerator,
             Index1 dataLength)
-            where T : struct
+            where T : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
             Index1 tempScanMemory = accelerator.ComputeScanTempStorageSize<T>(dataLength);
@@ -263,7 +263,7 @@ namespace ILGPU.Algorithms
             int numGroups,
             int paddedLength,
             int shift)
-            where T : struct
+            where T : unmanaged
             where TOperation : struct, IRadixSortOperation<T>
             where TSpecialization : struct, IRadixSortSpecialization
         {
@@ -344,7 +344,7 @@ namespace ILGPU.Algorithms
             int numGroups,
             int numIterationsPerGroup,
             int shift)
-            where T : struct
+            where T : unmanaged
             where TOperation : struct, IRadixSortOperation<T>
             where TSpecialization : struct, IRadixSortSpecialization
         {
@@ -406,12 +406,8 @@ namespace ILGPU.Algorithms
         /// <param name="counter">The counter view.</param>
         /// <returns>The exclusive sum.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetExclusiveCount(Index1 index, ArrayView<int> counter)
-        {
-            if (index < Index1.One)
-                return 0;
-            return counter[index - Index1.One];
-        }
+        private static int GetExclusiveCount(Index1 index, ArrayView<int> counter) =>
+            index < Index1.One ? 0 : counter[index - Index1.One];
 
         /// <summary>
         /// Performs the second radix-sort pass.
@@ -432,7 +428,7 @@ namespace ILGPU.Algorithms
             int numGroups,
             int paddedLength,
             int shift)
-            where T : struct
+            where T : unmanaged
             where TOperation : struct, IRadixSortOperation<T>
             where TSpecialization : struct, IRadixSortSpecialization
         {
@@ -498,7 +494,7 @@ namespace ILGPU.Algorithms
             int numGroups,
             int numIterationsPerGroup,
             int shift)
-            where T : struct
+            where T : unmanaged
             where TOperation : struct, IRadixSortOperation<T>
             where TSpecialization : struct, IRadixSortSpecialization
         {
@@ -566,7 +562,7 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created radix sort handler.</returns>
         public static RadixSort<T> CreateRadixSort<T, TRadixSortOperation>(this Accelerator accelerator)
-            where T : struct
+            where T : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
             var initializer = accelerator.CreateInitializer<int>();
@@ -708,7 +704,7 @@ namespace ILGPU.Algorithms
             out ArrayView<int> counterView2,
             out ArrayView<int> tempScanView,
             out ArrayView<T> tempOutputView)
-            where T : struct
+            where T : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
             if (!input.IsValid)
