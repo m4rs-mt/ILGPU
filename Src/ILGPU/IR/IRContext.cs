@@ -373,9 +373,11 @@ namespace ILGPU.IR
                 MethodFlags.External | MethodFlags.Intrinsic))
             {
                 using var builder = method.CreateBuilder();
-                var location = method.Location;
                 var bbBuilder = builder.CreateEntryBlock();
-                bbBuilder.CreateReturn(method.Location);
+                var returnValue = bbBuilder.CreateNull(
+                    method.Location,
+                    method.ReturnType);
+                bbBuilder.CreateReturn(method.Location, returnValue);
             }
             return method;
         }
