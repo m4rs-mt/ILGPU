@@ -4,6 +4,7 @@
 <#@ import namespace="System.IO" #>
 <#@ output extension=".cs" #>
 using ILGPU.Runtime;
+using ILGPU.Tests;
 using System;
 using System.Collections.Generic;
 using System.Linq;

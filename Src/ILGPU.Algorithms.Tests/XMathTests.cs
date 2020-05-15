@@ -1,4 +1,5 @@
 ﻿using ILGPU.Runtime;
+using ILGPU.Tests;
 using System;
 using System.Collections.Generic;
 using Xunit;
@@ -8,8 +9,8 @@ namespace ILGPU.Algorithms.Tests
 {
     public abstract partial class XMathTests : TestBase
     {
-        protected XMathTests(ITestOutputHelper output, ContextProvider contextProvider)
-            : base(output, contextProvider)
+        protected XMathTests(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
         { }
 
         internal readonly struct XMathTuple<T> where T : struct

@@ -8,7 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ILGPU" Version="0.8.0-beta3" />
+    <Compile Include="..\..\ILGPU\Src\ILGPU.Tests.OpenCL\TestContext.cs" Link="TestContext.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -31,6 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\ILGPU\Src\ILGPU\ILGPU.csproj" />
     <ProjectReference Include="..\ILGPU.Algorithms.Tests\ILGPU.Algorithms.Tests.csproj" />
     <ProjectReference Include="..\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
   </ItemGroup>

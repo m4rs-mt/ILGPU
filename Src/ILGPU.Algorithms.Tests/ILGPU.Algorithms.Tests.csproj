@@ -8,7 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ILGPU" Version="0.8.0-beta3" />
+    <Compile Include="..\..\ILGPU\Src\ILGPU.Tests\Generic\AssemblyAttributes.cs" Link="Generic\AssemblyAttributes.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -20,14 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\ILGPU\Src\ILGPU.Tests\ILGPU.Tests.csproj" />
+    <ProjectReference Include="..\..\ILGPU\Src\ILGPU\ILGPU.csproj" />
     <ProjectReference Include="..\ILGPU.Algorithms\ILGPU.Algorithms.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Generic\ConfigurationBase.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>ConfigurationBase.cs</LastGenOutput>
-    </None>
     <None Update="XMathTests.Log.tt">
       <LastGenOutput>XMathTests.Log.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -55,11 +56,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Generic\ConfigurationBase.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ConfigurationBase.tt</DependentUpon>
-    </Compile>
     <Compile Update="XMathTests.Log.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -85,6 +81,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>XMathTests.Trig.tt</DependentUpon>
     </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Generic\" />
   </ItemGroup>
 
 </Project>
