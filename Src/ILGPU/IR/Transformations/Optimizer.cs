@@ -119,10 +119,11 @@ namespace ILGPU.IR.Transformations
 
             // Lower structures
             if (level > OptimizationLevel.O1)
-            {
                 builder.Add(new LowerStructures());
+
+            // Apply final DCE phase in release mode
+            if (level > OptimizationLevel.O0)
                 builder.Add(new DeadCodeElimination());
-            }
         }
 
         /// <summary>
