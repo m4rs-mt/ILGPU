@@ -43,8 +43,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="ILGPU" Version="0.8.0-beta3" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ILGPU\Src\ILGPU\ILGPU.csproj" />
   </ItemGroup>
 
   <ItemGroup>
