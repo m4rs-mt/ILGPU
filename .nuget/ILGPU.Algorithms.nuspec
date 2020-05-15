@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>ILGPU.Algorithms</id>
-    <version>0.7.1</version>
+    <version>0.8.0</version>
     <title>ILGPU Algorithms Library</title>
     <authors>ILGPU Algorithms Project</authors>
     <license type="file">LICENSE.txt</license>
@@ -19,7 +19,7 @@
     <copyright>Copyright © 2019-2020 ILGPU Algorithms Project. Copyright 2016-2018 ILGPU Lightning Project. All rights reserved.</copyright>
     <tags>ilgpu gpu llvm nvidia amd amp opencl cuda scan prefix sum sort reduce parallel foreach</tags>
     <dependencies>
-      <dependency id="ILGPU" version="0.7.1" />
+      <dependency id="ILGPU" version="0.8.0" />
       <dependency id="System.Numerics.Vectors" version="4.5.0" />
     </dependencies>
   </metadata>
