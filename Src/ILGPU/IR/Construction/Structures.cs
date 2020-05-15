@@ -211,18 +211,60 @@ namespace ILGPU.IR.Construction
             if (structureType == null && fieldSpan.Span < 2)
                 return objectValue;
 
+            // Must be a structure type
             location.AssertNotNull(structureType);
-            if (objectValue is StructureValue structureValue)
-                return structureValue.Get(this, location, fieldSpan);
 
-            return objectValue is NullValue
-                ? CreateNull(
-                    location,
-                    structureType.Get(Context, fieldSpan))
-                : Append(new GetField(
-                    GetInitializer(location),
-                    objectValue,
-                    fieldSpan));
+            // Try to combine different get and set operations operating on similar spans
+            switch (objectValue)
+            {
+                case StructureValue structureValue:
+                    return structureValue.Get(this, location, fieldSpan);
+                case NullValue _:
+                    return CreateNull(
+                        location,
+                        structureType.Get(Context, fieldSpan));
+                case SetField setField:
+                    // Optimize for simple cases
+                    if (setField.FieldSpan == fieldSpan)
+                    {
+                        return setField.Value;
+                    }
+                    // Check whether our field span is included in the updated field span
+                    else if (setField.FieldSpan.Contains(fieldSpan))
+                    {
+                        // Our field span is included in the parent span
+                        return CreateGetField(
+                            location,
+                            setField.Value,
+                            new FieldSpan(
+                                fieldSpan.Index - setField.FieldSpan.Index,
+                                fieldSpan.Span));
+                    }
+                    // If our field span overlaps with the found one we have to split
+                    // the part into an overlapping part and the remaining part(s)
+                    else if (fieldSpan.Overlaps(setField.FieldSpan))
+                    {
+                        // Ignore this case for now as it adds even more nodes
+                        break;
+                    }
+                    // These field spans have to be distinct from each other
+                    else
+                    {
+                        location.Assert(!fieldSpan.Contains(setField.FieldSpan));
+                        // We can safely continue with the parent value since this
+                        // SetField operation does not influence the new GetField value
+                        return CreateGetField(
+                            location,
+                            setField.ObjectValue,
+                            fieldSpan);
+                    }
+            }
+
+            // We could not find any matching constant value
+            return Append(new GetField(
+                GetInitializer(location),
+                objectValue,
+                fieldSpan));
         }
 
         /// <summary>

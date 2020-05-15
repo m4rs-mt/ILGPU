@@ -15,6 +15,7 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ILGPU.IR.Values
@@ -219,12 +220,35 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="fieldSpan">The field span.</param>
         /// <returns>True, if the given field span is contained in this span.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(FieldSpan fieldSpan)
         {
             int sourceIndex = fieldSpan.Index;
             return Index <= sourceIndex &&
                 sourceIndex + fieldSpan.Span <= Index + Span;
         }
+
+        /// <summary>
+        /// Checks whether the current field span is distinct from the given one.
+        /// </summary>
+        /// <param name="fieldSpan">The other field span.</param>
+        /// <returns>
+        /// True, if the given field span is distinct from the given one.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Distinct(FieldSpan fieldSpan)
+        {
+            int lastIndex = GetLastAccess().Index;
+            return lastIndex < fieldSpan.Index ||
+                Index > fieldSpan.GetLastAccess().Index;
+        }
+
+        /// <summary>
+        /// Checks whether the current field span overlaps with the given one.
+        /// </summary>
+        /// <param name="fieldSpan">The other field span.</param>
+        /// <returns>True, if the given field span overlaps with the given one.</returns>
+        public bool Overlaps(FieldSpan fieldSpan) => !Distinct(fieldSpan);
 
         /// <summary>
         /// Narrows the current span by accessing a nested span.
