@@ -1,0 +1,3 @@
+[submodule "ILGPU"]
+	path = ILGPU
+	url = https://github.com/m4rs-mt/ILGPU.git
