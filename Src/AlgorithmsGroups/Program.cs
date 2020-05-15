@@ -23,9 +23,9 @@ namespace AlgorithmsGroups
         /// An explicitly grouped kernel that uses high-level group extensions.
         /// Use the available scan/reduce operations in the namespace ILGPU.Algorithms.ScanReduceOperations.
         /// </summary>
-        static void KernelWithGroupExtensions(GroupedIndex index, ArrayView2D<int> data)
+        static void KernelWithGroupExtensions(ArrayView2D<int> data)
         {
-            var globalIndex = index.ComputeGlobalIndex();
+            var globalIndex = Grid.GlobalIndex.X;
 
             // Use the all-reduce algorithm to perform a reduction over all lanes in a warp.
             // Every lane in the warp will receive the resulting value.
@@ -40,7 +40,7 @@ namespace AlgorithmsGroups
             data[globalIndex, 2] = GroupExtensions.InclusiveScan<int, AddInt32>(1);
 
             // Perform a all reduction using a different reduction logic.
-            data[globalIndex, 3] = GroupExtensions.AllReduce<int, MinInt32>(index.GroupIdx + 1);
+            data[globalIndex, 3] = GroupExtensions.AllReduce<int, MinInt32>(Group.IdxX + 1);
         }
 
         static void Main()
@@ -58,10 +58,10 @@ namespace AlgorithmsGroups
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
-                        var kernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView2D<int>>(KernelWithGroupExtensions);
+                        var kernel = accelerator.LoadStreamKernel<ArrayView2D<int>>(KernelWithGroupExtensions);
                         using (var buffer = accelerator.Allocate<int>(accelerator.MaxNumThreadsPerGroup, 4))
                         {
-                            kernel(new GroupedIndex(1, buffer.Width), buffer.View);
+                            kernel((1, buffer.Width), buffer.View);
                             accelerator.Synchronize();
 
                             var data = buffer.GetAs2DArray();

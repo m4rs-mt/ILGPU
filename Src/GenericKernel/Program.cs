@@ -73,7 +73,7 @@ namespace GenericKernel
             int value,
             TKernelFunction function)
             where TKernelFunction : struct, IKernelFunction<T>
-            where T : struct
+            where T : unmanaged
         {
             // Invoke the custom "lambda function"
             data[index] = function.ComputeValue(index, value);

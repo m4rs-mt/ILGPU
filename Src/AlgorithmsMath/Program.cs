@@ -21,7 +21,7 @@ namespace AlgorithmsMath
         /// <summary>
         /// A custom kernel using <see cref="XMath"/> functions.
         /// </summary>
-        public static void KernelWithXMath(Index index, ArrayView<float> data, float c)
+        public static void KernelWithXMath(Index1 index, ArrayView<float> data, float c)
         {
             data[index] = XMath.Sinh(c + index) + XMath.Atan(c);
         }
@@ -35,7 +35,7 @@ namespace AlgorithmsMath
         /// math functions. These functions will also be automatically remapped to their
         /// corresponding counterparts (if possible).
         /// </remarks>
-        public static void KernelWithMath(Index index, ArrayView<float> data, float c)
+        public static void KernelWithMath(Index1 index, ArrayView<float> data, float c)
         {
             data[index] = (float)(Math.Sinh(c + index) + Math.Atan(c));
         }
@@ -66,13 +66,13 @@ namespace AlgorithmsMath
                             }
 
                             Console.WriteLine(nameof(KernelWithXMath));
-                            var xmathKernel = accelerator.LoadAutoGroupedStreamKernel<Index, ArrayView<float>, float>(
+                            var xmathKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<float>, float>(
                                 KernelWithXMath);
                             xmathKernel(buffer.Length, buffer, 0.1f);
                             WriteData();
 
                             Console.WriteLine(nameof(KernelWithMath));
-                            var mathKernel = accelerator.LoadAutoGroupedStreamKernel<Index, ArrayView<float>, float>(
+                            var mathKernel = accelerator.LoadAutoGroupedStreamKernel<Index1, ArrayView<float>, float>(
                                 KernelWithMath);
                             mathKernel(buffer.Length, buffer, 0.1f);
                             WriteData();

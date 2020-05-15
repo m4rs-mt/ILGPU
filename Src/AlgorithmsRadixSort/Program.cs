@@ -37,8 +37,8 @@ namespace AlgorithmsRadixSort
         /// </summary>
         public int MaxValue { get; }
 
-        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index)"/>
-        public int ComputeSequenceElement(Index sequenceIndex) => MaxValue - sequenceIndex;
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)"/>
+        public int ComputeSequenceElement(Index1 sequenceIndex) => MaxValue - sequenceIndex;
     }
 
     class Program

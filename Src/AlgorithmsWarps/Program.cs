@@ -23,9 +23,9 @@ namespace AlgorithmsWarps
         /// An explicitly grouped kernel that uses high-level warp extensions.
         /// Use the available scan/reduce operations in the namespace ILGPU.Algorithms.ScanReduceOperations.
         /// </summary>
-        static void KernelWithWarpExtensions(GroupedIndex index, ArrayView2D<int> data)
+        static void KernelWithWarpExtensions(ArrayView2D<int> data)
         {
-            var globalIndex = index.ComputeGlobalIndex();
+            var globalIndex = Grid.GlobalIndex.X;
 
             // Use the all-reduce algorithm to perform a reduction over all lanes in a warp.
             // Every lane in the warp will receive the resulting value.
@@ -40,7 +40,7 @@ namespace AlgorithmsWarps
             data[globalIndex, 2] = WarpExtensions.InclusiveScan<int, AddInt32>(1);
 
             // Perform a all reduction using a different reduction logic.
-            data[globalIndex, 3] = WarpExtensions.AllReduce<int, MinInt32>(index.GroupIdx + 1);
+            data[globalIndex, 3] = WarpExtensions.AllReduce<int, MinInt32>(Group.IdxX + 1);
         }
 
         static void Main()
@@ -58,10 +58,10 @@ namespace AlgorithmsWarps
                     {
                         Console.WriteLine($"Performing operations on {accelerator}");
 
-                        var kernel = accelerator.LoadStreamKernel<GroupedIndex, ArrayView2D<int>>(KernelWithWarpExtensions);
+                        var kernel = accelerator.LoadStreamKernel<ArrayView2D<int>>(KernelWithWarpExtensions);
                         using (var buffer = accelerator.Allocate<int>(accelerator.WarpSize, 4))
                         {
-                            kernel(new GroupedIndex(1, buffer.Width), buffer.View);
+                            kernel((1, buffer.Width), buffer.View);
                             accelerator.Synchronize();
 
                             var data = buffer.GetAs2DArray();

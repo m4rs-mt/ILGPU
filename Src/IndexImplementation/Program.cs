@@ -297,7 +297,7 @@ namespace IndexImplementation
         /// <param name="accelerator">The target accelerator.</param>
         /// <param name="valueConverter">A value converter to convert values of type MyIndex4 to type T.</param>
         static void AllocND<T>(Accelerator accelerator, Func<MyIndex4, MyIndex4, T> valueConverter)
-            where T : struct, IEquatable<T>
+            where T : unmanaged, IEquatable<T>
         {
             Console.WriteLine($"Performing nD allocation on {accelerator.Name}");
             var data = new T[Dimension.Size];

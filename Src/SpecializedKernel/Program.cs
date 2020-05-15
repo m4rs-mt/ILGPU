@@ -79,7 +79,7 @@ namespace SpecializedKernel
         static void SpecializedGenericKernel<TValue>(
             ArrayView<TValue> view,
             SpecializedValue<TValue> specialized)
-            where TValue : struct, IEquatable<TValue>
+            where TValue : unmanaged, IEquatable<TValue>
         {
             var globalIndex = Grid.GlobalIndex.X;
             view[globalIndex] = specialized;

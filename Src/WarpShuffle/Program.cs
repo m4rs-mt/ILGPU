@@ -76,7 +76,7 @@ namespace WarpShuffle
         static void ShuffleGeneric<T>(
             ArrayView<T> dataView,            // A view to a chunk of memory (1D in this case)
             T value)                          // A constant value
-            where T : struct
+            where T : unmanaged
         {
             // Use intrinsic shuffle functionality to shuffle the 
             // given value from line 0. This does not make much sense in this

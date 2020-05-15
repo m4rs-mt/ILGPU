@@ -22,8 +22,8 @@ namespace AlgorithmsSequence
     /// </summary>
     struct CustomStruct
     {
-        public Index First;
-        public Index Second;
+        public Index1 First;
+        public Index1 Second;
 
         public override string ToString() =>
             $"First: {First}, Second: {Second}";
@@ -32,13 +32,13 @@ namespace AlgorithmsSequence
     /// <summary>
     /// A custom sequencer of <see cref="CustomStruct"/> elements.
     /// </summary>
-    struct CustomSequencer : ISequencer<CustomStruct>
+    readonly struct CustomSequencer : ISequencer<CustomStruct>
     {
         /// <summary>
         /// Constructs a new custom sequencer.
         /// </summary>
         /// <param name="secondOffset">The base offset for the second element.</param>
-        public CustomSequencer(Index secondOffset)
+        public CustomSequencer(Index1 secondOffset)
         {
             SecondOffset = secondOffset;
         }
@@ -46,14 +46,14 @@ namespace AlgorithmsSequence
         /// <summary>
         /// Returns the base offset for the second element.
         /// </summary>
-        public Index SecondOffset { get; }
+        public Index1 SecondOffset { get; }
 
         /// <summary>
         /// Computes the sequence element for the corresponding <paramref name="sequenceIndex"/>.
         /// </summary>
         /// <param name="sequenceIndex">The sequence index for the computation of the corresponding value.</param>
         /// <returns>The computed sequence value.</returns>
-        public CustomStruct ComputeSequenceElement(Index sequenceIndex) =>
+        public CustomStruct ComputeSequenceElement(Index1 sequenceIndex) =>
             new CustomStruct()
             {
                 First = sequenceIndex,

@@ -21,7 +21,7 @@ namespace AlgorithmsScan
     {
         static void Main()
         {
-            using (var context = new Context())
+            using (var context = new Context(ContextFlags.AggressiveInlining))
             {
                 // Enable algorithms library
                 context.EnableAlgorithms();
