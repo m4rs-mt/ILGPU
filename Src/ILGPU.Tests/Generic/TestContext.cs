@@ -14,12 +14,18 @@ namespace ILGPU.Tests
         /// Constructs a new context provider.
         /// </summary>
         /// <param name="level">The optimization level.</param>
-        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="prepareContext">
+        /// Prepares the context by setting additional field/initializing specific
+        /// items before the accelerator is created.
+        /// </param>
+        /// <param name="createAccelerator">Creates a new accelerator.</param>
         protected TestContext(
             OptimizationLevel level,
+            Action<Context> prepareContext,
             Func<Context, Accelerator> createAccelerator)
         {
             Context = new Context(level);
+            prepareContext?.Invoke(Context);
             Accelerator = createAccelerator(Context);
         }
 

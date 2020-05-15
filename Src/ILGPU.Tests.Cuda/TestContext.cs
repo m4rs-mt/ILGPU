@@ -9,6 +9,11 @@ namespace ILGPU.Tests.Cuda
     /// </summary>
     public abstract class CudaTestContext : TestContext
     {
+        /// <summary>
+        /// Creates a new Cuda accelerator for test purposes.
+        /// </summary>
+        /// <param name="context">The parent context.</param>
+        /// <returns>The created accelerator instance.</returns>
         private static CudaAccelerator CreateAccelerator(Context context)
         {
             if (CudaAccelerator.CudaAccelerators.Length < 1)
@@ -16,8 +21,26 @@ namespace ILGPU.Tests.Cuda
             return new CudaAccelerator(context);
         }
 
+        /// <summary>
+        /// Creates a new test context instance.
+        /// </summary>
+        /// <param name="optimizationLevel">The optimization level to use.</param>
+        /// <param name="prepareContext">The context preparation handler.</param>
+        protected CudaTestContext(
+            OptimizationLevel optimizationLevel,
+            Action<Context> prepareContext)
+            : base(
+                  optimizationLevel,
+                  prepareContext,
+                  CreateAccelerator)
+        { }
+
+        /// <summary>
+        /// Creates a new test context instance.
+        /// </summary>
+        /// <param name="optimizationLevel">The optimization level to use.</param>
         public CudaTestContext(OptimizationLevel optimizationLevel)
-            : base(optimizationLevel, CreateAccelerator)
+            : this(optimizationLevel, null)
         { }
     }
 }
