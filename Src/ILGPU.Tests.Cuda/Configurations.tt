@@ -9,24 +9,10 @@ using Xunit.Abstractions;
 
 <#
 var configurationFile = Host.ResolvePath("../ILGPU.Tests/Configurations.txt");
-var configurations = TestConfig.Parse(configurationFile, out var levels);
+var configurations = TestConfig.Parse(configurationFile, out var _);
 #>
 namespace ILGPU.Tests.Cuda
 {
-<# foreach (var optLevel in levels) { #>
-    public sealed class CudaTestContext<#= optLevel #> : CudaTestContext
-    {
-        public CudaTestContext<#= optLevel #>()
-            : base(OptimizationLevel.<#= optLevel #>)
-        { }
-    }
-
-    [CollectionDefinition("CudaContextCollection<#= optLevel #>")]
-    public class CudaContextCollection<#= optLevel #> :
-        ICollectionFixture<CudaTestContext<#= optLevel #>> { }
-
-<# } #>
-
 <# foreach (var config in configurations) { #>
 <#      foreach (var optLevel in config.OptimizationLevels) { #>
 <#      var name = "Cuda" + config.Name + "_" + optLevel; #>

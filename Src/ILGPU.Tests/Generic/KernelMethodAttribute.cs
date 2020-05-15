@@ -8,7 +8,7 @@ namespace ILGPU.Tests
     /// Links test methods to kernels.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
-    sealed class KernelMethodAttribute : Attribute
+    public sealed class KernelMethodAttribute : Attribute
     {
         /// <summary>
         /// Constructs a new kernel attribute.

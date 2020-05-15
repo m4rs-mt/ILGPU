@@ -4,6 +4,9 @@ using System;
 
 namespace ILGPU.Tests.Cuda
 {
+    /// <summary>
+    /// An abstract test context for Cuda accelerators.
+    /// </summary>
     public abstract class CudaTestContext : TestContext
     {
         private static CudaAccelerator CreateAccelerator(Context context)

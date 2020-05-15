@@ -3,29 +3,15 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
 <#@ output extension=".cs" #>
-using ILGPU.IR.Transformations;
 using Xunit;
 using Xunit.Abstractions;
 
 <#
 var configurationFile = Host.ResolvePath("../ILGPU.Tests/Configurations.txt");
-var configurations = TestConfig.Parse(configurationFile, out var levels);
+var configurations = TestConfig.Parse(configurationFile, out var _);
 #>
 namespace ILGPU.Tests.OpenCL
 {
-<# foreach (var optLevel in levels) { #>
-    public sealed class CLTestContext<#= optLevel #> : CLTestContext
-    {
-        public CLTestContext<#= optLevel #>()
-            : base(OptimizationLevel.<#= optLevel #>)
-        { }
-    }
-
-    [CollectionDefinition("CLContextCollection<#= optLevel #>")]
-    public class CLContextCollection<#= optLevel #> :
-        ICollectionFixture<CLTestContext<#= optLevel #>> { }
-
-<# } #>
 <# foreach (var config in configurations) { #>
 <#      foreach (var optLevel in config.OptimizationLevels) { #>
 <#      var name = "CL" + config.Name + "_" + optLevel; #>

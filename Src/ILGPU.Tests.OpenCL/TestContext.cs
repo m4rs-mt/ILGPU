@@ -4,6 +4,9 @@ using System;
 
 namespace ILGPU.Tests.OpenCL
 {
+    /// <summary>
+    /// An abstract test context for OpenCL accelerators.
+    /// </summary>
     public abstract class CLTestContext : TestContext
     {
         private static CLAccelerator CreateAccelerator(Context context)
