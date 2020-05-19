@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFrameworks>net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
         <OutputPath>../../Bin/$(Configuration)/</OutputPath>
@@ -51,29 +50,6 @@
 
     <ItemGroup>
         <Folder Include="Properties/" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Include="Backends\PTX\PTXIntrinsics.Generated.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
-      </None>
-      <None Include="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
-      </None>
-      <None Include="IR\Construction\CompareOperations.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>CompareOperations.tt</DependentUpon>
-      </None>
-      <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
-      </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -149,66 +125,66 @@
         </Compile>
     </ItemGroup>
     <ItemGroup>
-        <None Update="ArrayViews.tt">
+        <None Remove="ArrayViews.tt" />
+        <Content Include="ArrayViews.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>ArrayViews.cs</LastGenOutput>
-        </None>
-        <None Update="AtomicFunctions.tt">
+        </Content>
+        <None Remove="AtomicFunctions.tt" />
+        <Content Include="AtomicFunctions.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>AtomicFunctions.cs</LastGenOutput>
-        </None>
-        <None Update="Backends\PTX\PTXIntrinsics.Generated.tt">
+        </Content>
+        <None Remove="Backends\PTX\PTXIntrinsics.Generated.tt" />
+        <Content Include="Backends\PTX\PTXIntrinsics.Generated.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>PTXIntrinsics.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.tt">
+        </Content>
+        <None Remove="Frontend\Intrinsic\RemappedIntrinsics.Generated.tt" />
+        <Content Include="Frontend\Intrinsic\RemappedIntrinsics.Generated.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>RemappedIntrinsics.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="IR\Construction\CompareOperations.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>CompareOperations.txt</LastGenOutput>
-        </None>
-        <None Update="IR\Construction\CompareOperations.tt">
+        </Content>
+        <None Remove="IR\Construction\CompareOperations.tt" />
+        <Content Include="IR\Construction\CompareOperations.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>CompareOperations.cs</LastGenOutput>
-        </None>
-        <None Update="IR\Construction\ArithmeticOperations.tt">
+        </Content>
+        <None Remove="IR\Construction\ArithmeticOperations.tt" />
+        <Content Include="IR\Construction\ArithmeticOperations.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>ArithmeticOperations.cs</LastGenOutput>
-        </None>
-        <None Update="IR\Intrinsics\IntrinsicMatchers.tt">
+        </Content>
+        <None Remove="IR\Intrinsics\IntrinsicMatchers.tt" />
+        <Content Include="IR\Intrinsics\IntrinsicMatchers.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>IntrinsicMatchers.cs</LastGenOutput>
-        </None>
-        <None Update="Runtime\KernelLoaders.tt">
+        </Content>
+        <None Remove="Runtime\KernelLoaders.tt" />
+        <Content Include="Runtime\KernelLoaders.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>KernelLoaders.cs</LastGenOutput>
-        </None>
-        <None Update="Runtime\MemoryBuffers.tt">
+        </Content>
+        <None Remove="Runtime\MemoryBuffers.tt" />
+        <Content Include="Runtime\MemoryBuffers.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
-        </None>
-        <None Update="ShuffleOperations.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>ShuffleOperations.cs</LastGenOutput>
-        </None>
-        <None Update="TypeInformation.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>Basic.cs</LastGenOutput>
-        </None>
-        <None Update="TypeInformation.tt">
+        </Content>
+        <None Remove="TypeInformation.tt" />
+        <Content Include="TypeInformation.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>TypeInformation.cs</LastGenOutput>
-        </None>
-        <None Update="Util\PrimitiveDataBlocks.tt">
+        </Content>
+        <None Remove="Util\PrimitiveDataBlocks.tt" />
+        <Content Include="Util\PrimitiveDataBlocks.tt">
           <LastGenOutput>PrimitiveDataBlocks.cs</LastGenOutput>
           <Generator>TextTemplatingFileGenerator</Generator>
-        </None>
-        <None Update="Util\DataBlocks.tt">
+        </Content>
+        <None Remove="Util\DataBlocks.tt" />
+        <Content Include="Util\DataBlocks.tt">
           <LastGenOutput>DataBlocks.cs</LastGenOutput>
           <Generator>TextTemplatingFileGenerator</Generator>
-        </None>
+        </Content>
     </ItemGroup>
     <ItemGroup>
         <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
@@ -223,4 +199,6 @@
             <LastGenOutput>RuntimeErrorMessages.Designer.cs</LastGenOutput>
         </EmbeddedResource>
     </ItemGroup>
+
+    <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v16.0\TextTemplating\Microsoft.TextTemplating.targets" />
 </Project>
