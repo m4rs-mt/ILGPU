@@ -49,7 +49,7 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CudaAPI.Current.CreateStream(
                     out streamPtr,
-                    StreamFlags.CU_STREAM_DEFAULT));
+                    StreamFlags.CU_STREAM_NON_BLOCKING));
         }
 
         #endregion
