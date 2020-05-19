@@ -25,7 +25,9 @@ ConvertFloatOperations: Debug, Release
 ConvertIntOperations: Debug, Release
 ReinterpretCasts: Debug, Release
 
+BasicJumps: Debug, Release
 BasicCalls: Debug, Release
 BasicIfs: Debug, Release
 BasicLoops: Debug, Release
 BasicSwitches: Debug, Release
+BasicPhis: Debug, Release
