@@ -30,34 +30,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="AtomicCASOperations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>AtomicCASOperations.tt</DependentUpon>
-    </None>
-    <None Include="CompareFloatOperations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CompareFloatOperations.tt</DependentUpon>
-    </None>
-    <None Include="CompareIntOperations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CompareIntOperations.tt</DependentUpon>
-    </None>
-    <None Include="ConvertFloatOperations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ConvertFloatOperations.tt</DependentUpon>
-    </None>
-    <None Include="Generic\ConfigurationBase.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ConfigurationBase.tt</DependentUpon>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
   </ItemGroup>
 
@@ -110,46 +82,56 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="AtomicCASOperations.tt">
+    <None Remove="AtomicCASOperations.tt" />
+    <Content Include="AtomicCASOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AtomicCASOperations.cs</LastGenOutput>
-    </None>
-    <None Update="AtomicOperations.tt">
+    </Content>
+    <None Remove="AtomicOperations.tt" />
+    <Content Include="AtomicOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AtomicOperations.cs</LastGenOutput>
-    </None>
-    <None Update="BinaryIntOperations.tt">
+    </Content>
+    <None Remove="BinaryIntOperations.tt" />
+    <Content Include="BinaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>BinaryIntOperations.cs</LastGenOutput>
-    </None>
-    <None Update="CompareFloatOperations.tt">
+    </Content>
+    <None Remove="CompareFloatOperations.tt" />
+    <Content Include="CompareFloatOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CompareFloatOperations.cs</LastGenOutput>
-    </None>
-    <None Update="CompareIntOperations.tt">
+    </Content>
+    <None Remove="CompareIntOperations.tt" />
+    <Content Include="CompareIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CompareIntOperations.cs</LastGenOutput>
-    </None>
-    <None Update="ConvertFloatOperations.tt">
+    </Content>
+    <None Remove="ConvertFloatOperations.tt" />
+    <Content Include="ConvertFloatOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConvertFloatOperations.cs</LastGenOutput>
-    </None>
-    <None Update="ConvertIntOperations.tt">
+    </Content>
+    <None Remove="ConvertIntOperations.tt" />
+    <Content Include="ConvertIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConvertIntOperations.cs</LastGenOutput>
-    </None>
-    <None Update="Generic\ConfigurationBase.tt">
+    </Content>
+    <None Remove="Generic\ConfigurationBase.tt" />
+    <Content Include="Generic\ConfigurationBase.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConfigurationBase.cs</LastGenOutput>
-    </None>
-    <None Update="UnaryIntOperations.tt">
+    </Content>
+    <None Remove="UnaryIntOperations.tt" />
+    <Content Include="UnaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>UnaryIntOperations.cs</LastGenOutput>
-    </None>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v16.0\TextTemplating\Microsoft.TextTemplating.targets" />
 </Project>

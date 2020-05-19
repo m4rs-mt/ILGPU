@@ -21,32 +21,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Configurations.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Configurations.tt</DependentUpon>
-    </None>
-    <None Include="TestContexts.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>TestContexts.tt</DependentUpon>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
     <ProjectReference Include="..\ILGPU.Tests\ILGPU.Tests.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Configurations.tt">
+    <None Remove="Configurations.tt" />
+    <Content Include="Configurations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Configurations.cs</LastGenOutput>
-    </None>
-    <None Update="TestContexts.tt">
+    </Content>
+    <None Remove="TestContexts.tt" />
+    <Content Include="TestContexts.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>TestContexts.cs</LastGenOutput>
-    </None>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -66,4 +55,5 @@
     </Compile>
   </ItemGroup>
 
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v16.0\TextTemplating\Microsoft.TextTemplating.targets" />
 </Project>
