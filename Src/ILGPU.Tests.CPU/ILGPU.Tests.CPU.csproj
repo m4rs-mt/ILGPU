@@ -55,5 +55,11 @@
     </Compile>
   </ItemGroup>
 
-  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v16.0\TextTemplating\Microsoft.TextTemplating.targets" />
+  <Target Name="TextTemplateTransform">
+    <ItemGroup>
+      <TextTemplate Include="@(Content)" Condition="'%(Content.Extension)' == '.tt'">
+    </TextTemplate>
+  </ItemGroup>
+    <Exec WorkingDirectory="$(ProjectDir)" Command="dotnet tool run t4 %(TextTemplate.Identity) -I $([MSBuild]::ValueOrDefault('%(TextTemplate.RelativeDir)', '.')) -o %(TextTemplate.RelativeDir)%(TextTemplate.Filename).cs" />
+  </Target>
 </Project>
