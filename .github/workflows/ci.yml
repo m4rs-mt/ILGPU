@@ -22,23 +22,6 @@ jobs:
         run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
       - name: CPU Tests
         run: dotnet test --configuration=Release ./Src/ILGPU.Tests.CPU
-      - name: Upload bin directory
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ runner.os }}-bin
-          path: Bin
-
-  nuget-package:
-    runs-on: windows-latest
-    needs: build-and-test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Download Windows binaries
-        uses: actions/download-artifact@v2
-        with:
-          name: Windows-bin
-          path: Bin
       - name: Set up NuGet
         uses: nuget/setup-nuget@v1
         with:
