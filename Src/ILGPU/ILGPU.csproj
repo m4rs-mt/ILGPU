@@ -273,11 +273,5 @@
         </EmbeddedResource>
     </ItemGroup>
 
-    <Target Name="TextTemplateTransform">
-        <ItemGroup>
-            <TextTemplate Include="@(Content)" Condition="'%(Content.Extension)' == '.tt'">
-            </TextTemplate>
-        </ItemGroup>
-        <Exec WorkingDirectory="$(ProjectDir)" Command="dotnet tool run t4 %(TextTemplate.Identity) -I $([MSBuild]::ValueOrDefault('%(TextTemplate.RelativeDir)', '.')) -o %(TextTemplate.RelativeDir)%(TextTemplate.Filename).cs" />
-    </Target>
+    <Import Project="..\TextTransform.targets" />
 </Project>
