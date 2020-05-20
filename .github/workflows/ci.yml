@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Restore tools
+        run: dotnet tool restore
+        working-directory: ./Src
+      - name: Build templates
+        # TargetFramework specified so this only runs once rather than per framework
+        run: dotnet msbuild -t:TextTemplateTransform -p:TargetFramework=NA
+        working-directory: ./Src
+      - name: Build
+        run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true
+        working-directory: ./Src
+      - name: CPU Tests
+        run: dotnet test --configuration=Release
+        working-directory: ./Src/ILGPU.Tests.CPU
