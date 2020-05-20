@@ -6,7 +6,11 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, windows-latest]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -29,6 +33,7 @@ jobs:
       - name: Create NuGet package
         run: nuget pack .nuget/ILGPU.nuspec
       - name: Upload NuGet package
+        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v2
         with:
           name: nuget-package
