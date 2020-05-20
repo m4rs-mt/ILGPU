@@ -130,51 +130,42 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="AtomicCASOperations.tt" />
-    <Content Include="AtomicCASOperations.tt">
+    <None Update="AtomicCASOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AtomicCASOperations.cs</LastGenOutput>
-    </Content>
-    <None Remove="AtomicOperations.tt" />
-    <Content Include="AtomicOperations.tt">
+    </None>
+    <None Update="AtomicOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AtomicOperations.cs</LastGenOutput>
-    </Content>
-    <None Remove="BinaryIntOperations.tt" />
-    <Content Include="BinaryIntOperations.tt">
+    </None>
+    <None Update="BinaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>BinaryIntOperations.cs</LastGenOutput>
-    </Content>
-    <None Remove="CompareFloatOperations.tt" />
-    <Content Include="CompareFloatOperations.tt">
+    </None>
+    <None Update="CompareFloatOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CompareFloatOperations.cs</LastGenOutput>
-    </Content>
-    <None Remove="CompareIntOperations.tt" />
-    <Content Include="CompareIntOperations.tt">
+    </None>
+    <None Update="CompareIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CompareIntOperations.cs</LastGenOutput>
-    </Content>
-    <None Remove="ConvertFloatOperations.tt" />
-    <Content Include="ConvertFloatOperations.tt">
+    </None>
+    <None Update="ConvertFloatOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConvertFloatOperations.cs</LastGenOutput>
-    </Content>
-    <None Remove="ConvertIntOperations.tt" />
-    <Content Include="ConvertIntOperations.tt">
+    </None>
+    <None Update="ConvertIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConvertIntOperations.cs</LastGenOutput>
-    </Content>
-    <None Remove="Generic\ConfigurationBase.tt" />
-    <Content Include="Generic\ConfigurationBase.tt">
+    </None>
+    <None Update="Generic\ConfigurationBase.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConfigurationBase.cs</LastGenOutput>
-    </Content>
-    <None Remove="UnaryIntOperations.tt" />
-    <Content Include="UnaryIntOperations.tt">
+    </None>
+    <None Update="UnaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>UnaryIntOperations.cs</LastGenOutput>
-    </Content>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

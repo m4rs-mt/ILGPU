@@ -39,16 +39,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Configurations.tt" />
-    <Content Include="Configurations.tt">
+    <None Update="Configurations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Configurations.cs</LastGenOutput>
-    </Content>
-    <None Remove="TestContexts.tt" />
-    <Content Include="TestContexts.tt">
+    </None>
+    <None Update="TestContexts.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>TestContexts.cs</LastGenOutput>
-    </Content>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
