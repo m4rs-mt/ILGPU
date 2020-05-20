@@ -15,17 +15,13 @@ jobs:
         working-directory: ./Src
       - name: Build templates
         # TargetFramework specified so this only runs once rather than per framework
-        run: dotnet msbuild -t:TextTemplateTransform -p:TargetFramework=NA
-        working-directory: ./Src
+        run: dotnet msbuild -t:TextTemplateTransform -p:TargetFramework=NA Src
       - name: Debug Build
-        run: dotnet build --configuration=Debug -p:TreatWarningsAsErrors=true
-        working-directory: ./Src
+        run: dotnet build --configuration=Debug -p:TreatWarningsAsErrors=true Src
       - name: Release Build
-        run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true
-        working-directory: ./Src
+        run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
       - name: CPU Tests
-        run: dotnet test --configuration=Release
-        working-directory: ./Src/ILGPU.Tests.CPU
+        run: dotnet test --configuration=Release ./Src/ILGPU.Tests.CPU
       - name: Upload bin directory
         uses: actions/upload-artifact@v2
         with:
@@ -48,10 +44,9 @@ jobs:
         with:
           nuget-version: '5.x'
       - name: Create NuGet package
-        run: nuget pack ILGPU.nuspec
-        working-directory: .nuget
+        run: nuget pack .nuget/ILGPU.nuspec
       - name: Upload NuGet package
         uses: actions/upload-artifact@v2
         with:
           name: nuget-package
-          path: .nuget/ILGPU.*.nupkg
+          path: ILGPU.*.nupkg
