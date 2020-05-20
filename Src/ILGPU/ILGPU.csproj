@@ -53,6 +53,79 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Include="ArrayViews.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>ArrayViews.tt</DependentUpon>
+        </None>
+        <None Include="AtomicFunctions.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>AtomicFunctions.tt</DependentUpon>
+        </None>
+        <None Include="Backends\PTX\PTXIntrinsics.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
+        </None>
+        <None Include="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
+        </None>
+        <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
+        </None>
+        <None Include="Runtime\KernelLoaders.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>KernelLoaders.tt</DependentUpon>
+        </None>
+        <None Include="Runtime\MemoryBuffers.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>MemoryBuffers.tt</DependentUpon>
+        </None>
+        <None Include="TypeInformation.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>TypeInformation.tt</DependentUpon>
+        </None>
+        <None Include="IR\Construction\CompareOperations.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>CompareOperations.tt</DependentUpon>
+        </None>
+        <None Include="IR\Construction\ArithmeticOperations.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>ArithmeticOperations.tt</DependentUpon>
+        </None>
+        <None Include="Resources\ErrorMessages.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>ErrorMessages.resx</DependentUpon>
+        </None>
+        <None Include="Resources\RuntimeErrorMessages.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
+        </None>
+        <None Include="Util\DataBlocks.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>DataBlocks.tt</DependentUpon>
+        </None>
+        <None Include="Util\PrimitiveDataBlocks.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
         <Compile Update="ArrayViews.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>

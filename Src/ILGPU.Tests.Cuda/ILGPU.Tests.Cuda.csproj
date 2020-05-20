@@ -26,6 +26,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Configurations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Configurations.tt</DependentUpon>
+    </None>
+    <None Include="TestContexts.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>TestContexts.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Configurations.tt" />
     <Content Include="Configurations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

@@ -34,6 +34,54 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="AtomicCASOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AtomicCASOperations.tt</DependentUpon>
+    </None>
+    <None Include="AtomicOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AtomicOperations.tt</DependentUpon>
+    </None>
+    <None Include="BinaryIntOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>BinaryIntOperations.tt</DependentUpon>
+    </None>
+    <None Include="CompareFloatOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CompareFloatOperations.tt</DependentUpon>
+    </None>
+    <None Include="CompareIntOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CompareIntOperations.tt</DependentUpon>
+    </None>
+    <None Include="ConvertFloatOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConvertFloatOperations.tt</DependentUpon>
+    </None>
+    <None Include="ConvertIntOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConvertIntOperations.tt</DependentUpon>
+    </None>
+    <None Include="Generic\ConfigurationBase.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConfigurationBase.tt</DependentUpon>
+    </None>
+    <None Include="UnaryIntOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>UnaryIntOperations.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="AtomicCASOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
