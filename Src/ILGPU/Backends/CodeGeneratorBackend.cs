@@ -86,18 +86,16 @@ namespace ILGPU.Backends
                 CreateKernelCodeGenerator(
                     backendContext.SharedAllocations,
                     backendContext.KernelMethod,
-                    backendContext.KernelScope,
                     backendContext.KernelAllocas,
                     data)
             };
 
             // Create all remaining builders and code generators
-            foreach (var (method, scope, allocas) in backendContext)
+            foreach (var (method, allocas) in backendContext)
             {
                 generators.Add(
                     CreateFunctionCodeGenerator(
                         method,
-                        scope,
                         allocas,
                         data));
             }
@@ -140,13 +138,11 @@ namespace ILGPU.Backends
         /// Creates a new function-code generator.
         /// </summary>
         /// <param name="method">The current method.</param>
-        /// <param name="scope">The associated scope.</param>
         /// <param name="allocas">The associated allocations.</param>
         /// <param name="data">The user-defined data instance.</param>
         /// <returns>The created function-code generator.</returns>
         protected abstract TCodeGenerator CreateFunctionCodeGenerator(
             Method method,
-            Scope scope,
             Allocas allocas,
             T data);
 
@@ -155,14 +151,12 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="sharedAllocations">All shared allocations.</param>
         /// <param name="method">The current method.</param>
-        /// <param name="scope">The associated scope.</param>
         /// <param name="allocas">The associated allocations.</param>
         /// <param name="data">The user-defined data instance.</param>
         /// <returns>The created kernel-code generator.</returns>
         protected abstract TCodeGenerator CreateKernelCodeGenerator(
             in AllocaKindInformation sharedAllocations,
             Method method,
-            Scope scope,
             Allocas allocas,
             T data);
 

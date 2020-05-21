@@ -15,7 +15,6 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
-using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Runtime;
 using ILGPU.Util;
@@ -127,11 +126,11 @@ namespace ILGPU.Backends
             /// <summary>
             /// An enumerator backend methods.
             /// </summary>
-            public struct Enumerator : IEnumerator<(Method, Scope, Allocas)>
+            public struct Enumerator : IEnumerator<(Method, Allocas)>
             {
                 #region Instance
 
-                private CachedScopeProvider.Enumerator enumerator;
+                private References.Enumerator enumerator;
                 private readonly Dictionary<Method, Allocas> allocaMapping;
 
                 /// <summary>
@@ -141,7 +140,7 @@ namespace ILGPU.Backends
                 internal Enumerator(in BackendContext context)
                 {
                     KernelMethod = context.KernelMethod;
-                    enumerator = context.ScopeProvider.GetEnumerator();
+                    enumerator = context.Methods.GetEnumerator();
                     allocaMapping = context.allocaMapping;
                 }
 
@@ -157,12 +156,12 @@ namespace ILGPU.Backends
                 /// <summary>
                 /// Returns the current node.
                 /// </summary>
-                public (Method, Scope, Allocas) Current
+                public (Method, Allocas) Current
                 {
                     get
                     {
-                        var (method, scope) = enumerator.Current;
-                        return (method, scope, allocaMapping[method]);
+                        var method = enumerator.Current;
+                        return (method, allocaMapping[method]);
                     }
                 }
 
@@ -174,14 +173,14 @@ namespace ILGPU.Backends
                 #region Methods
 
                 /// <summary cref="IDisposable.Dispose"/>
-                public void Dispose() { }
+                void IDisposable.Dispose() { }
 
                 /// <summary cref="IEnumerator.MoveNext"/>
                 public bool MoveNext()
                 {
                     while (enumerator.MoveNext())
                     {
-                        if (enumerator.Current.Item1 == KernelMethod)
+                        if (enumerator.Current == KernelMethod)
                             continue;
                         return true;
                     }
@@ -210,12 +209,11 @@ namespace ILGPU.Backends
             {
                 Context = kernelContext;
                 KernelMethod = kernelMethod;
-                ScopeProvider = new CachedScopeProvider();
+                Methods = References.CreateRecursive(
+                    kernelMethod.Blocks,
+                    new MethodCollections.AllMethods());
                 allocaMapping = new Dictionary<Method, Allocas>();
                 notImplementedIntrinsics = new List<Method>();
-
-                var toProcess = new Stack<Scope>();
-                var currentScope = ScopeProvider[kernelMethod];
 
                 var sharedAllocations = ImmutableArray.
                     CreateBuilder<AllocaInformation>(20);
@@ -223,33 +221,20 @@ namespace ILGPU.Backends
                     CreateBuilder<AllocaInformation>(1);
                 int sharedMemorySize = 0;
 
-                for (; ; )
+                foreach (var method in Methods)
                 {
                     // Check for an unsupported intrinsic function
-                    if (currentScope.Method.HasFlags(MethodFlags.Intrinsic))
-                        notImplementedIntrinsics.Add(currentScope.Method);
+                    if (method.HasFlags(MethodFlags.Intrinsic))
+                        notImplementedIntrinsics.Add(method);
 
-                    var allocas = Allocas.Create(currentScope);
-                    allocaMapping.Add(currentScope.Method, allocas);
+                    var allocas = Allocas.Create(method.Blocks);
+                    allocaMapping.Add(method, allocas);
 
+                    // Check for dynamic shared memory
                     sharedAllocations.AddRange(allocas.SharedAllocations.Allocas);
                     sharedMemorySize += allocas.SharedMemorySize;
                     dynamicSharedAllocations.AddRange(
                         allocas.DynamicSharedAllocations.Allocas);
-
-                    // Check for dynamic shared memory
-                    foreach (Value value in currentScope.Values)
-                    {
-                        if (value is MethodCall call &&
-                            ScopeProvider.Resolve(call.Target, out var targetScope))
-                        {
-                            toProcess.Push(targetScope);
-                        }
-                    }
-
-                    if (toProcess.Count < 1)
-                        break;
-                    currentScope = toProcess.Pop();
                 }
 
                 // Store shared memory information
@@ -279,19 +264,14 @@ namespace ILGPU.Backends
             public Method KernelMethod { get; }
 
             /// <summary>
-            /// Returns the associated kernel scope.
+            /// Returns all methods
             /// </summary>
-            public Scope KernelScope => ScopeProvider[KernelMethod];
+            public References Methods { get; }
 
             /// <summary>
             /// Returns the associated allocations.
             /// </summary>
             public Allocas KernelAllocas => allocaMapping[KernelMethod];
-
-            /// <summary>
-            /// Returns the associated scope provider.
-            /// </summary>
-            public CachedScopeProvider ScopeProvider { get; }
 
             /// <summary>
             /// Returns all shared allocations.
@@ -311,13 +291,7 @@ namespace ILGPU.Backends
             /// <summary>
             /// Returns the number of all functions.
             /// </summary>
-            public int Count => ScopeProvider.Count;
-
-            /// <summary>
-            /// Returns the number of all secondary functions
-            /// excluding the primary kernel function.
-            /// </summary>
-            public int NumFunctions => ScopeProvider.Count;
+            public int Count => Methods.Count;
 
             #endregion
 
@@ -641,8 +615,7 @@ namespace ILGPU.Backends
             using var kernelContext = new IRContext(Context);
 
             // Import the all kernel functions into our kernel context
-            var scopeProvider = new CachedScopeProvider();
-            var method = kernelContext.Import(kernelMethod, scopeProvider);
+            var method = kernelContext.Import(kernelMethod);
             backendHook.InitializedKernelContext(kernelContext, method);
 
             // Apply backend optimizations
