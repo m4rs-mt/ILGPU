@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
@@ -86,13 +87,13 @@ namespace ILGPU.Backends.PTX
         /// Creates a new PTX kernel generator.
         /// </summary>
         /// <param name="args">The generation arguments.</param>
-        /// <param name="scope">The current scope.</param>
+        /// <param name="method">The current method.</param>
         /// <param name="allocas">All local allocas.</param>
         public PTXKernelFunctionGenerator(
             in GeneratorArgs args,
-            Scope scope,
+            Method method,
             Allocas allocas)
-            : base(args, scope, allocas)
+            : base(args, method, allocas)
         {
             EntryPoint = args.EntryPoint;
         }
