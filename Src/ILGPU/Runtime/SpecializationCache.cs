@@ -135,7 +135,7 @@ namespace ILGPU.Runtime
             using (var methodBuilder = targetMethod.CreateBuilder())
             {
                 var location = targetMethod.Location;
-                var blockBuilder = methodBuilder.CreateEntryBlock();
+                var blockBuilder = methodBuilder.EntryBlockBuilder;
 
                 // Append all parameters
                 var targetValues = ImmutableArray.CreateBuilder<ValueReference>(
@@ -191,9 +191,7 @@ namespace ILGPU.Runtime
         private TDelegate SpecializeKernel(in TArgs args)
         {
             using var targetContext = new IRContext(KernelContext.Context);
-            var oldKernelMethod = targetContext.Import(
-                KernelMethod,
-                new NewScopeProvider());
+            var oldKernelMethod = targetContext.Import(KernelMethod);
             var targetMethod = CreateKernelWrapper(oldKernelMethod, args);
             targetContext.Optimize();
 
