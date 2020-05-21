@@ -9,12 +9,11 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Analyses
 {
@@ -40,7 +39,7 @@ namespace ILGPU.IR.Analyses
             /// <param name="references">The source references.</param>
             internal Enumerator(in References references)
             {
-                enumerator = references.methods.GetEnumerator();
+                enumerator = references.methodList.GetEnumerator();
             }
 
             #endregion
@@ -75,23 +74,16 @@ namespace ILGPU.IR.Analyses
 
         #region Static
 
-        /// <summary>
-        /// Computes method references to all called methods.
-        /// </summary>
-        /// <typeparam name="TPredicate">The predicate type.</typeparam>
-        /// <param name="scope">The source scope.</param>
-        /// <param name="predicate">The current predicate.</param>
-        /// <returns>A references instance.</returns>
-        public static References Create<TPredicate>(
-            Scope scope,
-            TPredicate predicate)
+        private static void Create<TOrder, TPredicate, TSet, TTarget>(
+            in BasicBlockCollection<TOrder> collection,
+            TPredicate predicate,
+            TSet references,
+            TTarget referencesList)
+            where TOrder : struct, ITraversalOrder
             where TPredicate : IMethodCollectionPredicate
-        {
-            Debug.Assert(scope != null, "Invalid scope");
-
-            var references = new HashSet<Method>();
-            var referencesList = new List<Method>();
-            scope.ForEachValue<MethodCall>(call =>
+            where TSet : ISet<Method>
+            where TTarget : ICollection<Method> =>
+            collection.ForEachValue<MethodCall>(call =>
             {
                 var target = call.Target;
                 if (!predicate.Match(target))
@@ -100,24 +92,105 @@ namespace ILGPU.IR.Analyses
                 if (references.Add(target))
                     referencesList.Add(target);
             });
-            return new References(scope, referencesList);
+
+        /// <summary>
+        /// Computes all direct method references to all called methods.
+        /// </summary>
+        /// <typeparam name="TOrder">The order collection.</typeparam>
+        /// <typeparam name="TPredicate">The predicate type.</typeparam>
+        /// <param name="collection">The block collection.</param>
+        /// <param name="predicate">The current predicate.</param>
+        /// <returns>A references instance.</returns>
+        public static References Create<TOrder, TPredicate>(
+            in BasicBlockCollection<TOrder> collection,
+            TPredicate predicate)
+            where TOrder : struct, ITraversalOrder
+            where TPredicate : IMethodCollectionPredicate
+        {
+            var references = new HashSet<Method>();
+            var referencesList = new List<Method>();
+            collection.ForEachValue<MethodCall>(call =>
+            {
+                var target = call.Target;
+                if (!predicate.Match(target))
+                    return;
+
+                if (references.Add(target))
+                    referencesList.Add(target);
+            });
+            return new References(
+                collection.Method,
+                references,
+                referencesList);
+        }
+
+        /// <summary>
+        /// Computes all direct and indirect method references to all called methods.
+        /// </summary>
+        /// <typeparam name="TPredicate">The predicate type.</typeparam>
+        /// <param name="collection">The block collection.</param>
+        /// <param name="predicate">The current predicate.</param>
+        /// <returns>A references instance.</returns>
+        public static References CreateRecursive<TPredicate>(
+            BasicBlockCollection<ReversePostOrder> collection,
+            TPredicate predicate)
+            where TPredicate : IMethodCollectionPredicate
+        {
+            var references = new HashSet<Method>();
+            var referencesList = new List<Method>();
+            var method = collection.Method;
+            var toProcess = new Stack<Method>();
+
+            references.Add(method);
+            referencesList.Add(method);
+
+            for (; ;)
+            {
+                collection.ForEachValue<MethodCall>(call =>
+                {
+                    var target = call.Target;
+                    if (!predicate.Match(target))
+                        return;
+
+                    if (references.Add(target))
+                    {
+                        referencesList.Add(target);
+                        toProcess.Push(target);
+                    }
+                });
+
+                if (toProcess.Count < 1)
+                    break;
+                collection = toProcess.Pop().Blocks;
+            }
+
+            return new References(
+                method,
+                references,
+                referencesList);
         }
 
         #endregion
 
         #region Instance
 
-        private readonly List<Method> methods;
+        private readonly HashSet<Method> methodSet;
+        private readonly List<Method> methodList;
 
         /// <summary>
         /// Constructs a references instance.
         /// </summary>
-        /// <param name="scope">The source scope.</param>
-        /// <param name="references">All method references.</param>
-        private References(Scope scope, List<Method> references)
+        /// <param name="method">The source method.</param>
+        /// <param name="referenceSet">The set of all method references.</param>
+        /// <param name="referenceList">The list of all method references.</param>
+        private References(
+            Method method,
+            HashSet<Method> referenceSet,
+            List<Method> referenceList)
         {
-            Scope = scope;
-            methods = references;
+            SourceMethod = method;
+            methodSet = referenceSet;
+            methodList = referenceList;
         }
 
         #endregion
@@ -127,187 +200,52 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Returns the associated source function.
         /// </summary>
-        public Method SourceMethod => Scope.Method;
-
-        /// <summary>
-        /// Returns the parent scope.
-        /// </summary>
-        public Scope Scope { get; }
+        public Method SourceMethod { get; }
 
         /// <summary>
         /// Returns the number of function references.
         /// </summary>
-        public int Count => methods.Count;
+        public readonly int Count => methodList.Count;
 
         /// <summary>
         /// Returns true if the number of function references is zero.
         /// </summary>
-        public bool IsEmpty => Count == 0;
+        public readonly bool IsEmpty => Count < 1;
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Tries to resolve the first reference.
+        /// Returns true if the given method is referenced.
         /// </summary>
-        /// <param name="firstReference">The first resolved reference.</param>
-        /// <param name="enumerator">The resolved enumerator.</param>
-        /// <returns>True, if the first reference could be resolved.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetFirstReference(
-            out Method firstReference,
-            out Enumerator enumerator)
-        {
-            enumerator = GetEnumerator();
-            if (IsEmpty)
-            {
-                firstReference = null;
-                return false;
-            }
-            else
-            {
-                enumerator.MoveNext();
-                firstReference = enumerator.Current;
-                return true;
-            }
-        }
+        /// <param name="method">The method to test.</param>
+        /// <returns>True, if the given method is referenced.</returns>
+        public readonly bool HasReferenceTo(Method method) =>
+            methodSet.Contains(method);
 
         /// <summary>
         /// Returns an enumerator to enumerate all method references.
         /// </summary>
         /// <returns>An enumerator to enumerate all method references.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(this);
+        public readonly Enumerator GetEnumerator() => new Enumerator(this);
 
         #endregion
     }
 
-    /// <summary>
-    /// Represents a collection of all references.
-    /// </summary>
-    public readonly struct AllReferences
+    public static class ReferenceExtensions
     {
-        #region Static
+        public static References ComputeReferences<TPredicate>(
+            this Method method,
+            in TPredicate predicate)
+            where TPredicate : IMethodCollectionPredicate =>
+            References.Create(method.Blocks, predicate);
 
-        /// <summary>
-        /// Computes method references to all methods recursively.
-        /// </summary>
-        /// <typeparam name="TPredicate">The predicate type.</typeparam>
-        /// <typeparam name="TScopeProvider">
-        /// The provider to resolve methods to scopes.
-        /// </typeparam>
-        /// <param name="sourceMethod">The source method.</param>
-        /// <param name="predicate">The current predicate.</param>
-        /// <param name="scopeProvider">Resolves methods to scopes.</param>
-        /// <returns>A references instance.</returns>
-        public static AllReferences Create<TPredicate, TScopeProvider>(
-            Method sourceMethod,
-            in TPredicate predicate,
-            TScopeProvider scopeProvider)
-            where TPredicate : IMethodCollectionPredicate
-            where TScopeProvider : IScopeProvider =>
-            Create(scopeProvider[sourceMethod], predicate, scopeProvider);
-
-        /// <summary>
-        /// Computes method references to all methods recursively.
-        /// </summary>
-        /// <typeparam name="TPredicate">The predicate type.</typeparam>
-        /// <typeparam name="TScopeProvider">
-        /// The provider to resolve methods to scopes.
-        /// </typeparam>
-        /// <param name="sourceScope">The source scope.</param>
-        /// <param name="predicate">The current predicate.</param>
-        /// <param name="scopeProvider">Resolves methods to scopes.</param>
-        /// <returns>A references instance.</returns>
-        public static AllReferences Create<TPredicate, TScopeProvider>(
-            Scope sourceScope,
-            in TPredicate predicate,
-            TScopeProvider scopeProvider)
-            where TPredicate : IMethodCollectionPredicate
-            where TScopeProvider : IScopeProvider
-        {
-            Debug.Assert(sourceScope != null, "Invalid scope");
-
-            var mapping = new Dictionary<Method, References>();
-
-            var mainReferences = sourceScope.ComputeReferences(predicate);
-            mapping.Add(mainReferences.SourceMethod, mainReferences);
-
-            if (mainReferences.TryGetFirstReference(
-                out Method current,
-                out References.Enumerator mainEnumerator))
-            {
-                var toProcess = new Stack<Method>();
-                for (; ; )
-                {
-                    if (!mapping.ContainsKey(current))
-                    {
-                        var scope = scopeProvider[current];
-                        var references = scope.ComputeReferences(predicate);
-                        mapping.Add(current, references);
-
-                        foreach (var reference in references)
-                            toProcess.Push(reference);
-                    }
-                    if (toProcess.Count < 1)
-                    {
-                        if (mainEnumerator.MoveNext())
-                            current = mainEnumerator.Current;
-                        else
-                            break;
-                    }
-                    else
-                    {
-                        current = toProcess.Pop();
-                    }
-                }
-            }
-            mainEnumerator.Dispose();
-
-            return new AllReferences(mapping);
-        }
-
-        #endregion
-
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new references instance.
-        /// </summary>
-        /// <param name="mapping">The underlying mapping.</param>
-        private AllReferences(Dictionary<Method, References> mapping)
-        {
-            Debug.Assert(mapping != null, "Invalid mapping");
-            Mapping = mapping;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Stores the internal mapping dictionary.
-        /// </summary>
-        private Dictionary<Method, References> Mapping { get; }
-
-        /// <summary>
-        /// Resolves method references for the given method.
-        /// </summary>
-        /// <param name="method">The source method.</param>
-        /// <returns>The resolved references instance.</returns>
-        public References this[Method method] => Mapping[method];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns an enumerator to enumerate all method references.
-        /// </summary>
-        /// <returns>An enumerator to enumerate all method references.</returns>
-        public Dictionary<Method, References>.Enumerator GetEnumerator() =>
-            Mapping.GetEnumerator();
-
-        #endregion
+        public static References ComputeReferences<TOrder, TPredicate>(
+            this BasicBlockCollection<TOrder> blocks,
+            in TPredicate predicate)
+            where TOrder : struct, ITraversalOrder
+            where TPredicate : IMethodCollectionPredicate =>
+            References.Create(blocks, predicate);
     }
 }

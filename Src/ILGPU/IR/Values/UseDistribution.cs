@@ -12,7 +12,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Threading.Tasks;
 
 namespace ILGPU.IR.Values
 {
@@ -40,31 +39,23 @@ namespace ILGPU.IR.Values
             var groupedUses = new Dictionary<int, int>();
             var usesPerType = new Dictionary<Type, (int, int)>();
 
-            Parallel.ForEach(context.UnsafeMethods, method =>
+            foreach (var method in context.UnsafeMethods)
             {
-                var scope = method.CreateScope();
-
-                foreach (Value value in scope.Values)
+                foreach (Value value in method.Blocks.Values)
                 {
-                    lock (groupedUses)
-                    {
-                        if (!groupedUses.TryGetValue(value.AllNumUses, out int count))
-                            count = 0;
-                        groupedUses[value.AllNumUses] = count + 1;
-                    }
+                    if (!groupedUses.TryGetValue(value.AllNumUses, out int count))
+                        count = 0;
+                    groupedUses[value.AllNumUses] = count + 1;
 
                     var type = value.GetType();
-                    lock (usesPerType)
-                    {
-                        if (!usesPerType.TryGetValue(type, out var entry))
-                            entry = (0, 0);
+                    if (!usesPerType.TryGetValue(type, out var entry))
+                        entry = (0, 0);
 
-                        usesPerType[type] =
-                            (IntrinsicMath.Max(value.AllNumUses, entry.Item1),
-                            entry.Item2 + 1);
-                    }
+                    usesPerType[type] =
+                        (IntrinsicMath.Max(value.AllNumUses, entry.Item1),
+                        entry.Item2 + 1);
                 }
-            });
+            }
 
             var groupedUsesList = new List<(int, int)>(groupedUses.Count);
             foreach (var entry in groupedUses)
