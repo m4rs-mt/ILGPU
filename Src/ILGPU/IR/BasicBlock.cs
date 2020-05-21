@@ -219,9 +219,25 @@ namespace ILGPU.IR
         /// <returns>The resolved value reference.</returns>
         public ValueReference this[int index] => values[index];
 
+        /// <summary>
+        /// Returns the associated block index that is updated during traversal and can
+        /// be used to map blocks to values using fast array lookups.
+        /// </summary>
+        public int BlockIndex { get; private set; } = -1;
+
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Setups the internal block index.
+        /// </summary>
+        /// <param name="index">The new block index.</param>
+        internal void SetupBlockIndex(int index)
+        {
+            this.Assert(index >= 0);
+            BlockIndex = index;
+        }
 
         /// <summary>
         /// Returns true if the given block is a registered successor.
