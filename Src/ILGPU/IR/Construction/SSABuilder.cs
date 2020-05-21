@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
@@ -18,6 +19,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using CFG = ILGPU.IR.Analyses.CFG<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
+using CFGNode = ILGPU.IR.Analyses.CFG.Node<
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
+using BlockCollection = ILGPU.IR.BasicBlockCollection<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder>;
+using ILGPU.IR.Analyses.Duplicates;
 
 namespace ILGPU.IR.Construction
 {
@@ -34,7 +43,7 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// A successor or predecessor enumerator.
         /// </summary>
-        public struct Enumerator : IEnumerator<CFG.Node>
+        public struct Enumerator : IEnumerator<CFGNode>
         {
             private readonly HashSet<ValueContainer> set;
             private HashSet<ValueContainer>.Enumerator enumerator;
@@ -53,7 +62,7 @@ namespace ILGPU.IR.Construction
             /// <summary>
             /// Returns the current value.
             /// </summary>
-            public CFG.Node Current => enumerator.Current.Node;
+            public CFGNode Current => enumerator.Current.Node;
 
             /// <summary cref="IEnumerator.Current"/>
             object IEnumerator.Current => Current;
@@ -182,7 +191,7 @@ namespace ILGPU.IR.Construction
             /// </summary>
             /// <param name="parent">The associated parent builder.</param>
             /// <param name="node">The current node.</param>
-            internal ValueContainer(SSABuilder<TVariable> parent, CFG.Node node)
+            internal ValueContainer(SSABuilder<TVariable> parent, CFGNode node)
             {
                 Debug.Assert(parent != null, "Invalid parent");
                 Parent = parent;
@@ -201,7 +210,7 @@ namespace ILGPU.IR.Construction
             /// <summary>
             /// Returns the associated node.
             /// </summary>
-            public CFG.Node Node { get; }
+            public CFGNode Node { get; }
 
             /// <summary>
             /// Returns the associated block builder.
@@ -426,31 +435,6 @@ namespace ILGPU.IR.Construction
             #endregion
         }
 
-        /// <summary>
-        /// Creates a <see cref="ValueContainer"/> for every <see cref="CFG.Node"/>.
-        /// </summary>
-        private readonly struct ValueContainerProvider :
-            CFG.INodeMappingValueProvider<ValueContainer>
-        {
-            /// <summary>
-            /// Constructs a new value provider.
-            /// </summary>
-            /// <param name="parent">The parent builder.</param>
-            public ValueContainerProvider(SSABuilder<TVariable> parent)
-            {
-                Parent = parent;
-            }
-
-            /// <summary>
-            /// Returns the parent SSA builder.
-            /// </summary>
-            public SSABuilder<TVariable> Parent { get; }
-
-            /// <summary cref="CFG.INodeMappingValueProvider{T}.GetValue(CFG.Node)"/>
-            public ValueContainer GetValue(CFG.Node node) =>
-                new ValueContainer(Parent, node);
-        }
-
         #endregion
 
         #region Static
@@ -460,24 +444,9 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="methodBuilder">The current method builder.</param>
         /// <returns>The created SSA builder.</returns>
-        public static SSABuilder<TVariable> Create(Method.Builder methodBuilder)
-        {
-            var scope = methodBuilder.Method.CreateScope(
-                ScopeFlags.AddAlreadyVisitedNodes);
-            var cfg = scope.CreateCFG();
-            return Create(methodBuilder, cfg);
-        }
-
-        /// <summary>
-        /// Creates a new SSA builder.
-        /// </summary>
-        /// <param name="methodBuilder">The current method builder.</param>
-        /// <param name="scope">The current scope.</param>
-        /// <returns>The created SSA builder.</returns>
         public static SSABuilder<TVariable> Create(
-            Method.Builder methodBuilder,
-            Scope scope) =>
-            Create(methodBuilder, scope.CreateCFG());
+            Method.Builder methodBuilder) =>
+            Create(methodBuilder, methodBuilder.SourceBlocks.CreateCFG());
 
         /// <summary>
         /// Creates a new SSA builder.
@@ -492,13 +461,12 @@ namespace ILGPU.IR.Construction
                 methodBuilder ?? throw new ArgumentNullException(nameof(methodBuilder)),
                 cfg ?? throw new ArgumentNullException(nameof(cfg)));
 
-
         #endregion
 
         #region Instance
 
         private int markerValue = 0;
-        private readonly CFG.NodeMapping<ValueContainer> mapping;
+        private readonly BasicBlockMap<ValueContainer> mapping;
 
         /// <summary>
         /// Constructs a new SSA builder.
@@ -508,8 +476,9 @@ namespace ILGPU.IR.Construction
         private SSABuilder(Method.Builder methodBuilder, CFG cfg)
         {
             MethodBuilder = methodBuilder;
-            mapping = cfg.CreateNodeMapping<ValueContainer, ValueContainerProvider>(
-                new ValueContainerProvider(this));
+            CFG = cfg;
+            mapping = cfg.CreateMapping(
+                node => new ValueContainer(this, node));
         }
 
         #endregion
@@ -517,36 +486,27 @@ namespace ILGPU.IR.Construction
         #region Properties
 
         /// <summary>
-        /// Returns the parent context.
-        /// </summary>
-        public IRContext Context => CFG.Context;
-
-        /// <summary>
-        /// Returns the associated graph.
-        /// </summary>
-        public Method Method => CFG.Method;
-
-        /// <summary>
         /// Returns the associated method builder.
         /// </summary>
         public Method.Builder MethodBuilder { get; }
 
         /// <summary>
-        /// Returns the associated graph.
+        /// Returns the underlying list of blocks.
         /// </summary>
-        public CFG CFG => mapping.CFG;
+        public BasicBlockCollection<ReversePostOrder> Blocks =>
+            MethodBuilder.SourceBlocks;
 
         /// <summary>
-        /// Returns the associated scope.
+        /// Returns the associated graph.
         /// </summary>
-        public Scope Scope => CFG.Scope;
+        public CFG CFG { get; }
 
         /// <summary>
         /// Returns the internal value container for the given node.
         /// </summary>
         /// <param name="node">The CFG node.</param>
         /// <returns>The resolved value container.</returns>
-        private ValueContainer this[CFG.Node node] => mapping[node];
+        private ValueContainer this[CFGNode node] => mapping[node.Block];
 
         #endregion
 
@@ -559,7 +519,7 @@ namespace ILGPU.IR.Construction
         /// <param name="var">The variable reference.</param>
         /// <param name="value">The value to set.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetValue(CFG.Node node, TVariable var, Value value)
+        public void SetValue(CFGNode node, TVariable var, Value value)
         {
             var valueContainer = this[node];
             valueContainer.SetValue(var, value);
@@ -572,7 +532,7 @@ namespace ILGPU.IR.Construction
         /// <param name="var">The variable reference.</param>
         /// <returns>The value of the given variable.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Value GetValue(CFG.Node node, TVariable var)
+        public Value GetValue(CFGNode node, TVariable var)
         {
             var markerProvider = new MarkerProvider(markerValue);
             var valueContainer = this[node];
@@ -587,7 +547,7 @@ namespace ILGPU.IR.Construction
         /// <param name="node">The target node.</param>
         /// <param name="var">The variable reference.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveValue(CFG.Node node, TVariable var)
+        public void RemoveValue(CFGNode node, TVariable var)
         {
             var valueContainer = this[node];
             valueContainer.RemoveValue(var);
@@ -635,7 +595,7 @@ namespace ILGPU.IR.Construction
         /// Tries to process the associated block.
         /// </summary>
         /// <param name="node">The target node.</param>
-        public bool Process(CFG.Node node)
+        public bool Process(CFGNode node)
         {
             var block = this[node];
             return block.IsProcessed
@@ -669,7 +629,7 @@ namespace ILGPU.IR.Construction
         /// Tries to seals the associated node.
         /// </summary>
         /// <param name="node">The target node.</param>
-        public bool Seal(CFG.Node node)
+        public bool Seal(CFGNode node)
         {
             var valueContainer = this[node];
             if (valueContainer.CanSeal)
@@ -696,7 +656,7 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="node">The target node.</param>
         /// <returns>True, if the node has not been processed.</returns>
-        public bool ProcessAndSeal(CFG.Node node)
+        public bool ProcessAndSeal(CFGNode node)
         {
             var valueContainer = this[node];
             if (valueContainer.CanSeal)
@@ -719,5 +679,23 @@ namespace ILGPU.IR.Construction
         }
 
         #endregion
+    }
+
+    public static class SSABuilder
+    {
+        public static BlockCollection ComputeSSABlockOrder<TOrder>(
+            this BasicBlockCollection<TOrder> blockCollection)
+            where TOrder : struct, ITraversalOrder =>
+            blockCollection.ComputeBlockOrder<
+                ReversePostOrder,
+                PostOrder,
+                CanHaveDuplicates<BasicBlock>>();
+
+        public static BlockCollection ComputeSSABlockOrder(
+            this Method.Builder methodBuilder) =>
+            methodBuilder.ComputeBlockOrder<
+                ReversePostOrder,
+                PostOrder,
+                CanHaveDuplicates<BasicBlock>>();
     }
 }

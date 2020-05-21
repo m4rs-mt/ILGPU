@@ -35,6 +35,14 @@ namespace ILGPU.IR
         #region Nested Types
 
         /// <summary>
+        /// Represents a visitor for values.
+        /// </summary>
+        /// <typeparam name="TValue">The value type.</typeparam>
+        /// <param name="value">The value to visit.</param>
+        public delegate void ValueVisitor<in TValue>(TValue value)
+            where TValue : Value;
+
+        /// <summary>
         /// Represents a value reference within a single basic block.
         /// </summary>
         public readonly struct ValueEntry
@@ -148,7 +156,7 @@ namespace ILGPU.IR
             #region Methods
 
             /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose() { }
+            void IDisposable.Dispose() { }
 
             /// <summary cref="IEnumerator.MoveNext"/>
             public bool MoveNext() => ++index < values.Count;
@@ -279,7 +287,7 @@ namespace ILGPU.IR
         public T GetTerminatorAs<T>()
             where T : TerminatorValue
         {
-            Debug.Assert(Terminator is T, "Invalid terminator conversion");
+            this.Assert(Terminator is T);
             return Terminator as T;
         }
 
@@ -297,8 +305,8 @@ namespace ILGPU.IR
             resolvedBuilder = builder;
             if (resolvedBuilder != null)
                 return false;
-            Debug.Assert(functionBuilder != null, "Invalid function builder");
-            Debug.Assert(functionBuilder.Method == Method, "Invalid IR function");
+            this.AssertNotNull(functionBuilder);
+            this.Assert(functionBuilder.Method == Method);
             resolvedBuilder = builder = new Builder(functionBuilder, this);
             return true;
         }
@@ -310,9 +318,9 @@ namespace ILGPU.IR
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ReleaseBuilder(Builder otherBuilder)
         {
-            Debug.Assert(otherBuilder != null, "Invalid builder");
-            Debug.Assert(otherBuilder == builder, "Invalid builder");
-            Debug.Assert(Terminator != null, "Terminator not set");
+            this.AssertNotNull(otherBuilder);
+            this.Assert(otherBuilder == builder);
+            this.AssertNotNull(Terminator);
             builder = null;
         }
 
@@ -377,6 +385,22 @@ namespace ILGPU.IR
                 newValues.Add(value);
             }
             values = newValues;
+        }
+
+        /// <summary>
+        /// Executes the given visitor for each value in this scope.
+        /// </summary>
+        /// <typeparam name="TValue">The value to match.</typeparam>
+        /// <param name="visitor">The visitor.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ForEachValue<TValue>(ValueVisitor<TValue> visitor)
+            where TValue : Value
+        {
+            foreach (Value value in values)
+            {
+                if (value is TValue matchedValue)
+                    visitor(matchedValue);
+            }
         }
 
         /// <summary>

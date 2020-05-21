@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -360,6 +360,12 @@ namespace ILGPU.IR
             MethodTransformationFlags.None;
 
         /// <summary>
+        /// Stores all blocks.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ImmutableArray<BasicBlock> blocks;
+
+        /// <summary>
         /// Stores all parameters.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -389,6 +395,11 @@ namespace ILGPU.IR
 
             Context = context;
             Declaration = declaration;
+
+            // Create entry block
+            EntryBlock = new BasicBlock(this, location, "Entry");
+            EntryBlock.SetupBlockIndex(0);
+            blocks = ImmutableArray.Create(EntryBlock);
         }
 
         #endregion
@@ -465,7 +476,19 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns the associated entry block.
         /// </summary>
-        public BasicBlock EntryBlock { get; private set; }
+        public BasicBlock EntryBlock { get; }
+
+        /// <summary>
+        /// Returns all attached blocks.
+        /// </summary>
+        public BasicBlockCollection<ReversePostOrder> Blocks =>
+            new BasicBlockCollection<ReversePostOrder>(EntryBlock, blocks);
+
+        /// <summary>
+        /// Returns all attached values.
+        /// </summary>
+        public BasicBlockCollection<ReversePostOrder>.ValueCollection Values =>
+            Blocks.Values;
 
         /// <summary>
         /// Returns the current builder.
@@ -493,8 +516,7 @@ namespace ILGPU.IR
             if (!HasTransformationFlags(MethodTransformationFlags.Dirty))
                 return;
 
-            var scope = CreateScope();
-            foreach (var block in scope)
+            foreach (var block in Blocks)
                 block.GC();
 
             // Remove dirty flag form a transformed method
@@ -514,20 +536,6 @@ namespace ILGPU.IR
                 "Invalid number of arguments");
             return new ParameterMapping(this, arguments);
         }
-
-        /// <summary>
-        /// Creates a new method scope with default flags.
-        /// </summary>
-        /// <returns>A new method scope.</returns>
-        public Scope CreateScope() => Scope.Create(this);
-
-        /// <summary>
-        /// Creates a new method scope with custom flags.
-        /// </summary>
-        /// <param name="scopeFlags">The scope flags.</param>
-        /// <returns>A new method scope.</returns>
-        public Scope CreateScope(ScopeFlags scopeFlags) =>
-            Scope.Create(this, scopeFlags);
 
         /// <summary>
         /// Dumps this method to the console output.
@@ -555,7 +563,6 @@ namespace ILGPU.IR
         {
             if (textWriter == null)
                 throw new ArgumentNullException(nameof(textWriter));
-            var scope = CreateScope();
 
             textWriter.Write(ToString());
             // Dump parameters
@@ -568,7 +575,7 @@ namespace ILGPU.IR
             }
             textWriter.WriteLine(')');
             // Dump blocks
-            foreach (var block in scope)
+            foreach (var block in Blocks)
                 block.Dump(textWriter, ignoreDeadValues);
         }
 
