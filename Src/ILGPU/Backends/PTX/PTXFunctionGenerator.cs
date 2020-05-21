@@ -27,13 +27,13 @@ namespace ILGPU.Backends.PTX
         /// Creates a new PTX function generator.
         /// </summary>
         /// <param name="args">The generation arguments.</param>
-        /// <param name="scope">The current scope.</param>
+        /// <param name="method">The current method.</param>
         /// <param name="allocas">All local allocas.</param>
         public PTXFunctionGenerator(
             in GeneratorArgs args,
-            Scope scope,
+            Method method,
             Allocas allocas)
-            : base(args, scope, allocas)
+            : base(args, method, allocas)
         { }
 
         #endregion

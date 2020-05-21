@@ -168,10 +168,9 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         protected override PTXCodeGenerator CreateFunctionCodeGenerator(
             Method method,
-            Scope scope,
             Allocas allocas,
             PTXCodeGenerator.GeneratorArgs data) =>
-            new PTXFunctionGenerator(data, scope, allocas);
+            new PTXFunctionGenerator(data, method, allocas);
 
         /// <summary>
         /// Creates a new <see cref="PTXFunctionGenerator"/>.
@@ -179,10 +178,9 @@ namespace ILGPU.Backends.PTX
         protected override PTXCodeGenerator CreateKernelCodeGenerator(
             in AllocaKindInformation sharedAllocations,
             Method method,
-            Scope scope,
             Allocas allocas,
             PTXCodeGenerator.GeneratorArgs data) =>
-            new PTXKernelFunctionGenerator(data, scope, allocas);
+            new PTXKernelFunctionGenerator(data, method, allocas);
 
         /// <summary>
         /// Creates a new <see cref="PTXCompiledKernel"/> and initializes all debug

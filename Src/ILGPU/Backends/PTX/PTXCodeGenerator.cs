@@ -12,6 +12,7 @@
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -19,6 +20,11 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using CFG = ILGPU.IR.Analyses.CFG<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
+using CFGNode = ILGPU.IR.Analyses.CFG.Node<
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 
 namespace ILGPU.Backends.PTX
 {
@@ -175,7 +181,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Represents a specialized phi binding allocator.
         /// </summary>
-        private readonly struct PhiBindingAllocator : IPhiBindingAllocator
+        private readonly struct PhiBindingAllocator : IPhiBindingAllocator<Forwards>
         {
             /// <summary>
             /// Constructs a new phi binding allocator.
@@ -191,11 +197,15 @@ namespace ILGPU.Backends.PTX
             /// </summary>
             public PTXCodeGenerator Parent { get; }
 
-            /// <summary cref="IPhiBindingAllocator.Process(CFG.Node, Phis)"/>
-            public void Process(CFG.Node node, Phis phis) { }
+            /// <summary>
+            /// Does not perform any operation.
+            /// </summary>
+            public void Process(CFGNode node, Phis phis) { }
 
-            /// <summary cref="IPhiBindingAllocator.Allocate(CFG.Node, PhiValue)"/>
-            public void Allocate(CFG.Node node, PhiValue phiValue) =>
+            /// <summary>
+            /// Allocates a new phi node in the parent code generator.
+            /// </summary>
+            public void Allocate(CFGNode node, PhiValue phiValue) =>
                 Parent.Allocate(phiValue);
         }
 
@@ -294,12 +304,12 @@ namespace ILGPU.Backends.PTX
         /// Constructs a new PTX generator.
         /// </summary>
         /// <param name="args">The generator arguments.</param>
-        /// <param name="scope">The current scope.</param>
+        /// <param name="method">The current method.</param>
         /// <param name="allocas">All local allocas.</param>
-        internal PTXCodeGenerator(in GeneratorArgs args, Scope scope, Allocas allocas)
+        internal PTXCodeGenerator(in GeneratorArgs args, Method method, Allocas allocas)
             : base(args.Backend)
         {
-            Scope = scope;
+            Method = method;
             DebugInfoGenerator = args.DebugInfoGenerator.BeginScope();
             ImplementationProvider = Backend.IntrinsicProvider;
             Allocas = allocas;
@@ -324,14 +334,9 @@ namespace ILGPU.Backends.PTX
         public new PTXBackend Backend => base.Backend as PTXBackend;
 
         /// <summary>
-        /// Returns the associated top-level function.
+        /// Returns the associated method.
         /// </summary>
-        public Method Method => Scope.Method;
-
-        /// <summary>
-        /// Returns the current function scope.
-        /// </summary>
-        public Scope Scope { get; }
+        public Method Method { get; }
 
         /// <summary>
         /// Returns all local allocas.
@@ -457,17 +462,19 @@ namespace ILGPU.Backends.PTX
         /// <param name="registerOffset">The internal register offset.</param>
         protected void GenerateCodeInternal(int registerOffset)
         {
+            var blocks = Method.Blocks;
+
             // Build branch targets
-            foreach (var block in Scope)
+            foreach (var block in blocks)
                 blockLookup.Add(block, DeclareLabel());
 
             // Find all phi nodes, allocate target registers and setup internal mapping
-            var cfg = Scope.CreateCFG();
+            var cfg = blocks.CreateCFG();
             var phiBindings = PhiBindings.Create(cfg, new PhiBindingAllocator(this));
             Builder.AppendLine();
 
             // Generate code
-            foreach (var block in Scope)
+            foreach (var block in blocks)
             {
                 // Emit debug information
                 DebugInfoGenerator.GenerateDebugInfo(Builder, block);
