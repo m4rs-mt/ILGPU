@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -146,19 +147,10 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Creates an alloca analysis.
         /// </summary>
-        /// <param name="scope">The parent scope.</param>
-        public static Allocas Create(Scope scope) => new Allocas(
-            scope ?? throw new ArgumentNullException(nameof(scope)));
-
-        #endregion
-
-        #region Instance
-
-        /// <summary>
-        /// Constructs a new analysis.
-        /// </summary>
-        /// <param name="scope">The current scope.</param>
-        private Allocas(Scope scope)
+        /// <typeparam name="TOrder">The traversal order.</typeparam>
+        /// <param name="collection">The block collection.</param>
+        public static Allocas Create<TOrder>(BasicBlockCollection<TOrder> collection)
+            where TOrder : struct, ITraversalOrder
         {
             var localAllocations = ImmutableArray.CreateBuilder<
                 AllocaInformation>(20);
@@ -170,7 +162,7 @@ namespace ILGPU.IR.Analyses
             int localMemorySize = 0;
             int sharedMemorySize = 0;
 
-            foreach (Value value in scope.Values)
+            foreach (Value value in collection.Values)
             {
                 if (value is Alloca alloca)
                 {
@@ -196,15 +188,33 @@ namespace ILGPU.IR.Analyses
                 }
             }
 
-            LocalAllocations = new AllocaKindInformation(
-                localAllocations.ToImmutable(),
-                localMemorySize);
-            SharedAllocations = new AllocaKindInformation(
-                sharedAllocations.ToImmutable(),
-                sharedMemorySize);
-            DynamicSharedAllocations = new AllocaKindInformation(
-                dynamicSharedAllocations.ToImmutable(),
-                0);
+            return new Allocas(
+                new AllocaKindInformation(
+                    localAllocations.ToImmutable(),
+                    localMemorySize),
+                new AllocaKindInformation(
+                    sharedAllocations.ToImmutable(),
+                    sharedMemorySize),
+                new AllocaKindInformation(
+                    dynamicSharedAllocations.ToImmutable(),
+                    0));
+        }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new analysis.
+        /// </summary>
+        public Allocas(
+            in AllocaKindInformation localAllocations,
+            in AllocaKindInformation sharedAllocations,
+            in AllocaKindInformation dynamicSharedAllocations)
+        {
+            LocalAllocations = localAllocations;
+            SharedAllocations = sharedAllocations;
+            DynamicSharedAllocations = dynamicSharedAllocations;
         }
 
         /// <summary>

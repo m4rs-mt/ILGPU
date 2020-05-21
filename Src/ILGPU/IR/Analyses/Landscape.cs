@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -41,17 +40,11 @@ namespace ILGPU.IR.Analyses
             private readonly HashSet<Method> usesSet = new HashSet<Method>();
             private List<Method> uses;
 
-            internal Entry(
-                Method method,
-                Scope scope,
-                References references,
-                in T data)
+            internal Entry(Method method, References references, in T data)
             {
-                Debug.Assert(method != null, "Invalid method");
-                Debug.Assert(scope != null, "Invalid scope");
+                method.AssertNotNull(method);
 
                 Method = method;
-                Scope = scope;
                 References = references;
                 Data = data;
             }
@@ -62,24 +55,14 @@ namespace ILGPU.IR.Analyses
             public Method Method { get; }
 
             /// <summary>
-            /// Returns the associated scope.
-            /// </summary>
-            public Scope Scope { get; }
-
-            /// <summary>
             /// Returns custom information.
             /// </summary>
             public T Data { get; }
 
             /// <summary>
-            /// Returns the number of nodes.
-            /// </summary>
-            public int NodeCount => Scope.Count;
-
-            /// <summary>
             /// Returns the number of basic block.
             /// </summary>
-            public int NumBlocks => Scope.Count;
+            public int NumBlocks => Method.Blocks.Count;
 
             /// <summary>
             /// Returns the number of uses.
@@ -144,12 +127,12 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Resolves custom entry information for the given node.
             /// </summary>
-            /// <param name="scope">The current scope.</param>
+            /// <param name="method">The current method.</param>
             /// <param name="methodReferences">
             /// All references to other methods.
             /// </param>
             /// <returns>The resolved custom data.</returns>
-            T GetData(Scope scope, References methodReferences);
+            T GetData(Method method, References methodReferences);
         }
 
         /// <summary>
@@ -330,23 +313,14 @@ namespace ILGPU.IR.Analyses
             where TDataProvider : IDataProvider
         {
             var predicate = view.Predicate;
-            var methods = new ConcurrentBag<Entry>();
 
-            Parallel.ForEach(
-                view,
-                method =>
-                {
-                    var scope = method.CreateScope();
-                    var references = scope.ComputeReferences(predicate);
-
-                    var data = dataProvider.GetData(scope, references);
-                    var entry = new Entry(method, scope, references, data);
-                    methods.Add(entry);
-                });
-
-            foreach (var entry in methods)
+            foreach (var method in view)
             {
-                entries[entry.Method] = entry;
+                var references = method.ComputeReferences(predicate);
+                var data = dataProvider.GetData(method, references);
+                var entry = new Entry(method, references, data);
+                entries[method] = entry;
+
                 if (!entry.HasReferences)
                     sinks.Add(entry);
             }
@@ -451,8 +425,8 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         private readonly struct DataProvider : IDataProvider
         {
-            /// <summary cref="Landscape{T}.IDataProvider.GetData(Scope, References)"/>
-            public object GetData(Scope scope, References references) => null;
+            /// <summary cref="Landscape{T}.IDataProvider.GetData(Method, References)"/>
+            public object GetData(Method method, References references) => null;
         }
 
         #endregion

@@ -9,14 +9,13 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.ControlFlowDirection;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using ILGPU.Util;
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Analyses
@@ -24,7 +23,9 @@ namespace ILGPU.IR.Analyses
     /// <summary>
     /// A simple loop info object.
     /// </summary>
-    public readonly struct LoopInfo
+    public sealed class LoopInfo<TOrder, TDirection>
+        where TOrder : struct, ITraversalOrder
+        where TDirection : struct, IControlFlowDirection
     {
         #region Static
 
@@ -34,7 +35,8 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="scc">The SCC.</param>
         /// <returns>The resolved loop info instance.</returns>
-        public static LoopInfo Create(SCCs.SCC scc)
+        public static LoopInfo<TOrder, TDirection> Create(
+            SCCs<TOrder, TDirection>.SCC scc)
         {
             if (!TryCreate(scc, out var loopInfo))
                 throw new InvalidKernelOperationException();
@@ -48,7 +50,9 @@ namespace ILGPU.IR.Analyses
         /// <param name="scc">The SCC.</param>
         /// <param name="loopInfo">The resolved loop info object (if any).</param>
         /// <returns>True, if the resulting loop info object could be resolved.</returns>
-        public static bool TryCreate(SCCs.SCC scc, out LoopInfo loopInfo)
+        public static bool TryCreate(
+            in SCCs<TOrder, TDirection>.SCC scc,
+            out LoopInfo<TOrder, TDirection> loopInfo)
         {
             loopInfo = default;
 
@@ -57,7 +61,7 @@ namespace ILGPU.IR.Analyses
             {
                 return false;
             }
-            loopInfo = new LoopInfo(scc, entryBlock, exitBlock);
+            loopInfo = new LoopInfo<TOrder, TDirection>(scc, entryBlock, exitBlock);
             return true;
         }
 
@@ -69,7 +73,7 @@ namespace ILGPU.IR.Analyses
         /// <returns>True, if the given node is a loop entry point.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool TryGetEntryBlock(
-            SCCs.SCC scc,
+            in SCCs<TOrder, TDirection>.SCC scc,
             out BasicBlock entryPoint)
         {
             entryPoint = null;
@@ -97,7 +101,7 @@ namespace ILGPU.IR.Analyses
         /// <returns>True, if an unique break node could be resolved.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool TryGetExitBlock(
-            SCCs.SCC scc,
+            in SCCs<TOrder, TDirection>.SCC scc,
             out BasicBlock exitBlock)
         {
             exitBlock = null;
@@ -135,7 +139,7 @@ namespace ILGPU.IR.Analyses
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool TryResolveInductionVariable(
-            in SCCs.SCC scc,
+            in SCCs<TOrder, TDirection>.SCC scc,
             int variableIndex,
             HashSet<Node> visitedNodes,
             PhiValue phiValue,
@@ -196,7 +200,7 @@ namespace ILGPU.IR.Analyses
         /// <param name="node">The node to trace.</param>
         /// <returns>True, if the given node is an induction-variable branch.</returns>
         private static bool IsInductionVariableBranch(
-            in SCCs.SCC scc,
+            in SCCs<TOrder, TDirection>.SCC scc,
             HashSet<Node> visitedNodes,
             Value node)
         {
@@ -235,7 +239,7 @@ namespace ILGPU.IR.Analyses
         /// <param name="exitBlock">The unique exit block.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private LoopInfo(
-            SCCs.SCC scc,
+            in SCCs<TOrder, TDirection>.SCC scc,
             BasicBlock entryBlock,
             BasicBlock exitBlock)
         {
@@ -271,7 +275,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Returns the associated SCC.
         /// </summary>
-        public SCCs.SCC SCC { get; }
+        public SCCs<TOrder, TDirection>.SCC SCC { get; }
 
         /// <summary>
         /// Returns the entry block.
@@ -298,194 +302,6 @@ namespace ILGPU.IR.Analyses
         /// <param name="block">The block to map to an SCC.</param>
         /// <returns>True, if the node belongs to the associated SCC.</returns>
         public bool Contains(BasicBlock block) => SCC.Contains(block);
-
-        #endregion
-    }
-
-    /// <summary>
-    /// Infers high-level control-flow loops from unstructured low-level control flow.
-    /// </summary>
-    [SuppressMessage(
-        "Microsoft.Naming",
-        "CA1710: IdentifiersShouldHaveCorrectSuffix",
-        Justification = "This is the correct name of this program analysis")]
-    public sealed class LoopInfos : IReadOnlyList<LoopInfo>
-    {
-        #region Nested Types
-
-        /// <summary>
-        /// An enumerator to iterate over all SCCs.
-        /// </summary>
-        public struct Enumerator : IEnumerator<LoopInfo>
-        {
-            private List<LoopInfo>.Enumerator enumerator;
-
-            /// <summary>
-            /// Constructs a new info enumerator.
-            /// </summary>
-            /// <param name="infos">The infos to iterate over.</param>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal Enumerator(List<LoopInfo> infos)
-            {
-                enumerator = infos.GetEnumerator();
-            }
-
-            /// <summary>
-            /// Returns the current info.
-            /// </summary>
-            public LoopInfo Current => enumerator.Current;
-
-            /// <summary cref="IEnumerator.Current"/>
-            object IEnumerator.Current => Current;
-
-            /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose() => enumerator.Dispose();
-
-            /// <summary cref="IEnumerator.MoveNext"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool MoveNext() => enumerator.MoveNext();
-
-            /// <summary cref="IEnumerator.Reset"/>
-            void IEnumerator.Reset() => throw new InvalidOperationException();
-        }
-
-        #endregion
-
-        #region Static
-
-        /// <summary>
-        /// Creates a new loop infos instance.
-        /// </summary>
-        /// <param name="cfg">The current CFG.</param>
-        /// <returns>The created info instance.</returns>
-        public static LoopInfos Create(CFG cfg)
-        {
-            if (cfg == null)
-                throw new ArgumentNullException(nameof(cfg));
-            return Create(cfg.CreateSCCs());
-        }
-
-        /// <summary>
-        /// Creates a new loop infos instance.
-        /// </summary>
-        /// <param name="sccs">The current SCCs.</param>
-        /// <returns>The created info instance.</returns>
-        public static LoopInfos Create(SCCs sccs)
-        {
-            if (sccs == null)
-                throw new ArgumentNullException(nameof(sccs));
-            return new LoopInfos(sccs);
-        }
-
-        #endregion
-
-        #region Instance
-
-        private readonly Dictionary<int, LoopInfo> loops;
-        private readonly List<LoopInfo> infos;
-
-        /// <summary>
-        /// Constructs a new loop infos instance.
-        /// </summary>
-        /// <param name="sccs">The SCCs.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private LoopInfos(SCCs sccs)
-        {
-            Debug.Assert(sccs != null, "Invalid SCCs");
-
-            SCCs = sccs;
-            loops = new Dictionary<int, LoopInfo>(sccs.Count);
-            infos = new List<LoopInfo>(sccs.Count);
-
-            foreach (var scc in sccs)
-            {
-                // Try to resolve loop info for the current SCC
-                if (LoopInfo.TryCreate(scc, out var loopInfo))
-                {
-                    infos.Add(loopInfo);
-                    loops.Add(scc.Index, loopInfo);
-                }
-            }
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the underlying CFG.
-        /// </summary>
-        public CFG CFG { get; }
-
-        /// <summary>
-        /// Returns the underlying SCCs.
-        /// </summary>
-        public SCCs SCCs { get; }
-
-        /// <summary>
-        /// Returns the number of info objects.
-        /// </summary>
-        public int Count => infos.Count;
-
-        /// <summary>
-        /// Lookups the given loop-info index.
-        /// </summary>
-        /// <param name="index">The loop-info index.</param>
-        /// <returns>The resolved loop info.</returns>
-        public LoopInfo this[int index] => infos[index];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Tries to resolve the given node to an associated loop-info instance.
-        /// </summary>
-        /// <param name="node">The node to map to a loop-info instance.</param>
-        /// <param name="loopInfo">The resulting loop info (if any).</param>
-        /// <returns>True, if the node could be resolved.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetLoopInfo(CFG.Node node, out LoopInfo loopInfo) =>
-            TryGetLoopInfo(node.Block, out loopInfo);
-
-        /// <summary>
-        /// Tries to resolve the given block to an associated loop-info instance.
-        /// </summary>
-        /// <param name="block">The block to map to a loop-info instance.</param>
-        /// <param name="loopInfo">The resulting loop info (if any).</param>
-        /// <returns>True, if the node could be resolved.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetLoopInfo(BasicBlock block, out LoopInfo loopInfo)
-        {
-            loopInfo = default;
-            return SCCs.TryGetSCC(block, out var scc) &&
-                TryGetLoopInfo(scc, out loopInfo);
-        }
-
-        /// <summary>
-        /// Tries to resolve the given SCC to a loop-info instance.
-        /// </summary>
-        /// <param name="scc">The SCC to lookup.</param>
-        /// <param name="loopInfo">The resolved loop info (if any).</param>
-        /// <returns>True, if any loop info could be resolved.</returns>
-        public bool TryGetLoopInfo(SCCs.SCC scc, out LoopInfo loopInfo) =>
-            loops.TryGetValue(scc.Index, out loopInfo);
-
-        #endregion
-
-        #region IEnumerable
-
-        /// <summary>
-        /// Returns an enumerator that iterates over all infos.
-        /// </summary>
-        /// <returns>The resolved enumerator.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(infos);
-
-        /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-        IEnumerator<LoopInfo> IEnumerable<LoopInfo>.GetEnumerator() => GetEnumerator();
-
-        /// <summary cref="IEnumerable.GetEnumerator"/>
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         #endregion
     }
@@ -524,7 +340,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Returns true if the constant operand value is on the left.
         /// </summary>
-        public bool IsLeft => Index == 0;
+        public readonly bool IsLeft => Index == 0;
     }
 
     /// <summary>
@@ -538,7 +354,6 @@ namespace ILGPU.IR.Analyses
         /// <param name="init">The initialization value.</param>
         /// <param name="updateOperation">The update operation.</param>
         /// <param name="breakOperation">The break operation.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal InductionVariableBounds(
             Value init,
             InductionVariableOperation<BinaryArithmeticKind> updateOperation,
@@ -590,7 +405,6 @@ namespace ILGPU.IR.Analyses
         /// <param name="init">The init value.</param>
         /// <param name="update">The update value.</param>
         /// <param name="breakCondition">The break condition.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal InductionVariable(
             int index,
             PhiValue phi,
@@ -643,7 +457,7 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="updateOperation">The resolved update operation.</param>
         /// <returns>True, if a known operation could be resolved.</returns>
-        public bool TryResolveUpdateOperation(
+        public readonly bool TryResolveUpdateOperation(
             out InductionVariableOperation<BinaryArithmeticKind> updateOperation)
         {
             updateOperation = default;
@@ -672,7 +486,7 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="breakOperation">The resolved break operation.</param>
         /// <returns>True, if a known operation could be resolved.</returns>
-        public bool TryResolveBreakOperation(
+        public readonly bool TryResolveBreakOperation(
             out InductionVariableOperation<CompareKind> breakOperation)
         {
             breakOperation = default;
@@ -701,7 +515,7 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="bounds">The resolved loop bounds (if any).</param>
         /// <returns>True, if the bounds could be resoled.</returns>
-        public bool TryResolveBounds(out InductionVariableBounds bounds)
+        public readonly bool TryResolveBounds(out InductionVariableBounds bounds)
         {
             bounds = default;
 

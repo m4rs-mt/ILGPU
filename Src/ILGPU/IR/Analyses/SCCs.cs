@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.ControlFlowDirection;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System;
 using System.Collections;
@@ -27,7 +29,10 @@ namespace ILGPU.IR.Analyses
         "Microsoft.Naming",
         "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of this program analysis")]
-    public sealed class SCCs : IReadOnlyList<SCCs.SCC>
+    public sealed class SCCs<TOrder, TDirection> :
+        IReadOnlyList<SCCs<TOrder, TDirection>.SCC>
+        where TOrder : struct, ITraversalOrder
+        where TDirection : struct, IControlFlowDirection
     {
         #region Nested Types
 
@@ -39,23 +44,23 @@ namespace ILGPU.IR.Analyses
             "CA1710: IdentifiersShouldHaveCorrectSuffix",
             Justification = "This is a single SCC object; adding a collection suffix " +
             "would be misleading")]
-        public readonly struct SCC : IReadOnlyList<CFG.Node>, IEquatable<SCC>
+        public readonly struct SCC : IReadOnlyList<CFG.Node<TDirection>>, IEquatable<SCC>
         {
             #region Nested Types
 
             /// <summary>
             /// An enumerator to iterate over all nodes in the current SCC.
             /// </summary>
-            public struct Enumerator : IEnumerator<CFG.Node>
+            public struct Enumerator : IEnumerator<CFG.Node<TDirection>>
             {
-                private List<CFG.Node>.Enumerator enumerator;
+                private List<CFG.Node<TDirection>>.Enumerator enumerator;
 
                 /// <summary>
                 /// Constructs a new node enumerator.
                 /// </summary>
                 /// <param name="nodes">The nodes to iterate over.</param>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                internal Enumerator(List<CFG.Node> nodes)
+                internal Enumerator(List<CFG.Node<TDirection>> nodes)
                 {
                     enumerator = nodes.GetEnumerator();
                 }
@@ -63,7 +68,7 @@ namespace ILGPU.IR.Analyses
                 /// <summary>
                 /// Returns the current node.
                 /// </summary>
-                public CFG.Node Current => enumerator.Current;
+                public CFG.Node<TDirection> Current => enumerator.Current;
 
                 /// <summary cref="IEnumerator.Current"/>
                 object IEnumerator.Current => Current;
@@ -119,7 +124,6 @@ namespace ILGPU.IR.Analyses
                     {
                         if (valueEnumerator.MoveNext())
                             return true;
-                        valueEnumerator.Dispose();
 
                         // Try to move to the next node
                         if (!enumerator.MoveNext())
@@ -194,7 +198,7 @@ namespace ILGPU.IR.Analyses
 
             #region Instance
 
-            private readonly List<CFG.Node> nodes;
+            private readonly List<CFG.Node<TDirection>> nodes;
 
             /// <summary>
             /// Constructs a new SCC.
@@ -203,11 +207,10 @@ namespace ILGPU.IR.Analyses
             /// <param name="index">The SCC index.</param>
             /// <param name="sccMembers">All SCC members.</param>
             internal SCC(
-                SCCs parent,
+                SCCs<TOrder, TDirection> parent,
                 int index,
-                List<CFG.Node> sccMembers)
+                List<CFG.Node<TDirection>> sccMembers)
             {
-                Debug.Assert(parent != null, "Invalid parent");
                 Debug.Assert(index >= 0, "Invalid SCC index");
                 Debug.Assert(sccMembers != null, "Invalid SCC members");
 
@@ -223,7 +226,7 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Returns the parent SCCs.
             /// </summary>
-            public SCCs Parent { get; }
+            public SCCs<TOrder, TDirection> Parent { get; }
 
             /// <summary>
             /// Returns the SCC index.
@@ -240,7 +243,7 @@ namespace ILGPU.IR.Analyses
             /// </summary>
             /// <param name="index">The index of the i-th SCC member.</param>
             /// <returns>The resolved SCC member.</returns>
-            public CFG.Node this[int index] => nodes[index];
+            public CFG.Node<TDirection> this[int index] => nodes[index];
 
             #endregion
 
@@ -263,7 +266,7 @@ namespace ILGPU.IR.Analyses
             /// <param name="node">The node to map to an SCC.</param>
             /// <returns>True, if the node belongs to this SCC.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool Contains(CFG.Node node) => Contains(node.Block);
+            public bool Contains(CFG.Node<TDirection> node) => Contains(node.Block);
 
             /// <summary>
             /// Resolves all <see cref="PhiValue"/>s that are contained
@@ -317,7 +320,8 @@ namespace ILGPU.IR.Analyses
             public Enumerator GetEnumerator() => new Enumerator(nodes);
 
             /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            IEnumerator<CFG.Node> IEnumerable<CFG.Node>.GetEnumerator() =>
+            IEnumerator<CFG.Node<TDirection>>
+                IEnumerable<CFG.Node<TDirection>>.GetEnumerator() =>
                 GetEnumerator();
 
             /// <summary cref="IEnumerable.GetEnumerator"/>
@@ -444,7 +448,7 @@ namespace ILGPU.IR.Analyses
             /// Constructs a new data instance.
             /// </summary>
             /// <param name="node">The CFG node.</param>
-            public NodeData(CFG.Node node)
+            public NodeData(CFG.Node<TDirection> node)
             {
                 Node = node;
                 Index = -1;
@@ -455,7 +459,7 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Returns the associated node.
             /// </summary>
-            public CFG.Node Node { get; }
+            public CFG.Node<TDirection> Node { get; }
 
             /// <summary>
             /// The associated SCC index.
@@ -489,17 +493,6 @@ namespace ILGPU.IR.Analyses
             }
         }
 
-        /// <summary>
-        /// A data provider for Tarjan's algorithm.
-        /// </summary>
-        private readonly struct NodeDataProvider :
-            CFG.INodeMappingValueProvider<NodeData>
-        {
-            /// <summary cref="CFG.INodeMappingValueProvider{T}.GetValue(CFG.Node)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public NodeData GetValue(CFG.Node node) => new NodeData(node);
-        }
-
         #endregion
 
         #region Static
@@ -509,32 +502,25 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="cfg">The underlying source SCC.</param>
         /// <returns>The created SCC analysis.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static SCCs Create(CFG cfg)
-        {
-            Debug.Assert(cfg != null, "Invalid CFG");
-            return new SCCs(cfg);
-        }
+        public static SCCs<TOrder, TDirection> Create(CFG<TOrder, TDirection> cfg) =>
+            new SCCs<TOrder, TDirection>(cfg);
 
         #endregion
 
         #region Instance
 
         private readonly List<SCC> sccs = new List<SCC>();
-        private readonly Dictionary<BasicBlock, SCC> sccMapping =
-            new Dictionary<BasicBlock, SCC>();
+        private readonly BasicBlockMap<SCC> sccMapping;
 
         /// <summary>
         /// Constructs a new collection of SCCs.
         /// </summary>
         /// <param name="cfg">The source CFG.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private SCCs(CFG cfg)
+        private SCCs(CFG<TOrder, TDirection> cfg)
         {
-            Debug.Assert(cfg != null, "Invalid CFG");
-
             CFG = cfg;
-            var mapping = cfg.CreateNodeMapping<NodeData, NodeDataProvider>(default);
+            var mapping = cfg.CreateMapping(node => new NodeData(node));
             int index = 0;
             var stack = new Stack<NodeData>();
 
@@ -545,7 +531,7 @@ namespace ILGPU.IR.Analyses
                 {
                     StrongConnect(
                         stack,
-                        mapping,
+                        ref mapping,
                         nodeData,
                         ref index);
                 }
@@ -559,7 +545,7 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Returns the underlying CFG.
         /// </summary>
-        public CFG CFG { get; }
+        public CFG<TOrder, TDirection> CFG { get; }
 
         /// <summary>
         /// Returns the number of SCCs.
@@ -586,7 +572,7 @@ namespace ILGPU.IR.Analyses
         /// <param name="index">The current index value.</param>
         private void StrongConnect(
             Stack<NodeData> stack,
-            CFG.NodeMapping<NodeData> nodeMapping,
+            ref BasicBlockMap<NodeData> nodeMapping,
             NodeData v,
             ref int index)
         {
@@ -603,7 +589,7 @@ namespace ILGPU.IR.Analyses
                 {
                     StrongConnect(
                         stack,
-                        nodeMapping,
+                        ref nodeMapping,
                         w,
                         ref index);
                     v.LowLink = IntrinsicMath.Min(v.LowLink, w.LowLink);
@@ -620,7 +606,7 @@ namespace ILGPU.IR.Analyses
                 var w = NodeData.Pop(stack);
                 if (w != v)
                 {
-                    var members = new List<CFG.Node>(stack.Count + 1);
+                    var members = new List<CFG.Node<TDirection>>(stack.Count + 1);
                     for (; ; w = NodeData.Pop(stack))
                     {
                         members.Add(w.Node);
