@@ -184,34 +184,38 @@ namespace ILGPU.IR
             /// <summary>
             /// Creates a new rebuilder that works on the given scope.
             /// </summary>
+            /// <typeparam name="TMode">The rebuilder mode.</typeparam>
             /// <param name="parameterMapping">
             /// The target value of every parameter.
             /// </param>
             /// <param name="blocks">The block collection.</param>
             /// <returns>The created rebuilder.</returns>
-            public IRRebuilder CreateRebuilder(
+            public IRRebuilder CreateRebuilder<TMode>(
                 ParameterMapping parameterMapping,
-                in BasicBlockCollection<ReversePostOrder> blocks) =>
-                CreateRebuilder(parameterMapping, blocks, default);
+                in BasicBlockCollection<ReversePostOrder> blocks)
+                where TMode : IRRebuilder.IMode =>
+                CreateRebuilder<TMode>(parameterMapping, default, blocks);
 
             /// <summary>
             /// Creates a new rebuilder that works on the given scope.
             /// </summary>
+            /// <typeparam name="TMode">The rebuilder mode.</typeparam>
             /// <param name="parameterMapping">
             /// The target value of every parameter.
             /// </param>
-            /// <param name="blocks">The block collection.</param>
             /// <param name="methodMapping">The method mapping.</param>
+            /// <param name="blocks">The block collection.</param>
             /// <returns>The created rebuilder.</returns>
-            public IRRebuilder CreateRebuilder(
+            public IRRebuilder CreateRebuilder<TMode>(
                 ParameterMapping parameterMapping,
-                in BasicBlockCollection<ReversePostOrder> blocks,
-                MethodMapping methodMapping) =>
-                new IRRebuilder(
+                MethodMapping methodMapping,
+                in BasicBlockCollection<ReversePostOrder> blocks)
+                where TMode : IRRebuilder.IMode =>
+                IRRebuilder.Create<TMode>(
                     this,
                     parameterMapping,
-                    blocks,
-                    methodMapping);
+                    methodMapping,
+                    blocks);
 
             /// <summary>
             /// Adds a new parameter to the encapsulated function.

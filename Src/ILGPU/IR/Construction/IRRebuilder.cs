@@ -9,11 +9,9 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Frontend;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Construction
@@ -23,6 +21,118 @@ namespace ILGPU.IR.Construction
     /// </summary>
     public sealed class IRRebuilder
     {
+        #region Nested Types
+
+        /// <summary>
+        /// An abstract rebuilder mode.
+        /// </summary>
+        public interface IMode
+        {
+            /// <summary>
+            /// Initializes a new block mapping.
+            /// </summary>
+            /// <param name="builder">The parent builder.</param>
+            /// <param name="blocks">The block collection.</param>
+            /// <param name="mapping">The mapping to initialize.</param>
+            void InitMapping(
+                Method.Builder builder,
+                in BasicBlockCollection<ReversePostOrder> blocks,
+                ref BasicBlockMap<BasicBlock.Builder> mapping);
+        }
+
+        /// <summary>
+        /// The clone mode for rebuilding methods into a stub.
+        /// </summary>
+        public readonly struct CloneMode : IMode
+        {
+            /// <summary>
+            /// Initializes a new mapping that maps each block to a new block except
+            /// the init block which will be rewired.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void InitMapping(
+                Method.Builder builder,
+                in BasicBlockCollection<ReversePostOrder> blocks,
+                ref BasicBlockMap<BasicBlock.Builder> mapping)
+            {
+                // Handle entry block
+                mapping.Add(blocks.EntryBlock, builder.EntryBlockBuilder);
+
+                // Create blocks and prepare phi nodes
+                foreach (var block in blocks)
+                {
+                    if (mapping.Contains(block))
+                        continue;
+                    mapping.Add(
+                        block,
+                        builder.CreateBasicBlock(
+                            block.Location,
+                            block.Name));
+                }
+            }
+        }
+
+        /// <summary>
+        /// The inlining mode for rebuilding a method into a set of new blocks.
+        /// </summary>
+        public readonly struct InlineMode : IMode
+        {
+            /// <summary>
+            /// Initializes a new mapping that maps each block to a new block.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void InitMapping(
+                Method.Builder builder,
+                in BasicBlockCollection<ReversePostOrder> blocks,
+                ref BasicBlockMap<BasicBlock.Builder> mapping)
+            {
+                // Create new blocks
+                foreach (var block in blocks)
+                {
+                    mapping.Add(
+                        block,
+                        builder.CreateBasicBlock(
+                            block.Location,
+                            block.Name));
+                }
+            }
+        }
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Creates a new rebuilder.
+        /// </summary>
+        /// <typeparam name="TMode">The rebuilder mode.</typeparam>
+        /// <param name="builder">The parent builder.</param>
+        /// <param name="parameterMapping">The used parameter remapping.</param>
+        /// <param name="methodRemapping">The used method remapping.</param>
+        /// <param name="blocks">The block collection.</param>
+        /// <returns>The created rebuilder.</returns>
+        public static IRRebuilder Create<TMode>(
+            Method.Builder builder,
+            Method.ParameterMapping parameterMapping,
+            Method.MethodMapping methodRemapping,
+            in BasicBlockCollection<ReversePostOrder> blocks)
+            where TMode : IMode
+        {
+            // Init mapping
+            var blockMapping = blocks.CreateMap<ReversePostOrder, BasicBlock.Builder>();
+            TMode mode = default;
+            mode.InitMapping(builder, blocks, ref blockMapping);
+
+            return new IRRebuilder(
+                builder,
+                parameterMapping,
+                methodRemapping,
+                blocks,
+                blockMapping);
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -33,8 +143,7 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Maps old blocks to new block builders.
         /// </summary>
-        private readonly Dictionary<BasicBlock, BasicBlock.Builder> blockMapping =
-            new Dictionary<BasicBlock, BasicBlock.Builder>();
+        private BasicBlockMap<BasicBlock.Builder> blockMapping;
 
         /// <summary>
         /// Maps old phi nodes to new phi builders.
@@ -55,13 +164,16 @@ namespace ILGPU.IR.Construction
         /// <param name="parameterMapping">The used parameter remapping.</param>
         /// <param name="blocks">The block collection.</param>
         /// <param name="methodRemapping">The used method remapping.</param>
-        internal IRRebuilder(
+        /// <param name="blockRemapping">The internal block remapping.</param>
+        private IRRebuilder(
             Method.Builder builder,
             Method.ParameterMapping parameterMapping,
+            Method.MethodMapping methodRemapping,
             in BasicBlockCollection<ReversePostOrder> blocks,
-            Method.MethodMapping methodRemapping)
+            in BasicBlockMap<BasicBlock.Builder> blockRemapping)
         {
             methodMapping = methodRemapping;
+            blockMapping = blockRemapping;
             Builder = builder;
             Blocks = blocks;
 
@@ -69,18 +181,10 @@ namespace ILGPU.IR.Construction
             foreach (var param in blocks.Method.Parameters)
                 valueMapping.Add(param, parameterMapping[param]);
 
-            // Handle entry block
-            blockMapping.Add(blocks.EntryBlock, builder.EntryBlockBuilder);
-
-            // Create blocks and prepare phi nodes
+            // Prepare all phi nodes
             foreach (var block in blocks)
             {
-                if (!blockMapping.TryGetValue(block, out var newBlock))
-                {
-                    newBlock = builder.CreateBasicBlock(block.Location, block.Name);
-                    blockMapping.Add(block, newBlock);
-                }
-
+                var newBlock = blockMapping[block];
                 foreach (Value value in block)
                 {
                     if (value is PhiValue phiValue)
@@ -132,10 +236,9 @@ namespace ILGPU.IR.Construction
         /// Rebuilds all values.
         /// </summary>
         /// <returns>An array of exit blocks and their return values.</returns>
-        public ImmutableArray<(BasicBlock.Builder, Value)> Rebuild()
+        public List<(BasicBlock.Builder, Value)> Rebuild()
         {
-            var exitBlocks = ImmutableArray.CreateBuilder<
-                (BasicBlock.Builder, Value)>(Blocks.Count);
+            var exitBlocks = new List<(BasicBlock.Builder, Value)>(2);
 
             // Rebuild all instructions
             foreach (var block in Blocks)
@@ -171,7 +274,7 @@ namespace ILGPU.IR.Construction
                 targetPhiBuilder.Seal();
             }
 
-            return exitBlocks.ToImmutable();
+            return exitBlocks;
         }
 
         /// <summary>
