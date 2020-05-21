@@ -11,6 +11,9 @@
 
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Analyses.ControlFlowDirection;
+using ILGPU.IR.Analyses.TraversalOrders;
+using ILGPU.IR.Construction;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -52,17 +55,19 @@ namespace ILGPU.Frontend
                 CodeGenerator = codeGenerator;
                 Builder = methodBuilder;
 
-                EntryBlock = AppendBasicBlock(methodBuilder.Location, 0);
+                EntryBlock = new Block(
+                    codeGenerator,
+                    methodBuilder[methodBuilder.EntryBlock]);
+                blockMapping.Add(0, EntryBlock);
+                basicBlockMapping.Add(EntryBlock.BasicBlock, EntryBlock);
                 BuildBasicBlocks();
-                methodBuilder.EntryBlock = EntryBlock.BasicBlock;
 
                 var visited = new HashSet<Block>();
                 SetupBasicBlocks(visited, EntryBlock, 0);
-
                 WireBlocks();
 
-                Scope = Builder.Method.CreateScope(ScopeFlags.AddAlreadyVisitedNodes);
-                CFG = Scope.CreateCFG();
+                Blocks = methodBuilder.ComputeSSABlockOrder();
+                CFG = Blocks.CreateCFG();
 
                 // Update internal block mapping
                 foreach (var cfgNode in CFG)
@@ -266,14 +271,14 @@ namespace ILGPU.Frontend
             public CodeGenerator CodeGenerator { get; }
 
             /// <summary>
-            /// Returns the associated scope.
+            /// Returns the associated block collection.
             /// </summary>
-            public Scope Scope { get; }
+            public BasicBlockCollection<ReversePostOrder> Blocks { get; }
 
             /// <summary>
             /// Returns the associated CFG.
             /// </summary>
-            public CFG CFG { get; }
+            public CFG<ReversePostOrder, Forwards> CFG { get; }
 
             /// <summary>
             /// Returns the internal method builder.
