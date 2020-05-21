@@ -142,10 +142,9 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         protected override CLCodeGenerator CreateFunctionCodeGenerator(
             Method method,
-            Scope scope,
             Allocas allocas,
             CLCodeGenerator.GeneratorArgs data) =>
-            new CLFunctionGenerator(data, scope, allocas);
+            new CLFunctionGenerator(data, method, allocas);
 
         /// <summary>
         /// Generates a new <see cref="CLKernelFunctionGenerator"/>.
@@ -153,10 +152,9 @@ namespace ILGPU.Backends.OpenCL
         protected override CLCodeGenerator CreateKernelCodeGenerator(
             in AllocaKindInformation sharedAllocations,
             Method method,
-            Scope scope,
             Allocas allocas,
             CLCodeGenerator.GeneratorArgs data) =>
-            new CLKernelFunctionGenerator(data, scope, allocas);
+            new CLKernelFunctionGenerator(data, method, allocas);
 
         /// <summary>
         /// Creates a new <see cref="CLCompiledKernel"/>.
