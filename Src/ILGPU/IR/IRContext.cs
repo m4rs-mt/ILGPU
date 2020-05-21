@@ -373,7 +373,7 @@ namespace ILGPU.IR
                 MethodFlags.External | MethodFlags.Intrinsic))
             {
                 using var builder = method.CreateBuilder();
-                var bbBuilder = builder.CreateEntryBlock();
+                var bbBuilder = builder.EntryBlockBuilder;
                 var returnValue = bbBuilder.CreateNull(
                     method.Location,
                     method.ReturnType);
@@ -385,17 +385,15 @@ namespace ILGPU.IR
         /// <summary>
         /// Imports the given method (and all dependencies) into this context.
         /// </summary>
-        /// <typeparam name="TScopeProvider">
-        /// The provider to resolve methods to scopes.
-        /// </typeparam>
         /// <param name="source">The method to import.</param>
-        /// <param name="scopeProvider">Resolves methods to scopes.</param>
         /// <returns>The imported method.</returns>
-        public Method Import<TScopeProvider>(
-            Method source,
-            TScopeProvider scopeProvider)
-            where TScopeProvider : IScopeProvider
+        public Method Import(Method source)
         {
+            if (source is null)
+                throw source.GetArgumentException(nameof(source));
+            if (source.Context == this)
+                throw source.GetInvalidOperationException();
+
             irLock.EnterUpgradeableReadLock();
             try
             {
@@ -405,7 +403,7 @@ namespace ILGPU.IR
                 irLock.EnterWriteLock();
                 try
                 {
-                    return ImportInternal(source, scopeProvider);
+                    return ImportInternal(source);
                 }
                 finally
                 {
@@ -421,36 +419,23 @@ namespace ILGPU.IR
         /// <summary>
         /// Imports the given method (and all dependencies) into this context.
         /// </summary>
-        /// <typeparam name="TScopeProvider">
-        /// The provider to resolve methods to scopes.
-        /// </typeparam>
         /// <param name="source">The method to import.</param>
-        /// <param name="scopeProvider">Resolves methods to scopes.</param>
         /// <returns>The imported method.</returns>
-        private Method ImportInternal<TScopeProvider>(
-            Method source,
-            TScopeProvider scopeProvider)
-            where TScopeProvider : IScopeProvider
+        private Method ImportInternal(Method source)
         {
-            Debug.Assert(source != null, "Invalid source");
-            Debug.Assert(
-                source.Context != this,
-                "Cannot import a function into the same context");
-
-            var allReferences = AllReferences.Create(
-                scopeProvider[source],
-                new MethodCollections.AllMethods(),
-                scopeProvider);
+            var allReferences = References.CreateRecursive(
+                source.Blocks,
+                new MethodCollections.AllMethods());
 
             // Declare all functions and build mapping
             var methodsToRebuild = new List<Method>();
             var targetMapping = new Dictionary<Method, Method>();
             foreach (var entry in allReferences)
             {
-                var declared = Declare(entry.Key.Declaration, out bool created);
-                targetMapping.Add(entry.Key, declared);
+                var declared = Declare(entry.Declaration, out bool created);
+                targetMapping.Add(entry, declared);
                 if (created)
-                    methodsToRebuild.Add(entry.Key);
+                    methodsToRebuild.Add(entry);
             }
 
             // Rebuild all functions while using the created mapping
@@ -472,10 +457,9 @@ namespace ILGPU.IR
                     parameterArguments.MoveToImmutable());
 
                 // Rebuild the source function into this context
-                var references = allReferences[sourceMethod];
                 var rebuilder = builder.CreateRebuilder(
                     parameterMapping,
-                    references.Scope,
+                    sourceMethod.Blocks,
                     methodMapping);
 
                 // Create appropriate return instructions
@@ -486,9 +470,6 @@ namespace ILGPU.IR
                         returnValue.Location,
                         returnValue);
                 }
-
-                // Wire entry block
-                builder.EntryBlock = rebuilder.EntryBlock.BasicBlock;
             }
 
             return targetMapping[source];
