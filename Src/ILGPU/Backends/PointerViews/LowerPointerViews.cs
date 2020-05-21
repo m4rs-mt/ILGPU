@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
-using ILGPU.IR.Analyses;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
@@ -258,8 +257,7 @@ namespace ILGPU.Backends.PointerViews
         /// Creates a new <see cref="PointerViewLowering"/> converter.
         /// </summary>
         protected override TypeLowering<ViewType> CreateLoweringConverter(
-            Method.Builder builder,
-            Scope _) =>
+            Method.Builder builder) =>
             new PointerViewLowering(builder);
 
         /// <summary>
