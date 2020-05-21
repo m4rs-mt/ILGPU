@@ -27,10 +27,12 @@ jobs:
       - name: CPU Tests
         run: dotnet test --configuration=Release ./Src/ILGPU.Tests.CPU
       - name: Set up NuGet
+        if: runner.os == 'Windows'
         uses: nuget/setup-nuget@v1
         with:
           nuget-version: '5.x'
       - name: Create NuGet package
+        if: runner.os == 'Windows'
         run: nuget pack .nuget/ILGPU.nuspec
       - name: Upload NuGet package artifact
         if: runner.os == 'Windows'
