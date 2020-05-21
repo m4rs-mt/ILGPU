@@ -9,7 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
+using ILGPU.Frontend;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -52,27 +53,33 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="builder">The parent builder.</param>
         /// <param name="parameterMapping">The used parameter remapping.</param>
-        /// <param name="scope">The parent scope.</param>
+        /// <param name="blocks">The block collection.</param>
         /// <param name="methodRemapping">The used method remapping.</param>
         internal IRRebuilder(
             Method.Builder builder,
             Method.ParameterMapping parameterMapping,
-            Scope scope,
+            in BasicBlockCollection<ReversePostOrder> blocks,
             Method.MethodMapping methodRemapping)
         {
             methodMapping = methodRemapping;
             Builder = builder;
-            Scope = scope;
+            Blocks = blocks;
 
             // Insert parameters into local mapping
-            foreach (var param in scope.Method.Parameters)
+            foreach (var param in blocks.Method.Parameters)
                 valueMapping.Add(param, parameterMapping[param]);
 
+            // Handle entry block
+            blockMapping.Add(blocks.EntryBlock, builder.EntryBlockBuilder);
+
             // Create blocks and prepare phi nodes
-            foreach (var block in scope)
+            foreach (var block in blocks)
             {
-                var newBlock = builder.CreateBasicBlock(block.Location, block.Name);
-                blockMapping.Add(block, newBlock);
+                if (!blockMapping.TryGetValue(block, out var newBlock))
+                {
+                    newBlock = builder.CreateBasicBlock(block.Location, block.Name);
+                    blockMapping.Add(block, newBlock);
+                }
 
                 foreach (Value value in block)
                 {
@@ -103,14 +110,14 @@ namespace ILGPU.IR.Construction
         public Method.Builder Builder { get; }
 
         /// <summary>
-        /// Returns the associated scope.
+        /// Returns the associated collection.
         /// </summary>
-        public Scope Scope { get; }
+        public BasicBlockCollection<ReversePostOrder> Blocks { get; }
 
         /// <summary>
         /// Returns the target entry block.
         /// </summary>
-        public BasicBlock.Builder EntryBlock => blockMapping[Scope.EntryBlock];
+        public BasicBlock.Builder EntryBlock => blockMapping[Blocks.EntryBlock];
 
         /// <summary>
         /// Gets or sets the current block builder.
@@ -128,10 +135,10 @@ namespace ILGPU.IR.Construction
         public ImmutableArray<(BasicBlock.Builder, Value)> Rebuild()
         {
             var exitBlocks = ImmutableArray.CreateBuilder<
-                (BasicBlock.Builder, Value)>(Scope.Count);
+                (BasicBlock.Builder, Value)>(Blocks.Count);
 
             // Rebuild all instructions
-            foreach (var block in Scope)
+            foreach (var block in Blocks)
             {
                 var newBlock = blockMapping[block];
                 CurrentBlock = newBlock;

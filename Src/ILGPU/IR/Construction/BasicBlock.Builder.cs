@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -90,6 +89,7 @@ namespace ILGPU.IR
                     if (value != null)
                         value.BasicBlock = BasicBlock;
                     BasicBlock.Terminator = value;
+                    MethodBuilder.ScheduleBlockOrderUpdate();
                 }
             }
 
@@ -311,39 +311,17 @@ namespace ILGPU.IR
             /// <summary>
             /// Specializes a function call.
             /// </summary>
-            /// <typeparam name="TScopeProvider">
-            /// The provider to resolve methods to scopes.
-            /// </typeparam>
             /// <param name="call">The call to specialize.</param>
-            /// <param name="scopeProvider">Resolves methods to scopes.</param>
             /// <returns>The created target block.</returns>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Builder SpecializeCall<TScopeProvider>(
-                MethodCall call,
-                TScopeProvider scopeProvider)
-                where TScopeProvider : IScopeProvider
+            public Builder SpecializeCall(MethodCall call)
             {
-                this.AssertNotNull(call);
-
-                var scope = scopeProvider[call.Target];
-                return SpecializeCall(call, scope);
-            }
-
-            /// <summary>
-            /// Specializes a function call.
-            /// </summary>
-            /// <param name="call">The call to specialize.</param>
-            /// <param name="scope">The call target's scope.</param>
-            /// <returns>The created target block.</returns>
-            public Builder SpecializeCall(MethodCall call, Scope scope)
-            {
-                call.Assert(scope.Method == call.Target);
-
                 // Perform local rebuilding step
                 var callTarget = call.Target;
                 var tempBlock = SplitBlock(call, false);
-                var mapping = scope.Method.CreateParameterMapping(call.Nodes);
-                var rebuilder = MethodBuilder.CreateRebuilder(mapping, scope);
+                var mapping = callTarget.CreateParameterMapping(call.Nodes);
+                var rebuilder = MethodBuilder.CreateRebuilder(
+                    mapping,
+                    callTarget.Blocks);
                 var exitBlocks = rebuilder.Rebuild();
 
                 // Wire current block with new entry block
@@ -408,13 +386,12 @@ namespace ILGPU.IR
             public Builder SplitBlock(Value splitPoint, bool keepSplitPoint)
             {
                 PerformRemoval();
-
-                Debug.Assert(splitPoint != null, "Invalid split point");
+                this.AssertNotNull(splitPoint);
 
                 // Create a new basic block to jump to
                 var valueIndex = Values.IndexOf(splitPoint);
                 var splitPointOffset = keepSplitPoint ? 0 : 1;
-                Debug.Assert(valueIndex >= 0, "Invalid split point");
+                this.Assert(valueIndex >= 0);
 
                 // Create temp block and move instructions
                 var tempBlock = MethodBuilder.CreateBasicBlock(

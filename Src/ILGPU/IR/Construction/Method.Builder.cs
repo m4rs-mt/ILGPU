@@ -9,7 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
+using ILGPU.IR.Analyses.Duplicates;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -27,11 +28,18 @@ namespace ILGPU.IR
         /// <summary>
         /// A builder to build methods.
         /// </summary>
-        public sealed class Builder : DisposeBase, IMethodMappingObject, ILocation
+        public sealed class Builder :
+            DisposeBase,
+            IMethodMappingObject,
+            ILocation,
+            IBasicBlockCollection<ReversePostOrder>
         {
             #region Instance
 
             private readonly ImmutableArray<Parameter>.Builder parameters;
+
+            private int blockCounter;
+            private bool updateBlockOrder = false;
 
             /// <summary>
             /// All created basic block builders.
@@ -47,6 +55,8 @@ namespace ILGPU.IR
             {
                 Method = method;
                 parameters = method.parameters.ToBuilder();
+                blockCounter = method.Blocks.Count;
+                EntryBlock = method.EntryBlock;
             }
 
             #endregion
@@ -69,13 +79,14 @@ namespace ILGPU.IR
             public Location Location => Method.Location;
 
             /// <summary>
-            /// Gets or sets the current entry block.
+            /// Gets the current entry block.
             /// </summary>
-            public BasicBlock EntryBlock
-            {
-                get => Method.EntryBlock;
-                set => Method.EntryBlock = value;
-            }
+            public BasicBlock EntryBlock { get; }
+
+            /// <summary>
+            /// Returns the builder of the entry block.
+            /// </summary>
+            public BasicBlock.Builder EntryBlockBuilder => this[EntryBlock];
 
             /// <summary>
             /// Returns the associated function handle.
@@ -86,6 +97,11 @@ namespace ILGPU.IR
             /// Returns the original source method (may be null).
             /// </summary>
             public MethodBase Source => Method.Source;
+
+            /// <summary>
+            /// Returns all blocks of the source method.
+            /// </summary>
+            public BasicBlockCollection<ReversePostOrder> SourceBlocks => Method.Blocks;
 
             /// <summary>
             /// Returns the parameter with the given index.
@@ -106,7 +122,6 @@ namespace ILGPU.IR
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get
                 {
-                    Debug.Assert(basicBlock != null, "Invalid basic block to lookup");
                     Debug.Assert(
                         basicBlock.Method == Method,
                         "Invalid associated function");
@@ -128,6 +143,11 @@ namespace ILGPU.IR
             #endregion
 
             #region Methods
+
+            /// <summary>
+            /// Schedules updates of the block order.
+            /// </summary>
+            public void ScheduleBlockOrderUpdate() => updateBlockOrder = true;
 
             /// <summary>
             /// Formats an error message to include the current debug information.
@@ -162,31 +182,17 @@ namespace ILGPU.IR
             }
 
             /// <summary>
-            /// Creates a new method scope with default flags.
-            /// </summary>
-            /// <returns>A new method scope.</returns>
-            public Scope CreateScope() => Method.CreateScope();
-
-            /// <summary>
-            /// Creates a new method scope with custom flags.
-            /// </summary>
-            /// <param name="scopeFlags">The scope flags.</param>
-            /// <returns>A new method scope.</returns>
-            public Scope CreateScope(ScopeFlags scopeFlags) =>
-                Method.CreateScope(scopeFlags);
-
-            /// <summary>
             /// Creates a new rebuilder that works on the given scope.
             /// </summary>
             /// <param name="parameterMapping">
             /// The target value of every parameter.
             /// </param>
-            /// <param name="scope">The used scope.</param>
+            /// <param name="blocks">The block collection.</param>
             /// <returns>The created rebuilder.</returns>
             public IRRebuilder CreateRebuilder(
                 ParameterMapping parameterMapping,
-                Scope scope) =>
-                CreateRebuilder(parameterMapping, scope, default);
+                in BasicBlockCollection<ReversePostOrder> blocks) =>
+                CreateRebuilder(parameterMapping, blocks, default);
 
             /// <summary>
             /// Creates a new rebuilder that works on the given scope.
@@ -194,24 +200,18 @@ namespace ILGPU.IR
             /// <param name="parameterMapping">
             /// The target value of every parameter.
             /// </param>
-            /// <param name="scope">The used scope.</param>
+            /// <param name="blocks">The block collection.</param>
             /// <param name="methodMapping">The method mapping.</param>
             /// <returns>The created rebuilder.</returns>
             public IRRebuilder CreateRebuilder(
                 ParameterMapping parameterMapping,
-                Scope scope,
-                MethodMapping methodMapping)
-            {
-                this.Assert(parameterMapping.Method == scope.Method);
-                this.Assert(scope != null);
-                this.Assert(scope.Method != Method);
-
-                return new IRRebuilder(
+                in BasicBlockCollection<ReversePostOrder> blocks,
+                MethodMapping methodMapping) =>
+                new IRRebuilder(
                     this,
                     parameterMapping,
-                    scope,
+                    blocks,
                     methodMapping);
-            }
 
             /// <summary>
             /// Adds a new parameter to the encapsulated function.
@@ -271,17 +271,6 @@ namespace ILGPU.IR
                     name);
 
             /// <summary>
-            /// Creates a new entry block.
-            /// </summary>
-            /// <returns>The created entry block.</returns>
-            public BasicBlock.Builder CreateEntryBlock()
-            {
-                var block = CreateBasicBlock(Method.Location, "Entry");
-                EntryBlock = block.BasicBlock;
-                return block;
-            }
-
-            /// <summary>
             /// Creates a new basic block.
             /// </summary>
             /// <param name="location">The current location.</param>
@@ -299,6 +288,8 @@ namespace ILGPU.IR
             public BasicBlock.Builder CreateBasicBlock(Location location, string name)
             {
                 var block = new BasicBlock(Method, location, name);
+                block.SetupBlockIndex(blockCounter++);
+                ScheduleBlockOrderUpdate();
                 return this[block];
             }
 
@@ -323,6 +314,33 @@ namespace ILGPU.IR
                 in MethodDeclaration declaration,
                 out bool created) =>
                 Context.Declare(declaration, out created);
+
+            /// <summary>
+            /// Computes an updated block order.
+            /// </summary>
+            /// <typeparam name="TOtherOrder">The collection order.</typeparam>
+            /// <typeparam name="TOtherOrderProvider">
+            /// The collection order provider.
+            /// </typeparam>
+            /// <typeparam name="TDuplicates">The duplicate specification.</typeparam>
+            /// <returns>The newly ordered collection.</returns>
+             public BasicBlockCollection<TOtherOrder> ComputeBlockOrder<
+                TOtherOrder,
+                TOtherOrderProvider,
+                TDuplicates>()
+                where TOtherOrder : struct, ITraversalOrderView<TOtherOrderProvider>
+                where TOtherOrderProvider : struct, ITraversalOrderProvider
+                where TDuplicates : struct, IDuplicates<BasicBlock>
+            {
+                var newBlocks = ImmutableArray.CreateBuilder<BasicBlock>(blockCounter);
+                TOtherOrderProvider orderProvider = default;
+                orderProvider.Traverse<ImmutableArray<BasicBlock>.Builder, TDuplicates>(
+                    EntryBlock,
+                    newBlocks);
+                return new BasicBlockCollection<TOtherOrder>(
+                    EntryBlock,
+                    newBlocks.ToImmutable());
+            }
 
             #endregion
 
@@ -349,6 +367,25 @@ namespace ILGPU.IR
                     // Dispose all basic block builders
                     foreach (var builder in basicBlockBuilders)
                         builder.Dispose();
+
+                    // Update block order
+                    if (updateBlockOrder)
+                    {
+                        // Compute new block order
+                        var blockOrder = ComputeBlockOrder<
+                            ReversePostOrder,
+                            PostOrder,
+                            NoDuplicates<BasicBlock>>();
+
+                        // Update block indices
+                        int blockIndex = 0;
+                        foreach (var block in blockOrder)
+                            block.SetupBlockIndex(blockIndex++);
+
+                        // Apply changes to the method
+                        Method.blocks = blockOrder.AsImmutable();
+                    }
+
                     Method.ReleaseBuilder(this);
                 }
                 base.Dispose(disposing);
