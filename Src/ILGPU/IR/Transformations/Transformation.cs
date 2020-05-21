@@ -280,17 +280,14 @@ namespace ILGPU.IR.Transformations
             /// <param name="parent">The parent transformation.</param>
             /// <param name="landscape">The current landscape.</param>
             /// <param name="entry">The current landscape entry.</param>
-            /// <param name="cachedScopeProvider">The cached scope provider.</param>
             public Executor(
                 OrderedTransformation parent,
                 Landscape landscape,
-                Landscape.Entry entry,
-                CachedScopeProvider cachedScopeProvider)
+                Landscape.Entry entry)
             {
                 Parent = parent;
                 Landscape = landscape;
                 Entry = entry;
-                CachedScopeProvider = cachedScopeProvider;
             }
 
             /// <summary>
@@ -309,11 +306,6 @@ namespace ILGPU.IR.Transformations
             public Landscape.Entry Entry { get; }
 
             /// <summary>
-            /// Returns the scope provider.
-            /// </summary>
-            public CachedScopeProvider CachedScopeProvider { get; }
-
-            /// <summary>
             /// Applies the parent transformation.
             /// </summary>
             /// <param name="builder">The current builder.</param>
@@ -322,8 +314,7 @@ namespace ILGPU.IR.Transformations
                 Parent.PerformTransformation(
                     builder,
                     Landscape,
-                    Entry,
-                    CachedScopeProvider);
+                    Entry);
         }
 
         #endregion
@@ -352,10 +343,9 @@ namespace ILGPU.IR.Transformations
             if (landscape.Count < 1)
                 return;
 
-            var scopeProvider = new CachedScopeProvider();
             foreach (var entry in landscape)
             {
-                var executor = new Executor(this, landscape, entry, scopeProvider);
+                var executor = new Executor(this, landscape, entry);
                 using var irBuilder = entry.Method.CreateBuilder();
                 ExecuteTransform(irBuilder, executor);
             }
@@ -364,19 +354,13 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Transforms the given method using the provided builder.
         /// </summary>
-        /// <typeparam name="TScopeProvider">
-        /// The provider to resolve methods to scopes.
-        /// </typeparam>
         /// <param name="builder">The current method builder.</param>
         /// <param name="landscape">The global processing landscape.</param>
         /// <param name="current">The current landscape entry.</param>
-        /// <param name="scopeProvider">Resolves methods to scopes.</param>
-        protected abstract bool PerformTransformation<TScopeProvider>(
+        protected abstract bool PerformTransformation(
             Method.Builder builder,
             Landscape landscape,
-            Landscape.Entry current,
-            TScopeProvider scopeProvider)
-            where TScopeProvider : IScopeProvider;
+            Landscape.Entry current);
 
         #endregion
     }
