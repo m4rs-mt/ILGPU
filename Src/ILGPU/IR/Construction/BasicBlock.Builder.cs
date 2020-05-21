@@ -319,7 +319,7 @@ namespace ILGPU.IR
                 var callTarget = call.Target;
                 var tempBlock = SplitBlock(call, false);
                 var mapping = callTarget.CreateParameterMapping(call.Nodes);
-                var rebuilder = MethodBuilder.CreateRebuilder(
+                var rebuilder = MethodBuilder.CreateRebuilder<IRRebuilder.InlineMode>(
                     mapping,
                     callTarget.Blocks);
                 var exitBlocks = rebuilder.Rebuild();
@@ -332,7 +332,7 @@ namespace ILGPU.IR
                 // Replace call with the appropriate return value
                 if (!callTarget.IsVoid)
                 {
-                    if (exitBlocks.Length < 2)
+                    if (exitBlocks.Count < 2)
                     {
                         // Replace with single return value
                         call.Replace(exitBlocks[0].Item2);

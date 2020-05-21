@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Construction;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -457,10 +458,10 @@ namespace ILGPU.IR
                     parameterArguments.MoveToImmutable());
 
                 // Rebuild the source function into this context
-                var rebuilder = builder.CreateRebuilder(
+                var rebuilder = builder.CreateRebuilder<IRRebuilder.CloneMode>(
                     parameterMapping,
-                    sourceMethod.Blocks,
-                    methodMapping);
+                    methodMapping,
+                    sourceMethod.Blocks);
 
                 // Create appropriate return instructions
                 var exitBlocks = rebuilder.Rebuild();
