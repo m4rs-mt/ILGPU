@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -101,13 +102,13 @@ namespace ILGPU.Backends.OpenCL
         /// Creates a new OpenCL function generator.
         /// </summary>
         /// <param name="args">The generation arguments.</param>
-        /// <param name="scope">The current scope.</param>
+        /// <param name="method">The current method.</param>
         /// <param name="allocas">All local allocas.</param>
         public CLKernelFunctionGenerator(
             in GeneratorArgs args,
-            Scope scope,
+            Method method,
             Allocas allocas)
-            : base(args, scope, allocas)
+            : base(args, method, allocas)
         {
             EntryPoint = args.EntryPoint;
             KernelTypeGenerator = args.KernelTypeGenerator;

@@ -12,12 +12,18 @@
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using CFG = ILGPU.IR.Analyses.CFG<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
+using CFGNode = ILGPU.IR.Analyses.CFG.Node<
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -142,7 +148,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Represents a specialized phi binding allocator.
         /// </summary>
-        private readonly struct PhiBindingAllocator : IPhiBindingAllocator
+        private readonly struct PhiBindingAllocator : IPhiBindingAllocator<Forwards>
         {
             private readonly Dictionary<BasicBlock, List<Variable>> phiMapping;
 
@@ -156,7 +162,7 @@ namespace ILGPU.Backends.OpenCL
                 phiMapping = new Dictionary<BasicBlock, List<Variable>>(cfg.Count);
                 Parent = parent;
                 CFG = cfg;
-                Dominators = Dominators.Create(cfg);
+                Dominators = cfg.ComputeDominators();
             }
 
             /// <summary>
@@ -172,13 +178,17 @@ namespace ILGPU.Backends.OpenCL
             /// <summary>
             /// Returns the referenced dominators.
             /// </summary>
-            public Dominators Dominators { get; }
+            public Dominators<Forwards> Dominators { get; }
 
-            /// <summary cref="IPhiBindingAllocator.Process(CFG.Node, Phis)"/>
-            public void Process(CFG.Node node, Phis phis) { }
+            /// <summary>
+            /// Does not perform any operation.
+            /// </summary>
+            public void Process(CFGNode node, Phis phis) { }
 
-            /// <summary cref="IPhiBindingAllocator.Allocate(CFG.Node, PhiValue)"/>
-            public void Allocate(CFG.Node node, PhiValue phiValue)
+            /// <summary>
+            /// Allocates a new phi value in the dominator block.
+            /// </summary>
+            public void Allocate(CFGNode node, PhiValue phiValue)
             {
                 var variable = Parent.Allocate(phiValue);
 
@@ -186,12 +196,12 @@ namespace ILGPU.Backends.OpenCL
                 foreach (var argument in phiValue)
                 {
                     targetNode = argument.BasicBlock == null
-                        ? CFG.EntryNode
+                        ? CFG.Root
                         : Dominators.GetImmediateCommonDominator(
                             targetNode,
                             CFG[argument.BasicBlock]);
 
-                    if (targetNode == CFG.EntryNode)
+                    if (targetNode == CFG.Root)
                         break;
                 }
 
@@ -251,13 +261,13 @@ namespace ILGPU.Backends.OpenCL
         /// Constructs a new code generator.
         /// </summary>
         /// <param name="args">The generator arguments.</param>
-        /// <param name="scope">The current scope.</param>
+        /// <param name="method">The current method.</param>
         /// <param name="allocas">All local allocas.</param>
-        internal CLCodeGenerator(in GeneratorArgs args, Scope scope, Allocas allocas)
+        internal CLCodeGenerator(in GeneratorArgs args, Method method, Allocas allocas)
             : base(args.TypeGenerator)
         {
             Backend = args.Backend;
-            Scope = scope;
+            Method = method;
             ImplementationProvider = Backend.IntrinsicProvider;
             Allocas = allocas;
 
@@ -278,12 +288,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Returns the associated method.
         /// </summary>
-        public Method Method => Scope.Method;
-
-        /// <summary>
-        /// Returns the current function scope.
-        /// </summary>
-        public Scope Scope { get; }
+        public Method Method { get; }
 
         /// <summary>
         /// Returns all local allocas.
@@ -455,16 +460,16 @@ namespace ILGPU.Backends.OpenCL
             }
 
             // Build branch targets
-            foreach (var block in Scope)
+            foreach (var block in Method.Blocks)
                 blockLookup.Add(block, DeclareLabel());
 
             // Find all phi nodes, allocate target registers and setup internal mapping
-            var cfg = Scope.CreateCFG();
+            var cfg = Method.Blocks.CreateCFG();
             var bindingAllocator = new PhiBindingAllocator(this, cfg);
             var phiBindings = PhiBindings.Create(cfg, bindingAllocator);
 
             // Generate code
-            foreach (var block in Scope)
+            foreach (var block in Method.Blocks)
             {
                 // Mark block label
                 MarkLabel(blockLookup[block]);
