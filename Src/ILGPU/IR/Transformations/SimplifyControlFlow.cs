@@ -9,8 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
-using System.Collections.Generic;
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -32,8 +31,8 @@ namespace ILGPU.IR.Transformations
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool MergeChain(
             Method.Builder builder,
-            CFG.Node rootNode,
-            HashSet<CFG.Node> mergedNodes)
+            CFG.Node<Forwards> rootNode,
+            ref BasicBlockSet mergedNodes)
         {
             if (rootNode.NumSuccessors != 1)
                 return false;
@@ -46,11 +45,15 @@ namespace ILGPU.IR.Transformations
             {
                 var nextBlock = successors[0];
 
-                // We cannot merge jump targets in div. control flow
-                if (nextBlock.NumPredecessors > 1)
+                // We cannot merge jump targets in div. control flow or in the case
+                // of the entry block
+                if (nextBlock.NumPredecessors > 1 ||
+                    nextBlock.Block == builder.EntryBlock)
+                {
                     break;
+                }
 
-                mergedNodes.Add(nextBlock);
+                mergedNodes.Add(nextBlock.Block);
                 successors = nextBlock.Successors;
                 rootBlockBuilder.MergeBlock(nextBlock.Block);
                 result = true;
@@ -78,21 +81,18 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
-            var scope = builder.CreateScope();
-            var cfg = scope.CreateCFG();
+            var blocks = builder.SourceBlocks;
+            var cfg = blocks.CreateCFG();
 
-            bool result = false;
-
-            var mergedNodes = new HashSet<CFG.Node>();
+            var mergedNodes = blocks.CreateSet();
             foreach (var cfgNode in cfg)
             {
                 if (mergedNodes.Contains(cfgNode))
                     continue;
 
-                result |= MergeChain(builder, cfgNode, mergedNodes);
+                MergeChain(builder, cfgNode, ref mergedNodes);
             }
-
-            return result;
+            return mergedNodes.HasAny;
         }
 
         #endregion

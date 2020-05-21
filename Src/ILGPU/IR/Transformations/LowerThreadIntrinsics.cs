@@ -211,7 +211,7 @@ namespace ILGPU.IR.Transformations
         /// Applies the lowering of thread intrinsics transformation.
         /// </summary>
         protected override bool PerformTransformation(Method.Builder builder) =>
-            Rewriter.Rewrite(builder);
+            Rewriter.Rewrite(builder.SourceBlocks, builder);
 
         #endregion
     }

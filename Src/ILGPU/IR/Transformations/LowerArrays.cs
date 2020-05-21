@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -295,8 +294,8 @@ namespace ILGPU.IR.Transformations
         /// Creates a new <see cref="ArrayTypeLowering"/> converter.
         /// </summary>
         protected override TypeLowering<ArrayType> CreateLoweringConverter(
-            Method.Builder builder,
-            Scope _) => new ArrayTypeLowering(builder);
+            Method.Builder builder) =>
+            new ArrayTypeLowering(builder);
 
         /// <summary>
         /// Applies the array lowering transformation.

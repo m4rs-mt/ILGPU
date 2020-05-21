@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -319,11 +318,9 @@ namespace ILGPU.IR.Transformations
         /// Creates a new type lowering converter.
         /// </summary>
         /// <param name="builder">The current builder.</param>
-        /// <param name="scope">The current scope.</param>
         /// <returns>The created rewriter.</returns>
         protected abstract TypeLowering<TType> CreateLoweringConverter(
-            Method.Builder builder,
-            Scope scope);
+            Method.Builder builder);
 
         /// <summary>
         /// Performs a complete type lowering transformation.
@@ -335,12 +332,11 @@ namespace ILGPU.IR.Transformations
             Method.Builder builder,
             Rewriter<TypeLowering<TType>> rewriter)
         {
-            var scope = builder.CreateScope();
-            var typeConverter = CreateLoweringConverter(builder, scope);
+            var typeConverter = CreateLoweringConverter(builder);
 
             // Use a static rewriter phase
             bool canRewriteBody = rewriter.TryBeginRewrite(
-                scope,
+                builder.Method.Blocks,
                 builder,
                 typeConverter,
                 out var rewriting);

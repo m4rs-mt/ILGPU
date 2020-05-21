@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Values;
@@ -250,12 +249,9 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
-            // Create scope and try to find SSA-convertible alloca nodes
-            var scope = builder.CreateScope(ScopeFlags.AddAlreadyVisitedNodes);
-
             // Search for convertible allocas
             var allocas = new HashSet<Alloca>();
-            scope.ForEachValue<Alloca>(alloca =>
+            builder.SourceBlocks.ForEachValue<Alloca>(alloca =>
             {
                 if (!alloca.IsSimpleAllocation ||
                     alloca.AddressSpace != MemoryAddressSpace.Local ||
@@ -270,7 +266,7 @@ namespace ILGPU.IR.Transformations
                 return false;
 
             // Perform SSA construction
-            var ssaBuilder = SSABuilder<Value>.Create(builder, scope);
+            var ssaBuilder = SSABuilder<Value>.Create(builder);
             return Rewriter.Rewrite(ssaBuilder, new ConstructionData(allocas));
         }
     }
