@@ -9,11 +9,12 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using BlockCollection = ILGPU.IR.BasicBlockCollection<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder>;
 
 namespace ILGPU.IR.Rewriting
 {
@@ -228,14 +229,14 @@ namespace ILGPU.IR.Rewriting
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal RewriterProcess(
                 Rewriter<TContext, TContextProvider, TContextData, T> rewriter,
-                Scope scope,
+                in BlockCollection blocks,
                 Method.Builder builder,
                 TContextData contextData,
                 T data,
                 HashSet<Value> toConvert)
             {
                 Rewriter = rewriter;
-                Scope = scope;
+                Blocks = blocks;
                 Builder = builder;
                 ContextData = contextData;
                 Data = data;
@@ -256,9 +257,9 @@ namespace ILGPU.IR.Rewriting
                 T> Rewriter { get; }
 
             /// <summary>
-            /// Returns the parent scope.
+            /// Returns the block collection.
             /// </summary>
-            public Scope Scope { get; }
+            public BlockCollection Blocks { get; }
 
             /// <summary>
             /// Returns the parent builder.
@@ -291,7 +292,7 @@ namespace ILGPU.IR.Rewriting
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool Rewrite() =>
                 Process(
-                    Scope,
+                    Blocks,
                     Builder,
                     new StaticProcessor(
                         Rewriter,
@@ -343,13 +344,13 @@ namespace ILGPU.IR.Rewriting
         /// Processes the whole scope using the processor provided.
         /// </summary>
         /// <typeparam name="TProcessor">The processor type.</typeparam>
-        /// <param name="scope">The parent scope.</param>
+        /// <param name="blocks">All blocks to process.</param>
         /// <param name="builder">The parent method builder.</param>
         /// <param name="processor">The processor instance.</param>
         /// <returns>True, if the given processor could be applied.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool Process<TProcessor>(
-            Scope scope,
+            in BlockCollection blocks,
             Method.Builder builder,
             TProcessor processor)
             where TProcessor : IProcessor
@@ -361,7 +362,7 @@ namespace ILGPU.IR.Rewriting
                 out var converted);
 
             // Apply to all values
-            foreach (var block in scope)
+            foreach (var block in blocks)
             {
                 var blockBuilder = builder[block];
                 foreach (var valueEntry in blockBuilder)
@@ -484,15 +485,17 @@ namespace ILGPU.IR.Rewriting
         /// <summary>
         /// Determines all nodes to convert.
         /// </summary>
-        /// <param name="scope">The current scope.</param>
+        /// <param name="blocks">The block collection.</param>
         /// <param name="data">The user-defined context.</param>
         /// <returns>The set of all values to convert.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected HashSet<Value> GatherNodesToConvert(Scope scope, T data)
+        protected HashSet<Value> GatherNodesToConvert(
+            in BlockCollection blocks,
+            T data)
         {
             // Determine all values to rewrite
             var toConvert = new HashSet<Value>();
-            foreach (Value value in scope.Values)
+            foreach (Value value in blocks.Values)
             {
                 if (CanRewrite(data, value))
                     toConvert.Add(value);
@@ -503,7 +506,7 @@ namespace ILGPU.IR.Rewriting
         /// <summary>
         /// Tries to rewrite the given scope using the method builder provided.
         /// </summary>
-        /// <param name="scope">The scope to apply the rewriter to.</param>
+        /// <param name="blocks">The block collection.</param>
         /// <param name="builder">The current builder.</param>
         /// <param name="contextData">The context data.</param>
         /// <param name="data">The user-defined data.</param>
@@ -511,19 +514,19 @@ namespace ILGPU.IR.Rewriting
         /// <returns>True, if some nodes to rewrite could have been determined.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected bool TryBeginRewrite(
-            Scope scope,
+            in BlockCollection blocks,
             Method.Builder builder,
             TContextData contextData,
             T data,
             out RewriterProcess rewriting)
         {
             // Determine all values to rewrite
-            var toConvert = GatherNodesToConvert(scope, data);
+            var toConvert = GatherNodesToConvert(blocks, data);
 
             // Initialize rewriting
             rewriting = new RewriterProcess(
                 this,
-                scope,
+                blocks,
                 builder,
                 contextData,
                 data,
@@ -534,19 +537,19 @@ namespace ILGPU.IR.Rewriting
         /// <summary>
         /// Rewrites the given scope on-the-fly using the method builder provided.
         /// </summary>
-        /// <param name="scope">The scope to apply the rewriter to.</param>
+        /// <param name="blocks">The block collection.</param>
         /// <param name="builder">The current builder.</param>
         /// <param name="contextData">The context data.</param>
         /// <param name="data">The user-defined data.</param>
         /// <returns>True, if the rewriter could be applied.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected bool Rewrite(
-            Scope scope,
+            in BlockCollection blocks,
             Method.Builder builder,
             TContextData contextData,
             T data) =>
             Process(
-                scope,
+                blocks,
                 builder,
                 new DynamicProcessor(this, contextData, data));
 
@@ -598,39 +601,30 @@ namespace ILGPU.IR.Rewriting
         /// <summary>
         /// Tries to rewrite the given scope using the method builder provided.
         /// </summary>
-        /// <param name="scope">The scope to apply the rewriter to.</param>
+        /// <param name="blocks">The block collection.</param>
         /// <param name="builder">The current builder.</param>
         /// <param name="data">The user-defined data.</param>
         /// <param name="rewriting">The resolved rewriting functionality.</param>
         /// <returns>True, if some nodes to rewrite could have been determined.</returns>
         public bool TryBeginRewrite(
-            Scope scope,
+            in BlockCollection blocks,
             Method.Builder builder,
             T data,
             out RewriterProcess rewriting) =>
-            TryBeginRewrite(scope, builder, null, data, out rewriting);
-
-        /// <summary>
-        /// Rewrites the specified scope on-the-fly using the method builder provided.
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        /// <param name="context">The user-defined context.</param>
-        /// <returns>True, if the rewriter could be applied.</returns>
-        public bool Rewrite(Method.Builder builder, T context) =>
-            Rewrite(builder.CreateScope(), builder, null, context);
+            TryBeginRewrite(blocks, builder, null, data, out rewriting);
 
         /// <summary>
         /// Rewrites the given scope on-the-fly using the method builder provided.
         /// </summary>
-        /// <param name="scope">The scope to apply the rewriter to.</param>
+        /// <param name="blocks">The block collection.</param>
         /// <param name="builder">The current builder.</param>
         /// <param name="data">The user-defined data.</param>
         /// <returns>True, if the rewriter could be applied.</returns>
         public bool Rewrite(
-            Scope scope,
+            in BlockCollection blocks,
             Method.Builder builder,
             T data) =>
-            Rewrite(scope, builder, null, data);
+            Rewrite(blocks, builder, null, data);
     }
 
     /// <summary>
@@ -684,31 +678,23 @@ namespace ILGPU.IR.Rewriting
         /// <summary>
         /// Tries to rewrite the given scope using the method builder provided.
         /// </summary>
-        /// <param name="scope">The scope to apply the rewriter to.</param>
+        /// <param name="blocks">The block collection.</param>
         /// <param name="builder">The current builder.</param>
         /// <param name="rewriting">The resolved rewriting functionality.</param>
         /// <returns>True, if some nodes to rewrite could have been determined.</returns>
         public bool TryBeginRewrite(
-            Scope scope,
+            in BlockCollection blocks,
             Method.Builder builder,
             out RewriterProcess rewriting) =>
-            TryBeginRewrite(scope, builder, null, out rewriting);
-
-        /// <summary>
-        /// Rewrites the specified scope on-the-fly using the method builder provided.
-        /// </summary>
-        /// <param name="builder">The current builder.</param>
-        /// <returns>True, if the rewriter could be applied.</returns>
-        public bool Rewrite(Method.Builder builder) =>
-            Rewrite(builder, null);
+            TryBeginRewrite(blocks, builder, null, out rewriting);
 
         /// <summary>
         /// Rewrites the given scope on-the-fly using the method builder provided.
         /// </summary>
-        /// <param name="scope">The scope to apply the rewriter to.</param>
+        /// <param name="blocks">The block collection.</param>
         /// <param name="builder">The current builder.</param>
         /// <returns>True, if the rewriter could be applied.</returns>
-        public bool Rewrite(Scope scope, Method.Builder builder) =>
-            Rewrite(scope, builder, null);
+        public bool Rewrite(in BlockCollection blocks, Method.Builder builder) =>
+            Rewrite(blocks, builder, null);
     }
 }

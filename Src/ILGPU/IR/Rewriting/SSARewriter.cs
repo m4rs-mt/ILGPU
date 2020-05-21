@@ -256,7 +256,9 @@ namespace ILGPU.IR.Rewriting
                 processor,
                 out var converted);
 
-            foreach (var block in ssaBuilder.CFG.Scope)
+            // Compute a fresh reverse post order including duplicates for processing
+            var blocks = ssaBuilder.Blocks.ComputeSSABlockOrder();
+            foreach (var block in blocks)
             {
                 if (!ssaBuilder.ProcessAndSeal(block))
                     continue;
@@ -313,7 +315,7 @@ namespace ILGPU.IR.Rewriting
             out RewriterProcess rewriting)
         {
             // Determine all values to rewrite
-            var toConvert = GatherNodesToConvert(ssaBuilder.Scope, data);
+            var toConvert = GatherNodesToConvert(ssaBuilder.Blocks, data);
 
             // Initialize rewriting
             rewriting = new RewriterProcess(
