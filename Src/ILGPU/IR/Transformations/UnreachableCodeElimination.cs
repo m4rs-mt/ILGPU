@@ -9,9 +9,11 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
+using ILGPU.IR.Analyses.Duplicates;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Values;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
@@ -32,26 +34,34 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Initializes a new scope.
             /// </summary>
-            public PhiArgumentRemapper(Scope scope)
+            public PhiArgumentRemapper(in HashSet<BasicBlock> blocks)
             {
-                Scope = scope;
+                Blocks = blocks;
             }
 
             /// <summary>
             /// Returns the associated scope.
             /// </summary>
-            public Scope Scope { get; }
+            private HashSet<BasicBlock> Blocks { get; }
+
+            /// <summary>
+            /// Returns true if the given block is reachable.
+            /// </summary>
+            /// <param name="block">The block to test.</param>
+            /// <returns>True, if the given block is reachable.</returns>
+            public readonly bool IsReachable(BasicBlock block) =>
+                Blocks.Contains(block);
 
             /// <summary>
             /// Returns true if any of the given blocks is no longer in the current
             /// scope.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool CanRemap(ImmutableArray<BasicBlock> blocks)
+            public readonly bool CanRemap(ImmutableArray<BasicBlock> blocks)
             {
                 foreach (var block in blocks)
                 {
-                    if (!Scope.Contains(block))
+                    if (!IsReachable(block))
                         return true;
                 }
                 return false;
@@ -62,11 +72,28 @@ namespace ILGPU.IR.Transformations
             /// unreachable.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool TryRemap(BasicBlock block, out BasicBlock newBlock)
+            public readonly bool TryRemap(BasicBlock block, out BasicBlock newBlock)
             {
                 newBlock = block;
-                return Scope.Contains(block);
+                return IsReachable(block);
             }
+        }
+
+        #endregion
+
+        #region Rewriter Methods
+
+        /// <summary>
+        /// Updates reachable phi values that have references to unreachable parts.
+        /// </summary>
+        private static void Update(
+            RewriterContext context,
+            PhiArgumentRemapper remapper,
+            PhiValue phiValue)
+        {
+            if (!remapper.IsReachable(phiValue.BasicBlock))
+                return;
+            phiValue.RemapArguments(context.Builder, remapper);
         }
 
         #endregion
@@ -84,8 +111,7 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         static UnreachableCodeElimination()
         {
-            Rewriter.Add<PhiValue>((context, mapper, phiValue) =>
-                phiValue.RemapArguments(context.Builder, mapper));
+            Rewriter.Add<PhiValue>(Update);
         }
 
         #endregion
@@ -100,11 +126,10 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
-            var scope = builder.CreateScope();
-
             // Fold branch targets (if possible)
+            var blocks = builder.SourceBlocks;
             bool updated = false;
-            foreach (var block in scope)
+            foreach (var block in blocks)
             {
                 // Get the conditional terminator
                 var terminator = block.GetTerminatorAs<ConditionalBranch>();
@@ -123,10 +148,13 @@ namespace ILGPU.IR.Transformations
                 return false;
 
             // Find all unreachable blocks
-            var updatedScope = builder.CreateScope();
-            foreach (var block in scope)
+            var updatedBlocks = builder.ComputeBlockOrder<
+                PreOrder,
+                PreOrder,
+                NoDuplicates<BasicBlock>>().ToSet();
+            foreach (var block in builder.SourceBlocks)
             {
-                if (!updatedScope.Contains(block))
+                if (!updatedBlocks.Contains(block))
                 {
                     // Block is unreachable -> remove all operations
                     var blockBuilder = builder[block];
@@ -136,9 +164,9 @@ namespace ILGPU.IR.Transformations
 
             // Update all phi values
             Rewriter.Rewrite(
-                updatedScope,
+                blocks,
                 builder,
-                new PhiArgumentRemapper(updatedScope));
+                new PhiArgumentRemapper(updatedBlocks));
 
             return true;
         }

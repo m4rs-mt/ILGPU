@@ -118,7 +118,7 @@ namespace ILGPU.IR.Transformations
         /// Applies the address-space inference transformation.
         /// </summary>
         protected override bool PerformTransformation(Method.Builder builder) =>
-            Rewriter.Rewrite(builder);
+            Rewriter.Rewrite(builder.SourceBlocks, builder);
 
         #endregion
     }

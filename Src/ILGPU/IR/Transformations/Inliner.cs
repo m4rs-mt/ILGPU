@@ -75,17 +75,12 @@ namespace ILGPU.IR.Transformations
         /// Tries to inline method calls.
         /// </summary>
         /// <param name="builder">The current method builder.</param>
-        /// <param name="caller">The parent caller entry.</param>
-        /// <param name="scopeProvider">The scope provider.</param>
         /// <param name="currentBlock">The current block (may be modified).</param>
         /// <returns>True, in case of an inlined call.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool InlineCalls<TScopeProvider>(
+        private static bool InlineCalls(
             Method.Builder builder,
-            Landscape.Entry caller,
-            TScopeProvider scopeProvider,
             ref BasicBlock currentBlock)
-            where TScopeProvider : IScopeProvider
         {
             foreach (var valueEntry in currentBlock)
             {
@@ -94,9 +89,8 @@ namespace ILGPU.IR.Transformations
 
                 if (call.Target.HasFlags(MethodFlags.Inline))
                 {
-                    var targetScope = scopeProvider[call.Target];
                     var blockBuilder = builder[currentBlock];
-                    var tempBlock = blockBuilder.SpecializeCall(call, targetScope);
+                    var tempBlock = blockBuilder.SpecializeCall(call);
 
                     // We can continue our search in the temp block
                     currentBlock = tempBlock.BasicBlock;
@@ -124,27 +118,22 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Applies the inlining transformation.
         /// </summary>
-        protected override bool PerformTransformation<TScopeProvider>(
+        protected override bool PerformTransformation(
             Method.Builder builder,
             Landscape landscape,
-            Landscape.Entry current,
-            TScopeProvider scopeProvider)
+            Landscape.Entry current)
         {
             var processed = new HashSet<BasicBlock>();
             var toProcess = new Stack<BasicBlock>();
 
             bool result = false;
-            var currentBlock = current.Scope.EntryBlock;
+            var currentBlock = builder.EntryBlock;
 
             while (true)
             {
                 if (processed.Add(currentBlock))
                 {
-                    if (result = InlineCalls(
-                        builder,
-                        current,
-                        scopeProvider,
-                        ref currentBlock))
+                    if (result = InlineCalls(builder, ref currentBlock))
                     {
                         result = true;
                         continue;

@@ -71,11 +71,11 @@ namespace ILGPU.IR.Transformations
                 IRSpecializationPhase specializationPhase)
         {
             // Check whether we are currently processing an intrinsic method
-            var scope = builder.CreateScope();
+            var blocks = builder.SourceBlocks;
 
             bool applied = false;
             // Analyze intrinsic nodes
-            foreach (Value value in scope.Values)
+            foreach (Value value in blocks.Values)
             {
                 if (value is MethodCall methodCall)
                     applied |= specializationPhase.RegisterIntrinsic(methodCall.Target);

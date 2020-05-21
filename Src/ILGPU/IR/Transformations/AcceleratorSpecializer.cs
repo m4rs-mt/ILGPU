@@ -118,7 +118,7 @@ namespace ILGPU.IR.Transformations
         /// Applies an accelerator-specialization transformation.
         /// </summary>
         protected override bool PerformTransformation(Method.Builder builder) =>
-            Rewriter.Rewrite(builder, this);
+            Rewriter.Rewrite(builder.SourceBlocks, builder, this);
 
         #endregion
     }

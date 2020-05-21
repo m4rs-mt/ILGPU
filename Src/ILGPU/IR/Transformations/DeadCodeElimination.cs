@@ -36,25 +36,25 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
-            var scope = builder.CreateScope();
+            var blocks = builder.SourceBlocks;
             var toProcess = new Stack<Value>();
 
             // Mark all terminators and their values as non dead
-            scope.ForEachTerminator<TerminatorValue>(terminator =>
+            blocks.ForEachTerminator<TerminatorValue>(terminator =>
             {
                 foreach (var node in terminator.Nodes)
                     toProcess.Push(node);
             });
 
             // Mark all memory values as non dead (except dead loads)
-            scope.ForEachValue<MemoryValue>(value =>
+            blocks.ForEachValue<MemoryValue>(value =>
             {
                 if (value.ValueKind != ValueKind.Load)
                     toProcess.Push(value);
             });
 
             // Mark all calls as non dead
-            scope.ForEachValue<MethodCall>(call => toProcess.Push(call));
+            blocks.ForEachValue<MethodCall>(call => toProcess.Push(call));
 
             // Mark all nodes as live
             var liveValues = new HashSet<Value>();
@@ -70,7 +70,7 @@ namespace ILGPU.IR.Transformations
 
             // Remove all dead values
             bool updated = false;
-            scope.ForEachValue<Value>(value =>
+            blocks.ForEachValue<Value>(value =>
             {
                 if (liveValues.Contains(value))
                     return;
