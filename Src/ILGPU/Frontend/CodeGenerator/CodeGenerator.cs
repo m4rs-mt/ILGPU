@@ -260,7 +260,7 @@ namespace ILGPU.Frontend
         public Method GenerateCode()
         {
             // Iterate over all blocks in reverse postorder
-            foreach (BasicBlock basicBlock in cfgBuilder.Scope)
+            foreach (BasicBlock basicBlock in cfgBuilder.Blocks)
             {
                 Block = cfgBuilder[basicBlock];
                 Location = basicBlock.Location;

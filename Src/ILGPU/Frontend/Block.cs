@@ -12,6 +12,7 @@
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -53,7 +54,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the associated CFG node.
         /// </summary>
-        public CFG.Node CFGNode { get; private set; }
+        public CFG.Node<Forwards> CFGNode { get; private set; }
 
         /// <summary>
         /// Returns the associated IR builder.
@@ -84,11 +85,6 @@ namespace ILGPU.Frontend
         /// Returns the number of instructions in this block.
         /// </summary>
         public int InstructionCount { get; set; }
-
-        /// <summary>
-        /// Returns the current node index.
-        /// </summary>
-        public int NodeIndex { get; }
 
         #endregion
 
