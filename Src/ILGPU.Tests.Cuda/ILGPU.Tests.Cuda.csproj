@@ -21,6 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
+    <ProjectReference Include="..\ILGPU.Tests\ILGPU.Tests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Configurations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -31,11 +36,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>TestContexts.tt</DependentUpon>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Src\ILGPU\ILGPU.csproj" />
-    <ProjectReference Include="..\ILGPU.Tests\ILGPU.Tests.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -66,4 +66,5 @@
     </Compile>
   </ItemGroup>
 
+  <Import Project="..\TextTransform.targets" />
 </Project>

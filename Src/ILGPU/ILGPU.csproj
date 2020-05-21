@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFrameworks>net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
         <OutputPath>../../Bin/$(Configuration)/</OutputPath>
@@ -49,31 +48,88 @@
         <PackageReference Include="System.Reflection.Metadata" Version="1.8.0" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
+        <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
     <ItemGroup>
         <Folder Include="Properties/" />
     </ItemGroup>
 
     <ItemGroup>
-      <None Include="Backends\PTX\PTXIntrinsics.Generated.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
-      </None>
-      <None Include="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
-      </None>
-      <None Include="IR\Construction\CompareOperations.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>CompareOperations.tt</DependentUpon>
-      </None>
-      <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
-      </None>
+        <None Include="ArrayViews.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>ArrayViews.tt</DependentUpon>
+        </None>
+        <None Include="AtomicFunctions.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>AtomicFunctions.tt</DependentUpon>
+        </None>
+        <None Include="Backends\PTX\PTXIntrinsics.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>PTXIntrinsics.Generated.tt</DependentUpon>
+        </None>
+        <None Include="Frontend\Intrinsic\RemappedIntrinsics.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
+        </None>
+        <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
+        </None>
+        <None Include="Runtime\KernelLoaders.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>KernelLoaders.tt</DependentUpon>
+        </None>
+        <None Include="Runtime\MemoryBuffers.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>MemoryBuffers.tt</DependentUpon>
+        </None>
+        <None Include="TypeInformation.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>TypeInformation.tt</DependentUpon>
+        </None>
+        <None Include="IR\Construction\CompareOperations.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>CompareOperations.tt</DependentUpon>
+        </None>
+        <None Include="IR\Construction\ArithmeticOperations.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>ArithmeticOperations.tt</DependentUpon>
+        </None>
+        <None Include="Resources\ErrorMessages.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>ErrorMessages.resx</DependentUpon>
+        </None>
+        <None Include="Resources\RuntimeErrorMessages.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
+        </None>
+        <None Include="Util\DataBlocks.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>DataBlocks.tt</DependentUpon>
+        </None>
+        <None Include="Util\PrimitiveDataBlocks.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>PrimitiveDataBlocks.tt</DependentUpon>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -166,10 +222,6 @@
           <LastGenOutput>RemappedIntrinsics.Generated.cs</LastGenOutput>
         </None>
         <None Update="IR\Construction\CompareOperations.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>CompareOperations.txt</LastGenOutput>
-        </None>
-        <None Update="IR\Construction\CompareOperations.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>CompareOperations.cs</LastGenOutput>
         </None>
@@ -188,14 +240,6 @@
         <None Update="Runtime\MemoryBuffers.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
-        </None>
-        <None Update="ShuffleOperations.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>ShuffleOperations.cs</LastGenOutput>
-        </None>
-        <None Update="TypeInformation.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>Basic.cs</LastGenOutput>
         </None>
         <None Update="TypeInformation.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
@@ -223,4 +267,6 @@
             <LastGenOutput>RuntimeErrorMessages.Designer.cs</LastGenOutput>
         </EmbeddedResource>
     </ItemGroup>
+
+    <Import Project="..\TextTransform.targets" />
 </Project>

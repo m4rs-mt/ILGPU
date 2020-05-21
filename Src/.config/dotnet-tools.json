@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "dotnet-t4-fix": {
+      "version": "2.3.0-preview-0000-gb1ee03d9bc",
+      "commands": [
+        "t4"
+      ]
+    }
+  }
+}

@@ -96,16 +96,16 @@ namespace ILGPU.Frontend.Intrinsic
 #if NETCORE
             var systemMathFType = typeof(MathF);
 
-<# foreach (var (method, type, _, className) in #>
-<#      unaryMathFunctions.Where(t => t.Item2 != null)) { #>
+<# foreach (var (method, type, _, className) in unaryMathFunctions
+    .Where(t => t.Item2 != null)) { #>
                 AddRemapping(
                 systemMathFType,
                 <#= className #>,
                 "<#= method #>",
                 typeof(<#= type.Type #>));
 <# } #>
-<# foreach (var (method, type, _, className) in #>
-<#      binaryMathFunctions.Where(t => t.Item2 != null)) { #>
+<# foreach (var (method, type, _, className) in binaryMathFunctions
+    .Where(t => t.Item2 != null)) { #>
             AddRemapping(
                 systemMathFType,
                 <#= className #>,

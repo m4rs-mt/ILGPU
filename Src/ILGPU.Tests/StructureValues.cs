@@ -124,7 +124,7 @@ namespace ILGPU.Tests
             value.Val2[index] = val2;
         }
 
-        [Theory]
+        [WindowsOnlyTheory("Fails to create type information for ArrayView on Linux")]
         [MemberData(nameof(StructureInteropData))]
         [KernelMethod(nameof(StructureViewInteropKernel))]
         public void StructureViewInterop<T>(T value)

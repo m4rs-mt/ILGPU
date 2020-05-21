@@ -1,0 +1,9 @@
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Target Name="TextTemplateTransform">
+        <ItemGroup>
+            <TextTemplate Include="@(None)" Condition="'%(None.Extension)' == '.tt'">
+            </TextTemplate>
+        </ItemGroup>
+        <Exec WorkingDirectory="$(ProjectDir)" Command="dotnet tool run t4 %(TextTemplate.Identity) -I $([MSBuild]::ValueOrDefault('%(TextTemplate.RelativeDir)', '.')) -o %(TextTemplate.RelativeDir)%(TextTemplate.Filename).cs" />
+    </Target>
+</Project>
