@@ -83,13 +83,6 @@ namespace ILGPU.Backends.PTX
                 transformerBuilder.AddBackendOptimizations(
                     new PTXAcceleratorSpecializer(),
                     context.OptimizationLevel);
-
-                // Append further backend specific transformations in release mode
-                if (!context.HasFlags(ContextFlags.NoInlining))
-                    transformerBuilder.Add(new Inliner());
-                if (context.OptimizationLevel > OptimizationLevel.O0)
-                    transformerBuilder.Add(new SimplifyControlFlow());
-
                 builder.Add(transformerBuilder.ToTransformer());
             });
         }

@@ -124,6 +124,11 @@ namespace ILGPU.IR.Transformations
             // Apply final DCE phase in release mode
             if (level > OptimizationLevel.O0)
                 builder.Add(new DeadCodeElimination());
+
+            // Append further backend specific transformations in release mode
+            builder.Add(new Inliner());
+            if (level > OptimizationLevel.O0)
+                builder.Add(new SimplifyControlFlow());
         }
 
         /// <summary>
