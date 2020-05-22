@@ -13,6 +13,7 @@ using ILGPU.AtomicOperations;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -61,6 +62,13 @@ namespace ILGPU.Backends.OpenCL
                 CreateIntrinsic(
                     nameof(AtomicAddF64),
                     IntrinsicImplementationMode.Redirect));
+
+            // Group
+            manager.RegisterPredicateBarrier(
+                PredicateBarrierKind.PopCount,
+                CreateIntrinsic(
+                    nameof(BarrierPopCount),
+                    IntrinsicImplementationMode.Redirect));
         }
 
         #endregion
@@ -80,6 +88,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="target">The target address.</param>
         /// <param name="value">The value to add.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float AtomicAddF32(ref float target, float value) =>
             Atomic.MakeAtomic(
                 ref target,
@@ -100,12 +109,33 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="target">The target address.</param>
         /// <param name="value">The value to add.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static double AtomicAddF64(ref double target, double value) =>
             Atomic.MakeAtomic(
                 ref target,
                 value,
                 new AddDouble(),
                 new CompareExchangeDouble());
+
+        #endregion
+
+        #region Groups
+
+        /// <summary>
+        /// A software implementation to simulate barriers with pop count.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int BarrierPopCount(bool predicate)
+        {
+            ref var counter = ref SharedMemory.Allocate<int>();
+            if (Group.IsFirstThread)
+                counter = 0;
+            Group.Barrier();
+            if (predicate)
+                Atomic.Add(ref counter, 1);
+            Group.Barrier();
+            return counter;
+        }
 
         #endregion
     }

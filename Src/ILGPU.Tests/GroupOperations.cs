@@ -192,6 +192,38 @@ namespace ILGPU.Tests
             }
         }
 
+        internal static void GroupBarrierPopCountKernel(
+            ArrayView<int> data,
+            ArrayView<int> data2,
+            Index1 bound)
+        {
+            var idx = Grid.IdxX * Group.DimX + Group.IdxX;
+            data[idx] = Group.BarrierPopCount(Group.IdxX < bound);
+            data2[idx] = Group.BarrierPopCount(Group.IdxX >= bound);
+        }
+
+        [Theory]
+        [InlineData(32)]
+        [InlineData(256)]
+        [InlineData(1024)]
+        [KernelMethod(nameof(GroupBarrierPopCountKernel))]
+        public void GroupBarrierPopCount(int length)
+        {
+            for (int i = 2; i <= Accelerator.MaxNumThreadsPerGroup; i <<= 1)
+            {
+                using var buffer = Accelerator.Allocate<int>(length * i);
+                using var buffer2 = Accelerator.Allocate<int>(length * i);
+                var extent = new KernelConfig(length, i);
+                Execute(extent, buffer.View, buffer2.View, new Index1(i));
+
+                var expected = Enumerable.Repeat(i, buffer.Length).ToArray();
+                Verify(buffer, expected);
+
+                var expected2 = Enumerable.Repeat(0, buffer.Length).ToArray();
+                Verify(buffer2, expected2);
+            }
+        }
+
         static void EmptyKernel(int c)
         { }
 
