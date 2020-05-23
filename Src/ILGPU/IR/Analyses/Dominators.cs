@@ -10,29 +10,30 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses.ControlFlowDirection;
-using ILGPU.IR.Analyses.TraversalOrders;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using DominanceOrder = ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder;
 
 namespace ILGPU.IR.Analyses
 {
     /// <summary>
     /// Implements a dominator analysis.
     /// </summary>
-    /// <typeparam name="TDirection">The control flow direction.</typeparam>
+    /// <typeparam name="TDirection">The control-flow direction.</typeparam>
     public sealed class Dominators<TDirection>
         where TDirection : struct, IControlFlowDirection
     {
         #region Static
 
         /// <summary>
-        /// Creates a dominator analysis.
+        /// Creates a new dominator analysis.
         /// </summary>
-        /// <param name="cfg">The control flow graph.</param>
+        /// <param name="cfg">The parent graph.</param>
+        /// <returns>The created dominator analysis.</returns>
         public static Dominators<TDirection> Create(
-            CFG<ReversePostOrder, TDirection> cfg) =>
+            CFG<DominanceOrder, TDirection> cfg) =>
             new Dominators<TDirection>(cfg);
 
         #endregion
@@ -45,20 +46,20 @@ namespace ILGPU.IR.Analyses
         private readonly int[] idomsInRPO;
 
         /// <summary>
-        /// Stores all CFG nodes in RPO.
+        /// Stores all blocks in RPO.
         /// </summary>
-        private readonly CFG.Node<TDirection>[] nodesInRPO;
+        private readonly BasicBlock[] nodesInRPO;
 
         /// <summary>
-        /// Constructs the dominators for the given control flow graph.
+        /// Constructs the dominators for the given control-flow graph.
         /// </summary>
-        /// <param name="cfg">The control flow graph.</param>
-        private Dominators(CFG<ReversePostOrder, TDirection> cfg)
+        /// <param name="cfg">The parent graph.</param>
+        private Dominators(CFG<DominanceOrder, TDirection> cfg)
         {
-            CFG = cfg ?? throw new ArgumentNullException(nameof(cfg));
-
             idomsInRPO = new int[cfg.Count];
-            nodesInRPO = new CFG.Node<TDirection>[cfg.Count];
+            nodesInRPO = new BasicBlock[cfg.Count];
+            CFG = cfg;
+            Root = cfg.Root;
 
             idomsInRPO[0] = 0;
             for (int i = 1, e = idomsInRPO.Length; i < e; ++i)
@@ -129,105 +130,121 @@ namespace ILGPU.IR.Analyses
         #region Properties
 
         /// <summary>
-        /// Returns the associated control flow graph.
+        /// Returns the underlying graph.
         /// </summary>
-        public CFG<ReversePostOrder, TDirection> CFG { get; }
+        public CFG<DominanceOrder, TDirection> CFG { get; }
+
+        /// <summary>
+        /// Returns the root block.
+        /// </summary>
+        public BasicBlock Root { get; }
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Returns true if the given <paramref name="cfgNode"/> node is
-        /// dominated by the <paramref name="dominator"/> node.
+        /// Returns true if the given <paramref name="block"/> is dominated by the
+        /// <paramref name="dominator"/>.
         /// </summary>
-        /// <param name="cfgNode">The node.</param>
+        /// <param name="block">The block.</param>
         /// <param name="dominator">The potential dominator.</param>
-        /// <returns>True, if the given node is dominated by the dominator.</returns>
-        public bool IsDominatedBy(
-            CFG.Node<TDirection> cfgNode,
-            CFG.Node<TDirection> dominator)
+        /// <returns>True, if the given block is dominated by the dominator.</returns>
+        public bool IsDominatedBy(BasicBlock block, BasicBlock dominator)
         {
-            Debug.Assert(cfgNode != null, "Invalid CFG node");
-            Debug.Assert(dominator != null, "Invalid dominator");
-
-            var left = cfgNode.TraversalIndex;
-            var right = dominator.TraversalIndex;
+            var left = CFG[block].TraversalIndex;
+            var right = CFG[dominator].TraversalIndex;
             return Intersect(left, right) == right;
         }
 
         /// <summary>
-        /// Returns true if the given <paramref name="dominator"/> node. is
-        /// dominating the <paramref name="cfgNode"/> node.
+        /// Returns true if the given <paramref name="dominator"/> is dominating the
+        /// <paramref name="block"/>.
         /// </summary>
         /// <param name="dominator">The potential dominator.</param>
-        /// <param name="cfgNode">The other node.</param>
-        /// <returns>True, if the given node is dominating the other node.</returns>
-        public bool Dominates(
-            CFG.Node<TDirection> dominator,
-            CFG.Node<TDirection> cfgNode) =>
-            IsDominatedBy(cfgNode, dominator);
+        /// <param name="block">The other block.</param>
+        /// <returns>True, if the given block is dominating the other block.</returns>
+        public bool Dominates(BasicBlock dominator, BasicBlock block) =>
+            IsDominatedBy(block, dominator);
 
         /// <summary>
-        /// Returns the first dominator of the given node.
-        /// This might be the node itself if there are no other
-        /// dominators.
+        /// Returns the first dominator of the given block. This might be the block
+        /// itself if there are no other dominators.
         /// </summary>
-        /// <param name="cfgNode">The node.</param>
+        /// <param name="block">The block.</param>
         /// <returns>The first dominator.</returns>
-        public CFG.Node<TDirection> GetImmediateDominator(CFG.Node<TDirection> cfgNode)
+        public BasicBlock GetImmediateDominator(BasicBlock block)
         {
-            Debug.Assert(cfgNode != null, "Invalid CFG node");
-            var rpoNumber = idomsInRPO[cfgNode.TraversalIndex];
+            var rpoNumber = idomsInRPO[CFG[block].TraversalIndex];
             return nodesInRPO[rpoNumber];
         }
 
         /// <summary>
-        /// Returns the first dominator of the given node.
-        /// This might be the node itself if there are no other
-        /// dominators.
+        /// Returns the immediate common dominator of both blocks.
         /// </summary>
-        /// <param name="first">The first node.</param>
-        /// <param name="second">The first node.</param>
-        /// <returns>The first dominator.</returns>
+        /// <param name="first">The first block.</param>
+        /// <param name="second">The second block.</param>
+        /// <returns>The immediate common dominator of both blocks.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CFG.Node<TDirection> GetImmediateCommonDominator(
-            CFG.Node<TDirection> first,
-            CFG.Node<TDirection> second)
+        public BasicBlock GetImmediateCommonDominator(
+            BasicBlock first,
+            BasicBlock second)
         {
-            Debug.Assert(first != null, "Invalid first CFG node");
-            Debug.Assert(second != null, "Invalid second CFG node");
-
             if (first == second)
                 return first;
 
-            var left = first.TraversalIndex;
-            var right = second.TraversalIndex;
+            var left = CFG[first].TraversalIndex;
+            var right = CFG[second].TraversalIndex;
             var idom = Intersect(left, right);
             return nodesInRPO[idom];
         }
 
+        /// <summary>
+        /// Returns the immediate common dominator of all blocks.
+        /// </summary>
+        /// <param name="blocks">The list of block.</param>
+        /// <returns>The immediate common dominator of all blocks.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public CFG.Node<TDirection> GetImmediateCommonDominator<TList>(
-            TList nodes)
-            where TList : IReadOnlyList<CFG.Node<TDirection>>
+        public BasicBlock GetImmediateCommonDominator<TList>(
+            TList blocks)
+            where TList : IReadOnlyList<BasicBlock>
         {
-            if (nodes.Count < 1)
-                return null;
-            var result = nodes[0];
-            for (int i = 1, e = nodes.Count; i < e; ++i)
-                result = GetImmediateCommonDominator(result, nodes[i]);
+            if (blocks.Count < 1)
+                throw new ArgumentOutOfRangeException(nameof(blocks));
+            var result = blocks[0];
+            for (int i = 1, e = blocks.Count; i < e; ++i)
+                result = GetImmediateCommonDominator(result, blocks[i]);
             return result;
         }
 
         #endregion
     }
 
+    /// <summary>
+    /// Helper utility for the class <see cref="Dominators{TDirection}"/>
+    /// </summary>
     public static class Dominators
     {
-        public static Dominators<TDirection> ComputeDominators<TDirection>(
-            this CFG<ReversePostOrder, TDirection> cfg)
+        /// <summary>
+        /// Creates a new dominator analysis.
+        /// </summary>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <param name="cfg">The parent graph.</param>
+        /// <returns>The created dominator analysis.</returns>
+        public static Dominators<TDirection> CreateDominators<TDirection>(
+            this CFG<DominanceOrder, TDirection> cfg)
             where TDirection : struct, IControlFlowDirection =>
             Dominators<TDirection>.Create(cfg);
+
+        /// <summary>
+        /// Creates a new dominator analysis.
+        /// </summary>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <param name="blocks">The source blocks.</param>
+        /// <returns>The created dominator analysis.</returns>
+        public static Dominators<TDirection> CreateDominators<TDirection>(
+            this BasicBlockCollection<DominanceOrder, TDirection> blocks)
+            where TDirection : struct, IControlFlowDirection =>
+            blocks.CreateCFG().CreateDominators();
     }
 }
