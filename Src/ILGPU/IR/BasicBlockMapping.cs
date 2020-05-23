@@ -9,32 +9,74 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+
+#pragma warning disable CS0282 // There is no defined ordering between fields in
+// multiple declarations of partial struct
 
 namespace ILGPU.IR
 {
     /// <summary>
     /// Represents a set of basic blocks.
     /// </summary>
-    public struct BasicBlockSet
+    public partial struct BasicBlockSet
     {
+        #region Constants
+
+        /// <summary>
+        /// The number of elements per bucket.
+        /// </summary>
+        private const int NumElementsPerBucket = sizeof(ulong) * 8;
+
+        /// <summary>
+        /// The number of default elements.
+        /// </summary>
+        internal const int NumDefaultElements = NumElementsPerBucket * 4;
+
+        #endregion
+
         #region Static
 
         /// <summary>
         /// Creates a new block set.
         /// </summary>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         /// <typeparam name="TOrder">The traversal order.</typeparam>
         /// <param name="blocks">The block collection.</param>
         /// <returns>The created block set.</returns>
-        public static BasicBlockSet Create<TOrder>(
-            in BasicBlockCollection<TOrder> blocks)
-            where TOrder : struct, ITraversalOrder =>
+        public static BasicBlockSet Create<TOrder, TDirection>(
+            in BasicBlockCollection<TOrder, TDirection> blocks)
+            where TOrder : struct, ITraversalOrder
+            where TDirection : struct, IControlFlowDirection =>
             new BasicBlockSet(blocks.EntryBlock, blocks.Count);
+
+        /// <summary>
+        /// Creates a new block set.
+        /// </summary>
+        /// <param name="entryBlock">The entry block.</param>
+        /// <returns>The created block set.</returns>
+        public static BasicBlockSet Create(BasicBlock entryBlock) =>
+            new BasicBlockSet(entryBlock, NumDefaultElements);
+
+        /// <summary>
+        /// Computes the bucket index and the bit mask.
+        /// </summary>
+        /// <param name="index">The block index.</param>
+        /// <param name="bitMask">The resulting bit mask.</param>
+        /// <returns>The bucket index.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ComputeBucketIndex(int index, out ulong bitMask)
+        {
+            bitMask = 1UL << (index % NumElementsPerBucket);
+            return index / NumElementsPerBucket;
+        }
 
         #endregion
 
@@ -48,10 +90,23 @@ namespace ILGPU.IR
         /// <param name="entryBlock">The entry block.</param>
         /// <param name="numBlocks">The initial number of blocks.</param>
         internal BasicBlockSet(BasicBlock entryBlock, int numBlocks)
+            : this()
         {
             EntryBlock = entryBlock;
             visited = new ulong[IntrinsicMath.DivRoundUp(numBlocks, 64)];
+
+            InitBlockSet();
         }
+
+        /// <summary>
+        /// Initializes the debug part of this block set.
+        /// </summary>
+        [SuppressMessage(
+            "Performance",
+            "CA1822:Mark members as static",
+            Justification = "For debugging purposes only")]
+        [Conditional("DEBUG")]
+        partial void InitBlockSet();
 
         #endregion
 
@@ -89,6 +144,18 @@ namespace ILGPU.IR
         #region Methods
 
         /// <summary>
+        /// Asserts that the given block has been added to the set or not.
+        /// </summary>
+        /// <param name="block">The basic block.</param>
+        /// <param name="added">True, whether the block has been added.</param>
+        [SuppressMessage(
+            "Performance",
+            "CA1822:Mark members as static",
+            Justification = "For debugging purposes only")]
+        [Conditional("DEBUG")]
+        readonly partial void AssertAdd(BasicBlock block, bool added);
+
+        /// <summary>
         /// Adds the given block to this set.
         /// </summary>
         /// <param name="block">The block to add.</param>
@@ -97,18 +164,32 @@ namespace ILGPU.IR
         public bool Add(BasicBlock block)
         {
             block.Assert(block.Method == Method && block.BlockIndex >= 0);
-            int index = block.BlockIndex;
-            int setIndex = index / 32;
-            ulong bitMask = 1UL << (index % 32);
-
-            if (setIndex >= visited.Length)
-                Array.Resize(ref visited, Math.Max(setIndex + 1, visited.Length * 2));
-            ref var entry = ref visited[setIndex];
+            int bucketIndex = ComputeBucketIndex(block.BlockIndex, out ulong bitMask);
+            if (bucketIndex >= visited.Length)
+            {
+                Array.Resize(
+                    ref visited,
+                    Math.Max(bucketIndex + 1, visited.Length * 2));
+            }
+            ref var entry = ref visited[bucketIndex];
 
             bool added = (entry & bitMask) == 0;
             entry |= bitMask;
+            AssertAdd(block, added);
             return added;
         }
+
+        /// <summary>
+        /// Asserts that the given block is contained in the set or not.
+        /// </summary>
+        /// <param name="block">The basic block.</param>
+        /// <param name="contained">True, whether the block is contained.</param>
+        [SuppressMessage(
+            "Performance",
+            "CA1822:Mark members as static",
+            Justification = "For debugging purposes only")]
+        [Conditional("DEBUG")]
+        readonly partial void AssertContained(BasicBlock block, bool contained);
 
         /// <summary>
         /// Returns true if the given block is contained in this set.
@@ -119,10 +200,11 @@ namespace ILGPU.IR
         public readonly bool Contains(BasicBlock block)
         {
             block.Assert(block.Method == Method && block.BlockIndex >= 0);
-            int index = block.BlockIndex;
-            int setIndex = index / 32;
-            ulong bitMask = 1UL << (index % 32);
-            return setIndex < visited.Length && (visited[setIndex] & bitMask) != 0;
+            int bucketIndex = ComputeBucketIndex(block.BlockIndex, out ulong bitMask);
+            bool contained = bucketIndex < visited.Length &&
+                (visited[bucketIndex] & bitMask) != 0;
+            AssertContained(block, contained);
+            return contained;
         }
 
         #endregion
@@ -142,12 +224,14 @@ namespace ILGPU.IR
         /// <summary>
         /// Creates a new block set.
         /// </summary>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         /// <typeparam name="TOrder">The traversal order.</typeparam>
         /// <param name="blocks">The block collection.</param>
         /// <returns>The created block set.</returns>
-        public static BasicBlockSetList Create<TOrder>(
-            in BasicBlockCollection<TOrder> blocks)
-            where TOrder : struct, ITraversalOrder =>
+        public static BasicBlockSetList Create<TOrder, TDirection>(
+            in BasicBlockCollection<TOrder, TDirection> blocks)
+            where TOrder : struct, ITraversalOrder
+            where TDirection : struct, IControlFlowDirection =>
             new BasicBlockSetList(
                 BasicBlockSet.Create(blocks),
                 blocks.Count);
@@ -244,6 +328,21 @@ namespace ILGPU.IR
     }
 
     /// <summary>
+    /// A value provider for each block in a collection.
+    /// </summary>
+    /// <typeparam name="T">The map value type.</typeparam>
+    public interface IBasicBlockMapValueProvider<T>
+    {
+        /// <summary>
+        /// Extracts the value from the given block.
+        /// </summary>
+        /// <param name="block">The source block.</param>
+        /// <param name="traversalIndex">The current traversal index.</param>
+        /// <returns>The extracted value.</returns>
+        T GetValue(BasicBlock block, int traversalIndex);
+    }
+
+    /// <summary>
     /// A mapping of basic block to values.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
@@ -251,7 +350,7 @@ namespace ILGPU.IR
         "Naming",
         "CA1710:Identifiers should have correct suffix",
         Justification = "The collection ends in map")]
-    public struct BasicBlockMap<T> : IReadOnlyCollection<(BasicBlock, T)>
+    public partial struct BasicBlockMap<T> : IReadOnlyCollection<(BasicBlock, T)>
     {
         #region Nested Types
 
@@ -315,12 +414,22 @@ namespace ILGPU.IR
         /// Constructs a new block map.
         /// </summary>
         /// <typeparam name="TOrder">The traversal order.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         /// <param name="blocks">The block collection.</param>
         /// <returns>The created block map.</returns>
-        public static BasicBlockMap<T> Create<TOrder>(
-            in BasicBlockCollection<TOrder> blocks)
-            where TOrder : struct, ITraversalOrder =>
+        public static BasicBlockMap<T> Create<TOrder, TDirection>(
+            in BasicBlockCollection<TOrder, TDirection> blocks)
+            where TOrder : struct, ITraversalOrder
+            where TDirection : struct, IControlFlowDirection =>
             new BasicBlockMap<T>(blocks.EntryBlock, blocks.Count);
+
+        /// <summary>
+        /// Constructs a new block map.
+        /// </summary>
+        /// <param name="entryBlock">The entry block.</param>
+        /// <returns>The created block map.</returns>
+        public static BasicBlockMap<T> Create(BasicBlock entryBlock) =>
+            new BasicBlockMap<T>(entryBlock, BasicBlockSet.NumDefaultElements);
 
         #endregion
 
@@ -334,11 +443,24 @@ namespace ILGPU.IR
         /// <param name="entryBlock">The entry block.</param>
         /// <param name="numBlocks">The number of blocks.</param>
         private BasicBlockMap(BasicBlock entryBlock, int numBlocks)
+            : this()
         {
             EntryBlock = entryBlock;
             values = new (BasicBlock, T)[numBlocks];
             Count = 0;
+
+            InitBlockMap();
         }
+
+        /// <summary>
+        /// Initializes the debug part of this block map.
+        /// </summary>
+        [SuppressMessage(
+            "Performance",
+            "CA1822:Mark members as static",
+            Justification = "For debugging purposes only")]
+        [Conditional("DEBUG")]
+        partial void InitBlockMap();
 
         #endregion
 
@@ -366,21 +488,20 @@ namespace ILGPU.IR
         /// <returns>The value associated to the given block.</returns>
         public T this[BasicBlock block]
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                int index = block.BlockIndex;
-                EntryBlock.Assert(index < values.Length);
-                var (entryBlock, value) = values[index];
-                EntryBlock.AssertNotNull(entryBlock);
-                return value;
-            }
+            get => GetItemRef(block);
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
                 int index = UpdateValueMap(block);
                 if (values[index].Item1 is null)
+                {
+                    AssertAdd(block, value, true);
                     ++Count;
+                }
+                else
+                {
+                    AssertAdd(block, value, false);
+                }
                 values[index] = (block, value);
             }
         }
@@ -388,6 +509,54 @@ namespace ILGPU.IR
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Asserts that the given block has been added to map set or not.
+        /// </summary>
+        /// <param name="block">The basic block.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="added">True, whether the block has been added.</param>
+        [SuppressMessage(
+            "Performance",
+            "CA1822:Mark members as static",
+            Justification = "For debugging purposes only")]
+        [Conditional("DEBUG")]
+        readonly partial void AssertAdd(
+            BasicBlock block,
+            in T value,
+            bool added);
+
+        /// <summary>
+        /// Returns an immutable reference to the associated value.
+        /// </summary>
+        /// <param name="block">The basic block.</param>
+        /// <returns>The reference to the associated value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly ref readonly T GetItemRef(BasicBlock block)
+        {
+            int index = block.BlockIndex;
+            EntryBlock.Assert(index < values.Length);
+            ref var tupleRef = ref values[index];
+            EntryBlock.AssertNotNull(tupleRef.Item1);
+            AssertContained(block, tupleRef.Item2, true);
+            return ref tupleRef.Item2;
+        }
+
+        /// <summary>
+        /// Asserts that the given block is contained in the set or not.
+        /// </summary>
+        /// <param name="block">The basic block.</param>
+        /// <param name="value">The value (if any).</param>
+        /// <param name="contained">True, whether the block is contained.</param>
+        [SuppressMessage(
+            "Performance",
+            "CA1822:Mark members as static",
+            Justification = "For debugging purposes only")]
+        [Conditional("DEBUG")]
+        readonly partial void AssertContained(
+            BasicBlock block,
+            in T value,
+            bool contained);
 
         /// <summary>
         /// Updates the value map to store the given block.
@@ -410,8 +579,11 @@ namespace ILGPU.IR
         /// <param name="block">The block to add.</param>
         /// <param name="value">The value to add.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Add(BasicBlock block, T value) =>
-            Method.Assert(TryAdd(block, value));
+        public void Add(BasicBlock block, T value)
+        {
+            bool success = TryAdd(block, value);
+            Method.Assert(success);
+        }
 
         /// <summary>
         /// Adds the given block to this set.
@@ -427,11 +599,13 @@ namespace ILGPU.IR
             if (entry.Item1 != null)
             {
                 Method.Assert(entry.Item1 == block);
+                AssertContained(block, entry.Item2, true);
                 return false;
             }
 
             ++Count;
             entry = (block, value);
+            AssertAdd(block, value, true);
             return true;
         }
 
@@ -462,7 +636,12 @@ namespace ILGPU.IR
         public readonly bool Contains(BasicBlock block)
         {
             int index = block.BlockIndex;
-            return index < values.Length && values[index].Item1 != null;
+            if (index >= values.Length)
+                return false;
+            ref var entry = ref values[index];
+            bool contained = entry.Item1 != null;
+            AssertContained(block, entry.Item2, contained);
+            return contained;
         }
 
         /// <summary>
@@ -510,68 +689,126 @@ namespace ILGPU.IR
         #endregion
     }
 
-    /// <summary>
-    /// Helper methods for basic block mappings.
-    /// </summary>
-    static class BasicBlockMapping
+    //
+    // Debugging implementations
+    //
+
+#if DEBUG
+    partial struct BasicBlockSet
     {
-        /// <summary>
-        /// Constructs a new block set.
-        /// </summary>
-        /// <typeparam name="TOrder">The traversal order.</typeparam>
-        /// <param name="blocks">The block collection.</param>
-        /// <returns>The created block set.</returns>
-        public static BasicBlockSet CreateSet<TOrder>(
-            this BasicBlockCollection<TOrder> blocks)
-            where TOrder : struct, ITraversalOrder =>
-            BasicBlockSet.Create(blocks);
+        #region Instance
 
         /// <summary>
-        /// Constructs a new block set.
+        /// The debugging block set.
         /// </summary>
-        /// <typeparam name="TOrder">The traversal order.</typeparam>
-        /// <param name="blocks">The block collection.</param>
-        /// <returns>The created block set.</returns>
-        public static BasicBlockSetList CreateSetList<TOrder>(
-            this BasicBlockCollection<TOrder> blocks)
-            where TOrder : struct, ITraversalOrder =>
-            BasicBlockSetList.Create(blocks);
+        private HashSet<BasicBlock> blockSet;
 
-        /// <summary>
-        /// Constructs a new block map.
-        /// </summary>
-        /// <typeparam name="TOrder">The traversal order.</typeparam>
-        /// <typeparam name="T">The value type.</typeparam>
-        /// <param name="blocks">The block collection.</param>
-        /// <returns>The created block map.</returns>
-        public static BasicBlockMap<T> CreateMap<TOrder, T>(
-            this BasicBlockCollection<TOrder> blocks)
-            where TOrder : struct, ITraversalOrder =>
-            BasicBlockMap<T>.Create(blocks);
+        /// <summary cref="InitBlockSet"/>
+        partial void InitBlockSet() => blockSet = new HashSet<BasicBlock>();
 
-        /// <summary>
-        /// Constructs a new block map.
-        /// </summary>
-        /// <typeparam name="TOrder">The traversal order.</typeparam>
-        /// <typeparam name="T">The value type.</typeparam>
-        /// <param name="blocks">The block collection.</param>
-        /// <param name="valueProvider">The initial value provider.</param>
-        /// <returns>The created block map.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static BasicBlockMap<T> CreateMap<TOrder, T>(
-            this BasicBlockCollection<TOrder> blocks,
-            Func<BasicBlock, int, T> valueProvider)
-            where TOrder : struct, ITraversalOrder
-        {
-            var mapping = blocks.CreateMap<TOrder, T>();
-            int blockIndex = 0;
-            foreach (var block in blocks)
-            {
-                if (mapping.Contains(block))
-                    continue;
-                mapping.Add(block, valueProvider(block, blockIndex++));
-            }
-            return mapping;
-        }
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="AssertAdd(BasicBlock, bool)"/>
+        readonly partial void AssertAdd(BasicBlock block, bool added) =>
+            EntryBlock.Assert(blockSet.Add(block) == added);
+
+        /// <summary cref="AssertContained(BasicBlock, bool)"/>
+        readonly partial void AssertContained(BasicBlock block, bool contained) =>
+            EntryBlock.Assert(blockSet.Contains(block) == contained);
+
+        #endregion
     }
+
+    partial struct BasicBlockMap<T>
+    {
+        #region Instance
+
+        /// <summary>
+        /// The debugging block set.
+        /// </summary>
+        private Dictionary<BasicBlock, T> blockMap;
+
+        /// <summary cref="InitBlockMap"/>
+        partial void InitBlockMap() => blockMap = new Dictionary<BasicBlock, T>();
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="AssertAdd(BasicBlock, in T, bool)"/>
+        readonly partial void AssertAdd(
+            BasicBlock block,
+            in T value,
+            bool added)
+        {
+            EntryBlock.Assert(blockMap.ContainsKey(block) == !added);
+            blockMap[block] = value;
+        }
+
+        /// <summary cref="AssertContained(BasicBlock, in T, bool)"/>
+        readonly partial void AssertContained(
+            BasicBlock block,
+            in T value,
+            bool contained)
+        {
+            bool found = blockMap.TryGetValue(block, out var storedValue);
+            EntryBlock.Assert(contained == found);
+            if (contained)
+                EntryBlock.Assert(value.Equals(storedValue));
+        }
+
+        #endregion
+    }
+#else
+    partial struct BasicBlockSet
+    {
+    #region Instance
+
+        /// <summary cref="BasicBlockSet.InitBlockSet"/>
+        partial void InitBlockSet() { }
+
+    #endregion
+
+    #region Methods
+
+        /// <summary cref="BasicBlockSet.AssertAdd(BasicBlock, bool)"/>
+        readonly partial void AssertAdd(BasicBlock block, bool added) { }
+
+        /// <summary cref="BasicBlockSet.AssertContained(BasicBlock, bool)"/>
+        readonly partial void AssertContained(BasicBlock block, bool contained) { }
+
+    #endregion
+    }
+
+    partial struct BasicBlockMap<T>
+    {
+    #region Instance
+
+        /// <summary cref="InitBlockMap"/>
+        partial void InitBlockMap() { }
+
+    #endregion
+
+    #region Methods
+
+        /// <summary cref="AssertAdd(BasicBlock, in T, bool)"/>
+        readonly partial void AssertAdd(
+            BasicBlock block,
+            in T value,
+            bool added) { }
+
+        /// <summary cref="AssertContained(BasicBlock, in T, bool)"/>
+        readonly partial void AssertContained(
+            BasicBlock block,
+            in T value,
+            bool contained) { }
+
+    #endregion
+    }
+#endif
 }
+
+#pragma warning restore CS0282 // There is no defined ordering between fields in
+// multiple declarations of partial struct
