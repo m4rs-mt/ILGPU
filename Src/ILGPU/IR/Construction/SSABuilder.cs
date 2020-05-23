@@ -9,8 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses;
-using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
@@ -19,14 +17,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using CFG = ILGPU.IR.Analyses.CFG<
+using BlockCollection = ILGPU.IR.BasicBlockCollection<
     ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
     ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
-using CFGNode = ILGPU.IR.Analyses.CFG.Node<
-    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
-using BlockCollection = ILGPU.IR.BasicBlockCollection<
-    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder>;
-using ILGPU.IR.Analyses.Duplicates;
 
 namespace ILGPU.IR.Construction
 {
@@ -43,7 +36,7 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// A successor or predecessor enumerator.
         /// </summary>
-        public struct Enumerator : IEnumerator<CFGNode>
+        public struct Enumerator : IEnumerator<BasicBlock>
         {
             private readonly HashSet<ValueContainer> set;
             private HashSet<ValueContainer>.Enumerator enumerator;
@@ -62,7 +55,7 @@ namespace ILGPU.IR.Construction
             /// <summary>
             /// Returns the current value.
             /// </summary>
-            public CFGNode Current => enumerator.Current.Node;
+            public BasicBlock Current => enumerator.Current.Block;
 
             /// <summary cref="IEnumerator.Current"/>
             object IEnumerator.Current => Current;
@@ -190,12 +183,11 @@ namespace ILGPU.IR.Construction
             /// Constructs a new SSA block.
             /// </summary>
             /// <param name="parent">The associated parent builder.</param>
-            /// <param name="node">The current node.</param>
-            internal ValueContainer(SSABuilder<TVariable> parent, CFGNode node)
+            /// <param name="block">The current block.</param>
+            internal ValueContainer(SSABuilder<TVariable> parent, BasicBlock block)
             {
-                Debug.Assert(parent != null, "Invalid parent");
                 Parent = parent;
-                Node = node;
+                Block = block;
             }
 
             #endregion
@@ -208,9 +200,9 @@ namespace ILGPU.IR.Construction
             public SSABuilder<TVariable> Parent { get; }
 
             /// <summary>
-            /// Returns the associated node.
+            /// Returns the associated basic block.
             /// </summary>
-            public CFGNode Node { get; }
+            public BasicBlock Block { get; }
 
             /// <summary>
             /// Returns the associated block builder.
@@ -220,7 +212,7 @@ namespace ILGPU.IR.Construction
                 get
                 {
                     if (blockBuilder == null)
-                        blockBuilder = Parent.MethodBuilder[Node.Block];
+                        blockBuilder = Parent.MethodBuilder[Block];
                     return blockBuilder;
                 }
             }
@@ -239,7 +231,7 @@ namespace ILGPU.IR.Construction
                 {
                     if (IsSealed)
                         return false;
-                    foreach (var predecessor in Node.Predecessors)
+                    foreach (var predecessor in Block.Predecessors)
                     {
                         var valueContainer = Parent[predecessor];
                         if (!valueContainer.IsProcessed &&
@@ -310,7 +302,7 @@ namespace ILGPU.IR.Construction
                     return null;
                 if (values.TryGetValue(var, out Value value))
                     return value;
-                foreach (var predecessor in Node.Predecessors)
+                foreach (var predecessor in Block.Predecessors)
                 {
                     var valueContainer = Parent[predecessor];
                     Value result;
@@ -336,11 +328,11 @@ namespace ILGPU.IR.Construction
                 TVariable var,
                 ref MarkerProvider markerProvider)
             {
-                Debug.Assert(Node.NumPredecessors > 0);
+                Block.Assert(Block.Predecessors.Count > 0);
                 Value value;
-                if (Node.NumPredecessors == 1 && IsSealed)
+                if (Block.Predecessors.Count == 1 && IsSealed)
                 {
-                    var valueContainer = Parent[Node.Predecessors[0]];
+                    var valueContainer = Parent[Block.Predecessors[0]];
                     value = valueContainer.GetValue(var, ref markerProvider);
                 }
                 else
@@ -380,7 +372,7 @@ namespace ILGPU.IR.Construction
                 ref MarkerProvider markerProvider)
             {
                 var phiBuilder = incompletePhi.PhiBuilder;
-                foreach (var predecessor in Node.Predecessors)
+                foreach (var predecessor in Block.Predecessors)
                 {
                     var valueContainer = Parent[predecessor];
 
@@ -400,10 +392,10 @@ namespace ILGPU.IR.Construction
                     }
 
                     // Set argument value
-                    phiBuilder.AddArgument(predecessor.Block, value);
+                    phiBuilder.AddArgument(predecessor, value);
                 }
                 incompletePhi.Location.Assert(
-                    phiBuilder.Count == Node.Predecessors.Count);
+                    phiBuilder.Count == Block.Predecessors.Count);
                 var phiValue = phiBuilder.Seal();
                 return phiValue.TryRemoveTrivialPhi(Parent.MethodBuilder);
             }
@@ -415,11 +407,26 @@ namespace ILGPU.IR.Construction
             /// <param name="markerProvider">A provider of new marker values.</param>
             public void Seal(ref MarkerProvider markerProvider)
             {
-                Debug.Assert(!IsSealed, "Cannot seal a sealed block");
+                Block.Assert(!IsSealed);
                 foreach (var var in incompletePhis.Values)
                     SetupPhiArguments(var, ref markerProvider);
                 IsSealed = true;
                 incompletePhis.Clear();
+            }
+
+            /// <summary>
+            /// Tries to seal all successor blocks of this one.
+            /// </summary>
+            /// <param name="markerProvider">A provider of new marker values.</param>
+            public void TrySealSuccessors(ref MarkerProvider markerProvider)
+            {
+                Block.Assert(IsProcessed);
+                foreach (var successor in Block.Successors)
+                {
+                    var valueContainer = Parent[successor];
+                    if (valueContainer.IsProcessed && valueContainer.CanSeal)
+                        valueContainer.Seal(ref markerProvider);
+                }
             }
 
             #endregion
@@ -430,9 +437,39 @@ namespace ILGPU.IR.Construction
             /// Returns the string representation of this block.
             /// </summary>
             /// <returns>The string representation of this block.</returns>
-            public override string ToString() => Node.ToString();
+            public override string ToString() => Block.ToString();
 
             #endregion
+        }
+
+        /// <summary>
+        /// Provides <see cref="ValueContainer"/> instances.
+        /// </summary>
+        private readonly struct ValueContainerProvider :
+            IBasicBlockMapValueProvider<ValueContainer>
+        {
+            /// <summary>
+            /// Constructs a new container provider.
+            /// </summary>
+            /// <param name="parent">The parent SSA builder.</param>
+            public ValueContainerProvider(SSABuilder<TVariable> parent)
+            {
+                Parent = parent;
+            }
+
+            /// <summary>
+            /// Returns the parent SSA builder.
+            /// </summary>
+            public SSABuilder<TVariable> Parent { get; }
+
+            /// <summary>
+            /// Creates a new <see cref="ValueContainer"/> instance.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly ValueContainer GetValue(
+                BasicBlock block,
+                int traversalIndex) =>
+                new ValueContainer(Parent, block);
         }
 
         #endregion
@@ -446,20 +483,20 @@ namespace ILGPU.IR.Construction
         /// <returns>The created SSA builder.</returns>
         public static SSABuilder<TVariable> Create(
             Method.Builder methodBuilder) =>
-            Create(methodBuilder, methodBuilder.SourceBlocks.CreateCFG());
+            Create(methodBuilder, methodBuilder.SourceBlocks);
 
         /// <summary>
         /// Creates a new SSA builder.
         /// </summary>
         /// <param name="methodBuilder">The current method builder.</param>
-        /// <param name="cfg">The parent CFG.</param>
+        /// <param name="blockCollection">The block collection.</param>
         /// <returns>The created SSA builder.</returns>
         public static SSABuilder<TVariable> Create(
             Method.Builder methodBuilder,
-            CFG cfg) =>
+            in BlockCollection blockCollection) =>
             new SSABuilder<TVariable>(
                 methodBuilder ?? throw new ArgumentNullException(nameof(methodBuilder)),
-                cfg ?? throw new ArgumentNullException(nameof(cfg)));
+                blockCollection);
 
         #endregion
 
@@ -472,13 +509,17 @@ namespace ILGPU.IR.Construction
         /// Constructs a new SSA builder.
         /// </summary>
         /// <param name="methodBuilder">The current method builder.</param>
-        /// <param name="cfg">The CFG.</param>
-        private SSABuilder(Method.Builder methodBuilder, CFG cfg)
+        /// <param name="blockCollection">The block collection.</param>
+        private SSABuilder(
+            Method.Builder methodBuilder,
+            in BlockCollection blockCollection)
         {
+            methodBuilder.AssertNoControlFlowUpdate();
+
             MethodBuilder = methodBuilder;
-            CFG = cfg;
-            mapping = cfg.CreateMapping(
-                node => new ValueContainer(this, node));
+            Blocks = blockCollection;
+
+            mapping = blockCollection.CreateMap(new ValueContainerProvider(this));
         }
 
         #endregion
@@ -493,20 +534,14 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Returns the underlying list of blocks.
         /// </summary>
-        public BasicBlockCollection<ReversePostOrder> Blocks =>
-            MethodBuilder.SourceBlocks;
+        public BlockCollection Blocks { get; }
 
         /// <summary>
-        /// Returns the associated graph.
+        /// Returns the internal value container for the given block.
         /// </summary>
-        public CFG CFG { get; }
-
-        /// <summary>
-        /// Returns the internal value container for the given node.
-        /// </summary>
-        /// <param name="node">The CFG node.</param>
+        /// <param name="block">The basic block.</param>
         /// <returns>The resolved value container.</returns>
-        private ValueContainer this[CFGNode node] => mapping[node.Block];
+        private ValueContainer this[BasicBlock block] => mapping[block];
 
         #endregion
 
@@ -515,27 +550,27 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Sets the given variable to the given value.
         /// </summary>
-        /// <param name="node">The target node.</param>
+        /// <param name="block">The target block.</param>
         /// <param name="var">The variable reference.</param>
         /// <param name="value">The value to set.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetValue(CFGNode node, TVariable var, Value value)
+        public void SetValue(BasicBlock block, TVariable var, Value value)
         {
-            var valueContainer = this[node];
+            var valueContainer = this[block];
             valueContainer.SetValue(var, value);
         }
 
         /// <summary>
         /// Returns the value of the given variable.
         /// </summary>
-        /// <param name="node">The target node.</param>
+        /// <param name="block">The target block.</param>
         /// <param name="var">The variable reference.</param>
         /// <returns>The value of the given variable.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Value GetValue(CFGNode node, TVariable var)
+        public Value GetValue(BasicBlock block, TVariable var)
         {
             var markerProvider = new MarkerProvider(markerValue);
-            var valueContainer = this[node];
+            var valueContainer = this[block];
             var result = valueContainer.GetValue(var, ref markerProvider);
             markerProvider.Apply(ref markerValue);
             return result;
@@ -544,94 +579,46 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Removes the value of the given variable.
         /// </summary>
-        /// <param name="node">The target node.</param>
+        /// <param name="block">The target block.</param>
         /// <param name="var">The variable reference.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveValue(CFGNode node, TVariable var)
+        public void RemoveValue(BasicBlock block, TVariable var)
         {
-            var valueContainer = this[node];
+            var valueContainer = this[block];
             valueContainer.RemoveValue(var);
         }
 
         /// <summary>
-        /// Sets the given variable to the given block.
-        /// </summary>
-        /// <param name="basicBlock">The target block.</param>
-        /// <param name="var">The variable reference.</param>
-        /// <param name="value">The value to set.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetValue(BasicBlock basicBlock, TVariable var, Value value)
-        {
-            var cfgNode = CFG[basicBlock];
-            SetValue(cfgNode, var, value);
-        }
-
-        /// <summary>
-        /// Returns the value of the given variable.
-        /// </summary>
-        /// <param name="basicBlock">The target block.</param>
-        /// <param name="var">The variable reference.</param>
-        /// <returns>The value of the given variable.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Value GetValue(BasicBlock basicBlock, TVariable var)
-        {
-            var cfgNode = CFG[basicBlock];
-            return GetValue(cfgNode, var);
-        }
-
-        /// <summary>
-        /// Removes the value of the given variable.
-        /// </summary>
-        /// <param name="basicBlock">The target block.</param>
-        /// <param name="var">The variable reference.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void RemoveValue(BasicBlock basicBlock, TVariable var)
-        {
-            var cfgNode = CFG[basicBlock];
-            RemoveValue(cfgNode, var);
-        }
-
-        /// <summary>
         /// Tries to process the associated block.
         /// </summary>
-        /// <param name="node">The target node.</param>
-        public bool Process(CFGNode node)
+        /// <param name="block">The target block.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Process(BasicBlock block)
         {
-            var block = this[node];
-            return block.IsProcessed
-                ? false
-                : block.IsProcessed = true;
-        }
-
-        /// <summary>
-        /// Tries to process the associated block.
-        /// </summary>
-        /// <param name="basicBlock">The target block.</param>
-        public bool Process(BasicBlock basicBlock)
-        {
-            var cfgNode = CFG[basicBlock];
-            return Process(cfgNode);
+            var container = this[block];
+            return !container.IsProcessed && (container.IsProcessed = true);
         }
 
         /// <summary>
         /// Tries to seals the associated block.
         /// </summary>
-        /// <param name="block">The block to seal.</param>
-        private void Seal(ValueContainer block)
+        /// <param name="container">The container to seal.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Seal(ValueContainer container)
         {
-            Debug.Assert(block.CanSeal, "Invalid sealing operation");
+            container.Block.Assert(container.CanSeal);
             var markerProvider = new MarkerProvider(markerValue);
-            block.Seal(ref markerProvider);
+            container.Seal(ref markerProvider);
             markerProvider.Apply(ref markerValue);
         }
 
         /// <summary>
         /// Tries to seals the associated node.
         /// </summary>
-        /// <param name="node">The target node.</param>
-        public bool Seal(CFGNode node)
+        /// <param name="block">The target block.</param>
+        public bool Seal(BasicBlock block)
         {
-            var valueContainer = this[node];
+            var valueContainer = this[block];
             if (valueContainer.CanSeal)
             {
                 Seal(valueContainer);
@@ -641,61 +628,61 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
-        /// Tries to seals the associated block.
+        /// Tries to process the given node while always trying to seal the given node.
         /// </summary>
-        /// <param name="basicBlock">The target block.</param>
-        public bool Seal(BasicBlock basicBlock)
-        {
-            var cfgNode = CFG[basicBlock];
-            return Seal(cfgNode);
-        }
-
-        /// <summary>
-        /// Tries to process the given node while always trying
-        /// to seal the given node.
-        /// </summary>
-        /// <param name="node">The target node.</param>
+        /// <param name="block">The basic block.</param>
         /// <returns>True, if the node has not been processed.</returns>
-        public bool ProcessAndSeal(CFGNode node)
+        public bool ProcessAndSeal(BasicBlock block)
         {
-            var valueContainer = this[node];
+            var valueContainer = this[block];
             if (valueContainer.CanSeal)
                 Seal(valueContainer);
-            return valueContainer.IsProcessed
-                ? false
-                : valueContainer.IsProcessed = true;
+            return !valueContainer.IsProcessed &&
+                (valueContainer.IsProcessed = true);
         }
 
         /// <summary>
-        /// Tries to process the given node while always trying
-        /// to seal the given block.
+        /// Tries to seal all successors of the given block.
         /// </summary>
-        /// <param name="basicBlock">The basic block.</param>
-        /// <returns>True, if the node has not been processed.</returns>
-        public bool ProcessAndSeal(BasicBlock basicBlock)
+        public void TrySealSuccessors(BasicBlock block)
         {
-            var cfgNode = CFG[basicBlock];
-            return ProcessAndSeal(cfgNode);
+            var valueContainer = this[block];
+            block.Assert(valueContainer.IsProcessed);
+            var markerProvider = new MarkerProvider(markerValue);
+            valueContainer.TrySealSuccessors(ref markerProvider);
+            markerProvider.Apply(ref markerValue);
+        }
+
+        /// <summary>
+        /// Seals all remaining blocks in the appropriate order.
+        /// </summary>
+        public void SealRemainingBlocks()
+        {
+            // Seal all unsealed blocks to close back edges
+            var markerProvider = new MarkerProvider(markerValue);
+            foreach (var (block, container) in mapping)
+            {
+                if (container.CanSeal)
+                    container.Seal(ref markerProvider);
+                else
+                    block.Assert(container.IsSealed);
+            }
+            markerProvider.Apply(ref markerValue);
+        }
+
+        /// <summary>
+        /// Asserts that all blocks have been sealed.
+        /// </summary>
+        /// <remarks>
+        /// This operation is only available in debug mode.
+        /// </remarks>
+        [Conditional("DEBUG")]
+        public void AssertAllSealed()
+        {
+            foreach (var (block, container) in mapping)
+                block.Assert(container.IsSealed);
         }
 
         #endregion
-    }
-
-    public static class SSABuilder
-    {
-        public static BlockCollection ComputeSSABlockOrder<TOrder>(
-            this BasicBlockCollection<TOrder> blockCollection)
-            where TOrder : struct, ITraversalOrder =>
-            blockCollection.ComputeBlockOrder<
-                ReversePostOrder,
-                PostOrder,
-                CanHaveDuplicates<BasicBlock>>();
-
-        public static BlockCollection ComputeSSABlockOrder(
-            this Method.Builder methodBuilder) =>
-            methodBuilder.ComputeBlockOrder<
-                ReversePostOrder,
-                PostOrder,
-                CanHaveDuplicates<BasicBlock>>();
     }
 }
