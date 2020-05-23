@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
@@ -79,7 +80,10 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents a method node within the IR.
     /// </summary>
-    public sealed partial class Method : ValueParent, IMethodMappingObject
+    public sealed partial class Method :
+        ValueParent,
+        IMethodMappingObject,
+        IControlFlowAnalysisSource<Forwards>
     {
         #region Nested Types
 
@@ -398,7 +402,7 @@ namespace ILGPU.IR
 
             // Create entry block
             EntryBlock = new BasicBlock(this, location, "Entry");
-            EntryBlock.SetupBlockIndex(0);
+            EntryBlock.BeginControlFlowUpdate(0);
             blocks = ImmutableArray.Create(EntryBlock);
         }
 
@@ -481,13 +485,13 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns all attached blocks.
         /// </summary>
-        public BasicBlockCollection<ReversePostOrder> Blocks =>
-            new BasicBlockCollection<ReversePostOrder>(EntryBlock, blocks);
+        public BasicBlockCollection<ReversePostOrder, Forwards> Blocks =>
+            new BasicBlockCollection<ReversePostOrder, Forwards>(EntryBlock, blocks);
 
         /// <summary>
         /// Returns all attached values.
         /// </summary>
-        public BasicBlockCollection<ReversePostOrder>.ValueCollection Values =>
+        public BasicBlockCollection<ReversePostOrder, Forwards>.ValueCollection Values =>
             Blocks.Values;
 
         /// <summary>
@@ -505,6 +509,12 @@ namespace ILGPU.IR
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Computes the exit block.
+        /// </summary>
+        /// <returns>The exit block.</returns>
+        public BasicBlock FindExitBlock() => Blocks.FindExitBlock();
 
         /// <summary>
         /// Performs an internal GC run.

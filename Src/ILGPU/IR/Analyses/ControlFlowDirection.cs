@@ -9,113 +9,98 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Analyses.ControlFlowDirection
 {
     /// <summary>
-    /// Defines a control flow direction.
+    /// Defines an abstract control flow-analysis source that has an entry block and
+    /// the ability to find a unique exit block.
+    /// </summary>
+    /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+    public interface IControlFlowAnalysisSource<TDirection>
+        where TDirection : IControlFlowDirection
+    {
+        /// <summary>
+        /// Returns the entry block.
+        /// </summary>
+        BasicBlock EntryBlock { get; }
+
+        /// <summary>
+        /// Computes the exit block.
+        /// </summary>
+        /// <returns>The exit block.</returns>
+        BasicBlock FindExitBlock();
+    }
+
+    /// <summary>
+    /// Defines a control-flow direction.
     /// </summary>
     public interface IControlFlowDirection
     {
         /// <summary>
-        /// Determines the actual predecessor collection.
+        /// Returns true if this is a forwards direction.
         /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TCollection">The collection type.</typeparam>
-        /// <param name="predecessors">The list of predecessors (forwards).</param>
-        /// <param name="successors">The list of successors (forwards).</param>
-        /// <returns>The collection of predecessors.</returns>
-        TCollection GetPredecessors<T, TCollection>(
-            TCollection predecessors,
-            TCollection successors)
-            where TCollection : IReadOnlyCollection<T>;
+        bool IsForwards { get; }
 
         /// <summary>
-        /// Determines the actual successor collection.
+        /// Returns the entry block for a given source.
         /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TCollection">The collection type.</typeparam>
-        /// <param name="predecessors">The list of predecessors (forwards).</param>
-        /// <param name="successors">The list of successors (forwards).</param>
-        /// <returns>The collection of successor.</returns>
-        TCollection GetSuccessors<T, TCollection>(
-            TCollection predecessors,
-            TCollection successors)
-            where TCollection : IReadOnlyCollection<T>;
+        /// <typeparam name="TSource">The source base.</typeparam>
+        /// <typeparam name="TDirection">The current direction.</typeparam>
+        /// <param name="source">The source.</param>
+        /// <returns>The entry block.</returns>
+        BasicBlock GetEntryBlock<TSource, TDirection>(in TSource source)
+            where TSource : IControlFlowAnalysisSource<TDirection>
+            where TDirection : IControlFlowDirection;
     }
 
     /// <summary>
-    /// Defines the default forward control flow direction.
+    /// Defines the default forward control-flow direction.
     /// </summary>
     public readonly struct Forwards : IControlFlowDirection
     {
         /// <summary>
-        /// Determines the actual predecessor collection.
+        /// Returns true.
         /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TCollection">The collection type.</typeparam>
-        /// <param name="predecessors">The list of predecessors (forwards).</param>
-        /// <param name="successors">The list of successors (forwards).</param>
-        /// <returns>The collection of predecessors.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TCollection GetPredecessors<T, TCollection>(
-            TCollection predecessors,
-            TCollection successors)
-            where TCollection : IReadOnlyCollection<T> =>
-            predecessors;
+        public readonly bool IsForwards => true;
 
         /// <summary>
-        /// Determines the actual successor collection.
+        /// Returns the entry in case of a forwards source, the exit block otherwise.
         /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TCollection">The collection type.</typeparam>
-        /// <param name="predecessors">The list of predecessors (forwards).</param>
-        /// <param name="successors">The list of successors (forwards).</param>
-        /// <returns>The collection of successor.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TCollection GetSuccessors<T, TCollection>(
-            TCollection predecessors,
-            TCollection successors)
-            where TCollection : IReadOnlyCollection<T> =>
-            successors;
+        public readonly BasicBlock GetEntryBlock<TSource, TDirection>(
+            in TSource source)
+            where TSource : IControlFlowAnalysisSource<TDirection>
+            where TDirection : IControlFlowDirection
+        {
+            TDirection direction = default;
+            return direction.IsForwards ? source.EntryBlock : source.FindExitBlock();
+        }
     }
 
     /// <summary>
-    /// Defines the backwards control flow direction in which predecessors are considered
+    /// Defines the backwards control-flow direction in which predecessors are considered
     /// to be successors and vice versa.
     /// </summary>
     public readonly struct Backwards : IControlFlowDirection
     {
         /// <summary>
-        /// Determines the actual predecessor collection.
+        /// Returns false.
         /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TCollection">The collection type.</typeparam>
-        /// <param name="predecessors">The list of predecessors (forwards).</param>
-        /// <param name="successors">The list of successors (forwards).</param>
-        /// <returns>The collection of predecessors.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TCollection GetPredecessors<T, TCollection>(
-            TCollection predecessors,
-            TCollection successors)
-            where TCollection : IReadOnlyCollection<T> =>
-            successors;
+        public readonly bool IsForwards => false;
 
         /// <summary>
-        /// Determines the actual successor collection.
+        /// Returns the entry in case of a backwards source, the exit block otherwise.
         /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TCollection">The collection type.</typeparam>
-        /// <param name="predecessors">The list of predecessors (forwards).</param>
-        /// <param name="successors">The list of successors (forwards).</param>
-        /// <returns>The collection of successor.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TCollection GetSuccessors<T, TCollection>(
-            TCollection predecessors,
-            TCollection successors)
-            where TCollection : IReadOnlyCollection<T> =>
-            predecessors;
+        public readonly BasicBlock GetEntryBlock<TSource, TDirection>(
+            in TSource source)
+            where TSource : IControlFlowAnalysisSource<TDirection>
+            where TDirection : IControlFlowDirection
+        {
+            TDirection direction = default;
+            return direction.IsForwards ? source.FindExitBlock() : source.EntryBlock;
+        }
     }
 }

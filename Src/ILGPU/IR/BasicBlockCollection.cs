@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses.Duplicates;
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System;
@@ -22,36 +22,30 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.IR
 {
     /// <summary>
-    /// An abstract collection of basic blocks following a particular order.
+    /// An abstract block collection with a particular control-flow direction.
     /// </summary>
-    /// <typeparam name="TOrder">The current order.</typeparam>
-    public interface IBasicBlockCollection<TOrder>
-        where TOrder : struct, ITraversalOrder
+    /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+    public interface IBasicBlockCollection<TDirection> :
+        IControlFlowAnalysisSource<TDirection>
+        where TDirection : IControlFlowDirection
     {
         /// <summary>
-        /// Computes an updated block order.
+        /// Returns the number of blocks.
         /// </summary>
-        /// <typeparam name="TOtherOrder">The collection order.</typeparam>
-        /// <typeparam name="TOtherOrderProvider">
-        /// The collection order provider.
-        /// </typeparam>
-        /// <typeparam name="TDuplicates">The duplicate specification.</typeparam>
-        /// <returns>The newly ordered collection.</returns>
-        BasicBlockCollection<TOtherOrder> ComputeBlockOrder<
-            TOtherOrder,
-            TOtherOrderProvider,
-            TDuplicates>()
-            where TOtherOrder : struct, ITraversalOrderView<TOtherOrderProvider>
-            where TOtherOrderProvider : struct, ITraversalOrderProvider
-            where TDuplicates : struct, IDuplicates<BasicBlock>;
+        int Count { get; }
     }
 
     /// <summary>
     /// A collection of basic blocks following a particular order.
     /// </summary>
     /// <typeparam name="TOrder">The current order.</typeparam>
-    public readonly struct BasicBlockCollection<TOrder> : IReadOnlyList<BasicBlock>
+    /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+    public readonly struct BasicBlockCollection<TOrder, TDirection> :
+        IBasicBlockCollection<TDirection>,
+        IReadOnlyCollection<BasicBlock>,
+        IControlFlowAnalysisSource<TDirection>
         where TOrder : struct, ITraversalOrder
+        where TDirection : struct, IControlFlowDirection
     {
         #region Nested Types
 
@@ -105,7 +99,8 @@ namespace ILGPU.IR
                     "Style",
                     "IDE0044:Add readonly modifier",
                     Justification = "This instance variable will be modified")]
-                private BasicBlockCollection<TOrder>.Enumerator blockEnumerator;
+                private BasicBlockCollection<TOrder, TDirection>.Enumerator
+                    blockEnumerator;
                 private BasicBlock.Enumerator valueEnumerator;
 
                 /// <summary>
@@ -114,8 +109,9 @@ namespace ILGPU.IR
                 /// <param name="blocks">The parent blocks.</param>
                 internal Enumerator(ImmutableArray<BasicBlock> blocks)
                 {
-                    blockEnumerator = new BasicBlockCollection<TOrder>.Enumerator(
-                        blocks);
+                    blockEnumerator =
+                        new BasicBlockCollection<TOrder, TDirection>.Enumerator(
+                            blocks);
 
                     // There must be at least a single block
                     blockEnumerator.MoveNext();
@@ -167,7 +163,8 @@ namespace ILGPU.IR
             /// Constructs a new value collection.
             /// </summary>
             /// <param name="blockCollection">The parent blocks.</param>
-            internal ValueCollection(in BasicBlockCollection<TOrder> blockCollection)
+            internal ValueCollection(
+                in BasicBlockCollection<TOrder, TDirection> blockCollection)
             {
                 blocks = blockCollection.blocks;
             }
@@ -228,7 +225,7 @@ namespace ILGPU.IR
         public BasicBlock EntryBlock { get; }
 
         /// <summary>
-        /// Returns the number of attached parameters.
+        /// Returns the number of blocks.
         /// </summary>
         public readonly int Count => blocks.Length;
 
@@ -237,16 +234,24 @@ namespace ILGPU.IR
         /// </summary>
         public readonly ValueCollection Values => new ValueCollection(this);
 
-        /// <summary>
-        /// Returns the i-th block.
-        /// </summary>
-        /// <param name="index">The block index.</param>
-        /// <returns>The resolved block.</returns>
-        BasicBlock IReadOnlyList<BasicBlock>.this[int index] => blocks[index];
-
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Computes the exit block.
+        /// </summary>
+        /// <returns>The exit block.</returns>
+        public BasicBlock FindExitBlock()
+        {
+            // Traverse all blocks to find a block without a successor
+            foreach (var block in this)
+            {
+                if (block.GetSuccessors<TDirection>().Count < 1)
+                    return block;
+            }
+            throw new InvalidOperationException();
+        }
 
         /// <summary>
         /// Executes the given visitor for each terminator is this collection.
@@ -300,46 +305,114 @@ namespace ILGPU.IR
             return result;
         }
 
+
         /// <summary>
         /// Changes the order of this collection.
         /// </summary>
         /// <typeparam name="TOtherOrder">The collection order.</typeparam>
         /// <returns>The newly ordered collection.</returns>
-        public readonly BasicBlockCollection<TOtherOrder> AsOrder<TOtherOrder>()
+        public readonly BasicBlockCollection<TOtherOrder, TDirection>
+            AsOrder<TOtherOrder>()
             where TOtherOrder :
                 struct,
                 ITraversalOrder,
-                ICompatibleTraversalView<TOrder> =>
-            new BasicBlockCollection<TOtherOrder>(EntryBlock, blocks);
+                ICompatibleTraversalOrder<TOrder> =>
+            new BasicBlockCollection<TOtherOrder, TDirection>(EntryBlock, blocks);
+
+        /// <summary>
+        /// Changes the direction of this collection.
+        /// </summary>
+        /// <typeparam name="TOtherDirection">The other direction.</typeparam>
+        /// <returns>The newly ordered collection.</returns>
+        public readonly BasicBlockCollection<TOrder, TOtherDirection>
+            ChangeDirection<TOtherDirection>()
+            where TOtherDirection : struct, IControlFlowDirection =>
+            ChangeOrder<TOrder, TOtherDirection>();
 
         /// <summary>
         /// Changes the order of this collection.
         /// </summary>
         /// <typeparam name="TOtherOrder">The collection order.</typeparam>
-        /// <typeparam name="TOtherOrderProvider">
-        /// The collection order provider.
-        /// </typeparam>
-        /// <typeparam name="TDuplicates">The duplicate specification.</typeparam>
+        /// <typeparam name="TOtherDirection">The control-flow direction.</typeparam>
+        /// <remarks>
+        /// Note that this function uses successor/predecessor links on all basic blocks.
+        /// </remarks>
         /// <returns>The newly ordered collection.</returns>
-        public readonly BasicBlockCollection<TOtherOrder> ComputeBlockOrder<
+        public readonly BasicBlockCollection<TOtherOrder, TOtherDirection>
+            ChangeOrder<
             TOtherOrder,
-            TOtherOrderProvider,
-            TDuplicates>()
-            where TOtherOrder : struct, ITraversalOrderView<TOtherOrderProvider>
-            where TOtherOrderProvider : struct, ITraversalOrderProvider
-            where TDuplicates : struct, IDuplicates<BasicBlock>
+            TOtherDirection>()
+            where TOtherOrder : struct, ITraversalOrder
+            where TOtherDirection : struct, IControlFlowDirection
         {
-            if (EntryBlock is null)
-                throw new InvalidOperationException();
+            // Determine the new entry block
+            TDirection direction = default;
+            var newEntryBlock = direction.GetEntryBlock<
+                BasicBlockCollection<TOrder, TDirection>,
+                TDirection>(this);
 
+            // Compute new block order
             var newBlocks = ImmutableArray.CreateBuilder<BasicBlock>(Count);
-            TOtherOrderProvider orderProvider = default;
-            orderProvider.Traverse<
+            TOtherOrder otherOrder = default;
+            otherOrder.Traverse<
                 ImmutableArray<BasicBlock>.Builder,
-                TDuplicates>(EntryBlock, newBlocks);
-            return new BasicBlockCollection<TOtherOrder>(
-                EntryBlock,
+                BasicBlock.SuccessorsProvider<TOtherDirection>,
+                TOtherDirection,
+                BasicBlock.LinkCollection>(
+                newEntryBlock,
+                newBlocks,
+                new BasicBlock.SuccessorsProvider<TOtherDirection>());
+
+            // Return updated block collection
+            return new BasicBlockCollection<TOtherOrder, TOtherDirection>(
+                newEntryBlock,
                 newBlocks.ToImmutable());
+        }
+
+        #endregion
+
+        #region Utility Methods
+
+        /// <summary>
+        /// Constructs a new block set.
+        /// </summary>
+        /// <returns>The created block set.</returns>
+        public readonly BasicBlockSet CreateSet() => BasicBlockSet.Create(this);
+
+        /// <summary>
+        /// Constructs a new block set list.
+        /// </summary>
+        /// <returns>The created block set list.</returns>
+        public readonly BasicBlockSetList CreateSetList() =>
+            BasicBlockSetList.Create(this);
+
+        /// <summary>
+        /// Constructs a new block map.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        /// <returns>The created block map.</returns>
+        public readonly BasicBlockMap<T> CreateMap<T>() =>
+            BasicBlockMap<T>.Create(this);
+
+        /// <summary>
+        /// Constructs a new block map.
+        /// </summary>
+        /// <typeparam name="T">The value type.</typeparam>
+        /// <param name="valueProvider">The initial value provider.</param>
+        /// <returns>The created block map.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly BasicBlockMap<T> CreateMap<T>(
+            IBasicBlockMapValueProvider<T> valueProvider)
+        {
+            var mapping = CreateMap<T>();
+            int blockIndex = 0;
+            foreach (var block in this)
+            {
+                var value = valueProvider.GetValue(block, blockIndex++);
+                mapping.Add(block, value);
+            }
+
+            return mapping;
         }
 
         #endregion
