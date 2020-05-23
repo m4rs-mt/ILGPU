@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses.Duplicates;
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -25,6 +25,23 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         /// The current enumeration index.
         /// </summary>
         public int Index { get; set; }
+    }
+
+    /// <summary>
+    /// Provides successors for a given basic block.
+    /// </summary>
+    /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+    /// <typeparam name="TSuccessors">The collection type.</typeparam>
+    public interface ITraversalSuccessorsProvider<TDirection, TSuccessors>
+        where TDirection : struct, IControlFlowDirection
+        where TSuccessors : IReadOnlyCollection<BasicBlock>
+    {
+        /// <summary>
+        /// Returns or computes successors of the given basic block.
+        /// </summary>
+        /// <param name="basicBlock">The source basic block.</param>
+        /// <returns>The returned successor collection.</returns>
+        TSuccessors GetSuccessors(BasicBlock basicBlock);
     }
 
     /// <summary>
@@ -49,37 +66,28 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             TCollection blocks,
             ref TraversalEnumerationState state)
             where TCollection : IReadOnlyList<BasicBlock>;
-    }
 
-    /// <summary>
-    /// A more specific order that should be used in the scope of type constraints.
-    /// </summary>
-    public interface ITraversalOrderProvider : ITraversalOrder
-    {
         /// <summary>
         /// Computes a traversal using the current order.
         /// </summary>
         /// <typeparam name="TTargetList">The target list type.</typeparam>
-        /// <typeparam name="TDuplicates">The duplicate specification.</typeparam>
+        /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <typeparam name="TSuccessors">The collection type.</typeparam>
         /// <param name="entryBlock">The entry block.</param>
         /// <param name="target">The target list.</param>
+        /// <param name="successorProvider">The successor provider.</param>
         /// <returns>The created traversal.</returns>
-        void Traverse<TTargetList, TDuplicates>(
+        void Traverse<TTargetList, TSuccessorProvider, TDirection, TSuccessors>(
             BasicBlock entryBlock,
-            TTargetList target)
+            TTargetList target,
+            TSuccessorProvider successorProvider)
             where TTargetList : IList<BasicBlock>
-            where TDuplicates : struct, IDuplicates<BasicBlock>;
+            where TSuccessorProvider :
+                ITraversalSuccessorsProvider<TDirection, TSuccessors>
+            where TDirection : struct, IControlFlowDirection
+            where TSuccessors : IReadOnlyList<BasicBlock>;
     }
-
-    /// <summary>
-    /// A view that has an associated traversal order.
-    /// </summary>
-    /// <typeparam name="TOrderProvider">The order provider type.</typeparam>
-    public interface ITraversalOrderView<TOrderProvider> :
-        ITraversalOrder,
-        ICompatibleTraversalView<TOrderProvider>
-        where TOrderProvider : struct, ITraversalOrderProvider
-    { }
 
     /// <summary>
     /// Another view that is compatible with the current type without requiring a new
@@ -90,7 +98,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         "Design",
         "CA1040:Avoid empty interfaces",
         Justification = "Used for generic constraints")]
-    public interface ICompatibleTraversalView<TOther>
+    public interface ICompatibleTraversalOrder<TOther>
         where TOther : struct, ITraversalOrder
     { }
 
@@ -99,6 +107,11 @@ namespace ILGPU.IR.Analyses.TraversalOrders
     /// </summary>
     static class TraversalOrder
     {
+        /// <summary>
+        /// Specifies the default initial stack size.
+        /// </summary>
+        public const int InitStackSize = 16;
+
         /// <summary>
         /// Initializes a forwards enumeration state.
         /// </summary>
@@ -139,34 +152,14 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool BackwardsMoveNext(ref TraversalEnumerationState state) =>
             --state.Index >= 0;
-
-        /// <summary>
-        /// Computes a traversal using the current order.
-        /// </summary>
-        /// <typeparam name="TOrder">The order type.</typeparam>
-        /// <typeparam name="TTargetList">The target list type.</typeparam>
-        /// <param name="order">The current order.</param>
-        /// <param name="entryBlock">The entry block.</param>
-        /// <param name="target">The target list.</param>
-        /// <returns>The created traversal.</returns>
-        public static void Traverse<TOrder, TTargetList>(
-            this TOrder order,
-            BasicBlock entryBlock,
-            TTargetList target)
-            where TOrder : ITraversalOrderProvider
-            where TTargetList : IList<BasicBlock> =>
-            order.Traverse<TTargetList, NoDuplicates<BasicBlock>>(
-                entryBlock,
-                target);
     }
 
     /// <summary>
     /// Enumerates all basic blocks in pre order.
     /// </summary>
     public readonly struct PreOrder :
-        ITraversalOrderProvider,
-        ITraversalOrderView<PreOrder>,
-        ICompatibleTraversalView<ReversePreOrder>
+        ITraversalOrder,
+        ICompatibleTraversalOrder<ReversePreOrder>
     {
         /// <summary>
         /// Initializes a new enumeration state.
@@ -194,42 +187,49 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         /// Computes a traversal using the current order.
         /// </summary>
         /// <typeparam name="TTargetList">The target list type.</typeparam>
-        /// <typeparam name="TDuplicates">The duplicate specification.</typeparam>
+        /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <typeparam name="TSuccessors">The collection type.</typeparam>
         /// <param name="entryBlock">The entry block.</param>
         /// <param name="target">The target list.</param>
+        /// <param name="successorProvider">The successor provider.</param>
         /// <returns>The created traversal.</returns>
-        public readonly void Traverse<TTargetList, TDuplicates>(
+        public readonly void Traverse<
+            TTargetList,
+            TSuccessorProvider,
+            TDirection,
+            TSuccessors>(
             BasicBlock entryBlock,
-            TTargetList target)
+            TTargetList target,
+            TSuccessorProvider successorProvider)
             where TTargetList : IList<BasicBlock>
-            where TDuplicates : struct, IDuplicates<BasicBlock>
+            where TSuccessorProvider :
+                ITraversalSuccessorsProvider<TDirection, TSuccessors>
+            where TDirection : struct, IControlFlowDirection
+            where TSuccessors : IReadOnlyList<BasicBlock>
         {
-            TDuplicates duplicates = default;
-
-            var visited = new HashSet<BasicBlock>();
-            var processed = new Stack<BasicBlock>(16);
+            var visited = BasicBlockSet.Create(entryBlock);
+            var stack = new Stack<BasicBlock>(TraversalOrder.InitStackSize);
             var currentBlock = entryBlock;
 
             while (true)
             {
                 if (visited.Add(currentBlock))
+                {
                     target.Add(currentBlock);
-                else
-                    duplicates.AddAlreadyVisitedItem(target, currentBlock);
+                    var successors = successorProvider.GetSuccessors(currentBlock);
+                    if (successors.Count > 0)
+                    {
+                        for (int i = successors.Count - 1; i >= 1; --i)
+                            stack.Push(successors[i]);
+                        currentBlock = successors[0];
+                        continue;
+                    }
+                }
 
-                var successors = currentBlock.Successors;
-                if (successors.Length > 0)
-                {
-                    for (int i = successors.Length - 1; i >= 1; --i)
-                        processed.Push(successors[i]);
-                    currentBlock = successors[0];
-                }
-                else
-                {
-                    if (processed.Count < 1)
-                        break;
-                    currentBlock = processed.Pop();
-                }
+                if (stack.Count < 1)
+                    break;
+                currentBlock = stack.Pop();
             }
         }
     }
@@ -237,7 +237,9 @@ namespace ILGPU.IR.Analyses.TraversalOrders
     /// <summary>
     /// Enumerates all basic blocks in reverse pre order.
     /// </summary>
-    public readonly struct ReversePreOrder : ITraversalOrderView<PreOrder>
+    public readonly struct ReversePreOrder :
+        ITraversalOrder,
+        ICompatibleTraversalOrder<PreOrder>
     {
         /// <summary>
         /// Initializes a new enumeration state.
@@ -260,15 +262,47 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             ref TraversalEnumerationState state)
             where TCollection : IReadOnlyList<BasicBlock> =>
             TraversalOrder.BackwardsMoveNext(ref state);
+
+        /// <summary>
+        /// Computes a traversal using the current order.
+        /// </summary>
+        /// <typeparam name="TTargetList">The target list type.</typeparam>
+        /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <typeparam name="TSuccessors">The collection type.</typeparam>
+        /// <param name="entryBlock">The entry block.</param>
+        /// <param name="successorProvider">The successor provider.</param>
+        /// <param name="target">The target list.</param>
+        /// <returns>The created traversal.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly void Traverse<
+            TTargetList,
+            TSuccessorProvider,
+            TDirection,
+            TSuccessors>(
+            BasicBlock entryBlock,
+            TTargetList target,
+            TSuccessorProvider successorProvider)
+            where TTargetList : IList<BasicBlock>
+            where TSuccessorProvider :
+                ITraversalSuccessorsProvider<TDirection, TSuccessors>
+            where TDirection : struct, IControlFlowDirection
+            where TSuccessors : IReadOnlyList<BasicBlock>
+        {
+            var preOrder = new PreOrder();
+            preOrder.Traverse<TTargetList, TSuccessorProvider, TDirection, TSuccessors>(
+                entryBlock,
+                target,
+                successorProvider);
+        }
     }
 
     /// <summary>
     /// Enumerates all basic blocks in post order.
     /// </summary>
     public readonly struct PostOrder :
-        ITraversalOrderProvider,
-        ITraversalOrderView<PostOrder>,
-        ICompatibleTraversalView<ReversePostOrder>
+        ITraversalOrder,
+        ICompatibleTraversalOrder<ReversePostOrder>
     {
         /// <summary>
         /// Initializes a new enumeration state.
@@ -296,20 +330,29 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         /// Computes a traversal using the current order.
         /// </summary>
         /// <typeparam name="TTargetList">The target list type.</typeparam>
-        /// <typeparam name="TDuplicates">The duplicate specification.</typeparam>
+        /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <typeparam name="TSuccessors">The collection type.</typeparam>
         /// <param name="entryBlock">The entry block.</param>
         /// <param name="target">The target list.</param>
+        /// <param name="successorProvider">The successor provider.</param>
         /// <returns>The created traversal.</returns>
-        public readonly void Traverse<TTargetList, TDuplicates>(
+        public readonly void Traverse<
+            TTargetList,
+            TSuccessorProvider,
+            TDirection,
+            TSuccessors>(
             BasicBlock entryBlock,
-            TTargetList target)
+            TTargetList target,
+            TSuccessorProvider successorProvider)
             where TTargetList : IList<BasicBlock>
-            where TDuplicates : struct, IDuplicates<BasicBlock>
+            where TSuccessorProvider :
+                ITraversalSuccessorsProvider<TDirection, TSuccessors>
+            where TDirection : struct, IControlFlowDirection
+            where TSuccessors : IReadOnlyList<BasicBlock>
         {
-            TDuplicates duplicates = default;
-
-            var visited = new HashSet<BasicBlock>();
-            var processed = new Stack<(BasicBlock, int)>(16);
+            var visited = BasicBlockSet.Create(entryBlock);
+            var stack = new Stack<(BasicBlock, int)>(TraversalOrder.InitStackSize);
             var current = (Block: entryBlock, Child: 0);
 
             while (true)
@@ -319,28 +362,26 @@ namespace ILGPU.IR.Analyses.TraversalOrders
                 if (current.Child == 0)
                 {
                     if (!visited.Add(currentBlock))
-                    {
-                        duplicates.AddAlreadyVisitedItem(target, current.Block);
                         goto next;
-                    }
                 }
 
-                if (current.Child >= currentBlock.Successors.Length)
+                var successors = successorProvider.GetSuccessors(currentBlock);
+                if (current.Child >= successors.Count)
                 {
                     target.Add(currentBlock);
                     goto next;
                 }
                 else
                 {
-                    processed.Push((current.Block, current.Child + 1));
-                    current = (current.Block.Successors[current.Child], 0);
+                    stack.Push((currentBlock, current.Child + 1));
+                    current = (successors[current.Child], 0);
                 }
 
                 continue;
-                next:
-                if (processed.Count < 1)
+            next:
+                if (stack.Count < 1)
                     break;
-                current = processed.Pop();
+                current = stack.Pop();
             }
         }
     }
@@ -348,7 +389,9 @@ namespace ILGPU.IR.Analyses.TraversalOrders
     /// <summary>
     /// Enumerates all basic blocks in reverse post order.
     /// </summary>
-    public readonly struct ReversePostOrder : ITraversalOrderView<PostOrder>
+    public readonly struct ReversePostOrder :
+        ITraversalOrder,
+        ICompatibleTraversalOrder<PostOrder>
     {
         /// <summary>
         /// Initializes a new enumeration state.
@@ -371,5 +414,38 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             ref TraversalEnumerationState state)
             where TCollection : IReadOnlyList<BasicBlock> =>
             TraversalOrder.BackwardsMoveNext(ref state);
+
+        /// <summary>
+        /// Computes a traversal using the current order.
+        /// </summary>
+        /// <typeparam name="TTargetList">The target list type.</typeparam>
+        /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <typeparam name="TSuccessors">The collection type.</typeparam>
+        /// <param name="entryBlock">The entry block.</param>
+        /// <param name="target">The target list.</param>
+        /// <param name="successorProvider">The successor provider.</param>
+        /// <returns>The created traversal.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly void Traverse<
+            TTargetList,
+            TSuccessorProvider,
+            TDirection,
+            TSuccessors>(
+            BasicBlock entryBlock,
+            TTargetList target,
+            TSuccessorProvider successorProvider)
+            where TTargetList : IList<BasicBlock>
+            where TSuccessorProvider :
+                ITraversalSuccessorsProvider<TDirection, TSuccessors>
+            where TDirection : struct, IControlFlowDirection
+            where TSuccessors : IReadOnlyList<BasicBlock>
+        {
+            var postOrder = new PostOrder();
+            postOrder.Traverse<TTargetList, TSuccessorProvider, TDirection, TSuccessors>(
+                entryBlock,
+                target,
+                successorProvider);
+        }
     }
 }

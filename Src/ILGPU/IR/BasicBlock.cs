@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.ControlFlowDirection;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System;
 using System.Collections;
@@ -167,9 +169,165 @@ namespace ILGPU.IR
             #endregion
         }
 
+        /// <summary>
+        /// A collection for links.
+        /// </summary>
+        public readonly struct LinkCollection : IReadOnlyList<BasicBlock>
+        {
+            #region Nested Types
+
+            /// <summary>
+            /// An enumerator for links.
+            /// </summary>
+            public struct Enumerator : IEnumerator<BasicBlock>
+            {
+                #region Instance
+
+                private readonly List<BasicBlock> links;
+                private int index;
+
+                /// <summary>
+                /// Constructs a new link enumerator.
+                /// </summary>
+                /// <param name="linkCollection">The collection of links.</param>
+                internal Enumerator(List<BasicBlock> linkCollection)
+                {
+                    links = linkCollection;
+                    index = -1;
+                }
+
+                #endregion
+
+                #region Properties
+
+                /// <summary>
+                /// Returns the current link.
+                /// </summary>
+                public BasicBlock Current => links[index];
+
+                /// <summary cref="IEnumerator.Current"/>
+                object IEnumerator.Current => Current;
+
+                #endregion
+
+                #region Methods
+
+                /// <summary cref="IDisposable.Dispose"/>
+                void IDisposable.Dispose() { }
+
+                /// <summary cref="IEnumerator.MoveNext"/>
+                public bool MoveNext() => ++index < links.Count;
+
+                /// <summary cref="IEnumerator.Reset"/>
+                void IEnumerator.Reset() => throw new InvalidOperationException();
+
+                #endregion
+            }
+
+            #endregion
+
+            #region Instance
+
+            private readonly List<BasicBlock> links;
+
+            /// <summary>
+            /// Constructs a new link collection.
+            /// </summary>
+            /// <param name="linkCollection">The underlying links.</param>
+            internal LinkCollection(List<BasicBlock> linkCollection)
+            {
+                links = linkCollection;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the number of links.
+            /// </summary>
+            public readonly int Count => links.Count;
+
+            /// <summary>
+            /// Returns the i-th link.
+            /// </summary>
+            /// <param name="index">The link index.</param>
+            /// <returns>The resolved link.</returns>
+            public readonly BasicBlock this[int index] => links[index];
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns true if the given block is a registered link.
+            /// </summary>
+            /// <param name="link">The potential link block.</param>
+            /// <returns>True, if the given block is a registered link.</returns>
+            public readonly bool Contains(BasicBlock link) => links.Contains(link);
+
+            #endregion
+
+            #region IEnumerable
+
+            /// <summary>
+            /// Returns a link enumerator.
+            /// </summary>
+            /// <returns>The resolved enumerator.</returns>
+            public readonly Enumerator GetEnumerator() => new Enumerator(links);
+
+            /// <summary cref="IEnumerable{T}.GetEnumerator"/>
+            IEnumerator<BasicBlock> IEnumerable<BasicBlock>.GetEnumerator() =>
+                GetEnumerator();
+
+            /// <summary cref="IEnumerable.GetEnumerator"/>
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            #endregion
+        }
+
+        /// <summary>
+        /// A provider that uses terminators to determine the successors of a block.
+        /// </summary>
+        public readonly struct TerminatorSuccessorsProvider :
+            ITraversalSuccessorsProvider<Forwards, ImmutableArray<BasicBlock>>
+        {
+            /// <summary>
+            /// Returns the terminator targets.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly ImmutableArray<BasicBlock> GetSuccessors(
+                BasicBlock basicBlock) =>
+                basicBlock.Terminator.Targets;
+        }
+
+        /// <summary>
+        /// A provider that uses registered successors and predecessors of a block.
+        /// </summary>
+        /// <typeparam name="TDirection"></typeparam>
+        public readonly struct SuccessorsProvider<TDirection> :
+            ITraversalSuccessorsProvider<TDirection, LinkCollection>
+            where TDirection : struct, IControlFlowDirection
+        {
+            /// <summary>
+            /// Returns registered successors or predecessors of a block.
+            /// </summary>
+            /// <param name="basicBlock"></param>
+            /// <returns></returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly LinkCollection GetSuccessors(BasicBlock basicBlock) =>
+                basicBlock.GetSuccessors<TDirection>();
+        }
+
         #endregion
 
         #region Instance
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly List<BasicBlock> predecessors = new List<BasicBlock>(2);
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private readonly List<BasicBlock> successors = new List<BasicBlock>(2);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private List<ValueReference> values = new List<ValueReference>();
@@ -205,15 +363,27 @@ namespace ILGPU.IR
         public string Name { get; }
 
         /// <summary>
+        /// The list of predecessors (see <see cref="Backwards"/>).
+        /// </summary>
+        public LinkCollection Predecessors => GetPredecessors<Forwards>();
+
+        /// <summary>
+        /// The list of successors (see <see cref="Forwards"/>).
+        /// </summary>
+        public LinkCollection Successors => GetSuccessors<Forwards>();
+
+        /// <summary>
         /// Returns the current terminator.
         /// </summary>
         public TerminatorValue Terminator { get; private set; }
 
         /// <summary>
-        /// Returns all successor nodes.
+        /// The current list of successor blocks.
         /// </summary>
-        public ImmutableArray<BasicBlock> Successors =>
-            CompactTerminator().Targets;
+        public ImmutableArray<BasicBlock> CurrentSuccessors =>
+            Terminator is null
+            ? ImmutableArray<BasicBlock>.Empty
+            : Terminator.Targets;
 
         /// <summary>
         /// Returns the number of detected blocks.
@@ -238,29 +408,80 @@ namespace ILGPU.IR
         #region Methods
 
         /// <summary>
-        /// Setups the internal block index.
+        /// Asserts that no control-flow update has happened and the predecessor
+        /// and successor relations are still up to date.
         /// </summary>
-        /// <param name="index">The new block index.</param>
-        internal void SetupBlockIndex(int index)
+        /// <remarks>
+        /// This operation is only available in debug mode.
+        /// </remarks>
+        [Conditional("DEBUG")]
+        public void AssertNoControlFlowUpdate()
         {
-            this.Assert(index >= 0);
-            BlockIndex = index;
+            // The control-flow cannot change without a builder
+            if (builder is null)
+                return;
+
+            // Check whether the global control-flow structure has been updated
+            builder.MethodBuilder.AssertNoControlFlowUpdate();
         }
 
         /// <summary>
-        /// Returns true if the given block is a registered successor.
+        /// Determines the actual predecessors based on the specified direction.
         /// </summary>
-        /// <param name="successor">The potential successor block.</param>
-        /// <returns>True, if the given block is a registered successor.</returns>
-        public bool HasSuccessor(BasicBlock successor)
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LinkCollection GetPredecessors<TDirection>()
+            where TDirection : IControlFlowDirection
         {
-            foreach (var succ in Successors)
-            {
-                if (succ == successor)
-                    return true;
-            }
+            AssertNoControlFlowUpdate();
 
-            return false;
+            TDirection direction = default;
+            return new LinkCollection(direction.IsForwards
+                ? predecessors
+                : successors);
+        }
+
+        /// <summary>
+        /// Determines the actual successors based on the specified direction.
+        /// </summary>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public LinkCollection GetSuccessors<TDirection>()
+            where TDirection : IControlFlowDirection
+        {
+            AssertNoControlFlowUpdate();
+
+            TDirection direction = default;
+            return new LinkCollection(direction.IsForwards
+                ? successors
+                : predecessors);
+        }
+
+        /// <summary>
+        /// Setups the internal block index.
+        /// </summary>
+        /// <param name="index">The new block index.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void BeginControlFlowUpdate(int index)
+        {
+            this.Assert(index >= 0);
+            BlockIndex = index;
+
+            predecessors.Clear();
+            successors.Clear();
+        }
+
+        /// <summary>
+        /// Propagate terminator targets as successors to all child nodes.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void PropagateSuccessors()
+        {
+            foreach (var successor in Terminator.Targets)
+            {
+                successors.Add(successor);
+                successor.predecessors.Add(this);
+            }
         }
 
         /// <summary>
