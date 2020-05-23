@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -148,9 +149,12 @@ namespace ILGPU.IR.Analyses
         /// Creates an alloca analysis.
         /// </summary>
         /// <typeparam name="TOrder">The traversal order.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         /// <param name="collection">The block collection.</param>
-        public static Allocas Create<TOrder>(BasicBlockCollection<TOrder> collection)
+        public static Allocas Create<TOrder, TDirection>(
+            in BasicBlockCollection<TOrder, TDirection> collection)
             where TOrder : struct, ITraversalOrder
+            where TDirection : struct, IControlFlowDirection
         {
             var localAllocations = ImmutableArray.CreateBuilder<
                 AllocaInformation>(20);

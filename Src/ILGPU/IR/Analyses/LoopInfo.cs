@@ -71,7 +71,6 @@ namespace ILGPU.IR.Analyses
         /// <param name="scc">All SCCS.</param>
         /// <param name="entryPoint">The resolved entry point (if any).</param>
         /// <returns>True, if the given node is a loop entry point.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool TryGetEntryBlock(
             in SCCs<TOrder, TDirection>.SCC scc,
             out BasicBlock entryPoint)
@@ -85,9 +84,9 @@ namespace ILGPU.IR.Analyses
                         continue;
 
                     // Multiple loop entry points
-                    if (entryPoint != null & entryPoint != pred.Block)
+                    if (entryPoint != null & entryPoint != pred)
                         return false;
-                    entryPoint = pred.Block;
+                    entryPoint = pred;
                 }
             }
             return true;
@@ -99,7 +98,6 @@ namespace ILGPU.IR.Analyses
         /// <param name="scc">The current SCC.</param>
         /// <param name="exitBlock">The resolved exit block (if any).</param>
         /// <returns>True, if an unique break node could be resolved.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool TryGetExitBlock(
             in SCCs<TOrder, TDirection>.SCC scc,
             out BasicBlock exitBlock)
@@ -109,12 +107,11 @@ namespace ILGPU.IR.Analyses
             {
                 foreach (var succ in node.Successors)
                 {
-                    BasicBlock succBlock = succ.Block;
-                    if (!scc.Contains(succBlock))
+                    if (!scc.Contains(succ))
                     {
-                        if (exitBlock != null && exitBlock != succBlock)
+                        if (exitBlock != null && exitBlock != succ)
                             return false;
-                        exitBlock = succBlock;
+                        exitBlock = succ;
                     }
                 }
             }
@@ -137,7 +134,6 @@ namespace ILGPU.IR.Analyses
         /// <returns>
         /// True, if the given phi node could be resolved to an induction variable.
         /// </returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool TryResolveInductionVariable(
             in SCCs<TOrder, TDirection>.SCC scc,
             int variableIndex,

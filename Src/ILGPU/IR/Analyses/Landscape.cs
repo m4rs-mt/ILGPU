@@ -316,7 +316,7 @@ namespace ILGPU.IR.Analyses
 
             foreach (var method in view)
             {
-                var references = method.ComputeReferences(predicate);
+                var references = References.Create(method, predicate);
                 var data = dataProvider.GetData(method, references);
                 var entry = new Entry(method, references, data);
                 entries[method] = entry;
@@ -379,7 +379,7 @@ namespace ILGPU.IR.Analyses
                 }
 
                 continue;
-                next:
+            next:
                 if (toProcess.Count < 1)
                 {
                     if (++currentSink >= sinks.Count)

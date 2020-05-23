@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System;
@@ -74,37 +75,33 @@ namespace ILGPU.IR.Analyses
 
         #region Static
 
-        private static void Create<TOrder, TPredicate, TSet, TTarget>(
-            in BasicBlockCollection<TOrder> collection,
-            TPredicate predicate,
-            TSet references,
-            TTarget referencesList)
-            where TOrder : struct, ITraversalOrder
-            where TPredicate : IMethodCollectionPredicate
-            where TSet : ISet<Method>
-            where TTarget : ICollection<Method> =>
-            collection.ForEachValue<MethodCall>(call =>
-            {
-                var target = call.Target;
-                if (!predicate.Match(target))
-                    return;
-
-                if (references.Add(target))
-                    referencesList.Add(target);
-            });
+        /// <summary>
+        /// Computes all direct method references to all called methods.
+        /// </summary>
+        /// <typeparam name="TPredicate">The predicate type.</typeparam>
+        /// <param name="method">The method.</param>
+        /// <param name="predicate">The current predicate.</param>
+        /// <returns>A references instance.</returns>
+        public static References Create<TPredicate>(
+            Method method,
+            in TPredicate predicate)
+            where TPredicate : IMethodCollectionPredicate =>
+            Create(method.Blocks, predicate);
 
         /// <summary>
         /// Computes all direct method references to all called methods.
         /// </summary>
         /// <typeparam name="TOrder">The order collection.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         /// <typeparam name="TPredicate">The predicate type.</typeparam>
         /// <param name="collection">The block collection.</param>
         /// <param name="predicate">The current predicate.</param>
         /// <returns>A references instance.</returns>
-        public static References Create<TOrder, TPredicate>(
-            in BasicBlockCollection<TOrder> collection,
+        public static References Create<TOrder, TDirection, TPredicate>(
+            in BasicBlockCollection<TOrder, TDirection> collection,
             TPredicate predicate)
             where TOrder : struct, ITraversalOrder
+            where TDirection : struct, IControlFlowDirection
             where TPredicate : IMethodCollectionPredicate
         {
             var references = new HashSet<Method>();
@@ -132,7 +129,7 @@ namespace ILGPU.IR.Analyses
         /// <param name="predicate">The current predicate.</param>
         /// <returns>A references instance.</returns>
         public static References CreateRecursive<TPredicate>(
-            BasicBlockCollection<ReversePostOrder> collection,
+            BasicBlockCollection<ReversePostOrder, Forwards> collection,
             TPredicate predicate)
             where TPredicate : IMethodCollectionPredicate
         {
@@ -144,7 +141,7 @@ namespace ILGPU.IR.Analyses
             references.Add(method);
             referencesList.Add(method);
 
-            for (; ;)
+            for (; ; )
             {
                 collection.ForEachValue<MethodCall>(call =>
                 {
@@ -231,21 +228,5 @@ namespace ILGPU.IR.Analyses
         public readonly Enumerator GetEnumerator() => new Enumerator(this);
 
         #endregion
-    }
-
-    public static class ReferenceExtensions
-    {
-        public static References ComputeReferences<TPredicate>(
-            this Method method,
-            in TPredicate predicate)
-            where TPredicate : IMethodCollectionPredicate =>
-            References.Create(method.Blocks, predicate);
-
-        public static References ComputeReferences<TOrder, TPredicate>(
-            this BasicBlockCollection<TOrder> blocks,
-            in TPredicate predicate)
-            where TOrder : struct, ITraversalOrder
-            where TPredicate : IMethodCollectionPredicate =>
-            References.Create(blocks, predicate);
     }
 }
