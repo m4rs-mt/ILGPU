@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses.ControlFlowDirection;
+using ILGPU.IR.Analyses.TraversalOrders;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -25,41 +26,48 @@ namespace ILGPU.IR.Transformations
         /// Tries to merge a sequence of jumps.
         /// </summary>
         /// <param name="builder">The current method builder.</param>
-        /// <param name="rootNode">The block where to start merging.</param>
-        /// <param name="mergedNodes">The collection of merged nodes.</param>
+        /// <param name="root">The block where to start merging.</param>
+        /// <param name="visited">The collection of visited nodes.</param>
         /// <returns>True, if something could be merged.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool MergeChain(
             Method.Builder builder,
-            CFG.Node<Forwards> rootNode,
-            ref BasicBlockSet mergedNodes)
+            BasicBlock root,
+            ref BasicBlockSet visited)
         {
-            if (rootNode.NumSuccessors != 1)
+            if (root.Successors.Count != 1 || visited.Contains(root))
                 return false;
 
-            var rootBlockBuilder = builder[rootNode.Block];
-            var successors = rootNode.Successors;
+            // Mark node as seen
+            visited.Add(root);
+
+            // Init initial builder and successors list
+            var rootBlockBuilder = builder[root];
+            var successors = root.Successors;
             bool result = false;
 
             do
             {
                 var nextBlock = successors[0];
 
-                // We cannot merge jump targets in div. control flow or in the case
-                // of the entry block
-                if (nextBlock.NumPredecessors > 1 ||
-                    nextBlock.Block == builder.EntryBlock)
-                {
+                // We cannot merge jump targets in div. control-flow or in the case
+                // of a block that we have already seen
+                if (nextBlock.Predecessors.Count > 1 || visited.Contains(nextBlock))
                     break;
-                }
 
-                mergedNodes.Add(nextBlock.Block);
+                // Mark next block as seen
+                visited.Add(nextBlock);
+
+                // Merge block
                 successors = nextBlock.Successors;
-                rootBlockBuilder.MergeBlock(nextBlock.Block);
+                rootBlockBuilder.MergeBlock(nextBlock);
+
+                // Return true as we have changed the IR
                 result = true;
             }
             while (successors.Count == 1);
 
+            // Return the success status
             return result;
         }
 
@@ -81,18 +89,18 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
-            var blocks = builder.SourceBlocks;
-            var cfg = blocks.CreateCFG();
+            // We change the control-flow structure during the transformation but
+            // need to get information about previous predecessors and successors
+            builder.AcceptControlFlowUpdates(accept: true);
 
-            var mergedNodes = blocks.CreateSet();
-            foreach (var cfgNode in cfg)
-            {
-                if (mergedNodes.Contains(cfgNode))
-                    continue;
+            BasicBlockCollection<ReversePostOrder, Forwards> blocks =
+                builder.SourceBlocks;
 
-                MergeChain(builder, cfgNode, ref mergedNodes);
-            }
-            return mergedNodes.HasAny;
+            var visited = blocks.CreateSet();
+            bool result = false;
+            foreach (var block in blocks)
+                result |= MergeChain(builder, block, ref visited);
+            return result;
         }
 
         #endregion
