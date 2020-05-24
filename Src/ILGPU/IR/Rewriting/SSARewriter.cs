@@ -256,9 +256,8 @@ namespace ILGPU.IR.Rewriting
                 processor,
                 out var converted);
 
-            // Compute a fresh reverse post order including duplicates for processing
-            var blocks = ssaBuilder.Blocks.ComputeSSABlockOrder();
-            foreach (var block in blocks)
+            // Process all blocks in the appropriate order
+            foreach (var block in ssaBuilder.Blocks)
             {
                 if (!ssaBuilder.ProcessAndSeal(block))
                     continue;
@@ -282,18 +281,23 @@ namespace ILGPU.IR.Rewriting
 
                 // Process terminator (if any)
                 Value terminator = blockBuilder.Terminator;
-                if (terminator == null || !converted.Add(terminator))
-                    continue;
+                if (terminator != null && converted.Add(terminator))
+                {
+                    // Move insert position to the end of the block
+                    blockBuilder.SetupInsertPositionToEnd();
 
-                // Move insert position to the end of the block
-                blockBuilder.SetupInsertPositionToEnd();
+                    // Apply the processor
+                    applied |= processor.Apply(
+                        blockBuilder,
+                        converted,
+                        terminator);
+                }
 
-                // Apply the processor
-                applied |= processor.Apply(
-                    blockBuilder,
-                    converted,
-                    terminator);
+                // Try to seal successor back edges
+                ssaBuilder.TrySealSuccessors(block);
             }
+
+            ssaBuilder.AssertAllSealed();
             return applied;
         }
 

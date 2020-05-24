@@ -14,7 +14,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using BlockCollection = ILGPU.IR.BasicBlockCollection<
-    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder>;
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 
 namespace ILGPU.IR.Rewriting
 {

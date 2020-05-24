@@ -11,8 +11,6 @@
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR;
-using ILGPU.IR.Analyses;
-using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
@@ -50,11 +48,6 @@ namespace ILGPU.Frontend
         /// Returns the code generator.
         /// </summary>
         public CodeGenerator CodeGenerator { get; }
-
-        /// <summary>
-        /// Returns the associated CFG node.
-        /// </summary>
-        public CFG.Node<Forwards> CFGNode { get; private set; }
 
         /// <summary>
         /// Returns the associated IR builder.
@@ -97,7 +90,7 @@ namespace ILGPU.Frontend
         /// <param name="value">The value to set.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetValue(VariableRef var, Value value) =>
-            CodeGenerator.SSABuilder.SetValue(CFGNode, var, value);
+            CodeGenerator.SSABuilder.SetValue(BasicBlock, var, value);
 
         /// <summary>
         /// Returns the value of the given variable.
@@ -106,7 +99,7 @@ namespace ILGPU.Frontend
         /// <returns>The value of the given variable.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Value GetValue(VariableRef var) =>
-            CodeGenerator.SSABuilder.GetValue(CFGNode, var);
+            CodeGenerator.SSABuilder.GetValue(BasicBlock, var);
 
         #endregion
 
@@ -160,7 +153,7 @@ namespace ILGPU.Frontend
         {
             var var = new VariableRef(--StackCounter, VariableRefType.Stack);
             var value = GetValue(var);
-            CodeGenerator.SSABuilder.RemoveValue(CFGNode, var);
+            CodeGenerator.SSABuilder.RemoveValue(BasicBlock, var);
             return value;
         }
 

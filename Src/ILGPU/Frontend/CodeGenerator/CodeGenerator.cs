@@ -62,7 +62,7 @@ namespace ILGPU.Frontend
 
             SSABuilder = SSABuilder<VariableRef>.Create(
                 methodBuilder,
-                cfgBuilder.CFG);
+                cfgBuilder.Blocks);
 
             SetupVariables();
         }
@@ -268,6 +268,7 @@ namespace ILGPU.Frontend
                 GenerateCodeForBlock();
             }
 
+            SSABuilder.AssertAllSealed();
             return MethodBuilder.Method;
         }
 
@@ -277,7 +278,7 @@ namespace ILGPU.Frontend
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void GenerateCodeForBlock()
         {
-            if (!SSABuilder.ProcessAndSeal(Block.CFGNode))
+            if (!SSABuilder.ProcessAndSeal(Block.BasicBlock))
                 return;
 
             int endOffset = Block.InstructionOffset + Block.InstructionCount;
@@ -308,6 +309,9 @@ namespace ILGPU.Frontend
                     Location,
                     builderTerminator.Targets[0]);
             }
+
+            // Try to seal successor back edges
+            SSABuilder.TrySealSuccessors(Block.BasicBlock);
         }
 
         #endregion
