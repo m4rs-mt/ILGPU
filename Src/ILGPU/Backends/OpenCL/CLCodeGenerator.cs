@@ -13,17 +13,13 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Analyses.ControlFlowDirection;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using CFG = ILGPU.IR.Analyses.CFG<
-    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
-    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
-using CFGNode = ILGPU.IR.Analyses.CFG.Node<
-    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -148,7 +144,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Represents a specialized phi binding allocator.
         /// </summary>
-        private readonly struct PhiBindingAllocator : IPhiBindingAllocator<Forwards>
+        private readonly struct PhiBindingAllocator : IPhiBindingAllocator
         {
             private readonly Dictionary<BasicBlock, List<Variable>> phiMapping;
 
@@ -156,24 +152,21 @@ namespace ILGPU.Backends.OpenCL
             /// Constructs a new phi binding allocator.
             /// </summary>
             /// <param name="parent">The parent code generator.</param>
-            /// <param name="cfg">The CFG to use.</param>
-            public PhiBindingAllocator(CLCodeGenerator parent, CFG cfg)
+            /// <param name="blocks">The blocks to use.</param>
+            public PhiBindingAllocator(
+                CLCodeGenerator parent,
+                in BasicBlockCollection<ReversePostOrder, Forwards> blocks)
             {
-                phiMapping = new Dictionary<BasicBlock, List<Variable>>(cfg.Count);
+                phiMapping = new Dictionary<BasicBlock, List<Variable>>(
+                    blocks.Count);
                 Parent = parent;
-                CFG = cfg;
-                Dominators = cfg.ComputeDominators();
+                Dominators = blocks.CreateDominators();
             }
 
             /// <summary>
             /// Returns the parent code generator.
             /// </summary>
             public CLCodeGenerator Parent { get; }
-
-            /// <summary>
-            /// Returns the underlying CFG.
-            /// </summary>
-            public CFG CFG { get; }
 
             /// <summary>
             /// Returns the referenced dominators.
@@ -183,32 +176,32 @@ namespace ILGPU.Backends.OpenCL
             /// <summary>
             /// Does not perform any operation.
             /// </summary>
-            public void Process(CFGNode node, Phis phis) { }
+            public void Process(BasicBlock block, Phis phis) { }
 
             /// <summary>
             /// Allocates a new phi value in the dominator block.
             /// </summary>
-            public void Allocate(CFGNode node, PhiValue phiValue)
+            public void Allocate(BasicBlock block, PhiValue phiValue)
             {
                 var variable = Parent.Allocate(phiValue);
 
-                var targetNode = node;
+                var targetBlock = block;
                 foreach (var argument in phiValue)
                 {
-                    targetNode = argument.BasicBlock == null
-                        ? CFG.Root
+                    targetBlock = argument.BasicBlock == null
+                        ? Dominators.Root
                         : Dominators.GetImmediateCommonDominator(
-                            targetNode,
-                            CFG[argument.BasicBlock]);
+                            targetBlock,
+                            argument.BasicBlock);
 
-                    if (targetNode == CFG.Root)
+                    if (targetBlock == Dominators.Root)
                         break;
                 }
 
-                if (!phiMapping.TryGetValue(targetNode.Block, out var phiVariables))
+                if (!phiMapping.TryGetValue(targetBlock, out var phiVariables))
                 {
                     phiVariables = new List<Variable>();
-                    phiMapping.Add(targetNode.Block, phiVariables);
+                    phiMapping.Add(targetBlock, phiVariables);
                 }
                 phiVariables.Add(variable);
             }
@@ -299,7 +292,8 @@ namespace ILGPU.Backends.OpenCL
         /// Returns the current intrinsic provider for code-generation purposes.
         /// </summary>
         public IntrinsicImplementationProvider<CLIntrinsic.Handler>
-            ImplementationProvider { get; }
+            ImplementationProvider
+        { get; }
 
         /// <summary>
         /// Returns the associated string builder.
@@ -459,17 +453,18 @@ namespace ILGPU.Backends.OpenCL
                     ErrorMessages.NotSupportedDynamicSharedMemoryAllocations);
             }
 
+            var blocks = Method.Blocks;
+
             // Build branch targets
-            foreach (var block in Method.Blocks)
+            foreach (var block in blocks)
                 blockLookup.Add(block, DeclareLabel());
 
             // Find all phi nodes, allocate target registers and setup internal mapping
-            var cfg = Method.Blocks.CreateCFG();
-            var bindingAllocator = new PhiBindingAllocator(this, cfg);
-            var phiBindings = PhiBindings.Create(cfg, bindingAllocator);
+            var bindingAllocator = new PhiBindingAllocator(this, blocks);
+            var phiBindings = PhiBindings.Create(blocks, bindingAllocator);
 
             // Generate code
-            foreach (var block in Method.Blocks)
+            foreach (var block in blocks)
             {
                 // Mark block label
                 MarkLabel(blockLookup[block]);

@@ -12,7 +12,6 @@
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
-using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
@@ -20,11 +19,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using CFG = ILGPU.IR.Analyses.CFG<
-    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
-    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
-using CFGNode = ILGPU.IR.Analyses.CFG.Node<
-    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 
 namespace ILGPU.Backends.PTX
 {
@@ -181,7 +175,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Represents a specialized phi binding allocator.
         /// </summary>
-        private readonly struct PhiBindingAllocator : IPhiBindingAllocator<Forwards>
+        private readonly struct PhiBindingAllocator : IPhiBindingAllocator
         {
             /// <summary>
             /// Constructs a new phi binding allocator.
@@ -200,12 +194,12 @@ namespace ILGPU.Backends.PTX
             /// <summary>
             /// Does not perform any operation.
             /// </summary>
-            public void Process(CFGNode node, Phis phis) { }
+            public void Process(BasicBlock block, Phis phis) { }
 
             /// <summary>
             /// Allocates a new phi node in the parent code generator.
             /// </summary>
-            public void Allocate(CFGNode node, PhiValue phiValue) =>
+            public void Allocate(BasicBlock block, PhiValue phiValue) =>
                 Parent.Allocate(phiValue);
         }
 
@@ -357,7 +351,8 @@ namespace ILGPU.Backends.PTX
         /// Returns the current intrinsic provider for code-generation purposes.
         /// </summary>
         public IntrinsicImplementationProvider<PTXIntrinsic.Handler>
-            ImplementationProvider { get; }
+            ImplementationProvider
+        { get; }
 
         /// <summary>
         /// Returns true if fast math is active.
@@ -469,8 +464,9 @@ namespace ILGPU.Backends.PTX
                 blockLookup.Add(block, DeclareLabel());
 
             // Find all phi nodes, allocate target registers and setup internal mapping
-            var cfg = blocks.CreateCFG();
-            var phiBindings = PhiBindings.Create(cfg, new PhiBindingAllocator(this));
+            var phiBindings = PhiBindings.Create(
+                blocks,
+                new PhiBindingAllocator(this));
             Builder.AppendLine();
 
             // Generate code
