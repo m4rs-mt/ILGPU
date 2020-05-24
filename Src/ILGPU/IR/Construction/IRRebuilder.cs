@@ -9,10 +9,12 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using BlockCollection = ILGPU.IR.BasicBlockCollection<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 
 namespace ILGPU.IR.Construction
 {
@@ -36,7 +38,7 @@ namespace ILGPU.IR.Construction
             /// <param name="mapping">The mapping to initialize.</param>
             void InitMapping(
                 Method.Builder builder,
-                in BasicBlockCollection<ReversePostOrder> blocks,
+                in BlockCollection blocks,
                 ref BasicBlockMap<BasicBlock.Builder> mapping);
         }
 
@@ -52,7 +54,7 @@ namespace ILGPU.IR.Construction
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void InitMapping(
                 Method.Builder builder,
-                in BasicBlockCollection<ReversePostOrder> blocks,
+                in BlockCollection blocks,
                 ref BasicBlockMap<BasicBlock.Builder> mapping)
             {
                 // Handle entry block
@@ -83,7 +85,7 @@ namespace ILGPU.IR.Construction
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void InitMapping(
                 Method.Builder builder,
-                in BasicBlockCollection<ReversePostOrder> blocks,
+                in BlockCollection blocks,
                 ref BasicBlockMap<BasicBlock.Builder> mapping)
             {
                 // Create new blocks
@@ -115,11 +117,11 @@ namespace ILGPU.IR.Construction
             Method.Builder builder,
             Method.ParameterMapping parameterMapping,
             Method.MethodMapping methodRemapping,
-            in BasicBlockCollection<ReversePostOrder> blocks)
+            in BlockCollection blocks)
             where TMode : IMode
         {
             // Init mapping
-            var blockMapping = blocks.CreateMap<ReversePostOrder, BasicBlock.Builder>();
+            var blockMapping = blocks.CreateMap<BasicBlock.Builder>();
             TMode mode = default;
             mode.InitMapping(builder, blocks, ref blockMapping);
 
@@ -169,7 +171,7 @@ namespace ILGPU.IR.Construction
             Method.Builder builder,
             Method.ParameterMapping parameterMapping,
             Method.MethodMapping methodRemapping,
-            in BasicBlockCollection<ReversePostOrder> blocks,
+            in BlockCollection blocks,
             in BasicBlockMap<BasicBlock.Builder> blockRemapping)
         {
             methodMapping = methodRemapping;
@@ -216,7 +218,7 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Returns the associated collection.
         /// </summary>
-        public BasicBlockCollection<ReversePostOrder> Blocks { get; }
+        public BlockCollection Blocks { get; }
 
         /// <summary>
         /// Returns the target entry block.
