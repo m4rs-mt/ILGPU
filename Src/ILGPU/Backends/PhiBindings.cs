@@ -22,54 +22,30 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.Backends
 {
     /// <summary>
-    /// An abstract binding allocator for the <see cref="PhiBindings{TAllocator}"/>
-    /// class.
+    /// An abstract binding allocator for the class <see cref="PhiBindings"/>.
     /// </summary>
-    /// <typeparam name="TDirection">The control flow direction.</typeparam>
-    public interface IPhiBindingAllocator<TDirection>
-        where TDirection : struct, IControlFlowDirection
+    public interface IPhiBindingAllocator
     {
         /// <summary>
         /// Processes all phis that are declared in the given node.
         /// </summary>
-        /// <param name="node">The current CFG node.</param>
+        /// <param name="block">The current block.</param>
         /// <param name="phis">The phi nodes to process.</param>
-        void Process(CFG.Node<TDirection> node, Phis phis);
+        void Process(BasicBlock block, Phis phis);
 
         /// <summary>
         /// Allocates the given phi node.
         /// </summary>
-        /// <param name="node">The current CFG node.</param>
+        /// <param name="block">The current block.</param>
         /// <param name="phiValue">The phi node to allocate.</param>
-        void Allocate(CFG.Node<TDirection> node, PhiValue phiValue);
-    }
-
-    /// <summary>
-    /// Utility methods for <see cref="PhiBindings{TAllocator}"/>.
-    /// </summary>
-    public static class PhiBindings
-    {
-        /// <summary>
-        /// Creates a new phi bindings mapping.
-        /// </summary>
-        /// <param name="cfg">The source CFG.</param>
-        /// <param name="allocator">The allocator to use.</param>
-        /// <returns>The created phi bindings.</returns>
-        public static PhiBindings<TOrder> Create<TOrder, TDirection, TAllocator>(
-            CFG<TOrder, TDirection> cfg,
-            TAllocator allocator)
-            where TOrder : struct, ITraversalOrder
-            where TDirection : struct, IControlFlowDirection
-            where TAllocator : IPhiBindingAllocator<TDirection> =>
-            PhiBindings<TOrder>.Create(cfg, allocator);
+        void Allocate(BasicBlock block, PhiValue phiValue);
     }
 
     /// <summary>
     /// Maps phi nodes to basic blocks in order to emit move command during
     /// the final code generation phase.
     /// </summary>
-    public readonly struct PhiBindings<TOrder>
-        where TOrder : struct, ITraversalOrder
+    public readonly struct PhiBindings
     {
         #region Nested Types
 
@@ -166,6 +142,22 @@ namespace ILGPU.Backends
             #endregion
         }
 
+        /// <summary>
+        /// Provides new intermediate list instances.
+        /// </summary>
+        private readonly struct ListProvider :
+            IBasicBlockMapValueProvider<List<(Value, PhiValue)>>
+        {
+            /// <summary>
+            /// Creates a new <see cref="List{T}"/> instance.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly List<(Value, PhiValue)> GetValue(
+                BasicBlock block,
+                int traversalIndex) =>
+                new List<(Value, PhiValue)>();
+        }
+
         #endregion
 
         #region Static
@@ -173,33 +165,35 @@ namespace ILGPU.Backends
         /// <summary>
         /// Creates a new phi bindings mapping.
         /// </summary>
-        /// <typeparam name="TDirection">The control flow direction.</typeparam>
+        /// <typeparam name="TOrder">The current order.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         /// <typeparam name="TAllocator">The custom allocator type.</typeparam>
-        /// <param name="cfg">The source CFG.</param>
+        /// <param name="collection">The source collection.</param>
         /// <param name="allocator">The allocator to use.</param>
         /// <returns>The created phi bindings.</returns>
-        public static PhiBindings<TOrder> Create<TDirection, TAllocator>(
-            CFG<TOrder, TDirection> cfg,
+        public static PhiBindings Create<TOrder, TDirection, TAllocator>(
+            in BasicBlockCollection<TOrder, TDirection> collection,
             TAllocator allocator)
+            where TOrder : struct, ITraversalOrder
             where TDirection : struct, IControlFlowDirection
-            where TAllocator : IPhiBindingAllocator<TDirection>
+            where TAllocator : IPhiBindingAllocator
         {
-            var mapping = cfg.CreateMapping(node => new List<(Value, PhiValue)>());
+            var mapping = collection.CreateMap(new ListProvider());
 
-            foreach (var cfgNode in cfg)
+            foreach (var block in collection)
             {
                 // Resolve phis
-                var phis = Phis.Create(cfgNode.Block);
-                allocator.Process(cfgNode, phis);
+                var phis = Phis.Create(block);
+                allocator.Process(block, phis);
 
                 // Map all phi arguments
                 foreach (var phi in phis)
                 {
                     // Allocate phi for further processing
-                    allocator.Allocate(cfgNode, phi);
+                    allocator.Allocate(block, phi);
 
                     // Determine predecessor mapping
-                    phi.Assert(cfgNode.NumPredecessors == phi.Nodes.Length);
+                    phi.Assert(block.Predecessors.Count == phi.Nodes.Length);
 
                     // Assign values to their appropriate blocks
                     for (int i = 0, e = phi.Nodes.Length; i < e; ++i)
@@ -210,7 +204,7 @@ namespace ILGPU.Backends
                 }
             }
 
-            return new PhiBindings<TOrder>(mapping);
+            return new PhiBindings(mapping);
         }
 
         #endregion
