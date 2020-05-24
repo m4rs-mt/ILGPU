@@ -10,13 +10,10 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
-using ILGPU.IR.Analyses;
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
-using ILGPU.IR.Construction;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Frontend
@@ -49,15 +46,12 @@ namespace ILGPU.Frontend
                 CodeGenerator codeGenerator,
                 Method.Builder methodBuilder)
             {
-                Debug.Assert(codeGenerator != null, "Invalid code generator");
-                Debug.Assert(methodBuilder != null, "Invalid method builder");
-
                 CodeGenerator = codeGenerator;
                 Builder = methodBuilder;
 
                 EntryBlock = new Block(
                     codeGenerator,
-                    methodBuilder[methodBuilder.EntryBlock]);
+                    methodBuilder.EntryBlockBuilder);
                 blockMapping.Add(0, EntryBlock);
                 basicBlockMapping.Add(EntryBlock.BasicBlock, EntryBlock);
                 BuildBasicBlocks();
@@ -66,15 +60,9 @@ namespace ILGPU.Frontend
                 SetupBasicBlocks(visited, EntryBlock, 0);
                 WireBlocks();
 
-                Blocks = methodBuilder.ComputeSSABlockOrder();
-                CFG = Blocks.CreateCFG();
-
-                // Update internal block mapping
-                foreach (var cfgNode in CFG)
-                {
-                    var block = basicBlockMapping[cfgNode.Block];
-                    block.CFGNode = cfgNode;
-                }
+                // Update control-flow structure to refresh all successor/predecessor
+                // edge relations
+                Blocks = methodBuilder.UpdateControlFlow();
             }
 
             /// <summary>
@@ -134,9 +122,8 @@ namespace ILGPU.Frontend
                     successors = new List<Block>();
                     successorMapping.Add(current, successors);
                 }
-                Debug.Assert(
-                    !successors.Contains(successor),
-                    "Invalid successor setup");
+                current.BasicBlock.Assert(
+                    !successors.Contains(successor));
                 successors.Add(successor);
             }
 
@@ -271,14 +258,9 @@ namespace ILGPU.Frontend
             public CodeGenerator CodeGenerator { get; }
 
             /// <summary>
-            /// Returns the associated block collection.
+            /// Returns the associated SSA block collection.
             /// </summary>
-            public BasicBlockCollection<ReversePostOrder> Blocks { get; }
-
-            /// <summary>
-            /// Returns the associated CFG.
-            /// </summary>
-            public CFG<ReversePostOrder, Forwards> CFG { get; }
+            public BasicBlockCollection<ReversePostOrder, Forwards> Blocks { get; }
 
             /// <summary>
             /// Returns the internal method builder.
