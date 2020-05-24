@@ -123,7 +123,7 @@ namespace ILGPU.IR.Transformations
             Landscape landscape,
             Landscape.Entry current)
         {
-            var processed = new HashSet<BasicBlock>();
+            var processed = builder.SourceBlocks.CreateSet();
             var toProcess = new Stack<BasicBlock>();
 
             bool result = false;
@@ -139,7 +139,7 @@ namespace ILGPU.IR.Transformations
                         continue;
                     }
 
-                    var successors = currentBlock.Successors;
+                    var successors = currentBlock.Terminator.Targets;
                     if (successors.Length > 0)
                     {
                         currentBlock = successors[0];

@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses.Duplicates;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Values;
@@ -148,10 +147,8 @@ namespace ILGPU.IR.Transformations
                 return false;
 
             // Find all unreachable blocks
-            var updatedBlocks = builder.ComputeBlockOrder<
-                PreOrder,
-                PreOrder,
-                NoDuplicates<BasicBlock>>().ToSet();
+            var updatedBlocks = builder.ComputeBlockCollection<PreOrder>()
+                .ToSet();
             foreach (var block in builder.SourceBlocks)
             {
                 if (!updatedBlocks.Contains(block))
