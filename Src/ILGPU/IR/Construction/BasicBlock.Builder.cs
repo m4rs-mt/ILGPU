@@ -88,8 +88,8 @@ namespace ILGPU.IR
                 {
                     if (value != null)
                         value.BasicBlock = BasicBlock;
+                    MethodBuilder.ScheduleControlFlowUpdate(Terminator, value);
                     BasicBlock.Terminator = value;
-                    MethodBuilder.ScheduleBlockOrderUpdate();
                 }
             }
 
@@ -415,7 +415,7 @@ namespace ILGPU.IR
 
                 // Update phi blocks
                 RemapPhiArguments(
-                    tempBlock.BasicBlock.Successors,
+                    tempBlock.BasicBlock.CurrentSuccessors,
                     new PhiValue.BlockRemapper(BasicBlock, tempBlock.BasicBlock));
 
                 return tempBlock;
@@ -449,7 +449,7 @@ namespace ILGPU.IR
 
                 // Update phi blocks
                 RemapPhiArguments(
-                    other.Successors,
+                    other.CurrentSuccessors,
                     new PhiValue.BlockRemapper(other, BasicBlock));
             }
 

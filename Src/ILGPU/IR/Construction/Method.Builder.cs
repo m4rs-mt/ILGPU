@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses.Duplicates;
+using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
@@ -31,15 +31,53 @@ namespace ILGPU.IR
         public sealed class Builder :
             DisposeBase,
             IMethodMappingObject,
-            ILocation,
-            IBasicBlockCollection<ReversePostOrder>
+            ILocation
         {
+            #region Static
+
+            /// <summary>
+            /// Checks whether we have to update the control-flow structure.
+            /// </summary>
+            /// <param name="oldTerminator">The old terminator (if any).</param>
+            /// <param name="newTerminator">The new terminator.</param>
+            /// <returns>
+            /// True, if we have to update the control-flow structure.
+            /// </returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static bool RequiresControlFlowUpdate(
+                TerminatorValue oldTerminator,
+                TerminatorValue newTerminator)
+            {
+                if (oldTerminator == newTerminator)
+                    return false;
+                if (oldTerminator == null || newTerminator == null)
+                    return true;
+
+                // Check whether the new terminator has the identical list of
+                // successors. In theory we could check whether both lists contain
+                // the same blocks without paying attention to the order; however,
+                // this is very unlikely and expensive to verify.
+                var oldSuccessors = oldTerminator.Targets;
+                var newSuccessors = newTerminator.Targets;
+                if (oldSuccessors.Length != newSuccessors.Length)
+                    return true;
+                for (int i = 0, e = oldSuccessors.Length; i < e; ++i)
+                {
+                    if (oldSuccessors[i] != newSuccessors[i])
+                        return true;
+                }
+                return false;
+            }
+
+            #endregion
+
             #region Instance
 
             private readonly ImmutableArray<Parameter>.Builder parameters;
 
             private int blockCounter;
-            private bool updateBlockOrder = false;
+            private bool updateControlFlow = false;
+            private bool acceptControlFlowUpdates = false;
 
             /// <summary>
             /// All created basic block builders.
@@ -101,7 +139,8 @@ namespace ILGPU.IR
             /// <summary>
             /// Returns all blocks of the source method.
             /// </summary>
-            public BasicBlockCollection<ReversePostOrder> SourceBlocks => Method.Blocks;
+            public BasicBlockCollection<ReversePostOrder, Forwards> SourceBlocks =>
+                Method.Blocks;
 
             /// <summary>
             /// Returns the parameter with the given index.
@@ -145,9 +184,43 @@ namespace ILGPU.IR
             #region Methods
 
             /// <summary>
-            /// Schedules updates of the block order.
+            /// Schedules control-flow updates.
             /// </summary>
-            public void ScheduleBlockOrderUpdate() => updateBlockOrder = true;
+            public void ScheduleControlFlowUpdate() => updateControlFlow = true;
+
+            /// <summary>
+            /// Schedules control-flow updates if the successor relation has been
+            /// changed by setting a new terminator.
+            /// </summary>
+            public void ScheduleControlFlowUpdate(
+                TerminatorValue oldTerminator,
+                TerminatorValue newTerminator)
+            {
+                if (RequiresControlFlowUpdate(oldTerminator, newTerminator))
+                    ScheduleControlFlowUpdate();
+            }
+
+            /// <summary>
+            /// Accepts or rejects control-flow updates in case of control-flow changes.
+            /// </summary>
+            /// <param name="accept">True, if all changes will be accepted.</param>
+            /// <remarks>
+            /// This operation is only available in debug mode.
+            /// </remarks>
+            [Conditional("DEBUG")]
+            public void AcceptControlFlowUpdates(bool accept) =>
+                acceptControlFlowUpdates = accept;
+
+            /// <summary>
+            /// Asserts that no control-flow update has happened and the predecessor
+            /// and successor relations are still up to date.
+            /// </summary>
+            /// <remarks>
+            /// This operation is only available in debug mode.
+            /// </remarks>
+            [Conditional("DEBUG")]
+            public void AssertNoControlFlowUpdate() =>
+                Method.Assert(!updateControlFlow | acceptControlFlowUpdates);
 
             /// <summary>
             /// Formats an error message to include the current debug information.
@@ -192,7 +265,7 @@ namespace ILGPU.IR
             /// <returns>The created rebuilder.</returns>
             public IRRebuilder CreateRebuilder<TMode>(
                 ParameterMapping parameterMapping,
-                in BasicBlockCollection<ReversePostOrder> blocks)
+                in BasicBlockCollection<ReversePostOrder, Forwards> blocks)
                 where TMode : IRRebuilder.IMode =>
                 CreateRebuilder<TMode>(parameterMapping, default, blocks);
 
@@ -209,7 +282,7 @@ namespace ILGPU.IR
             public IRRebuilder CreateRebuilder<TMode>(
                 ParameterMapping parameterMapping,
                 MethodMapping methodMapping,
-                in BasicBlockCollection<ReversePostOrder> blocks)
+                in BasicBlockCollection<ReversePostOrder, Forwards> blocks)
                 where TMode : IRRebuilder.IMode =>
                 IRRebuilder.Create<TMode>(
                     this,
@@ -292,8 +365,8 @@ namespace ILGPU.IR
             public BasicBlock.Builder CreateBasicBlock(Location location, string name)
             {
                 var block = new BasicBlock(Method, location, name);
-                block.SetupBlockIndex(blockCounter++);
-                ScheduleBlockOrderUpdate();
+                block.BeginControlFlowUpdate(blockCounter++);
+                ScheduleControlFlowUpdate();
                 return this[block];
             }
 
@@ -320,28 +393,29 @@ namespace ILGPU.IR
                 Context.Declare(declaration, out created);
 
             /// <summary>
-            /// Computes an updated block order.
+            /// Computes an updated block collection using the latest terminator
+            /// information.
             /// </summary>
-            /// <typeparam name="TOtherOrder">The collection order.</typeparam>
-            /// <typeparam name="TOtherOrderProvider">
-            /// The collection order provider.
-            /// </typeparam>
-            /// <typeparam name="TDuplicates">The duplicate specification.</typeparam>
+            /// <typeparam name="TOrder">The collection order.</typeparam>
             /// <returns>The newly ordered collection.</returns>
-             public BasicBlockCollection<TOtherOrder> ComputeBlockOrder<
-                TOtherOrder,
-                TOtherOrderProvider,
-                TDuplicates>()
-                where TOtherOrder : struct, ITraversalOrderView<TOtherOrderProvider>
-                where TOtherOrderProvider : struct, ITraversalOrderProvider
-                where TDuplicates : struct, IDuplicates<BasicBlock>
+            public BasicBlockCollection<TOrder, Forwards>
+                ComputeBlockCollection<TOrder>()
+                where TOrder : struct, ITraversalOrder
             {
+                // Compute new block order
                 var newBlocks = ImmutableArray.CreateBuilder<BasicBlock>(blockCounter);
-                TOtherOrderProvider orderProvider = default;
-                orderProvider.Traverse<ImmutableArray<BasicBlock>.Builder, TDuplicates>(
+                TOrder order = default;
+                order.Traverse<
+                    ImmutableArray<BasicBlock>.Builder,
+                    BasicBlock.TerminatorSuccessorsProvider,
+                    Forwards,
+                    ImmutableArray<BasicBlock>>(
                     EntryBlock,
-                    newBlocks);
-                return new BasicBlockCollection<TOtherOrder>(
+                    newBlocks,
+                    new BasicBlock.TerminatorSuccessorsProvider());
+
+                // Return new block collection
+                return new BasicBlockCollection<TOrder, Forwards>(
                     EntryBlock,
                     newBlocks.ToImmutable());
             }
@@ -350,49 +424,70 @@ namespace ILGPU.IR
 
             #region IDisposable
 
+            /// <summary>
+            /// Updates all parameter bindings.
+            /// </summary>
+            private void UpdateParameters()
+            {
+                // Assign parameters and adjust their indices
+                for (int i = 0; i < parameters.Count;)
+                {
+                    if (parameters[i].IsReplaced)
+                        parameters.RemoveAt(i);
+                    else
+                        ++i;
+                }
+                var @params = parameters.ToImmutable();
+                for (int i = 0, e = @params.Length; i < e; ++i)
+                    @params[i].Index = i;
+                Method.parameters = @params;
+            }
+
+            /// <summary>
+            /// Updates the whole control-flow information of all blocks.
+            /// </summary>
+            /// <remarks>
+            /// CAUTION: Applying a control-flow update to all blocks will cause all
+            /// block instances to be modified.
+            /// </remarks>
+            internal BasicBlockCollection<ReversePostOrder, Forwards> UpdateControlFlow()
+            {
+                if (!updateControlFlow)
+                    return SourceBlocks;
+                updateControlFlow = false;
+
+                // Compute new block order
+                var newBlocks = ComputeBlockCollection<ReversePostOrder>();
+
+                // Update block indices and setup links
+                int blockIndex = 0;
+                foreach (var block in newBlocks)
+                    block.BeginControlFlowUpdate(blockIndex++);
+
+                // Update all CFG links
+                foreach (var block in newBlocks)
+                    block.PropagateSuccessors();
+
+                // Apply changes to the method
+                Method.blocks = newBlocks.AsImmutable();
+                return newBlocks;
+            }
+
             /// <summary cref="DisposeBase.Dispose(bool)"/>
             protected override void Dispose(bool disposing)
             {
-                if (disposing)
-                {
-                    // Assign parameters and adjust their indices
-                    for (int i = 0; i < parameters.Count; )
-                    {
-                        if (parameters[i].IsReplaced)
-                            parameters.RemoveAt(i);
-                        else
-                            ++i;
-                    }
-                    var @params = parameters.ToImmutable();
-                    for (int i = 0, e = @params.Length; i < e; ++i)
-                        @params[i].Index = i;
-                    Method.parameters = @params;
+                // Update parameter bindings
+                UpdateParameters();
 
-                    // Dispose all basic block builders
-                    foreach (var builder in basicBlockBuilders)
-                        builder.Dispose();
+                // Dispose all basic block builders
+                foreach (var builder in basicBlockBuilders)
+                    builder.Dispose();
 
-                    // Update block order
-                    if (updateBlockOrder)
-                    {
-                        // Compute new block order
-                        var blockOrder = ComputeBlockOrder<
-                            ReversePostOrder,
-                            PostOrder,
-                            NoDuplicates<BasicBlock>>();
+                // Update control-flow
+                UpdateControlFlow();
 
-                        // Update block indices
-                        int blockIndex = 0;
-                        foreach (var block in blockOrder)
-                            block.SetupBlockIndex(blockIndex++);
-
-                        // Apply changes to the method
-                        Method.blocks = blockOrder.AsImmutable();
-                    }
-
-                    Method.ReleaseBuilder(this);
-                }
-                base.Dispose(disposing);
+                // Release builder
+                Method.ReleaseBuilder(this);
             }
 
             #endregion
