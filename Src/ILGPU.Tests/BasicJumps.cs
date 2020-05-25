@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -12,7 +13,10 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "Testing unconditional jump")]
+        [SuppressMessage(
+            "Style",
+            "IDE0059:Unnecessary assignment of a value",
+            Justification = "Testing unconditional jump")]
         internal static void BasicJumpKernel(
             Index1 index,
             ArrayView<int> data,
@@ -24,7 +28,7 @@ namespace ILGPU.Tests
             data[index] = value;
             return;
 
-            exit:
+        exit:
             data[index] = 23;
         }
 
@@ -57,7 +61,7 @@ namespace ILGPU.Tests
             data[index] = value;
             return;
 
-            exit:
+        exit:
             data[index] = 23;
         }
 
@@ -95,7 +99,7 @@ namespace ILGPU.Tests
             data[index] = 42;
             return;
 
-            exit:
+        exit:
             data[index] = 23;
         }
 
@@ -114,6 +118,56 @@ namespace ILGPU.Tests
             Execute(buffer.Length, buffer.View, source.View);
 
             var expected = Enumerable.Repeat(23, length).ToArray();
+            Verify(buffer, expected);
+        }
+
+        internal static void BasicNestedLoopJumpKernel(
+            Index1 index,
+            ArrayView<int> data,
+            ArrayView<int> source,
+            int c)
+        {
+            int k = 0;
+        entry:
+            for (int i = 0; i < source.Length; ++i)
+            {
+                if (source[i] == 23)
+                {
+                    if (k < c)
+                        goto exit;
+                    goto nested;
+                }
+            }
+
+            data[index] = 42;
+            return;
+
+        nested:
+            k = 43;
+
+        exit:
+            if (k++ < 1)
+                goto entry;
+            data[index] = 23 + k;
+        }
+
+        [Theory]
+        [InlineData(32, 0, 67)]
+        [InlineData(32, 2, 25)]
+        [InlineData(1024, 0, 67)]
+        [InlineData(1024, 2, 25)]
+        [KernelMethod(nameof(BasicNestedLoopJumpKernel))]
+        public void BasicNestedLoopJump(int length, int c, int res)
+        {
+            using var buffer = Accelerator.Allocate<int>(length);
+            using var source = Accelerator.Allocate<int>(64);
+            var sourceData = Enumerable.Range(0, source.Length).ToArray();
+            sourceData[57] = 23;
+            source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
+
+            Execute(buffer.Length, buffer.View, source.View, c);
+
+            var expected = Enumerable.Repeat(res, length).ToArray();
             Verify(buffer, expected);
         }
     }

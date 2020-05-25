@@ -145,6 +145,124 @@ namespace ILGPU.Tests
             var expected = Enumerable.Repeat(42, Length).ToArray();
             Verify(buffer, expected);
         }
+
+        internal static void ContinueKernel(
+            Index1 index,
+            ArrayView<int> data,
+            int counter,
+            int counter2,
+            int counter3)
+        {
+            int accumulate = 1;
+            for (int i = 0; i < counter; ++i)
+            {
+                if (i == counter2)
+                    continue;
+                ++accumulate;
+
+                if (i == counter3)
+                    continue;
+                ++accumulate;
+            }
+            data[index] = accumulate;
+        }
+
+        [Theory]
+        [InlineData(32, 17, 32, 63)]
+        [InlineData(32, 17, 17, 63)]
+        [InlineData(32, 32, 17, 64)]
+        [InlineData(32, 32, 32, 65)]
+        [KernelMethod(nameof(ContinueKernel))]
+        public void ContinueLoop(int counter, int counter2, int counter3, int result)
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View, counter, counter2, counter3);
+
+            var expected = Enumerable.Repeat(result, Length).ToArray();
+            Verify(buffer, expected);
+        }
+
+        internal static void BreakKernel(
+            Index1 index,
+            ArrayView<int> data,
+            int counter,
+            int counter2,
+            int counter3)
+        {
+            int accumulate = 1;
+            for (int i = 0; i < counter; ++i)
+            {
+                if (i == counter2)
+                    break;
+                ++accumulate;
+
+                if (i == counter3)
+                    break;
+                ++accumulate;
+            }
+            data[index] = accumulate;
+        }
+
+        [Theory]
+        [InlineData(32, 0, 17, 1)]
+        [InlineData(32, 17, 3, 8)]
+        [InlineData(32, 17, 18, 35)]
+        [InlineData(32, 32, 32, 65)]
+        [KernelMethod(nameof(BreakKernel))]
+        public void BreakLoop(int counter, int counter2, int counter3, int result)
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View, counter, counter2, counter3);
+
+            var expected = Enumerable.Repeat(result, Length).ToArray();
+            Verify(buffer, expected);
+        }
+
+        internal static void NestedBreakContinueKernel(
+            Index1 index,
+            ArrayView<int> data,
+            int counter,
+            int counter2,
+            int counter3)
+        {
+            int accumulate = 0;
+            int k = 0;
+            for (int i = 0; i < counter; ++i)
+            {
+                for (int j = 0; j < counter2; ++j)
+                {
+                    if (j == i)
+                        continue;
+
+                    if (++k == counter3)
+                        break;
+                }
+
+                if (i == counter2)
+                    continue;
+                ++accumulate;
+            }
+            data[index] = accumulate;
+        }
+
+        [Theory]
+        [InlineData(32, 13, 9, 31)]
+        [InlineData(32, 13, int.MaxValue, 31)]
+        [InlineData(12, 19, int.MaxValue, 12)]
+        [InlineData(12, 19, 7, 12)]
+        [KernelMethod(nameof(NestedBreakContinueKernel))]
+        public void NestedBreakContinueLoop(
+            int counter,
+            int counter2,
+            int counter3,
+            int result)
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View, counter, counter2, counter3);
+
+            var expected = Enumerable.Repeat(result, Length).ToArray();
+            Verify(buffer, expected);
+        }
     }
 }
 

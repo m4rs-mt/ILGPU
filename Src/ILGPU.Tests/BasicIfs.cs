@@ -242,7 +242,86 @@ namespace ILGPU.Tests
             using var buffer = Accelerator.Allocate<int>(Length);
             Execute(buffer.Length, buffer.View);
 
-            var expected = Enumerable.Repeat(42, 2).Concat(Enumerable.Repeat(0, Length - 2)).ToArray();
+            var expected = Enumerable.Repeat(42, 2).Concat
+                (Enumerable.Repeat(0, Length - 2)).ToArray();
+            Verify(buffer, expected);
+        }
+
+        internal static void NestedIfAndOrKernel(
+            Index1 index,
+            ArrayView<int> data,
+            int c,
+            int d)
+        {
+            int value = d;
+            if (c < 23)
+            {
+                if ((index.X == 0 || index.X == 1) && index.X <= 2)
+                    value = 42;
+                if ((index.X == 3 || index.X == 4 || index.X <= 5) && c < 42)
+                    value = 43;
+            }
+            else if (c == 23 || c < 43 && c > d)
+            {
+                value = 24;
+            }
+
+            data[index] = value;
+        }
+
+        [Theory]
+        [InlineData(0, 1, 43, 1)]
+        [InlineData(43, 1, 1, 1)]
+        [InlineData(23, 1, 24, 24)]
+        [InlineData(24, 1, 24, 24)]
+        [KernelMethod(nameof(NestedIfAndOrKernel))]
+        public void NestedIfAndOr(int c, int d, int res1, int res2)
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View, c, d);
+
+            var expected = Enumerable.Repeat(res1, 6).Concat(
+                Enumerable.Repeat(res2, Length - 6)).ToArray();
+            Verify(buffer, expected);
+        }
+
+        internal static void NestedIfAndOrKernelSideEffects(
+            Index1 index,
+            ArrayView<int> data,
+            int c,
+            int d)
+        {
+            if (c < 23)
+            {
+                if ((index.X == 0 || index.X == 1) && index.X <= 2)
+                    data[index] = 42;
+                if ((index.X == 3 || index.X == 4 || index.X <= 5) && c < 42)
+                {
+                    data[index] = 43;
+                    return;
+                }
+            }
+            else if (c == 23 || c < 43 && c > d)
+            {
+                data[index] = 24;
+                return;
+            }
+            data[index] = d;
+        }
+
+        [Theory]
+        [InlineData(0, 1, 43, 1)]
+        [InlineData(43, 1, 1, 1)]
+        [InlineData(23, 1, 24, 24)]
+        [InlineData(24, 1, 24, 24)]
+        [KernelMethod(nameof(NestedIfAndOrKernelSideEffects))]
+        public void NestedIfAndOrSideEffects(int c, int d, int res1, int res2)
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View, c, d);
+
+            var expected = Enumerable.Repeat(res1, 6).Concat(
+                Enumerable.Repeat(res2, Length - 6)).ToArray();
             Verify(buffer, expected);
         }
     }
