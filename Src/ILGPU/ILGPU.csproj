@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
+        <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
+        <TargetFrameworks Condition="'$(OS)' == 'Unix'">netcoreapp2.0;netstandard2.1</TargetFrameworks>
         <OutputPath>../../Bin/$(Configuration)/</OutputPath>
         <DocumentationFile>../../Bin/$(Configuration)/ILGPU.xml</DocumentationFile>
         <Configurations>Debug;Release</Configurations>
@@ -46,13 +47,6 @@
         <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.2" />
         <PackageReference Include="System.Reflection.Metadata" Version="1.8.0" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
-        <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
     </ItemGroup>
 
     <ItemGroup>

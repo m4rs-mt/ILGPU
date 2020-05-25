@@ -381,7 +381,7 @@ namespace ILGPU.Tests
             data[index] = otherKernel[index];
         }
 
-        [WindowsOnlyTheory("Fails to create type information for ArrayView on Linux")]
+        [WindowsOnlyTheory("Fails to create type information for ArrayView on Unix")]
         [InlineData(1)]
         [InlineData(17)]
         [InlineData(1025)]
