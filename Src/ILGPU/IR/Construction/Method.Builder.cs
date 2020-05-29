@@ -18,6 +18,7 @@ using ILGPU.Util;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -31,7 +32,8 @@ namespace ILGPU.IR
         public sealed class Builder :
             DisposeBase,
             IMethodMappingObject,
-            ILocation
+            ILocation,
+            IDumpable
         {
             #region Static
 
@@ -419,6 +421,12 @@ namespace ILGPU.IR
                     EntryBlock,
                     newBlocks.ToImmutable());
             }
+
+            /// <summary>
+            /// Dumps the underlying method to the given text writer.
+            /// </summary>
+            /// <param name="textWriter">The text writer.</param>
+            public void Dump(TextWriter textWriter) => Method.Dump(textWriter);
 
             #endregion
 

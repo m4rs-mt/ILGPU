@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR
@@ -18,7 +19,7 @@ namespace ILGPU.IR
     /// <summary>
     /// The base interface of all nodes.
     /// </summary>
-    public interface INode : ILocation
+    public interface INode : ILocation, IDumpable
     {
         /// <summary>
         /// Returns the unique node id.
@@ -105,6 +106,17 @@ namespace ILGPU.IR
         /// <returns>The formatted error message.</returns>
         public virtual string FormatErrorMessage(string message) =>
             Location.FormatErrorMessage(message);
+
+        /// <summary>
+        /// Dumps this method to the given text writer.
+        /// </summary>
+        /// <param name="textWriter">The text writer.</param>
+        public virtual void Dump(TextWriter textWriter)
+        {
+            if (textWriter == null)
+                throw new ArgumentNullException(nameof(textWriter));
+            textWriter.WriteLine(ToString());
+        }
 
         #endregion
 

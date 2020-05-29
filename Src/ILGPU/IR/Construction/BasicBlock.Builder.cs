@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR
@@ -35,7 +36,10 @@ namespace ILGPU.IR
             "Microsoft.Naming",
             "CA1710: IdentifiersShouldHaveCorrectSuffix",
             Justification = "This is the correct name of the current entity")]
-        public sealed class Builder : IRBuilder, IEnumerable<ValueEntry>
+        public sealed class Builder :
+            IRBuilder,
+            IEnumerable<ValueEntry>,
+            IDumpable
         {
             #region Instance
 
@@ -507,6 +511,12 @@ namespace ILGPU.IR
             /// Implicitly converts the current builder into its associated basic block.
             /// </summary>
             public BasicBlock ToBasicBlock() => BasicBlock;
+
+            /// <summary>
+            /// Dumps the underlying method to the given text writer.
+            /// </summary>
+            /// <param name="textWriter">The text writer.</param>
+            public void Dump(TextWriter textWriter) => BasicBlock.Dump(textWriter);
 
             #endregion
 

@@ -83,7 +83,8 @@ namespace ILGPU.IR
     public sealed partial class Method :
         ValueParent,
         IMethodMappingObject,
-        IControlFlowAnalysisSource<Forwards>
+        IControlFlowAnalysisSource<Forwards>,
+        IDumpable
     {
         #region Nested Types
 
@@ -548,28 +549,10 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Dumps this method to the console output.
-        /// </summary>
-        public void DumpToConsole() =>
-            Dump(Console.Out, false);
-
-        /// <summary>
-        /// Dumps this method to the console output.
-        /// </summary>
-        /// <param name="ignoreDeadValues">
-        /// True, if dead values should be ignored.
-        /// </param>
-        public void DumpToConsole(bool ignoreDeadValues) =>
-            Dump(Console.Out, false);
-
-        /// <summary>
         /// Dumps this method to the given text writer.
         /// </summary>
         /// <param name="textWriter">The text writer.</param>
-        /// <param name="ignoreDeadValues">
-        /// True, if dead values should be ignored.
-        /// </param>
-        public void Dump(TextWriter textWriter, bool ignoreDeadValues)
+        public override void Dump(TextWriter textWriter)
         {
             if (textWriter == null)
                 throw new ArgumentNullException(nameof(textWriter));
@@ -586,7 +569,7 @@ namespace ILGPU.IR
             textWriter.WriteLine(')');
             // Dump blocks
             foreach (var block in Blocks)
-                block.Dump(textWriter, ignoreDeadValues);
+                block.Dump(textWriter);
         }
 
         /// <summary>
