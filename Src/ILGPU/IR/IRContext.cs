@@ -32,7 +32,7 @@ namespace ILGPU.IR
     /// <summary>
     /// Represents an IR context.
     /// </summary>
-    public sealed partial class IRContext : DisposeBase, ICache
+    public sealed partial class IRContext : DisposeBase, ICache, IDumpable
     {
         #region Nested Types
 
@@ -509,20 +509,6 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// Dumps the IR context to the given file.
-        /// </summary>
-        public void DumpToFile(string fileName)
-        {
-            using var stream = new StreamWriter(fileName, false);
-            Dump(stream);
-        }
-
-        /// <summary>
-        /// Dumps the IR context to the console output.
-        /// </summary>
-        public void DumpToConsole() => Dump(Console.Out);
-
-        /// <summary>
         /// Dumps the IR context to the given text writer.
         /// </summary>
         /// <param name="textWriter">The text writer.</param>
@@ -530,7 +516,7 @@ namespace ILGPU.IR
         {
             foreach (var method in UnsafeMethods)
             {
-                method.Dump(textWriter, false);
+                method.Dump(textWriter);
                 textWriter.WriteLine();
                 textWriter.WriteLine("------------------------------");
             }

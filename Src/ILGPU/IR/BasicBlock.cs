@@ -32,7 +32,8 @@ namespace ILGPU.IR
         Justification = "This is the correct name of the current entity")]
     public sealed partial class BasicBlock :
         ValueParent,
-        IReadOnlyCollection<BasicBlock.ValueEntry>
+        IReadOnlyCollection<BasicBlock.ValueEntry>,
+        IDumpable
     {
         #region Nested Types
 
@@ -553,28 +554,9 @@ namespace ILGPU.IR
             Terminator = Terminator?.ResolveAs<TerminatorValue>();
 
         /// <summary>
-        /// Dumps this block to the console output.
-        /// </summary>
-        public void DumpToConsole() =>
-            Dump(Console.Out, false);
-
-        /// <summary>
-        /// Dumps this block to the console output.
-        /// </summary>
-        /// <param name="ignoreDeadValues">
-        /// True, if dead values should be ignored.
-        /// </param>
-        public void DumpToConsole(bool ignoreDeadValues) =>
-            Dump(Console.Out, false);
-
-        /// <summary>
         /// Dumps this block to the given text writer.
         /// </summary>
-        /// <param name="textWriter">The text writer.</param>
-        /// <param name="ignoreDeadValues">
-        /// True, if dead values should be ignored.
-        /// </param>
-        public void Dump(TextWriter textWriter, bool ignoreDeadValues)
+        public override void Dump(TextWriter textWriter)
         {
             if (textWriter == null)
                 throw new ArgumentNullException(nameof(textWriter));

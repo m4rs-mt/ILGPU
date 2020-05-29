@@ -13,6 +13,7 @@ using ILGPU.IR.Types;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.IO;
 
 namespace ILGPU.IR.Values
 {
@@ -148,6 +149,12 @@ namespace ILGPU.IR.Values
         /// <typeparam name="T">The target type.</typeparam>
         /// <returns>The actual node.</returns>
         public T ResolveAs<T>() where T : Value => Resolve() as T;
+
+        /// <summary>
+        /// Dumps this node to the given text writer.
+        /// </summary>
+        /// <param name="textWriter">The text writer.</param>
+        public void Dump(TextWriter textWriter) => Resolve()?.Dump(textWriter);
 
         #endregion
 
