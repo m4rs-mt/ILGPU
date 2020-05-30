@@ -40,7 +40,8 @@ namespace ILGPU.IR.Transformations
     /// Note that this class does not perform recursive specialization operations.
     /// </remarks>
     /// <typeparam name="TDelegate">The backend-specific delegate type.</typeparam>
-    public sealed class IntrinsicSpecializer<TDelegate> : UnorderedTransformation
+    public sealed class IntrinsicSpecializer<TDelegate> :
+        SequentialUnorderedTransformation
         where TDelegate : Delegate
     {
         #region Utility Methods
@@ -94,8 +95,9 @@ namespace ILGPU.IR.Transformations
             (Flags & IntrinsicSpecializerFlags.EnableAssertions) !=
             IntrinsicSpecializerFlags.None;
 
-        /// <summary cref="UnorderedTransformation{TIntermediate}.
-        /// PerformTransformation(Method.Builder, TIntermediate)"/>
+        /// <summary>
+        /// Applies an intrinsic specialization.
+        /// </summary>
         protected override bool PerformTransformation(Method.Builder builder)
         {
             // Check whether we are currently processing an intrinsic method

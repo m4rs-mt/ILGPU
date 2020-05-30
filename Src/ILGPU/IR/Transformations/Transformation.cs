@@ -162,6 +162,74 @@ namespace ILGPU.IR.Transformations
     /// <summary>
     /// Represents a generic transformation that can be applied in an unordered manner.
     /// </summary>
+    /// <remarks>
+    /// Note that this transformation is applied sequentially to all methods.
+    /// </remarks>
+    public abstract class SequentialUnorderedTransformation : Transformation
+    {
+        #region Nested Types
+
+        /// <summary>
+        /// Represents an unordered executor.
+        /// </summary>
+        private readonly struct Executor : ITransformExecutor
+        {
+            /// <summary>
+            /// Constructs a new executor.
+            /// </summary>
+            /// <param name="parent">The parent transformation.</param>
+            public Executor(SequentialUnorderedTransformation parent)
+            {
+                Parent = parent;
+            }
+
+            /// <summary>
+            /// The associated parent transformation.
+            /// </summary>
+            public SequentialUnorderedTransformation Parent { get; }
+
+            /// <summary>
+            /// Applies the parent transformation.
+            /// </summary>
+            /// <param name="builder">The current builder.</param>
+            /// <returns>True, if the transformation could be applied.</returns>
+            public bool Execute(Method.Builder builder) =>
+                Parent.PerformTransformation(builder);
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Transforms all methods in the given context.
+        /// </summary>
+        /// <param name="methods">The methods to transform.</param>
+        public override void Transform<TPredicate>(
+            MethodCollection<TPredicate> methods)
+        {
+            foreach (var method in methods)
+            {
+                var executor = new Executor(this);
+                {
+                    using var builder = method.CreateBuilder();
+                    ExecuteTransform(builder, executor);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Transforms the given method using the provided builder.
+        /// </summary>
+        /// <param name="builder">The current method builder.</param>
+        protected abstract bool PerformTransformation(Method.Builder builder);
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a generic transformation that can be applied in an unordered manner.
+    /// </summary>
     /// <typeparam name="TIntermediate">The type of the intermediate values.</typeparam>
     public abstract class UnorderedTransformation<TIntermediate> : Transformation
     {
