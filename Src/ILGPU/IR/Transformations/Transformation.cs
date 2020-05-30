@@ -133,8 +133,11 @@ namespace ILGPU.IR.Transformations
             transformerDelegate = (Method method) =>
             {
                 var executor = new Executor(this);
-                using var builder = method.CreateBuilder();
-                ExecuteTransform(builder, executor);
+                {
+                    using var builder = method.CreateBuilder();
+                    ExecuteTransform(builder, executor);
+                }
+                Verifier.Verify(method);
             };
         }
 
@@ -310,8 +313,11 @@ namespace ILGPU.IR.Transformations
             foreach (var method in methods)
             {
                 var executor = new Executor(this, intermediate);
-                using var builder = method.CreateBuilder();
-                ExecuteTransform(builder, executor);
+                {
+                    using var builder = method.CreateBuilder();
+                    ExecuteTransform(builder, executor);
+                }
+                Verifier.Verify(method);
             }
 
             FinishProcessing(intermediate);
@@ -414,8 +420,11 @@ namespace ILGPU.IR.Transformations
             foreach (var entry in landscape)
             {
                 var executor = new Executor(this, landscape, entry);
-                using var irBuilder = entry.Method.CreateBuilder();
-                ExecuteTransform(irBuilder, executor);
+                {
+                    using var builder = entry.Method.CreateBuilder();
+                    ExecuteTransform(builder, executor);
+                }
+                Verifier.Verify(entry.Method);
             }
         }
 

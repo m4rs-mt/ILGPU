@@ -94,7 +94,7 @@ namespace ILGPU.IR
         /// message, the formatting arguments and the current sequence point.
         /// </summary>
         /// <param name="location">The current location.</param>
-        /// <param name="message">The main content of the error message.</param>
+        /// <param name="message">The main contents of the error message.</param>
         /// <param name="args">The formatting arguments.</param>
         /// <returns>A new <see cref="NotSupportedException"/>.</returns>
         public static NotSupportedException GetNotSupportedException(
@@ -106,14 +106,26 @@ namespace ILGPU.IR
 
         /// <summary>
         /// Constructs a new <see cref="InvalidOperationException"/> that refers to an
-        /// invalid IL code.
+        /// invalid compiler state.
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <returns>A new <see cref="InvalidOperationException"/>.</returns>
-        public static InvalidProgramException GetInvalidOperationException(
+        public static InvalidOperationException GetInvalidOperationException(
             this ILocation location) =>
-            location.GetException<InvalidProgramException>(
-                ErrorMessages.InvalidILCode);
+            location.GetException<InvalidOperationException>(
+                ErrorMessages.InternalCompilerError);
+
+        /// <summary>
+        /// Constructs a new <see cref="InvalidOperationException"/> that refers to an
+        /// invalid compiler state.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="message">The main content of the error message.</param>
+        /// <returns>A new <see cref="InvalidOperationException"/>.</returns>
+        public static InvalidOperationException GetInvalidOperationException(
+            this ILocation location,
+            string message) =>
+            location.GetException<InvalidOperationException>(message);
 
         /// <summary>
         /// Ensures that a certain reference value is not null.

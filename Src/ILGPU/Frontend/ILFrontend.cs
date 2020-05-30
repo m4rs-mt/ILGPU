@@ -418,6 +418,7 @@ namespace ILGPU.Frontend
                     detectedMethods);
                 codeGenerator.GenerateCode();
             }
+            Verifier.Verify(generatedMethod);
 
             // Evaluate inlining heuristic to adjust method declaration
             Inliner.SetupInliningAttributes(
