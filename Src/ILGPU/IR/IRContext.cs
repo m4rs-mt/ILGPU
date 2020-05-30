@@ -445,32 +445,35 @@ namespace ILGPU.IR
             {
                 var targetMethod = methodMapping[sourceMethod];
 
-                using var builder = targetMethod.CreateBuilder();
-                // Build new parameters to match the old ones
-                var parameterArguments = ImmutableArray.CreateBuilder<
-                    ValueReference>(sourceMethod.NumParameters);
-                foreach (var param in sourceMethod.Parameters)
                 {
-                    var newParam = builder.AddParameter(param.Type, param.Name);
-                    parameterArguments.Add(newParam);
-                }
-                var parameterMapping = sourceMethod.CreateParameterMapping(
-                    parameterArguments.MoveToImmutable());
+                    using var builder = targetMethod.CreateBuilder();
+                    // Build new parameters to match the old ones
+                    var parameterArguments = ImmutableArray.CreateBuilder<
+                        ValueReference>(sourceMethod.NumParameters);
+                    foreach (var param in sourceMethod.Parameters)
+                    {
+                        var newParam = builder.AddParameter(param.Type, param.Name);
+                        parameterArguments.Add(newParam);
+                    }
+                    var parameterMapping = sourceMethod.CreateParameterMapping(
+                        parameterArguments.MoveToImmutable());
 
-                // Rebuild the source function into this context
-                var rebuilder = builder.CreateRebuilder<IRRebuilder.CloneMode>(
-                    parameterMapping,
-                    methodMapping,
-                    sourceMethod.Blocks);
+                    // Rebuild the source function into this context
+                    var rebuilder = builder.CreateRebuilder<IRRebuilder.CloneMode>(
+                        parameterMapping,
+                        methodMapping,
+                        sourceMethod.Blocks);
 
-                // Create appropriate return instructions
-                var exitBlocks = rebuilder.Rebuild();
-                foreach (var (blockBuilder, returnValue) in exitBlocks)
-                {
-                    blockBuilder.CreateReturn(
-                        returnValue.Location,
-                        returnValue);
+                    // Create appropriate return instructions
+                    var exitBlocks = rebuilder.Rebuild();
+                    foreach (var (blockBuilder, returnValue) in exitBlocks)
+                    {
+                        blockBuilder.CreateReturn(
+                            returnValue.Location,
+                            returnValue);
+                    }
                 }
+                Verifier.Verify(targetMethod);
             }
 
             return targetMapping[source];
