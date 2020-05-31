@@ -407,13 +407,15 @@ namespace ILGPU.IR
                 // Compute new block order
                 var newBlocks = ImmutableArray.CreateBuilder<BasicBlock>(blockCounter);
                 TOrder order = default;
+                var visitor = new TraversalCollectionVisitor<
+                    ImmutableArray<BasicBlock>.Builder>(newBlocks);
                 order.Traverse<
-                    ImmutableArray<BasicBlock>.Builder,
+                    TraversalCollectionVisitor<ImmutableArray<BasicBlock>.Builder>,
                     BasicBlock.TerminatorSuccessorsProvider,
                     Forwards,
                     ImmutableArray<BasicBlock>>(
                     EntryBlock,
-                    newBlocks,
+                    ref visitor,
                     new BasicBlock.TerminatorSuccessorsProvider());
 
                 // Return new block collection
