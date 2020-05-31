@@ -16,6 +16,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -239,18 +240,43 @@ namespace ILGPU.IR
         #region Methods
 
         /// <summary>
+        /// Asserts that there is a unique exit block.
+        /// </summary>
+        [Conditional("DEBUG")]
+        public void AssertUniqueExitBlock()
+        {
+            BasicBlock exitBlock = null;
+
+            // Traverse all blocks to find a block without a successor
+            foreach (var block in this)
+            {
+                if (block.GetSuccessors<TDirection>().Count < 1)
+                {
+                    EntryBlock.Assert(exitBlock is null);
+                    exitBlock = block;
+                }
+            }
+            EntryBlock.Assert(exitBlock != null);
+        }
+
+        /// <summary>
         /// Computes the exit block.
         /// </summary>
         /// <returns>The exit block.</returns>
         public BasicBlock FindExitBlock()
         {
+            AssertUniqueExitBlock();
+
             // Traverse all blocks to find a block without a successor
             foreach (var block in this)
             {
                 if (block.GetSuccessors<TDirection>().Count < 1)
                     return block;
             }
-            throw new InvalidOperationException();
+
+            // Unreachable
+            EntryBlock.Assert(false);
+            return null;
         }
 
         /// <summary>

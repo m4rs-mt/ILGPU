@@ -269,6 +269,10 @@ namespace ILGPU.Frontend
             }
 
             SSABuilder.AssertAllSealed();
+
+            // Ensure that we have a unique exit block
+            MethodBuilder.EnsureUniqueExitBlock();
+
             return MethodBuilder.Method;
         }
 

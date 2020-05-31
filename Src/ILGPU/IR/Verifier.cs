@@ -286,13 +286,11 @@ namespace ILGPU.IR
                 var exitBlock = Method.Blocks.FindExitBlock();
                 Assert(Method, exitBlock != null);
 
-                // TODO: enable this code in the future once we support unique exit
-                // blocks:
-                // foreach (var block in Method.Blocks)
-                // {
-                //     if (block.Successors.Count < 1)
-                //         Assert(block, block == exitBlock);
-                // }
+                foreach (var block in Method.Blocks)
+                {
+                    if (block.Successors.Count < 1)
+                        Assert(block, block == exitBlock);
+                }
             }
 
             /// <summary>

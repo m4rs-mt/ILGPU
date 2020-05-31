@@ -326,7 +326,7 @@ namespace ILGPU.IR
                 var rebuilder = MethodBuilder.CreateRebuilder<IRRebuilder.InlineMode>(
                     mapping,
                     callTarget.Blocks);
-                var exitBlocks = rebuilder.Rebuild();
+                var (exitBlock, exitValue) = rebuilder.Rebuild();
 
                 // Wire current block with new entry block
                 CreateBranch(
@@ -334,47 +334,13 @@ namespace ILGPU.IR
                     rebuilder.EntryBlock.BasicBlock);
 
                 // Replace call with the appropriate return value
-                if (!callTarget.IsVoid)
-                {
-                    if (exitBlocks.Count < 2)
-                    {
-                        // Replace with single return value
-                        call.Replace(exitBlocks[0].Item2);
-                    }
-                    else
-                    {
-                        // We require a custom phi parameter
-                        var phiBuilder = tempBlock.CreatePhi(
-                            call.Location,
-                            callTarget.ReturnType);
-                        foreach (var (returnBuilder, returnValue) in exitBlocks)
-                        {
-                            phiBuilder.AddArgument(
-                                returnBuilder.BasicBlock,
-                                returnValue);
-                        }
-                        call.Replace(phiBuilder.PhiValue);
-                        phiBuilder.Seal();
-                    }
-                }
-                else
-                {
-                    // Replace call with an empty null value
-                    call.Replace(CreateNull(
-                        call.Location,
-                        VoidType));
-                }
+                call.Replace(exitValue);
 
                 // Unlink call node from the current block
                 Remove(call);
 
-                // Wire exit blocks with temp block
-                foreach (var (block, _) in exitBlocks)
-                {
-                    block.CreateBranch(
-                        call.Location,
-                        tempBlock.BasicBlock);
-                }
+                // Wire exit block with temp block
+                exitBlock.CreateBranch(call.Location, tempBlock.BasicBlock);
 
                 return tempBlock;
             }

@@ -179,6 +179,8 @@ namespace ILGPU.IR.Construction
             Builder = builder;
             Blocks = blocks;
 
+            blocks.AssertUniqueExitBlock();
+
             // Insert parameters into local mapping
             foreach (var param in blocks.Method.Parameters)
                 valueMapping.Add(param, parameterMapping[param]);
@@ -237,10 +239,10 @@ namespace ILGPU.IR.Construction
         /// <summary>
         /// Rebuilds all values.
         /// </summary>
-        /// <returns>An array of exit blocks and their return values.</returns>
-        public List<(BasicBlock.Builder, Value)> Rebuild()
+        /// <returns>The exit block and the associated return value.</returns>
+        public (BasicBlock.Builder, Value) Rebuild()
         {
-            var exitBlocks = new List<(BasicBlock.Builder, Value)>(2);
+            (BasicBlock.Builder, Value) exitBlock = (null, null);
 
             // Rebuild all instructions
             foreach (var block in Blocks)
@@ -255,7 +257,9 @@ namespace ILGPU.IR.Construction
                 if (terminator is ReturnTerminator returnValue)
                 {
                     var newReturnValue = Rebuild(returnValue.ReturnValue);
-                    exitBlocks.Add((newBlock, newReturnValue));
+
+                    block.Assert(exitBlock.Item1 is null);
+                    exitBlock = (newBlock, newReturnValue);
                 }
                 else
                 {
@@ -276,7 +280,7 @@ namespace ILGPU.IR.Construction
                 targetPhiBuilder.Seal();
             }
 
-            return exitBlocks;
+            return exitBlock;
         }
 
         /// <summary>

@@ -35,6 +35,77 @@ namespace ILGPU.IR
             ILocation,
             IDumpable
         {
+            #region Nested Types
+
+            /// <summary>
+            /// An exit block visitor to gather exit blocks.
+            /// </summary>
+            private struct ExitBlockVisitor : ITraversalVisitor
+            {
+                #region Instance
+
+                /// <summary>
+                /// The exit block in case of a single one.
+                /// </summary>
+                private BasicBlock exitBlock;
+
+                #endregion
+
+                #region Properties
+
+                /// <summary>
+                /// Returns true if there is more than one exit block.
+                /// </summary>
+                public readonly bool HasMultipleExitBlocks => ExitBlocks != null;
+
+                /// <summary>
+                /// Returns the list of exit blocks in the case of multiple exit blocks.
+                /// </summary>
+                public List<BasicBlock> ExitBlocks { get; private set; }
+
+                #endregion
+
+                #region Methods
+
+                /// <summary>
+                /// Checks whether the given block is an exit block and collects this
+                /// block if it turns out to be an exit block.
+                /// </summary>
+                /// <param name="block">The block to add.</param>
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                public void Visit(BasicBlock block)
+                {
+                    // Check whether this block is an exit block
+                    if (block.CurrentSuccessors.Length > 0)
+                        return;
+
+                    if (exitBlock is null)
+                    {
+                        exitBlock = block;
+                    }
+                    else
+                    {
+                        block.Assert(exitBlock != block);
+                        if (ExitBlocks == null)
+                        {
+                            ExitBlocks = new List<BasicBlock>(4)
+                            {
+                                exitBlock,
+                                block,
+                            };
+                        }
+                        else
+                        {
+                            ExitBlocks.Add(block);
+                        }
+                    }
+                }
+
+                #endregion
+            }
+
+            #endregion
+
             #region Static
 
             /// <summary>
@@ -430,6 +501,72 @@ namespace ILGPU.IR
             /// <param name="textWriter">The text writer.</param>
             public void Dump(TextWriter textWriter) => Method.Dump(textWriter);
 
+            /// <summary>
+            /// Ensures that there is only one exit block.
+            /// </summary>
+            /// <remarks>
+            /// CAUTION: This function changes the control flow.
+            /// </remarks>
+            public void EnsureUniqueExitBlock()
+            {
+                // Find exit blocks
+                PreOrder order = default;
+                var visitor = new ExitBlockVisitor();
+                order.Traverse<
+                    ExitBlockVisitor,
+                    BasicBlock.TerminatorSuccessorsProvider,
+                    Forwards,
+                    ImmutableArray<BasicBlock>>(
+                    EntryBlock,
+                    ref visitor,
+                    new BasicBlock.TerminatorSuccessorsProvider());
+
+                // This is the default case since most .Net compilers usually emit a
+                // single exit block by default
+                if (!visitor.HasMultipleExitBlocks)
+                    return;
+
+                // If we arrive here we have to update the control-flow and append
+                // a new unique exit block
+                var exitBlocks = visitor.ExitBlocks;
+                var exitBlock = CreateBasicBlock(exitBlocks[0].Location, "Exit");
+                var location = exitBlock.BasicBlock.Location;
+
+                if (Method.IsVoid)
+                {
+                    // Create a simple void return
+                    exitBlock.CreateReturn(location);
+                }
+                else
+                {
+                    // We require a phi node that merges the different values together
+                    var phiBuilder = exitBlock.CreatePhi(location, Method.ReturnType);
+                    foreach (var block in exitBlocks)
+                    {
+                        var terminator = block.GetTerminatorAs<ReturnTerminator>();
+                        phiBuilder.AddArgument(block, terminator.ReturnValue);
+                    }
+
+                    // We require a custom phi parameter
+                    exitBlock.CreateReturn(location, phiBuilder.Seal());
+                }
+
+                // Wire branches
+                foreach (var block in exitBlocks)
+                {
+                    var terminator = block.GetTerminatorAs<ReturnTerminator>();
+
+                    // CATUION: change the control flow to jump to the exit block
+                    // => this will introduce an additional successor
+                    this[block].CreateBranch(
+                        terminator.Location,
+                        exitBlock.BasicBlock);
+                }
+
+                // Schedule a control-flow update
+                ScheduleControlFlowUpdate();
+            }
+
             #endregion
 
             #region IDisposable
@@ -452,6 +589,7 @@ namespace ILGPU.IR
                     @params[i].Index = i;
                 Method.parameters = @params;
             }
+
 
             /// <summary>
             /// Updates the whole control-flow information of all blocks.
@@ -494,7 +632,10 @@ namespace ILGPU.IR
                     builder.Dispose();
 
                 // Update control-flow
-                UpdateControlFlow();
+                var newBlocks = UpdateControlFlow();
+
+                // Ensure a unique exit block
+                newBlocks.AssertUniqueExitBlock();
 
                 // Release builder
                 Method.ReleaseBuilder(this);

@@ -464,14 +464,9 @@ namespace ILGPU.IR
                         methodMapping,
                         sourceMethod.Blocks);
 
-                    // Create appropriate return instructions
-                    var exitBlocks = rebuilder.Rebuild();
-                    foreach (var (blockBuilder, returnValue) in exitBlocks)
-                    {
-                        blockBuilder.CreateReturn(
-                            returnValue.Location,
-                            returnValue);
-                    }
+                    // Create an appropriate return instruction
+                    var (exitBlock, exitValue) = rebuilder.Rebuild();
+                    exitBlock.CreateReturn(exitValue.Location, exitValue);
                 }
                 Verifier.Verify(targetMethod);
             }
