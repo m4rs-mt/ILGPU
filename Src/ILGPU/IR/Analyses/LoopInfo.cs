@@ -145,7 +145,7 @@ namespace ILGPU.IR.Analyses
             // outside the current SCC and one is from the
             // inside of the current SCC
             inductionVariable = default;
-            int numOperands = phiValue.Nodes.Length;
+            int numOperands = phiValue.Count;
             if (numOperands != 2)
                 return false;
 

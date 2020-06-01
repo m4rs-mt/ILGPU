@@ -60,17 +60,53 @@ namespace ILGPU.IR.Analyses
             #region Nested Types
 
             /// <summary>
+            /// Enumerates all CFG nodes.
+            /// </summary>
+            public ref struct Enumerator
+            {
+                [SuppressMessage(
+                    "Style",
+                    "IDE0044:Add readonly modifier",
+                    Justification = "This instance variable will be modified")]
+                private ReadOnlySpan<BasicBlock>.Enumerator nestedEnumerator;
+
+                internal Enumerator(
+                    CFG<TOrder, TDirection> cfg,
+                    ReadOnlySpan<BasicBlock>.Enumerator enumerator)
+                {
+                    nestedEnumerator = enumerator;
+                    CFG = cfg;
+                }
+
+                /// <summary>
+                /// Returns the parent graph.
+                /// </summary>
+                public CFG<TOrder, TDirection> CFG { get; }
+
+                /// <summary>
+                /// Returns the current CFG node.
+                /// </summary>
+                public Node Current => CFG[nestedEnumerator.Current];
+
+                /// <summary>
+                /// Moves the enumerator to the next node.
+                /// </summary>
+                /// <returns>True, if the enumerator could be moved.</returns>
+                public bool MoveNext() => nestedEnumerator.MoveNext();
+            }
+
+            /// <summary>
             /// Represents a node collection of attached nodes.
             /// </summary>
-            public readonly struct NodeCollection : IReadOnlyList<Node>
+            public readonly ref struct NodeCollection
             {
                 #region Instance
 
-                private readonly BasicBlock.LinkCollection links;
+                private readonly ReadOnlySpan<BasicBlock> links;
 
                 internal NodeCollection(
                     CFG<TOrder, TDirection> cfg,
-                    BasicBlock.LinkCollection collection)
+                    in ReadOnlySpan<BasicBlock> collection)
                 {
                     CFG = cfg;
                     links = collection;
@@ -88,7 +124,7 @@ namespace ILGPU.IR.Analyses
                 /// <summary>
                 /// Returns the number of nodes.
                 /// </summary>
-                public int Count => links.Count;
+                public int Count => links.Length;
 
                 /// <summary>
                 /// Returns the i-th node.
@@ -105,18 +141,8 @@ namespace ILGPU.IR.Analyses
                 /// Returns a node enumerator to iterate over all attached nodes.
                 /// </summary>
                 /// <returns>The resulting node enumerator.</returns>
-                public Enumerator<BasicBlock.LinkCollection.Enumerator>
-                    GetEnumerator() =>
-                    new Enumerator<BasicBlock.LinkCollection.Enumerator>(
-                        CFG,
-                        links.GetEnumerator());
-
-                /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-                IEnumerator<Node> IEnumerable<Node>.GetEnumerator() =>
-                    GetEnumerator();
-
-                /// <summary cref="IEnumerable.GetEnumerator"/>
-                IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+                public Enumerator GetEnumerator() =>
+                    new Enumerator(CFG, links.GetEnumerator());
 
                 #endregion
             }
@@ -178,12 +204,12 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Returns the number of predecessors.
             /// </summary>
-            public int NumPredecessors => GetPredecessors().Count;
+            public int NumPredecessors => GetPredecessors().Length;
 
             /// <summary>
             /// Returns the number of successors.
             /// </summary>
-            public int NumSuccessors => GetSuccessors().Count;
+            public int NumSuccessors => GetSuccessors().Length;
 
             #endregion
 
@@ -200,13 +226,13 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Determines the actual predecessors based on the current direction.
             /// </summary>
-            private BasicBlock.LinkCollection GetPredecessors() =>
+            private ReadOnlySpan<BasicBlock> GetPredecessors() =>
                 Block.GetPredecessors<TDirection>();
 
             /// <summary>
             /// Determines the actual successors based on the current direction.
             /// </summary>
-            private BasicBlock.LinkCollection GetSuccessors() =>
+            private ReadOnlySpan<BasicBlock> GetSuccessors() =>
                 Block.GetSuccessors<TDirection>();
 
             #endregion

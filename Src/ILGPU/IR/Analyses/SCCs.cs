@@ -275,7 +275,7 @@ namespace ILGPU.IR.Analyses
                 var visited = new HashSet<BasicBlock>();
                 foreach (var node in nodes)
                 {
-                    if (node.GetSuccessors<TDirection>().Count < 2)
+                    if (node.GetSuccessors<TDirection>().Length < 2)
                         continue;
 
                     // Check for exit targets
