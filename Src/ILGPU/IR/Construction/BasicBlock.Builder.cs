@@ -13,13 +13,14 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR
 {
@@ -289,7 +290,7 @@ namespace ILGPU.IR
             /// <param name="remapper">The remapper to use.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void RemapPhiArguments<TArgumentRemapper>(
-                ImmutableArray<BasicBlock> blocks,
+                ReadOnlySpan<BasicBlock> blocks,
                 TArgumentRemapper remapper)
                 where TArgumentRemapper : PhiValue.IArgumentRemapper
             {
@@ -441,10 +442,12 @@ namespace ILGPU.IR
                 int oldPosition = InsertPosition;
                 SetupInsertPosition(value);
 
+                var arguments = ValueList.Empty;
+                value.Nodes.CopyTo(ref arguments);
                 var call = CreateCall(
                     value.Location,
                     implementationMethod,
-                    value.Nodes);
+                    ref arguments);
                 value.Replace(call);
                 Remove(value);
 

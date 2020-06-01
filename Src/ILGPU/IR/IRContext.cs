@@ -26,6 +26,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR
 {
@@ -448,15 +449,15 @@ namespace ILGPU.IR
                 {
                     using var builder = targetMethod.CreateBuilder();
                     // Build new parameters to match the old ones
-                    var parameterArguments = ImmutableArray.CreateBuilder<
-                        ValueReference>(sourceMethod.NumParameters);
+                    var parameterArguments = ValueList.Create(
+                        sourceMethod.NumParameters);
                     foreach (var param in sourceMethod.Parameters)
                     {
                         var newParam = builder.AddParameter(param.Type, param.Name);
                         parameterArguments.Add(newParam);
                     }
                     var parameterMapping = sourceMethod.CreateParameterMapping(
-                        parameterArguments.MoveToImmutable());
+                        parameterArguments);
 
                     // Rebuild the source function into this context
                     var rebuilder = builder.CreateRebuilder<IRRebuilder.CloneMode>(

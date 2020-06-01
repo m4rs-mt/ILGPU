@@ -11,7 +11,8 @@
 
 using ILGPU.IR.Values;
 using ILGPU.Util;
-using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using BlockList = ILGPU.Util.InlineList<ILGPU.IR.BasicBlock>;
 
 namespace ILGPU.IR.Construction
 {
@@ -72,20 +73,44 @@ namespace ILGPU.IR.Construction
                 falseTarget));
 
         /// <summary>
+        /// Creates a switch terminator builder.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="value">The selection value.</param>
+        /// <returns>The created switch builder.</returns>
+        public SwitchBranch.Builder CreateSwitchBranch(
+            Location location,
+            Value value) =>
+            CreateSwitchBranch(location, value, 2);
+
+        /// <summary>
+        /// Creates a switch terminator builder.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="value">The selection value.</param>
+        /// <param name="capacity">The expected number of cases to append.</param>
+        /// <returns>The created switch builder.</returns>
+        public SwitchBranch.Builder CreateSwitchBranch(
+            Location location,
+            Value value,
+            int capacity) =>
+            new SwitchBranch.Builder(this, location, value, capacity);
+
+        /// <summary>
         /// Creates a switch terminator.
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <param name="value">The selection value.</param>
-        /// <param name="targets">All switch targets.</param>
+        /// <param name="targets">The list of target blocks.</param>
         /// <returns>The created terminator.</returns>
-        public Branch CreateSwitchBranch(
+        internal Branch CreateSwitchBranch(
             Location location,
             Value value,
-            ImmutableArray<BasicBlock> targets)
+            ref BlockList targets)
         {
             location.Assert(
                 value.BasicValueType.IsInt() &&
-                targets.Length > 0);
+                targets.Count > 0);
 
             value = CreateConvert(
                 location,
@@ -93,7 +118,7 @@ namespace ILGPU.IR.Construction
                 GetPrimitiveType(BasicValueType.Int32));
 
             // Transformation to create simple predicates
-            return targets.Length == 2
+            return targets.Count == 2
                 ? CreateIfBranch(
                     location,
                     CreateCompare(
@@ -108,18 +133,27 @@ namespace ILGPU.IR.Construction
                 : CreateTerminator(new SwitchBranch(
                     GetInitializer(location),
                     value,
-                    targets));
+                    ref targets));
         }
+
+        /// <summary>
+        /// Creates a temporary builder terminator.
+        /// </summary>
+        /// <param name="capacity">The expected number of branch targets.</param>
+        /// <returns>The created terminator builder.</returns>
+        public BuilderTerminator.Builder CreateBuilderTerminator(int capacity) =>
+            new BuilderTerminator.Builder(this, capacity);
 
         /// <summary>
         /// Creates a temporary builder terminator.
         /// </summary>
         /// <param name="targets">All branch targets.</param>
         /// <returns>The created terminator.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public BuilderTerminator CreateBuilderTerminator(
-            ImmutableArray<BasicBlock> targets) =>
+            ref BlockList targets) =>
             CreateTerminator(new BuilderTerminator(
                 GetInitializer(Location.Unknown),
-                targets)) as BuilderTerminator;
+                ref targets)) as BuilderTerminator;
     }
 }

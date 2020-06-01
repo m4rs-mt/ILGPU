@@ -191,7 +191,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Represents a parameter mapping.
         /// </summary>
-        public readonly struct ParameterMapping
+        public readonly ref struct ParameterMapping
         {
             #region Instance
 
@@ -202,12 +202,10 @@ namespace ILGPU.IR
             /// <param name="arguments">The parameter arguments.</param>
             internal ParameterMapping(
                 Method method,
-                ImmutableArray<ValueReference> arguments)
+                ReadOnlySpan<ValueReference> arguments)
             {
-                Debug.Assert(method != null, "Invalid method");
-                Debug.Assert(
-                    arguments.Length == method.Parameters.Count,
-                    "Invalid arguments");
+                method.AssertNotNull(method);
+                method.Assert(arguments.Length == method.Parameters.Count);
 
                 Method = method;
                 Arguments = arguments;
@@ -225,19 +223,19 @@ namespace ILGPU.IR
             /// <summary>
             /// Returns the associated arguments.
             /// </summary>
-            public ImmutableArray<ValueReference> Arguments { get; }
+            public ReadOnlySpan<ValueReference> Arguments { get; }
 
             /// <summary>
             /// Returns the value that is assigned to the given parameter.
             /// </summary>
             /// <param name="parameter">The parameter to map to a value.</param>
             /// <returns>The mapped value.</returns>
-            public ValueReference this[Parameter parameter]
+            public readonly ValueReference this[Parameter parameter]
             {
                 get
                 {
-                    Debug.Assert(parameter != null, "Invalid parameter");
-                    Debug.Assert(parameter.Method == Method, "Invalid parameter");
+                    Method.AssertNotNull(parameter);
+                    Method.Assert(parameter.Method == Method);
 
                     return Arguments[parameter.Index];
                 }
@@ -540,11 +538,9 @@ namespace ILGPU.IR
         /// <param name="arguments">The argument values.</param>
         /// <returns>The created parameter mapping.</returns>
         public ParameterMapping CreateParameterMapping(
-            ImmutableArray<ValueReference> arguments)
+            in ReadOnlySpan<ValueReference> arguments)
         {
-            Debug.Assert(
-                arguments.Length == Parameters.Count,
-                "Invalid number of arguments");
+            this.Assert(arguments.Length == Parameters.Count);
             return new ParameterMapping(this, arguments);
         }
 
