@@ -151,7 +151,7 @@ namespace ILGPU.IR.Transformations
             public PhiValue Seal(SSABuilder<FieldRef> ssaBuilder)
             {
                 // Wire all phi arguments
-                for (int i = 0, e = SourcePhi.Nodes.Length; i < e; ++i)
+                for (int i = 0, e = SourcePhi.Count; i < e; ++i)
                 {
                     // Get the predecessor block and its associated value
                     var pred = SourcePhi.Sources[i];
@@ -443,8 +443,7 @@ namespace ILGPU.IR.Transformations
             MethodCall call)
         {
             // Check for structure arguments that need to be rebuilt
-            var newArgs = ImmutableArray.CreateBuilder<ValueReference>(
-                call.NumArguments);
+            var callBuilder = context.Builder.CreateCall(call.Location, call.Target);
             foreach (Value argument in call)
             {
                 Value newArgument = argument;
@@ -455,15 +454,11 @@ namespace ILGPU.IR.Transformations
                         argumentType,
                         argument);
                 }
-                newArgs.Add(newArgument);
+                callBuilder.Add(newArgument);
             }
 
             // Create new call node
-            var newCall = context.Builder.CreateCall(
-                call.Location,
-                call.Target,
-                newArgs.MoveToImmutable());
-
+            var newCall = callBuilder.Seal();
             context.ReplaceAndRemove(call, newCall);
 
             // Convert the return value

@@ -12,8 +12,8 @@
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Values;
+using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Transformations
@@ -56,7 +56,7 @@ namespace ILGPU.IR.Transformations
             /// scope.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly bool CanRemap(ImmutableArray<BasicBlock> blocks)
+            public readonly bool CanRemap(in ReadOnlySpan<BasicBlock> blocks)
             {
                 foreach (var block in blocks)
                 {
