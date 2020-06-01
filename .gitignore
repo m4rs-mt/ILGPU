@@ -272,6 +272,7 @@ Src/ILGPU.Tests/CompareFloatOperations.cs
 Src/ILGPU.Tests/CompareIntOperations.cs
 Src/ILGPU.Tests/ConvertFloatOperations.cs
 Src/ILGPU.Tests/ConvertIntOperations.cs
+Src/ILGPU.Tests/MemoryBufferOperations.cs
 Src/ILGPU.Tests/UnaryIntOperations.cs
 
 Src/ILGPU.Tests.CPU/Configurations.cs
