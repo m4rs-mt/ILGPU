@@ -35,7 +35,7 @@ namespace ILGPU.IR.Transformations
             BasicBlock root,
             ref BasicBlockSet visited)
         {
-            if (root.Successors.Count != 1 || visited.Contains(root))
+            if (root.Successors.Length != 1 || visited.Contains(root))
                 return false;
 
             // Mark node as seen
@@ -52,7 +52,7 @@ namespace ILGPU.IR.Transformations
 
                 // We cannot merge jump targets in div. control-flow or in the case
                 // of a block that we have already seen
-                if (nextBlock.Predecessors.Count > 1 || visited.Contains(nextBlock))
+                if (nextBlock.Predecessors.Length > 1 || visited.Contains(nextBlock))
                     break;
 
                 // Mark next block as seen
@@ -65,7 +65,7 @@ namespace ILGPU.IR.Transformations
                 // Return true as we have changed the IR
                 result = true;
             }
-            while (successors.Count == 1);
+            while (successors.Length == 1);
 
             // Return the success status
             return result;
