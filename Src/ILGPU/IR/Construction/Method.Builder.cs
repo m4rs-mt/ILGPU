@@ -483,8 +483,7 @@ namespace ILGPU.IR
                 order.Traverse<
                     TraversalCollectionVisitor<ImmutableArray<BasicBlock>.Builder>,
                     BasicBlock.TerminatorSuccessorsProvider,
-                    Forwards,
-                    ImmutableArray<BasicBlock>>(
+                    Forwards>(
                     EntryBlock,
                     ref visitor,
                     new BasicBlock.TerminatorSuccessorsProvider());
@@ -515,8 +514,7 @@ namespace ILGPU.IR
                 order.Traverse<
                     ExitBlockVisitor,
                     BasicBlock.TerminatorSuccessorsProvider,
-                    Forwards,
-                    ImmutableArray<BasicBlock>>(
+                    Forwards>(
                     EntryBlock,
                     ref visitor,
                     new BasicBlock.TerminatorSuccessorsProvider());

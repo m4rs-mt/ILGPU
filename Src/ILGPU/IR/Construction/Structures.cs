@@ -14,6 +14,7 @@ using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Construction
 {
@@ -118,6 +119,17 @@ namespace ILGPU.IR.Construction
         /// Creates a new dynamic structure instance.
         /// </summary>
         /// <param name="location">The current location.</param>
+        /// <param name="values">The initial values.</param>
+        /// <returns>The created structure instance.</returns>
+        public ValueReference CreateDynamicStructure(
+            Location location,
+            ref ValueList values) =>
+            new StructureValue.DynamicBuilder(this, location, ref values).Seal();
+
+        /// <summary>
+        /// Creates a new dynamic structure instance.
+        /// </summary>
+        /// <param name="location">The current location.</param>
         /// <param name="item1">The first item.</param>
         /// <param name="item2">The second item.</param>
         /// <returns>The created structure instance value.</returns>
@@ -175,7 +187,7 @@ namespace ILGPU.IR.Construction
         /// </summary>
         /// <param name="builder">The structure instance builder.</param>
         /// <returns>The created structure instance value.</returns>
-        internal ValueReference FinishStructureBuilder<TBuilder>(in TBuilder builder)
+        internal ValueReference FinishStructureBuilder<TBuilder>(ref TBuilder builder)
             where TBuilder : struct, StructureValue.IInternalBuilder
         {
             if (builder.Count < 1)
@@ -184,11 +196,12 @@ namespace ILGPU.IR.Construction
                 return builder[0];
 
             // Construct structure instance
-            var values = builder.Seal(out var structureType);
+            var values = ValueList.Empty;
+            var structureType = builder.Seal(ref values);
             return Append(new StructureValue(
                 GetInitializer(builder.Location),
                 structureType,
-                values));
+                ref values));
         }
 
         /// <summary>

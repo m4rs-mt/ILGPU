@@ -271,7 +271,7 @@ namespace ILGPU.IR.Construction
             foreach (var (sourcePhi, targetPhiBuilder) in phiMapping)
             {
                 // Append all phi arguments
-                for (int i = 0, e = sourcePhi.Nodes.Length; i < e; ++i)
+                for (int i = 0, e = sourcePhi.Count; i < e; ++i)
                 {
                     var argument = sourcePhi.Nodes[i];
                     var newBlock = blockMapping[sourcePhi.Sources[i]];

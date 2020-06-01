@@ -328,9 +328,9 @@ namespace ILGPU.IR.Construction
                 TVariable var,
                 ref MarkerProvider markerProvider)
             {
-                Block.Assert(Block.Predecessors.Count > 0);
+                Block.Assert(Block.Predecessors.Length > 0);
                 Value value;
-                if (Block.Predecessors.Count == 1 && IsSealed)
+                if (Block.Predecessors.Length == 1 && IsSealed)
                 {
                     var valueContainer = Parent[Block.Predecessors[0]];
                     value = valueContainer.GetValue(var, ref markerProvider);
@@ -395,7 +395,7 @@ namespace ILGPU.IR.Construction
                     phiBuilder.AddArgument(predecessor, value);
                 }
                 incompletePhi.Location.Assert(
-                    phiBuilder.Count == Block.Predecessors.Count);
+                    phiBuilder.Count == Block.Predecessors.Length);
                 var phiValue = phiBuilder.Seal();
                 return phiValue.TryRemoveTrivialPhi(Parent.MethodBuilder);
             }
