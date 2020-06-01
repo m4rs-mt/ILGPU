@@ -288,7 +288,7 @@ namespace ILGPU.IR
 
                 foreach (var block in Method.Blocks)
                 {
-                    if (block.Successors.Count < 1)
+                    if (block.Successors.Length < 1)
                         Assert(block, block == exitBlock);
                 }
             }

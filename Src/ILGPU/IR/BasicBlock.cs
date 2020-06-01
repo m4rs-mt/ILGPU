@@ -12,10 +12,10 @@
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -171,133 +171,16 @@ namespace ILGPU.IR
         }
 
         /// <summary>
-        /// A collection for links.
-        /// </summary>
-        public readonly struct LinkCollection : IReadOnlyList<BasicBlock>
-        {
-            #region Nested Types
-
-            /// <summary>
-            /// An enumerator for links.
-            /// </summary>
-            public struct Enumerator : IEnumerator<BasicBlock>
-            {
-                #region Instance
-
-                private readonly List<BasicBlock> links;
-                private int index;
-
-                /// <summary>
-                /// Constructs a new link enumerator.
-                /// </summary>
-                /// <param name="linkCollection">The collection of links.</param>
-                internal Enumerator(List<BasicBlock> linkCollection)
-                {
-                    links = linkCollection;
-                    index = -1;
-                }
-
-                #endregion
-
-                #region Properties
-
-                /// <summary>
-                /// Returns the current link.
-                /// </summary>
-                public BasicBlock Current => links[index];
-
-                /// <summary cref="IEnumerator.Current"/>
-                object IEnumerator.Current => Current;
-
-                #endregion
-
-                #region Methods
-
-                /// <summary cref="IDisposable.Dispose"/>
-                void IDisposable.Dispose() { }
-
-                /// <summary cref="IEnumerator.MoveNext"/>
-                public bool MoveNext() => ++index < links.Count;
-
-                /// <summary cref="IEnumerator.Reset"/>
-                void IEnumerator.Reset() => throw new InvalidOperationException();
-
-                #endregion
-            }
-
-            #endregion
-
-            #region Instance
-
-            private readonly List<BasicBlock> links;
-
-            /// <summary>
-            /// Constructs a new link collection.
-            /// </summary>
-            /// <param name="linkCollection">The underlying links.</param>
-            internal LinkCollection(List<BasicBlock> linkCollection)
-            {
-                links = linkCollection;
-            }
-
-            #endregion
-
-            #region Properties
-
-            /// <summary>
-            /// Returns the number of links.
-            /// </summary>
-            public readonly int Count => links.Count;
-
-            /// <summary>
-            /// Returns the i-th link.
-            /// </summary>
-            /// <param name="index">The link index.</param>
-            /// <returns>The resolved link.</returns>
-            public readonly BasicBlock this[int index] => links[index];
-
-            #endregion
-
-            #region Methods
-
-            /// <summary>
-            /// Returns true if the given block is a registered link.
-            /// </summary>
-            /// <param name="link">The potential link block.</param>
-            /// <returns>True, if the given block is a registered link.</returns>
-            public readonly bool Contains(BasicBlock link) => links.Contains(link);
-
-            #endregion
-
-            #region IEnumerable
-
-            /// <summary>
-            /// Returns a link enumerator.
-            /// </summary>
-            /// <returns>The resolved enumerator.</returns>
-            public readonly Enumerator GetEnumerator() => new Enumerator(links);
-
-            /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            IEnumerator<BasicBlock> IEnumerable<BasicBlock>.GetEnumerator() =>
-                GetEnumerator();
-
-            /// <summary cref="IEnumerable.GetEnumerator"/>
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-            #endregion
-        }
-
-        /// <summary>
         /// A provider that uses terminators to determine the successors of a block.
         /// </summary>
         public readonly struct TerminatorSuccessorsProvider :
-            ITraversalSuccessorsProvider<Forwards, ImmutableArray<BasicBlock>>
+            ITraversalSuccessorsProvider<Forwards>
         {
             /// <summary>
             /// Returns the terminator targets.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly ImmutableArray<BasicBlock> GetSuccessors(
+            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
                 BasicBlock basicBlock) =>
                 basicBlock.Terminator.Targets;
         }
@@ -307,7 +190,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <typeparam name="TDirection"></typeparam>
         public readonly struct SuccessorsProvider<TDirection> :
-            ITraversalSuccessorsProvider<TDirection, LinkCollection>
+            ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
         {
             /// <summary>
@@ -316,7 +199,8 @@ namespace ILGPU.IR
             /// <param name="basicBlock"></param>
             /// <returns></returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly LinkCollection GetSuccessors(BasicBlock basicBlock) =>
+            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
+                BasicBlock basicBlock) =>
                 basicBlock.GetSuccessors<TDirection>();
         }
 
@@ -325,10 +209,10 @@ namespace ILGPU.IR
         #region Instance
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly List<BasicBlock> predecessors = new List<BasicBlock>(2);
+        private InlineList<BasicBlock> predecessors;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly List<BasicBlock> successors = new List<BasicBlock>(2);
+        private InlineList<BasicBlock> successors;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private List<ValueReference> values = new List<ValueReference>();
@@ -347,6 +231,9 @@ namespace ILGPU.IR
         {
             Method = method;
             Name = name ?? "BB";
+
+            predecessors = InlineList<BasicBlock>.Create(2);
+            successors = InlineList<BasicBlock>.Create(2);
         }
 
         #endregion
@@ -366,12 +253,12 @@ namespace ILGPU.IR
         /// <summary>
         /// The list of predecessors (see <see cref="Backwards"/>).
         /// </summary>
-        public LinkCollection Predecessors => GetPredecessors<Forwards>();
+        public ReadOnlySpan<BasicBlock> Predecessors => GetPredecessors<Forwards>();
 
         /// <summary>
         /// The list of successors (see <see cref="Forwards"/>).
         /// </summary>
-        public LinkCollection Successors => GetSuccessors<Forwards>();
+        public ReadOnlySpan<BasicBlock> Successors => GetSuccessors<Forwards>();
 
         /// <summary>
         /// Returns the current terminator.
@@ -381,9 +268,9 @@ namespace ILGPU.IR
         /// <summary>
         /// The current list of successor blocks.
         /// </summary>
-        public ImmutableArray<BasicBlock> CurrentSuccessors =>
+        public ReadOnlySpan<BasicBlock> CurrentSuccessors =>
             Terminator is null
-            ? ImmutableArray<BasicBlock>.Empty
+            ? ReadOnlySpan<BasicBlock>.Empty
             : Terminator.Targets;
 
         /// <summary>
@@ -431,15 +318,13 @@ namespace ILGPU.IR
         /// </summary>
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public LinkCollection GetPredecessors<TDirection>()
+        public ReadOnlySpan<BasicBlock> GetPredecessors<TDirection>()
             where TDirection : IControlFlowDirection
         {
             AssertNoControlFlowUpdate();
 
             TDirection direction = default;
-            return new LinkCollection(direction.IsForwards
-                ? predecessors
-                : successors);
+            return direction.IsForwards ? predecessors : successors;
         }
 
         /// <summary>
@@ -447,15 +332,13 @@ namespace ILGPU.IR
         /// </summary>
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public LinkCollection GetSuccessors<TDirection>()
+        public ReadOnlySpan<BasicBlock> GetSuccessors<TDirection>()
             where TDirection : IControlFlowDirection
         {
             AssertNoControlFlowUpdate();
 
             TDirection direction = default;
-            return new LinkCollection(direction.IsForwards
-                ? successors
-                : predecessors);
+            return direction.IsForwards ? successors : predecessors;
         }
 
         /// <summary>
