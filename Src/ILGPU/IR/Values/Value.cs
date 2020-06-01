@@ -13,13 +13,12 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR
 {
@@ -51,7 +50,7 @@ namespace ILGPU.IR
         /// <summary>
         /// Returns all associated nodes.
         /// </summary>
-        ImmutableArray<ValueReference> Nodes { get; }
+        ReadOnlySpan<ValueReference> Nodes { get; }
 
         /// <summary>
         /// Returns all associated uses.
@@ -165,6 +164,11 @@ namespace ILGPU.IR
         /// Static type
         /// </summary>
         StaticType = 1 << 2,
+
+        /// <summary>
+        /// The value has been sealed.
+        /// </summary>
+        IsSealed = 1 << 3,
     }
 
     /// <summary>
@@ -253,56 +257,6 @@ namespace ILGPU.IR
 
         #endregion
 
-        #region Nested Types
-
-        /// <summary>
-        /// An enumerator for values.
-        /// </summary>
-        public struct Enumerator : IEnumerator<ValueReference>
-        {
-            #region Instance
-
-            private ImmutableArray<ValueReference>.Enumerator enumerator;
-
-            /// <summary>
-            /// Constructs a new node enumerator.
-            /// </summary>
-            /// <param name="valueArray">The nodes to iterate over.</param>
-            internal Enumerator(ImmutableArray<ValueReference> valueArray)
-            {
-                enumerator = valueArray.GetEnumerator();
-            }
-
-            #endregion
-
-            #region Properties
-
-            /// <summary>
-            /// Returns the current node.
-            /// </summary>
-            public ValueReference Current => enumerator.Current.Refresh();
-
-            /// <summary cref="IEnumerator.Current"/>
-            object IEnumerator.Current => Current;
-
-            #endregion
-
-            #region Methods
-
-            /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose() { }
-
-            /// <summary cref="IEnumerator.MoveNext"/>
-            public bool MoveNext() => enumerator.MoveNext();
-
-            /// <summary cref="IEnumerator.Reset"/>
-            void IEnumerator.Reset() => throw new InvalidOperationException();
-
-            #endregion
-        }
-
-        #endregion
-
         #region Instance
 
         /// <summary>
@@ -316,6 +270,12 @@ namespace ILGPU.IR
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private TypeNode type;
+
+        /// <summary>
+        /// The list of all values.
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private ValueList values;
 
         /// <summary>
         /// The collection of all uses.
@@ -371,7 +331,7 @@ namespace ILGPU.IR
         {
             parent = initializer.Parent;
             type = staticType;
-            Nodes = ImmutableArray<ValueReference>.Empty;
+            values = ValueList.Empty;
 
             if (staticType != null)
                 valueFlags |= ValueFlags.StaticType;
@@ -444,7 +404,6 @@ namespace ILGPU.IR
         /// </summary>
         public bool CanBeReplaced =>
             (ValueFlags & ValueFlags.NotReplacable) != ValueFlags.NotReplacable;
-
         /// <summary>
         /// Returns true if the current value can have uses.
         /// </summary>
@@ -456,6 +415,12 @@ namespace ILGPU.IR
         /// </summary>
         public bool HasStaticType =>
             (ValueFlags & ValueFlags.StaticType) != ValueFlags.None;
+
+        /// <summary>
+        /// Returns true if the current value has been sealed.
+        /// </summary>
+        public bool IsSealed =>
+            (ValueFlags & ValueFlags.IsSealed) != ValueFlags.None;
 
         /// <summary>
         /// Returns the replacement of this value (if any).
@@ -471,7 +436,12 @@ namespace ILGPU.IR
         /// Returns all child values.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-        public ImmutableArray<ValueReference> Nodes { get; private set; }
+        public ReadOnlySpan<ValueReference> Nodes => values;
+
+        /// <summary>
+        /// Returns the number of child values.
+        /// </summary>
+        public int Count => values.Count;
 
         /// <summary>
         /// Returns the total number of all associated uses.
@@ -503,10 +473,10 @@ namespace ILGPU.IR
         internal void GC()
         {
             // Refresh all value references
-            var newNodes = ImmutableArray.CreateBuilder<ValueReference>(Nodes.Length);
+            var newNodes = ValueList.Create(values.Count);
             foreach (var node in Nodes)
                 newNodes.Add(node.Refresh());
-            Nodes = newNodes.MoveToImmutable();
+            newNodes.MoveTo(ref values);
 
             // Cleanup all uses
             var usesToRemove = new List<Use>(allUses.Count);
@@ -587,23 +557,93 @@ namespace ILGPU.IR
             IRRebuilder rebuilder);
 
         /// <summary>
+        /// Verifies that the this value is not sealed.
+        /// </summary>
+        protected void VerifyNotSealed() =>
+            Debug.Assert(!IsSealed, "Value has been sealed");
+
+        /// <summary>
         /// Seals this value.
         /// </summary>
-        /// <param name="nodes">The nested child nodes.</param>
-        protected void Seal(ImmutableArray<ValueReference> nodes)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void Seal()
         {
-            Nodes = nodes;
+            VerifyNotSealed();
+            ValueFlags |= ValueFlags.IsSealed;
 
-            for (int i = 0, e = nodes.Length; i < e; ++i)
+            // Wire uses
+            for (int i = 0, e = values.Count; i < e; ++i)
             {
-                var value = nodes[i].Resolve();
+                Value value = values[i];
                 if (value.CanHaveUses)
                     value.AddUse(this, i);
             }
 
-            InferLocation<
-                ValueReference,
-                ImmutableArray<ValueReference>>(nodes);
+            InferLocation(Nodes);
+        }
+
+        /// <summary>
+        /// Seals this value.
+        /// </summary>
+        /// <param name="value1">The first child node.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void Seal(ValueReference value1)
+        {
+            values.Reserve(1);
+
+            values.Add(value1);
+
+            Seal();
+        }
+
+        /// <summary>
+        /// Seals this value.
+        /// </summary>
+        /// <param name="value1">The first child node.</param>
+        /// <param name="value2">The second child node.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void Seal(ValueReference value1, ValueReference value2)
+        {
+            values.Reserve(2);
+
+            values.Add(value1);
+            values.Add(value2);
+
+            Seal();
+        }
+
+        /// <summary>
+        /// Seals this value.
+        /// </summary>
+        /// <param name="value1">The first child node.</param>
+        /// <param name="value2">The second child node.</param>
+        /// <param name="value3">The third child node.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void Seal(
+            ValueReference value1,
+            ValueReference value2,
+            ValueReference value3)
+        {
+            values.Reserve(3);
+
+            values.Add(value1);
+            values.Add(value2);
+            values.Add(value3);
+
+            Seal();
+        }
+
+        /// <summary>
+        /// Seals this value.
+        /// </summary>
+        /// <param name="valueList">The nested child nodes.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected void Seal(ref ValueList valueList)
+        {
+            VerifyNotSealed();
+            valueList.MoveTo(ref values);
+
+            Seal();
         }
 
         /// <summary>
@@ -665,7 +705,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="other">The other value.</param>
         /// <returns>True, if the given value is the same value.</returns>
-        public bool Equals(Value other) => Equals(other as object);
+        public bool Equals(Value other) => other == this;
 
         #endregion
 
@@ -675,7 +715,8 @@ namespace ILGPU.IR
         /// Returns an enumerator to enumerate all child values.
         /// </summary>
         /// <returns>An enumerator to enumerate all child values.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(Nodes);
+        public ReadOnlySpan<ValueReference>.Enumerator GetEnumerator() =>
+            Nodes.GetEnumerator();
 
         #endregion
 
@@ -685,19 +726,10 @@ namespace ILGPU.IR
         /// Returns the argument string (operation arguments) of this node.
         /// </summary>
         /// <returns>The argument string.</returns>
-        protected virtual string ToArgString()
-        {
-            var result = new StringBuilder();
-            result.Append('(');
-            for (int i = 0, e = Nodes.Length; i < e; ++i)
-            {
-                result.Append(this[i].ToString());
-                if (i + 1 < e)
-                    result.Append(", ");
-            }
-            result.Append(')');
-            return result.ToString();
-        }
+        protected virtual string ToArgString() =>
+            "(" +
+            Nodes.ToString(new ValueReference.ToReferenceFormatter()) +
+            ")";
 
         /// <summary>
         /// Returns the string representation of this node.
@@ -716,7 +748,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="obj">The other object.</param>
         /// <returns>True, if the given object is equal to the current value.</returns>
-        public override bool Equals(object obj) => base.Equals(obj);
+        public override bool Equals(object obj) => obj == this;
 
         /// <summary>
         /// Returns the hash code of this value.
