@@ -10,8 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
+using ILGPU.Util;
 using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 
@@ -28,6 +28,31 @@ namespace ILGPU.IR.Values
     /// </remarks>
     public struct ValueReference : IValue, IEquatable<ValueReference>
     {
+        #region Nested Types
+
+        /// <summary>
+        /// A value reference formatter.
+        /// </summary>
+        public readonly struct ToReferenceFormatter :
+            InlineList.IFormatter<Value>,
+            InlineList.IFormatter<ValueReference>
+        {
+            /// <summary>
+            /// Formats a value by returning its reference string.
+            /// </summary>
+            readonly string InlineList.IFormatter<Value>.Format(Value item) =>
+                item.ToReferenceString();
+
+            /// <summary>
+            /// Formats a value reference by returning its reference string.
+            /// </summary>
+            readonly string InlineList.IFormatter<ValueReference>.Format(
+                ValueReference item) =>
+                item.ToString();
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -83,7 +108,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns all child nodes of the latest node.
         /// </summary>
-        public ImmutableArray<ValueReference> Nodes => Resolve().Nodes;
+        public ReadOnlySpan<ValueReference> Nodes => Resolve().Nodes;
 
         /// <summary>
         /// Returns all uses of the latest node.
@@ -114,7 +139,8 @@ namespace ILGPU.IR.Values
         /// Returns an enumerator to enumerate all child nodes.
         /// </summary>
         /// <returns>An enumerator to enumerate all child nodes.</returns>
-        public Value.Enumerator GetEnumerator() => Resolve().GetEnumerator();
+        public ReadOnlySpan<ValueReference>.Enumerator GetEnumerator() =>
+            Resolve().GetEnumerator();
 
         /// <summary>
         /// Accepts a node visitor.

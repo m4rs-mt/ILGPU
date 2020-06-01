@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 
@@ -85,18 +84,15 @@ namespace ILGPU.IR
         /// Infers the location (if required) of the current node.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
-        /// <typeparam name="TList">The list type.</typeparam>
         /// <param name="elements">Elements we can infer the location from.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void InferLocation<T, TList>(TList elements)
+        protected void InferLocation<T>(ReadOnlySpan<T> elements)
             where T : INode
-            where TList : IReadOnlyList<T>
         {
             if (Location.IsKnown)
                 return;
-
-            for (int i = 0, e = elements.Count; i < e; ++i)
-                Location = Location.Merge(Location, elements[i].Location);
+            foreach (var element in elements)
+                Location = Location.Merge(Location, element.Location);
         }
 
         /// <summary>
