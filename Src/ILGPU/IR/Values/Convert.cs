@@ -13,7 +13,6 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
-using System.Collections.Immutable;
 
 namespace ILGPU.IR.Values
 {
@@ -90,7 +89,7 @@ namespace ILGPU.IR.Values
         {
             Flags = flags;
 
-            Seal(ImmutableArray.Create(value));
+            Seal(value);
         }
 
         #endregion

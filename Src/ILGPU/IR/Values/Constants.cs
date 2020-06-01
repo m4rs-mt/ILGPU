@@ -13,7 +13,6 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -36,7 +35,7 @@ namespace ILGPU.IR.Values
             TypeNode constantType)
             : base(initializer, constantType)
         {
-            Seal(ImmutableArray<ValueReference>.Empty);
+            Seal();
         }
 
         #endregion

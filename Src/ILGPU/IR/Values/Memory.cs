@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ILGPU.IR.Values
@@ -27,14 +26,9 @@ namespace ILGPU.IR.Values
         /// Constructs a new memory value.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="values">All child values.</param>
-        internal MemoryValue(
-            in ValueInitializer initializer,
-            ImmutableArray<ValueReference> values)
+        internal MemoryValue(in ValueInitializer initializer)
             : base(initializer)
-        {
-            Seal(values);
-        }
+        { }
 
         #endregion
     }
@@ -59,9 +53,7 @@ namespace ILGPU.IR.Values
             ValueReference arrayLength,
             TypeNode allocaType,
             MemoryAddressSpace addressSpace)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(arrayLength))
+            : base(initializer)
         {
             Debug.Assert(
                 addressSpace == MemoryAddressSpace.Local ||
@@ -71,6 +63,7 @@ namespace ILGPU.IR.Values
             AllocaType = allocaType;
             AddressSpace = addressSpace;
 
+            Seal(arrayLength);
             InvalidateType();
         }
 
@@ -188,11 +181,10 @@ namespace ILGPU.IR.Values
         internal MemoryBarrier(
             in ValueInitializer initializer,
             MemoryBarrierKind kind)
-            : base(
-                  initializer,
-                  ImmutableArray<ValueReference>.Empty)
+            : base(initializer)
         {
             Kind = kind;
+            Seal();
         }
 
         #endregion
@@ -253,10 +245,10 @@ namespace ILGPU.IR.Values
         internal Load(
             in ValueInitializer initializer,
             ValueReference source)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(source))
-        { }
+            : base(initializer)
+        {
+            Seal(source);
+        }
 
         #endregion
 
@@ -320,10 +312,10 @@ namespace ILGPU.IR.Values
             in ValueInitializer initializer,
             ValueReference target,
             ValueReference value)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(target, value))
-        { }
+            : base(initializer)
+        {
+            Seal(target, value);
+        }
 
         #endregion
 

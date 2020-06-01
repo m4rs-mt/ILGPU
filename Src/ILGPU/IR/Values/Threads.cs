@@ -11,8 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Values
 {
@@ -27,11 +25,8 @@ namespace ILGPU.IR.Values
         /// Constructs a new generic barrier operation.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="values">Additional values.</param>
-        internal BarrierOperation(
-            in ValueInitializer initializer,
-            ImmutableArray<ValueReference> values)
-            : base(initializer, values)
+        internal BarrierOperation(in ValueInitializer initializer)
+            : base(initializer)
         { }
 
         #endregion
@@ -86,14 +81,11 @@ namespace ILGPU.IR.Values
             in ValueInitializer initializer,
             ValueReference predicate,
             PredicateBarrierKind kind)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(predicate))
+            : base(initializer)
         {
-            Debug.Assert(
-                predicate.BasicValueType == BasicValueType.Int1,
-                "Invalid predicate");
+            Location.Assert(predicate.BasicValueType == BasicValueType.Int1);
             Kind = kind;
+            Seal(predicate);
         }
 
         #endregion
@@ -180,11 +172,10 @@ namespace ILGPU.IR.Values
         internal Barrier(
             in ValueInitializer initializer,
             BarrierKind barrierKind)
-            : base(
-                  initializer,
-                  ImmutableArray<ValueReference>.Empty)
+            : base(initializer)
         {
             Kind = barrierKind;
+            Seal();
         }
 
         #endregion
@@ -246,11 +237,8 @@ namespace ILGPU.IR.Values
         /// Constructs a new communication operation.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="values">The values.</param>
-        internal ThreadValue(
-            in ValueInitializer initializer,
-            ImmutableArray<ValueReference> values)
-            : base(initializer, values)
+        internal ThreadValue(in ValueInitializer initializer)
+            : base(initializer)
         { }
 
         #endregion
@@ -301,11 +289,10 @@ namespace ILGPU.IR.Values
             ValueReference value,
             ValueReference origin,
             BroadcastKind broadcastKind)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(value, origin))
+            : base(initializer)
         {
             Kind = broadcastKind;
+            Seal(value, origin);
         }
 
         #endregion
@@ -392,13 +379,11 @@ namespace ILGPU.IR.Values
         /// Constructs a new shuffle operation.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="values">The values.</param>
         /// <param name="shuffleKind">The operation kind.</param>
         internal ShuffleOperation(
             in ValueInitializer initializer,
-            ImmutableArray<ValueReference> values,
             ShuffleKind shuffleKind)
-            : base(initializer, values)
+            : base(initializer)
         {
             Kind = shuffleKind;
         }
@@ -447,11 +432,10 @@ namespace ILGPU.IR.Values
             ValueReference variable,
             ValueReference origin,
             ShuffleKind kind)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(variable, origin),
-                  kind)
-        { }
+            : base(initializer, kind)
+        {
+            Seal(variable, origin);
+        }
 
         #endregion
 
@@ -509,11 +493,10 @@ namespace ILGPU.IR.Values
             ValueReference origin,
             ValueReference width,
             ShuffleKind kind)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(variable, origin, width),
-                  kind)
-        { }
+            : base(initializer, kind)
+        {
+            Seal(variable, origin, width);
+        }
 
         #endregion
 

@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ILGPU.IR.Values
@@ -27,24 +26,9 @@ namespace ILGPU.IR.Values
         /// Constructs a new conditional node.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="condition">The condition.</param>
-        /// <param name="arguments">The condition arguments.</param>
-        internal Conditional(
-            in ValueInitializer initializer,
-            ValueReference condition,
-            ImmutableArray<ValueReference> arguments)
+        internal Conditional(in ValueInitializer initializer)
             : base(initializer)
-        {
-            this.Assert(arguments.Length > 0);
-            Arguments = arguments;
-
-            var builder = ImmutableArray.CreateBuilder<ValueReference>(
-                arguments.Length + 1);
-            builder.Add(condition);
-            builder.AddRange(arguments);
-            Seal(builder.MoveToImmutable());
-        }
-
+        { }
         #endregion
 
         #region Properties
@@ -54,18 +38,20 @@ namespace ILGPU.IR.Values
         /// </summary>
         public ValueReference Condition => this[0];
 
-        /// <summary>
-        /// Returns the arguments.
-        /// </summary>
-        public ImmutableArray<ValueReference> Arguments { get; }
-
         #endregion
 
         #region Methods
 
+        /// <summary>
+        /// Returns the i-th argument.
+        /// </summary>
+        /// <param name="index">The argument index.</param>
+        /// <returns>The i-th argument value.</returns>
+        public ValueReference GetArgument(int index) => this[index + 1];
+
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer) =>
-            Arguments[0].Type;
+            GetArgument(0).Type;
 
         #endregion
     }
@@ -90,15 +76,13 @@ namespace ILGPU.IR.Values
             ValueReference condition,
             ValueReference trueValue,
             ValueReference falseValue)
-            : base(
-                  initializer,
-                  condition,
-                  ImmutableArray.Create(trueValue, falseValue))
+            : base(initializer)
         {
             Debug.Assert(
                 condition.Type.IsPrimitiveType &&
                 condition.Type.BasicValueType == BasicValueType.Int1,
                 "Invalid boolean predicate");
+            Seal(condition, trueValue, falseValue);
         }
 
         #endregion

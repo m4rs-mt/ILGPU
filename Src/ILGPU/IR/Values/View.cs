@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ILGPU.IR.Values
@@ -39,7 +38,7 @@ namespace ILGPU.IR.Values
             Debug.Assert(
                 length.BasicValueType == BasicValueType.Int32,
                 "Invalid length");
-            Seal(ImmutableArray.Create(pointer, length));
+            Seal(pointer, length);
         }
 
         #endregion
@@ -124,7 +123,7 @@ namespace ILGPU.IR.Values
             ValueReference view)
             : base(initializer)
         {
-            Seal(ImmutableArray.Create(view));
+            Seal(view);
         }
 
         #endregion

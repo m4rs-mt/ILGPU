@@ -17,6 +17,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Values
 {
@@ -770,7 +771,7 @@ namespace ILGPU.IR.Values
         {
             #region Instance
 
-            private readonly ImmutableArray<ValueReference>.Builder builder;
+            private ValueList builder;
 
             /// <summary>
             /// Initializes a new instance builder.
@@ -784,8 +785,7 @@ namespace ILGPU.IR.Values
                 StructureType parent)
             {
                 location.AssertNotNull(parent);
-                builder = ImmutableArray.CreateBuilder<ValueReference>(
-                    parent.NumFields);
+                builder = ValueList.Create(parent.NumFields);
                 IRBuilder = irBuilder;
                 Location = location;
                 Parent = parent;
@@ -884,7 +884,7 @@ namespace ILGPU.IR.Values
         {
             #region Instance
 
-            private readonly ImmutableArray<ValueReference>.Builder builder;
+            private ValueList builder;
 
             /// <summary>
             /// Initializes a new instance builder.
@@ -991,11 +991,11 @@ namespace ILGPU.IR.Values
         internal StructureValue(
             in ValueInitializer initializer,
             StructureType structureType,
-            ImmutableArray<ValueReference> fieldValues)
+            ref ValueList fieldValues)
             : base(initializer)
         {
             StructureType = structureType;
-            Seal(fieldValues);
+            Seal(ref fieldValues);
         }
 
         #endregion
@@ -1009,11 +1009,6 @@ namespace ILGPU.IR.Values
         /// Returns the structure type.
         /// </summary>
         public StructureType StructureType { get; }
-
-        /// <summary>
-        /// Returns the number of field values.
-        /// </summary>
-        public int NumFields => Nodes.Length;
 
         #endregion
 
@@ -1033,7 +1028,7 @@ namespace ILGPU.IR.Values
         {
             if (!fieldSpan.HasSpan)
                 return this[fieldSpan.Index];
-            else if (fieldSpan.Index == 0 && fieldSpan.Span == NumFields)
+            else if (fieldSpan.Index == 0 && fieldSpan.Span == Count)
                 return this;
 
             var resultType = StructureType.Get(builder, fieldSpan)
@@ -1143,7 +1138,7 @@ namespace ILGPU.IR.Values
             FieldSpan fieldSpan)
             : base(initializer, fieldSpan)
         {
-            Seal(ImmutableArray.Create(structValue));
+            Seal(structValue);
         }
 
         #endregion
@@ -1205,7 +1200,7 @@ namespace ILGPU.IR.Values
             ValueReference value)
             : base(initializer, fieldSpan)
         {
-            Seal(ImmutableArray.Create(structValue, value));
+            Seal(structValue, value);
         }
 
         #endregion

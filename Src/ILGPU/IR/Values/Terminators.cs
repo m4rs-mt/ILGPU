@@ -13,9 +13,10 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
+using BlockList = ILGPU.Util.InlineList<ILGPU.IR.BasicBlock>;
 
 namespace ILGPU.IR.Values
 {
@@ -26,17 +27,16 @@ namespace ILGPU.IR.Values
     {
         #region Instance
 
+        private BlockList branchTargets;
+
         /// <summary>
         /// Constructs a new terminator value that is marked.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="targets">The associated targets.</param>
-        protected TerminatorValue(
-            in ValueInitializer initializer,
-            ImmutableArray<BasicBlock> targets)
+        protected TerminatorValue(in ValueInitializer initializer)
             : base(initializer)
         {
-            Targets = targets;
+            branchTargets = BlockList.Empty;
         }
 
         #endregion
@@ -46,12 +46,26 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the associated targets.
         /// </summary>
-        public ImmutableArray<BasicBlock> Targets { get; }
+        public ReadOnlySpan<BasicBlock> Targets => branchTargets;
 
         /// <summary>
         /// Returns the number of attached targets.
         /// </summary>
-        public int NumTargets => Targets.Length;
+        public int NumTargets => branchTargets.Count;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Seals all internal branch targets (if any).
+        /// </summary>
+        /// <param name="targets">The associated targets.</param>
+        protected void SealTargets(ref BlockList targets)
+        {
+            VerifyNotSealed();
+            targets.MoveTo(ref branchTargets);
+        }
 
         #endregion
     }
@@ -72,11 +86,9 @@ namespace ILGPU.IR.Values
         internal ReturnTerminator(
             in ValueInitializer initializer,
             ValueReference returnValue)
-            : base(
-                  initializer,
-                  ImmutableArray<BasicBlock>.Empty)
+            : base(initializer)
         {
-            Seal(ImmutableArray.Create(returnValue));
+            Seal(returnValue);
         }
 
         #endregion
@@ -140,16 +152,9 @@ namespace ILGPU.IR.Values
         /// Constructs a new branch terminator.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="targets">The jump targets.</param>
-        /// <param name="arguments">The branch arguments.</param>
-        internal Branch(
-            in ValueInitializer initializer,
-            ImmutableArray<BasicBlock> targets,
-            ImmutableArray<ValueReference> arguments)
-            : base(initializer, targets)
-        {
-            Seal(arguments);
-        }
+        internal Branch(in ValueInitializer initializer)
+            : base(initializer)
+        { }
 
         #endregion
 
@@ -178,11 +183,12 @@ namespace ILGPU.IR.Values
         internal UnconditionalBranch(
             in ValueInitializer initializer,
             BasicBlock target)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(target),
-                  ImmutableArray<ValueReference>.Empty)
-        { }
+            : base(initializer)
+        {
+            var targets = BlockList.Create(target);
+            SealTargets(ref targets);
+            Seal();
+        }
 
         #endregion
 
@@ -235,16 +241,8 @@ namespace ILGPU.IR.Values
         /// Constructs a new conditional branch terminator.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="condition">The jump condition.</param>
-        /// <param name="targets">The jump targets.</param>
-        protected ConditionalBranch(
-            in ValueInitializer initializer,
-            ValueReference condition,
-            ImmutableArray<BasicBlock> targets)
-            : base(
-                  initializer,
-                  targets,
-                  ImmutableArray.Create(condition))
+        protected ConditionalBranch(in ValueInitializer initializer)
+            : base(initializer)
         { }
 
         #endregion
@@ -314,14 +312,15 @@ namespace ILGPU.IR.Values
             ValueReference condition,
             BasicBlock trueTarget,
             BasicBlock falseTarget)
-            : base(
-                  initializer,
-                  condition,
-                  ImmutableArray.Create(trueTarget, falseTarget))
+            : base(initializer)
         {
             Location.Assert(
                 condition.Type.IsPrimitiveType &&
                 condition.Type.BasicValueType == BasicValueType.Int1);
+
+            var targets = BlockList.Create(trueTarget, falseTarget);
+            SealTargets(ref targets);
+            Seal(condition);
         }
 
         #endregion
@@ -401,15 +400,15 @@ namespace ILGPU.IR.Values
         internal SwitchBranch(
             in ValueInitializer initializer,
             ValueReference value,
-            ImmutableArray<BasicBlock> targets)
-            : base(
-                  initializer,
-                  value,
-                  targets)
+            ref BlockList targets)
+            : base(initializer)
         {
             Location.Assert(
                 value.Type.IsPrimitiveType &&
                 value.Type.BasicValueType.IsInt());
+
+            SealTargets(ref targets);
+            Seal(value);
         }
 
         #endregion
@@ -520,12 +519,12 @@ namespace ILGPU.IR.Values
         /// <param name="targets">The jump targets.</param>
         internal BuilderTerminator(
             in ValueInitializer initializer,
-            ImmutableArray<BasicBlock> targets)
-            : base(
-                  initializer,
-                  targets,
-                  ImmutableArray<ValueReference>.Empty)
-        { }
+            ref BlockList targets)
+            : base(initializer)
+        {
+            SealTargets(ref targets);
+            Seal();
+        }
 
         #endregion
 
