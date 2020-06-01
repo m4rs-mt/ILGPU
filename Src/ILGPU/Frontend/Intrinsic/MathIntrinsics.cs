@@ -102,7 +102,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// <param name="attribute">The intrinsic attribute.</param>
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleMathOperation(
-            in InvocationContext context,
+            ref InvocationContext context,
             MathIntrinsicAttribute attribute)
         {
             switch (context.NumArguments)
@@ -123,7 +123,7 @@ namespace ILGPU.Frontend.Intrinsic
                         (BinaryArithmeticKind)kindIndex,
                         attribute.IntrinsicFlags);
                 default:
-                    throw context.GetNotSupportedException(
+                    throw context.Location.GetNotSupportedException(
                         ErrorMessages.NotSupportedMathIntrinsic,
                         context.NumArguments.ToString());
             }

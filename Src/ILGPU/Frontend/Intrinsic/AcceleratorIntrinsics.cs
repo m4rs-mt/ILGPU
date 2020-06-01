@@ -48,12 +48,13 @@ namespace ILGPU.Frontend.Intrinsic
         /// <param name="attribute">The intrinsic attribute.</param>
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleAcceleratorOperation(
-            in InvocationContext context,
+            ref InvocationContext context,
             AcceleratorIntrinsicAttribute attribute)
         {
-            var builder = context.Builder;
-            Debug.Assert(attribute.IntrinsicKind == AcceleratorIntrinsicKind.CurrentType);
-            return builder.CreateAcceleratorTypeValue(context.Location);
+            Debug.Assert(
+                attribute.IntrinsicKind == AcceleratorIntrinsicKind.CurrentType);
+            return context.Builder.CreateAcceleratorTypeValue(
+                context.Location);
         }
     }
 }

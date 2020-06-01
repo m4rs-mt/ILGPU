@@ -16,7 +16,6 @@ using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -62,25 +61,64 @@ namespace ILGPU.Frontend.Intrinsic
         /// <summary>
         /// Represents a basic handler for compiler-specific device functions.
         /// </summary>
-        private delegate ValueReference DeviceFunctionHandler(
-            in InvocationContext context);
+        private delegate Value DeviceFunctionHandler(ref InvocationContext context);
+
+        /// <summary>
+        /// Represents a basic handler for compiler-specific device functions.
+        /// </summary>
+        private delegate Value DeviceFunctionHandler<TIntrinsicAttribute>(
+            ref InvocationContext context,
+            TIntrinsicAttribute attribute)
+            where TIntrinsicAttribute : IntrinsicAttribute;
 
         /// <summary>
         /// Stores function handlers.
         /// </summary>
         private static readonly Dictionary<Type, DeviceFunctionHandler> FunctionHandlers =
-            new Dictionary<Type, DeviceFunctionHandler>();
+            new Dictionary<Type, DeviceFunctionHandler>()
+            {
+                { typeof(Activator), HandleActivator },
+                { typeof(Debug), HandleDebug },
+                { typeof(RuntimeHelpers), HandleRuntimeHelper },
+            };
 
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1810:InitializeReferenceTypeStaticFieldsInline",
-            Justification = "Caching of compiler-known functions")]
-        static Intrinsics()
+        private static readonly DeviceFunctionHandler<IntrinsicAttribute>[]
+            IntrinsicHandlers =
         {
-            FunctionHandlers.Add(typeof(Activator), HandleActivator);
-            FunctionHandlers.Add(typeof(Debug), HandleDebug);
-            FunctionHandlers.Add(typeof(RuntimeHelpers), HandleRuntimeHelper);
-        }
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleAcceleratorOperation(
+                    ref context, attribute as AcceleratorIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleAtomicOperation(
+                    ref context, attribute as AtomicIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleGridOperation(
+                    ref context, attribute as GridIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleGroupOperation(
+                    ref context, attribute as GroupIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleInterop(
+                    ref context, attribute as InteropIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleMathOperation(
+                    ref context, attribute as MathIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleMemoryBarrierOperation(
+                    ref context, attribute as MemoryBarrierIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleSharedMemoryOperation(
+                    ref context, attribute as SharedMemoryIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleViewOperation(
+                    ref context, attribute as ViewIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleWarpOperation(
+                    ref context, attribute as WarpIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleUtilityOperation(
+                    ref context, attribute as UtilityIntrinsicAttribute),
+        };
 
         #endregion
 
@@ -96,58 +134,26 @@ namespace ILGPU.Frontend.Intrinsic
         /// <returns>True, if this class could handle the call.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool HandleIntrinsic(
-            in InvocationContext context,
+            ref InvocationContext context,
             out ValueReference result)
         {
             result = default;
-
             var method = context.Method;
-            var intrinsic = method.GetCustomAttribute<IntrinsicAttribute>();
 
+            var intrinsic = method.GetCustomAttribute<IntrinsicAttribute>();
             if (intrinsic != null)
-            {
-                switch (intrinsic.Type)
-                {
-                    case IntrinsicType.Accelerator:
-                        result = HandleAcceleratorOperation(context, intrinsic as AcceleratorIntrinsicAttribute);
-                        break;
-                    case IntrinsicType.Atomic:
-                        result = HandleAtomicOperation(context, intrinsic as AtomicIntrinsicAttribute);
-                        break;
-                    case IntrinsicType.Grid:
-                        result = HandleGridOperation(context, intrinsic as GridIntrinsicAttribute);
-                        break;
-                    case IntrinsicType.Group:
-                        result = HandleGroupOperation(context, intrinsic as GroupIntrinsicAttribute);
-                        break;
-                    case IntrinsicType.Interop:
-                        result = HandleInterop(context, intrinsic as InteropIntrinsicAttribute);
-                        break;
-                    case IntrinsicType.Math:
-                        result = HandleMathOperation(context, intrinsic as MathIntrinsicAttribute);
-                        break;
-                    case IntrinsicType.MemoryFence:
-                        result = HandleMemoryBarrierOperation(context, intrinsic as MemoryBarrierIntrinsicAttribute);
-                        break;
-                    case IntrinsicType.SharedMemory:
-                        result = HandleSharedMemoryOperation(context, intrinsic as SharedMemoryIntrinsicAttribute);
-                        break;
-                    case IntrinsicType.View:
-                        result = HandleViewOperation(context, intrinsic as ViewIntrinsicAttribute);
-                        break;
-                    case IntrinsicType.Warp:
-                        result = HandleWarpOperation(context, intrinsic as WarpIntrinsicAttribute);
-                        break;
-                    case IntrinsicType.Utility:
-                        result = HandleUtilityOperation(context, intrinsic as UtilityIntrinsicAttribute);
-                        break;
-                }
-            }
+                result = IntrinsicHandlers[(int)intrinsic.Type](ref context, intrinsic);
 
             if (IsIntrinsicArrayType(method.DeclaringType))
-                result = HandleArrays(context);
-            else if (FunctionHandlers.TryGetValue(method.DeclaringType, out DeviceFunctionHandler handler))
-                result = handler(context);
+            {
+                result = HandleArrays(ref context);
+            }
+            else if (FunctionHandlers.TryGetValue(
+                method.DeclaringType,
+                out DeviceFunctionHandler handler))
+            {
+                result = handler(ref context);
+            }
 
             return result.IsValid;
         }
@@ -169,7 +175,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         /// <param name="context">The current invocation context.</param>
         /// <returns>The resulting value.</returns>
-        private static ValueReference HandleActivator(in InvocationContext context)
+        private static Value HandleActivator(ref InvocationContext context)
         {
             var location = context.Location;
 
@@ -179,8 +185,9 @@ namespace ILGPU.Frontend.Intrinsic
                 genericArgs.Length != 1 ||
                 !genericArgs[0].IsValueType)
             {
-                throw context.GetNotSupportedException(
-                    ErrorMessages.NotSupportedActivatorOperation, context.Method.Name);
+                throw context.Location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedActivatorOperation,
+                    context.Method.Name);
             }
 
             return context.Builder.CreateNull(
@@ -193,37 +200,21 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         /// <param name="context">The current invocation context.</param>
         /// <returns>The resulting value.</returns>
-        private static ValueReference HandleDebug(in InvocationContext context)
+        private static Value HandleDebug(ref InvocationContext context)
         {
             var builder = context.Builder;
             var location = context.Location;
 
-            switch (context.Method.Name)
+            return context.Method.Name switch
             {
-                case nameof(Debug.Write):
-                    switch (context.NumArguments)
-                    {
-                        case 1:
-                            return builder.CreateDebug(
-                                location,
-                                DebugKind.Trace,
-                                context[0]);
-                    }
-                    break;
-                case nameof(Debug.Fail):
-                    switch (context.NumArguments)
-                    {
-                        case 1:
-                            return builder.CreateDebug(
-                                location,
-                                DebugKind.AssertFailed,
-                                context[0]);
-                    }
-                    break;
-            }
-            throw context.GetNotSupportedException(
-                ErrorMessages.NotSupportedIntrinsic,
-                context.Method.Name);
+                nameof(Debug.Write) when context.NumArguments == 1 =>
+                    builder.CreateDebug(location, DebugKind.Trace, context[0]),
+                nameof(Debug.Fail) when context.NumArguments == 1 =>
+                    builder.CreateDebug(location, DebugKind.AssertFailed, context[0]),
+                _ => throw location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedIntrinsic,
+                    context.Method.Name),
+            };
         }
 
         /// <summary>
@@ -231,24 +222,23 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         /// <param name="context">The current invocation context.</param>
         /// <returns>The resulting value.</returns>
-        private static ValueReference HandleRuntimeHelper(in InvocationContext context)
+        private static Value HandleRuntimeHelper(ref InvocationContext context)
         {
             switch (context.Method.Name)
             {
                 case nameof(RuntimeHelpers.InitializeArray):
-                    InitializeArray(context);
+                    InitializeArray(ref context);
                     return context.Builder.CreateUndefined();
-                default:
-                    throw context.GetNotSupportedException(
-                        ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
             }
+            throw context.Location.GetNotSupportedException(
+                ErrorMessages.NotSupportedIntrinsic, context.Method.Name);
         }
 
         /// <summary>
         /// Initializes arrays.
         /// </summary>
         /// <param name="context">The current invocation context.</param>
-        private static unsafe void InitializeArray(in InvocationContext context)
+        private static unsafe void InitializeArray(ref InvocationContext context)
         {
             // Resolve the array data
             var handle = context[1].ResolveAs<HandleValue>();
@@ -294,41 +284,16 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         /// <param name="context">The current invocation context.</param>
         /// <returns>The resulting value.</returns>
-        private static ValueReference HandleArrays(in InvocationContext context)
+        private static Value HandleArrays(ref InvocationContext context)
         {
             var builder = context.Builder;
             var location = context.Location;
-            if (context.Method is ConstructorInfo)
-            {
-                var newExtent = builder.CreateDynamicStructure(
-                    location,
-                    context.Arguments.RemoveAt(0));
-                var newElementType = builder.CreateType(
-                    context.Method.DeclaringType.GetElementType());
-                return builder.CreateArray(
-                    location,
-                    newElementType,
-                    context.NumArguments - 1,
-                    newExtent);
-            }
-            else
-            {
-                return context.Method.Name switch
+            return context.Method is ConstructorInfo
+                ? CreateNewArray(ref context)
+                : context.Method.Name switch
                 {
-                    "Get" => builder.CreateGetArrayElement(
-                           location,
-                       context[0],
-                       builder.CreateDynamicStructure(
-                           location,
-                           context.Arguments.RemoveAt(0))),
-                    "Set" => builder.CreateSetArrayElement(
-                           location,
-                        context[0],
-                        builder.CreateDynamicStructure(
-                           location,
-                            context.Arguments.RemoveAt(0).RemoveAt(
-                                context.NumArguments - 2)),
-                        context[context.NumArguments - 1]),
+                    "Get" => CreateGetArrayElement(ref context),
+                    "Set" => CreateSetArrayElement(ref context),
                     "get_Length" => builder.CreateGetArrayLength(
                         location,
                         context[0]),
@@ -378,11 +343,66 @@ namespace ILGPU.Frontend.Intrinsic
                         builder.CreatePrimitiveValue(
                             location,
                             0)),
-                    _ => throw context.GetNotSupportedException(
+                    _ => throw location.GetNotSupportedException(
                         ErrorMessages.NotSupportedIntrinsic,
                         context.Method.Name),
                 };
-            }
+        }
+
+        /// <summary>
+        /// Creates a new array instance.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        /// <returns>The resulting value.</returns>
+        private static Value CreateNewArray(ref InvocationContext context)
+        {
+            var builder = context.Builder;
+            var structureArgs = context.Arguments.Slice(1, context.NumArguments - 1);
+            var newExtent = builder.CreateDynamicStructure(
+                context.Location,
+                ref structureArgs);
+            var newElementType = builder.CreateType(
+                context.Method.DeclaringType.GetElementType());
+            return builder.CreateArray(
+                context.Location,
+                newElementType,
+                context.NumArguments - 1,
+                newExtent);
+        }
+
+        /// <summary>
+        /// Gets an array element.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        /// <returns>The resulting value.</returns>
+        private static Value CreateGetArrayElement(ref InvocationContext context)
+        {
+            var builder = context.Builder;
+            var indices = context.Arguments.Slice(1, context.NumArguments - 1);
+            return builder.CreateGetArrayElement(
+                context.Location,
+               context[0],
+               builder.CreateDynamicStructure(
+                   context.Location,
+                   ref indices));
+        }
+
+        /// <summary>
+        /// Sets an array element.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        /// <returns>The resulting value.</returns>
+        private static Value CreateSetArrayElement(ref InvocationContext context)
+        {
+            var builder = context.Builder;
+            var indices = context.Arguments.Slice(1, context.NumArguments - 2);
+            return builder.CreateSetArrayElement(
+                context.Location,
+                context[0],
+                builder.CreateDynamicStructure(
+                    context.Location,
+                    ref indices),
+                context[context.NumArguments - 1]);
         }
 
         #endregion

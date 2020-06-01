@@ -12,10 +12,12 @@
 using ILGPU.IR;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
-using System.Collections.Immutable;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.Frontend
 {
@@ -23,9 +25,14 @@ namespace ILGPU.Frontend
     /// Represents an invocation context for compiler-known methods
     /// that are supported in the scope of ILGPU programs.
     /// </summary>
-    public readonly struct InvocationContext : ILocation
+    public unsafe ref struct InvocationContext
     {
         #region Instance
+
+        /// <summary>
+        /// The internal arguments pointer.
+        /// </summary>
+        private readonly void* argumentsRef;
 
         /// <summary>
         /// Constructs a new invocation context.
@@ -42,14 +49,15 @@ namespace ILGPU.Frontend
             Block block,
             MethodBase callerMethod,
             MethodBase method,
-            ImmutableArray<ValueReference> arguments)
+            ref ValueList arguments)
         {
             CodeGenerator = codeGenerator;
             Location = location;
             Block = block;
             CallerMethod = callerMethod;
             Method = method;
-            Arguments = arguments;
+
+            argumentsRef = Unsafe.AsPointer(ref arguments);
         }
 
         #endregion
@@ -89,7 +97,7 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Represents the targeted method.
         /// </summary>
-        public MethodBase Method { get; }
+        public MethodBase Method { get; set; }
 
         /// <summary>
         /// Returns the associated module.
@@ -99,19 +107,20 @@ namespace ILGPU.Frontend
         /// <summary>
         /// Returns the call arguments.
         /// </summary>
-        public ImmutableArray<ValueReference> Arguments { get; }
+        public readonly ref ValueList Arguments =>
+            ref Unsafe.AsRef<ValueList>(argumentsRef);
 
         /// <summary>
         /// Returns the number of arguments.
         /// </summary>
-        public int NumArguments => Arguments.Length;
+        public int NumArguments => Arguments.Count;
 
         /// <summary>
         /// Returns the argument with the given index.
         /// </summary>
         /// <param name="index">The argument index.</param>
         /// <returns>The argument with the given index.</returns>
-        public ValueReference this[int index] => Arguments[index];
+        public ref ValueReference this[int index] => ref Arguments[index];
 
         #endregion
 
@@ -148,27 +157,6 @@ namespace ILGPU.Frontend
             return CodeGenerator.DeclareMethod(methodBase);
         }
 
-        /// <summary>
-        /// Remaps the current target to the given one.
-        /// </summary>
-        /// <param name="targetMethod">The new target method.</param>
-        /// <param name="arguments">The target arguments.</param>
-        /// <returns>The remapped context.</returns>
-        public InvocationContext Remap(
-            MethodBase targetMethod,
-            ImmutableArray<ValueReference> arguments)
-        {
-            if (targetMethod == null)
-                throw Location.GetArgumentNullException(nameof(targetMethod));
-            return new InvocationContext(
-                CodeGenerator,
-                Location,
-                Block,
-                CallerMethod,
-                targetMethod,
-                arguments);
-        }
-
         #endregion
 
         #region Object
@@ -182,9 +170,9 @@ namespace ILGPU.Frontend
             var builder = new StringBuilder();
             builder.Append(Method.Name);
             builder.Append('(');
-            if (Arguments.Length > 0)
+            if (Arguments.Count > 0)
             {
-                for (int i = 0, e = Arguments.Length; i < e; ++i)
+                for (int i = 0, e = Arguments.Count; i < e; ++i)
                 {
                     builder.Append(Arguments[i].ToString());
                     if (i + 1 < e)

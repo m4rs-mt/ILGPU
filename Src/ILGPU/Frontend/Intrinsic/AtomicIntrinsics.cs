@@ -63,7 +63,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// <param name="attribute">The intrinsic attribute.</param>
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleAtomicOperation(
-            in InvocationContext context,
+            ref InvocationContext context,
             AtomicIntrinsicAttribute attribute) =>
             attribute.IntrinsicKind == AtomicIntrinsicKind.CompareExchange
             ? context.Builder.CreateAtomicCAS(

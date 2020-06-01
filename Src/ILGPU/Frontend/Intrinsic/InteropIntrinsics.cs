@@ -53,7 +53,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// <param name="attribute">The intrinsic attribute.</param>
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleInterop(
-            in InvocationContext context,
+            ref InvocationContext context,
             InteropIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
@@ -62,14 +62,14 @@ namespace ILGPU.Frontend.Intrinsic
                 InteropIntrinsicKind.SizeOf => builder.CreateSizeOf(
                     context.Location,
                     builder.CreateType(context.GetMethodGenericArguments()[0])),
-                InteropIntrinsicKind.OffsetOf => CreateOffsetOf(context),
+                InteropIntrinsicKind.OffsetOf => CreateOffsetOf(ref context),
                 InteropIntrinsicKind.FloatAsInt => builder.CreateFloatAsIntCast(
                     context.Location,
                     context[0]),
                 InteropIntrinsicKind.IntAsFloat => builder.CreateIntAsFloatCast(
                     context.Location,
                     context[0]),
-                _ => throw context.GetNotSupportedException(
+                _ => throw context.Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedInteropIntrinsic,
                     attribute.IntrinsicKind.ToString()),
             };
@@ -79,7 +79,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// Creates a new offset-of computation.
         /// </summary>
         /// <param name="context">The current invocation context.</param>
-        private static ValueReference CreateOffsetOf(in InvocationContext context)
+        private static ValueReference CreateOffsetOf(ref InvocationContext context)
         {
             var builder = context.Builder;
             var typeInfo = builder.Context.TypeContext.GetTypeInfo(
