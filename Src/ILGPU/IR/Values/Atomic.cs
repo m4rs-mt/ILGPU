@@ -13,7 +13,6 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ILGPU.IR.Values
@@ -46,19 +45,9 @@ namespace ILGPU.IR.Values
         /// Constructs a new abstract atomic value.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="target">The target.</param>
-        /// <param name="value">The value to store.</param>
-        /// <param name="arguments">Additional arguments.</param>
         /// <param name="flags">The operation flags.</param>
-        internal AtomicValue(
-            in ValueInitializer initializer,
-            ValueReference target,
-            ValueReference value,
-            ImmutableArray<ValueReference> arguments,
-            AtomicFlags flags)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(target, value).AddRange(arguments))
+        internal AtomicValue(in ValueInitializer initializer, AtomicFlags flags)
+            : base(initializer)
 
         {
             Flags = flags;
@@ -169,16 +158,12 @@ namespace ILGPU.IR.Values
             ValueReference value,
             AtomicKind kind,
             AtomicFlags flags)
-            : base(
-                  initializer,
-                  target,
-                  value,
-                  ImmutableArray<ValueReference>.Empty,
-                  flags)
+            : base(initializer, flags)
         {
             Debug.Assert(value.Type == (target.Type as PointerType).ElementType);
 
             Kind = kind;
+            Seal(target, value);
         }
 
         #endregion
@@ -246,15 +231,12 @@ namespace ILGPU.IR.Values
             ValueReference value,
             ValueReference compareValue,
             AtomicFlags flags)
-            : base(
-                  initializer,
-                  target,
-                  value,
-                  ImmutableArray.Create(compareValue),
-                  flags)
+            : base(initializer, flags)
         {
             Debug.Assert(value.Type == (target.Type as PointerType).ElementType);
             Debug.Assert(value.Type == compareValue.Type);
+
+            Seal(target, value, compareValue);
         }
 
         #endregion

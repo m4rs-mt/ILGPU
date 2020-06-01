@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Collections.Immutable;
 
 namespace ILGPU.IR.Values
 {
@@ -38,7 +37,7 @@ namespace ILGPU.IR.Values
         {
             ParameterType = type;
             Name = name ?? "param";
-            Seal(ImmutableArray<ValueReference>.Empty);
+            Seal();
         }
 
         #endregion

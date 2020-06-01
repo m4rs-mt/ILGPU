@@ -13,7 +13,6 @@ using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
 using ILGPU.Util;
 using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -281,17 +280,11 @@ namespace ILGPU.IR.Values
         /// Constructs a new arithmetic value.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="operands">The operands.</param>
         /// <param name="flags">The operation flags.</param>
-        internal ArithmeticValue(
-            in ValueInitializer initializer,
-            ImmutableArray<ValueReference> operands,
-            ArithmeticFlags flags)
+        internal ArithmeticValue(in ValueInitializer initializer, ArithmeticFlags flags)
             : base(initializer)
         {
             Flags = flags;
-
-            Seal(operands);
         }
 
         #endregion
@@ -359,12 +352,11 @@ namespace ILGPU.IR.Values
             ValueReference value,
             UnaryArithmeticKind kind,
             ArithmeticFlags flags)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(value),
-                  flags)
+            : base(initializer, flags)
         {
             Kind = kind;
+
+            Seal(value);
         }
 
         #endregion
@@ -451,10 +443,7 @@ namespace ILGPU.IR.Values
             ValueReference right,
             BinaryArithmeticKind kind,
             ArithmeticFlags flags)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(left, right),
-                  flags)
+            : base(initializer, flags)
         {
             Debug.Assert(
                 left.Type == right.Type ||
@@ -463,6 +452,7 @@ namespace ILGPU.IR.Values
                 right.BasicValueType == BasicValueType.Int32, "Invalid types");
 
             Kind = kind;
+            Seal(left, right);
         }
 
         #endregion
@@ -578,16 +568,14 @@ namespace ILGPU.IR.Values
             ValueReference third,
             TernaryArithmeticKind kind,
             ArithmeticFlags flags)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(first, second, third),
-                  flags)
+            : base(initializer, flags)
         {
             Debug.Assert(
                 first.Type == second.Type &&
                 second.Type == third.Type, "Invalid types");
 
             Kind = kind;
+            Seal(first, second, third);
         }
 
         #endregion

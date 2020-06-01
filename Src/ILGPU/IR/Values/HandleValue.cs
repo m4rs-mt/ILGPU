@@ -34,6 +34,7 @@ namespace ILGPU.IR.Values
         {
             this.AssertNotNull(handle);
             Handle = handle;
+            Seal();
         }
 
         #endregion

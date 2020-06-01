@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Values
@@ -37,7 +36,7 @@ namespace ILGPU.IR.Values
             : base(initializer)
         {
             ArrayType = arrayType;
-            Seal(ImmutableArray.Create(extent));
+            Seal(extent);
         }
 
         #endregion
@@ -104,11 +103,8 @@ namespace ILGPU.IR.Values
         /// Constructs a new abstract structure operation.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="values">All child values.</param>
-        internal ArrayOperationValue(
-            in ValueInitializer initializer,
-            ImmutableArray<ValueReference> values)
-            : base(initializer, values)
+        internal ArrayOperationValue(in ValueInitializer initializer)
+            : base(initializer)
         { }
 
         #endregion
@@ -178,10 +174,10 @@ namespace ILGPU.IR.Values
         internal GetArrayExtent(
             in ValueInitializer initializer,
             ValueReference arrayValue)
-            : base(
-                initializer,
-                ImmutableArray.Create(arrayValue))
-        { }
+            : base(initializer)
+        {
+            Seal(arrayValue);
+        }
 
         #endregion
 
@@ -234,10 +230,10 @@ namespace ILGPU.IR.Values
             in ValueInitializer initializer,
             ValueReference arrayValue,
             ValueReference arrayIndex)
-            : base(
-                initializer,
-                ImmutableArray.Create(arrayValue, arrayIndex))
-        { }
+            : base(initializer)
+        {
+            Seal(arrayValue, arrayIndex);
+        }
 
         #endregion
 
@@ -292,10 +288,10 @@ namespace ILGPU.IR.Values
             ValueReference arrayValue,
             ValueReference arrayIndex,
             ValueReference value)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(arrayValue, arrayIndex, value))
-        { }
+            : base(initializer)
+        {
+            Seal(arrayValue, arrayIndex, value);
+        }
 
         #endregion
 

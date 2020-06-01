@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Collections.Immutable;
 
 namespace ILGPU.IR.Values
 {
@@ -49,11 +48,10 @@ namespace ILGPU.IR.Values
             in ValueInitializer initializer,
             DebugKind kind,
             ValueReference message)
-            : base(
-                  initializer,
-                  ImmutableArray.Create(message))
+            : base(initializer)
         {
             Kind = kind;
+            Seal(message);
         }
 
         #endregion

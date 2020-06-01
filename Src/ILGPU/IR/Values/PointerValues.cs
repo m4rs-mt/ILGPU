@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Collections.Immutable;
 
 namespace ILGPU.IR.Values
 {
@@ -64,7 +63,7 @@ namespace ILGPU.IR.Values
             ValueReference length)
             : base(initializer)
         {
-            Seal(ImmutableArray.Create(source, offset, length));
+            Seal(source, offset, length);
         }
 
         #endregion
@@ -138,7 +137,7 @@ namespace ILGPU.IR.Values
             ValueReference elementIndex)
             : base(initializer)
         {
-            Seal(ImmutableArray.Create(sourceView, elementIndex));
+            Seal(sourceView, elementIndex);
         }
 
         #endregion
@@ -239,7 +238,7 @@ namespace ILGPU.IR.Values
             : base(initializer)
         {
             FieldSpan = fieldSpan;
-            Seal(ImmutableArray.Create(source));
+            Seal(source);
         }
 
         #endregion

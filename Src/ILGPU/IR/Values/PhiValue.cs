@@ -11,12 +11,15 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using ILGPU.Util;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using BlockList = ILGPU.Util.InlineList<ILGPU.IR.BasicBlock>;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Values
 {
@@ -38,7 +41,7 @@ namespace ILGPU.IR.Values
             /// </summary>
             /// <param name="blocks">The blocks to check.</param>
             /// <returns>True, if the given blocks contain the old block.</returns>
-            bool CanRemap(ImmutableArray<BasicBlock> blocks);
+            bool CanRemap(in ReadOnlySpan<BasicBlock> blocks);
 
             /// <summary>
             /// Tries to remap the given block to a new one.
@@ -80,7 +83,7 @@ namespace ILGPU.IR.Values
             /// </summary>
             /// <param name="blocks">The blocks to check.</param>
             /// <returns>True, if the given blocks contain the old block.</returns>
-            public bool CanRemap(ImmutableArray<BasicBlock> blocks)
+            public bool CanRemap(in ReadOnlySpan<BasicBlock> blocks)
             {
                 foreach (var block in blocks)
                 {
@@ -109,24 +112,25 @@ namespace ILGPU.IR.Values
             "Microsoft.Naming",
             "CA1710: IdentifiersShouldHaveCorrectSuffix",
             Justification = "This is the correct name of the current entity")]
-        public sealed class Builder : IReadOnlyCollection<ValueReference>
+        public sealed class Builder
         {
             #region Instance
 
-            private readonly ImmutableArray<ValueReference>.Builder arguments;
-            private readonly ImmutableArray<BasicBlock>.Builder argumentBlocks;
+            private ValueList arguments;
+            private BlockList argumentBlocks;
 
             /// <summary>
             /// Constructs a new phi builder.
             /// </summary>
             /// <param name="phiValue">The phi value.</param>
-            internal Builder(PhiValue phiValue)
+            /// <param name="capacity">The initial capacity.</param>
+            internal Builder(PhiValue phiValue, int capacity)
             {
                 Debug.Assert(phiValue != null, "Invalid phi value");
                 PhiValue = phiValue;
 
-                arguments = ImmutableArray.CreateBuilder<ValueReference>();
-                argumentBlocks = ImmutableArray.CreateBuilder<BasicBlock>();
+                arguments = ValueList.Create(capacity);
+                argumentBlocks = BlockList.Create(capacity);
             }
 
             #endregion
@@ -187,9 +191,7 @@ namespace ILGPU.IR.Values
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public PhiValue Seal()
             {
-                PhiValue.SealPhiArguments(
-                    argumentBlocks.ToImmutable(),
-                    arguments.ToImmutable());
+                PhiValue.SealPhiArguments(ref argumentBlocks, ref arguments);
                 return PhiValue;
             }
 
@@ -197,12 +199,12 @@ namespace ILGPU.IR.Values
 
             #region IEnumerable
 
-            /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            public IEnumerator<ValueReference> GetEnumerator() =>
+            /// <summary>
+            /// Returns a new enumerator.
+            /// </summary>
+            /// <returns>The created enumerator.</returns>
+            public ReadOnlySpan<ValueReference>.Enumerator GetEnumerator() =>
                 arguments.GetEnumerator();
-
-            /// <summary cref="IEnumerable.GetEnumerator"/>
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
             #endregion
         }
@@ -260,6 +262,8 @@ namespace ILGPU.IR.Values
 
         #region Instance
 
+        private BlockList sourceBlocks;
+
         /// <summary>
         /// Constructs a new phi node.
         /// </summary>
@@ -269,6 +273,7 @@ namespace ILGPU.IR.Values
             : base(initializer)
         {
             Location.Assert(!type.IsVoidType);
+            sourceBlocks = BlockList.Empty;
             PhiType = type;
         }
 
@@ -289,7 +294,7 @@ namespace ILGPU.IR.Values
         /// from.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-        public ImmutableArray<BasicBlock> Sources { get; private set; }
+        public ReadOnlySpan<BasicBlock> Sources => sourceBlocks;
 
         #endregion
 
@@ -365,12 +370,12 @@ namespace ILGPU.IR.Values
         /// <param name="sources">The associated block sources.</param>
         /// <param name="arguments">The phi arguments.</param>
         internal void SealPhiArguments(
-            ImmutableArray<BasicBlock> sources,
-            ImmutableArray<ValueReference> arguments)
+            ref BlockList sources,
+            ref ValueList arguments)
         {
-            Debug.Assert(arguments.Length == sources.Length);
-            Seal(arguments);
-            Sources = sources;
+            this.Assert(arguments.Count == sources.Count);
+            Seal(ref arguments);
+            sources.MoveTo(ref sourceBlocks);
         }
 
         /// <summary>
@@ -390,9 +395,9 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
-            Nodes.IsDefaultOrEmpty
+            Count > 0
             ? string.Empty
-            : string.Join(", ", Nodes);
+            : Nodes.ToString();
 
         #endregion
     }

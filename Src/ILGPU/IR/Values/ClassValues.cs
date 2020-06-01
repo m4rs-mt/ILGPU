@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
-using System.Collections.Immutable;
 
 namespace ILGPU.IR.Values
 {
@@ -43,11 +42,8 @@ namespace ILGPU.IR.Values
         /// Constructs a new abstract object operation.
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
-        /// <param name="values">All child values.</param>
-        internal ClassOperationValue(
-            in ValueInitializer initializer,
-            ImmutableArray<ValueReference> values)
-            : base(initializer, values)
+        internal ClassOperationValue(in ValueInitializer initializer)
+            : base(initializer)
         { }
 
         #endregion

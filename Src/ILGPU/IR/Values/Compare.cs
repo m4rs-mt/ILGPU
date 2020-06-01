@@ -151,7 +151,7 @@ namespace ILGPU.IR.Values
             Kind = kind;
             Flags = flags;
 
-            Seal(ImmutableArray.Create(left, right));
+            Seal(left, right);
         }
 
         #endregion

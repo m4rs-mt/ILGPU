@@ -11,7 +11,8 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Values
 {
@@ -33,11 +34,11 @@ namespace ILGPU.IR.Values
         internal MethodCall(
             in ValueInitializer initializer,
             Method target,
-            ImmutableArray<ValueReference> arguments)
+            ref ValueList arguments)
             : base(initializer)
         {
             Target = target;
-            Seal(arguments);
+            Seal(ref arguments);
         }
 
         #endregion
@@ -51,11 +52,6 @@ namespace ILGPU.IR.Values
         /// Returns the call target.
         /// </summary>
         public Method Target { get; }
-
-        /// <summary>
-        /// Returns the number of the associated arguments.
-        /// </summary>
-        public int NumArguments => Nodes.Length;
 
         #endregion
 
