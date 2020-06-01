@@ -713,42 +713,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// An abstract structure value builder.
         /// </summary>
-        public interface IBuilder
-        {
-            /// <summary>
-            /// Returns the parent IR builder.
-            /// </summary>
-            IRBuilder IRBuilder { get; }
-
-            /// <summary>
-            /// Returns the current location.
-            /// </summary>
-            Location Location { get; }
-
-            /// <summary>
-            /// The number of field values.
-            /// </summary>
-            int Count { get; }
-
-            /// <summary>
-            /// Returns the value that corresponds to the given field access.
-            /// </summary>
-            /// <param name="access">The field access.</param>
-            /// <returns>The resolved field type.</returns>
-            ValueReference this[FieldAccess access] { get; }
-
-            /// <summary>
-            /// Adds the given value to the instance builder.
-            /// </summary>
-            /// <param name="value">The value to add.</param>
-            void Add(Value value);
-
-            /// <summary>
-            /// Constructs a new value that represents the current value builder.
-            /// </summary>
-            /// <returns>The resulting value reference.</returns>
-            ValueReference Seal();
-        }
+        public interface IBuilder : IValueBuilder { }
 
         /// <summary>
         /// An internal instance builder.
@@ -756,12 +721,12 @@ namespace ILGPU.IR.Values
         internal interface IInternalBuilder : IBuilder
         {
             /// <summary>
-            /// Moves the underlying array builder to an immutable array and returns
-            /// an assembled structure type.
+            /// Moves the underlying array builder to a target list and outputs an
+            /// assembled structure type.
             /// </summary>
-            /// <param name="structureType">The resulting structure type.</param>
-            /// <returns>The resulting immutable array of value references.</returns>
-            ImmutableArray<ValueReference> Seal(out StructureType structureType);
+            /// <param name="values">The resulting array of value references.</param>
+            /// <returns>The resulting structure type.</returns>
+            StructureType Seal(ref ValueList values);
         }
 
         /// <summary>
@@ -859,19 +824,18 @@ namespace ILGPU.IR.Values
             /// Constructs a new value that represents the current value builder.
             /// </summary>
             /// <returns>The resulting value reference.</returns>
-            public ValueReference Seal() => IRBuilder.FinishStructureBuilder(this);
+            public ValueReference Seal() => IRBuilder.FinishStructureBuilder(ref this);
 
             /// <summary>
-            /// Moves the underlying array builder to an immutable array and returns
-            /// an assembled structure type.
+            /// Moves the underlying array builder to a target list and outputs an
+            /// assembled structure type.
             /// </summary>
-            /// <returns>The resulting immutable array of value references.</returns>
-            ImmutableArray<ValueReference> IInternalBuilder.Seal(
-                out StructureType structureType)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            StructureType IInternalBuilder.Seal(ref ValueList values)
             {
                 Parent.Assert(Count == Parent.NumFields);
-                structureType = Parent;
-                return builder.MoveToImmutable();
+                builder.MoveTo(ref values);
+                return Parent;
             }
 
             #endregion
@@ -897,9 +861,24 @@ namespace ILGPU.IR.Values
                 Location location,
                 int capacity)
             {
-                location.Assert(capacity >= 0);
+                builder = ValueList.Create(capacity);
+                IRBuilder = irBuilder;
+                Location = location;
+            }
 
-                builder = ImmutableArray.CreateBuilder<ValueReference>(capacity);
+            /// <summary>
+            /// Initializes a new instance builder.
+            /// </summary>
+            /// <param name="irBuilder">The current IR builder.</param>
+            /// <param name="location">The current location.</param>
+            /// <param name="values">The initial capacity.</param>
+            internal DynamicBuilder(
+                IRBuilder irBuilder,
+                Location location,
+                ref ValueList values)
+            {
+                builder = ValueList.Empty;
+                values.MoveTo(ref builder);
                 IRBuilder = irBuilder;
                 Location = location;
             }
@@ -954,25 +933,21 @@ namespace ILGPU.IR.Values
             /// Constructs a new value that represents the current value builder.
             /// </summary>
             /// <returns>The resulting value reference.</returns>
-            public ValueReference Seal() => IRBuilder.FinishStructureBuilder(this);
+            public ValueReference Seal() => IRBuilder.FinishStructureBuilder(ref this);
 
             /// <summary>
-            /// Moves the underlying array builder to an immutable array and returns
-            /// an assembled structure type.
+            /// Moves the underlying array builder to a target list and outputs an
+            /// assembled structure type.
             /// </summary>
-            /// <param name="structureType">The resulting structure type.</param>
-            /// <returns>The resulting immutable array of value references.</returns>
-            ImmutableArray<ValueReference> IInternalBuilder.Seal(
-                out StructureType structureType)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            StructureType IInternalBuilder.Seal(ref ValueList values)
             {
                 // Create a new structure type that corresponds to all value types
                 var typeBuilder = IRBuilder.CreateStructureType(Count);
                 foreach (var value in builder)
                     typeBuilder.Add(value.Type);
-                structureType = typeBuilder.Seal().As<StructureType>(Location);
-                return Count == builder.Capacity
-                    ? builder.MoveToImmutable()
-                    : builder.ToImmutable();
+                builder.MoveTo(ref values);
+                return typeBuilder.Seal().As<StructureType>(Location);
             }
 
             #endregion

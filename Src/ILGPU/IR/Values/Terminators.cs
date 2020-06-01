@@ -389,6 +389,88 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.SwitchBranch)]
     public sealed class SwitchBranch : ConditionalBranch
     {
+        #region Nested Types
+
+        /// <summary>
+        /// An instance builder for switch branches.
+        /// </summary>
+        public struct Builder
+        {
+            #region Instance
+
+            private BlockList builder;
+
+            /// <summary>
+            /// Initializes a new call builder.
+            /// </summary>
+            /// <param name="irBuilder">The current IR builder.</param>
+            /// <param name="location">The current location.</param>
+            /// <param name="condition">The switch condition value.</param>
+            /// <param name="capacity">The initial builder capacity.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal Builder(
+                IRBuilder irBuilder,
+                Location location,
+                Value condition,
+                int capacity)
+            {
+                builder = BlockList.Create(capacity);
+                IRBuilder = irBuilder;
+                Location = location;
+                Condition = condition;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the parent builder.
+            /// </summary>
+            public IRBuilder IRBuilder { get; }
+
+            /// <summary>
+            /// Returns the current location.
+            /// </summary>
+            public Location Location { get; }
+
+            /// <summary>
+            /// Returns the current switch condition.
+            /// </summary>
+            public Value Condition { get; }
+
+            /// <summary>
+            /// The number of arguments.
+            /// </summary>
+            public int Count => builder.Count;
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Adds the given value to the switch builder.
+            /// </summary>
+            /// <param name="target">The target to add.</param>
+            public void Add(BasicBlock target)
+            {
+                IRBuilder.AssertNotNull(target);
+                builder.Add(target);
+            }
+
+            /// <summary>
+            /// Constructs a new value that represents the current branch.
+            /// </summary>
+            /// <returns>The resulting value reference.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Branch Seal() =>
+                IRBuilder.CreateSwitchBranch(Location, Condition, ref builder);
+
+            #endregion
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -464,14 +546,13 @@ namespace ILGPU.IR.Values
             IRBuilder builder,
             IRRebuilder rebuilder)
         {
-            var targets = ImmutableArray.CreateBuilder<BasicBlock>(Targets.Length);
-            foreach (var target in Targets)
-                targets.Add(rebuilder.LookupTarget(target));
-
-            return builder.CreateSwitchBranch(
+            var branchBuilder = builder.CreateSwitchBranch(
                 Location,
                 rebuilder.Rebuild(Condition),
-                targets.MoveToImmutable());
+                NumTargets);
+            foreach (var target in Targets)
+                branchBuilder.Add(rebuilder.LookupTarget(target));
+            return branchBuilder.Seal();
         }
 
         /// <summary cref="Value.Accept"/>
@@ -510,6 +591,70 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.BuilderTerminator)]
     public sealed class BuilderTerminator : Branch
     {
+        #region Nested Types
+
+        /// <summary>
+        /// An instance builder for temporary branches.
+        /// </summary>
+        public struct Builder
+        {
+            #region Instance
+
+            private BlockList builder;
+
+            /// <summary>
+            /// Initializes a new call builder.
+            /// </summary>
+            /// <param name="irBuilder">The current IR builder.</param>
+            /// <param name="capacity">The initial builder capacity.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal Builder(IRBuilder irBuilder, int capacity)
+            {
+                builder = BlockList.Create(capacity);
+                IRBuilder = irBuilder;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the parent builder.
+            /// </summary>
+            public IRBuilder IRBuilder { get; }
+
+            /// <summary>
+            /// The number of arguments.
+            /// </summary>
+            public int Count => builder.Count;
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Adds the given value to the custom terminator builder.
+            /// </summary>
+            /// <param name="target">The target to add.</param>
+            public void Add(BasicBlock target)
+            {
+                IRBuilder.AssertNotNull(target);
+                builder.Add(target);
+            }
+
+            /// <summary>
+            /// Constructs a new value that represents the current branch.
+            /// </summary>
+            /// <returns>The resulting value reference.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public Branch Seal() =>
+                IRBuilder.CreateBuilderTerminator(ref builder);
+
+            #endregion
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -555,17 +700,8 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "builderBr";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString()
-        {
-            var result = new StringBuilder();
-            for (int i = 0, e = Targets.Length; i < e; ++i)
-            {
-                result.Append(Targets[i].ToReferenceString());
-                if (i + 1 < e)
-                    result.Append(", ");
-            }
-            return result.ToString();
-        }
+        protected override string ToArgString() =>
+            Targets.ToString(new InlineList.DefaultFormatter<BasicBlock>());
 
         #endregion
     }
