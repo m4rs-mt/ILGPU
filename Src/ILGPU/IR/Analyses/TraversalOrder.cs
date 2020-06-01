@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Analyses.ControlFlowDirection;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -31,17 +32,15 @@ namespace ILGPU.IR.Analyses.TraversalOrders
     /// Provides successors for a given basic block.
     /// </summary>
     /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-    /// <typeparam name="TSuccessors">The collection type.</typeparam>
-    public interface ITraversalSuccessorsProvider<TDirection, TSuccessors>
+    public interface ITraversalSuccessorsProvider<TDirection>
         where TDirection : struct, IControlFlowDirection
-        where TSuccessors : IReadOnlyCollection<BasicBlock>
     {
         /// <summary>
         /// Returns or computes successors of the given basic block.
         /// </summary>
         /// <param name="basicBlock">The source basic block.</param>
         /// <returns>The returned successor collection.</returns>
-        TSuccessors GetSuccessors(BasicBlock basicBlock);
+        ReadOnlySpan<BasicBlock> GetSuccessors(BasicBlock basicBlock);
     }
 
     /// <summary>
@@ -126,20 +125,17 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         /// <typeparam name="TVisitor">The visitor type.</typeparam>
         /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-        /// <typeparam name="TSuccessors">The collection type.</typeparam>
         /// <param name="entryBlock">The entry block.</param>
         /// <param name="visitor">The visitor instance.</param>
         /// <param name="successorProvider">The successor provider.</param>
         /// <returns>The created traversal.</returns>
-        void Traverse<TVisitor, TSuccessorProvider, TDirection, TSuccessors>(
+        void Traverse<TVisitor, TSuccessorProvider, TDirection>(
             BasicBlock entryBlock,
             ref TVisitor visitor,
             TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
-            where TSuccessorProvider :
-                ITraversalSuccessorsProvider<TDirection, TSuccessors>
-            where TDirection : struct, IControlFlowDirection
-            where TSuccessors : IReadOnlyList<BasicBlock>;
+            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
+            where TDirection : struct, IControlFlowDirection;
     }
 
     /// <summary>
@@ -242,7 +238,6 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         /// <typeparam name="TVisitor">The visitor type.</typeparam>
         /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-        /// <typeparam name="TSuccessors">The collection type.</typeparam>
         /// <param name="entryBlock">The entry block.</param>
         /// <param name="visitor">The visitor instance.</param>
         /// <param name="successorProvider">The successor provider.</param>
@@ -250,16 +245,13 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         public readonly void Traverse<
             TVisitor,
             TSuccessorProvider,
-            TDirection,
-            TSuccessors>(
+            TDirection>(
             BasicBlock entryBlock,
             ref TVisitor visitor,
             TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
-            where TSuccessorProvider :
-                ITraversalSuccessorsProvider<TDirection, TSuccessors>
+            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
-            where TSuccessors : IReadOnlyList<BasicBlock>
         {
             var visited = BasicBlockSet.Create(entryBlock);
             var stack = new Stack<BasicBlock>(TraversalOrder.InitStackSize);
@@ -271,9 +263,9 @@ namespace ILGPU.IR.Analyses.TraversalOrders
                 {
                     visitor.Visit(currentBlock);
                     var successors = successorProvider.GetSuccessors(currentBlock);
-                    if (successors.Count > 0)
+                    if (successors.Length > 0)
                     {
-                        for (int i = successors.Count - 1; i >= 1; --i)
+                        for (int i = successors.Length - 1; i >= 1; --i)
                             stack.Push(successors[i]);
                         currentBlock = successors[0];
                         continue;
@@ -322,7 +314,6 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         /// <typeparam name="TVisitor">The visitor type.</typeparam>
         /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-        /// <typeparam name="TSuccessors">The collection type.</typeparam>
         /// <param name="entryBlock">The entry block.</param>
         /// <param name="successorProvider">The successor provider.</param>
         /// <param name="visitor">The visitor instance.</param>
@@ -331,19 +322,16 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         public readonly void Traverse<
             TVisitor,
             TSuccessorProvider,
-            TDirection,
-            TSuccessors>(
+            TDirection>(
             BasicBlock entryBlock,
             ref TVisitor visitor,
             TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
-            where TSuccessorProvider :
-                ITraversalSuccessorsProvider<TDirection, TSuccessors>
+            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
-            where TSuccessors : IReadOnlyList<BasicBlock>
         {
             var preOrder = new PreOrder();
-            preOrder.Traverse<TVisitor, TSuccessorProvider, TDirection, TSuccessors>(
+            preOrder.Traverse<TVisitor, TSuccessorProvider, TDirection>(
                 entryBlock,
                 ref visitor,
                 successorProvider);
@@ -385,7 +373,6 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         /// <typeparam name="TVisitor">The visitor type.</typeparam>
         /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-        /// <typeparam name="TSuccessors">The collection type.</typeparam>
         /// <param name="entryBlock">The entry block.</param>
         /// <param name="visitor">The visitor instance.</param>
         /// <param name="successorProvider">The successor provider.</param>
@@ -393,16 +380,13 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         public readonly void Traverse<
             TVisitor,
             TSuccessorProvider,
-            TDirection,
-            TSuccessors>(
+            TDirection>(
             BasicBlock entryBlock,
             ref TVisitor visitor,
             TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
-            where TSuccessorProvider :
-                ITraversalSuccessorsProvider<TDirection, TSuccessors>
+            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
-            where TSuccessors : IReadOnlyList<BasicBlock>
         {
             var visited = BasicBlockSet.Create(entryBlock);
             var stack = new Stack<(BasicBlock, int)>(TraversalOrder.InitStackSize);
@@ -419,7 +403,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
                 }
 
                 var successors = successorProvider.GetSuccessors(currentBlock);
-                if (current.Child >= successors.Count)
+                if (current.Child >= successors.Length)
                 {
                     visitor.Visit(currentBlock);
                     goto next;
@@ -474,7 +458,6 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         /// <typeparam name="TVisitor">The visitor type.</typeparam>
         /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-        /// <typeparam name="TSuccessors">The collection type.</typeparam>
         /// <param name="entryBlock">The entry block.</param>
         /// <param name="visitor">The visitor instance.</param>
         /// <param name="successorProvider">The successor provider.</param>
@@ -483,19 +466,16 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         public readonly void Traverse<
             TVisitor,
             TSuccessorProvider,
-            TDirection,
-            TSuccessors>(
+            TDirection>(
             BasicBlock entryBlock,
             ref TVisitor visitor,
             TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
-            where TSuccessorProvider :
-                ITraversalSuccessorsProvider<TDirection, TSuccessors>
+            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
-            where TSuccessors : IReadOnlyList<BasicBlock>
         {
             var postOrder = new PostOrder();
-            postOrder.Traverse<TVisitor, TSuccessorProvider, TDirection, TSuccessors>(
+            postOrder.Traverse<TVisitor, TSuccessorProvider, TDirection>(
                 entryBlock,
                 ref visitor,
                 successorProvider);

@@ -250,7 +250,7 @@ namespace ILGPU.IR
             // Traverse all blocks to find a block without a successor
             foreach (var block in this)
             {
-                if (block.GetSuccessors<TDirection>().Count < 1)
+                if (block.GetSuccessors<TDirection>().Length < 1)
                 {
                     EntryBlock.Assert(exitBlock is null);
                     exitBlock = block;
@@ -270,7 +270,7 @@ namespace ILGPU.IR
             // Traverse all blocks to find a block without a successor
             foreach (var block in this)
             {
-                if (block.GetSuccessors<TDirection>().Count < 1)
+                if (block.GetSuccessors<TDirection>().Length < 1)
                     return block;
             }
 
@@ -385,8 +385,7 @@ namespace ILGPU.IR
             otherOrder.Traverse<
                 TraversalCollectionVisitor<ImmutableArray<BasicBlock>.Builder>,
                 BasicBlock.SuccessorsProvider<TOtherDirection>,
-                TOtherDirection,
-                BasicBlock.LinkCollection>(
+                TOtherDirection>(
                 newEntryBlock,
                 ref visitor,
                 new BasicBlock.SuccessorsProvider<TOtherDirection>());
