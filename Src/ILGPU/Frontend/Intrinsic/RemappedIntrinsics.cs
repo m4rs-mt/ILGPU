@@ -41,8 +41,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// <summary>
         /// Represents a basic remapper for compiler-specific device functions.
         /// </summary>
-        public delegate InvocationContext? DeviceFunctionRemapper(
-            in InvocationContext context);
+        public delegate void DeviceFunctionRemapper(ref InvocationContext context);
 
         /// <summary>
         /// Stores function remappers.
@@ -128,8 +127,7 @@ namespace ILGPU.Frontend.Intrinsic
                 parameters,
                 null);
             AddRemapping(debugMethod,
-                (in InvocationContext context) =>
-                    context.Remap(targetMethod, context.Arguments));
+                (ref InvocationContext context) => context.Method = targetMethod);
         }
 
         #endregion
@@ -166,8 +164,7 @@ namespace ILGPU.Frontend.Intrinsic
 
             AddRemapping(
                 mathFunc,
-                (in InvocationContext context) =>
-                    context.Remap(gpuMathFunc, context.Arguments));
+                (ref InvocationContext context) => context.Method = gpuMathFunc);
         }
 
         /// <summary>
@@ -195,14 +192,8 @@ namespace ILGPU.Frontend.Intrinsic
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void RemapIntrinsic(ref InvocationContext context)
         {
-            if (FunctionRemappers.TryGetValue(
-                context.Method,
-                out DeviceFunctionRemapper remapper))
-            {
-                var newContext = remapper(context);
-                if (newContext.HasValue)
-                    context = newContext.Value;
-            }
+            if (FunctionRemappers.TryGetValue(context.Method, out var remapper))
+                remapper(ref context);
         }
 
         /// <summary>

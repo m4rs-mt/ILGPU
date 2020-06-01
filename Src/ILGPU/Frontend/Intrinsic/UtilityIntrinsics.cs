@@ -47,7 +47,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// <param name="attribute">The intrinsic attribute.</param>
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleUtilityOperation(
-            in InvocationContext context,
+            ref InvocationContext context,
             UtilityIntrinsicAttribute attribute) =>
             context.Builder.CreatePredicate(
                 context.Location,

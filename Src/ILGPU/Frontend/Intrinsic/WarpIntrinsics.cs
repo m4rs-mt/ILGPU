@@ -63,7 +63,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// <param name="attribute">The intrinsic attribute.</param>
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleWarpOperation(
-            in InvocationContext context,
+            ref InvocationContext context,
             WarpIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
@@ -103,7 +103,7 @@ namespace ILGPU.Frontend.Intrinsic
                         context[1],
                         BroadcastKind.WarpLevel);
                 default:
-                    throw context.GetNotSupportedException(
+                    throw context.Location.GetNotSupportedException(
                         ErrorMessages.NotSupportedWarpIntrinsic,
                         attribute.IntrinsicKind.ToString());
             }

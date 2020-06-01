@@ -60,7 +60,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// <param name="attribute">The intrinsic attribute.</param>
         /// <returns>The resulting value.</returns>
         private static ValueReference HandleViewOperation(
-            in InvocationContext context,
+            ref InvocationContext context,
             ViewIntrinsicAttribute attribute)
         {
             var builder = context.Builder;
@@ -123,7 +123,7 @@ namespace ILGPU.Frontend.Intrinsic
                             context[paramOffset++],
                             new FieldAccess(0))),
                 ViewIntrinsicKind.AsLinearView => instanceValue,
-                _ => throw context.GetNotSupportedException(
+                _ => throw context.Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedViewIntrinsic,
                     attribute.IntrinsicKind.ToString()),
             };
