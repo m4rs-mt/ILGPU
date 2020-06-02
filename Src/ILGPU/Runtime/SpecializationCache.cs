@@ -137,8 +137,7 @@ namespace ILGPU.Runtime
                 var blockBuilder = methodBuilder.EntryBlockBuilder;
 
                 // Append all parameters
-                var targetValues = ImmutableArray.CreateBuilder<ValueReference>(
-                    kernelMethod.NumParameters);
+                var callBuilder = blockBuilder.CreateCall(location, kernelMethod);
                 var specializedParameters = Entry.Parameters.SpecializedParameters;
                 int paramOffset = Entry.KernelIndexParameterOffset;
                 for (
@@ -164,18 +163,15 @@ namespace ILGPU.Runtime
                             managedArgument,
                             managedArgument.GetType());
 
-                        targetValues.Add(irValue);
+                        callBuilder.Add(irValue);
                         ++specialParamIdx;
                     }
                     else
                     {
-                        targetValues.Add(newParam);
+                        callBuilder.Add(newParam);
                     }
                 }
-                blockBuilder.CreateCall(
-                    location,
-                    kernelMethod,
-                    targetValues.MoveToImmutable());
+                callBuilder.Seal();
                 blockBuilder.CreateReturn(location);
             }
             return targetMethod;
