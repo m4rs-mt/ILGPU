@@ -400,7 +400,7 @@ namespace ILGPU.Backends.OpenCL
         {
             var target = Allocate(value);
             Declare(target);
-            for (int i = 0, e = value.NumFields; i < e; ++i)
+            for (int i = 0, e = value.Count; i < e; ++i)
             {
                 using var statement = BeginStatement(target, i);
                 statement.AppendArgument(Load(value[i]));

@@ -33,7 +33,7 @@ namespace ILGPU.Backends.PTX
 
             Builder.AppendLine("\t.reg .b32 temp_param_reg;");
 
-            for (int i = 0, e = methodCall.NumArguments; i < e; ++i)
+            for (int i = 0, e = methodCall.Count; i < e; ++i)
             {
                 var argument = methodCall.Nodes[i];
                 var paramName = CallParamName + i;
@@ -64,7 +64,7 @@ namespace ILGPU.Backends.PTX
             }
             Builder.Append(GetMethodName(target));
             Builder.AppendLine(", (");
-            for (int i = 0, e = methodCall.NumArguments; i < e; ++i)
+            for (int i = 0, e = methodCall.Count; i < e; ++i)
             {
                 Builder.Append("\t\t");
                 Builder.Append(CallParamName);
@@ -605,8 +605,8 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IBackendCodeGenerator.GenerateCode(StructureValue)"/>
         public void GenerateCode(StructureValue value)
         {
-            var childRegisters = ImmutableArray.CreateBuilder<Register>(value.NumFields);
-            for (int i = 0, e = value.NumFields; i < e; ++i)
+            var childRegisters = ImmutableArray.CreateBuilder<Register>(value.Count);
+            for (int i = 0, e = value.Count; i < e; ++i)
                 childRegisters.Add(Load(value[i]));
             Bind(
                 value,
