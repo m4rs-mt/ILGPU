@@ -193,10 +193,10 @@ namespace ILGPU.Backends
                     allocator.Allocate(block, phi);
 
                     // Determine predecessor mapping
-                    phi.Assert(block.Predecessors.Count == phi.Nodes.Length);
+                    phi.Assert(block.Predecessors.Length == phi.Nodes.Length);
 
                     // Assign values to their appropriate blocks
-                    for (int i = 0, e = phi.Nodes.Length; i < e; ++i)
+                    for (int i = 0, e = phi.Count; i < e; ++i)
                     {
                         var argumentBlock = phi.Sources[i];
                         mapping[argumentBlock].Add((phi[i], phi));
