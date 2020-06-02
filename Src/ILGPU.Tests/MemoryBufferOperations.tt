@@ -21,7 +21,7 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-        private static int[] InitialiseArray1D(int x)
+        private static int[] InitializeArray1D(int x)
         {
             var counter = 0;
             var src = new int[x];
@@ -31,8 +31,11 @@ namespace ILGPU.Tests
             return src;
         }
 
-        [SuppressMessage("Performance", "CA1814:Prefer jagged arrays over multidimensional", Justification = "Required for test cases")]
-        private static int[,] InitialiseJaggedArray2D(int x, int y)
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Justification = "Required for test cases")]
+        private static int[,] InitializeJaggedArray2D(int x, int y)
         {
             var counter = 0;
             var src = new int[x, y];
@@ -44,9 +47,12 @@ namespace ILGPU.Tests
 
             return src;
         }
-        
-        [SuppressMessage("Performance", "CA1814:Prefer jagged arrays over multidimensional", Justification = "Required for test cases")]
-        private static int[,,] InitialiseJaggedArray3D(int x, int y, int z)
+
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Justification = "Required for test cases")]
+        private static int[,,] InitializeJaggedArray3D(int x, int y, int z)
         {
             var counter = 0;
             var src = new int[x, y, z];
@@ -62,7 +68,7 @@ namespace ILGPU.Tests
             return src;
         }
 
-        private static int[][] InitialiseMultidimensionalArray2D(int x, int y)
+        private static int[][] InitializeMultidimensionalArray2D(int x, int y)
         {
             var counter = 0;
             var src = new int[x][];
@@ -76,7 +82,7 @@ namespace ILGPU.Tests
             return src;
         }
         
-        private static int[][][] InitialiseMultidimensionalArray3D(int x, int y, int z)
+        private static int[][][] InitializeMultidimensionalArray3D(int x, int y, int z)
         {
             var counter = 0;
             var src = new int[x][][];
@@ -101,7 +107,7 @@ namespace ILGPU.Tests
         public void <#= copyOperation #>1D(int x)
         {
             var extent = new Index1(x);
-            var src = InitialiseArray1D(x);
+            var src = InitializeArray1D(x);
             using var dst = Accelerator.Allocate<int>(extent);
 
             // Full copy
@@ -160,7 +166,7 @@ namespace ILGPU.Tests
         public void <#= copyOperation #><#= arrayType #>2D(int x, int y)
         {
             var extent = new Index2(x, y);
-            var src = Initialise<#= arrayType #>Array2D(x, y);
+            var src = Initialize<#= arrayType #>Array2D(x, y);
             using var dst = Accelerator.Allocate<int>(extent);
 
             // Full copy
@@ -257,7 +263,7 @@ namespace ILGPU.Tests
         public void <#= copyOperation #><#= arrayType #>3D(int x, int y, int z)
         {
             var extent = new Index3(x, y, z);
-            var src = Initialise<#= arrayType #>Array3D(x, y, z);
+            var src = Initialize<#= arrayType #>Array3D(x, y, z);
             using var dst = Accelerator.Allocate<int>(extent);
 
             // Full copy
