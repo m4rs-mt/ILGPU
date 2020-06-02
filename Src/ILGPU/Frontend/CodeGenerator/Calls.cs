@@ -11,11 +11,10 @@
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR;
-using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
-using System.Collections.Immutable;
 using System.Reflection;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.Frontend
 {
@@ -28,7 +27,7 @@ namespace ILGPU.Frontend
         /// <param name="arguments">The call arguments.</param>
         private void CreateCall(
             MethodBase method,
-            ImmutableArray<ValueReference> arguments)
+            ref ValueList arguments)
         {
             var intrinsicContext = new InvocationContext(
                 this,
@@ -36,7 +35,7 @@ namespace ILGPU.Frontend
                 Block,
                 Method,
                 method,
-                arguments);
+                ref arguments);
 
             // Check for internal remappings first
             RemappedIntrinsics.RemapIntrinsic(ref intrinsicContext);
@@ -45,14 +44,14 @@ namespace ILGPU.Frontend
             VerifyNotRuntimeMethod(intrinsicContext.Method);
 
             // Handle device functions
-            if (!Intrinsics.HandleIntrinsic(intrinsicContext, out var result))
+            if (!Intrinsics.HandleIntrinsic(ref intrinsicContext, out var result))
             {
                 var targetFunction = DeclareMethod(intrinsicContext.Method);
 
                 result = Builder.CreateCall(
                     Location,
                     targetFunction,
-                    intrinsicContext.Arguments);
+                    ref arguments);
             }
 
             // Setup result
@@ -69,7 +68,7 @@ namespace ILGPU.Frontend
             if (target == null)
                 throw Location.GetInvalidOperationException();
             var values = Block.PopMethodArgs(Location, target, null);
-            CreateCall(target, values);
+            CreateCall(target, ref values);
         }
 
         /// <summary>

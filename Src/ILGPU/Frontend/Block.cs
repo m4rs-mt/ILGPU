@@ -15,10 +15,11 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
-using System.Collections.Immutable;
+using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.Frontend
 {
@@ -111,7 +112,7 @@ namespace ILGPU.Frontend
         /// <param name="count">The number of expected branch targets.</param>
         /// <returns>The resolved branch targets.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ImmutableArray<BasicBlock> GetBuilderTerminator(int count)
+        public ReadOnlySpan<BasicBlock> GetBuilderTerminator(int count)
         {
             var targets = ((BuilderTerminator)Terminator).Targets;
             Terminator.Assert(targets.Length == count);
@@ -225,15 +226,14 @@ namespace ILGPU.Frontend
         /// <param name="location">The current location.</param>
         /// <param name="methodBase">The method to use for the argument types.</param>
         /// <param name="instanceValue">The instance value (if available).</param>
-        public ImmutableArray<ValueReference> PopMethodArgs(
+        public ValueList PopMethodArgs(
             Location location,
             MethodBase methodBase,
             Value instanceValue)
         {
             var parameters = methodBase.GetParameters();
             var parameterOffset = methodBase.GetParameterOffset();
-            var result = ImmutableArray.CreateBuilder<ValueReference>(
-                parameters.Length + parameterOffset);
+            var result = ValueList.Create(parameters.Length + parameterOffset);
 
             // Handle main params
             for (int i = parameters.Length - 1; i >= 0; --i)
@@ -275,7 +275,7 @@ namespace ILGPU.Frontend
             }
 
             result.Reverse();
-            return result.MoveToImmutable();
+            return result;
         }
 
         /// <summary>
