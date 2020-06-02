@@ -159,16 +159,27 @@ namespace ILGPU.Runtime
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
-            if (extent.X < 0 || extent.Y < 0 ||
-                extent.X > source.GetLength(0) || extent.Y > source.GetLength(1))
-            {
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            }
-
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 ||
-                sourceOffset.X >= extent.X || sourceOffset.Y >= extent.Y)
+                sourceOffset.X >= source.GetLength(0) ||
+                sourceOffset.Y >= source.GetLength(1))
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
+
+            if (targetOffset.X < 0 || targetOffset.Y < 0 ||
+                targetOffset.X >= Extent.X ||
+                targetOffset.Y >= Extent.Y)
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            }
+
+            if (extent.X < 0 || extent.Y < 0 ||
+                sourceOffset.X + extent.X > source.GetLength(0) ||
+                sourceOffset.Y + extent.Y > source.GetLength(1) ||
+                targetOffset.X + extent.X > Extent.X ||
+                targetOffset.Y + extent.Y > Extent.Y)
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
             }
 
             var tempBuffer = new T[extent.Size];
@@ -242,16 +253,25 @@ namespace ILGPU.Runtime
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
-            if (extent.X < 0 || extent.Y < 0 ||
-                extent.X > source.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            }
-
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 ||
-                sourceOffset.X >= extent.X || sourceOffset.Y >= extent.Y)
+                sourceOffset.X >= source.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
+
+            if (targetOffset.X < 0 || targetOffset.Y < 0 ||
+                targetOffset.X >= Extent.X ||
+                targetOffset.Y >= Extent.Y)
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            }
+
+            if (extent.X < 0 || extent.Y < 0 ||
+                sourceOffset.X + extent.X > source.Length ||
+                targetOffset.X + extent.X > Extent.X ||
+                targetOffset.Y + extent.Y > Extent.Y)
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
             }
 
             var tempBuffer = new T[extent.Size];
@@ -335,16 +355,27 @@ namespace ILGPU.Runtime
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            if (extent.X < 0 || extent.Y < 0 ||
-                extent.X > target.GetLength(0) || extent.Y > target.GetLength(1))
-            {
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            }
-
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 ||
-                sourceOffset.X >= Extent.X || sourceOffset.Y >= Extent.Y)
+                sourceOffset.X >= Extent.X ||
+                sourceOffset.Y >= Extent.Y)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
+
+            if (targetOffset.X < 0 || targetOffset.Y < 0 ||
+                targetOffset.X >= target.GetLength(0) ||
+                targetOffset.Y >= target.GetLength(1))
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            }
+
+            if (extent.X < 0 || extent.Y < 0 ||
+                sourceOffset.X + extent.X > Extent.X ||
+                sourceOffset.Y + extent.Y > Extent.Y ||
+                targetOffset.X + extent.X > target.GetLength(0) ||
+                targetOffset.Y + extent.Y > target.GetLength(1))
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
             }
 
             var tempBuffer = new T[extent.Size];
@@ -413,13 +444,25 @@ namespace ILGPU.Runtime
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            if (extent.X < 0 || extent.Y < 0)
-                throw new ArgumentOutOfRangeException(nameof(extent));
-
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 ||
-                sourceOffset.X >= Extent.X || sourceOffset.Y >= Extent.Y)
+                sourceOffset.X >= Extent.X ||
+                sourceOffset.Y >= Extent.Y)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
+
+            if (targetOffset.X < 0 || targetOffset.Y < 0 ||
+                targetOffset.X >= target.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            }
+
+            if (extent.X < 0 || extent.Y < 0 ||
+                sourceOffset.X + extent.X > Extent.X ||
+                sourceOffset.Y + extent.Y > Extent.Y ||
+                targetOffset.X + extent.X > target.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
             }
 
             var tempBuffer = new T[extent.Size];
@@ -588,20 +631,34 @@ namespace ILGPU.Runtime
             Index3 targetOffset,
             Index3 extent)
         {
-            if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
-                extent.X > source.GetLength(0) ||
-                extent.Y > source.GetLength(1) ||
-                extent.Z > source.GetLength(2))
-            {
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            }
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 || sourceOffset.Z < 0 ||
-                sourceOffset.X >= extent.X ||
-                sourceOffset.Y >= extent.Y ||
-                sourceOffset.Z >= extent.Z)
+                sourceOffset.X >= source.GetLength(0) ||
+                sourceOffset.Y >= source.GetLength(1) ||
+                sourceOffset.Z >= source.GetLength(2))
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
+
+            if (targetOffset.X < 0 || targetOffset.Y < 0 || targetOffset.Z < 0 ||
+                targetOffset.X >= Extent.X ||
+                targetOffset.Y >= Extent.Y ||
+                targetOffset.Z >= Extent.Z)
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            }
+
+            if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
+                sourceOffset.X + extent.X > source.GetLength(0) ||
+                sourceOffset.Y + extent.Y > source.GetLength(1) ||
+                sourceOffset.Z + extent.Z > source.GetLength(2) ||
+                targetOffset.X + extent.X > Extent.X ||
+                targetOffset.Y + extent.Y > Extent.Y ||
+                targetOffset.Z + extent.Z > Extent.Z)
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
             }
 
             var tempBuffer = new T[extent.Size];
@@ -674,18 +731,30 @@ namespace ILGPU.Runtime
             Index3 targetOffset,
             Index3 extent)
         {
-            if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
-                extent.X > source.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            }
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 || sourceOffset.Z < 0 ||
-                sourceOffset.X >= extent.X ||
-                sourceOffset.Y >= extent.Y ||
-                sourceOffset.Z >= extent.Z)
+                sourceOffset.X >= source.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
+
+            if (targetOffset.X < 0 || targetOffset.Y < 0 || targetOffset.Z < 0 ||
+                targetOffset.X >= Extent.X ||
+                targetOffset.Y >= Extent.Y ||
+                targetOffset.Z >= Extent.Z)
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            }
+
+            if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
+                sourceOffset.X + extent.X > source.Length ||
+                targetOffset.X + extent.X > Extent.X ||
+                targetOffset.Y + extent.Y > Extent.Y ||
+                targetOffset.Z + extent.Z > Extent.Z)
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
             }
 
             var tempBuffer = new T[extent.Size];
@@ -776,20 +845,31 @@ namespace ILGPU.Runtime
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
-                extent.X > target.GetLength(0) ||
-                extent.Y > target.GetLength(1) ||
-                extent.Z > target.GetLength(2))
-            {
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            }
-
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 || sourceOffset.Z < 0 ||
                 sourceOffset.X >= Extent.X ||
                 sourceOffset.Y >= Extent.Y ||
                 sourceOffset.Z >= Extent.Z)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
+
+            if (targetOffset.X < 0 || targetOffset.Y < 0 || targetOffset.Z < 0 ||
+                targetOffset.X >= target.GetLength(0) ||
+                targetOffset.Y >= target.GetLength(1) ||
+                targetOffset.Z >= target.GetLength(2))
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            }
+
+            if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
+                sourceOffset.X + extent.X > Extent.X ||
+                sourceOffset.Y + extent.Y > Extent.Y ||
+                sourceOffset.Z + extent.Z > Extent.Z ||
+                targetOffset.X + extent.X > target.GetLength(0) ||
+                targetOffset.Y + extent.Y > target.GetLength(1) ||
+                targetOffset.Z + extent.Z > target.GetLength(2))
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
             }
 
             var tempBuffer = new T[extent.Size];
@@ -863,17 +943,27 @@ namespace ILGPU.Runtime
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
-                extent.X > target.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(extent));
-            }
-
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 || sourceOffset.Z < 0 ||
-                sourceOffset.X >= Extent.X || sourceOffset.Y >= Extent.Y ||
+                sourceOffset.X >= Extent.X ||
+                sourceOffset.Y >= Extent.Y ||
                 sourceOffset.Z >= Extent.Z)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
+
+            if (targetOffset.X < 0 || targetOffset.Y < 0 || targetOffset.Z < 0 ||
+                targetOffset.X >= target.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetOffset));
+            }
+
+            if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
+                sourceOffset.X + extent.X > Extent.X ||
+                sourceOffset.Y + extent.Y > Extent.Y ||
+                sourceOffset.Z + extent.Z > Extent.Z ||
+                targetOffset.X + extent.X > target.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
             }
 
             var tempBuffer = new T[extent.Size];

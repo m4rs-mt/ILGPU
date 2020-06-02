@@ -74,6 +74,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ConfigurationBase.tt</DependentUpon>
     </None>
+    <None Include="MemoryBufferOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MemoryBufferOperations.tt</DependentUpon>
+    </None>
     <None Include="UnaryIntOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -122,6 +127,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ConfigurationBase.tt</DependentUpon>
     </Compile>
+    <Compile Update="MemoryBufferOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MemoryBufferOperations.tt</DependentUpon>
+    </Compile>
     <Compile Update="UnaryIntOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -161,6 +171,10 @@
     <None Update="Generic\ConfigurationBase.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConfigurationBase.cs</LastGenOutput>
+    </None>
+    <None Update="MemoryBufferOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>MemoryBufferOperations.cs</LastGenOutput>
     </None>
     <None Update="UnaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
