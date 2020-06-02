@@ -14,6 +14,7 @@ using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Frontend
@@ -227,24 +228,19 @@ namespace ILGPU.Frontend
             {
                 foreach (var entry in successorMapping)
                 {
-                    var successorBuilder = ImmutableArray.CreateBuilder<BasicBlock>(
+                    var block = entry.Key;
+                    var terminatorBuilder = block.Builder.CreateBuilderTerminator(
                         entry.Value.Count);
                     foreach (var target in entry.Value)
-                        successorBuilder.Add(target.BasicBlock);
-
-                    var successors = successorBuilder.MoveToImmutable();
-                    var block = entry.Key;
-                    block.Builder.CreateBuilderTerminator(successors);
+                        terminatorBuilder.Add(target.BasicBlock);
+                    terminatorBuilder.Seal();
                 }
 
                 // Handle blocks without terminator
                 foreach (var block in blockMapping.Values)
                 {
                     if (!successorMapping.ContainsKey(block))
-                    {
-                        block.Builder.CreateBuilderTerminator(
-                            ImmutableArray<BasicBlock>.Empty);
-                    }
+                        block.Builder.CreateBuilderTerminator(0).Seal();
                 }
             }
 

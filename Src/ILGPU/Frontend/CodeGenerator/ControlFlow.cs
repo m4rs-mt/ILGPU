@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Util;
 
 namespace ILGPU.Frontend
 {
@@ -107,10 +108,11 @@ namespace ILGPU.Frontend
             var targets = Block.GetBuilderTerminator(branchTargets.Count);
 
             var switchValue = Block.PopInt(Location, ConvertFlags.TargetUnsigned);
+            var targetList = targets.ToInlineList();
             Builder.CreateSwitchBranch(
                 Location,
                 switchValue,
-                targets);
+                ref targetList);
         }
     }
 }
