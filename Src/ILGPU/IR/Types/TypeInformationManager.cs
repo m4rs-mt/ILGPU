@@ -15,7 +15,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace ILGPU.IR.Types
@@ -321,11 +320,7 @@ namespace ILGPU.IR.Types
             var fieldArray = type.GetFields(
                 BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
             Array.Sort(fieldArray, (left, right) =>
-            {
-                var leftOffset = Marshal.OffsetOf(type, left.Name).ToInt32();
-                var rightOffset = Marshal.OffsetOf(type, right.Name).ToInt32();
-                return leftOffset.CompareTo(rightOffset);
-            });
+                left.MetadataToken.CompareTo(right.MetadataToken));
             var fields = ImmutableArray.Create(fieldArray);
             var fieldTypesBuilder = ImmutableArray.CreateBuilder<Type>(fields.Length);
             var fieldOffsetsBuilder = ImmutableArray.CreateBuilder<int>(fields.Length);
