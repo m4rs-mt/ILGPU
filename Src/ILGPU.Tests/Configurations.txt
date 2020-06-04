@@ -3,6 +3,7 @@ Arrays: Debug, Release
 EnumValues: Debug, Release
 KernelEntryPoints: Debug, Release
 MemoryBufferOperations : Debug, Release
+MemoryCacheOperations : Debug, Release
 SharedMemory: Debug, Release
 SizeOfValues: Debug, Release
 SpecializedKernels: Debug, Release

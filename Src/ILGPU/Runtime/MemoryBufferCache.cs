@@ -86,7 +86,8 @@ namespace ILGPU.Runtime
             Justification = "The generic parameter is required to compute the number " +
             "of elements of the given type that can be stored")]
         public Index1 GetCacheSize<T>()
-            where T : unmanaged => (cache?.Length ?? 0) * ArrayView<T>.ElementSize;
+            where T : unmanaged =>
+            (cache?.Length ?? 0) / Interop.SizeOf<T>();
 
         /// <summary>
         /// Allocates the given number of elements and returns an array view
@@ -107,7 +108,7 @@ namespace ILGPU.Runtime
             {
                 cache?.Dispose();
                 cache = Accelerator.Allocate<byte, Index1>(
-                    numElements * ArrayView<T>.ElementSize);
+                    numElements * Interop.SizeOf<T>());
             }
             Debug.Assert(numElements <= GetCacheSize<T>());
             return cache.View.Cast<T>().GetSubView(0, numElements).AsLinearView();
