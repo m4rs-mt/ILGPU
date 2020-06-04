@@ -9,11 +9,12 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Util;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using UseList = ILGPU.Util.InlineList<ILGPU.IR.Values.Use>;
 
 namespace ILGPU.IR.Values
 {
@@ -149,7 +150,7 @@ namespace ILGPU.IR.Values
     /// <summary>
     /// Represents an enumerable of uses that point to non-replaced nodes.
     /// </summary>
-    public readonly struct UseCollection : IEnumerable<Use>
+    public readonly ref struct UseCollection
     {
         #region Nested Types
 
@@ -157,20 +158,19 @@ namespace ILGPU.IR.Values
         /// Returns an enumerator to enumerate all uses in the context
         /// of the parent scope.
         /// </summary>
-        public struct Enumerator : IEnumerator<Use>
+        public ref struct Enumerator
         {
-            private HashSet<Use>.Enumerator enumerator;
+            private ReadOnlySpan<Use>.Enumerator enumerator;
 
             /// <summary>
             /// Constructs a new use enumerator.
             /// </summary>
             /// <param name="node">The node.</param>
-            /// <param name="useSet">The source set of uses.</param>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal Enumerator(Value node, HashSet<Use> useSet)
+            /// <param name="uses">The list of all uses.</param>
+            internal Enumerator(Value node, in ReadOnlySpan<Use> uses)
             {
                 Node = node;
-                enumerator = useSet.GetEnumerator();
+                enumerator = uses.GetEnumerator();
                 Current = default;
             }
 
@@ -183,12 +183,6 @@ namespace ILGPU.IR.Values
             /// Returns the current use.
             /// </summary>
             public Use Current { get; private set; }
-
-            /// <summary cref="IEnumerator.Current"/>
-            object IEnumerator.Current => Current;
-
-            /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose() => enumerator.Dispose();
 
             /// <summary cref="IEnumerator.MoveNext"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -203,9 +197,6 @@ namespace ILGPU.IR.Values
                 }
                 return false;
             }
-
-            /// <summary cref="IEnumerator.Reset"/>
-            void IEnumerator.Reset() => throw new InvalidOperationException();
         }
 
         #endregion
@@ -214,11 +205,11 @@ namespace ILGPU.IR.Values
         /// Constructs a new uses collection.
         /// </summary>
         /// <param name="node">The associated node.</param>
-        /// <param name="allUses">The set of associated uses.</param>
-        internal UseCollection(Value node, HashSet<Use> allUses)
+        /// <param name="uses">The set of associated uses.</param>
+        internal UseCollection(Value node, in ReadOnlySpan<Use> uses)
         {
             Node = node;
-            AllUses = allUses;
+            Uses = uses;
         }
 
         /// <summary>
@@ -229,16 +220,16 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns all associated uses.
         /// </summary>
-        private HashSet<Use> AllUses { get; }
+        public ReadOnlySpan<Use> Uses { get; }
 
         /// <summary>
         /// Returns true, if the collection contains at least one use.
         /// </summary>
-        public bool HasAny
+        public readonly bool HasAny
         {
             get
             {
-                using var enumerator = GetEnumerator();
+                var enumerator = GetEnumerator();
                 return enumerator.MoveNext();
             }
         }
@@ -246,12 +237,12 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns true, if the collection contains exactly one use.
         /// </summary>
-        public bool HasExactlyOne
+        public readonly bool HasExactlyOne
         {
             get
             {
-                using var enumerator = GetEnumerator();
-                return !enumerator.MoveNext() ? false : !enumerator.MoveNext();
+                var enumerator = GetEnumerator();
+                return enumerator.MoveNext() && !enumerator.MoveNext();
             }
         }
 
@@ -260,10 +251,10 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="use">The resolved use reference.</param>
         /// <returns>True, if the collection contains exactly one use.</returns>
-        public bool TryGetSingleUse(out Use use)
+        public readonly bool TryGetSingleUse(out Use use)
         {
             use = default;
-            using var enumerator = GetEnumerator();
+            var enumerator = GetEnumerator();
             if (!enumerator.MoveNext())
                 return false;
             use = enumerator.Current;
@@ -274,31 +265,13 @@ namespace ILGPU.IR.Values
         /// Clones this use collection into a new one.
         /// </summary>
         /// <returns>The cloned use collection.</returns>
-        public UseCollection Clone()
-        {
-            var otherUses = new HashSet<Use>(AllUses);
-            return new UseCollection(Node, otherUses);
-        }
+        public readonly UseList Clone() => Uses.ToInlineList();
 
         /// <summary>
         /// Returns an enumerator to enumerate all uses in the context
         /// of the parent scope.
         /// </summary>
         /// <returns>The enumerator.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(Node, AllUses);
-
-        /// <summary>
-        /// Returns an enumerator to enumerate all uses in the context
-        /// of the parent scope.
-        /// </summary>
-        /// <returns>The enumerator.</returns>
-        IEnumerator<Use> IEnumerable<Use>.GetEnumerator() => GetEnumerator();
-
-        /// <summary>
-        /// Returns an enumerator to enumerate all uses in the context
-        /// of the parent scope.
-        /// </summary>
-        /// <returns>The enumerator.</returns>
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public readonly Enumerator GetEnumerator() => new Enumerator(Node, Uses);
     }
 }
