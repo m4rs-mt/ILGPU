@@ -15,9 +15,9 @@ using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using UseList = ILGPU.Util.InlineList<ILGPU.IR.Values.Use>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR
@@ -280,8 +280,8 @@ namespace ILGPU.IR
         /// <summary>
         /// The collection of all uses.
         /// </summary>
-        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-        private readonly HashSet<Use> allUses = new HashSet<Use>();
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private UseList uses;
 
         /// <summary>
         /// Constructs a new value that is marked as replaceable.
@@ -332,6 +332,7 @@ namespace ILGPU.IR
             parent = initializer.Parent;
             type = staticType;
             values = ValueList.Empty;
+            uses = UseList.Empty;
 
             if (staticType != null)
                 valueFlags |= ValueFlags.StaticType;
@@ -447,13 +448,13 @@ namespace ILGPU.IR
         /// Returns the total number of all associated uses.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-        public int AllNumUses => allUses.Count;
+        public int AllNumUses => uses.Count;
 
         /// <summary>
         /// Returns all current uses (to non-replaced values).
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
-        public UseCollection Uses => new UseCollection(this, allUses);
+        public UseCollection Uses => new UseCollection(this, uses);
 
         /// <summary>
         /// Accesses the child value with the given index.
@@ -479,14 +480,13 @@ namespace ILGPU.IR
             newNodes.MoveTo(ref values);
 
             // Cleanup all uses
-            var usesToRemove = new List<Use>(allUses.Count);
-            foreach (var use in allUses)
+            var newUses = UseList.Create(uses.Count);
+            foreach (var use in uses)
             {
-                if (use.Target.IsReplaced)
-                    usesToRemove.Add(use);
+                if (!use.Target.IsReplaced)
+                    newUses.Add(use);
             }
-            foreach (var useToRemove in usesToRemove)
-                allUses.Remove(useToRemove);
+            newUses.MoveTo(ref uses);
         }
 
         /// <summary>
@@ -495,7 +495,7 @@ namespace ILGPU.IR
         /// <returns>The first use.</returns>
         public Use GetFirstUse()
         {
-            using var enumerator = allUses.GetEnumerator();
+            var enumerator = uses.GetEnumerator();
             if (!enumerator.MoveNext())
                 throw new InvalidOperationException(ErrorMessages.NoUses);
             return enumerator.Current;
@@ -516,7 +516,7 @@ namespace ILGPU.IR
         {
             this.AssertNotNull(target);
             this.Assert(CanHaveUses && useIndex >= 0);
-            allUses.Add(new Use(target, useIndex));
+            uses.Add(new Use(target, useIndex));
         }
 
         /// <summary>
@@ -662,12 +662,12 @@ namespace ILGPU.IR
             if (target.CanHaveUses)
             {
                 // Propagate uses
-                foreach (var use in allUses)
+                foreach (var use in uses)
                     Replacement.AddUse(use.Target, use.Index);
             }
 
             // Notify nodes
-            foreach (var use in allUses)
+            foreach (var use in uses)
                 use.Target.OnReplacedNode();
         }
 
