@@ -447,7 +447,10 @@ namespace ILGPU.Algorithms
             if (Grid.IdxX > 0)
                 leftBoundary = boundaryValue.Value;
 
-            // If we are the first thread in the group
+            // Wait for all threads in the group to read the same boundary value
+            Group.Barrier();
+
+            // If we are the first thread in the group, update the boundary value for the next group
             if (Group.IsFirstThread)
                 boundaryValue.Value = scanOperation.Apply(leftBoundary, rightBoundary);
 
