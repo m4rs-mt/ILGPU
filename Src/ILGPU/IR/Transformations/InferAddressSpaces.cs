@@ -48,11 +48,14 @@ namespace ILGPU.IR.Transformations
                     case MethodCall call:
                         // We cannot remove casts to other address spaces in case of a
                         // method invocation if the address spaces do not match
-                        var targetParam = call.Target.Parameters[use.Index];
-                        if (targetParam.ParameterType is IAddressSpaceType paramType &&
-                            paramType.AddressSpace == targetSpace)
+                        if (call.Target.Parameters.Count > 0 && use.Index < call.Target.Parameters.Count)
                         {
-                            return false;
+                            var targetParam = call.Target.Parameters[use.Index];
+                            if (targetParam.ParameterType is IAddressSpaceType paramType &&
+                                paramType.AddressSpace == targetSpace)
+                            {
+                                return false;
+                            }
                         }
 
                         break;
