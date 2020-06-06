@@ -250,7 +250,6 @@ Src/ILGPU/ArrayViews.cs
 Src/ILGPU/AtomicFunctions.cs
 Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
 Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
-Src/ILGPU/GroupedIndices.cs
 Src/ILGPU/IR/Construction/ArithmeticOperations.cs
 Src/ILGPU/IR/Construction/CompareOperations.cs
 Src/ILGPU/IR/Intrinsics/IntrinsicMatchers.cs
