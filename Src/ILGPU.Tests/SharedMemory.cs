@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -58,6 +59,43 @@ namespace ILGPU.Tests
         [InlineData(32)]
         [KernelMethod(nameof(SharedMemoryArrayKernel))]
         public void SharedMemoryArray(int groupMultiplier)
+        {
+            using var buffer = Accelerator.Allocate<int>(2 * groupMultiplier);
+            var index = new KernelConfig(groupMultiplier, 2);
+            Execute(index, buffer.View);
+
+            var expected = new int[buffer.Length];
+            for (int i = 0; i < buffer.Length; i += 2)
+            {
+                expected[i] = 1;
+                expected[i + 1] = 0;
+            }
+
+            Verify(buffer, expected);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int AllocateSharedMemoryNested()
+        {
+            var sharedMemory = ILGPU.SharedMemory.Allocate<int>(2);
+            sharedMemory[Group.IdxX] = Group.IdxX;
+            Group.Barrier();
+
+            return sharedMemory[(Group.IdxX + 1) % Group.DimX];
+        }
+
+        internal static void SharedMemoryNestedKernel(ArrayView<int> data)
+        {
+            var idx = Grid.GlobalIndex.X;
+            data[idx] = AllocateSharedMemoryNested();
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(10)]
+        [InlineData(32)]
+        [KernelMethod(nameof(SharedMemoryNestedKernel))]
+        public void SharedMemoryNested(int groupMultiplier)
         {
             using var buffer = Accelerator.Allocate<int>(2 * groupMultiplier);
             var index = new KernelConfig(groupMultiplier, 2);

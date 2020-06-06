@@ -133,7 +133,9 @@ namespace ILGPU.Backends.OpenCL
             data = new CLCodeGenerator.GeneratorArgs(
                 this,
                 typeGenerator,
-                entryPoint as SeparateViewEntryPoint);
+                entryPoint as SeparateViewEntryPoint,
+                backendContext.SharedAllocations,
+                backendContext.DynamicSharedAllocations);
             return builder;
         }
 

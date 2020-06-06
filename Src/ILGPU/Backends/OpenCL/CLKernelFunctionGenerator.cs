@@ -14,6 +14,7 @@ using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
@@ -99,6 +100,11 @@ namespace ILGPU.Backends.OpenCL
         #region Instance
 
         /// <summary>
+        /// All globally accessible shared allocations inside the kernel module.
+        /// </summary>
+        private readonly List<AllocaInformation> globallySharedAllocations;
+
+        /// <summary>
         /// Creates a new OpenCL function generator.
         /// </summary>
         /// <param name="args">The generation arguments.</param>
@@ -116,6 +122,16 @@ namespace ILGPU.Backends.OpenCL
             // Analyze and create required kernel interop types first
             foreach (var param in Method.Parameters)
                 KernelTypeGenerator.Register(param);
+
+            // Gather all globally shared allocations that need to be tracked
+            globallySharedAllocations = new List<AllocaInformation>(
+                args.SharedAllocations.Length);
+            foreach (var allocaInfo in args.SharedAllocations)
+            {
+                if (allocas.SharedAllocations.Contains(allocaInfo.Alloca))
+                    continue;
+                globallySharedAllocations.Add(allocaInfo);
+            }
         }
 
         #endregion
@@ -141,7 +157,19 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         public override void GenerateHeader(StringBuilder builder)
         {
-            // We do not need to generate a header for a kernel function.
+            // Emit shared-memory declarations for all functions
+            var addressSpacePrefix = CLInstructions.GetAddressSpacePrefix(
+                MemoryAddressSpace.Shared);
+            foreach (var allocaInfo in globallySharedAllocations)
+            {
+                builder.Append(addressSpacePrefix);
+                builder.Append(' ');
+                builder.Append(TypeGenerator[allocaInfo.ElementType]);
+                builder.Append(CLInstructions.DereferenceOperation);
+                builder.Append(' ');
+                builder.Append(GetSharedMemoryAllocationName(allocaInfo));
+                builder.AppendLine(";");
+            }
         }
 
         /// <summary>
@@ -192,6 +220,23 @@ namespace ILGPU.Backends.OpenCL
             Builder.AppendLine();
 #endif
             SetupKernelIndex(setupLogic.IndexVariable, setupLogic.LengthVariable);
+
+            // Emit shared-memory allocations for all functions
+            SetupAllocations(Allocas.SharedAllocations, MemoryAddressSpace.Shared);
+            foreach (var allocaInfo in globallySharedAllocations)
+            {
+                var allocationVariable = DeclareAllocation(
+                    allocaInfo,
+                    MemoryAddressSpace.Shared);
+
+                // We have to bind the local allocations to the shared variables in
+                // order to make them visible to all other functions in this module
+                using var statement = new StatementEmitter(this);
+                statement.AppendTarget(
+                    GetSharedMemoryAllocationVariable(allocaInfo),
+                    newTarget: false);
+                statement.Append(allocationVariable);
+            }
 
             // Generate code
             GenerateCodeInternal();

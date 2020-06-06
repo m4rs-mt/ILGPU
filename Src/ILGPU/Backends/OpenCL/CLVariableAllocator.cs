@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -19,6 +20,64 @@ namespace ILGPU.Backends.OpenCL
     /// </summary>
     public class CLVariableAllocator : VariableAllocator
     {
+        #region Nested Types
+
+        /// <summary>
+        /// A virtual globally accessible shared memory variable.
+        /// </summary>
+        /// <remarks>
+        /// Instances of this class will not return valid variable ids.
+        /// </remarks>
+        private sealed class GloballySharedMemoryVariable : TypedVariable
+        {
+            /// <summary>
+            /// Constructs a new variable instance.
+            /// </summary>
+            /// <param name="allocaInfo">The source allocation info.</param>
+            public GloballySharedMemoryVariable(in AllocaInformation allocaInfo)
+                : base(-1, allocaInfo.Alloca.Type)
+            {
+                Name = GetSharedMemoryAllocationName(allocaInfo);
+            }
+
+            /// <summary>
+            /// Returns the allocation name.
+            /// </summary>
+            public string Name { get; }
+
+            /// <summary>
+            /// Returns the allocation name.
+            /// </summary>
+            /// <returns>The allocation name.</returns>
+            public override string ToString() => Name;
+        }
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Returns a shared memory allocation variable reference.
+        /// </summary>
+        /// <param name="allocaInfo">The source allocation info.</param>
+        /// <returns>
+        /// The allocation variable reference pointing to the allocation object.
+        /// </returns>
+        public static Variable GetSharedMemoryAllocationVariable(
+            in AllocaInformation allocaInfo) =>
+            new GloballySharedMemoryVariable(allocaInfo);
+
+        /// <summary>
+        /// Returns a unique shared memory allocation name.
+        /// </summary>
+        /// <param name="allocaInfo">The source allocation info.</param>
+        /// <returns>The allocation name.</returns>
+        public static string GetSharedMemoryAllocationName(
+            in AllocaInformation allocaInfo) =>
+            "shared_var_" + allocaInfo.Alloca.Id;
+
+        #endregion
+
         #region Instance
 
         /// <summary>

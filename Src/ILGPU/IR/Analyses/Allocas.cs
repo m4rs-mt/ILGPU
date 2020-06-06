@@ -130,6 +130,21 @@ namespace ILGPU.IR.Analyses
         public int TotalSize { get; }
 
         /// <summary>
+        /// Returns true if the given alloca is contained in this collection.
+        /// </summary>
+        /// <param name="alloca">The alloca.</param>
+        /// <returns>True, if the given alloca is contained in this collection.</returns>
+        public bool Contains(Alloca alloca)
+        {
+            foreach (var allocaInfo in Allocas)
+            {
+                if (allocaInfo.Alloca == alloca)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Returns an enumerator to enumerate all allocas.
         /// </summary>
         /// <returns>An enumerator to enumerate all allocas.</returns>
