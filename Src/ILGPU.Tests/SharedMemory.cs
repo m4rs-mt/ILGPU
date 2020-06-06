@@ -110,5 +110,48 @@ namespace ILGPU.Tests
 
             Verify(buffer, expected);
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int DynamicSharedMemoryNested()
+        {
+            var dynamicMemory = ILGPU.SharedMemory.GetDynamic<byte>();
+            dynamicMemory[Group.IdxX] = (byte)Group.IdxX;
+            Group.Barrier();
+
+            return dynamicMemory[(Group.IdxX + 1) % Group.DimX];
+        }
+
+        internal static void DynamicSharedMemoryKernel(ArrayView<int> data)
+        {
+            var dynamicMemory = ILGPU.SharedMemory.GetDynamic<int>();
+            dynamicMemory[Group.IdxX] = Group.IdxX;
+            Group.Barrier();
+            int value = dynamicMemory[(Group.IdxX + 1) % Group.DimX];
+
+            var idx = Grid.GlobalIndex.X;
+            data[idx] = value + DynamicSharedMemoryNested();
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(10)]
+        [InlineData(32)]
+        [KernelMethod(nameof(DynamicSharedMemoryKernel))]
+        public void DynamicSharedMemory(int groupMultiplier)
+        {
+            using var buffer = Accelerator.Allocate<int>(2 * groupMultiplier);
+            var config = SharedMemoryConfig.RequestDynamic<int>(1024);
+            var index = new KernelConfig(groupMultiplier, 2, config);
+            Execute(index, buffer.View);
+
+            var expected = new int[buffer.Length];
+            for (int i = 0; i < buffer.Length; i += 2)
+            {
+                expected[i] = 2;
+                expected[i + 1] = 0;
+            }
+
+            Verify(buffer, expected);
+        }
     }
 }

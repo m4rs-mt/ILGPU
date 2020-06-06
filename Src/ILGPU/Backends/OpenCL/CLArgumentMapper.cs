@@ -209,14 +209,17 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="resultLocal">
             /// The local variable holding the result API status.
             /// </param>
+            /// <param name="startIndex">The start argument index.</param>
             public ViewMappingHandler(
                 CLArgumentMapper parent,
                 ILLocal kernelLocal,
-                ILLocal resultLocal)
+                ILLocal resultLocal,
+                int startIndex)
             {
                 Parent = parent;
                 KernelLocal = kernelLocal;
                 ResultLocal = resultLocal;
+                StartIndex = startIndex;
             }
 
             /// <summary>
@@ -236,6 +239,11 @@ namespace ILGPU.Backends.OpenCL
             public ILLocal ResultLocal { get; }
 
             /// <summary>
+            /// Returns the start argument index.
+            /// </summary>
+            public int StartIndex { get; }
+
+            /// <summary>
             /// Maps a view input argument.
             /// </summary>
             public void MapViewArgument<TILEmitter, TSource>(
@@ -249,7 +257,7 @@ namespace ILGPU.Backends.OpenCL
                     emitter,
                     KernelLocal,
                     ResultLocal,
-                    viewArgumentIndex,
+                    StartIndex + viewArgumentIndex,
                     new MapperSource<TSource>(source, viewParameter));
         }
 
@@ -343,15 +351,22 @@ namespace ILGPU.Backends.OpenCL
             emitter.Emit(OpCodes.Ldc_I4_0);
             emitter.Emit(LocalOperation.Store, resultLocal);
 
+            // Compute the base offset that can reserves an additional parameter
+            // of dynamic shared memory allocations
+            int baseOffset = entryPoint.SharedMemory.HasDynamicMemory
+                ? 1
+                : 0;
+
             // Map all views
             var viewMappingHandler = new ViewMappingHandler(
                 this,
                 kernel,
-                resultLocal);
+                resultLocal,
+                baseOffset);
             MapViews(emitter, viewMappingHandler, entryPoint);
 
             // Map implicit kernel length (if required)
-            int parameterOffset = entryPoint.NumViewParameters;
+            int parameterOffset = entryPoint.NumViewParameters + baseOffset;
             if (!entryPoint.IsExplicitlyGrouped)
             {
                 var lengthSource = new ArgumentSource(
