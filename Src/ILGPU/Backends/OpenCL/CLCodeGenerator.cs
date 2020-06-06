@@ -16,8 +16,6 @@ using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
-using ILGPU.Resources;
-using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -468,6 +466,20 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary>
+        /// Binds shared memory allocations.
+        /// </summary>
+        /// <param name="allocas">All allocations to bind.</param>
+        protected void BindSharedMemoryAllocation(in AllocaKindInformation allocas)
+        {
+            foreach (var allocaInfo in allocas)
+            {
+                Bind(
+                    allocaInfo.Alloca,
+                    GetSharedMemoryAllocationVariable(allocaInfo));
+            }
+        }
+
+        /// <summary>
         /// Generates code for all basic blocks.
         /// </summary>
         protected void GenerateCodeInternal()
@@ -475,15 +487,8 @@ namespace ILGPU.Backends.OpenCL
             // Setup allocations
             SetupAllocations(Allocas.LocalAllocations, MemoryAddressSpace.Local);
 
-            if (Allocas.DynamicSharedAllocations.Length > 0)
-            {
-                throw new NotSupportedException(
-                    ErrorMessages.NotSupportedDynamicSharedMemoryAllocations);
-            }
-
-            var blocks = Method.Blocks;
-
             // Build branch targets
+            var blocks = Method.Blocks;
             foreach (var block in blocks)
                 blockLookup.Add(block, DeclareLabel());
 

@@ -68,7 +68,7 @@ namespace ILGPU.Runtime.OpenCL
         /// Represents the <see cref="CLAPI.LaunchKernelWithStreamBinding(
         /// CLStream, CLKernel, RuntimeKernelConfig)"/> method.
         /// </summary>
-        private static readonly MethodInfo LaunchKernelMethod =
+        private static readonly MethodInfo GenericLaunchKernelMethod =
             typeof(CLAPI).GetMethod(
                 nameof(CLAPI.LaunchKernelWithStreamBinding),
                 BindingFlags.NonPublic | BindingFlags.Static);
@@ -607,7 +607,11 @@ namespace ILGPU.Runtime.OpenCL
                 customGroupSize);
 
             // Dispatch kernel
-            emitter.EmitCall(LaunchKernelMethod);
+            var launchMethod = GenericLaunchKernelMethod.MakeGenericMethod(
+                entryPoint.SharedMemory.HasDynamicMemory
+                ? typeof(CLAPI.DynamicSharedMemoryHandler)
+                : typeof(CLAPI.DefaultLaunchHandler));
+            emitter.EmitCall(launchMethod);
 
             // Emit ThrowIfFailed
             emitter.EmitCall(ThrowIfFailedMethod);

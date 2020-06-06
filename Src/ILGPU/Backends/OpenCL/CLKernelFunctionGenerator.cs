@@ -32,6 +32,11 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         public const string KernelViewNameFormat = "view_{0}";
 
+        /// <summary>
+        /// The parameter name of dynamic shared memory parameter.
+        /// </summary>
+        public const string DynamicSharedMemoryParamName = "dynamic_shared_memory";
+
         #endregion
 
         #region Nested Types
@@ -118,6 +123,7 @@ namespace ILGPU.Backends.OpenCL
         {
             EntryPoint = args.EntryPoint;
             KernelTypeGenerator = args.KernelTypeGenerator;
+            DynamicSharedAllocations = args.DynamicSharedAllocations;
 
             // Analyze and create required kernel interop types first
             foreach (var param in Method.Parameters)
@@ -125,13 +131,16 @@ namespace ILGPU.Backends.OpenCL
 
             // Gather all globally shared allocations that need to be tracked
             globallySharedAllocations = new List<AllocaInformation>(
-                args.SharedAllocations.Length);
+                args.SharedAllocations.Length +
+                args.DynamicSharedAllocations.Length);
             foreach (var allocaInfo in args.SharedAllocations)
             {
                 if (allocas.SharedAllocations.Contains(allocaInfo.Alloca))
                     continue;
                 globallySharedAllocations.Add(allocaInfo);
             }
+            globallySharedAllocations.AddRange(
+                args.DynamicSharedAllocations.Allocas);
         }
 
         #endregion
@@ -147,6 +156,11 @@ namespace ILGPU.Backends.OpenCL
         /// The current kernel type generator.
         /// </summary>
         public CLKernelTypeGenerator KernelTypeGenerator { get; }
+
+        /// <summary>
+        /// All dynamic shared memory allocations.
+        /// </summary>
+        public AllocaKindInformation DynamicSharedAllocations { get; }
 
         #endregion
 
@@ -182,10 +196,28 @@ namespace ILGPU.Backends.OpenCL
             Builder.Append(CLCompiledKernel.EntryName);
             Builder.AppendLine("(");
 
-            // Note that we have to emit custom parameters for every view argument
-            // since views have to be mapped by the driver to kernel arguments.
+            // Initialize view information
             var viewParameters = EntryPoint.ViewParameters;
             bool hasDefaultParameters = EntryPoint.Parameters.Count > 0;
+
+            // Check for dynamic shared memory
+            if (DynamicSharedAllocations.Length > 0)
+            {
+                // We need a single pointer to local memory of byte elements
+                Builder.Append("\tlocal ");
+                Builder.Append(
+                    CLTypeGenerator.GetBasicValueType(
+                        ArithmeticBasicValueType.Int8));
+                Builder.Append(CLInstructions.DereferenceOperation);
+                Builder.Append(' ');
+                Builder.Append(DynamicSharedMemoryParamName);
+
+                if (hasDefaultParameters || viewParameters.Length > 0)
+                    Builder.AppendLine(",");
+            }
+
+            // Note that we have to emit custom parameters for every view argument
+            // since views have to be mapped by the driver to kernel arguments.
             for (int i = 0, e = viewParameters.Length; i < e; ++i)
             {
                 // Emit a specialized pointer type
@@ -225,6 +257,10 @@ namespace ILGPU.Backends.OpenCL
             SetupAllocations(Allocas.SharedAllocations, MemoryAddressSpace.Shared);
             foreach (var allocaInfo in globallySharedAllocations)
             {
+                // Skip dynamic allocations here since we need special setup code
+                if (DynamicSharedAllocations.Contains(allocaInfo.Alloca))
+                    continue;
+
                 var allocationVariable = DeclareAllocation(
                     allocaInfo,
                     MemoryAddressSpace.Shared);
@@ -237,6 +273,22 @@ namespace ILGPU.Backends.OpenCL
                     newTarget: false);
                 statement.Append(allocationVariable);
             }
+
+            // Emit special dynamic shared memory "allocations"
+            foreach (var dynamicAllocaInfo in DynamicSharedAllocations)
+            {
+                // We have to bind the local allocations to the shared variables in
+                // order to make them visible to all other functions in this module
+                using var statement = new StatementEmitter(this);
+                statement.AppendTarget(
+                    GetSharedMemoryAllocationVariable(dynamicAllocaInfo),
+                    newTarget: false);
+                statement.AppendCast(dynamicAllocaInfo.Alloca.Type);
+                statement.AppendCommand(DynamicSharedMemoryParamName);
+            }
+
+            // Bind all dynamic shared memory allocations
+            BindSharedMemoryAllocation(Allocas.DynamicSharedAllocations);
 
             // Generate code
             GenerateCodeInternal();

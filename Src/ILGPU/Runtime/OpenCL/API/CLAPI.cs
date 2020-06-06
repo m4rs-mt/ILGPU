@@ -21,6 +21,66 @@ namespace ILGPU.Runtime.OpenCL.API
     /// </summary>
     public static unsafe class CLAPI
     {
+        #region Nested Types
+
+        /// <summary>
+        /// An abstract launch handler to specialize kernel launches.
+        /// </summary>
+        internal interface ILaunchHandler
+        {
+            /// <summary>
+            /// Performs pre-launch operations for a specific kernel.
+            /// </summary>
+            /// <param name="stream">The current stream.</param>
+            /// <param name="kernel">The current kernel.</param>
+            /// <param name="config">The current kernel configuration.</param>
+            /// <returns>The error status.</returns>
+            CLError PreLaunchKernel(
+                CLStream stream,
+                CLKernel kernel,
+                RuntimeKernelConfig config);
+        }
+
+        /// <summary>
+        /// The default launch handler that does not perform any specific launch
+        /// operations.
+        /// </summary>
+        internal readonly struct DefaultLaunchHandler : ILaunchHandler
+        {
+            /// <summary>
+            /// Does not perform any operations and returns
+            /// <see cref="CLError.CL_SUCCESS"/>.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly CLError PreLaunchKernel(
+                CLStream stream,
+                CLKernel kernel,
+                RuntimeKernelConfig config) =>
+                CLError.CL_SUCCESS;
+        }
+
+        /// <summary>
+        /// A dynamic shared memory handler that setups a dynamic memory allocation.
+        /// </summary>
+        internal readonly struct DynamicSharedMemoryHandler : ILaunchHandler
+        {
+            /// <summary>
+            /// Setups a dynamic shared memory allocation.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly CLError PreLaunchKernel(
+                CLStream stream,
+                CLKernel kernel,
+                RuntimeKernelConfig config) =>
+                SetKernelArgumentUnsafeWithKernel(
+                    kernel,
+                    0,
+                    config.SharedMemoryConfig.DynamicArraySize,
+                    null);
+        }
+
+        #endregion
+
         #region Device Methods
 
         /// <summary>
@@ -637,17 +697,24 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <summary>
         /// Launches the given kernel function.
         /// </summary>
+        /// <typeparam name="THandler">
+        /// The handler type to customize the launch process.
+        /// </typeparam>
         /// <param name="stream">The current stream.</param>
         /// <param name="kernel">The current kernel.</param>
         /// <param name="config">The current kernel configuration.</param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe CLError LaunchKernelWithStreamBinding(
+        internal static unsafe CLError LaunchKernelWithStreamBinding<THandler>(
             CLStream stream,
             CLKernel kernel,
             RuntimeKernelConfig config)
+            where THandler : struct, ILaunchHandler
         {
             var binding = stream.BindScoped();
+
+            THandler handler = default;
+            var result = handler.PreLaunchKernel(stream, kernel, config);
 
             var gridDim = config.GridDim;
             var blockDim = config.GroupDim;
@@ -662,7 +729,7 @@ namespace ILGPU.Runtime.OpenCL.API
             localWorkSizes[1] = new IntPtr(blockDim.Y);
             localWorkSizes[2] = new IntPtr(blockDim.Z);
 
-            var result = LaunchKernelUnsafe(
+            result |= LaunchKernelUnsafe(
                 stream.CommandQueue,
                 kernel.KernelPtr,
                 3,
