@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Unix'">netcoreapp2.0;netstandard2.1</TargetFrameworks>
     <Version>0.8.0</Version>
     <Platforms>AnyCPU</Platforms>
     <Copyright>Copyright © 2019-2020 ILGPU Algorithms Project, Copyright © 2017-2018 ILGPU Lightning Project</Copyright>
@@ -198,4 +199,5 @@
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 
+  <Import Project="..\..\ILGPU\Src\TextTransform.targets" />
 </Project>
