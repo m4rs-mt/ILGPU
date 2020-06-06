@@ -40,13 +40,13 @@ jobs:
           nuget-version: '5.x'
       - name: Create NuGet package
         if: runner.os == 'Windows'
-        run: nuget pack .nuget/ILGPU.Algorithms.nuspec
+        run: nuget pack .nuget/ILGPU.Algorithms.nuspec -Symbols -SymbolPackageFormat snupkg
       - name: Upload NuGet package artifact
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v2
         with:
           name: nuget-package
-          path: ILGPU.Algorithms.*.nupkg
+          path: ILGPU.Algorithms.*.*nupkg
 
   publish-nuget:
     if: startsWith(github.ref, 'refs/tags/v')
