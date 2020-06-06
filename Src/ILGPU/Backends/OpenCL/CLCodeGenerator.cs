@@ -41,7 +41,9 @@ namespace ILGPU.Backends.OpenCL
             internal GeneratorArgs(
                 CLBackend backend,
                 CLTypeGenerator typeGenerator,
-                SeparateViewEntryPoint entryPoint)
+                SeparateViewEntryPoint entryPoint,
+                in AllocaKindInformation sharedAllocations,
+                in AllocaKindInformation dynamicSharedAllocations)
             {
                 Backend = backend;
                 TypeGenerator = typeGenerator;
@@ -49,6 +51,9 @@ namespace ILGPU.Backends.OpenCL
                 KernelTypeGenerator = new CLKernelTypeGenerator(
                     typeGenerator,
                     entryPoint);
+
+                SharedAllocations = sharedAllocations;
+                DynamicSharedAllocations = dynamicSharedAllocations;
             }
 
             /// <summary>
@@ -65,6 +70,16 @@ namespace ILGPU.Backends.OpenCL
             /// Returns the current entry point.
             /// </summary>
             public SeparateViewEntryPoint EntryPoint { get; }
+
+            /// <summary>
+            /// Returns all shared allocations.
+            /// </summary>
+            public AllocaKindInformation SharedAllocations { get; }
+
+            /// <summary>
+            /// Returns all dynamic shared allocations.
+            /// </summary>
+            public AllocaKindInformation DynamicSharedAllocations { get; }
 
             /// <summary>
             /// Returns the current kernel-type generator.
@@ -396,36 +411,50 @@ namespace ILGPU.Backends.OpenCL
         }
 
         /// <summary>
+        /// Setups a given allocation.
+        /// </summary>
+        /// <param name="allocaInfo">The single allocation to declare.</param>
+        /// <param name="addressSpace">The target address space.</param>
+        /// <returns>The allocated variable.</returns>
+        protected Variable DeclareAllocation(
+            in AllocaInformation allocaInfo,
+            MemoryAddressSpace addressSpace)
+        {
+            var addressSpacePrefix = CLInstructions.GetAddressSpacePrefix(addressSpace);
+            var allocationVariable = AllocateType(allocaInfo.ElementType);
+
+            // Declare alloca using element-type information
+            AppendIndent();
+            Builder.Append(addressSpacePrefix);
+            Builder.Append(' ');
+            Builder.Append(TypeGenerator[allocaInfo.ElementType]);
+            Builder.Append(' ');
+            Builder.Append(allocationVariable.VariableName);
+
+            if (allocaInfo.IsArray)
+            {
+                Builder.Append('[');
+                Builder.Append(allocaInfo.ArraySize);
+                Builder.Append(']');
+            }
+
+            Builder.AppendLine(";");
+            return allocationVariable;
+        }
+
+        /// <summary>
         /// Setups local or shared allocations.
         /// </summary>
         /// <param name="allocas">The allocations to setup.</param>
         /// <param name="addressSpace">The source address space.local).</param>
-        private void SetupAllocations(
+        protected void SetupAllocations(
             AllocaKindInformation allocas,
             MemoryAddressSpace addressSpace)
         {
-            var addressSpacePrefix = CLInstructions.GetAddressSpacePrefix(addressSpace);
             foreach (var allocaInfo in allocas)
             {
-                var allocationVariable = AllocateType(allocaInfo.ElementType);
+                var allocationVariable = DeclareAllocation(allocaInfo, addressSpace);
                 var allocaVariable = Allocate(allocaInfo.Alloca);
-
-                // Declare alloca using element-type information
-                AppendIndent();
-                Builder.Append(addressSpacePrefix);
-                Builder.Append(' ');
-                Builder.Append(TypeGenerator[allocaInfo.ElementType]);
-                Builder.Append(' ');
-                Builder.Append(allocationVariable.VariableName);
-
-                if (allocaInfo.IsArray)
-                {
-                    Builder.Append('[');
-                    Builder.Append(allocaInfo.ArraySize);
-                    Builder.Append(']');
-                }
-
-                Builder.AppendLine(";");
 
                 // Since allocas are basically pointers in the IR we have to
                 // 'convert' the local allocations into generic pointers
@@ -445,7 +474,6 @@ namespace ILGPU.Backends.OpenCL
         {
             // Setup allocations
             SetupAllocations(Allocas.LocalAllocations, MemoryAddressSpace.Local);
-            SetupAllocations(Allocas.SharedAllocations, MemoryAddressSpace.Shared);
 
             if (Allocas.DynamicSharedAllocations.Length > 0)
             {

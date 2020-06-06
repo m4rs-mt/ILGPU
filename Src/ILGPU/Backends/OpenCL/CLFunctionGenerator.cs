@@ -127,6 +127,10 @@ namespace ILGPU.Backends.OpenCL
             // Declare function and parameters
             GenerateHeaderStub(Builder);
 
+            // Bind shared-memory allocations
+            foreach (var allocaInfo in Allocas.SharedAllocations)
+                Bind(allocaInfo.Alloca, GetSharedMemoryAllocationVariable(allocaInfo));
+
             // Generate code
             Builder.AppendLine("{");
             PushIndent();
