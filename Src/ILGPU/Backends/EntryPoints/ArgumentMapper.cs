@@ -22,7 +22,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace ILGPU.Backends.EntryPoints
 {

@@ -357,8 +357,8 @@ namespace ILGPU.Backends.PTX
                 }
                 else
                 {
-                // No debug information could be found
-                builder.AppendLine("\t// <No Source Line>");
+                    // No debug information could be found
+                    builder.AppendLine("\t// <No Source Line>");
                 }
             }
             finally

@@ -120,7 +120,8 @@ namespace ILGPU.IR.Rewriting
                 TContext,
                 TContextProvider,
                 TContextData,
-                T> Rewriter { get; }
+                T> Rewriter
+            { get; }
 
             /// <summary>
             /// Returns the current context data.
@@ -184,7 +185,8 @@ namespace ILGPU.IR.Rewriting
                 TContext,
                 TContextProvider,
                 TContextData,
-                T> Rewriter { get; }
+                T> Rewriter
+            { get; }
 
             /// <summary>
             /// Returns the current context data.
@@ -255,7 +257,8 @@ namespace ILGPU.IR.Rewriting
                 TContext,
                 TContextProvider,
                 TContextData,
-                T> Rewriter { get; }
+                T> Rewriter
+            { get; }
 
             /// <summary>
             /// Returns the block collection.

@@ -11,7 +11,6 @@
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
-using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;

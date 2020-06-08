@@ -10,7 +10,6 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends;
-using ILGPU.Util;
 using System;
 using System.Diagnostics;
 
