@@ -70,10 +70,9 @@ namespace ILGPU
         /// <typeparam name="TSecond">
         /// The base type that should be represented with <typeparamref name="TFirst"/>.
         /// </typeparam>
-        /// <param name="numSecondElements">The number of <typeparamref name="TSecond"/> elements to be stored.</param>
         /// <returns>
-        /// The number of required <typeparamref name="TFirst"/> instances to store <paramref name="numSecondElements"/>
-        /// instances of type <typeparamref name="TSecond"/>.
+        /// The number of required <typeparamref name="TFirst"/> instances to store an
+        /// instance of type <typeparamref name="TSecond"/>.
         /// </returns>
         [SuppressMessage(
            "Microsoft.Design",
@@ -81,7 +80,30 @@ namespace ILGPU
             Justification = "The type is required for the computation of the " +
             "field offset")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeRelativeSizeOf<TFirst, TSecond>(int numSecondElements = 1)
+        [Obsolete("Use ComputeRelativeSizeOf<TFirst, TSecond>(int) instead")]
+        public static int ComputeRelativeSizeOf<TFirst, TSecond>()
+            where TFirst : unmanaged
+            where TSecond : unmanaged =>
+            ComputeRelativeSizeOf<TFirst, TSecond>(1);
+
+        /// <summary>
+        /// Computes number of elements of type <typeparamref name="TFirst"/>
+        /// that are required to store a type <typeparamref name="TSecond"/> in
+        /// unmanaged memory.
+        /// </summary>
+        /// <typeparam name="TFirst">
+        /// The type that should represent type <typeparamref name="TSecond"/>.
+        /// </typeparam>
+        /// <typeparam name="TSecond">
+        /// The base type that should be represented with <typeparamref name="TFirst"/>.
+        /// </typeparam>
+        /// <param name="numSecondElements">The number of <typeparamref name="TSecond"/> elements to be stored.</param>
+        /// <returns>
+        /// The number of required <typeparamref name="TFirst"/> instances to store <paramref name="numSecondElements"/>
+        /// instances of type <typeparamref name="TSecond"/>.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ComputeRelativeSizeOf<TFirst, TSecond>(int numSecondElements)
             where TFirst : unmanaged
             where TSecond : unmanaged
         {
