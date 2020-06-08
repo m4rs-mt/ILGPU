@@ -113,7 +113,7 @@ namespace ILGPU.Frontend
         /// Loads the address of a static field specified by the given metadata token.
         /// </summary>
         /// <param name="field">The field.</param>
-        private void MakeLoadStaticFieldAddress( FieldInfo field)
+        private void MakeLoadStaticFieldAddress(FieldInfo field)
         {
             var fieldValue = CreateLoadStaticFieldValue(field);
             var tempAlloca = CreateTempAlloca(fieldValue.Type);

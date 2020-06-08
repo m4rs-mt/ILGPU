@@ -99,21 +99,24 @@ namespace ILGPU.Backends
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void FinishedCodeGeneration(
                 IRContext context,
-                Method entryPoint) { }
+                Method entryPoint)
+            { }
 
             /// <summary>
             /// Performs no operation.
             /// </summary>
             public void InitializedKernelContext(
                 IRContext kernelContext,
-                Method kernelMethod) { }
+                Method kernelMethod)
+            { }
 
             /// <summary>
             /// Performs no operation.
             /// </summary>
             public void OptimizedKernelContext(
                 IRContext kernelContext,
-                Method kernelMethod) { }
+                Method kernelMethod)
+            { }
         }
 
         /// <summary>

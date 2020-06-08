@@ -12,7 +12,6 @@
 using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Runtime.OpenCL;
-using ILGPU.Util;
 
 namespace ILGPU.Backends.OpenCL
 {

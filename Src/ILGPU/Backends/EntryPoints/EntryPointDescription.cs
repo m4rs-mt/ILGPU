@@ -14,7 +14,6 @@ using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace ILGPU.Backends.EntryPoints

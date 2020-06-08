@@ -236,7 +236,7 @@ namespace ILGPU.IR.Types
             /// <summary cref="IEnumerator.Reset"/>
             void IEnumerator.Reset() => throw new InvalidOperationException();
         }
-        
+
         /// <summary>
         /// A readonly collection of all field offsets and paddings.
         /// </summary>

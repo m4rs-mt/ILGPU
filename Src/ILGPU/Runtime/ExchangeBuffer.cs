@@ -15,7 +15,6 @@ using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace ILGPU.Runtime
 {

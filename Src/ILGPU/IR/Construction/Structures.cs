@@ -56,31 +56,31 @@ namespace ILGPU.IR.Construction
                         typeInfo.Fields[0].GetValue(instance))
                     : CreateNull(location, type);
             }
-                var instanceBuilder = CreateStructure(location, structureType);
-                for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
+            var instanceBuilder = CreateStructure(location, structureType);
+            for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
+            {
+                var rawFieldValue = typeInfo.Fields[i].GetValue(instance);
+                Value fieldValue = CreateObjectValue(
+                    location,
+                    rawFieldValue);
+                if (fieldValue.Type is StructureType nestedStructureType)
                 {
-                    var rawFieldValue = typeInfo.Fields[i].GetValue(instance);
-                    Value fieldValue = CreateObjectValue(
-                        location,
-                        rawFieldValue);
-                    if (fieldValue.Type is StructureType nestedStructureType)
+                    // Extract all nested fields and insert them into the builder
+                    foreach (var (_, access) in nestedStructureType)
                     {
-                        // Extract all nested fields and insert them into the builder
-                        foreach (var (_, access) in nestedStructureType)
-                        {
-                            instanceBuilder.Add(
-                                CreateGetField(
-                                    location,
-                                    fieldValue,
-                                    access));
-                        }
-                    }
-                    else
-                    {
-                        instanceBuilder.Add(fieldValue);
+                        instanceBuilder.Add(
+                            CreateGetField(
+                                location,
+                                fieldValue,
+                                access));
                     }
                 }
-                return instanceBuilder.Seal();
+                else
+                {
+                    instanceBuilder.Add(fieldValue);
+                }
+            }
+            return instanceBuilder.Seal();
         }
 
         /// <summary>
