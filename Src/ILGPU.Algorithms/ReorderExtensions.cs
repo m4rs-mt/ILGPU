@@ -54,10 +54,10 @@ namespace ILGPU.Algorithms
         /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
         /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        readonly struct ReorderTransformWrapper<TSource, TTarget, TTransformer> : ITransformer<Index1, TTarget>
+        internal readonly struct ReorderTransformWrapper<TSource, TTarget, TTransformer> : ITransformer<Index1, TTarget>
             where TSource : unmanaged
             where TTarget : unmanaged
-            where TTransformer : ITransformer<TSource, TTarget>
+            where TTransformer : struct, ITransformer<TSource, TTarget>
         {
             #region Instance
 
@@ -91,7 +91,7 @@ namespace ILGPU.Algorithms
             #region ITransformer
 
             /// <summary cref="ITransformer{TSource, TTarget}.Transform(TSource)"/>
-            public TTarget Transform(Index1 value)
+            public readonly TTarget Transform(Index1 value)
             {
                 var sourceValue = SourceView[value];
                 return Transformer.Transform(sourceValue);
@@ -225,7 +225,9 @@ namespace ILGPU.Algorithms
                 stream,
                 reorderView,
                 target,
-                new ReorderTransformWrapper<TSource, TTarget, TTransformer>(source, transformer));
+                new ReorderTransformWrapper<TSource, TTarget, TTransformer>(
+                    source,
+                    transformer));
         }
 
         #endregion
