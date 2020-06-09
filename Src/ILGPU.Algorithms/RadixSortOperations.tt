@@ -17,9 +17,6 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
-<#
-var reductionTypes = SignedIntTypes.Concat(UnsignedIntTypes);
-#>
 using System;
 using System.Runtime.CompilerServices;
 
@@ -27,7 +24,7 @@ using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms.RadixSortOperations
 {
-<#  foreach (var type in reductionTypes) { #>
+<#  foreach (var type in NumericTypes) { #>
     /// <summary>
     /// Represents an ascending radix sort operation of type <#= type.Type #>.
     /// </summary>
@@ -53,8 +50,44 @@ namespace ILGPU.Algorithms.RadixSortOperations
         /// <param name="shift">The shift amount in bits.</param>
         /// <param name="bitMask">The lower bit mask bit use.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int ExtractRadixBits(<#= type.Type #> value, int shift, int bitMask) =>
-            (int)(value >> shift) & bitMask;
+        public int ExtractRadixBits(<#= type.Type #> value, int shift, int bitMask)
+        {
+<# if (type.IsSignedInt) { #>
+            // Negative integers are stored using two's complement, so they are already in the
+            // correct order (within negative numbers). However, the sign-bit causes negative
+            // integers to be incorrected sorted after positive numbers. So, we flip the
+            // sign-bit, causing negative numbers to be ordered before positive numbers.
+<# } else if (type.IsFloat) { #>
+            // Floating point numbers have a sign-bit, causing negative integers to be
+            // incorrected sorted after positive numbers. So, we flip the sign-bit,
+            // causing negative numbers to be ordered before positive numbers.
+            //
+            // In addition, the exponent and mantissa are always stored as positive numbers,
+            // incorrectly causing larger negative numbers to be ordered after smaller negative
+            // numbers. So, if the number is negative, we apply a one's complement to the
+            // exponent and mantissa (flip the bits), causing larger negative numbers to be
+            // ordered before smaller negative numbers.
+            //
+            // In order to flip the exponent and mantissa only for negative numbers, we build
+            // as mask by right-shifting the sign-bit all the way to the end. If the sign-bit
+            // was set, it will be extended to fill all the bits. If the sign-bit was not set,
+            // it will be zero all the way. Finally, we OR this with the sign-bit flipping
+            // because we still want negative numbers before positive numbers.
+<# } #>
+
+<# if (type.IsSignedInt && type.Name == "Int64") { #>
+            var bits = value ^ (1L << (NumBits - 1));
+<# } else if (type.IsSignedInt) { #>
+            var bits = value ^ (1 << (NumBits - 1));
+<# } else if (type.IsFloat) { #>
+            var signMask = 1<#= type.Name == "Double" ? "UL" : "U" #> << (NumBits - 1);
+            var onesComplementMask = ~(Interop.FloatAsInt(value) >> (NumBits - 1));
+            var bits = Interop.FloatAsInt(value) ^ (signMask | onesComplementMask);
+<# } else { #>
+            var bits = value;
+<# } #>
+            return (int)(bits >> shift) & bitMask;
+        }
     }
 
     /// <summary>
