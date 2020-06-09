@@ -132,6 +132,7 @@ namespace ILGPU.Algorithms
             KernelConfig config,
             ArrayView<T> view,
             ArrayView<int> counter,
+            SpecializedValue<int> groupSize,
             int numGroups,
             int paddedLength,
             int shift)
@@ -215,8 +216,6 @@ namespace ILGPU.Algorithms
 
         #region RadixSort Implementation
 
-        private const int ConstGroupSize = 1024;
-
         private static readonly MethodInfo CPURadixSortKernel1Method = typeof(RadixSortExtensions).
             GetMethod(nameof(CPURadixSortKernel1), BindingFlags.NonPublic | BindingFlags.Static);
 
@@ -254,12 +253,14 @@ namespace ILGPU.Algorithms
         /// <typeparam name="TSpecialization">The specialization type.</typeparam>
         /// <param name="view">The input view to use.</param>
         /// <param name="counter">The global counter view.</param>
+        /// <param name="groupSize">The number of threads in the group.</param>
         /// <param name="numGroups">The number of virtually launched groups.</param>
         /// <param name="paddedLength">The padded length of the input view.</param>
         /// <param name="shift">The bit shift to use.</param>
         internal static void RadixSortKernel1<T, TOperation, TSpecialization>(
             ArrayView<T> view,
             ArrayView<int> counter,
+            SpecializedValue<int> groupSize,
             int numGroups,
             int paddedLength,
             int shift)
@@ -268,7 +269,7 @@ namespace ILGPU.Algorithms
             where TSpecialization : struct, IRadixSortSpecialization
         {
             TSpecialization specialization = default;
-            var scanMemory = SharedMemory.Allocate<int>(ConstGroupSize * specialization.UnrollFactor);
+            var scanMemory = SharedMemory.Allocate<int>(groupSize * specialization.UnrollFactor);
 
             int gridIdx = Grid.IdxX;
             for (int i = Grid.GlobalIndex.X; i < paddedLength; i += GridExtensions.GridStrideLoopStride)
@@ -283,14 +284,14 @@ namespace ILGPU.Algorithms
                 var bits = operation.ExtractRadixBits(value, shift, specialization.UnrollFactor - 1);
 
                 for (int j = 0; j < specialization.UnrollFactor; ++j)
-                    scanMemory[Group.IdxX + ConstGroupSize * j] = 0;
+                    scanMemory[Group.IdxX + groupSize * j] = 0;
                 if (inRange)
-                    scanMemory[Group.IdxX + ConstGroupSize * bits] = 1;
+                    scanMemory[Group.IdxX + groupSize * bits] = 1;
                 Group.Barrier();
 
                 for (int j = 0; j < specialization.UnrollFactor; ++j)
                 {
-                    var address = Group.IdxX + ConstGroupSize * j;
+                    var address = Group.IdxX + groupSize * j;
                     scanMemory[address] = GroupExtensions.ExclusiveScan<int, AddInt32>(scanMemory[address]);
                 }
                 Group.Barrier();
@@ -300,7 +301,7 @@ namespace ILGPU.Algorithms
                     // Write counters to global memory
                     for (int j = 0; j < specialization.UnrollFactor; ++j)
                     {
-                        ref var newOffset = ref scanMemory[Group.IdxX + ConstGroupSize * j];
+                        ref var newOffset = ref scanMemory[Group.IdxX + groupSize * j];
                         newOffset += Utilities.Select(inRange & j == bits, 1, 0);
                         counter[j * numGroups + gridIdx] = newOffset;
                     }
@@ -308,11 +309,11 @@ namespace ILGPU.Algorithms
                 Group.Barrier();
 
                 var gridSize = gridIdx * Group.DimX;
-                Index1 pos = gridSize + scanMemory[Group.IdxX + ConstGroupSize * bits] -
+                Index1 pos = gridSize + scanMemory[Group.IdxX + groupSize * bits] -
                     Utilities.Select(inRange & Group.IdxX == Group.DimX - 1, 1, 0);
                 for (int j = 1; j <= bits; ++j)
                 {
-                    pos += scanMemory[ConstGroupSize * j - 1] +
+                    pos += scanMemory[groupSize * j - 1] +
                         Utilities.Select(j - 1 == bits, 1, 0);
                 }
 
@@ -667,6 +668,7 @@ namespace ILGPU.Algorithms
                             (gridDim, groupDim),
                             input,
                             counterView,
+                            SpecializedValue.New<int>(groupDim),
                             numVirtualGroups,
                             lengthInformation,
                             bitIdx);
