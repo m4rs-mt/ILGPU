@@ -207,9 +207,9 @@ namespace ILGPU.Algorithms
                 numGroups = gridDim * numIterationsPerGroup;
             }
 
-            int numIntTElements = Interop.ComputeRelativeSizeOf<int, T>();
+            int numIntTElements = Interop.ComputeRelativeSizeOf<int, T>(dataLength);
             const int unrollFactor = 4;
-            return numGroups * unrollFactor * 2 + numIntTElements * dataLength + tempScanMemory;
+            return numGroups * unrollFactor * 2 + numIntTElements + tempScanMemory;
         }
 
         #endregion

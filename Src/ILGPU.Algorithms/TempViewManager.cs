@@ -80,8 +80,7 @@ namespace ILGPU.Algorithms
         public ArrayView<T> Allocate<T>(int length)
             where T : unmanaged
         {
-            var numIntElements = Interop.ComputeRelativeSizeOf<int, T>();
-            var viewLength = length * numIntElements;
+            var viewLength = Interop.ComputeRelativeSizeOf<int, T>(length);
             if (NumInts + viewLength > TempView.Length)
                 throw new ArgumentOutOfRangeException(ParamName);
 

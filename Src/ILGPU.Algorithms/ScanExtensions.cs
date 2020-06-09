@@ -181,8 +181,7 @@ namespace ILGPU.Algorithms
             {
                 AcceleratorType.CPU => 1,
                 AcceleratorType.Cuda => ComputeNumIntElementsForSinglePassScan<T>(),
-                _ => accelerator.MaxNumGroupsExtent.Item1 *
-                    Interop.ComputeRelativeSizeOf<int, T>(),
+                _ => Interop.ComputeRelativeSizeOf<int, T>(accelerator.MaxNumGroupsExtent.Item1),
             };
         }
 
@@ -475,7 +474,7 @@ namespace ILGPU.Algorithms
         /// <returns>The required number of <see cref="int"/> elements in temporary memory.</returns>
         private static int ComputeNumIntElementsForSinglePassScan<T>()
             where T : unmanaged =>
-            Interop.ComputeRelativeSizeOf<int, T>() + 1;
+            Interop.ComputeRelativeSizeOf<int, T>(1) + 1;
 
         /// <summary>
         /// Creates a new single pass scan.
