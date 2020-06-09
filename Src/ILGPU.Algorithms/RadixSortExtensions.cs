@@ -362,7 +362,7 @@ namespace ILGPU.Algorithms
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
             // Compute local segment information
-            for (Index1 i = tileInfo.StartIndex; i < tileInfo.EndIndex; ++i)
+            for (Index1 i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
             {
                 // Read value from global memory
                 TOperation operation = default;
@@ -386,7 +386,7 @@ namespace ILGPU.Algorithms
             scanMemory[0] = 0;
 
             // Pre-sort the current value into the corresponding segment
-            for (Index1 i = tileInfo.StartIndex; i < tileInfo.EndIndex; ++i)
+            for (Index1 i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
             {
                 // Read value from global memory
                 TOperation operation = default;
@@ -502,7 +502,7 @@ namespace ILGPU.Algorithms
             TSpecialization specialization = default;
             var tileInfo = new TileInfo<T>(input, numIterationsPerGroup);
 
-            for (Index1 i = tileInfo.StartIndex; i < tileInfo.EndIndex; ++i)
+            for (Index1 i = tileInfo.StartIndex; i < tileInfo.MaxLength; ++i)
             {
                 // Read value from global memory
                 TOperation operation = default;
