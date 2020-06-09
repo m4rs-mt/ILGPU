@@ -87,7 +87,7 @@ namespace ILGPU.Algorithms
 
             var tempView = TempView.GetSubView(NumInts, viewLength);
             NumInts += viewLength;
-            return tempView.Cast<T>();
+            return tempView.Cast<T>().GetSubView(0, length);
         }
 
         #endregion
