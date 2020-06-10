@@ -41,7 +41,7 @@ namespace ILGPU.Algorithms.IL
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T ExclusiveScan<T, TScanOperation>(T value)
             where T : struct
-            where TScanOperation : struct, IScanReduceOperation<T> => value;
+            where TScanOperation : struct, IScanReduceOperation<T> => default;
 
         /// <summary cref="WarpExtensions.InclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
