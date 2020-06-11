@@ -1,6 +1,10 @@
 ﻿using System;
 using Xunit.Abstractions;
 
+#pragma warning disable CA1815 // Override equals and operator equals on value types
+#pragma warning disable CA1051 // Do not declare visible instance fields
+#pragma warning disable CA2231 // Overload operator equals on overriding value type Equals
+
 // Uses annotated structures supporting the IXunitSerializable interface
 // More information can be found here: https://github.com/xunit/xunit/issues/429
 
@@ -64,7 +68,7 @@ namespace ILGPU.Tests
     }
 
     [Serializable]
-    internal struct EmptyStruct : IXunitSerializable, IEquatable<EmptyStruct>
+    public struct EmptyStruct : IXunitSerializable, IEquatable<EmptyStruct>
     {
         public void Deserialize(IXunitSerializationInfo info) { }
 
@@ -79,7 +83,7 @@ namespace ILGPU.Tests
     }
 
     [Serializable]
-    internal struct TestStruct : IXunitSerializable, IEquatable<TestStruct>
+    public struct TestStruct : IXunitSerializable, IEquatable<TestStruct>
     {
         public int X;
         public long Y;
@@ -116,7 +120,7 @@ namespace ILGPU.Tests
     }
 
     [Serializable]
-    internal struct TestStruct<T> : IXunitSerializable, IValueStructure<T>
+    public struct TestStruct<T> : IXunitSerializable, IValueStructure<T>
         where T : struct
     {
         public byte Val0;
@@ -150,7 +154,7 @@ namespace ILGPU.Tests
     }
 
     [Serializable]
-    internal struct TestStructEquatable<T> :
+    public struct TestStructEquatable<T> :
         IXunitSerializable,
         IValueStructure<T>,
         IEquatable<TestStructEquatable<T>>
@@ -203,7 +207,7 @@ namespace ILGPU.Tests
     }
 
     [Serializable]
-    internal struct TestStruct<T1, T2> : IXunitSerializable, IValueStructure<T2>
+    public struct TestStruct<T1, T2> : IXunitSerializable, IValueStructure<T2>
         where T1 : struct
         where T2 : struct
     {
@@ -238,7 +242,7 @@ namespace ILGPU.Tests
     }
 
     [Serializable]
-    internal struct TestStructEquatable<T1, T2> :
+    public struct TestStructEquatable<T1, T2> :
         IXunitSerializable,
         IValueStructure<T2>,
         IEquatable<TestStructEquatable<T1, T2>>
@@ -290,7 +294,7 @@ namespace ILGPU.Tests
         public override string ToString() => data.ToString();
     }
 
-    internal struct DeepStructure<T> : IXunitSerializable
+    public struct DeepStructure<T> : IXunitSerializable
         where T : struct
     {
         public TestStruct<
@@ -363,7 +367,7 @@ namespace ILGPU.Tests
     /// <summary>
     /// Array size of 0.
     /// </summary>
-    internal struct Length0 : ILength
+    public struct Length0 : ILength
     {
         public int Length => 0;
 
@@ -375,7 +379,7 @@ namespace ILGPU.Tests
     /// <summary>
     /// Array size of 1.
     /// </summary>
-    internal struct Length1 : ILength
+    public struct Length1 : ILength
     {
         public int Length => 1;
 
@@ -387,7 +391,7 @@ namespace ILGPU.Tests
     /// <summary>
     /// Array size of 2.
     /// </summary>
-    internal struct Length2 : ILength
+    public struct Length2 : ILength
     {
         public int Length => 2;
 
@@ -399,7 +403,7 @@ namespace ILGPU.Tests
     /// <summary>
     /// Array size of 31.
     /// </summary>
-    internal struct Length31 : ILength
+    public struct Length31 : ILength
     {
         public int Length => 31;
 
@@ -411,7 +415,7 @@ namespace ILGPU.Tests
     /// <summary>
     /// Array size of 32.
     /// </summary>
-    internal struct Length32 : ILength
+    public struct Length32 : ILength
     {
         public int Length => 32;
 
@@ -423,7 +427,7 @@ namespace ILGPU.Tests
     /// <summary>
     /// Array size of 33.
     /// </summary>
-    internal struct Length33 : ILength
+    public struct Length33 : ILength
     {
         public int Length => 33;
 
@@ -435,7 +439,7 @@ namespace ILGPU.Tests
     /// <summary>
     /// Array size of 65.
     /// </summary>
-    internal struct Length65 : ILength
+    public struct Length65 : ILength
     {
         public int Length => 65;
 
@@ -447,7 +451,7 @@ namespace ILGPU.Tests
     /// <summary>
     /// Array size of 127.
     /// </summary>
-    internal struct Length127 : ILength
+    public struct Length127 : ILength
     {
         public int Length => 127;
 
@@ -458,3 +462,7 @@ namespace ILGPU.Tests
 
     #endregion
 }
+
+#pragma warning restore CA2231 // Overload operator equals on overriding value type Equals
+#pragma warning restore CA1051 // Do not declare visible instance fields
+#pragma warning restore CA1815 // Override equals and operator equals on value types
