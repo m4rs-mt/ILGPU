@@ -252,7 +252,7 @@ namespace ILGPU.Backends
                     dynamicSharedAllocations.Count > 0);
 
                 KernelInfo = null;
-                if (kernelContext.HasFlags(ContextFlags.EnableKernelInformation))
+                if (kernelContext.HasFlags(ContextFlags.EnableKernelStatistics))
                     KernelInfo = CreateKernelInfo();
             }
 
