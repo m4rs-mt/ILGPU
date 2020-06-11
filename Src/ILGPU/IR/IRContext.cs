@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Frontend;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Transformations;
@@ -255,9 +256,8 @@ namespace ILGPU.IR
             irLock.EnterReadLock();
             try
             {
-                return !methods.TryGetHandle(method, out MethodHandle handle)
-                    ? false
-                    : methods.TryGetData(handle, out function);
+                return methods.TryGetHandle(method, out MethodHandle handle)
+                    && methods.TryGetData(handle, out function);
             }
             finally
             {
@@ -301,7 +301,10 @@ namespace ILGPU.IR
                     return methods[handle];
                 }
 
-                handle = MethodHandle.Create(methodBase.Name);
+                var externalAttribute = methodBase.GetCustomAttribute<
+                    ExternalAttribute>();
+                var methodName = externalAttribute?.Name ?? methodBase.Name;
+                handle = MethodHandle.Create(methodName);
                 var declaration = new MethodDeclaration(
                     handle,
                     CreateType(methodBase.GetReturnType()),
@@ -362,9 +365,8 @@ namespace ILGPU.IR
             out MethodHandle handle)
         {
             var methodId = Context.CreateMethodHandle();
-            var methodName = declaration.HasSource
-                ? declaration.Source.Name
-                : declaration.Handle.Name ?? "Func";
+            var methodName = declaration.Handle.Name ??
+                (declaration.HasSource ? declaration.Source.Name : "Func");
             handle = new MethodHandle(methodId, methodName);
             var specializedDeclaration = declaration.Specialize(handle);
 
@@ -375,18 +377,37 @@ namespace ILGPU.IR
                 specializedDeclaration,
                 Location.Unknown);
 
-            // Check for external function
-            if (declaration.HasFlags(
-                MethodFlags.External | MethodFlags.Intrinsic))
-            {
-                using var builder = method.CreateBuilder();
-                var bbBuilder = builder.EntryBlockBuilder;
-                var returnValue = bbBuilder.CreateNull(
-                    method.Location,
-                    method.ReturnType);
-                bbBuilder.CreateReturn(method.Location, returnValue);
-            }
+            // Check for external and intrinsic functions
+            if (declaration.HasFlags(MethodFlags.External | MethodFlags.Intrinsic))
+                SealMethodWithoutImplementation(method);
             return method;
+        }
+
+        /// <summary>
+        /// Seals intrinsic or external methods.
+        /// </summary>
+        /// <param name="method">The method to seal.</param>
+        private static void SealMethodWithoutImplementation(Method method)
+        {
+            using var builder = method.CreateBuilder();
+            var bbBuilder = builder.EntryBlockBuilder;
+
+            // Attach all method parameters
+            if (method.HasSource)
+            {
+                var parameters = method.Source.GetParameters();
+                foreach (var parameter in parameters)
+                {
+                    var paramType = bbBuilder.CreateType(parameter.ParameterType);
+                    builder.AddParameter(paramType, parameter.Name);
+                }
+            }
+
+            // "Seal" the current method
+            var returnValue = bbBuilder.CreateNull(
+                method.Location,
+                method.ReturnType);
+            bbBuilder.CreateReturn(method.Location, returnValue);
         }
 
         /// <summary>
@@ -450,7 +471,7 @@ namespace ILGPU.IR
             foreach (var sourceMethod in methodsToRebuild)
             {
                 var targetMethod = methodMapping[sourceMethod];
-
+                if (sourceMethod.HasImplementation)
                 {
                     using var builder = targetMethod.CreateBuilder();
                     // Build new parameters to match the old ones

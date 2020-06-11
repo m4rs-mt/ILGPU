@@ -185,7 +185,7 @@ namespace ILGPU
         {
             // Enable debug information automatically when a debugger is attached
             if (Debugger.IsAttached)
-                flags |= ContextFlags.EnableDebugSymbols;
+                flags |= DefaultDebug;
 
             OptimizationLevel = optimizationLevel;
             Flags = flags.Prepare();
