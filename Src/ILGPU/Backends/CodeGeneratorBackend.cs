@@ -116,7 +116,11 @@ namespace ILGPU.Backends
                 generators[i].Merge(mainBuilder);
 
             // Create final kernel
-            return CreateKernel(entryPoint, mainBuilder, data);
+            return CreateKernel(
+                entryPoint,
+                backendContext.KernelInfo,
+                mainBuilder,
+                data);
         }
 
         /// <summary>
@@ -165,10 +169,12 @@ namespace ILGPU.Backends
         /// </summary>
         /// <param name="entryPoint">The current entry point.</param>
         /// <param name="builder">The kernel builder.</param>
+        /// <param name="kernelInfo">Detailed information about the kernel.</param>
         /// <param name="data">The user-defined data instance.</param>
         /// <returns>The resulting compiled kernel.</returns>
         protected abstract CompiledKernel CreateKernel(
             EntryPoint entryPoint,
+            CompiledKernel.KernelInfo kernelInfo,
             TKernelBuilder builder,
             T data);
 

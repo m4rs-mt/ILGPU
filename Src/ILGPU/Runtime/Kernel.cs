@@ -114,7 +114,7 @@ namespace ILGPU.Runtime
             in EntryPointDescription entry,
             in KernelSpecialization specialization,
             Method kernelMethod,
-            ref TLoader loader)
+            in TLoader loader)
             where TDelegate : Delegate
             where TLoader : struct, Accelerator.IKernelLoader
         {

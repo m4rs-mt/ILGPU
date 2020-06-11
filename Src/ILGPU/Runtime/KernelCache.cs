@@ -216,16 +216,13 @@ namespace ILGPU.Runtime
             /// Constructs a new cached kernel.
             /// </summary>
             /// <param name="kernel">The kernel to cache.</param>
-            /// <param name="groupSize">The computed group size.</param>
-            /// <param name="minGridSize">The computed minimum grid size.</param>
+            /// <param name="kernelInfo">Detailed kernel information.</param>
             public CachedKernel(
                 WeakReference<object> kernel,
-                int groupSize,
-                int minGridSize)
+                KernelInfo kernelInfo)
             {
                 kernelReference = kernel;
-                GroupSize = groupSize;
-                MinGridSize = minGridSize;
+                KernelInfo = kernelInfo;
             }
 
             #endregion
@@ -233,14 +230,9 @@ namespace ILGPU.Runtime
             #region Properties
 
             /// <summary>
-            /// Returns the computed group size.
+            /// Returns the stored kernel information.
             /// </summary>
-            public int GroupSize { get; }
-
-            /// <summary>
-            /// Returns the computed minimum grid size.
-            /// </summary>
-            public int MinGridSize { get; }
+            public KernelInfo KernelInfo { get; }
 
             #endregion
 
@@ -251,7 +243,7 @@ namespace ILGPU.Runtime
             /// </summary>
             /// <param name="kernel">The resolved kernel.</param>
             /// <returns>True, if the associated kernel could be resolved.</returns>
-            public bool TryGetKernel<T>(out T kernel)
+            public readonly bool TryGetKernel<T>(out T kernel)
                 where T : class
             {
                 kernel = null;
@@ -289,12 +281,7 @@ namespace ILGPU.Runtime
             /// <summary>
             /// Returns the custom group size.
             /// </summary>
-            int GroupSize { get; set; }
-
-            /// <summary>
-            /// Returns the custom min grid size.
-            /// </summary>
-            int MinGridSize { get; set; }
+            int GroupSize { get; }
 
             /// <summary>
             /// Loads the given kernel using the given accelerator.
@@ -303,17 +290,20 @@ namespace ILGPU.Runtime
             /// The target accelerator for the loading operation.
             /// </param>
             /// <param name="compiledKernel">The compiled kernel to load.</param>
+            /// <param name="kernelInfo">Detailed kernel information.</param>
             /// <returns>The loaded kernel.</returns>
             Kernel LoadKernel(
                 Accelerator accelerator,
-                CompiledKernel compiledKernel);
+                CompiledKernel compiledKernel,
+                out KernelInfo kernelInfo);
         }
 
         /// <summary>
         /// Represents an internal cached kernel loader.
         /// </summary>
         private delegate T CachedKernelLoader<T, TKernelLoader>(
-            ref TKernelLoader kernelLoader)
+            in TKernelLoader kernelLoader,
+            out KernelInfo kernelInfo)
             where T : class
             where TKernelLoader : struct, IKernelLoader;
 
@@ -383,13 +373,15 @@ namespace ILGPU.Runtime
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
         /// <param name="cachedLoader">The cached kernel loader.</param>
+        /// <param name="kernelInfo">Detailed kernel information.</param>
         /// <returns>The loaded kernel.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private T LoadCachedKernel<TKernelLoader, T>(
             in EntryPointDescription entry,
             in KernelSpecialization specialization,
-            ref TKernelLoader kernelLoader,
-            CachedKernelLoader<T, TKernelLoader> cachedLoader)
+            in TKernelLoader kernelLoader,
+            CachedKernelLoader<T, TKernelLoader> cachedLoader,
+            out KernelInfo kernelInfo)
             where T : class
             where TKernelLoader : struct, IKernelLoader
         {
@@ -406,16 +398,14 @@ namespace ILGPU.Runtime
                     if (!kernelCache.TryGetValue(cachedKey, out CachedKernel cached) ||
                         !cached.TryGetKernel(out T result))
                     {
-                        result = cachedLoader(ref kernelLoader);
+                        result = cachedLoader(kernelLoader, out kernelInfo);
                         kernelCache[cachedKey] = new CachedKernel(
                             cached.UpdateReference(result),
-                            kernelLoader.GroupSize,
-                            kernelLoader.MinGridSize);
+                            kernelInfo);
                     }
                     else
                     {
-                        kernelLoader.MinGridSize = cached.MinGridSize;
-                        kernelLoader.GroupSize = cached.GroupSize;
+                        kernelInfo = cached.KernelInfo;
                     }
                     RequestGC_SyncRoot();
                     return result;
@@ -423,7 +413,7 @@ namespace ILGPU.Runtime
             }
             else
             {
-                return cachedLoader(ref kernelLoader);
+                return cachedLoader(kernelLoader, out kernelInfo);
             }
         }
 
@@ -436,16 +426,21 @@ namespace ILGPU.Runtime
         /// <param name="entry">The entry point to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
+        /// <param name="kernelInfo">Detailed kernel information.</param>
         /// <returns>The loaded kernel.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Kernel LoadGenericKernelDirect<TKernelLoader>(
             in EntryPointDescription entry,
             in KernelSpecialization specialization,
-            ref TKernelLoader kernelLoader)
+            in TKernelLoader kernelLoader,
+            out KernelInfo kernelInfo)
             where TKernelLoader : struct, IKernelLoader
         {
             var compiledKernel = CompileKernel(entry, specialization);
-            return kernelLoader.LoadKernel(this, compiledKernel);
+            return kernelLoader.LoadKernel(
+                this,
+                compiledKernel,
+                out kernelInfo);
         }
 
         /// <summary>
@@ -455,19 +450,22 @@ namespace ILGPU.Runtime
         /// <param name="entry">The entry point to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
+        /// <param name="kernelInfo">Detailed kernel information.</param>
         /// <returns>The loaded kernel.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Kernel LoadGenericKernel<TKernelLoader>(
             EntryPointDescription entry,
             KernelSpecialization specialization,
-            ref TKernelLoader kernelLoader)
+            in TKernelLoader kernelLoader,
+            out KernelInfo kernelInfo)
             where TKernelLoader : struct, IKernelLoader =>
             LoadCachedKernel(
                 entry,
                 specialization,
-                ref kernelLoader,
-                (ref TKernelLoader loader) =>
-                    LoadGenericKernelDirect(entry, specialization, ref loader));
+                kernelLoader,
+                (in TKernelLoader loader, out KernelInfo info) =>
+                    LoadGenericKernelDirect(entry, specialization, loader, out info),
+                out kernelInfo);
 
         /// <summary>
         /// Loads a kernel specified by the given method without using internal caches.
@@ -475,22 +473,27 @@ namespace ILGPU.Runtime
         /// <param name="entry">The entry point to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
+        /// <param name="kernelInfo">Detailed kernel information.</param>
         /// <returns>The loaded specialized kernel delegate.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private TDelegate LoadSpecializationKernelDirect<TDelegate, TKernelLoader>(
             in EntryPointDescription entry,
             in KernelSpecialization specialization,
-            ref TKernelLoader kernelLoader)
+            in TKernelLoader kernelLoader,
+            out KernelInfo kernelInfo)
             where TDelegate : Delegate
             where TKernelLoader : struct, IKernelLoader
         {
+            // We cannot determine detailed information about dynamically specialized
+            // kernels at this point
+            kernelInfo = null;
             var kernelMethod = Backend.PreCompileKernelMethod(entry);
             return Kernel.CreateSpecializedLauncher<TDelegate, TKernelLoader>(
                 this,
                 entry,
                 specialization,
                 kernelMethod,
-                ref kernelLoader);
+                kernelLoader);
         }
 
         /// <summary>
@@ -503,23 +506,27 @@ namespace ILGPU.Runtime
         /// <param name="entry">The entry point to compile into a kernel.</param>
         /// <param name="specialization">The kernel specialization.</param>
         /// <param name="kernelLoader">The kernel loader.</param>
+        /// <param name="kernelInfo">Detailed kernel information.</param>
         /// <returns>The loaded kernel.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private TDelegate LoadSpecializationKernel<TDelegate, TKernelLoader>(
             EntryPointDescription entry,
             KernelSpecialization specialization,
-            ref TKernelLoader kernelLoader)
+            in TKernelLoader kernelLoader,
+            out KernelInfo kernelInfo)
             where TDelegate : Delegate
             where TKernelLoader : struct, IKernelLoader =>
             LoadCachedKernel(
                 entry,
                 specialization,
-                ref kernelLoader,
-                (ref TKernelLoader loader) =>
+                kernelLoader,
+                (in TKernelLoader loader, out KernelInfo info) =>
                     LoadSpecializationKernelDirect<TDelegate, TKernelLoader>(
                         entry,
                         specialization,
-                        ref loader));
+                        loader,
+                        out info),
+                out kernelInfo);
 
         /// <summary>
         /// Compiles the given method into a <see cref="CompiledKernel"/>.

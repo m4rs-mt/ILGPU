@@ -194,7 +194,7 @@ namespace ILGPU.Runtime
                 targetMethod,
                 Entry,
                 KernelSpecialization);
-            var kernel = Loader.LoadKernel(Accelerator, compiledKernel);
+            var kernel = Loader.LoadKernel(Accelerator, compiledKernel, out var _);
             return kernel.CreateLauncherDelegate<TDelegate>();
         }
 

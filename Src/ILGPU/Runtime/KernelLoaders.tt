@@ -52,11 +52,30 @@ namespace ILGPU.Runtime
         public static Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>> LoadKernel<<#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action)
+            <#= delegateParams.TypeRestrictions #> =>
+            accelerator.LoadKernel<<#= delegateParams.TypeParams #>>(action, out var _);
+
+        /// <summary>
+        /// Loads the given explicitly grouped kernel and returns a launcher delegate
+        /// that can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="kernelInfo">Detailed information about the loaded kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        public static Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>> LoadKernel<<#= delegateParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<<#= delegateParams.TypeParams #>> action,
+            out KernelInfo kernelInfo)
             <#= delegateParams.TypeRestrictions #>
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-            return accelerator.LoadKernel<Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>>>(action.Method);
+            return accelerator.LoadKernel<Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>>>(
+                action.Method,
+                default,
+                out kernelInfo);
         }
 
         /// <summary>
@@ -70,9 +89,25 @@ namespace ILGPU.Runtime
         public static Action<KernelConfig, <#= delegateParams.TypeParams #>> LoadStreamKernel<<#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action)
+            <#= delegateParams.TypeRestrictions #> =>
+            accelerator.LoadStreamKernel<<#= delegateParams.TypeParams #>>(action, out var _);
+
+        /// <summary>
+        /// Loads the given explicitly grouped kernel and returns a launcher delegate
+        /// that uses the default accelerator stream.
+        /// </summary>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="kernelInfo">Detailed information about the loaded kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        public static Action<KernelConfig, <#= delegateParams.TypeParams #>> LoadStreamKernel<<#= delegateParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<<#= delegateParams.TypeParams #>> action,
+            out KernelInfo kernelInfo)
             <#= delegateParams.TypeRestrictions #>
         {
-            var baseKernel = accelerator.LoadKernel<<#= delegateParams.TypeParams #>>(action);
+            var baseKernel = accelerator.LoadKernel<<#= delegateParams.TypeParams #>>(action, out kernelInfo);
             return (KernelConfig config, <#= delegateParams.DefaultStreamLambdaParams #>) =>
                 baseKernel(accelerator.DefaultStream, config, <#= delegateParams.DefaultStreamArgs #>);
         }
@@ -90,13 +125,35 @@ namespace ILGPU.Runtime
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action,
             KernelSpecialization specialization)
+            <#= delegateParams.TypeRestrictions #> =>
+                accelerator.LoadKernel<Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>>>(
+                action.Method,
+                specialization,
+                out var _);
+
+        /// <summary>
+        /// Loads the given explicitly grouped kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <param name="kernelInfo">Detailed information about the loaded kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        public static Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>> LoadKernel<<#= delegateParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<<#= delegateParams.TypeParams #>> action,
+            KernelSpecialization specialization,
+            out KernelInfo kernelInfo)
             <#= delegateParams.TypeRestrictions #>
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
             return accelerator.LoadKernel<Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>>>(
                 action.Method,
-                specialization);
+                specialization,
+                out kernelInfo);
         }
 
         /// <summary>
@@ -116,9 +173,34 @@ namespace ILGPU.Runtime
             this Accelerator accelerator,
             Action<<#= delegateParams.TypeParams #>> action,
             KernelSpecialization specialization)
+            <#= delegateParams.TypeRestrictions #> =>
+            accelerator.LoadStreamKernel<<#= delegateParams.TypeParams #>>(action, specialization, out var _);
+
+        /// <summary>
+        /// Loads the given explicitly grouped kernel and returns a launcher delegate
+        /// that uses the default accelerator stream.
+        /// </summary>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="specialization">The kernel specialization.</param>
+        /// <param name="kernelInfo">Detailed information about the loaded kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implicitly-grouped kernels will be launched with a group size
+        /// of the current warp size of the accelerator.
+        /// </remarks>
+        public static Action<KernelConfig, <#= delegateParams.TypeParams #>> LoadStreamKernel<<#= delegateParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<<#= delegateParams.TypeParams #>> action,
+            KernelSpecialization specialization,
+            out KernelInfo kernelInfo)
             <#= delegateParams.TypeRestrictions #>
         {
-            var baseKernel = accelerator.LoadKernel<<#= delegateParams.TypeParams #>>(action, specialization);
+            var baseKernel = accelerator.LoadKernel<<#= delegateParams.TypeParams #>>(
+                action,
+                specialization,
+                out kernelInfo);
             return (KernelConfig config, <#= delegateParams.DefaultStreamLambdaParams #>) =>
                 baseKernel(accelerator.DefaultStream, config, <#= delegateParams.DefaultStreamArgs #>);
         }
@@ -154,6 +236,37 @@ namespace ILGPU.Runtime
 
         /// <summary>
         /// Loads the given implicitly grouped kernel and returns a launcher delegate
+        /// that can receive arbitrary accelerator streams (first parameter).
+        /// group size.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="customGroupSize">The custom group size to use.</param>
+        /// <param name="kernelInfo">Detailed information about the loaded kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implicitly-grouped kernel will be launched with the given group size.
+        /// </remarks>
+        public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadImplicitlyGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            int customGroupSize,
+            out KernelInfo kernelInfo)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            return accelerator.LoadImplicitlyGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
+                action.Method,
+                customGroupSize,
+                out kernelInfo);
+        }
+
+        /// <summary>
+        /// Loads the given implicitly grouped kernel and returns a launcher delegate
         /// that uses the default accelerator stream.
         /// group size.
         /// </summary>
@@ -171,9 +284,39 @@ namespace ILGPU.Runtime
             Action<TIndex, <#= delegateParams.TypeParams #>> action,
             int customGroupSize)
             where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #> =>
+            accelerator.LoadImplicitlyGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+                action,
+                customGroupSize,
+                out var _);
+
+        /// <summary>
+        /// Loads the given implicitly grouped kernel and returns a launcher delegate
+        /// that uses the default accelerator stream.
+        /// group size.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="customGroupSize">The custom group size to use.</param>
+        /// <param name="kernelInfo">Detailed information about the loaded kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        /// <remarks>
+        /// Note that implicitly-grouped kernel will be launched with the given group size.
+        /// </remarks>
+        public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadImplicitlyGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            int customGroupSize,
+            out KernelInfo kernelInfo)
+            where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
-            var baseKernel = accelerator.LoadImplicitlyGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(action, customGroupSize);
+            var baseKernel = accelerator.LoadImplicitlyGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
+                action,
+                customGroupSize,
+                out kernelInfo);
             return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
                 baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
         }
@@ -214,6 +357,7 @@ namespace ILGPU.Runtime
         /// The minimum grid size to gain maximum occupancy on this device.
         /// </param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
+        [Obsolete("Use LoadAutoGroupedKernel with a KernelInfo output instead")]
         public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<TIndex, <#= delegateParams.TypeParams #>> action,
@@ -222,12 +366,34 @@ namespace ILGPU.Runtime
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
+            var result = accelerator.LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(action, out var info);
+            groupSize = info.MinGroupSize.Value;
+            minGridSize = info.MinGridSize.Value;
+            return result;
+        }
+
+        /// <summary>
+        /// Loads the given implicitly grouped kernel and returns a launcher delegate that
+        /// can receive arbitrary accelerator streams (first parameter).
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="kernelInfo">Detailed information about the loaded kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        public static Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            out KernelInfo kernelInfo)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
             return accelerator.LoadAutoGroupedKernel<Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>(
                 action.Method,
-                out groupSize,
-                out minGridSize);
+                out kernelInfo);
         }
 
         /// <summary>
@@ -264,6 +430,7 @@ namespace ILGPU.Runtime
         /// The minimum grid size to gain maximum occupancy on this device.
         /// </param>
         /// <returns>The loaded kernel-launcher delegate.</returns>
+        [Obsolete("Use LoadAutoGroupedStreamKernel with a KernelInfo output instead")]
         public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
             this Accelerator accelerator,
             Action<TIndex, <#= delegateParams.TypeParams #>> action,
@@ -272,10 +439,33 @@ namespace ILGPU.Runtime
             where TIndex : struct, IIndex
             <#= delegateParams.TypeRestrictions #>
         {
+            var result = accelerator.LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+                action,
+                out var info);
+            groupSize = info.MinGroupSize.Value;
+            minGridSize = info.MinGridSize.Value;
+            return result;
+        }
+
+        /// <summary>
+        /// Loads the given implicitly grouped kernel and returns a launcher delegate that uses the default accelerator stream.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="kernelInfo">Detailed information about the loaded kernel.</param>
+        /// <returns>The loaded kernel-launcher delegate.</returns>
+        public static Action<TIndex, <#= delegateParams.TypeParams #>> LoadAutoGroupedStreamKernel<TIndex, <#= delegateParams.TypeParams #>>(
+            this Accelerator accelerator,
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            out KernelInfo kernelInfo)
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
             var baseKernel = accelerator.LoadAutoGroupedKernel<TIndex, <#= delegateParams.TypeParams #>>(
                 action,
-                out groupSize,
-                out minGridSize);
+                out kernelInfo);
             return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
                 baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
         }
