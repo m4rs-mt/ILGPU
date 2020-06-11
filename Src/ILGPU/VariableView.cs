@@ -100,7 +100,7 @@ namespace ILGPU
 
             var rawView = BaseView.Cast<byte>();
             var subView = rawView.GetSubView(offsetInBytes);
-            var finalView = subView.Cast<TOther>();
+            var finalView = subView.Cast<TOther>().GetSubView(0, 1);
             return new VariableView<TOther>(finalView);
         }
 
