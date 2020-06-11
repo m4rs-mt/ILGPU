@@ -99,6 +99,11 @@ namespace ILGPU.IR
         public Context Context { get; }
 
         /// <summary>
+        /// Returns the current verifier instance.
+        /// </summary>
+        internal Verifier Verifier => Context.Verifier;
+
+        /// <summary>
         /// Returns the associated type context.
         /// </summary>
         public IRTypeContext TypeContext { get; }
@@ -499,7 +504,7 @@ namespace ILGPU.IR
             irLock.EnterWriteLock();
             try
             {
-                transformer.Transform(this, handler);
+                transformer.Transform(this, handler, Verifier);
             }
             finally
             {

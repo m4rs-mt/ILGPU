@@ -21,7 +21,7 @@ namespace ILGPU.IR
     /// <summary>
     /// An IR verification result.
     /// </summary>
-    public sealed class VerificationResult : IDumpable
+    internal sealed class VerificationResult : IDumpable
     {
         #region Instance
 
@@ -97,7 +97,7 @@ namespace ILGPU.IR
     /// <summary>
     /// A verifier to verify the structure of an IR method.
     /// </summary>
-    public static class Verifier
+    internal class Verifier
     {
         #region Nested Types
 
@@ -458,35 +458,54 @@ namespace ILGPU.IR
             #endregion
         }
 
+        /// <summary>
+        /// A verifier that does not perform any verification steps.
+        /// </summary>
+        private sealed class NoVerifier : Verifier
+        {
+            private static readonly VerificationResult NoResult =
+                new VerificationResult();
+
+            /// <summary>
+            /// Performs no verification step.
+            /// </summary>
+            public override void Verify(Method method) { }
+
+            /// <summary>
+            /// Returns an empty verification result.
+            /// </summary>
+            public override VerificationResult VerifyToResult(Method method) =>
+                NoResult;
+
+            /// <summary>
+            /// Performs a verification step for all methods that should be verified.
+            /// </summary>
+            /// <typeparam name="TPredicate">The collection predicate.</typeparam>
+            /// <param name="methods">The methods to verify.</param>
+            public override void Verify<TPredicate>(MethodCollection<TPredicate> methods)
+            { }
+        }
+
         #endregion
 
         #region Static
 
         /// <summary>
-        /// Verifies the given IR method and throws an
-        /// <see cref="InvalidOperationException"/> in case of an error.
+        /// Returns a verifier instance that verifies all IR methods.
         /// </summary>
-        /// <param name="method">The method to verify.</param>
-        /// <remarks>
-        /// This operation is only available in debug mode.
-        /// </remarks>
-        [Conditional("DEBUG")]
-        public static void Verify(Method method)
-        {
-            var result = VerifyToResult(method);
-            if (result.HasErrors)
-            {
-                result.DumpToError();
-                throw method.GetInvalidOperationException(result.ToString());
-            }
-        }
+        public static readonly Verifier Instance = new Verifier();
+
+        /// <summary>
+        /// Returns an empty verifier that does not perform any verification steps.
+        /// </summary>
+        public static readonly Verifier Empty = new NoVerifier();
 
         /// <summary>
         /// Verifies the given IR method.
         /// </summary>
         /// <param name="method">The method to verify.</param>
         /// <returns>The created verification result object.</returns>
-        public static VerificationResult VerifyToResult(Method method)
+        public static VerificationResult ApplyVerification(Method method)
         {
             var result = new VerificationResult();
 
@@ -504,5 +523,54 @@ namespace ILGPU.IR
         }
 
         #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a verifier instance.
+        /// </summary>
+        private Verifier() { }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Verifies the given IR method and throws an
+        /// <see cref="InvalidOperationException"/> in case of an error.
+        /// </summary>
+        /// <param name="method">The method to verify.</param>
+        public virtual void Verify(Method method)
+        {
+            var result = VerifyToResult(method);
+            if (result.HasErrors)
+            {
+                result.DumpToError();
+                throw method.GetInvalidOperationException(result.ToString());
+            }
+        }
+
+        /// <summary>
+        /// Verifies the given IR method.
+        /// </summary>
+        /// <param name="method">The method to verify.</param>
+        /// <returns>The created verification result object.</returns>
+        public virtual VerificationResult VerifyToResult(Method method) =>
+            ApplyVerification(method);
+
+        /// <summary>
+        /// Performs a verification step for all methods that should be verified.
+        /// </summary>
+        /// <typeparam name="TPredicate">The collection predicate.</typeparam>
+        /// <param name="methods">The methods to verify.</param>
+        public virtual void Verify<TPredicate>(MethodCollection<TPredicate> methods)
+            where TPredicate : IMethodCollectionPredicate
+        {
+            foreach (var method in methods)
+                Verify(method);
+        }
+
+        #endregion
     }
+
 }

@@ -137,7 +137,6 @@ namespace ILGPU.IR.Transformations
                     using var builder = method.CreateBuilder();
                     ExecuteTransform(builder, executor);
                 }
-                Verifier.Verify(method);
             };
         }
 
@@ -317,7 +316,6 @@ namespace ILGPU.IR.Transformations
                     using var builder = method.CreateBuilder();
                     ExecuteTransform(builder, executor);
                 }
-                Verifier.Verify(method);
             }
 
             FinishProcessing(intermediate);
@@ -424,7 +422,6 @@ namespace ILGPU.IR.Transformations
                     using var builder = entry.Method.CreateBuilder();
                     ExecuteTransform(builder, executor);
                 }
-                Verifier.Verify(entry.Method);
             }
         }
 
