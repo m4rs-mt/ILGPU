@@ -170,6 +170,7 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         protected override CompiledKernel CreateKernel(
             EntryPoint entryPoint,
+            CompiledKernel.KernelInfo kernelInfo,
             StringBuilder builder,
             CLCodeGenerator.GeneratorArgs data)
         {
@@ -186,6 +187,7 @@ namespace ILGPU.Backends.OpenCL
             return new CLCompiledKernel(
                 Context,
                 entryPoint as SeparateViewEntryPoint,
+                kernelInfo,
                 clSource,
                 MinimumVersion);
         }

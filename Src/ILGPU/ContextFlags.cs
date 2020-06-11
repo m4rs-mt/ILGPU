@@ -50,6 +50,11 @@ namespace ILGPU
         /// </summary>
         EnableAssertions = 1 << 2,
 
+        /// <summary>
+        /// Enables detailed kernel information about all compiled kernel functions.
+        /// </summary>
+        EnableKernelInformation = 1 << 3,
+
         //
         // Code generation settings
         //
