@@ -58,7 +58,12 @@ namespace ILGPU
         /// <summary>
         /// Enables detailed kernel statistics about all compiled kernel functions.
         /// </summary>
-        EnableKernelStatistics = 1 << 3,
+        EnableKernelStatistics = 1 << 4,
+
+        /// <summary>
+        /// Enables the internal IR verifier.
+        /// </summary>
+        EnableVerifier = 1 << 5,
 
         //
         // Code generation settings

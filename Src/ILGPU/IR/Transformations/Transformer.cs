@@ -311,10 +311,12 @@ namespace ILGPU.IR.Transformations
         /// <typeparam name="THandler">The handler type.</typeparam>
         /// <param name="context">The target IR context.</param>
         /// <param name="handler">The target handler.</param>
+        /// <param name="verifier">The internal verifier instance.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Transform<THandler>(
             IRContext context,
-            THandler handler)
+            THandler handler,
+            Verifier verifier)
             where THandler : ITransformerHandler
         {
             Debug.Assert(context != null, "Invalid context");
@@ -334,6 +336,7 @@ namespace ILGPU.IR.Transformations
                 handler.AfterTransformation(
                     context,
                     transform);
+                verifier.Verify(toTransform);
             }
 
             // Apply final flags
