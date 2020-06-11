@@ -124,7 +124,8 @@ namespace ILGPU.Backends.PTX
             // Ensure that all intrinsics can be generated
             backendContext.EnsureIntrinsicImplementations(IntrinsicProvider);
 
-            bool useDebugInfo = Context.HasFlags(ContextFlags.EnableDebugInformation);
+            bool useDebugInfo = Context.HasFlags(
+                ContextFlags.EnableKernelDebugInformation);
             PTXDebugInfoGenerator debugInfoGenerator = PTXNoDebugInfoGenerator.Empty;
             if (useDebugInfo)
             {

@@ -185,7 +185,7 @@ namespace ILGPU
         {
             // Enable debug information automatically when a debugger is attached
             if (Debugger.IsAttached)
-                flags |= ContextFlags.EnableDebugInformation;
+                flags |= ContextFlags.EnableDebugSymbols;
 
             OptimizationLevel = optimizationLevel;
             Flags = flags.Prepare();
@@ -197,7 +197,7 @@ namespace ILGPU
 
             // Create frontend
             DebugInformationManager frontendDebugInformationManager =
-                HasFlags(ContextFlags.EnableDebugInformation)
+                HasFlags(ContextFlags.EnableDebugSymbols)
                 ? DebugInformationManager
                 : null;
 
