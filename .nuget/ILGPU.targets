@@ -7,21 +7,21 @@
     <When Condition="('$(TargetFrameworkIdentifier)'=='.NETCoreApp' And $(TargetFrameworkVersionNumber) &gt;= 3.0) Or ('$(TargetFrameworkIdentifier)'=='.NETStandard' And $(TargetFrameworkVersionNumber) &gt;= 2.1)">
       <ItemGroup>
         <Reference Include="ILGPU">
-          <HintPath>$(MSBuildThisFileDirectory)../lib/netstandard2.1/$(Configuration)/ILGPU.dll</HintPath>
+          <HintPath>$(MSBuildThisFileDirectory)../lib/netstandard2.1/ILGPU.dll</HintPath>
         </Reference>
       </ItemGroup>
     </When>
     <When Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' And $(TargetFrameworkVersionNumber) &gt;= 2.0">
       <ItemGroup>
         <Reference Include="ILGPU">
-          <HintPath>$(MSBuildThisFileDirectory)../lib/netcoreapp2.0/$(Configuration)/ILGPU.dll</HintPath>
+          <HintPath>$(MSBuildThisFileDirectory)../lib/netcoreapp2.0/ILGPU.dll</HintPath>
         </Reference>
       </ItemGroup>
     </When>
     <Otherwise>
       <ItemGroup>
         <Reference Include="ILGPU">
-          <HintPath>$(MSBuildThisFileDirectory)../lib/net47/$(Configuration)/ILGPU.dll</HintPath>
+          <HintPath>$(MSBuildThisFileDirectory)../lib/net47/ILGPU.dll</HintPath>
         </Reference>
       </ItemGroup>
     </Otherwise>
