@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Frontend;
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Intrinsics;
@@ -346,6 +347,9 @@ namespace ILGPU.IR
             // Check for custom intrinsic implementations
             if (methodBase.IsDefined(typeof(IntrinsicImplementationAttribute)))
                 return MethodFlags.Intrinsic;
+
+            if (methodBase.IsDefined(typeof(ExternalAttribute)))
+                return MethodFlags.External;
 
             // No custom method flags.
             return MethodFlags.None;
