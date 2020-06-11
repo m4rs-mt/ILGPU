@@ -15,7 +15,6 @@ using ILGPU.IR.Values;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace ILGPU.Backends
 {
@@ -299,7 +298,7 @@ namespace ILGPU.Backends
         /// <returns>The allocated register.</returns>
         public HardwareRegister Allocate(Value node, RegisterDescription description)
         {
-            Debug.Assert(node != null, "Invalid node");
+            node.AssertNotNull(node);
 
             if (aliases.TryGetValue(node, out Value alias))
                 node = alias;
@@ -310,7 +309,7 @@ namespace ILGPU.Backends
                 registerLookup.Add(node, entry);
             }
             var result = entry.Register as HardwareRegister;
-            Debug.Assert(result != null, "Invalid hardware register");
+            node.AssertNotNull(result);
             return result;
         }
 
@@ -332,7 +331,7 @@ namespace ILGPU.Backends
         /// <returns>The allocated register.</returns>
         public Register Allocate(Value node)
         {
-            Debug.Assert(node != null, "Invalid node");
+            node.AssertNotNull(node);
             if (aliases.TryGetValue(node, out Value alias))
                 node = alias;
             if (!registerLookup.TryGetValue(node, out RegisterEntry entry))
@@ -389,8 +388,8 @@ namespace ILGPU.Backends
         /// <param name="aliasNode">The alias node.</param>
         public void Alias(Value node, Value aliasNode)
         {
-            Debug.Assert(node != null, "Invalid node");
-            Debug.Assert(aliasNode != null, "Invalid alias");
+            node.AssertNotNull(node);
+            node.AssertNotNull(aliasNode);
             if (aliases.TryGetValue(aliasNode, out Value otherAlias))
                 aliasNode = otherAlias;
             aliases[node] = aliasNode;
@@ -405,7 +404,7 @@ namespace ILGPU.Backends
             where T : Register
         {
             var result = Load(node) as T;
-            Debug.Assert(result != null, "Invalid register loading operation");
+            node.AssertNotNull(result);
             return result;
         }
 
@@ -416,7 +415,7 @@ namespace ILGPU.Backends
         /// <returns>The allocated register.</returns>
         public Register Load(Value node)
         {
-            Debug.Assert(node != null, "Invalid node");
+            node.AssertNotNull(node);
             if (aliases.TryGetValue(node, out Value alias))
                 node = alias;
             if (!registerLookup.TryGetValue(node, out RegisterEntry entry))
@@ -432,7 +431,7 @@ namespace ILGPU.Backends
         public PrimitiveRegister LoadPrimitive(Value node)
         {
             var result = Load(node);
-            Debug.Assert(result != null, "Invalid primitive register");
+            node.AssertNotNull(result);
             return result as PrimitiveRegister;
         }
 
@@ -444,7 +443,7 @@ namespace ILGPU.Backends
         public HardwareRegister LoadHardware(Value node)
         {
             var result = Load(node);
-            Debug.Assert(result != null, "Invalid primitive register");
+            node.AssertNotNull(result);
             return result as HardwareRegister;
         }
 
@@ -454,7 +453,7 @@ namespace ILGPU.Backends
         /// <param name="node">The node to free.</param>
         public void Free(Value node)
         {
-            Debug.Assert(node != null, "Invalid node");
+            node.AssertNotNull(node);
             FreeRecursive(registerLookup[node].Register);
             registerLookup.Remove(node);
         }
