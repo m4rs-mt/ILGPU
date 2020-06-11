@@ -101,9 +101,9 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView(ArrayViewSource source, Index1 index, Index1 length)
         {
-            Debug.Assert(source != null, "Invalid source buffer");
-            Debug.Assert(index >= 0, "Index out of range");
-            Debug.Assert(length > 0, "Length out of range");
+            Trace.Assert(source != null, "Invalid source buffer");
+            Trace.Assert(index >= 0, "Index out of range");
+            Trace.Assert(length > 0, "Length out of range");
             Source = source;
             Index = index;
             Length = length;
@@ -187,8 +187,8 @@ namespace ILGPU
             [ViewIntrinsic(ViewIntrinsicKind.GetViewElementAddress)]
             get
             {
-                Debug.Assert(index >= 0 && index < Length, "Index out of range");
-                Debug.Assert(
+                Trace.Assert(index >= 0 && index < Length, "Index out of range");
+                Trace.Assert(
                     Source.AcceleratorType == AcceleratorType.CPU,
                     "Cannot access a non-CPU buffer directly");
                 ref var ptr = ref Source.LoadEffectiveAddress(
@@ -219,7 +219,7 @@ namespace ILGPU
         [ViewIntrinsic(ViewIntrinsicKind.GetSubViewImplicitLength)]
         public ArrayView<T> GetSubView(int index)
         {
-            Debug.Assert(index >= 0 && index < Length, "Offset out of bounds");
+            Trace.Assert(index >= 0 && index < Length, "Offset out of bounds");
             return GetSubView(index, Length - index);
         }
 
@@ -233,9 +233,9 @@ namespace ILGPU
         [ViewIntrinsic(ViewIntrinsicKind.GetSubView)]
         public ArrayView<T> GetSubView(int index, int subViewLength)
         {
-            Debug.Assert(index >= 0 && index < Length, "Index out of bounds");
-            Debug.Assert(index < Length, "Index out of bounds");
-            Debug.Assert(index + subViewLength <= Length, "Sub view out of range");
+            Trace.Assert(index >= 0 && index < Length, "Index out of bounds");
+            Trace.Assert(index < Length, "Index out of bounds");
+            Trace.Assert(index + subViewLength <= Length, "Sub view out of range");
             index += Index;
             return new ArrayView<T>(Source, index, subViewLength);
         }

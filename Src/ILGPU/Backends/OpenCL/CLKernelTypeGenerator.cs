@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Generic;
@@ -127,7 +128,7 @@ namespace ILGPU.Backends.OpenCL
         public void Register(Parameter parameter)
         {
             ref var parameterType = ref parameterTypes[parameter.Index];
-            Debug.Assert(parameterType.Item1 == null, "Parameter already registered");
+            parameter.Assert(parameterType.Item1 is null);
 
             // Check whether we require a custom mapping
             if (!EntryPoint.TryGetViewParameters(
@@ -144,8 +145,7 @@ namespace ILGPU.Backends.OpenCL
             clName += KernelTypeNameSuffix;
 
             // Retrieve structure type
-            var structureType = parameter.ParameterType as StructureType;
-            Debug.Assert(structureType != null, "Invalid custom kernel type");
+            var structureType = parameter.ParameterType.As<StructureType>(parameter);
 
             // Convert the kernel type using a specific type converter
             structureType = typeConverter.ConvertType(

@@ -40,7 +40,7 @@ namespace ILGPU
         /// <param name="baseView">The base view.</param>
         public VariableView(ArrayView<T> baseView)
         {
-            Debug.Assert(baseView.IsValid && baseView.Length == 1, "Invalid base view");
+            Trace.Assert(baseView.IsValid && baseView.Length == 1, "Invalid base view");
             BaseView = baseView;
         }
 
@@ -93,8 +93,8 @@ namespace ILGPU
         public VariableView<TOther> GetSubView<TOther>(int offsetInBytes)
             where TOther : unmanaged
         {
-            Debug.Assert(offsetInBytes >= 0, "Offset out of range");
-            Debug.Assert(
+            Trace.Assert(offsetInBytes >= 0, "Offset out of range");
+            Trace.Assert(
                 offsetInBytes + Interop.SizeOf<TOther>() <= VariableSize,
                 "OutOfBounds sub view");
 

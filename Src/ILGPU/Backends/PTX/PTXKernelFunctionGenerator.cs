@@ -73,7 +73,7 @@ namespace ILGPU.Backends.PTX
                     // This is an implicitly grouped kernel that needs
                     // boundary information to avoid out-of-bounds dispatches
                     LengthRegister = Parent.AllocateType(parameter.ParameterType);
-                    Debug.Assert(LengthRegister != null, "Invalid length register");
+                    parameter.AssertNotNull(LengthRegister);
                 }
                 return LengthRegister;
             }
