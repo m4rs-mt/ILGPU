@@ -31,28 +31,16 @@
 
     <file src="ILGPU.targets" target="build\ILGPU.targets" />
 
-    <file src="..\Bin\Debug\netstandard2.1\ILGPU.dll" target="lib\netstandard2.1\Debug\ILGPU.dll" />
-    <file src="..\Bin\Debug\netstandard2.1\ILGPU.xml" target="lib\netstandard2.1\Debug\ILGPU.xml" />
-    <file src="..\Bin\Debug\netstandard2.1\ILGPU.pdb" target="lib\netstandard2.1\Debug\ILGPU.pdb" />
+    <file src="..\Bin\Release\netstandard2.1\ILGPU.dll" target="lib\netstandard2.1\ILGPU.dll" />
+    <file src="..\Bin\Release\netstandard2.1\ILGPU.xml" target="lib\netstandard2.1\ILGPU.xml" />
+    <file src="..\Bin\Release\netstandard2.1\ILGPU.pdb" target="lib\netstandard2.1\ILGPU.pdb" />
 
-    <file src="..\Bin\Release\netstandard2.1\ILGPU.dll" target="lib\netstandard2.1\Release\ILGPU.dll" />
-    <file src="..\Bin\Release\netstandard2.1\ILGPU.xml" target="lib\netstandard2.1\Release\ILGPU.xml" />
-    <file src="..\Bin\Release\netstandard2.1\ILGPU.pdb" target="lib\netstandard2.1\Release\ILGPU.pdb" />
+    <file src="..\Bin\Release\netcoreapp2.0\ILGPU.dll" target="lib\netcoreapp2.0\ILGPU.dll" />
+    <file src="..\Bin\Release\netcoreapp2.0\ILGPU.xml" target="lib\netcoreapp2.0\ILGPU.xml" />
+    <file src="..\Bin\Release\netcoreapp2.0\ILGPU.pdb" target="lib\netcoreapp2.0\ILGPU.pdb" />
 
-    <file src="..\Bin\Debug\netcoreapp2.0\ILGPU.dll" target="lib\netcoreapp2.0\Debug\ILGPU.dll" />
-    <file src="..\Bin\Debug\netcoreapp2.0\ILGPU.xml" target="lib\netcoreapp2.0\Debug\ILGPU.xml" />
-    <file src="..\Bin\Debug\netcoreapp2.0\ILGPU.pdb" target="lib\netcoreapp2.0\Debug\ILGPU.pdb" />
-
-    <file src="..\Bin\Release\netcoreapp2.0\ILGPU.dll" target="lib\netcoreapp2.0\Release\ILGPU.dll" />
-    <file src="..\Bin\Release\netcoreapp2.0\ILGPU.xml" target="lib\netcoreapp2.0\Release\ILGPU.xml" />
-    <file src="..\Bin\Release\netcoreapp2.0\ILGPU.pdb" target="lib\netcoreapp2.0\Release\ILGPU.pdb" />
-
-    <file src="..\Bin\Debug\net47\ILGPU.dll" target="lib\net47\Debug\ILGPU.dll" />
-    <file src="..\Bin\Debug\net47\ILGPU.xml" target="lib\net47\Debug\ILGPU.xml" />
-    <file src="..\Bin\Debug\net47\ILGPU.pdb" target="lib\net47\Debug\ILGPU.pdb" />
-
-    <file src="..\Bin\Release\net47\ILGPU.dll" target="lib\net47\Release\ILGPU.dll" />
-    <file src="..\Bin\Release\net47\ILGPU.xml" target="lib\net47\Release\ILGPU.xml" />
-    <file src="..\Bin\Release\net47\ILGPU.pdb" target="lib\net47\Release\ILGPU.pdb" />
+    <file src="..\Bin\Release\net47\ILGPU.dll" target="lib\net47\ILGPU.dll" />
+    <file src="..\Bin\Release\net47\ILGPU.xml" target="lib\net47\ILGPU.xml" />
+    <file src="..\Bin\Release\net47\ILGPU.pdb" target="lib\net47\ILGPU.pdb" />
   </files>
 </package>
