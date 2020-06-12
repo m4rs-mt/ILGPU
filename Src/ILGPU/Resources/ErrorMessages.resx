@@ -312,4 +312,7 @@
   <data name="LocationTypeMessage" xml:space="preserve">
     <value>'{0}' related to type {1} (managed type '{2}')</value>
   </data>
+  <data name="NotSupportedStructureLayout" xml:space="preserve">
+    <value>The type '{0}' has an unsupported structure layout</value>
+  </data>
 </root>

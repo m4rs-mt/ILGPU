@@ -9,12 +9,14 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace ILGPU.IR.Types
@@ -39,6 +41,7 @@ namespace ILGPU.IR.Types
             /// </summary>
             /// <param name="parent">The parent type manager.</param>
             /// <param name="type">The .Net type.</param>
+            /// <param name="size">The size in bytes (if any).</param>
             /// <param name="fields">All managed fields.</param>
             /// <param name="fieldOffsets">All field offsets.</param>
             /// <param name="fieldTypes">All managed field types.</param>
@@ -47,6 +50,7 @@ namespace ILGPU.IR.Types
             internal TypeInformation(
                 TypeInformationManager parent,
                 Type type,
+                int size,
                 ImmutableArray<FieldInfo> fields,
                 ImmutableArray<int> fieldOffsets,
                 ImmutableArray<Type> fieldTypes,
@@ -58,6 +62,7 @@ namespace ILGPU.IR.Types
 
                 Parent = parent;
                 ManagedType = type;
+                Size = size;
                 Fields = fields;
                 FieldOffsets = fieldOffsets;
                 FieldTypes = fieldTypes;
@@ -78,6 +83,11 @@ namespace ILGPU.IR.Types
             /// Returns the .Net type.
             /// </summary>
             public Type ManagedType { get; }
+
+            /// <summary>
+            /// Returns the type size in bytes (if any).
+            /// </summary>
+            public int Size { get; }
 
             /// <summary>
             /// Returns the number of fields.
@@ -263,6 +273,7 @@ namespace ILGPU.IR.Types
             var result = new TypeInformation(
                 this,
                 type,
+                0,
                 ImmutableArray<FieldInfo>.Empty,
                 ImmutableArray<int>.Empty,
                 ImmutableArray<Type>.Empty,
@@ -321,6 +332,21 @@ namespace ILGPU.IR.Types
                 BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
             Array.Sort(fieldArray, (left, right) =>
                 left.MetadataToken.CompareTo(right.MetadataToken));
+
+            int size = 0;
+            if (type.IsValueType && type.StructLayoutAttribute != null)
+            {
+                if (type.StructLayoutAttribute.Value != LayoutKind.Sequential)
+                {
+                    throw new NotSupportedException(
+                        string.Format(
+                            ErrorMessages.NotSupportedStructureLayout,
+                            type));
+                }
+
+                size = type.StructLayoutAttribute.Size;
+            }
+
             var fields = ImmutableArray.Create(fieldArray);
             var fieldTypesBuilder = ImmutableArray.CreateBuilder<Type>(fields.Length);
             var fieldOffsetsBuilder = ImmutableArray.CreateBuilder<int>(fields.Length);
@@ -339,6 +365,7 @@ namespace ILGPU.IR.Types
             return new TypeInformation(
                 this,
                 type,
+                size,
                 fields,
                 fieldOffsetsBuilder.MoveToImmutable(),
                 fieldTypesBuilder.MoveToImmutable(),

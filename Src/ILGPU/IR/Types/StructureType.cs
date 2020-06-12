@@ -46,14 +46,21 @@ namespace ILGPU.IR.Types
             /// </summary>
             /// <param name="typeContext">The current type context.</param>
             /// <param name="capacity">The initial capacity.</param>
-            internal Builder(IRTypeContext typeContext, int capacity)
+            /// <param name="size">The custom size in bytes (if any).</param>
+            internal Builder(
+                IRTypeContext typeContext,
+                int capacity,
+                int size)
             {
                 Debug.Assert(capacity >= 0, "Invalid capacity");
+                Debug.Assert(size >= 0, "Invalid size");
+
                 fieldsBuilder = ImmutableArray.CreateBuilder<TypeNode>(capacity);
                 allFieldsBuilder = ImmutableArray.CreateBuilder<TypeNode>(capacity);
                 offsetsBuilder = ImmutableArray.CreateBuilder<int>(capacity);
                 TypeContext = typeContext;
 
+                ExplicitSize = size;
                 Alignment = Offset = 0;
             }
 
@@ -65,6 +72,11 @@ namespace ILGPU.IR.Types
             /// Returns the parent type context.
             /// </summary>
             public IRTypeContext TypeContext { get; }
+
+            /// <summary>
+            /// Returns the explicit size in bytes (if any).
+            /// </summary>
+            public int ExplicitSize { get; }
 
             /// <summary>
             /// Returns the number of all fields.
@@ -84,7 +96,12 @@ namespace ILGPU.IR.Types
             /// <summary>
             /// The current size in bytes.
             /// </summary>
-            public int Size => Alignment < 1 ? 0 : Align(Offset, Alignment);
+            public int Size => Math.Max(AlignedSize, ExplicitSize);
+
+            /// <summary>
+            /// Returns the aligned size based on the current offset and the alignment.
+            /// </summary>
+            public int AlignedSize => Alignment < 1 ? 0 : Align(Offset, Alignment);
 
             /// <summary>
             /// Returns the field type that corresponds to the given field access.
@@ -109,6 +126,7 @@ namespace ILGPU.IR.Types
                 if (type is StructureType structureType)
                 {
                     // Add initial field using structure alignment information
+                    int baseOffset = Offset;
                     AddInternal(
                         structureType[0],
                         0,
@@ -129,6 +147,10 @@ namespace ILGPU.IR.Types
                     int lastFieldSize = structureType[
                         structureType.NumFields - 1].Size;
                     Offset = Align(Offset + lastFieldSize, type.Alignment);
+
+                    // Take a custom structure size into account
+                    int structSize = Offset - baseOffset;
+                    Offset += Math.Max(structureType.Size - structSize, 0);
                 }
                 else
                 {
@@ -164,8 +186,14 @@ namespace ILGPU.IR.Types
             /// Seals this builder and returns a type that corresponds to the type
             /// represented by this builder.
             /// </summary>
-            /// <returns></returns>
-            public TypeNode Seal() => TypeContext.FinishStructureType(this);
+            /// <returns>The create type node.</returns>
+            public TypeNode Seal()
+            {
+                // Check for a special case in which we require custom padding elements
+                for (int i = AlignedSize, e = Size; i < e; ++i)
+                    Add(TypeContext.PaddingType);
+                return TypeContext.FinishStructureType(this);
+            }
 
             /// <summary>
             /// Moves the underlying builders to immutable arrays.

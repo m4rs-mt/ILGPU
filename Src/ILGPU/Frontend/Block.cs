@@ -28,6 +28,26 @@ namespace ILGPU.Frontend
     /// </summary>
     sealed partial class Block
     {
+        #region Nested Types
+
+        /// <summary>
+        /// An arithmetic operand type.
+        /// </summary>
+        public enum ArithmeticOperandKind
+        {
+            /// <summary>
+            /// A default arithmetic type.
+            /// </summary>
+            Default,
+
+            /// <summary>
+            /// A pointer-based operation.
+            /// </summary>
+            Pointer,
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -128,13 +148,21 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <returns>The peeked basic-value type.</returns>
-        public BasicValueType PeekBasicValueType(Location location)
+        public TypeNode PeekType(Location location)
         {
             location.Assert(StackCounter > 0);
             var value = GetValue(
                 new VariableRef(StackCounter - 1, VariableRefType.Stack));
-            return value.BasicValueType;
+            return value.Type;
         }
+
+        /// <summary>
+        /// Peeks the basic-value type of the element on the top of the stack.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <returns>The peeked basic-value type.</returns>
+        public BasicValueType PeekBasicValueType(Location location) =>
+            PeekType(location).BasicValueType;
 
         /// <summary>
         /// Duplicates the element at the top of the stack.
@@ -330,15 +358,24 @@ namespace ILGPU.Frontend
         /// <param name="flags">The conversion flags.</param>
         /// <param name="left">The left operand.</param>
         /// <param name="right">The right operand.</param>
-        /// <returns>The type of the two operands.</returns>
-        public void PopArithmeticArgs(
+        /// <returns>True, if this is a default arithmetic operation.</returns>
+        public ArithmeticOperandKind PopArithmeticArgs(
             Location location,
             ConvertFlags flags,
             out Value left,
             out Value right)
         {
-            right = PopCompareOrArithmeticValue(location, flags);
-            left = PopCompareOrArithmeticValue(location, flags);
+            // Check for pointer arithmetic
+            right = PeekType(location).IsPointerType
+                ? Pop()
+                : PopCompareOrArithmeticValue(location, flags);
+
+            left = PeekType(location).IsPointerType
+                ? Pop()
+                : PopCompareOrArithmeticValue(location, flags);
+
+            if (right.Type.IsPointerType || left.Type.IsPointerType)
+                return ArithmeticOperandKind.Pointer;
 
             Value result;
             bool swapped = Utilities.Swap(
@@ -365,6 +402,7 @@ namespace ILGPU.Frontend
             right = result;
 
             Utilities.Swap(swapped, ref left, ref right);
+            return ArithmeticOperandKind.Default;
         }
 
         /// <summary>

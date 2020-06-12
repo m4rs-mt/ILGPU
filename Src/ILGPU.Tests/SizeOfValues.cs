@@ -41,7 +41,13 @@ namespace ILGPU.Tests
             { default(TestStruct<float, TestStruct<EmptyStruct, sbyte>>) },
             { default(DeepStructure<TestStruct<int>>) },
             { default(
-                TestStruct<int, TestStruct<float, TestStruct<EmptyStruct, sbyte>>>) }
+                TestStruct<int, TestStruct<float, TestStruct<EmptyStruct, sbyte>>>) },
+            { default(ShortFixedBufferStruct) },
+            { default(LongFixedBufferStruct) },
+            { default(TestStruct<EmptyStruct, ShortFixedBufferStruct>) },
+            { default(TestStruct<ShortFixedBufferStruct, LongFixedBufferStruct>) },
+            { default(TestStruct<float, TestStruct<ShortFixedBufferStruct, sbyte>>) },
+            { default(TestStruct<float, TestStruct<LongFixedBufferStruct, byte>>) },
         };
 
         internal static void SizeOfKernel<T>(
