@@ -18,7 +18,10 @@
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+
+// disable: max_line_length
 
 namespace ILGPU.Runtime
 {
@@ -26,6 +29,7 @@ namespace ILGPU.Runtime
 <#      var typeName = i == 1 ? "MemoryBuffer" : $"MemoryBuffer{i}D"; #>
 <#      var arrayViewType = i == 1 ? "ArrayView" : $"ArrayView{i}D"; #>
 <#      var indexType = $"Index{i}"; #>
+<#      var arraySeparator = new string(Enumerable.Repeat(',', i - 1).ToArray()); #>
 <#      bool obsoleteCopyMethods = i > 1; #>
     /// <summary>
     /// Represents a <#= i #>D memory buffer that can be used in the scope
@@ -715,6 +719,54 @@ namespace ILGPU.Runtime
         }
 
         #endregion
+    }
+
+    public partial class MemoryBufferExtensions
+    {
+        /// <summary>
+        /// Allocates a <#= i #>D memory buffer with the given content on the associated
+        /// accelerator.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="data">The initial data array.</param>
+        /// <returns>The allocated memory buffer.</returns>
+<#      if (i > 1) { #>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "data")]
+<#      } #>
+<#      var allocExpression = Enumerable.Range(0, i).Select(t => $"data.GetLength({t})"); #>
+        public static <#= typeName #><T> Allocate<T>(
+            this Accelerator accelerator,
+            T[<#= arraySeparator #>] data)
+            where T : unmanaged
+        {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+            var buffer = accelerator.Allocate<T>(<#= string.Join(", ", allocExpression) #>);
+            buffer.CopyFrom(data, <#= indexType #>.Zero, <#= indexType #>.Zero, buffer.Extent);
+            return buffer;
+        }
+
+        /// <summary>
+        /// Allocates a <#= i #>D memory buffer on the associated accelerator that is
+        /// initialized with 0-byte values.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="extent">The extent (number of elements to allocate).</param>
+        /// <returns>The allocated memory buffer.</returns>
+        public static <#= typeName #><T> AllocateZero<T>(
+            this Accelerator accelerator,
+            <#= indexType #> extent)
+            where T : unmanaged
+        {
+            var buffer = accelerator.Allocate<T>(extent);
+            buffer.MemSetToZero();
+            return buffer;
+        }
     }
 
 <#  } #>
