@@ -583,6 +583,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The type &apos;{0}&apos; has an unsupported structure layout.
+        /// </summary>
+        internal static string NotSupportedStructureLayout {
+            get {
+                return ResourceManager.GetString("NotSupportedStructureLayout", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not supported type &apos;{0}&apos;.
         /// </summary>
         internal static string NotSupportedType {
