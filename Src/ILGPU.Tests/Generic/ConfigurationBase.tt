@@ -101,7 +101,7 @@ public sealed class TestConfig
     public TestConfig(string name, string[] optimizationLevels)
     {
         Name = name;
-        OptimizationLevels = optimizationLevels ?? new string[] { "Debug", "Release" };
+        OptimizationLevels = optimizationLevels ?? new string[] { "Debug", "Release", "O2" };
     }
 
     public string Name { get; }
@@ -132,7 +132,7 @@ public sealed class TestConfig
             if (parts.Length > 1)
             {
                 var levelString = parts[1].Split(',');
-                optimizationLevels = new string[Math.Min(levelString.Length, 2)];
+                optimizationLevels = new string[levelString.Length];
                 for (int j = 0; j < optimizationLevels.Length; ++j)
                     optimizationLevels[j] = levelString[j].Trim();
             }
