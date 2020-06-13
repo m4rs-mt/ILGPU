@@ -514,18 +514,6 @@ namespace ILGPU.IR.Transformations
                 value);
 
         /// <summary>
-        /// Lowers parameter values containing structure values.
-        /// </summary>
-        private static void Lower(
-            SSARewriterContext<FieldRef> context,
-            LoweringData _,
-            Parameter value) =>
-            DisassembleStructure(
-                context,
-                value.Type as StructureType,
-                value);
-
-        /// <summary>
         /// Lowers return terminators returning structure values.
         /// </summary>
         private static void Lower(
@@ -533,22 +521,35 @@ namespace ILGPU.IR.Transformations
             LoweringData _,
             ReturnTerminator value)
         {
-            Value returnValue = value.ReturnValue;
-            var returnType = returnValue.Type as StructureType;
-            Debug.Assert(returnType != null, "Invalid structure type");
-
-            // Assemble a new structure that can be returned
+            // Move the block builder to a valid insert position in the source block
             var blockBuilder = context.GetMethodBuilder()[value.BasicBlock];
-            blockBuilder.SetupInsertPosition(returnValue);
+            blockBuilder.SetupInsertPositionToEnd();
 
+            // Assemble return value
+            Value returnValue = value.ReturnValue;
+            var returnType = returnValue.Type.As<StructureType>(value);
             var newReturnValue = AssembleStructure(
                 context.SpecializeBuilder(blockBuilder),
                 returnType,
                 returnValue);
 
-            // Replace return and remove return value
-            returnValue.Replace(newReturnValue);
+            // Replace return terminator with a new terminator
+            context.Builder.Terminator = context.Builder.CreateReturn(
+                value.Location,
+                newReturnValue);
         }
+
+        /// <summary>
+        /// Lowers generic values containing structure types that cannot be rewritten.
+        /// </summary>
+        private static void Keep(
+            SSARewriterContext<FieldRef> context,
+            LoweringData _,
+            Value value) =>
+            DisassembleStructure(
+                context,
+                value.Type.As<StructureType>(value),
+                value);
 
         #endregion
 
@@ -572,7 +573,15 @@ namespace ILGPU.IR.Transformations
         /// <param name="rewriter">The rewriter to extend.</param>
         private static void AddRewriters(SSARewriter<FieldRef, LoweringData> rewriter)
         {
-            rewriter.Add<Parameter>((_, value) => value.Type.IsStructureType, Lower);
+            // Keep particular values that cannot be rewritten by this pass
+            rewriter.Add<Parameter>((_, value) => value.Type.IsStructureType, Keep);
+            rewriter.Add<ArrayValue>((_, value) => value.Type.IsStructureType, Keep);
+            rewriter.Add<GetArrayElement>(
+                (_, value) => value.Type.IsStructureType, Keep);
+            rewriter.Add<SetArrayElement>(
+                (_, value) => value.Type.IsStructureType, Keep);
+
+            // Rewrite known values
             rewriter.Add<NullValue>((_, value) => value.Type.IsStructureType, Lower);
             rewriter.Add<StructureValue>((_, value) => value.Type.IsStructureType, Lower);
             rewriter.Add<PhiValue>((_, value) => value.Type.IsStructureType, Lower);
@@ -581,8 +590,7 @@ namespace ILGPU.IR.Transformations
             rewriter.Add<SubWarpShuffle>((_, value) => value.Type.IsStructureType, Lower);
 
             rewriter.Add<ReturnTerminator>(
-                (_,
-                value) => value.Method.ReturnType.IsStructureType, Lower);
+                (_, value) => value.Method.ReturnType.IsStructureType, Lower);
 
             rewriter.Add<GetField>(Lower);
             rewriter.Add<SetField>(Lower);
