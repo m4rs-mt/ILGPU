@@ -1,6 +1,7 @@
 ﻿ArrayViews: Debug, Release
 Arrays: Debug, Release
 EnumValues: Debug, Release
+ExchangeBufferOperations: Debug, Release
 KernelEntryPoints: Debug, Release
 MemoryBufferOperations : Debug, Release
 MemoryCacheOperations : Debug, Release
