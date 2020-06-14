@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security.Permissions;
 using System.Text;
 
 namespace ILGPU.IR.Types
@@ -397,6 +398,169 @@ namespace ILGPU.IR.Types
             #endregion
         }
 
+        /// <summary>
+        /// Contains all vectorizable field ranges in the scope of its parent type.
+        /// </summary>
+        public readonly struct VectorizableFieldCollection
+        {
+            #region Nested Types
+
+            /// <summary>
+            /// Represents a vectorizable sub range in the scope of a structure type.
+            /// </summary>
+            public struct Entry
+            {
+                /// <summary>
+                /// Constructs a new entry.
+                /// </summary>
+                internal Entry(TypeNode type, int index, int offset, int count = 1)
+                {
+                    Type = type;
+                    Index = index;
+                    Count = count;
+                    Offset = offset;
+                }
+
+                #region Instance
+
+                #endregion
+
+                #region Properties
+
+                /// <summary>
+                /// Returns the associated type.
+                /// </summary>
+                public TypeNode Type { get; }
+
+                /// <summary>
+                /// Returns the start index within the parent structure.
+                /// </summary>
+                public int Index { get; }
+
+                /// <summary>
+                /// Returns the number of fields.
+                /// </summary>
+                public int Count { get; private set; }
+
+                /// <summary>
+                /// Returns the base offset in bytes from the beginning of the field.
+                /// </summary>
+                public int Offset { get; }
+
+                #endregion
+
+                #region Methods
+
+                /// <summary>
+                /// Adds a field to this entry.
+                /// </summary>
+                internal void AddField() => ++Count;
+
+                /// <summary>
+                /// Checks whether the base offset is properly alignment with respect to
+                /// the given alignment in bytes.
+                /// </summary>
+                /// <param name="alignment">The underlying alignment in bytes.</param>
+                /// <returns>True, if the range is properly aligned.</returns>
+                public readonly bool IsAligned(int alignment) =>
+                    (alignment + Offset) % (Type.Size * Count) == 0;
+
+                #endregion
+            }
+
+            #endregion
+
+            #region Instance
+
+            private readonly List<Entry> ranges;
+
+            /// <summary>
+            /// Constructs a new field collection.
+            /// </summary>
+            /// <param name="structureType">The parent structure type.</param>
+            internal VectorizableFieldCollection(StructureType structureType)
+            {
+                structureType.Assert(structureType.NumFields > 0);
+                ranges = new List<Entry>(structureType.NumFields);
+
+                var current = new Entry(
+                    structureType[0],
+                    0,
+                    structureType.GetOffset(0));
+                int currentOffset = current.Offset;
+
+                for (int i = 1, e = structureType.NumFields; i < e; ++i)
+                {
+                    var nextType = structureType[i];
+                    var nextOffset = structureType.GetOffset(i);
+                    // If the next type is not compatible or is not properly aligned
+                    // we have to split at this point
+                    if (current.Type != nextType ||
+                        currentOffset + nextType.Size != nextOffset)
+                    {
+                        // Register the current vectorizable entry
+                        RegisterRange(current);
+                        current = new Entry(
+                            nextType,
+                            i,
+                            nextOffset);
+                    }
+                    else
+                    {
+                        // Everything seems to be compatible -> continue processing
+                        current.AddField();
+                    }
+                    currentOffset = nextOffset;
+                }
+
+                // Add the last entry
+                RegisterRange(current);
+            }
+
+            /// <summary>
+            /// Registers the given range entry.
+            /// </summary>
+            /// <param name="entry">The entry to register.</param>
+            private void RegisterRange(in Entry entry)
+            {
+                int offset = entry.Offset;
+                for (
+                    int index = 0, stepSize = entry.Count < 4 ? 2 : 4;
+                    index < entry.Count;
+                    stepSize >>= 1)
+                {
+                    for (; index + stepSize <= entry.Count; index += stepSize)
+                    {
+                        ranges.Add(
+                            new Entry(
+                                entry.Type,
+                                index + entry.Index,
+                                offset,
+                                stepSize));
+                        offset += entry.Type.Size * stepSize;
+                    }
+                }
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the number of entries.
+            /// </summary>
+            public readonly int Count => ranges.Count;
+
+            /// <summary>
+            /// Returns the i-th entry.
+            /// </summary>
+            /// <param name="index">The entry index.</param>
+            /// <returns>The i-th vector range entry.</returns>
+            public readonly Entry this[int index] => ranges[index];
+
+            #endregion
+        }
+
         #endregion
 
         #region Static
@@ -467,6 +631,12 @@ namespace ILGPU.IR.Types
         /// Returns a readonly collection of all field offsets.
         /// </summary>
         public OffsetCollection Offsets => new OffsetCollection(this);
+
+        /// <summary>
+        /// Returns a readonly collection of all vectorized field configurations.
+        /// </summary>
+        public VectorizableFieldCollection VectorizableFields =>
+            new VectorizableFieldCollection(this);
 
         /// <summary>
         /// Returns the number of associated fields.
