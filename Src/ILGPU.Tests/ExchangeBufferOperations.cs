@@ -17,7 +17,7 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-        internal static void CopyKernel(Index1 index, ArrayView<int> data)
+        internal static void CopyKernel(Index1 index, ArrayView<long> data)
         {
             data[index] -= 5;
         }
