@@ -669,7 +669,7 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Copes data from CPU memory to the associated accelerator.
+        /// Copies data from CPU memory to the associated accelerator.
         /// </summary>
         public void CopyToAccelerator() =>
             CopyToAccelerator(Accelerator.DefaultStream);
