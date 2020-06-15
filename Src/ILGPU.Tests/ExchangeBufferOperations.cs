@@ -12,6 +12,7 @@ namespace ILGPU.Tests
     {
 
         private const int Length = 32;
+        private static Random random = new Random();
 
         protected ExchangeBufferOperations(ITestOutputHelper output, TestContext testContext)
             : base(output, testContext)
@@ -46,7 +47,7 @@ namespace ILGPU.Tests
 
         internal static void Copy2DKernel(Index2 index, ArrayView<int, Index2> data)
         {
-            data[new Index2(index.X, index.Y)] = 5;
+            data[index] = 5;
         }
 
         [Fact]
@@ -62,7 +63,6 @@ namespace ILGPU.Tests
                 }
             }
             exchangeBuffer.CopyToAccelerator();
-            Execute(exchangeBuffer.Extent, exchangeBuffer.View);
 
             var expected = new ArrayView<int, Index2>(exchangeBuffer.CPUView.BaseView, exchangeBuffer.Extent);
             for (int i = 0; i < Length; i++)
@@ -73,6 +73,7 @@ namespace ILGPU.Tests
                 }
             }
 
+            Execute(exchangeBuffer.Extent, exchangeBuffer.View);
             exchangeBuffer.CopyFromAccelerator();
             Assert.Equal(exchangeBuffer.CPUView, expected);
         }
