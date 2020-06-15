@@ -207,6 +207,26 @@ namespace ILGPU.Backends
             public int NumChildren => Children.Length;
 
             #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Slices a subset of registers out of this compound register.
+            /// </summary>
+            /// <typeparam name="T">The target register type.</typeparam>
+            /// <param name="index">The start index.</param>
+            /// <param name="count">The number of registers to slice.</param>
+            /// <returns>The sliced register array.</returns>
+            public T[] SliceAs<T>(int index, int count)
+                where T : Register
+            {
+                var result = new T[count];
+                for (int i = 0; i < count; ++i)
+                    result[i] = (T)Children[index + i];
+                return result;
+            }
+
+            #endregion
         }
 
         /// <summary>

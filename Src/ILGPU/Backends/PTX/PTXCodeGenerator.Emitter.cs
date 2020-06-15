@@ -106,6 +106,13 @@ namespace ILGPU.Backends.PTX
             }
 
             /// <summary>
+            /// Appends the given vector length suffix.
+            /// </summary>
+            /// <param name="vectorLength">The vector length.</param>
+            public void AppendVectorSuffix(int vectorLength) =>
+                AppendSuffix(PTXInstructions.GetVectorOperationSuffix(vectorLength));
+
+            /// <summary>
             /// Appends code to finish an appended argument.
             /// </summary>
             private void AppendArgument()
@@ -176,6 +183,28 @@ namespace ILGPU.Backends.PTX
                     AppendArgument(constantRegister);
                 else
                     AppendArgument(argument as HardwareRegister);
+            }
+
+            /// <summary>
+            /// Append the given vector register arguments.
+            /// </summary>
+            /// <param name="arguments">The register arguments.</param>
+            public void AppendVectorArgument(PrimitiveRegister[] arguments)
+            {
+                AppendArgument();
+
+                bool oldArgMode = argMode;
+                int oldArgCount = argumentCount;
+
+                argMode = true;
+                argumentCount = 0;
+                stringBuilder.Append('{');
+                foreach (var arg in arguments)
+                    AppendArgument(arg);
+                stringBuilder.Append('}');
+
+                argMode = oldArgMode;
+                argumentCount = oldArgCount;
             }
 
             /// <summary>
@@ -495,6 +524,27 @@ namespace ILGPU.Backends.PTX
         }
 
         /// <summary>
+        /// Encapsulates a complex command emission process.
+        /// </summary>
+        public interface IVectorizedCommandEmitter : IComplexCommandEmitterWithOffsets
+        {
+            /// <summary>
+            /// Emits a nested primitive command in the scope of a complex command chain.
+            /// </summary>
+            /// <param name="codeGenerator">The code generator.</param>
+            /// <param name="command">The current command to emit.</param>
+            /// <param name="primitiveRegisters">
+            /// The involved primitive registers.
+            /// </param>
+            /// <param name="offset">The offset in bytes.</param>
+            void Emit(
+                PTXCodeGenerator codeGenerator,
+                string command,
+                PrimitiveRegister[] primitiveRegisters,
+                int offset);
+        }
+
+        /// <summary>
         /// Emits a sequence of IO instructions.
         /// </summary>
         /// <typeparam name="T">The user state type.</typeparam>
@@ -589,15 +639,77 @@ namespace ILGPU.Backends.PTX
                     var structType = structureRegister.Type;
                     foreach (var (access, fieldOffset, _) in structType.Offsets)
                     {
-                        EmitComplexCommandWithOffsets(
+                        emitter.Emit(
+                            this,
                             command,
-                            emitter,
-                            structureRegister.Children[access.Index],
+                            structureRegister.Children[access.Index]
+                                as PrimitiveRegister,
                             offset + fieldOffset);
                     }
                     break;
                 default:
                     throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// A specialized version of <see cref="EmitComplexCommand{TEmitter}(string,
+        /// in TEmitter, RegisterAllocator{PTXRegisterKind}.Register[])"/>. This version
+        /// uses a single register and uses internal ABI-specific offset computations
+        /// to resolve the correct offset in bytes within a structure.
+        /// </summary>
+        /// <typeparam name="TEmitter">The emitter type.</typeparam>
+        /// <param name="command">The generic command to emit.</param>
+        /// <param name="emitter">The current emitter.</param>
+        /// <param name="register">The involved register.</param>
+        /// <param name="alignment">The base alignment in bytes.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EmitVectorizedCommand<TEmitter>(
+            string command,
+            in TEmitter emitter,
+            Register register,
+            int alignment)
+            where TEmitter : IVectorizedCommandEmitter
+        {
+            if (register is CompoundRegister compoundRegister)
+            {
+                // Check the provided alignment value to create vectorized instructions
+                var ranges = compoundRegister.Type.VectorizableFields;
+                for (int i = 0, e = ranges.Count; i < e; ++i)
+                {
+                    var rangeEntry = ranges[i];
+                    // Check for a valid vectorizable configuration
+                    if (rangeEntry.Count > 1 && rangeEntry.IsAligned(alignment))
+                    {
+                        var registers = compoundRegister.SliceAs<PrimitiveRegister>(
+                            rangeEntry.Index,
+                            rangeEntry.Count);
+                        emitter.Emit(
+                            this,
+                            command,
+                            registers,
+                            rangeEntry.Offset);
+                    }
+                    else
+                    {
+                        for (int j = 0; j < rangeEntry.Count; ++j)
+                        {
+                            EmitComplexCommandWithOffsets(
+                                command,
+                                emitter,
+                                compoundRegister.Children[rangeEntry.Index + j],
+                                rangeEntry.Offset + j * rangeEntry.Type.Size);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // This is a default register which can be emitted
+                EmitComplexCommandWithOffsets(
+                    command,
+                    emitter,
+                    register);
             }
         }
 
