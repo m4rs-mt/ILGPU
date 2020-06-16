@@ -372,6 +372,37 @@ namespace ILGPU.Tests
             Verify(buffer, expected);
         }
 
+        internal static void VariableSubViewKernel(
+            Index1 index,
+            ArrayView<int> data,
+            ArrayView<int> data2,
+            ArrayView<long> source)
+        {
+            var view = source.GetVariableView(index);
+            data[index] = view.GetSubView<int>(0).Value;
+            data2[index] = view.GetSubView<int>(sizeof(int)).Value;
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(17)]
+        [KernelMethod(nameof(VariableSubViewKernel))]
+        public void VariableSubView(int length)
+        {
+            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer2 = Accelerator.Allocate<int>(length);
+            using (var source = Accelerator.Allocate<long>(length))
+            {
+                var expected = Enumerable.Repeat(
+                    (long)int.MaxValue << 32 | ushort.MaxValue, length).ToArray();
+                source.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, length);
+                Execute(length, buffer.View, buffer2.View, source.View);
+            }
+
+            Verify(buffer, Enumerable.Repeat((int)ushort.MaxValue, length).ToArray());
+            Verify(buffer2, Enumerable.Repeat(int.MaxValue, length).ToArray());
+        }
+
         internal static void ArrayViewCastToGenericViewKernel(
             Index1 index,
             ArrayView<int> data,

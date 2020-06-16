@@ -102,6 +102,7 @@ namespace ILGPU.Backends.EntryPoints
                 parameterTypes.Add(type);
             }
             Parameters = new ParameterCollection(parameterTypes.MoveToImmutable());
+            Validate();
         }
 
         #endregion

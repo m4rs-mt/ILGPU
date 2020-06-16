@@ -188,13 +188,18 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         protected override CompiledKernel CreateKernel(
             EntryPoint entryPoint,
+            CompiledKernel.KernelInfo kernelInfo,
             StringBuilder builder,
             PTXCodeGenerator.GeneratorArgs data)
         {
             data.DebugInfoGenerator.GenerateDebugSections(builder);
 
             var ptxAssembly = builder.ToString();
-            return new PTXCompiledKernel(Context, entryPoint, ptxAssembly);
+            return new PTXCompiledKernel(
+                Context,
+                entryPoint,
+                kernelInfo,
+                ptxAssembly);
         }
 
         #endregion

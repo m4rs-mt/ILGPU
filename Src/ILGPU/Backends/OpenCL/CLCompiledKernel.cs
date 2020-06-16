@@ -34,14 +34,16 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="context">The associated context.</param>
         /// <param name="entryPoint">The entry point.</param>
+        /// <param name="info">Detailed kernel information.</param>
         /// <param name="source">The source code.</param>
         /// <param name="version">The OpenCL C version.</param>
         public CLCompiledKernel(
             Context context,
             SeparateViewEntryPoint entryPoint,
+            KernelInfo info,
             string source,
             CLCVersion version)
-            : base(context, entryPoint)
+            : base(context, entryPoint, info)
         {
             Source = source;
             CVersion = version;
