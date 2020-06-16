@@ -68,9 +68,9 @@ namespace ILGPU.Tests
         public void Copy2D(long constant)
         {
             using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(new Index2(Length, Length));
-            for(int i = 0; i < Length; i++)
+            for (int i = 0; i < Length; i++)
             {
-                for(int j = 0; j < Length; j++)
+                for (int j = 0; j < Length; j++)
                 {
                     exchangeBuffer[new Index2(i, j)] = constant;
                 }
@@ -131,12 +131,72 @@ namespace ILGPU.Tests
 
             var data = exchangeBuffer.GetAs2DArray(Accelerator.DefaultStream);
             Assert.Equal(data.Length, expected.Length);
-            for(int i = 0; i < Length; i++)
+            for (int i = 0; i < Length; i++)
             {
                 Assert.Equal(data[i].Length, expected[i].Length);
                 for (int j = 0; j < Length; j++)
                 {
                     Assert.Equal(data[i][j], expected[i][j]);
+                }
+            }
+        }
+
+        internal static void Copy3DKernel(Index3 index, ArrayView<long, Index3> data)
+        {
+            data[index] -= 5;
+        }
+
+        [Theory]
+        [InlineData(10)]
+        [InlineData(int.MaxValue)]
+        [InlineData(int.MinValue)]
+        [KernelMethod(nameof(Copy3DKernel))]
+        public void Copy3D(long constant)
+        {
+            using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(new Index3(Length, Length, Length));
+            for (int i = 0; i < Length; i++)
+            {
+                for (int j = 0; j < Length; j++)
+                {
+                    for (int k = 0; k < Length; k++)
+                    {
+                        exchangeBuffer[new Index3(i, j, k)] = constant;
+                    }
+                }
+            }
+            exchangeBuffer.CopyToAccelerator();
+
+            var expected = new long[Length][][];
+            for (int i = 0; i < Length; i++)
+            {
+                expected[i] = new long[Length][];
+                for (int j = 0; j < Length; j++)
+                {
+                    expected[i][j] = new long[Length];
+                    for (int k = 0; k < Length; k++)
+                    {
+                        expected[i][j][k] = constant - 5;
+                    }
+                }
+            }
+
+            Accelerator.Synchronize();
+            Execute(exchangeBuffer.Extent, exchangeBuffer.View);
+            exchangeBuffer.CopyFromAccelerator();
+            Accelerator.Synchronize();
+
+            var data = exchangeBuffer.CPUView;
+            Assert.Equal(data.Extent.X, expected.Length);
+            for (int i = 0; i < Length; i++)
+            {
+                Assert.Equal(data.Extent.Y, expected[i].Length);
+                for (int j = 0; j < Length; j++)
+                {
+                    Assert.Equal(data.Extent.Z, expected[i][j].Length);
+                    for (int k = 0; k < Length; k++)
+                    {
+                        Assert.Equal(expected[i][j][k], data[new Index3(i, j, k)]);
+                    }
                 }
             }
         }
