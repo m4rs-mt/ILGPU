@@ -8,7 +8,6 @@
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
-
 using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
