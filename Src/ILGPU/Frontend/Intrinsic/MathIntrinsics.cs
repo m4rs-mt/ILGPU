@@ -16,52 +16,6 @@ using System;
 
 namespace ILGPU.Frontend.Intrinsic
 {
-    enum MathIntrinsicKind
-    {
-        Neg = UnaryArithmeticKind.Neg,
-        Not = UnaryArithmeticKind.Not,
-        Abs = UnaryArithmeticKind.Abs,
-        RcpF = UnaryArithmeticKind.RcpF,
-        IsNaNF = UnaryArithmeticKind.IsNaNF,
-        IsInfF = UnaryArithmeticKind.IsInfF,
-        SqrtF = UnaryArithmeticKind.SqrtF,
-        RsqrtF = UnaryArithmeticKind.RsqrtF,
-        AsinF = UnaryArithmeticKind.AsinF,
-        SinF = UnaryArithmeticKind.SinF,
-        SinHF = UnaryArithmeticKind.SinHF,
-        AcosF = UnaryArithmeticKind.AcosF,
-        CosF = UnaryArithmeticKind.CosF,
-        CosHF = UnaryArithmeticKind.CosHF,
-        TanF = UnaryArithmeticKind.TanF,
-        TanHF = UnaryArithmeticKind.TanHF,
-        AtanF = UnaryArithmeticKind.AtanF,
-        ExpF = UnaryArithmeticKind.ExpF,
-        Exp2F = UnaryArithmeticKind.Exp2F,
-        FloorF = UnaryArithmeticKind.FloorF,
-        CeilingF = UnaryArithmeticKind.CeilingF,
-        LogF = UnaryArithmeticKind.LogF,
-        Log2F = UnaryArithmeticKind.Log2F,
-        Log10F = UnaryArithmeticKind.Log10F,
-
-        _BinaryFunctions,
-
-        Add,
-        Sub,
-        Mul,
-        Div,
-        Rem,
-        And,
-        Or,
-        Xor,
-        Shl,
-        Shr,
-        Min,
-        Max,
-        Atan2F,
-        PowF,
-        BinaryLogF
-    }
-
     /// <summary>
     /// Marks math methods that are built in.
     /// </summary>

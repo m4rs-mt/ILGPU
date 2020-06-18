@@ -1,0 +1,293 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
+//
+// File: TypeInformation.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Xml.Serialization" #>
+<#+
+public enum TypeInformationKind
+{
+    Default,
+    SignedInt,
+    UnsignedInt,
+    Float,
+}
+
+public class TypeInformation
+{
+    public TypeInformation(
+        string name,
+        string type,
+        TypeInformationKind kind,
+        string prefix = null,
+        string suffix = null)
+    {
+        Name = name;
+        Type = type;
+        Kind = kind;
+        Prefix = prefix;
+        Suffix = suffix;
+    }
+
+    public string Name { get; }
+
+    public string Type { get; }
+
+    public TypeInformationKind Kind { get; }
+
+    public string Prefix { get; }
+
+    public string Suffix { get; }
+
+    public bool IsInt => IsSignedInt || IsUnsignedInt;
+
+    public bool IsSignedInt => Kind == TypeInformationKind.SignedInt;
+
+    public bool IsUnsignedInt => Kind == TypeInformationKind.UnsignedInt;
+
+    public bool IsFloat => Kind == TypeInformationKind.Float;
+
+    public string FormatNumber(string number) =>
+        Prefix + "(" + number + Suffix + ")";
+};
+
+public static readonly TypeInformation[] SignedIntTypes =
+    {
+        new TypeInformation("Int8", "sbyte", TypeInformationKind.SignedInt),
+        new TypeInformation("Int16", "short", TypeInformationKind.SignedInt),
+        new TypeInformation("Int32", "int", TypeInformationKind.SignedInt),
+        new TypeInformation("Int64", "long", TypeInformationKind.SignedInt),
+    };
+
+public static readonly TypeInformation[] UnsignedIntTypes =
+    {
+        new TypeInformation("UInt8", "byte", TypeInformationKind.UnsignedInt),
+        new TypeInformation("UInt16", "ushort", TypeInformationKind.UnsignedInt),
+        new TypeInformation("UInt32", "uint", TypeInformationKind.UnsignedInt),
+        new TypeInformation("UInt64", "ulong", TypeInformationKind.UnsignedInt),
+    };
+
+public static readonly TypeInformation[] IntTypes =
+    SignedIntTypes.Concat(UnsignedIntTypes).ToArray();
+
+public static readonly TypeInformation[] DefaultIntTypes =
+    SignedIntTypes.Skip(2).Concat(UnsignedIntTypes.Skip(2)).ToArray();
+
+public static readonly TypeInformation[] FloatTypes =
+    {
+        new TypeInformation("Float", "float", TypeInformationKind.Float, null, "f"),
+        new TypeInformation("Double", "double", TypeInformationKind.Float),
+    };
+
+public static readonly TypeInformation[] NumericTypes =
+    IntTypes.Concat(FloatTypes).ToArray();
+
+// Atomic information
+
+public class AtomicTypeInformation : TypeInformation
+{
+    public AtomicTypeInformation(
+        string name,
+        string type,
+        TypeInformationKind kind)
+        : base(name, type, kind)
+    { }
+}
+
+public static readonly AtomicTypeInformation[] AtomicSignedIntTypes =
+    {
+        new AtomicTypeInformation("Int32", "int", TypeInformationKind.SignedInt),
+        new AtomicTypeInformation("Int64", "long", TypeInformationKind.SignedInt),
+    };
+
+public static readonly AtomicTypeInformation[] AtomicUnsignedIntTypes =
+    {
+        new AtomicTypeInformation("UInt32", "uint", TypeInformationKind.UnsignedInt),
+        new AtomicTypeInformation("UInt64", "ulong", TypeInformationKind.UnsignedInt),
+    };
+
+public static readonly AtomicTypeInformation[] AtomicIntTypes =
+    AtomicSignedIntTypes.Concat(AtomicUnsignedIntTypes).ToArray();
+
+public static readonly AtomicTypeInformation[] AtomicFloatTypes =
+    {
+        new AtomicTypeInformation("Float", "float", TypeInformationKind.Float),
+        new AtomicTypeInformation("Double", "double", TypeInformationKind.Float),
+    };
+
+public static readonly AtomicTypeInformation[] AtomicNumericTypes =
+    AtomicIntTypes.Concat(AtomicFloatTypes).ToArray();
+
+// Math operations
+
+[Flags]
+public enum MathOpFlags
+{
+    Bools = 1 << 0,
+    Ints = 1 << 1,
+    Floats = 1 << 2,
+
+    BoolsAndInts = Bools | Ints,
+    IntsAndFloats = Ints | Floats
+}
+
+public class MathOp
+{
+    #region Data
+
+    [XmlAttribute]
+    public string Name { get; set; }
+
+    [XmlAttribute]
+    public bool IsPredicate { get; set; }
+
+    [XmlElement]
+    public string Summary { get; set; }
+
+    [XmlElement]
+    public MathOpFlags Flags { get; set; }
+
+    [XmlElement]
+    public string Op { get; set; }
+
+    [XmlElement]
+    public string BoolOp { get; set; }
+
+    [XmlElement]
+    public string Call { get; set; }
+
+    [XmlElement]
+    public string Implementation { get; set; }
+
+    #endregion
+
+    #region Properties
+
+    [XmlIgnore]
+    public bool HasBools => Flags.HasFlag(MathOpFlags.Bools);
+
+    [XmlIgnore]
+    public bool HasInts => Flags.HasFlag(MathOpFlags.Ints);
+
+    [XmlIgnore]
+    public bool HasFloats => Flags.HasFlag(MathOpFlags.Floats);
+
+    [XmlIgnore]
+    public bool HasOp => Op != null || BoolOp != null;
+
+    [XmlIgnore]
+    public bool HasImplementation => Implementation != null;
+
+    [XmlIgnore]
+    public bool HasCall => Call != null;
+
+    [XmlIgnore]
+    public string MethodName
+    {
+        get
+        {
+            if (!HasCall)
+                throw new InvalidOperationException();
+            return Call.Split('.').Last();
+        }
+    }
+
+    #endregion
+
+    #region Methods
+
+    private string GetRealOp(bool isBool) => isBool && BoolOp != null ? BoolOp : Op;
+
+    public string GetOpOrCall(
+        bool isBool,
+        params string[] variables)
+    {
+        if (HasOp)
+        {
+            var result = new StringBuilder(GetRealOp(isBool));
+            for (int i = 0; i < variables.Length; ++i)
+                result.Replace($"{{Value{i}}}", variables[i]);
+            return result.ToString();
+        }
+        var variableExpr = string.Join(", ", variables);
+        return $"{Call}({variableExpr})";
+    }
+
+    public string GetImplementation(
+        string typeName,
+        string mathTypeName,
+        string const1, string const2,
+        params string[] variables)
+    {
+        var result = new StringBuilder(Implementation);
+        result.Replace("{TypeName}", typeName);
+        result.Replace("{MathType}", mathTypeName);
+        result.Replace("{Const1}", const1);
+        result.Replace("{Const2}", const2);
+        for (int i = 0; i < variables.Length; ++i)
+            result.Replace($"{{Value{i}}}", variables[i]);
+        return result.ToString();
+    }
+
+    #endregion
+}
+
+[XmlRoot("Operations")]
+public class MathOperations
+{
+    internal static MathOp[] Load(string rootPath, string fileName)
+    {
+        var serializer = new XmlSerializer(typeof(MathOperations));
+        using (var stream = new FileStream(
+            Path.Combine(rootPath, fileName),
+            FileMode.Open,
+            FileAccess.Read))
+            return (serializer.Deserialize(stream) as MathOperations).Operations;
+    }
+
+    [XmlElement("Operation")]
+    public MathOp[] Operations { get; set; }
+}
+
+public MathOp[] GetUnaryMathOps(string rootPath) =>
+    MathOperations.Load(rootPath, "UnaryMathOperations.xml");
+
+public MathOp[] GetBinaryMathOps(string rootPath) =>
+    MathOperations.Load(rootPath, "BinaryMathOperations.xml");
+
+public MathOp[] GetTernaryMathOps(string rootPath) =>
+    MathOperations.Load(rootPath, "TernaryMathOperations.xml");
+
+// FP16 raw implementations that can be implemented without the use of emulated FP32 operations.
+public static readonly (string, string)[] FP16ImplementationMethods =
+    {
+        ("Abs", "Abs"),
+        ("Neg", "Neg"),
+
+        ("IsInfinity", "IsInfF"),
+        ("IsNaN", "IsNaNF"),
+    };
+
+// Shuffle operations
+
+public static readonly (string, string)[] ShuffleOperations =
+    {
+        ("Shuffle", "Generic"),
+        ("ShuffleDown", "Down"),
+        ("ShuffleUp", "Up"),
+        ("ShuffleXor", "Xor"),
+    };
+
+#>

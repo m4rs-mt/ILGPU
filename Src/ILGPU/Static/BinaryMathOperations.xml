@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Operations>
+    <Operation Name="Add">
+        <Summary>The + operation.</Summary>
+        <Flags>IntsAndFloats</Flags>
+        <Op>{Value0} + {Value1}</Op>
+    </Operation>
+    <Operation Name="Sub">
+        <Summary>The - operation.</Summary>
+        <Flags>IntsAndFloats</Flags>
+        <Op>{Value0} - {Value1}</Op>
+    </Operation>
+    <Operation Name="Mul">
+        <Summary>The * operation.</Summary>
+        <Flags>IntsAndFloats</Flags>
+        <Op>{Value0} * {Value1}</Op>
+    </Operation>
+    <Operation Name="Div">
+        <Summary>The / operation.</Summary>
+        <Flags>IntsAndFloats</Flags>
+        <Op>{Value0} / {Value1}</Op>
+    </Operation>
+    <Operation Name="Rem">
+        <Summary>The % operation.</Summary>
+        <Flags>IntsAndFloats</Flags>
+        <Op>{Value0} % {Value1}</Op>
+        <Call>IntrinsicMath.CPUOnly.Rem</Call>
+        <Implementation>{MathType}.IEEERemainder({Value0}, {Value1})</Implementation>
+    </Operation>
+
+    <Operation Name="And">
+        <Summary>The logical and operation.</Summary>
+        <Flags>BoolsAndInts</Flags>
+        <Op>{Value0} &amp; {Value1}</Op>
+    </Operation>
+    <Operation Name="Or">
+        <Summary>The logical or operation.</Summary>
+        <Flags>BoolsAndInts</Flags>
+        <Op>{Value0} | {Value1}</Op>
+    </Operation>
+    <Operation Name="Xor">
+        <Summary>The logical xor operation.</Summary>
+        <Flags>BoolsAndInts</Flags>
+        <Op>{Value0} ^ {Value1}</Op>
+    </Operation>
+    <Operation Name="Shl">
+        <Summary>The shift left operation.</Summary>
+        <Flags>Ints</Flags>
+        <Op>{Value0} &lt;&lt; (int){Value1}</Op>
+    </Operation>
+    <Operation Name="Shr">
+        <Summary>The shift right operation.</Summary>
+        <Flags>Ints</Flags>
+        <Op>{Value0} &gt;&gt; (int){Value1}</Op>
+    </Operation>
+
+    <Operation Name="Min">
+        <Summary>The min operation.</Summary>
+        <Flags>IntsAndFloats</Flags>
+        <Call>IntrinsicMath.Min</Call>
+        <Implementation>{MathType}.Min({Value0}, {Value1})</Implementation>
+    </Operation>
+    <Operation Name="Max">
+        <Summary>The max operation.</Summary>
+        <Flags>IntsAndFloats</Flags>
+        <Call>IntrinsicMath.Max</Call>
+        <Implementation>{MathType}.Max({Value0}, {Value1})</Implementation>
+    </Operation>
+
+    <Operation Name="Atan2F">
+        <Summary>The atan2 operation.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Atan2</Call>
+        <Implementation>{MathType}.Atan2({Value0}, {Value1})</Implementation>
+    </Operation>
+    <Operation Name="PowF">
+        <Summary>The pow operation.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Pow</Call>
+        <Implementation>{MathType}.Pow({Value0}, {Value1})</Implementation>
+    </Operation>
+    <Operation Name="BinaryLogF">
+        <Summary>The binary log operation.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Log</Call>
+        <Implementation>{MathType}.Log({Value0}, {Value1})</Implementation>
+    </Operation>
+</Operations>

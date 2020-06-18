@@ -9,71 +9,17 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="../../Static/TypeInformation.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#
-var unaryOperations = new []
-    {
-        new { Name = "Not", BoolPrefix = "!", Prefix = "~", Suffix = "", Ints = true, Floats = false },
-        new { Name = "Neg", BoolPrefix = "", Prefix = "-", Suffix = "", Ints = true, Floats = false },
-        new { Name = "Abs", BoolPrefix = "", Prefix = "IntrinsicMath.Abs(", Suffix = ")", Ints = true, Floats = true },
-        new { Name = "RcpF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Rcp(", Suffix = ")", Ints = false, Floats = true },
-
-        new { Name = "IsNaNF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.IsNaN(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "IsInfF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.IsInfinity(", Suffix = ")", Ints = false, Floats = true },
-
-        new { Name = "SqrtF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Sqrt(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "RsqrtF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Rsqrt(", Suffix = ")", Ints = false, Floats = true },
-
-        new { Name = "SinF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Sin(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "SinHF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Sinh(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "AsinF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Asin(", Suffix = ")", Ints = false, Floats = true },
-
-        new { Name = "CosF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Cos(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "CosHF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Cosh(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "AcosF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Acos(", Suffix = ")", Ints = false, Floats = true },
-
-        new { Name = "TanF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Tan(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "TanHF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Tanh(", Suffix = ")", Ints = false, Floats = true },
-
-        new { Name = "AtanF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Atan(", Suffix = ")", Ints = false, Floats = true },
-
-        new { Name = "ExpF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Exp(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "Exp2F", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Exp2(", Suffix = ")", Ints = false, Floats = true },
-
-        new { Name = "FloorF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Floor(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "CeilingF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Ceiling(", Suffix = ")", Ints = false, Floats = true },
-
-        new { Name = "LogF", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Log(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "Log2F", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Log2(", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "Log10F", BoolPrefix = "", Prefix = "IntrinsicMath.CPUOnly.Log10(", Suffix = ")", Ints = false, Floats = true },
-
-    };
-
-var binaryOperations = new []
-    {
-        new { Name = "Add", BoolSupport = false, Prefix = "", Operation = " + ", Suffix = "", Ints = true, Floats = true },
-        new { Name = "Sub", BoolSupport = false, Prefix = "", Operation = " - ", Suffix = "", Ints = true, Floats = true },
-        new { Name = "Mul", BoolSupport = false, Prefix = "", Operation = " * ", Suffix = "", Ints = true, Floats = true },
-        new { Name = "Div", BoolSupport = false, Prefix = "", Operation = " / ", Suffix = "", Ints = true, Floats = true },
-        new { Name = "Rem", BoolSupport = false, Prefix = "", Operation = " % ", Suffix = "", Ints = true, Floats = true },
-
-        new { Name = "And", BoolSupport = true, Prefix = "", Operation = " & ", Suffix = "", Ints = true, Floats = false },
-        new { Name = "Or", BoolSupport = true, Prefix = "", Operation = " | ", Suffix = "", Ints = true, Floats = false },
-        new { Name = "Xor", BoolSupport = true, Prefix = "", Operation = " ^ ", Suffix = "", Ints = true, Floats = false },
-
-        new { Name = "Shl", BoolSupport = false, Prefix = "", Operation = " << (int)", Suffix = "", Ints = true, Floats = false },
-        new { Name = "Shr", BoolSupport = false, Prefix = "", Operation = " >> (int)", Suffix = "", Ints = true, Floats  = false },
-
-        new { Name = "Min", BoolSupport = false, Prefix = "IntrinsicMath.Min(", Operation = ", ", Suffix = ")", Ints = true, Floats = true },
-        new { Name = "Max", BoolSupport = false, Prefix = "IntrinsicMath.Max(", Operation = ", ", Suffix = ")", Ints  = true, Floats = true },
-
-        new { Name = "Atan2F", BoolSupport = false, Prefix = "IntrinsicMath.CPUOnly.Atan2(", Operation = ", ", Suffix = ")", Ints = false, Floats = true },
-        new { Name = "PowF", BoolSupport = false, Prefix = "IntrinsicMath.CPUOnly.Pow(", Operation = ", ", Suffix = ")", Ints = false, Floats  = true },
-    };
+string rootPath = Host.ResolvePath("../../Static");
+var unaryOps = GetUnaryMathOps(rootPath);
+var binaryOps = GetBinaryMathOps(rootPath);
+var ternaryOps = GetTernaryMathOps(rootPath);
 #>
 
 using ILGPU.IR.Values;
@@ -96,41 +42,53 @@ namespace ILGPU.IR.Construction
         {
             switch (kind)
             {
-<#    foreach (var operation in unaryOperations) { #>
-                case UnaryArithmeticKind.<#= operation.Name #>:
-                    return UnaryArithmeticFoldConstants_<#= operation.Name #>(location, value, kind);
+<#    foreach (var op in unaryOps) { #>
+                case UnaryArithmeticKind.<#= op.Name #>:
+                    return UnaryArithmeticFoldConstants_<#= op.Name #>(location, value);
 <#    } #>
                 default:
                     throw location.GetArgumentException(nameof(kind));
             }
         }
 
-<#    foreach (var operation in unaryOperations) { #>
-        private ValueReference UnaryArithmeticFoldConstants_<#= operation.Name #>(
+<#    foreach (var op in unaryOps) { #>
+        private ValueReference UnaryArithmeticFoldConstants_<#= op.Name #>(
             Location location,
-            PrimitiveValue value,
-            UnaryArithmeticKind kind)
+            PrimitiveValue value)
         {
             switch (value.BasicValueType)
             {
-<#          if (operation.Floats) { #>
+<#          if (op.HasFloats) { #>
                 case BasicValueType.Float32:
-                    return CreatePrimitiveValue(location, <#= operation.Prefix #>value.Float32Value<#= operation.Suffix #>);
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(false, "value.Float32Value") #>);
                 case BasicValueType.Float64:
-                    return CreatePrimitiveValue(location, <#= operation.Prefix #>value.Float64Value<#= operation.Suffix #>);
-<#          } if (operation.Ints) { #>
-<#              if (!string.IsNullOrEmpty(operation.BoolPrefix)) { #>
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(false, "value.Float64Value") #>);
+<#          } if (op.HasBools) { #>
                 case BasicValueType.Int1:
-                    return CreatePrimitiveValue(location, <#= operation.BoolPrefix #>value.Int1Value<#= operation.Suffix #>);
-<#              } #>
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(true, "value.Int1Value") #>);
+<#          } if (op.HasInts) { #>
                 case BasicValueType.Int8:
-                    return CreatePrimitiveValue(location, (sbyte)<#= operation.Prefix #>value.Int8Value<#= operation.Suffix #>);
+                    return CreatePrimitiveValue(
+                        location,
+                        (sbyte)<#= op.GetOpOrCall(false, "value.Int8Value") #>);
                 case BasicValueType.Int16:
-                    return CreatePrimitiveValue(location, (short)<#= operation.Prefix #>value.Int16Value<#= operation.Suffix #>);
+                    return CreatePrimitiveValue(
+                        location,
+                        (short)<#= op.GetOpOrCall(false, "value.Int16Value") #>);
                 case BasicValueType.Int32:
-                    return CreatePrimitiveValue(location, <#= operation.Prefix #>value.Int32Value<#= operation.Suffix #>);
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(false, "value.Int32Value") #>);
                 case BasicValueType.Int64:
-                    return CreatePrimitiveValue(location, <#= operation.Prefix #>value.Int64Value<#= operation.Suffix #>);
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(false, "value.Int64Value") #>);
 <#          } #>
             }
             throw location.GetNotSupportedException(
@@ -140,7 +98,7 @@ namespace ILGPU.IR.Construction
 
 <#    } #>
 
-        private ValueReference BinaryArithmeticFoldConstants(
+         private ValueReference BinaryArithmeticFoldConstants(
             Location location,
             PrimitiveValue left,
             PrimitiveValue right,
@@ -149,58 +107,100 @@ namespace ILGPU.IR.Construction
         {
             switch (kind)
             {
-<#    foreach (var operation in binaryOperations) { #>
-                case BinaryArithmeticKind.<#= operation.Name #>:
-                    return BinaryArithmeticFoldConstants_<#= operation.Name #>(location, left, right, kind, flags);
+<#    foreach (var op in binaryOps) { #>
+                case BinaryArithmeticKind.<#= op.Name #>:
+                    return BinaryArithmeticFoldConstants_<#= op.Name #>(
+                        location,
+                        left,
+                        right,
+                        kind,
+                        flags);
 <#    } #>
                 default:
                     throw location.GetArgumentException(nameof(kind));
             }
         }
 
-<#    foreach (var operation in binaryOperations) { #>
-        private ValueReference BinaryArithmeticFoldConstants_<#= operation.Name #>(
+<#    foreach (var op in binaryOps) { #>
+        private ValueReference BinaryArithmeticFoldConstants_<#= op.Name #>(
             Location location,
             PrimitiveValue left,
             PrimitiveValue right,
             BinaryArithmeticKind kind,
             ArithmeticFlags flags)
         {
-<#          if (operation.Ints) { #>
+<#          if (op.HasInts) { #>
             var isUnsigned = (flags & ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned;
 <#          } #>
             switch (left.BasicValueType)
             {
-<#          if (operation.Floats) { #>
+<#          if (op.HasFloats) { #>
                 case BasicValueType.Float32:
-                    return CreatePrimitiveValue(location, <#= operation.Prefix #>left.Float32Value<#= operation.Operation #>right.Float32Value<#= operation.Suffix #>);
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(false, "left.Float32Value", "right.Float32Value") #>);
                 case BasicValueType.Float64:
-                    return CreatePrimitiveValue(location, <#= operation.Prefix #>left.Float64Value<#= operation.Operation #>right.Float64Value<#= operation.Suffix #>);
-<#          } if (operation.Ints) { #>
-<#              if (operation.BoolSupport) { #>
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(false, "left.Float64Value", "right.Float64Value") #>);
+<#          } if (op.HasBools) { #>
                 case BasicValueType.Int1:
-                    return CreatePrimitiveValue(location, <#= operation.Prefix #>left.Int1Value<#= operation.Operation #>right.Int1Value<#= operation.Suffix #>);
-<#              } #>
+                    return CreatePrimitiveValue(
+                        location,
+                        <#= op.GetOpOrCall(true, "left.Int1Value", "right.Int1Value") #>);
+<#          } if (op.HasInts) { #>
                 case BasicValueType.Int8:
                     if (isUnsigned)
-                        return CreatePrimitiveValue(location, (byte)(<#= operation.Prefix #>left.UInt8Value<#= operation.Operation #>right.UInt8Value<#= operation.Suffix #>));
+                    {
+                        return CreatePrimitiveValue(
+                            location,
+                            (byte)(<#= op.GetOpOrCall(false, "left.UInt8Value", "right.UInt8Value") #>));
+                    }
                     else
-                        return CreatePrimitiveValue(location, (sbyte)(<#= operation.Prefix #>left.Int8Value<#= operation.Operation #>right.Int8Value<#= operation.Suffix #>));
+                    {
+                        return CreatePrimitiveValue(
+                            location,
+                            (sbyte)(<#= op.GetOpOrCall(false, "left.Int8Value", "right.Int8Value") #>));
+                    }
                 case BasicValueType.Int16:
                     if (isUnsigned)
-                        return CreatePrimitiveValue(location, (ushort)(<#= operation.Prefix #>left.UInt16Value<#= operation.Operation #>right.UInt16Value<#= operation.Suffix #>));
+                    {
+                        return CreatePrimitiveValue(
+                            location,
+                            (ushort)(<#= op.GetOpOrCall(false, "left.UInt16Value", "right.UInt16Value") #>));
+                    }
                     else
-                        return CreatePrimitiveValue(location, (short)(<#= operation.Prefix #>left.Int16Value<#= operation.Operation #>right.Int16Value<#= operation.Suffix #>));
+                    {
+                        return CreatePrimitiveValue(
+                            location,
+                            (short)(<#= op.GetOpOrCall(false, "left.Int16Value", "right.Int16Value") #>));
+                    }
                 case BasicValueType.Int32:
                     if (isUnsigned)
-                        return CreatePrimitiveValue(location, <#= operation.Prefix #>left.UInt32Value<#= operation.Operation #>right.UInt32Value<#= operation.Suffix #>);
+                    {
+                        return CreatePrimitiveValue(
+                            location,
+                            <#= op.GetOpOrCall(false, "left.UInt32Value", "right.UInt32Value") #>);
+                    }
                     else
-                        return CreatePrimitiveValue(location, <#= operation.Prefix #>left.Int32Value<#= operation.Operation #>right.Int32Value<#= operation.Suffix #>);
+                    {
+                        return CreatePrimitiveValue(
+                            location,
+                            <#= op.GetOpOrCall(false, "left.Int32Value", "right.Int32Value") #>);
+                    }
                 case BasicValueType.Int64:
                     if (isUnsigned)
-                        return CreatePrimitiveValue(location, <#= operation.Prefix #>left.UInt64Value<#= operation.Operation #>right.UInt64Value<#= operation.Suffix #>);
+                    {
+                        return CreatePrimitiveValue(
+                            location,
+                            <#= op.GetOpOrCall(false, "left.UInt64Value", "right.UInt64Value") #>);
+                    }
                     else
-                        return CreatePrimitiveValue(location, <#= operation.Prefix #>left.Int64Value<#= operation.Operation #>right.Int64Value<#= operation.Suffix #>);
+                    {
+                        return CreatePrimitiveValue(
+                            location,
+                            <#= op.GetOpOrCall(false, "left.Int64Value", "right.Int64Value") #>);
+                    }
 <#          } #>
             }
             throw location.GetNotSupportedException(
@@ -209,6 +209,8 @@ namespace ILGPU.IR.Construction
         }
 
 <#    } #>
+
+
     }
 }
 
