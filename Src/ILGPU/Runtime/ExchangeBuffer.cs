@@ -13,6 +13,7 @@ using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
@@ -242,21 +243,40 @@ namespace ILGPU.Runtime
         /// The internally allocated CPU memory.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        protected readonly ViewPointerWrapper cpuMemory;
+        private readonly ViewPointerWrapper cpuMemory;
+
+        /// <summary>
+        /// Property for accessing cpuMemory
+        /// </summary>
+        protected ViewPointerWrapper CPUMemory => cpuMemory;
 
         /// <summary>
         /// A cached version of the CPU memory pointer.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        protected readonly void* cpuMemoryPointer;
+        private readonly void* cpuMemoryPointer;
 
-        internal ExchangeBufferBase(MemoryBuffer<T, TIndex> buffer, ExchangeBufferMode mode)
+        /// <summary>
+        /// Property for accessing cpuMemoryPointer
+        /// </summary>
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [CLSCompliant(false)]
+        protected void* CPUMemoryPointer => cpuMemoryPointer;
+
+        /// <summary>
+        /// Constructs the base class for all exchange buffer implementations
+        /// </summary>
+        /// <param name="buffer">The memory buffer to use</param>
+        /// <param name="mode">The exchange buffer mode to use</param>
+        internal ExchangeBufferBase(MemoryBuffer<T, TIndex> buffer,
+            ExchangeBufferMode mode)
             : base(buffer.Accelerator, buffer.Extent.Size)
         {
             cpuMemory = buffer.Accelerator is CudaAccelerator &&
                     mode == ExchangeBufferMode.PreferPagedLockedMemory
                     ? CudaViewSource.Create(buffer.LengthInBytes)
-                    : (ViewPointerWrapper)UnmanagedMemoryViewSource.Create(buffer.LengthInBytes);
+                    : (ViewPointerWrapper)UnmanagedMemoryViewSource.Create(
+                        buffer.LengthInBytes);
 
             cpuMemoryPointer = cpuMemory.NativePtr.ToPointer();
         }
@@ -332,6 +352,13 @@ namespace ILGPU.Runtime
             Index1 byteOffset,
             Index1 byteExtent) =>
             Buffer.GetAsRawArray(stream, byteOffset, byteExtent);
+
+        /// <summary>
+        /// Copies the current contents into a new array using the default
+        /// accelerator stream
+        /// </summary>
+        /// <returns>A new array holding the requested contents.</returns>
+        public T[] GetAsArray() => GetAsArray(Accelerator.DefaultStream);
 
         /// <summary>
         /// Copies the current contents into a new array.
@@ -411,7 +438,8 @@ namespace ILGPU.Runtime
         /// Implicitly converts this buffer into an array view.
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
-        public static implicit operator ArrayView<T, TIndex>(ExchangeBufferBase<T, TIndex> buffer)
+        public static implicit operator ArrayView<T, TIndex>(
+            ExchangeBufferBase<T, TIndex> buffer)
         {
             Debug.Assert(buffer != null, "Invalid buffer");
             return buffer.View;
@@ -421,7 +449,8 @@ namespace ILGPU.Runtime
         /// Implicitly converts this buffer into a memory buffer.
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
-        public static implicit operator MemoryBuffer<T, TIndex>(ExchangeBufferBase<T, TIndex> buffer)
+        public static implicit operator MemoryBuffer<T, TIndex>(
+            ExchangeBufferBase<T, TIndex> buffer)
         {
             Debug.Assert(buffer != null, "Invalid buffer");
             return buffer.Buffer;
@@ -460,10 +489,11 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="buffer">The underlying memory buffer.</param>
         /// <param name="mode">The current buffer allocation mode.</param>
-        internal ExchangeBuffer(MemoryBuffer<T, Index1> buffer, ExchangeBufferMode mode)
+        internal ExchangeBuffer(MemoryBuffer<T, Index1> buffer,
+            ExchangeBufferMode mode)
             : base(buffer, mode)
         {
-            CPUView = new ArrayView<T>(cpuMemory, 0, buffer.Length);
+            CPUView = new ArrayView<T>(CPUMemory, 0, buffer.Length);
 
             // Cache local data
             Buffer = buffer;
@@ -490,10 +520,11 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="buffer">The underlying memory buffer.</param>
         /// <param name="mode">The current buffer allocation mode.</param>
-        internal ExchangeBuffer2D(MemoryBuffer<T, Index2> buffer, ExchangeBufferMode mode)
+        internal ExchangeBuffer2D(MemoryBuffer<T, Index2> buffer,
+            ExchangeBufferMode mode)
             : base(buffer, mode)
         {
-            var baseView = new ArrayView<T>(cpuMemory, 0, buffer.Length);
+            var baseView = new ArrayView<T>(CPUMemory, 0, buffer.Length);
             CPUView = new ArrayView<T, Index2>(baseView, buffer.Extent);
 
             // Cache local data
@@ -508,13 +539,28 @@ namespace ILGPU.Runtime
         #region Methods
 
         /// <summary>
-        /// Gets this buffer as a 2D array from the accelerator
+        /// Gets this buffer as a 2D array from the accelerator using the
+        /// default stream.
         /// </summary>
-        /// <returns>The array containing all the elemnts in the buffer</returns>
-        public T[,] GetAs2DArray()
+        /// <returns>The array containing all the elements in the buffer.</returns>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "target")]
+        public T[,] GetAs2DArray() => GetAs2DArray(Accelerator.DefaultStream);
+
+        /// <summary>
+        /// Gets this buffer as a 2D array from the accelerator.
+        /// </summary>
+        /// <returns>The array containing all the elements in the buffer.</returns>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "target")]
+        public T[,] GetAs2DArray(AcceleratorStream stream)
         {
             var buffer = new MemoryBuffer2D<T>(Buffer);
-            var array = buffer.GetAs2DArray();
+            var array = buffer.GetAs2DArray(stream);
             buffer.Dispose();
             return array;
         }
@@ -537,10 +583,11 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="buffer">The underlying memory buffer.</param>
         /// <param name="mode">The current buffer allocation mode.</param>
-        internal ExchangeBuffer3D(MemoryBuffer<T, Index3> buffer, ExchangeBufferMode mode)
+        internal ExchangeBuffer3D(MemoryBuffer<T, Index3> buffer,
+            ExchangeBufferMode mode)
             : base(buffer, mode)
         {
-            var baseView = new ArrayView<T>(cpuMemory, 0, buffer.Length);
+            var baseView = new ArrayView<T>(CPUMemory, 0, buffer.Length);
             CPUView = new ArrayView<T, Index3>(baseView, buffer.Extent);
 
             // Cache local data
@@ -555,10 +602,31 @@ namespace ILGPU.Runtime
         #region Methods
 
         /// <summary>
-        /// Gets this buffer as a 3D array from the accelerator
+        /// Gets this buffer as a 3D array from the accelerator using the
+        /// default stream.
         /// </summary>
-        /// <returns>The array containing all the elemnts in the buffer</returns>
-        public T[,,] GetAs3DArray() => new MemoryBuffer3D<T>(Buffer).GetAs3DArray();
+        /// <returns>The array containing all the elements in the buffer.</returns>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "target")]
+        public T[,,] GetAs3DArray() => GetAs3DArray(Accelerator.DefaultStream);
+
+        /// <summary>
+        /// Gets this buffer as a 3D array from the accelerator.
+        /// </summary>
+        /// <returns>The array containing all the elements in the buffer.</returns>
+        [SuppressMessage(
+            "Microsoft.Performance",
+            "CA1814: PreferJaggedArraysOverMultidimensional",
+            Target = "target")]
+        public T[,,] GetAs3DArray(AcceleratorStream stream)
+        {
+            var buffer = new MemoryBuffer3D<T>(Buffer);
+            var array = buffer.GetAs3DArray(stream);
+            buffer.Dispose();
+            return array;
+        }
 
         #endregion
     }
