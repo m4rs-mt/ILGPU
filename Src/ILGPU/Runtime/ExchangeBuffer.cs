@@ -319,7 +319,7 @@ namespace ILGPU.Runtime
         {
             get => CPUView[index];
             set => CPUView[index] = value;
-        }
+        }       
 
         #endregion
 
@@ -365,22 +365,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <returns>A new array holding the requested contents.</returns>
-        public unsafe T[] GetAsArray(AcceleratorStream stream)
-        {
-            CopyFromAccelerator(stream);
-            stream.Synchronize();
-
-            var data = new T[Length];
-            fixed (T* ptr = &data[0])
-            {
-                System.Buffer.MemoryCopy(
-                    cpuMemoryPointer,
-                    ptr,
-                    LengthInBytes,
-                    LengthInBytes);
-            }
-            return data;
-        }
+        public unsafe T[] GetAsArray(AcceleratorStream stream) => Buffer.GetAsArray(stream);
 
         /// <summary>
         /// Copes data from CPU memory to the associated accelerator.
@@ -429,6 +414,23 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <returns>An array view that can access this array.</returns>
         public ArrayView<T, TIndex> ToArrayView() => View;
+
+
+        /// <summary>
+        /// Gets the part of this buffer on CPU memory as a 2D View.
+        /// </summary>
+        /// <param name="extent"></param>
+        /// <returns></returns>
+        public ArrayView2D<T> As2DView(Index2 extent) =>
+            CPUView.BaseView.As2DView<T>(extent);
+
+        /// <summary>
+        /// Gets the part of this buffer on CPU memory as a 2D View.
+        /// </summary>
+        /// <param name="extent"></param>
+        /// <returns></returns>
+        public ArrayView3D<T> As3DView(Index3 extent) =>
+            CPUView.BaseView.As3DView<T>(extent);
 
         #endregion
 
@@ -539,6 +541,13 @@ namespace ILGPU.Runtime
         #region Methods
 
         /// <summary>
+        /// Gets the part of this buffer on CPU memory as a 2D View
+        /// using the current extent.
+        /// </summary>
+        /// <returns></returns>
+        public ArrayView2D<T> As2DView() => As2DView(Extent);
+
+        /// <summary>
         /// Gets this buffer as a 2D array from the accelerator using the
         /// default stream.
         /// </summary>
@@ -600,6 +609,13 @@ namespace ILGPU.Runtime
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Gets the part of this buffer on CPU memory as a 3D View
+        /// using the current extent.
+        /// </summary>
+        /// <returns></returns>
+        public ArrayView3D<T> As3DView() => As3DView(Extent);
 
         /// <summary>
         /// Gets this buffer as a 3D array from the accelerator using the
