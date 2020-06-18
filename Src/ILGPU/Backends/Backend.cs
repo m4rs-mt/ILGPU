@@ -250,6 +250,34 @@ namespace ILGPU.Backends
                 SharedMemorySpecification = new SharedMemorySpecification(
                     sharedMemorySize,
                     dynamicSharedAllocations.Count > 0);
+
+                KernelInfo = null;
+                if (kernelContext.HasFlags(ContextFlags.EnableKernelInformation))
+                    KernelInfo = CreateKernelInfo();
+            }
+
+            /// <summary>
+            /// Creates a new kernel information object.
+            /// </summary>
+            /// <returns>The created kernel information object.</returns>
+            private CompiledKernel.KernelInfo CreateKernelInfo()
+            {
+                var functionInfo = ImmutableArray.CreateBuilder<
+                    CompiledKernel.FunctionInfo>(Count);
+                functionInfo.Add(new CompiledKernel.FunctionInfo(
+                    KernelMethod.Name,
+                    KernelMethod.Source,
+                    KernelAllocas.LocalMemorySize));
+                foreach (var (method, allocas) in this)
+                {
+                    functionInfo.Add(new CompiledKernel.FunctionInfo(
+                        method.Name,
+                        method.Source,
+                        allocas.LocalMemorySize));
+                }
+                return new CompiledKernel.KernelInfo(
+                    SharedAllocations,
+                    functionInfo.MoveToImmutable());
             }
 
             #endregion
@@ -295,6 +323,11 @@ namespace ILGPU.Backends
             /// Returns the number of all functions.
             /// </summary>
             public int Count => Methods.Count;
+
+            /// <summary>
+            /// Returns the associated kernel information object (if any).
+            /// </summary>
+            public CompiledKernel.KernelInfo KernelInfo { get; }
 
             #endregion
 

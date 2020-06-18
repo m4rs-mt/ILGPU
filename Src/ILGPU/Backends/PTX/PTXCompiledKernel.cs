@@ -34,12 +34,14 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="context">The associated context.</param>
         /// <param name="entryPoint">The entry point.</param>
+        /// <param name="info">Detailed kernel information.</param>
         /// <param name="ptxAssembly">The assembly code.</param>
         internal PTXCompiledKernel(
             Context context,
             EntryPoint entryPoint,
+            KernelInfo info,
             string ptxAssembly)
-            : base(context, entryPoint)
+            : base(context, entryPoint, info)
         {
             PTXAssembly = ptxAssembly;
         }

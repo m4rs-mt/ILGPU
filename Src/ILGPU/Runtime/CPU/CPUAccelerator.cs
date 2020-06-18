@@ -178,31 +178,39 @@ namespace ILGPU.Runtime.CPU
                 ilKernel.ExecutionHandler);
         }
 
-        /// <summary cref="Accelerator.LoadKernelInternal(CompiledKernel)"/>
+        /// <summary>
+        /// Loads a default kernel.
+        /// </summary>
         protected override Kernel LoadKernelInternal(CompiledKernel kernel) =>
             LoadKernel(kernel, 0);
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(
-        /// CompiledKernel, int)"/>
+        /// <summary>
+        /// Loads an implicitly grouped kernel.
+        /// </summary>
         protected override Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
-            int customGroupSize)
+            int customGroupSize,
+            out KernelInfo kernelInfo)
         {
             if (customGroupSize < 0)
                 throw new ArgumentOutOfRangeException(nameof(customGroupSize));
+            kernelInfo = KernelInfo.CreateFrom(
+                kernel.Info,
+                customGroupSize,
+                null);
             return LoadKernel(kernel, customGroupSize);
         }
 
-        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(
-        /// CompiledKernel, out int, out int)"/>
+        /// <summary>
+        /// Loads an auto grouped kernel.
+        /// </summary>
         protected override Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
-            out int groupSize,
-            out int minGridSize)
+            out KernelInfo kernelInfo)
         {
-            groupSize = WarpSize;
-            minGridSize = NumThreads / WarpSize;
-            return LoadKernel(kernel, groupSize);
+            var result = LoadKernel(kernel, WarpSize);
+            kernelInfo = new KernelInfo(WarpSize, NumThreads / WarpSize);
+            return result;
         }
 
         /// <summary cref="Accelerator.CreateStreamInternal"/>

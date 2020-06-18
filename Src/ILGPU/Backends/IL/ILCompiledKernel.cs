@@ -42,7 +42,7 @@ namespace ILGPU.Backends.IL
             Type taskType,
             ConstructorInfo taskConstructor,
             ImmutableArray<FieldInfo> taskArgumentMapping)
-            : base(context, entryPoint)
+            : base(context, entryPoint, null)
         {
             KernelMethod = kernelMethod;
             ExecutionHandler = (CPUKernelExecutionHandler)KernelMethod.CreateDelegate(

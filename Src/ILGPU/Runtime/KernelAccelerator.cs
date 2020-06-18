@@ -52,11 +52,17 @@ namespace ILGPU.Runtime
                 GenerateKernelLauncherMethod(compiledKernel, 0));
         }
 
-        /// <summary cref="Accelerator.LoadImplicitlyGroupedKernelInternal(
-        /// CompiledKernel, int)"/>
+        /// <summary>
+        /// Loads an implicitly grouped kernel on the current accelerator.
+        /// </summary>
+        /// <param name="kernel">The compiled kernel to load.</param>
+        /// <param name="customGroupSize">The user-defined group size.</param>
+        /// <param name="kernelInfo">The resolved kernel information.</param>
+        /// <returns>The loaded kernel.</returns>
         protected sealed override Kernel LoadImplicitlyGroupedKernelInternal(
             CompiledKernel kernel,
-            int customGroupSize)
+            int customGroupSize,
+            out KernelInfo kernelInfo)
         {
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
@@ -70,17 +76,24 @@ namespace ILGPU.Runtime
                     RuntimeErrorMessages.NotSupportedExplicitlyGroupedKernel);
             }
 
+            kernelInfo = KernelInfo.CreateFrom(
+                kernel.Info,
+                customGroupSize,
+                null);
             return CreateKernel(
                 compiledKernel,
                 GenerateKernelLauncherMethod(compiledKernel, customGroupSize));
         }
 
-        /// <summary cref="Accelerator.LoadAutoGroupedKernelInternal(
-        /// CompiledKernel, out int, out int)"/>
+        /// <summary>
+        /// Loads an auto grouped kernel on the current accelerator.
+        /// </summary>
+        /// <param name="kernel">The compiled kernel to load.</param>
+        /// <param name="kernelInfo">The resolved kernel information.</param>
+        /// <returns>The loaded kernel.</returns>
         protected sealed override Kernel LoadAutoGroupedKernelInternal(
             CompiledKernel kernel,
-            out int groupSize,
-            out int minGridSize)
+            out KernelInfo kernelInfo)
         {
             if (kernel == null)
                 throw new ArgumentNullException(nameof(kernel));
@@ -93,8 +106,12 @@ namespace ILGPU.Runtime
             }
 
             var result = CreateKernel(compiledKernel);
-            groupSize = EstimateGroupSizeInternal(result, 0, 0, out minGridSize);
+            int groupSize = EstimateGroupSizeInternal(result, 0, 0, out int minGridSize);
             result.Launcher = GenerateKernelLauncherMethod(compiledKernel, groupSize);
+            kernelInfo = KernelInfo.CreateFrom(
+                kernel.Info,
+                groupSize,
+                minGridSize);
             return result;
         }
 

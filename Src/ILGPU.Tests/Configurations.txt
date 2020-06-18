@@ -1,36 +1,35 @@
-﻿ArrayViews: Debug, Release
-Arrays: Debug, Release
-EnumValues: Debug, Release
-ExchangeBufferOperations: Debug, Release
-KernelEntryPoints: Debug, Release
-MemoryBufferOperations : Debug, Release
-MemoryCacheOperations : Debug, Release
-SharedMemory: Debug, Release
-SizeOfValues: Debug, Release
-SpecializedKernels: Debug, Release
-StructureValues: Debug, Release
+﻿ArrayViews: Debug, Release, O2
+Arrays: Debug, Release, O2
+EnumValues: Debug, Release, O2
+KernelEntryPoints: Debug, Release, O2
+MemoryBufferOperations : Debug, Release, O2
+MemoryCacheOperations : Debug, Release, O2
+SharedMemory: Debug, Release, O2
+SizeOfValues: Debug, Release, O2
+SpecializedKernels: Debug, Release, O2
+StructureValues: Debug, Release, O2
 
-BinaryIntOperations: Debug, Release
-UnaryIntOperations: Debug, Release
+BinaryIntOperations: Debug, Release, O2
+UnaryIntOperations: Debug, Release, O2
 
-CompareIntOperations: Debug, Release
-CompareFloatOperations: Debug, Release
+CompareIntOperations: Debug, Release, O2
+CompareFloatOperations: Debug, Release, O2
 
-AtomicOperations: Debug, Release
-AtomicCASOperations: Debug, Release
+AtomicOperations: Debug, Release, O2
+AtomicCASOperations: Debug, Release, O2
 
-GridOperations: Debug, Release
-GroupOperations: Debug, Release
-MemoryFenceOperations: Debug, Release
-WarpOperations: Debug, Release
+GridOperations: Debug, Release, O2
+GroupOperations: Debug, Release, O2
+MemoryFenceOperations: Debug, Release, O2
+WarpOperations: Debug, Release, O2
 
-ConvertFloatOperations: Debug, Release
-ConvertIntOperations: Debug, Release
-ReinterpretCasts: Debug, Release
+ConvertFloatOperations: Debug, Release, O2
+ConvertIntOperations: Debug, Release, O2
+ReinterpretCasts: Debug, Release, O2
 
-BasicJumps: Debug, Release
-BasicCalls: Debug, Release
-BasicIfs: Debug, Release
-BasicLoops: Debug, Release
-BasicSwitches: Debug, Release
-BasicPhis: Debug, Release
+BasicJumps: Debug, Release, O2
+BasicCalls: Debug, Release, O2
+BasicIfs: Debug, Release, O2
+BasicLoops: Debug, Release, O2
+BasicSwitches: Debug, Release, O2
+BasicPhis: Debug, Release, O2
