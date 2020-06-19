@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>ILGPU</id>
-    <version>0.8.0</version>
+    <version>0.8.1-beta1</version>
     <title>ILGPU</title>
     <owners>Marcel Koester</owners>
     <authors>Marcel Koester</authors>
@@ -29,8 +29,6 @@
   <files>
     <file src="..\LICENSE.txt" target="" />
     <file src="..\LICENSE-3RD-PARTY.txt" target="" />
-
-    <file src="ILGPU.targets" target="build\ILGPU.targets" />
 
     <file src="..\Bin\Release\netstandard2.1\ILGPU.dll" target="lib\netstandard2.1\ILGPU.dll" />
     <file src="..\Bin\Release\netstandard2.1\ILGPU.xml" target="lib\netstandard2.1\ILGPU.xml" />
