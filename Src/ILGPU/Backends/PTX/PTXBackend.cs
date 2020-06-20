@@ -168,7 +168,7 @@ namespace ILGPU.Backends.PTX
                 ? PointerAlignments.Create(
                     backendContext.KernelMethod,
                     DefaultGlobalMemoryAlignment)
-                : PointerAlignments.Empty;
+                : null;
 
             data = new PTXCodeGenerator.GeneratorArgs(
                 this,

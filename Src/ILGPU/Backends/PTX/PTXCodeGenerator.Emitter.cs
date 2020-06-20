@@ -659,21 +659,27 @@ namespace ILGPU.Backends.PTX
         /// to resolve the correct offset in bytes within a structure.
         /// </summary>
         /// <typeparam name="TEmitter">The emitter type.</typeparam>
+        /// <param name="pointerValue">The pointer to get the alignment for.</param>
+        /// <param name="safeAlignment">The safe minimum alignment in bytes.</param>
         /// <param name="command">The generic command to emit.</param>
         /// <param name="emitter">The current emitter.</param>
         /// <param name="register">The involved register.</param>
-        /// <param name="alignment">The base alignment in bytes.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void EmitVectorizedCommand<TEmitter>(
+            Value pointerValue,
+            int safeAlignment,
             string command,
             in TEmitter emitter,
-            Register register,
-            int alignment)
+            Register register)
             where TEmitter : IVectorizedCommandEmitter
         {
-            if (register is CompoundRegister compoundRegister)
+            if (PointerAlignments != null &&
+                register is CompoundRegister compoundRegister)
             {
                 // Check the provided alignment value to create vectorized instructions
+                int alignment = PointerAlignments.GetAlignment(
+                    pointerValue,
+                    safeAlignment);
                 var ranges = compoundRegister.Type.VectorizableFields;
                 for (int i = 0, e = ranges.Count; i < e; ++i)
                 {
