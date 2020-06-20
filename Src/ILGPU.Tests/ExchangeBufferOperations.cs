@@ -1,5 +1,7 @@
 ﻿using FluentAssertions.Equivalency;
 using ILGPU.Runtime;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Xunit;
@@ -7,7 +9,6 @@ using Xunit.Abstractions;
 
 namespace ILGPU.Tests
 {
-
     public abstract class ExchangeBufferOperations : TestBase
     {
         private const int Length = 32;
@@ -17,15 +18,22 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
+        public static IEnumerable<object[]> GetNumbers()
+        {
+            yield return new object[] { 10 };
+            yield return new object[] { -10 };
+            yield return new object[] { int.MaxValue };
+            yield return new object[] { int.MinValue };
+        }
+
+
         internal static void CopyKernel(Index1 index, ArrayView<long, Index1> data)
         {
             data[index] -= 5;
         }
 
         [Theory]
-        [InlineData(10)]
-        [InlineData(int.MaxValue)]
-        [InlineData(int.MinValue)]
+        [MemberData(nameof(GetNumbers))]
         [KernelMethod(nameof(CopyKernel))]
         public void Copy(long constant)
         {
@@ -55,9 +63,7 @@ namespace ILGPU.Tests
         }
 
         [Theory]
-        [InlineData(10)]
-        [InlineData(int.MaxValue)]
-        [InlineData(int.MinValue)]
+        [MemberData(nameof(GetNumbers))]
         [KernelMethod(nameof(Copy2DKernel))]
         public void Copy2D(long constant)
         {
@@ -92,9 +98,7 @@ namespace ILGPU.Tests
         }
 
         [Theory]
-        [InlineData(10)]
-        [InlineData(int.MaxValue)]
-        [InlineData(int.MinValue)]
+        [MemberData(nameof(GetNumbers))]
         [KernelMethod(nameof(Copy3DKernel))]
         public void Copy3D(long constant)
         {
@@ -239,6 +243,7 @@ namespace ILGPU.Tests
             returnBuffer[index] = data[index] - data2[index];
         }
 
+        //use the InlineData here, it's going to be more complicated otherwise
         [Theory]
         [InlineData(10, 5)]
         [InlineData(int.MaxValue, 20)]
@@ -246,7 +251,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(CopyAsyncKernel))]
         public void CopyAsync(long constant, long constant2)
         {
-            var stream1 = Accelerator.CreateStream();
+            var stream1 = Accelerator.DefaultStream;
             var stream2 = Accelerator.CreateStream();
             var stream3 = Accelerator.CreateStream();
 

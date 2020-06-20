@@ -365,7 +365,8 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <returns>A new array holding the requested contents.</returns>
-        public unsafe T[] GetAsArray(AcceleratorStream stream) => Buffer.GetAsArray(stream);
+        public unsafe T[] GetAsArray(AcceleratorStream stream) =>
+            Buffer.GetAsArray(stream);
 
         /// <summary>
         /// Copes data from CPU memory to the associated accelerator.
