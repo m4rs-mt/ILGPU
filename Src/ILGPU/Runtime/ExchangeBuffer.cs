@@ -400,22 +400,8 @@ namespace ILGPU.Runtime
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-
             Buffer.CopyToView(stream, CPUView.BaseView, 0);
         }
-
-        /// <summary>
-        /// Returns the underlying generic memory buffer.
-        /// </summary>
-        /// <returns>The underlying generic memory buffer.</returns>
-        public MemoryBuffer<T, TIndex> ToMemoryBuffer() => Buffer;
-
-        /// <summary>
-        /// Returns an array view that can access this array.
-        /// </summary>
-        /// <returns>An array view that can access this array.</returns>
-        public ArrayView<T, TIndex> ToArrayView() => View;
-
 
         /// <summary>
         /// Gets the part of this buffer on CPU memory as a 2D View.
@@ -506,6 +492,17 @@ namespace ILGPU.Runtime
         }
 
         #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Gets this buffer as a higher level memory buffer
+        /// </summary>
+        /// <returns> A <see cref="MemoryBuffer{T}"/> containing the data in this
+        /// exchanage buffer</returns>
+        public MemoryBuffer<T> AsMemoryBuffer() => new MemoryBuffer<T>(Buffer);
+
+        #endregion
     }
 
     /// <summary>
@@ -574,6 +571,13 @@ namespace ILGPU.Runtime
             buffer.Dispose();
             return array;
         }
+
+        /// <summary>
+        /// Gets this buffer as a higher level 2D memory buffer
+        /// </summary>
+        /// <returns> A <see cref="MemoryBuffer2D{T}"/> containing the data in this
+        /// exchanage buffer</returns>
+        public MemoryBuffer2D<T> AsMemoryBuffer2D() => new MemoryBuffer2D<T>(Buffer);
 
         #endregion
     }
@@ -644,6 +648,13 @@ namespace ILGPU.Runtime
             buffer.Dispose();
             return array;
         }
+
+        /// <summary>
+        /// Gets this buffer as a higher level 3D memory buffer
+        /// </summary>
+        /// <returns> A <see cref="MemoryBuffer3D{T}"/> containing the data in this
+        /// exchanage buffer</returns>
+        public MemoryBuffer3D<T> AsMemoryBuffer3D() => new MemoryBuffer3D<T>(Buffer);
 
         #endregion
     }

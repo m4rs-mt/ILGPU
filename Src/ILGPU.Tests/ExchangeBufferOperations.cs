@@ -1,6 +1,4 @@
-﻿using FluentAssertions.Equivalency;
-using ILGPU.Runtime;
-using System;
+﻿using ILGPU.Runtime;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
