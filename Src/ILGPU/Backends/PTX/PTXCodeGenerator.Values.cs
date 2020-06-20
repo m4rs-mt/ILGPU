@@ -439,15 +439,12 @@ namespace ILGPU.Backends.PTX
             var sourceType = load.Source.Type as PointerType;
             var targetRegister = Allocate(load);
 
-            // Query alignment information to emit vectorized instructions
-            int alignment = PointerAlignments.GetAlignment(
-                load.Source,
-                sourceType.ElementType.Alignment);
             EmitVectorizedCommand(
+                load.Source,
+                sourceType.ElementType.Alignment,
                 PTXInstructions.LoadOperation,
                 new LoadEmitter(sourceType, address),
-                targetRegister,
-                alignment);
+                targetRegister);
         }
 
         /// <summary>
@@ -540,15 +537,12 @@ namespace ILGPU.Backends.PTX
             var targetType = store.Target.Type as PointerType;
             var value = Load(store.Value);
 
-            // Query alignment information to emit vectorized instructions
-            int baseAlignment = PointerAlignments.GetAlignment(
-                store.Target,
-                targetType.ElementType.Alignment);
             EmitVectorizedCommand(
+                store.Target,
+                targetType.ElementType.Alignment,
                 PTXInstructions.StoreOperation,
                 new StoreEmitter(targetType, address),
-                value,
-                baseAlignment);
+                value);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(LoadFieldAddress)"/>

@@ -84,14 +84,15 @@ namespace ILGPU.IR.Analyses
                 {
                     LoadFieldAddress lfa =>
                         AnalysisValue.Create(
-                            context[lfa.Source].Data +
-                            lfa.StructureType.GetOffset(lfa.FieldSpan.Access),
-                            lfa.Type),
+                            Math.Min(
+                                context[lfa.Source].Data,
+                                lfa.StructureType[lfa.FieldSpan.Access].Alignment),
+                                lfa.Type),
                     LoadElementAddress lea =>
                         AnalysisValue.Create(
-                            Math.Min(
+                            Math.Max(
                                 context[lea.Source].Data,
-                                (lea.Type as IAddressSpaceType).ElementType.Size),
+                                (lea.Type as IAddressSpaceType).ElementType.Alignment),
                             lea.Type),
                     _ => null,
                 };

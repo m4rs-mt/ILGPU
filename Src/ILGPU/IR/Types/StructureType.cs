@@ -18,7 +18,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Security.Permissions;
 using System.Text;
 
 namespace ILGPU.IR.Types
@@ -410,18 +409,22 @@ namespace ILGPU.IR.Types
             /// </summary>
             public struct Entry
             {
+                #region Instance
+
                 /// <summary>
                 /// Constructs a new entry.
                 /// </summary>
-                internal Entry(TypeNode type, int index, int offset, int count = 1)
+                internal Entry(
+                    TypeNode type,
+                    int index,
+                    int offset,
+                    int count = 1)
                 {
                     Type = type;
                     Index = index;
                     Count = count;
                     Offset = offset;
                 }
-
-                #region Instance
 
                 #endregion
 
@@ -440,16 +443,38 @@ namespace ILGPU.IR.Types
                 /// <summary>
                 /// Returns the number of fields.
                 /// </summary>
-                public int Count { get; private set; }
+                public int Count { readonly get; private set; }
 
                 /// <summary>
                 /// Returns the base offset in bytes from the beginning of the field.
                 /// </summary>
                 public int Offset { get; }
 
+                /// <summary>
+                /// Returns the required alignment in bytes.
+                /// </summary>
+                public readonly int RequiredAlignment => Count * Type.Size;
+
                 #endregion
 
                 #region Methods
+
+                /// <summary>
+                /// Splits the current entry into two parts.
+                /// </summary>
+                /// <param name="first">The first part.</param>
+                /// <param name="second">The second part.</param>
+                internal void Split(out Entry first, out Entry second)
+                {
+                    Type.Assert(Count > 1);
+                    int firstCount = Count >> 1 + Count % 2;
+                    first = new Entry(Type, Index, Offset, firstCount);
+                    second = new Entry(
+                        Type,
+                        Index + firstCount,
+                        Offset + Type.Size * firstCount,
+                        Count - firstCount);
+                }
 
                 /// <summary>
                 /// Adds a field to this entry.
@@ -463,7 +488,22 @@ namespace ILGPU.IR.Types
                 /// <param name="alignment">The underlying alignment in bytes.</param>
                 /// <returns>True, if the range is properly aligned.</returns>
                 public readonly bool IsAligned(int alignment) =>
-                    (alignment + Offset) % (Type.Size * Count) == 0;
+                    // Check for a proper alignment of the base address
+                    alignment % RequiredAlignment == 0;
+
+                /// <summary>
+                /// Returns true if this entry can be properly aligned.
+                /// </summary>
+                /// <param name="parentType">The parent structure type.</param>
+                internal readonly bool CanBeAligned(StructureType parentType)
+                {
+                    int requiredAlignment = RequiredAlignment;
+                    return 
+                        // Check for a relative alignment inside the structure
+                        Offset % requiredAlignment == 0 &&
+                        // Check for a relative alignment of odd structure accesses
+                        (Offset + parentType.Size) % requiredAlignment == 0;
+                }
 
                 #endregion
             }
@@ -499,7 +539,7 @@ namespace ILGPU.IR.Types
                         currentOffset + nextType.Size != nextOffset)
                     {
                         // Register the current vectorizable entry
-                        RegisterRange(current);
+                        RegisterRange(structureType, current);
                         current = new Entry(
                             nextType,
                             i,
@@ -514,14 +554,17 @@ namespace ILGPU.IR.Types
                 }
 
                 // Add the last entry
-                RegisterRange(current);
+                RegisterRange(structureType, current);
             }
 
             /// <summary>
             /// Registers the given range entry.
             /// </summary>
+            /// <param name="structureType">The parent structure type.</param>
             /// <param name="entry">The entry to register.</param>
-            private void RegisterRange(in Entry entry)
+            private void RegisterRange(
+                StructureType structureType,
+                in Entry entry)
             {
                 int offset = entry.Offset;
                 for (
@@ -531,12 +574,22 @@ namespace ILGPU.IR.Types
                 {
                     for (; index + stepSize <= entry.Count; index += stepSize)
                     {
-                        ranges.Add(
-                            new Entry(
-                                entry.Type,
-                                index + entry.Index,
-                                offset,
-                                stepSize));
+                        var newEntry = new Entry(
+                            entry.Type,
+                            index + entry.Index,
+                            offset,
+                            stepSize);
+                        if (newEntry.Count > 1 && !newEntry.CanBeAligned(structureType))
+                        {
+                            newEntry.Split(out var first, out var second);
+                            RegisterRange(structureType, first);
+                            RegisterRange(structureType, second);
+                        }
+                        else
+                        {
+                            // The entry is properly aligned
+                            ranges.Add(newEntry);
+                        }
                         offset += entry.Type.Size * stepSize;
                     }
                 }
