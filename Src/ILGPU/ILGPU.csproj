@@ -9,12 +9,7 @@
 
     <PropertyGroup>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Copyright>Copyright © 2016-2020 Marcel Koester</Copyright>
-        <Company />
-        <Authors>Marcel Koester</Authors>
         <Version>0.8.1</Version>
-        <Description>ILGPU Just-In-Time Compiler</Description>
-        <PackageProjectUrl>www.ilgpu.net</PackageProjectUrl>
         <NeutralLanguage>en-US</NeutralLanguage>
         <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
         <LangVersion>8.0</LangVersion>
@@ -49,10 +44,6 @@
         <PackageReference Include="System.Memory" Version="4.5.4" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
         <PackageReference Include="System.Reflection.Metadata" Version="1.8.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Folder Include="Properties/" />
     </ItemGroup>
 
     <ItemGroup>
@@ -264,5 +255,6 @@
         </EmbeddedResource>
     </ItemGroup>
 
+    <Import Project="Properties\ILGPU.nuspec.targets"/>
     <Import Project="..\TextTransform.targets" />
 </Project>
