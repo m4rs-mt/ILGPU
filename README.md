@@ -59,6 +59,8 @@ Different parts of ILGPU require different third-party libraries.
 * ILGPU Dependencies
     - System.Collections.Immutable
     (https://www.nuget.org/packages/System.Collections.Immutable)
+    - System.Memory
+    (https://www.nuget.org/packages/System.Memory)
     - System.Reflection.Metadata
     (https://www.nuget.org/packages/System.Reflection.Metadata)
     - System.Runtime.CompilerServices.Unsafe
