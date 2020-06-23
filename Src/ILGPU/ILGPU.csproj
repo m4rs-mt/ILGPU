@@ -80,6 +80,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
         </None>
+        <None Include="Runtime\ExchangeBuffer.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>ExchangeBuffer.tt</DependentUpon>
+        </None>
         <None Include="Runtime\KernelLoaders.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -152,6 +157,11 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Runtime\ExchangeBuffer.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>ExchangeBuffer.tt</DependentUpon>
         </Compile>
         <Compile Update="Runtime\KernelLoaders.cs">
           <DesignTime>True</DesignTime>
@@ -227,6 +237,10 @@
         <None Update="IR\Intrinsics\IntrinsicMatchers.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>IntrinsicMatchers.cs</LastGenOutput>
+        </None>
+        <None Update="Runtime\ExchangeBuffer.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>ExchangeBuffer.cs</LastGenOutput>
         </None>
         <None Update="Runtime\KernelLoaders.tt">
           <Generator>TextTemplatingFileGenerator</Generator>

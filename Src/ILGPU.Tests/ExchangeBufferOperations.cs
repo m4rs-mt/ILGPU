@@ -24,7 +24,6 @@ namespace ILGPU.Tests
             yield return new object[] { int.MinValue };
         }
 
-
         internal static void CopyKernel(Index1 index, ArrayView<long, Index1> data)
         {
             data[index] -= 5;
@@ -88,8 +87,6 @@ namespace ILGPU.Tests
                 Assert.Equal(expected[i], exchangeBuffer.CPUView.BaseView[i]);
         }
 
-        
-
         internal static void Copy3DKernel(Index3 index, ArrayView<long, Index3> data)
         {
             data[index] -= 5;
@@ -108,7 +105,7 @@ namespace ILGPU.Tests
                     for (int k = 0; k < Length; k++)
                         exchangeBuffer[new Index3(i, j, k)] = constant;
 
-            //start copying, create the expected array in the meantime
+            // Start copying, create the expected array in the meantime.
             exchangeBuffer.CopyToAccelerator();
 
             var expected = Enumerable.Repeat(constant - 5,
@@ -127,8 +124,8 @@ namespace ILGPU.Tests
                 Assert.Equal(expected[i], exchangeBuffer.CPUView.BaseView[i]);
         }
 
-        //no need for kernel, assuming copy tests pass.
-        //Just going to confirm integrity in this test.
+        // No need for kernel, assuming copy tests pass.
+        // Just going to confirm integrity in this test.
         [Fact]
         [SuppressMessage(
             "Microsoft.Performance",
@@ -149,7 +146,7 @@ namespace ILGPU.Tests
 
             Accelerator.Synchronize();
 
-            //synchronizes on it's own
+            // Synchronizes on it's own.
             var data = exchangeBuffer.GetAsArray();
 
             Assert.Equal(expected.Length, data.Length);;
@@ -158,8 +155,8 @@ namespace ILGPU.Tests
                 Assert.Equal(expected[i], data[i]);
         }
 
-        //no need for kernel, assuming copy tests pass.
-        //Just going to confirm integrity in this test.
+        // No need for kernel, assuming copy tests pass.
+        // Just going to confirm integrity in this test.
         [Fact]
         [SuppressMessage(
             "Microsoft.Performance",
@@ -194,8 +191,8 @@ namespace ILGPU.Tests
                     Assert.Equal(expected[i, j], data[i, j]);
         }
 
-        //no need for kernel, assuming copy tests pass.
-        //Just going to confirm integrity in this test.
+        // No need for kernel, assuming copy tests pass.
+        // Just going to confirm integrity in this test.
         [Fact]
         [SuppressMessage(
             "Microsoft.Performance",
@@ -241,7 +238,7 @@ namespace ILGPU.Tests
             returnBuffer[index] = data[index] - data2[index];
         }
 
-        //use the InlineData here, it's going to be more complicated otherwise
+        // Use the InlineData here, it's going to be more complicated otherwise.
         [Theory]
         [InlineData(10, 5)]
         [InlineData(int.MaxValue, 20)]
