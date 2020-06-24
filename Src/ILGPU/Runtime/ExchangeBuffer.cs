@@ -11,9 +11,9 @@ namespace ILGPU.Runtime
     /// <summary>
     /// A static helper class for all exchange buffer implementations.
     /// </summary>
-    public static class ExchangeBuffer {
-     
-        /// <summary>
+    public static class ExchangeBuffer
+    {
+                                        /// <summary>
         /// Allocates a new 1D exchange buffer that allocates the specified amount of
         /// elements on the current accelerator. Furthermore, it keeps a buffer of the
         /// same size in pinned CPU memory to enable asynchronous memory transfers.
@@ -52,8 +52,7 @@ namespace ILGPU.Runtime
             var gpuBuffer = accelerator.Allocate<T>(extent);
             return new ExchangeBuffer<T>(gpuBuffer, mode);
         }
-     
-        /// <summary>
+                                        /// <summary>
         /// Allocates a new 2D exchange buffer that allocates the specified amount of
         /// elements on the current accelerator. Furthermore, it keeps a buffer of the
         /// same size in pinned CPU memory to enable asynchronous memory transfers.
@@ -92,8 +91,7 @@ namespace ILGPU.Runtime
             var gpuBuffer = accelerator.Allocate<T>(extent);
             return new ExchangeBuffer2D<T>(gpuBuffer, mode);
         }
-     
-        /// <summary>
+                                        /// <summary>
         /// Allocates a new 3D exchange buffer that allocates the specified amount of
         /// elements on the current accelerator. Furthermore, it keeps a buffer of the
         /// same size in pinned CPU memory to enable asynchronous memory transfers.
@@ -449,7 +447,7 @@ namespace ILGPU.Runtime
 
         #endregion
     }
-        /// <summary>
+                                    /// <summary>
     /// 1D implementation of <see cref="ExchangeBufferBase{T, TIndex}"/>
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
@@ -490,8 +488,8 @@ namespace ILGPU.Runtime
 
         #endregion
     }
-    /// <summary>
-    /// 1D implementation of <see cref="ExchangeBufferBase{T, TIndex}"/>
+                                /// <summary>
+    /// 2D implementation of <see cref="ExchangeBufferBase{T, TIndex}"/>
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
@@ -565,8 +563,8 @@ namespace ILGPU.Runtime
         }
         #endregion
     }
-    /// <summary>
-    /// 1D implementation of <see cref="ExchangeBufferBase{T, TIndex}"/>
+                                /// <summary>
+    /// 3D implementation of <see cref="ExchangeBufferBase{T, TIndex}"/>
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
