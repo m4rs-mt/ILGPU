@@ -20,7 +20,7 @@ To transform them, right-click a text template and select Run Custom Tool. Alter
 ILGPU.Algorithms is licensed under the University of Illinois/NCSA Open Source License.
 Detailed license information can be found in LICENSE.txt.
 
-Copyright (c) 2019 ILGPU Algorithms Project. All rights reserved.
+Copyright (c) 2019-2020 ILGPU Algorithms Project. All rights reserved.
 Copyright (c) 2016-2018 ILGPU Lightning Project. All rights reserved.
 
 ## License information of required dependencies
