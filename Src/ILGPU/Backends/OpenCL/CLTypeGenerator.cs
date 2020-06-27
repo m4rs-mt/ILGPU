@@ -173,8 +173,12 @@ namespace ILGPU.Backends.OpenCL
 
             foreach (var basicValueType in IRTypeContext.BasicValueTypes)
             {
-                if (basicValueType == BasicValueType.Float64 && TypeContext.Context.HasFlags(ContextFlags.Force32BitFloats))
+                if (basicValueType == BasicValueType.Float64
+                    && TypeContext.Context.HasFlags(ContextFlags.Force32BitFloats))
+                {
                     continue;
+                }
+
                 var primitiveType = typeContext.GetPrimitiveType(basicValueType);
                 mapping[primitiveType] = GetBasicValueType(basicValueType);
             }

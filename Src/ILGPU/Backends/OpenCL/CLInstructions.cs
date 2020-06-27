@@ -65,7 +65,9 @@ namespace ILGPU.Backends.OpenCL
             out bool isFunction)
         {
             if (!UnaryCategoryLookup.TryGetValue(basicValueType, out var category) ||
-                !UnaryArithmeticOperations.TryGetValue((kind, category), out var operation))
+                !UnaryArithmeticOperations.TryGetValue(
+                    (kind, category),
+                    out var operation))
             {
                 throw new NotSupportedIntrinsicException(kind.ToString());
             }

@@ -15,8 +15,6 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Transformations
 {
