@@ -27,26 +27,19 @@ jobs:
       - name: Build templates
         # TargetFramework specified so this only runs once rather than per framework
         run: dotnet msbuild -t:TextTemplateTransform -p:TargetFramework=NA Src
-      - name: Debug Build
-        run: dotnet build --configuration=Debug -p:TreatWarningsAsErrors=true Src
       - name: Release Build
         run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
       - name: CPU Tests
         run: dotnet test --configuration=Release ./Src/ILGPU.Algorithms.Tests.CPU
-      - name: Set up NuGet
-        if: runner.os == 'Windows'
-        uses: nuget/setup-nuget@v1
-        with:
-          nuget-version: '5.x'
       - name: Create NuGet package
         if: runner.os == 'Windows'
-        run: dotnet pack --configuration=Release  Src
+        run: dotnet pack --configuration=Release -o . Src
       - name: Upload NuGet package artifact
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v2
         with:
           name: nuget-package
-          path: ./Bin/Release/ILGPU.Algorithms.*.*nupkg
+          path: ILGPU.Algorithms.*.*nupkg
 
   publish-nuget:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -58,4 +51,5 @@ jobs:
         with:
           name: nuget-package
       - name: Publish to NuGet
+        shell: bash
         run: dotnet nuget push ILGPU.Algorithms.*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
