@@ -17,17 +17,18 @@ jobs:
             Foreach ($file in Get-ChildItem -Path Src -Filter $pattern -Recurse -File) {
               If (-Not (Select-String -Path $file -Pattern "^// disable: max_line_length" -Quiet)) {
                 $index = 1
-            	  Foreach($line in Get-Content $file)
-            	  {
-            		  If ($line.Length -gt 90) {
+                Foreach ($line in Get-Content $file)
+                {
+                  If ($line.Length -gt 90) {
                     Write-Host "${file}:${index}: line too long ($($line.Length) > 90 characters)"
                     $found = $true
                   }
                   $index++
-            		}
-            	}
+                }
+              }
             }
           }
+          
           If ($found) {
             Exit 1
           }
