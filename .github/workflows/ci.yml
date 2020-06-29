@@ -15,7 +15,7 @@ jobs:
           $found = $false
           Foreach ($pattern in "*.cs","*.tt") {
             Foreach ($file in Get-ChildItem -Path Src -Filter $pattern -Recurse -File) {
-              If (-Not (Select-String -Path $file -Pattern "^// disable: max_line_length" -Quiet)) {
+              If (-Not (($file.Directory.Name -Eq "Resources") -Or (Select-String -Path $file -Pattern "^// disable: max_line_length" -Quiet))) {
                 $index = 1
                 Foreach ($line in Get-Content $file)
                 {
