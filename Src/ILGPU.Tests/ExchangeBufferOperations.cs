@@ -38,7 +38,7 @@ namespace ILGPU.Tests
             for (int i = 0; i < Length; i++)
                 exchangeBuffer[i] = constant;
 
-            //start copying, create the expected array in the meantime
+            // Start copying, create the expected array in the meantime
             exchangeBuffer.CopyToAccelerator();
             var expected = Enumerable.Repeat(constant - 5, Length).ToArray();
             Accelerator.Synchronize();
@@ -64,14 +64,14 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(Copy2DKernel))]
         public void Copy2D(long constant)
         {
-            var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
+            using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
                 new Index2(Length, Length));
 
             for (int i = 0; i < Length; i++)
                 for (int j = 0; j < Length; j++)
                     exchangeBuffer[new Index2(i, j)] = constant;
 
-            //start copying, create the expected array in the meantime
+            // Start copying, create the expected array in the meantime
             exchangeBuffer.CopyToAccelerator();
             var expected = Enumerable.Repeat(constant - 5, Length * Length).ToArray();
             Accelerator.Synchronize();
@@ -97,7 +97,7 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(Copy3DKernel))]
         public void Copy3D(long constant)
         {
-            var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
+            using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
                 new Index3(Length, Length, Length));
 
             for (int i = 0; i < Length; i++)
@@ -133,7 +133,7 @@ namespace ILGPU.Tests
             Target = "target")]
         public void GetAsArray()
         {
-            var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
+            using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
                 new Index1(Length));
 
             for (int i = 0; i < Length; i++)
@@ -146,8 +146,8 @@ namespace ILGPU.Tests
 
             Accelerator.Synchronize();
 
-            // Synchronizes on it's own.
             var data = exchangeBuffer.GetAsArray();
+            Accelerator.Synchronize();
 
             Assert.Equal(expected.Length, data.Length);;
 
@@ -164,7 +164,7 @@ namespace ILGPU.Tests
             Target = "target")]
         public void GetAsArray2D()
         {
-            var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
+            using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
                 new Index2(Length, Length));
 
             for (int i = 0; i < Length; i++)
@@ -179,8 +179,8 @@ namespace ILGPU.Tests
 
             Accelerator.Synchronize();
 
-            //synchronizes on it's own
             var data = exchangeBuffer.GetAs2DArray();
+            Accelerator.Synchronize();
 
             Assert.Equal(expected.Length, data.Length);
             Assert.Equal(expected.GetLength(0), data.GetLength(0));
@@ -200,7 +200,7 @@ namespace ILGPU.Tests
             Target = "target")]
         public void GetAsArray3D()
         {
-            var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
+            using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
                 new Index3(Length, Length, Length));
 
             for (int i = 0; i < Length; i++)
@@ -217,8 +217,8 @@ namespace ILGPU.Tests
 
             Accelerator.Synchronize();
 
-            //synchronizes on it's own
             var data = exchangeBuffer.GetAs3DArray();
+            Accelerator.Synchronize();
 
             Assert.Equal(expected.Length, data.Length);
             Assert.Equal(expected.GetLength(0), data.GetLength(0));
@@ -250,9 +250,9 @@ namespace ILGPU.Tests
             var stream2 = Accelerator.CreateStream();
             var stream3 = Accelerator.CreateStream();
 
-            var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(Length);
-            var exchangeBuffer2 = Accelerator.AllocateExchangeBuffer<long>(Length);
-            var returnBuffer = Accelerator.AllocateExchangeBuffer<long>(Length);
+            using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(Length);
+            using var exchangeBuffer2 = Accelerator.AllocateExchangeBuffer<long>(Length);
+            using var returnBuffer = Accelerator.AllocateExchangeBuffer<long>(Length);
             for (int i = 0; i < Length; i++)
             {
                 exchangeBuffer[i] = constant;
