@@ -46,14 +46,21 @@ namespace ILGPU.IR.Types
             /// </summary>
             /// <param name="typeContext">The current type context.</param>
             /// <param name="capacity">The initial capacity.</param>
-            internal Builder(IRTypeContext typeContext, int capacity)
+            /// <param name="size">The custom size in bytes (if any).</param>
+            internal Builder(
+                IRTypeContext typeContext,
+                int capacity,
+                int size)
             {
                 Debug.Assert(capacity >= 0, "Invalid capacity");
+                Debug.Assert(size >= 0, "Invalid size");
+
                 fieldsBuilder = ImmutableArray.CreateBuilder<TypeNode>(capacity);
                 allFieldsBuilder = ImmutableArray.CreateBuilder<TypeNode>(capacity);
                 offsetsBuilder = ImmutableArray.CreateBuilder<int>(capacity);
                 TypeContext = typeContext;
 
+                ExplicitSize = size;
                 Alignment = Offset = 0;
             }
 
@@ -65,6 +72,11 @@ namespace ILGPU.IR.Types
             /// Returns the parent type context.
             /// </summary>
             public IRTypeContext TypeContext { get; }
+
+            /// <summary>
+            /// Returns the explicit size in bytes (if any).
+            /// </summary>
+            public int ExplicitSize { get; }
 
             /// <summary>
             /// Returns the number of all fields.
@@ -84,7 +96,12 @@ namespace ILGPU.IR.Types
             /// <summary>
             /// The current size in bytes.
             /// </summary>
-            public int Size => Alignment < 1 ? 0 : Align(Offset, Alignment);
+            public int Size => Math.Max(AlignedSize, ExplicitSize);
+
+            /// <summary>
+            /// Returns the aligned size based on the current offset and the alignment.
+            /// </summary>
+            public int AlignedSize => Alignment < 1 ? 0 : Align(Offset, Alignment);
 
             /// <summary>
             /// Returns the field type that corresponds to the given field access.
@@ -109,6 +126,7 @@ namespace ILGPU.IR.Types
                 if (type is StructureType structureType)
                 {
                     // Add initial field using structure alignment information
+                    int baseOffset = Offset;
                     AddInternal(
                         structureType[0],
                         0,
@@ -129,6 +147,10 @@ namespace ILGPU.IR.Types
                     int lastFieldSize = structureType[
                         structureType.NumFields - 1].Size;
                     Offset = Align(Offset + lastFieldSize, type.Alignment);
+
+                    // Take a custom structure size into account
+                    int structSize = Offset - baseOffset;
+                    Offset += Math.Max(structureType.Size - structSize, 0);
                 }
                 else
                 {
@@ -164,8 +186,14 @@ namespace ILGPU.IR.Types
             /// Seals this builder and returns a type that corresponds to the type
             /// represented by this builder.
             /// </summary>
-            /// <returns></returns>
-            public TypeNode Seal() => TypeContext.FinishStructureType(this);
+            /// <returns>The create type node.</returns>
+            public TypeNode Seal()
+            {
+                // Check for a special case in which we require custom padding elements
+                for (int i = AlignedSize, e = Size; i < e; ++i)
+                    Add(TypeContext.PaddingType);
+                return TypeContext.FinishStructureType(this);
+            }
 
             /// <summary>
             /// Moves the underlying builders to immutable arrays.
@@ -369,6 +397,223 @@ namespace ILGPU.IR.Types
             #endregion
         }
 
+        /// <summary>
+        /// Contains all vectorizable field ranges in the scope of its parent type.
+        /// </summary>
+        public readonly struct VectorizableFieldCollection
+        {
+            #region Nested Types
+
+            /// <summary>
+            /// Represents a vectorizable sub range in the scope of a structure type.
+            /// </summary>
+            public struct Entry
+            {
+                #region Instance
+
+                /// <summary>
+                /// Constructs a new entry.
+                /// </summary>
+                internal Entry(
+                    TypeNode type,
+                    int index,
+                    int offset,
+                    int count = 1)
+                {
+                    Type = type;
+                    Index = index;
+                    Count = count;
+                    Offset = offset;
+                }
+
+                #endregion
+
+                #region Properties
+
+                /// <summary>
+                /// Returns the associated type.
+                /// </summary>
+                public TypeNode Type { get; }
+
+                /// <summary>
+                /// Returns the start index within the parent structure.
+                /// </summary>
+                public int Index { get; }
+
+                /// <summary>
+                /// Returns the number of fields.
+                /// </summary>
+                public int Count { readonly get; private set; }
+
+                /// <summary>
+                /// Returns the base offset in bytes from the beginning of the field.
+                /// </summary>
+                public int Offset { get; }
+
+                /// <summary>
+                /// Returns the required alignment in bytes.
+                /// </summary>
+                public readonly int RequiredAlignment => Count * Type.Size;
+
+                #endregion
+
+                #region Methods
+
+                /// <summary>
+                /// Splits the current entry into two parts.
+                /// </summary>
+                /// <param name="first">The first part.</param>
+                /// <param name="second">The second part.</param>
+                internal void Split(out Entry first, out Entry second)
+                {
+                    Type.Assert(Count > 1);
+                    int firstCount = Count >> 1 + Count % 2;
+                    first = new Entry(Type, Index, Offset, firstCount);
+                    second = new Entry(
+                        Type,
+                        Index + firstCount,
+                        Offset + Type.Size * firstCount,
+                        Count - firstCount);
+                }
+
+                /// <summary>
+                /// Adds a field to this entry.
+                /// </summary>
+                internal void AddField() => ++Count;
+
+                /// <summary>
+                /// Checks whether the base offset is properly alignment with respect to
+                /// the given alignment in bytes.
+                /// </summary>
+                /// <param name="alignment">The underlying alignment in bytes.</param>
+                /// <returns>True, if the range is properly aligned.</returns>
+                public readonly bool IsAligned(int alignment) =>
+                    // Check for a proper alignment of the base address
+                    alignment % RequiredAlignment == 0;
+
+                /// <summary>
+                /// Returns true if this entry can be properly aligned.
+                /// </summary>
+                /// <param name="parentType">The parent structure type.</param>
+                internal readonly bool CanBeAligned(StructureType parentType)
+                {
+                    int requiredAlignment = RequiredAlignment;
+                    return 
+                        // Check for a relative alignment inside the structure
+                        Offset % requiredAlignment == 0 &&
+                        // Check for a relative alignment of odd structure accesses
+                        (Offset + parentType.Size) % requiredAlignment == 0;
+                }
+
+                #endregion
+            }
+
+            #endregion
+
+            #region Instance
+
+            private readonly List<Entry> ranges;
+
+            /// <summary>
+            /// Constructs a new field collection.
+            /// </summary>
+            /// <param name="structureType">The parent structure type.</param>
+            internal VectorizableFieldCollection(StructureType structureType)
+            {
+                structureType.Assert(structureType.NumFields > 0);
+                ranges = new List<Entry>(structureType.NumFields);
+
+                var current = new Entry(
+                    structureType[0],
+                    0,
+                    structureType.GetOffset(0));
+                int currentOffset = current.Offset;
+
+                for (int i = 1, e = structureType.NumFields; i < e; ++i)
+                {
+                    var nextType = structureType[i];
+                    var nextOffset = structureType.GetOffset(i);
+                    // If the next type is not compatible or is not properly aligned
+                    // we have to split at this point
+                    if (current.Type != nextType ||
+                        currentOffset + nextType.Size != nextOffset)
+                    {
+                        // Register the current vectorizable entry
+                        RegisterRange(structureType, current);
+                        current = new Entry(
+                            nextType,
+                            i,
+                            nextOffset);
+                    }
+                    else
+                    {
+                        // Everything seems to be compatible -> continue processing
+                        current.AddField();
+                    }
+                    currentOffset = nextOffset;
+                }
+
+                // Add the last entry
+                RegisterRange(structureType, current);
+            }
+
+            /// <summary>
+            /// Registers the given range entry.
+            /// </summary>
+            /// <param name="structureType">The parent structure type.</param>
+            /// <param name="entry">The entry to register.</param>
+            private void RegisterRange(
+                StructureType structureType,
+                in Entry entry)
+            {
+                int offset = entry.Offset;
+                for (
+                    int index = 0, stepSize = entry.Count < 4 ? 2 : 4;
+                    index < entry.Count;
+                    stepSize >>= 1)
+                {
+                    for (; index + stepSize <= entry.Count; index += stepSize)
+                    {
+                        var newEntry = new Entry(
+                            entry.Type,
+                            index + entry.Index,
+                            offset,
+                            stepSize);
+                        if (newEntry.Count > 1 && !newEntry.CanBeAligned(structureType))
+                        {
+                            newEntry.Split(out var first, out var second);
+                            RegisterRange(structureType, first);
+                            RegisterRange(structureType, second);
+                        }
+                        else
+                        {
+                            // The entry is properly aligned
+                            ranges.Add(newEntry);
+                        }
+                        offset += entry.Type.Size * stepSize;
+                    }
+                }
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the number of entries.
+            /// </summary>
+            public readonly int Count => ranges.Count;
+
+            /// <summary>
+            /// Returns the i-th entry.
+            /// </summary>
+            /// <param name="index">The entry index.</param>
+            /// <returns>The i-th vector range entry.</returns>
+            public readonly Entry this[int index] => ranges[index];
+
+            #endregion
+        }
+
         #endregion
 
         #region Static
@@ -439,6 +684,12 @@ namespace ILGPU.IR.Types
         /// Returns a readonly collection of all field offsets.
         /// </summary>
         public OffsetCollection Offsets => new OffsetCollection(this);
+
+        /// <summary>
+        /// Returns a readonly collection of all vectorized field configurations.
+        /// </summary>
+        public VectorizableFieldCollection VectorizableFields =>
+            new VectorizableFieldCollection(this);
 
         /// <summary>
         /// Returns the number of associated fields.

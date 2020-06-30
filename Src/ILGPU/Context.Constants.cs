@@ -53,7 +53,7 @@ namespace ILGPU
         /// </summary>
         public static readonly ContextFlags DefaultDebug =
             DefaultFlags |
-            ContextFlags.EnableDebugInformation |
+            ContextFlags.EnableDebugSymbols |
             ContextFlags.EnableAssertions;
 
         /// <summary>

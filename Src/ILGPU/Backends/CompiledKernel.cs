@@ -103,7 +103,7 @@ namespace ILGPU.Backends
             /// </summary>
             /// <remarks>
             /// This information will be populated if the flag
-            /// <see cref="ContextFlags.EnableKernelInformation"/> is set.
+            /// <see cref="ContextFlags.EnableKernelStatistics"/> is set.
             /// </remarks>
             public AllocaKindInformation SharedAllocations { get; }
 
@@ -112,7 +112,7 @@ namespace ILGPU.Backends
             /// </summary>
             /// <remarks>
             /// This array will be populated if the flag
-            /// <see cref="ContextFlags.EnableKernelInformation"/> is set.
+            /// <see cref="ContextFlags.EnableKernelStatistics"/> is set.
             /// </remarks>
             public ImmutableArray<FunctionInfo> Functions { get; }
 
@@ -224,7 +224,7 @@ namespace ILGPU.Backends
         /// </summary>
         /// <remarks>
         /// This instance will be available when the
-        /// <see cref="ContextFlags.EnableKernelInformation"/> is set.
+        /// <see cref="ContextFlags.EnableKernelStatistics"/> is set.
         /// </remarks>
         public KernelInfo Info { get; }
 

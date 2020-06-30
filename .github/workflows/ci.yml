@@ -38,13 +38,13 @@ jobs:
           nuget-version: '5.x'
       - name: Create NuGet package
         if: runner.os == 'Windows'
-        run: nuget pack .nuget/ILGPU.nuspec -Symbols -SymbolPackageFormat snupkg
+        run: dotnet pack --configuration=Release Src
       - name: Upload NuGet package artifact
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v2
         with:
           name: nuget-package
-          path: ILGPU.*.*nupkg
+          path: ./Bin/Release/ILGPU.*.*nupkg
 
   publish-nuget:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -56,4 +56,5 @@ jobs:
         with:
           name: nuget-package
       - name: Publish to NuGet
+        shell: bash
         run: dotnet nuget push ILGPU.*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json

@@ -127,6 +127,11 @@ namespace ILGPU.IR.Types
         /// </summary>
         public StructureType RootType { get; }
 
+        /// <summary>
+        /// Returns a custom padding type that is used to pad structure values.
+        /// </summary>
+        public TypeNode PaddingType => GetPrimitiveType(BasicValueType.Int8);
+
         #endregion
 
         #region Methods
@@ -197,7 +202,7 @@ namespace ILGPU.IR.Types
         /// <param name="capacity">The initial capacity.</param>
         /// <returns>The created structure builder.</returns>
         public StructureType.Builder CreateStructureType(int capacity) =>
-            new StructureType.Builder(this, capacity);
+            new StructureType.Builder(this, capacity, 0);
 
         /// <summary>
         /// Creates a new structure type.
@@ -383,11 +388,15 @@ namespace ILGPU.IR.Types
                             ErrorMessages.NotSupportedType,
                             type));
                 }
-                var typeInfo = GetTypeInfo(type);
 
-                var builder = CreateStructureType(typeInfo.NumFlattendedFields);
+                var typeInfo = GetTypeInfo(type);
+                var builder = new StructureType.Builder(
+                    this,
+                    typeInfo.NumFlattendedFields,
+                    typeInfo.Size);
                 foreach (var field in typeInfo.Fields)
                     builder.Add(CreateTypeInternal(field.FieldType, addressSpace));
+
                 return Map(
                     type,
                     addressSpace,

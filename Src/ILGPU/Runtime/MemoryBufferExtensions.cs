@@ -1070,4 +1070,9 @@ namespace ILGPU.Runtime
 
         #endregion
     }
+
+    /// <summary>
+    /// Extension methods for the allocation of memory buffers.
+    /// </summary>
+    public static partial class MemoryBufferExtensions { }
 }

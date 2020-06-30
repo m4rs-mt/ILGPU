@@ -237,7 +237,7 @@ namespace ILGPU
             int newElementSize)
         {
             var xExtent = (extent.X * elementSize) / newElementSize;
-            Debug.Assert(xExtent > 0, "OutOfBounds cast");
+            Trace.Assert(xExtent > 0, "OutOfBounds cast");
             return new Index3(xExtent, extent.Y, extent.Z);
         }
 

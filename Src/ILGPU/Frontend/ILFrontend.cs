@@ -214,7 +214,7 @@ namespace ILGPU.Frontend
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
-            var newPhase = new CodeGenerationPhase(this, context);
+            var newPhase = new CodeGenerationPhase(this, context, context.Verifier);
             if (Interlocked.CompareExchange(
                 ref codeGenerationPhase,
                 newPhase,
@@ -322,14 +322,16 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="frontend">The current frontend instance.</param>
         /// <param name="context">The target IR context.</param>
-        internal CodeGenerationPhase(ILFrontend frontend, IRContext context)
+        /// <param name="verifier">The associated verifier.</param>
+        internal CodeGenerationPhase(
+            ILFrontend frontend,
+            IRContext context,
+            Verifier verifier)
         {
-            Debug.Assert(frontend != null, "Invalid frontend");
-            Debug.Assert(context != null, "Invalid context");
-
             Context = context;
             Frontend = frontend;
             DebugInformationManager = frontend.DebugInformationManager;
+            Verifier = verifier;
         }
 
         #endregion
@@ -350,6 +352,11 @@ namespace ILGPU.Frontend
         /// Returns the associated debug information manager (if any).
         /// </summary>
         public DebugInformationManager DebugInformationManager { get; }
+
+        /// <summary>
+        /// Returns the associated verifier instance.
+        /// </summary>
+        internal Verifier Verifier { get; }
 
         /// <summary>
         /// Returns true if the generation phase has been finished.

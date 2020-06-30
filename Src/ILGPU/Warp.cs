@@ -138,7 +138,7 @@ namespace ILGPU
         public static T Shuffle<T>(T variable, int sourceLane, int width)
             where T : unmanaged
         {
-            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
+            Trace.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 
@@ -184,7 +184,7 @@ namespace ILGPU
         public static T ShuffleDown<T>(T variable, int delta, int width)
             where T : unmanaged
         {
-            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
+            Trace.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 
@@ -230,7 +230,7 @@ namespace ILGPU
         public static T ShuffleUp<T>(T variable, int delta, int width)
             where T : unmanaged
         {
-            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
+            Trace.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 
@@ -276,7 +276,7 @@ namespace ILGPU
         public static T ShuffleXor<T>(T variable, int mask, int width)
             where T : unmanaged
         {
-            Debug.Assert(width <= WarpSize, "Not supported shuffle width");
+            Trace.Assert(width <= WarpSize, "Not supported shuffle width");
             return variable;
         }
 

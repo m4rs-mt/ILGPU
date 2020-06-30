@@ -185,11 +185,16 @@ namespace ILGPU
         {
             // Enable debug information automatically when a debugger is attached
             if (Debugger.IsAttached)
-                flags |= ContextFlags.EnableDebugInformation;
+                flags |= DefaultDebug;
 
             OptimizationLevel = optimizationLevel;
             Flags = flags.Prepare();
             TargetPlatform = Backend.RuntimePlatform;
+
+            // Initialize verifier
+            Verifier = flags.HasFlags(ContextFlags.EnableVerifier)
+                ? Verifier.Instance
+                : Verifier.Empty;
 
             // Initialize main contexts
             TypeContext = new IRTypeContext(this);
@@ -197,7 +202,7 @@ namespace ILGPU
 
             // Create frontend
             DebugInformationManager frontendDebugInformationManager =
-                HasFlags(ContextFlags.EnableDebugInformation)
+                HasFlags(ContextFlags.EnableDebugSymbols)
                 ? DebugInformationManager
                 : null;
 
@@ -252,6 +257,11 @@ namespace ILGPU
         /// Returns the associated default IL backend.
         /// </summary>
         internal ILBackend DefautltILBackend { get; }
+
+        /// <summary>
+        /// Returns the internal verifier instance.
+        /// </summary>
+        internal Verifier Verifier { get; }
 
         /// <summary>
         /// Returns the optimization level.

@@ -228,5 +228,17 @@ namespace ILGPU.Backends.PTX
         /// <returns>The resolved shuffle operation.</returns>
         public static string GetShuffleOperation(ShuffleKind kind) =>
             ShuffleOperations[(int)kind];
+
+        /// <summary>
+        /// Resolves a vector operation suffix.
+        /// </summary>
+        /// <param name="numElements">The number of elements.</param>
+        /// <returns>The vector operation suffix.</returns>
+        public static string GetVectorOperationSuffix(int numElements)
+        {
+            if (VectorSuffixes.TryGetValue(numElements, out string operation))
+                return operation;
+            throw new NotSupportedIntrinsicException("v" + numElements.ToString());
+        }
     }
 }

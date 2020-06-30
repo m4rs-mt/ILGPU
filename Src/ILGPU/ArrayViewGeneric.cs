@@ -45,7 +45,7 @@ namespace ILGPU
         /// <param name="extent">The extent (number of elements).</param>
         public ArrayView(ArrayView<T> baseView, TIndex extent)
         {
-            Debug.Assert(baseView.Length <= extent.Size, "Extent out of range");
+            Trace.Assert(baseView.Length <= extent.Size, "Extent out of range");
             BaseView = baseView;
             Extent = extent;
         }
@@ -107,7 +107,7 @@ namespace ILGPU
         [Obsolete("Use GetSubView(TIndex, Index) instead")]
         public ArrayView<T, TIndex> GetSubView(TIndex index)
         {
-            Debug.Assert(index.InBounds(Extent), "Offset out of bounds");
+            Trace.Assert(index.InBounds(Extent), "Offset out of bounds");
             return GetSubView(index, Extent.Subtract(index));
         }
 
@@ -128,12 +128,12 @@ namespace ILGPU
         [Obsolete("Use GetSubView(TIndex, Index) instead")]
         public ArrayView<T, TIndex> GetSubView(TIndex index, TIndex subViewExtent)
         {
-            Debug.Assert(index.InBounds(Extent), "Offset out of bounds");
+            Trace.Assert(index.InBounds(Extent), "Offset out of bounds");
             var elementIndex = index.ComputeLinearIndex(Extent);
-            Debug.Assert(
+            Trace.Assert(
                 elementIndex >= 0 && elementIndex < Length,
                 "Offset out of bounds");
-            Debug.Assert(
+            Trace.Assert(
                 index.Add(subViewExtent).InBoundsInclusive(Extent),
                 "Sub view out of range");
             var subView = BaseView.GetSubView(elementIndex, subViewExtent.Size);
@@ -156,12 +156,12 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T> GetSubView(TIndex index, Index1 subViewExtent)
         {
-            Debug.Assert(index.InBounds(Extent), "Offset out of bounds");
+            Trace.Assert(index.InBounds(Extent), "Offset out of bounds");
             var elementIndex = index.ComputeLinearIndex(Extent);
-            Debug.Assert(
+            Trace.Assert(
                 elementIndex >= 0 && elementIndex < Length,
                 "Offset out of bounds");
-            Debug.Assert(
+            Trace.Assert(
                 elementIndex + subViewExtent <= Length,
                 "Sub view out of range");
             return BaseView.GetSubView(elementIndex, subViewExtent);

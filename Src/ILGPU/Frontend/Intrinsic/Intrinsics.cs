@@ -78,7 +78,8 @@ namespace ILGPU.Frontend.Intrinsic
             new Dictionary<Type, DeviceFunctionHandler>()
             {
                 { typeof(Activator), HandleActivator },
-                { typeof(Debug), HandleDebug },
+                { typeof(Debug), HandleDebugAndTrace },
+                { typeof(Trace), HandleDebugAndTrace },
                 { typeof(RuntimeHelpers), HandleRuntimeHelper },
             };
 
@@ -200,7 +201,7 @@ namespace ILGPU.Frontend.Intrinsic
         /// </summary>
         /// <param name="context">The current invocation context.</param>
         /// <returns>The resulting value.</returns>
-        private static Value HandleDebug(ref InvocationContext context)
+        private static Value HandleDebugAndTrace(ref InvocationContext context)
         {
             var builder = context.Builder;
             var location = context.Location;
