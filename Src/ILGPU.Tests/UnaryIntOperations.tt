@@ -26,40 +26,40 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-<# foreach (var (operationName, prefix, postfix, unsigned) in operationConfigurations) { #>
+<# foreach (var (opName, prefix, postfix, unsigned) in operationConfigurations) { #>
 <#      var types = unsigned ? UnsignedIntTypes : SignedIntTypes; #>
-<#      foreach (var (typeName, type) in types) { #>
-<#         var baseName = "_" + operationName + "_" + type.Name; #>
+<#      foreach (var type in types) { #>
+<#         var baseName = "_" + opName + "_" + type.Name; #>
 <#         var testName = "UnaryOperation" + baseName; #>
 <#         var kernelName = "UnaryOperationKernel" + baseName; #>
         internal static void <#= kernelName #>(
             Index1 index,
-            ArrayView<<#= typeName #>> a,
-            ArrayView<<#= typeName #>> b)
+            ArrayView<<#= type.Type #>> a,
+            ArrayView<<#= type.Type #>> b)
         {
             var result = <#= prefix #>a[index]<#= postfix #>;
-            b[index] = (<#= typeName #>)result;
+            b[index] = (<#= type.Type #>)result;
         }
 
         [Theory]
-        [InlineData(32, <#= typeName #>.MinValue + 1)]
-        [InlineData(1024, <#= typeName #>.MinValue + 1)]
-        [InlineData(32, (<#= typeName #>)0)]
-        [InlineData(1024, (<#= typeName #>)0)]
-        [InlineData(32, <#= typeName #>.MaxValue)]
-        [InlineData(1024, <#= typeName #>.MaxValue)]
+        [InlineData(32, <#= type.Type #>.MinValue + 1)]
+        [InlineData(1024, <#= type.Type #>.MinValue + 1)]
+        [InlineData(32, (<#= type.Type #>)0)]
+        [InlineData(1024, (<#= type.Type #>)0)]
+        [InlineData(32, <#= type.Type #>.MaxValue)]
+        [InlineData(1024, <#= type.Type #>.MaxValue)]
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>(
             int length,
-            <#= typeName #> value)
+            <#= type.Type #> value)
         {
-            using var a = Accelerator.Allocate<<#= typeName #>>(length);
-            using var b = Accelerator.Allocate<<#= typeName #>>(length);
+            using var a = Accelerator.Allocate<<#= type.Type #>>(length);
+            using var b = Accelerator.Allocate<<#= type.Type #>>(length);
             Initialize(a, value);
             Execute(length, a.View, b.View);
 
             var result = <#= prefix #>value<#= postfix #>;
-            var reference = Enumerable.Repeat((<#= typeName #>)result, length).ToArray();
+            var reference = Enumerable.Repeat((<#= type.Type #>)result, length).ToArray();
             Verify(b, reference);
         }
 
