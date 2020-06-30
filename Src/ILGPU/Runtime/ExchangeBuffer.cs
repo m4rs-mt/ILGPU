@@ -1,5 +1,6 @@
 ﻿using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.Cuda.API;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
