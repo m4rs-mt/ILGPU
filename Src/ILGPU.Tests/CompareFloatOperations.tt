@@ -18,6 +18,20 @@ var operationConfigurations = new (string, string)[]
         ("Equal", "=="),
         ("NotEqual", "!="),
     };
+
+// Test name and format string
+//  {0} is the type name e.g. float or double
+//  {1} is the type suffix e.g. f
+var floatLimits = new (string, string)[]
+    {
+        ("PositiveInfinity", "{0}.PositiveInfinity"),
+        ("NegativeInfinity", "{0}.NegativeInfinity"),
+        ("MaxValue", "{0}.MaxValue"),
+        ("MinValue", "{0}.MinValue"),
+        ("Epsilon", "{0}.Epsilon"),
+        ("Precision9", "123456.789{1}"),
+        ("Precision17", "1.0000000000000002{1}"),
+    };
 #>
 namespace ILGPU.Tests
 {
@@ -65,6 +79,38 @@ namespace ILGPU.Tests
             var result = left <#= infix #> right ? 1 : 0;
             var reference = Enumerable.Repeat(result, length).ToArray();
             Verify(c, reference);
+        }
+
+<#      } #>
+<# } #>
+
+<# foreach (var (typeName, type, suffix) in FloatTypes) { #>
+<#      foreach (var (limitName, limitFormat) in floatLimits) { #>
+<#          var baseName = "_" + limitName + "_" + type.Name; #>
+<#          var testName = "Constant" + baseName; #>
+<#          var kernelName = "ConstantKernel" + testName; #>
+<#          var testValue = string.Format(limitFormat, typeName, suffix); #>
+        internal static void <#= kernelName #>(
+            Index1 index,
+            ArrayView<<#= typeName #>> input,
+            ArrayView<int> output)
+        {
+            output[index] = input[index] == <#= testValue #> ? 1 : 0;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(<#= kernelName #>))]
+        public void <#= testName #>()
+        {
+            var inputArray = new [] { 0.0<#= suffix #>, <#= testValue #> };
+            var expected = inputArray.Select(x => x == <#= testValue #> ? 1 : 0).ToArray();
+
+            using var input = Accelerator.Allocate<<#= typeName #>>(inputArray.Length);
+            using var output = Accelerator.Allocate<int>(inputArray.Length);
+            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+
+            Execute(input.Length, input.View, output.View);
+            Verify(output, expected);
         }
 
 <#      } #>
