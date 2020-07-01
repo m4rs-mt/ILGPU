@@ -35,9 +35,12 @@ namespace ILGPU.Tests
         }
 
         [Theory]
+<#      // Half conversions of these values is implementation specific in these cases #>
+<#      if (targetType != FloatTypes[0]) { #>
         [InlineData(<#= type.Type #>.MaxValue)]
         [InlineData(<#= type.Type #>.MinValue)]
         [InlineData(<#= type.Type #>.MinValue + 1)]
+<#      } #>
         [InlineData((<#= type.Type #>)0)]
         [InlineData((<#= type.Type #>)1)]
         [InlineData((<#= type.Type #>)31)]
