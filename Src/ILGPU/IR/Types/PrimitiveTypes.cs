@@ -33,6 +33,7 @@ namespace ILGPU.IR.Types
                 2,
                 4,
                 8,
+                2,
                 4,
                 8);
 

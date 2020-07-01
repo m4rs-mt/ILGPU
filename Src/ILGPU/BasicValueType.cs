@@ -47,6 +47,11 @@ namespace ILGPU
         Int64,
 
         /// <summary>
+        /// Represents a 16-bit float.
+        /// </summary>
+        Float16,
+
+        /// <summary>
         /// Represents a 32-bit float.
         /// </summary>
         Float32,
@@ -91,6 +96,11 @@ namespace ILGPU
         /// Represents a 64-bit integer.
         /// </summary>
         Int64,
+
+        /// <summary>
+        /// Represents a 16-bit float.
+        /// </summary>
+        Float16,
 
         /// <summary>
         /// Represents a 32-bit float.
