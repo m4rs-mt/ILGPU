@@ -99,7 +99,7 @@ namespace ILGPU.Backends.PTX
                 default, PTXRegisterKind.Predicate,
                 PTXRegisterKind.Int16, PTXRegisterKind.Int16,
                 PTXRegisterKind.Int32, PTXRegisterKind.Int64,
-                PTXRegisterKind.Float32, PTXRegisterKind.Float64);
+                PTXRegisterKind.Int16, PTXRegisterKind.Float32, PTXRegisterKind.Float64);
 
         /// <summary>
         /// Maps basic value types to their PTX-specific parameter-type counterparts.
@@ -109,7 +109,7 @@ namespace ILGPU.Backends.PTX
                 default, BasicValueType.Int32,
                 BasicValueType.Int8, BasicValueType.Int16,
                 BasicValueType.Int32, BasicValueType.Int64,
-                BasicValueType.Float32, BasicValueType.Float64);
+                BasicValueType.Int16, BasicValueType.Float32, BasicValueType.Float64);
 
         /// <summary>
         /// Declares all register kinds for which register declarations have to be
