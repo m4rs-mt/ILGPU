@@ -276,6 +276,7 @@ namespace ILGPU.Backends.OpenCL
                 { ArithmeticBasicValueType.UInt32, CLUnaryCategory.Int },
                 { ArithmeticBasicValueType.UInt64, CLUnaryCategory.Int },
 
+                { ArithmeticBasicValueType.Float16, CLUnaryCategory.Float },
                 { ArithmeticBasicValueType.Float32, CLUnaryCategory.Float },
                 { ArithmeticBasicValueType.Float64, CLUnaryCategory.Float },
             };
@@ -315,7 +316,7 @@ namespace ILGPU.Backends.OpenCL
 
                 { (UnaryArithmeticKind.TanF, CLUnaryCategory.Float), ("tan", true) },
                 { (UnaryArithmeticKind.AtanF, CLUnaryCategory.Float), ("atan", true) },
-                { (UnaryArithmeticKind.AtanF, CLUnaryCategory.Float), ("tanh", true) },
+                { (UnaryArithmeticKind.TanhF, CLUnaryCategory.Float), ("tanh", true) },
 
                 { (UnaryArithmeticKind.ExpF, CLUnaryCategory.Float), ("exp", true) },
                 { (UnaryArithmeticKind.Exp2F, CLUnaryCategory.Float), ("exp2", true) },
