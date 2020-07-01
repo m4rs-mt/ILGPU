@@ -72,6 +72,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
         </None>
+        <None Include="HalfConversion.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>HalfConversion.tt</DependentUpon>
+        </None>
         <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -150,6 +155,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
         </Compile>
+        <Compile Update="HalfConversion.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>HalfConversion.tt</DependentUpon>
+        </Compile>
         <Compile Update="IR\Intrinsics\IntrinsicMatchers.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -226,6 +236,10 @@
         <None Update="IntrinsicMath.CPUOnly.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>IntrinsicMath.CPUOnly.cs</LastGenOutput>
+        </None>
+        <None Update="HalfConversion.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>HalfConversion.cs</LastGenOutput>
         </None>
         <None Update="IR\Construction\CompareOperations.tt">
             <Generator>TextTemplatingFileGenerator</Generator>

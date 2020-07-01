@@ -1,0 +1,431 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
+//
+// File: HalfConversion.tt/HalfConversion.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Static/TypeInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath("Static");
+var unaryOps = GetUnaryMathOps(rootPath).
+    Where(t => t.HasFloats && t.HasImplementation &&
+        !FP16ImplementationMethods.Any(t2 => t2.Item1 == t.MethodName));
+var binaryOps = GetBinaryMathOps(rootPath).
+    Where(t => t.HasFloats && t.HasImplementation);
+#>
+using ILGPU.Frontend.Intrinsic;
+using ILGPU.IR.Values;
+using System;
+using System.Runtime.CompilerServices;
+
+// disable: max_line_length
+
+//
+// Based on an adapted version of the half-to-float and float-to-half conversion
+// algorithm from the paper: Fast Half Float Conversions, by Jeroen van der Zijp
+//
+
+namespace ILGPU
+{
+    partial struct Half
+    {
+        #region Constants
+
+        /// <summary>
+        /// Represents the smallest positive <see cref="Half"/> value that is greater
+        /// than zero.
+        /// </summary>
+        public static readonly Half Epsilon = new Half(<#= Assemble(false, 0, 1) #>);
+
+        /// <summary>
+        /// Represents the largest possible <see cref="Half"/> value.
+        /// </summary>
+        public static readonly Half MaxValue = new Half(
+            <#= Assemble(false, RawExponentMask << 1, MantissaMask) #>);
+
+        /// <summary>
+        /// Represents the smallest possible <see cref="Half"/> value.
+        /// </summary>
+        public static readonly Half MinValue = new Half(
+            <#= Assemble(true, RawExponentMask << 1, MantissaMask) #>);
+
+        /// <summary>
+        /// Represents not a number (NaN).
+        /// </summary>
+        public static readonly Half NaN = new Half(<#= Assemble(true, -1, 1) #>);
+
+        /// <summary>
+        /// Represents positive infinity.
+        /// </summary>
+        public static readonly Half PositiveInfinity = new Half(
+            <#= Assemble(false, -1, 0) #>);
+
+        /// <summary>
+        /// Represents negative infinity.
+        /// </summary>
+        public static readonly Half NegativeInfinity = new Half(
+            <#= Assemble(true, -1, 0) #>);
+
+        /// <summary>
+        /// Represents a positive zero <see cref="Half"/> value.
+        /// </summary>
+        public static readonly Half Zero = new Half(<#= Assemble(false, 0, 0) #>);
+
+        /// <summary>
+        /// Represents a positive zero <see cref="Half"/> value.
+        /// </summary>
+        public static readonly Half One = new Half(<#= Assemble(false, 0, 1) #>);
+
+        #endregion
+
+        #region Operators
+
+<# foreach (var type in IntTypes) { #>
+<#      bool clsCompliant = type.IsUnsignedInt || type == IntTypes[0]; #>
+        /// <summary>
+        /// Implicitly converts a half to type <#= type.Name #>.
+        /// </summary>
+        /// <param name="halfValue">The half to convert.</param>
+<#      if (clsCompliant) { #>
+        [CLSCompliant(false)]
+<#      } #>
+<#      if (type.IsUnsignedInt) { #>
+        [ConvertIntrinisc(ConvertFlags.TargetUnsigned)]
+<#      } else { #>
+        [ConvertIntrinisc]
+<#      } #>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator <#= type.Type #>(Half halfValue) =>
+            (<#= type.Type #>)(float)halfValue;
+
+        /// <summary>
+        /// Explicitly converts an instance of type <#= type.Name #> to a half.
+        /// </summary>
+        /// <param name="<#= type.Type #>Value">The value to convert.</param>
+<#      if (clsCompliant) { #>
+        [CLSCompliant(false)]
+<#      } #>
+<#      if (type.IsUnsignedInt) { #>
+        [ConvertIntrinisc(ConvertFlags.SourceUnsigned)]
+<#      } else { #>
+        [ConvertIntrinisc]
+<#      } #>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static explicit operator Half(<#= type.Type #> <#= type.Type #>Value) =>
+            (Half)(float)<#= type.Type #>Value;
+
+<# } #>
+        #endregion
+    }
+
+    partial class HalfExtensions
+    {
+        #region Constants
+
+        /// <summary>
+        /// The bit mask of the sign bit.
+        /// </summary>
+        private const ushort SignBitMask = <#= $"0x{SignBitMask:X}" #>;
+
+        /// <summary>
+        /// The bit mask of the exponent.
+        /// </summary>
+        private const ushort ExponentMask = <#= $"0x{ExponentMask:X}" #>;
+
+        /// <summary>
+        /// The bit mask of the mantissa.
+        /// </summary>
+        private const ushort MantissaMask = <#= $"0x{MantissaMask:X}" #>;
+
+        /// <summary>
+        /// The bit mask of the exponent and the mantissa.
+        /// </summary>
+        private const ushort ExponentMantissaMask = <#= $"0x{ExponentMantissaMask:X}" #>;
+
+        /// <summary>
+        /// The underlying offset table for van der Zijp's algorithm.
+        /// </summary>
+        private static readonly ushort[] OffsetTable =
+        {
+            0,
+            <#= string.Join(", ", Enumerable.Repeat(1024, 31)) #>,
+            0,
+            <#= string.Join(", ", Enumerable.Repeat(1024, 31)) #>,
+        };
+
+        /// <summary>
+        /// The underlying mantissa table for van der Zijp's algorithm.
+        /// </summary>
+        private static readonly uint[] MantissaTable =
+        {
+            0,
+            <#= CreateLowerMantissaTable() #>,
+            <#= CreateUpperMantissaTable() #>
+        };
+
+        /// <summary>
+        /// The underlying exponent table for van der Zijp's algorithm.
+        /// </summary>
+        private static readonly uint[] ExponentTable =
+        {
+            0,
+            <#= CreateLowerExponentTable() #>,
+            0x47800000,
+            <#= $"0x{FloatSignBitMask:X}" #>,
+            <#= CreateUpperExponentTable() #>,
+            0xC7800000
+        };
+
+        /// <summary>
+        /// The underlying base table for van der Zijp's algorithm.
+        /// </summary>
+        private static readonly ushort[] BaseTable =
+        {
+            <#= CreateBaseTable() #>
+        };
+
+        /// <summary>
+        /// The underlying shift table for van der Zijp's algorithm.
+        /// </summary>
+        private static readonly byte[] ShiftTable =
+        {
+            <#= CreateShiftTable() #>
+        };
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Converts a half value to a float value by using van der Zijp's algorithm.
+        /// </summary>
+        /// <param name="halfValue">The value to convert.</param>
+        /// <returns>The converted float value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float ConvertHalfToFloat(Half halfValue)
+        {
+            ushort rawValue = halfValue.RawValue;
+
+            int baseOffset = OffsetTable[rawValue >> <#= MantissaBits #>];
+            int mantissaOffset = rawValue & MantissaMask;
+            uint mantissa = MantissaTable[baseOffset + mantissaOffset];
+            uint exponentBase = ExponentTable[rawValue >> <#= MantissaBits #>];
+
+            return Interop.IntAsFloat(mantissa + exponentBase);
+        }
+
+        /// <summary>
+        /// Converts a float value to a half value by using van der Zijp's algorithm.
+        /// </summary>
+        /// <param name="floatValue">The value to convert.</param>
+        /// <returns>The converted half value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half ConvertFloatToHalf(float floatValue)
+        {
+            uint rawValue = Interop.FloatAsInt(floatValue);
+            uint rawUpperValue = rawValue >> <#= FloatMantissaBits #>;
+
+            uint baseEntry = BaseTable[rawUpperValue];
+            int shiftAmount = ShiftTable[rawUpperValue];
+            uint mantissaOffset = rawValue & <#= $"0x{FloatMantissaMask:X}" #>;
+
+            uint result = baseEntry + (mantissaOffset >> shiftAmount);
+            return new Half((ushort)result);
+        }
+
+        #endregion
+
+        #region FP32 Implementation Methods
+
+<# foreach (var op in unaryOps) { #>
+        /// <summary>
+        /// <#= op.Summary #>
+        /// </summary>
+        /// <param name="value">The value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half <#= op.MethodName #>FP32(Half value) =>
+            (Half)IntrinsicMath.CPUOnly.<#= op.MethodName #>((float)value);
+
+<# } #>
+
+<# foreach (var op in binaryOps) { #>
+        /// <summary>
+        /// <#= op.Summary #>
+        /// </summary>
+        /// <param name="left">The left value.</param>
+        /// <param name="right">The right value.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Half <#= op.MethodName #>FP32(Half left, Half right) =>
+            (Half)IntrinsicMath.CPUOnly.<#= op.MethodName #>((float)left, (float)right);
+
+<# } #>
+
+        #endregion
+    }
+}
+
+<#+
+
+// Float constants
+
+private const int FloatMantissaBits = 23;
+private const uint FloatMantissaBody = 1U << FloatMantissaBits;
+private const uint FloatMantissaMask = 0x7fffff;
+private const int FloatExponentBias = 127;
+private const int FloatSignBitLocation = 31;
+private const uint FloatSignBitMask = 1U << FloatSignBitLocation;
+
+// Lookup generation based on von der Zijp's algorithm
+
+private static uint ConvertFloatMantissa(uint mantissa)
+{
+    uint exponent = 0;
+    mantissa <<= HalfToFloatZeroBits;
+
+    while ((mantissa & FloatMantissaBody) == 0)
+    {
+        exponent -= FloatMantissaBody;
+        mantissa <<= 1;
+    }
+
+    mantissa &= ~FloatMantissaBody;
+    exponent += HalfToFloatExponentAdjustment;
+    return exponent | mantissa;
+}
+
+private static string CreateLowerMantissaTable() =>
+    string.Join(
+        ", ",
+        Enumerable.Range(1, 1023).Select(t =>
+            $"0x{ConvertFloatMantissa((uint)t):X}"));
+
+private static string CreateUpperMantissaTable() =>
+    string.Join(
+        ", ",
+        Enumerable.Range(1, 1024).Select(t =>
+        {
+            uint shift = (uint)(t - 1) << HalfToFloatZeroBits;
+            return $"0x{(FloatToHalfExponentAdjustment + shift):X}";
+        }));
+
+private static string CreateLowerExponentTable() =>
+    string.Join(
+        ", ",
+        Enumerable.Range(1, 30).Select(t => $"0x{(t << FloatMantissaBits):X}"));
+
+private static string CreateUpperExponentTable() =>
+    string.Join(
+        ", ",
+        Enumerable.Range(1, 30).Select(t =>
+            FloatSignBitMask + (t << FloatMantissaBits)));
+
+// Adapted version of the original algorithm that used nested ifs
+static string CreateBaseTable()
+{
+    var baseTable = new int[512];
+
+    for (int i = 0; i < 103; ++i)
+    {
+        baseTable[i | 0x000] = 0x0000;
+        baseTable[i | 0x100] = 0x8000;
+    }
+
+    for (int i = 103, shift = 10; i < 113; ++i, --shift)
+    {
+        int eValue = 0x0400 >> shift;
+        baseTable[i | 0x000] = eValue;
+        baseTable[i | 0x100] = eValue | 0x8000;
+    }
+
+    for (int i = 113, baseValue = 1; i < 143; ++i, ++baseValue)
+    {
+        int eValue = baseValue << 10;
+        baseTable[i | 0x000] = eValue;
+        baseTable[i | 0x100] = eValue | 0x8000;
+    }
+
+    for (int i = 143; i < 255; ++i)
+    {
+        baseTable[i | 0x000] = 0x7C00;
+        baseTable[i | 0x100] = 0xFC00;
+    }
+
+    baseTable[255 | 0x000] = 0x7C00;
+    baseTable[255 | 0x100] = 0xFC00;
+
+    return string.Join(", ", baseTable.Select(t => $"0x{t:X}"));
+}
+
+// Adapted version of the original algorithm that used nested ifs
+static string CreateShiftTable()
+{
+    var shiftTable = new byte[512];
+
+    for (int i = 0; i < 103; ++i)
+    {
+        shiftTable[i | 0x000] = 24;
+        shiftTable[i | 0x100] = 24;
+    }
+
+    for (int i = 103, eValue = 23; i < 113; ++i, --eValue)
+    {
+        shiftTable[i | 0x000] = (byte)eValue;
+        shiftTable[i | 0x100] = (byte)eValue;
+    }
+
+    for (int i = 113, baseValue = 1; i < 143; ++i, ++baseValue)
+    {
+        shiftTable[i | 0x000] = 13;
+        shiftTable[i | 0x100] = 13;
+    }
+
+    for (int i = 143; i < 255; ++i)
+    {
+        shiftTable[i | 0x000] = 24;
+        shiftTable[i | 0x100] = 24;
+    }
+
+    shiftTable[255 | 0x000] = 13;
+    shiftTable[255 | 0x100] = 13;
+
+    return string.Join(", ", shiftTable.Select(t => $"0x{t:X}"));
+}
+
+// Custom ILGPU Half extensions
+
+private const int ExponentBits = 5;
+private const int MantissaBits = 10;
+private const int SignBitLocation = 15;
+
+private const int HalfToFloatZeroBits = 13;
+private const uint FloatToHalfExponentAdjustment =
+    FloatExponentBias - SignBitLocation << FloatMantissaBits;
+private const int HalfToFloatExponentAdjustment =
+    FloatExponentBias - SignBitLocation + 1 << FloatMantissaBits;
+
+private const ushort SignBitMask = 1 << SignBitLocation;
+private const ushort RawExponentMask = 0x1f;
+private const ushort ExponentMask = RawExponentMask << MantissaBits;
+private const ushort MantissaMask = 0x3ff;
+private const ushort ExponentMantissaMask = ExponentMask | MantissaMask;
+
+private static string Assemble(bool signBit, int exponent, int mantissa)
+{
+    int assembled =
+        Convert.ToInt32(signBit) << (ExponentBits + MantissaBits) |
+        (exponent & 0x1f) << MantissaBits |
+        (mantissa & MantissaMask);
+    return $"0x{assembled:X}";
+}
+#>
