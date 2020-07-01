@@ -187,6 +187,11 @@ namespace ILGPU.IR.Values
         public ulong UInt64Value => (ulong)Int64Value;
 
         /// <summary>
+        /// Returns the value as f16.
+        /// </summary>
+        public Half Float16Value => Unsafe.As<long, Half>(ref rawValue);
+
+        /// <summary>
         /// Returns the value as f32.
         /// </summary>
         public float Float32Value => Unsafe.As<long, float>(ref rawValue);
@@ -251,6 +256,7 @@ namespace ILGPU.IR.Values
                 BasicValueType.Int16 => Int16Value.ToString(),
                 BasicValueType.Int32 => Int32Value.ToString(),
                 BasicValueType.Int64 => Int64Value.ToString(),
+                BasicValueType.Float16 => Float16Value.ToString(),
                 BasicValueType.Float32 => Float32Value.ToString(),
                 BasicValueType.Float64 => Float64Value.ToString(),
                 _ => $"Raw({rawValue})",
