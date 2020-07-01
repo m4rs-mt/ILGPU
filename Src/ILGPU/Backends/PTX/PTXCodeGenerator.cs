@@ -223,7 +223,7 @@ namespace ILGPU.Backends.PTX
             ImmutableArray.Create(
                 default, "pred",
                 "b8", "b16", "b32", "b64",
-                "f32", "f64");
+                "f16", "f32", "f64");
 
         /// <summary>
         /// Maps basic types to constant-loading target basic types.
@@ -234,7 +234,18 @@ namespace ILGPU.Backends.PTX
                 default, BasicValueType.Int1,
                 BasicValueType.Int16, BasicValueType.Int16,
                 BasicValueType.Int32, BasicValueType.Int64,
-                BasicValueType.Float32, BasicValueType.Float64);
+                BasicValueType.Int16, BasicValueType.Float32, BasicValueType.Float64);
+
+        /// <summary>
+        /// Maps basic types to constant-loading target basic types.
+        /// </summary>
+        private static readonly ImmutableArray<BasicValueType>
+            RegisterIOTypeRemapping =
+            ImmutableArray.Create(
+                default, BasicValueType.Int8,
+                BasicValueType.Int8, BasicValueType.Int16,
+                BasicValueType.Int32, BasicValueType.Int64,
+                BasicValueType.Int16, BasicValueType.Float32, BasicValueType.Float64);
 
         /// <summary>
         /// Resolves the PTX suffix for the given basic value type.
@@ -252,6 +263,15 @@ namespace ILGPU.Backends.PTX
         private static BasicValueType ResolveRegisterMovementType(
             BasicValueType basicValueType) =>
             RegisterMovementTypeRemapping[(int)basicValueType];
+
+        /// <summary>
+        /// Remaps the given basic type for global IO movement instructions.
+        /// </summary>
+        /// <param name="basicValueType">The basic value type.</param>
+        /// <returns>The remapped type.</returns>
+        private static BasicValueType ResolveIOType(
+            BasicValueType basicValueType) =>
+            RegisterIOTypeRemapping[(int)basicValueType];
 
         /// <summary>
         /// Returns a PTX compatible name for the given entity.
@@ -687,7 +707,8 @@ namespace ILGPU.Backends.PTX
                     int offset)
                 {
                     using var commandEmitter = codeGenerator.BeginCommand(command);
-                    commandEmitter.AppendSuffix(primitiveRegister.BasicValueType);
+                    commandEmitter.AppendSuffix(
+                        ResolveParameterBasicValueType(primitiveRegister.BasicValueType));
                     commandEmitter.AppendArgument(primitiveRegister);
                     commandEmitter.AppendRawValue(ParamName, offset);
                 }
@@ -755,7 +776,8 @@ namespace ILGPU.Backends.PTX
                     int offset)
                 {
                     using var commandEmitter = codeGenerator.BeginCommand(command);
-                    commandEmitter.AppendSuffix(primitiveRegister.BasicValueType);
+                    commandEmitter.AppendSuffix(
+                        ResolveParameterBasicValueType(primitiveRegister.BasicValueType));
                     commandEmitter.AppendRawValue(ParamName, offset);
                     commandEmitter.AppendArgument(primitiveRegister);
                 }
