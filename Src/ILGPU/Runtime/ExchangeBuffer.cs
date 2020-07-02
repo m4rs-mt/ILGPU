@@ -1,4 +1,15 @@
-﻿using ILGPU.Runtime.Cuda;
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
+//
+// File: ExchnageBuffer.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;

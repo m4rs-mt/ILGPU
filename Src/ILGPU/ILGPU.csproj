@@ -80,11 +80,6 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
         </None>
-        <None Include="Runtime\ExchangeBufferExtensions.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>ExchangeBufferExtensions.tt</DependentUpon>
-        </None>
         <None Include="Runtime\KernelLoaders.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -157,11 +152,6 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
-        </Compile>
-        <Compile Update="Runtime\ExchangeBuffer.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>ExchangeBuffer.tt</DependentUpon>
         </Compile>
         <Compile Update="Runtime\ExchangeBufferExtensions.cs">
           <DesignTime>True</DesignTime>
