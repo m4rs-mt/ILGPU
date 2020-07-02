@@ -33,9 +33,14 @@ namespace ILGPU
         // Debugging settings
 
         /// <summary>
-        /// Enables debug information (if available),
+        /// Enables debug symbols (if available),
         /// </summary>
-        EnableDebugInformation = 1 << 0,
+        EnableDebugSymbols = 1 << 0,
+
+        /// <summary>
+        /// Enables debug information in kernels (if available).
+        /// </summary>
+        EnableKernelDebugInformation = 1 << 1,
 
         /// <summary>
         /// Enables inline source-code annotations when generating kernels.
@@ -43,17 +48,22 @@ namespace ILGPU
         /// <remarks>
         /// Note that this is only supported if debug information is activated.
         /// </remarks>
-        EnableInlineSourceAnnotations = 1 << 1,
+        EnableInlineSourceAnnotations = 1 << 2,
 
         /// <summary>
         /// Enables assertions.
         /// </summary>
-        EnableAssertions = 1 << 2,
+        EnableAssertions = 1 << 3,
 
         /// <summary>
-        /// Enables detailed kernel information about all compiled kernel functions.
+        /// Enables detailed kernel statistics about all compiled kernel functions.
         /// </summary>
-        EnableKernelInformation = 1 << 3,
+        EnableKernelStatistics = 1 << 4,
+
+        /// <summary>
+        /// Enables the internal IR verifier.
+        /// </summary>
+        EnableVerifier = 1 << 5,
 
         //
         // Code generation settings
@@ -205,7 +215,10 @@ namespace ILGPU
         internal static ContextFlags Prepare(this ContextFlags flags)
         {
             if (flags.HasFlags(ContextFlags.EnableInlineSourceAnnotations))
-                flags |= ContextFlags.EnableDebugInformation;
+                flags |= ContextFlags.EnableKernelDebugInformation;
+
+            if (flags.HasFlags(ContextFlags.EnableKernelDebugInformation))
+                flags |= ContextFlags.EnableDebugSymbols;
 
             if (flags.HasFlags(ContextFlags.NoInlining))
                 flags &= ~ContextFlags.AggressiveInlining;

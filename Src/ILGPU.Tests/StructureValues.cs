@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -56,7 +58,30 @@ namespace ILGPU.Tests
                     }
                 }
             } },
-            { new DeepStructure<EmptyStruct>() }
+            { new DeepStructure<EmptyStruct>() },
+            { new TestStruct<CustomSizeStruct, long>()
+            {
+                Val0 = new CustomSizeStruct()
+                {
+                    Data = byte.MaxValue,
+                },
+                Val1 = ushort.MaxValue,
+                Val2 = long.MinValue,
+            } },
+            { new ShortFixedBufferStruct(short.MaxValue) },
+            { new LongFixedBufferStruct(long.MaxValue) },
+            { new TestStruct<EmptyStruct, ShortFixedBufferStruct>()
+            {
+                Val0 = default,
+                Val1 = ushort.MaxValue,
+                Val2 = new ShortFixedBufferStruct(short.MaxValue),
+            } },
+            { new TestStruct<ShortFixedBufferStruct, LongFixedBufferStruct>()
+            {
+                Val0 = new ShortFixedBufferStruct(short.MinValue),
+                Val1 = ushort.MaxValue,
+                Val2 = new LongFixedBufferStruct(long.MinValue),
+            } },
         };
 
         internal static void StructureInteropKernel<T>(

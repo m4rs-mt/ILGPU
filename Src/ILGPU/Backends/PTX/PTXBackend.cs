@@ -35,6 +35,14 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         public const int WarpSize = 32;
 
+        /// <summary>
+        /// Returns the default global memory alignment in bytes.
+        /// </summary>
+        /// <remarks>
+        /// See Cuda documentation section 5.3.2.
+        /// </remarks>
+        public const int DefaultGlobalMemoryAlignment = 256;
+
         #endregion
 
         #region Nested Types
@@ -124,7 +132,8 @@ namespace ILGPU.Backends.PTX
             // Ensure that all intrinsics can be generated
             backendContext.EnsureIntrinsicImplementations(IntrinsicProvider);
 
-            bool useDebugInfo = Context.HasFlags(ContextFlags.EnableDebugInformation);
+            bool useDebugInfo = Context.HasFlags(
+                ContextFlags.EnableKernelDebugInformation);
             PTXDebugInfoGenerator debugInfoGenerator = PTXNoDebugInfoGenerator.Empty;
             if (useDebugInfo)
             {
@@ -154,11 +163,19 @@ namespace ILGPU.Backends.PTX
             builder.AppendLine((PointerSize * 8).ToString());
             builder.AppendLine();
 
+            // Creates pointer alignment information in the context of O2 or higher
+            var alignments = Context.OptimizationLevel >= OptimizationLevel.O2
+                ? PointerAlignments.Create(
+                    backendContext.KernelMethod,
+                    DefaultGlobalMemoryAlignment)
+                : null;
+
             data = new PTXCodeGenerator.GeneratorArgs(
                 this,
                 entryPoint,
+                Context.Flags,
                 debugInfoGenerator,
-                Context.Flags);
+                alignments);
 
             return builder;
         }

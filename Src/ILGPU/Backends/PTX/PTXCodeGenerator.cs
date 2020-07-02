@@ -15,9 +15,11 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -66,13 +68,15 @@ namespace ILGPU.Backends.PTX
             internal GeneratorArgs(
                 PTXBackend backend,
                 EntryPoint entryPoint,
+                ContextFlags contextFlags,
                 PTXDebugInfoGenerator debugInfoGenerator,
-                ContextFlags contextFlags)
+                PointerAlignments pointerAlignments)
             {
                 Backend = backend;
                 EntryPoint = entryPoint;
-                DebugInfoGenerator = debugInfoGenerator;
                 ContextFlags = contextFlags;
+                DebugInfoGenerator = debugInfoGenerator;
+                PointerAlignments = pointerAlignments;
             }
 
             /// <summary>
@@ -94,6 +98,11 @@ namespace ILGPU.Backends.PTX
             /// Returns the debug-information code generator.
             /// </summary>
             public PTXDebugInfoGenerator DebugInfoGenerator { get; }
+
+            /// <summary>
+            /// Returns detailed information about all pointer alignments.
+            /// </summary>
+            public PointerAlignments PointerAlignments { get; }
         }
 
         /// <summary>
@@ -316,6 +325,7 @@ namespace ILGPU.Backends.PTX
             ReturnParamName = "retval_" + Method.Id;
 
             Builder = new StringBuilder();
+            PointerAlignments = args.PointerAlignments;
         }
 
         #endregion
@@ -373,6 +383,11 @@ namespace ILGPU.Backends.PTX
         /// Returns the name of the return parameter.
         /// </summary>
         protected string ReturnParamName { get; }
+
+        /// <summary>
+        /// Returns detailed information about all pointer alignments.
+        /// </summary>
+        public PointerAlignments PointerAlignments { get; }
 
         #endregion
 

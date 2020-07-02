@@ -9,7 +9,10 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR;
 using ILGPU.IR.Values;
+using ILGPU.Resources;
+using ILGPU.Util;
 
 namespace ILGPU.Frontend
 {
@@ -33,29 +36,51 @@ namespace ILGPU.Frontend
                 convertFlags |= ConvertFlags.TargetUnsigned;
                 arithmeticFlags |= ArithmeticFlags.Unsigned;
             }
-            Block.PopArithmeticArgs(
+
+            ValueReference result;
+            if (Block.PopArithmeticArgs(
                 Location,
                 convertFlags,
                 out var left,
-                out var right);
-            switch (kind)
+                out var right) == Block.ArithmeticOperandKind.Pointer)
             {
-                case BinaryArithmeticKind.Shl:
-                case BinaryArithmeticKind.Shr:
-                    // Convert right operand to 32bits
-                    right = CreateConversion(
-                        right,
-                        Builder.GetPrimitiveType(BasicValueType.Int32),
-                        convertFlags);
-                    break;
+                // This is a pointer access
+                bool isLeftPointer = left.Type.IsPointerType;
+                if (!isLeftPointer)
+                    Utilities.Swap(ref left, ref right);
+
+                if (kind != BinaryArithmeticKind.Add || right.Type.IsPointerType)
+                {
+                    throw Location.GetNotSupportedException(
+                        ErrorMessages.NotSupportedArithmeticArgumentType,
+                        kind);
+                }
+                result = Builder.CreateLoadElementAddress(
+                    Location,
+                    left,
+                    right);
             }
-            var arithmetic = Builder.CreateArithmetic(
-                Location,
-                left,
-                right,
-                kind,
-                arithmeticFlags);
-            Block.Push(arithmetic);
+            else
+            {
+                switch (kind)
+                {
+                    case BinaryArithmeticKind.Shl:
+                    case BinaryArithmeticKind.Shr:
+                        // Convert right operand to 32bits
+                        right = CreateConversion(
+                            right,
+                            Builder.GetPrimitiveType(BasicValueType.Int32),
+                            convertFlags);
+                        break;
+                }
+                result = Builder.CreateArithmetic(
+                    Location,
+                    left,
+                    right,
+                    kind,
+                    arithmeticFlags);
+            }
+            Block.Push(result);
         }
 
         /// <summary>

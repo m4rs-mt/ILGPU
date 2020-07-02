@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -351,7 +352,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Emits complex load instructions.
         /// </summary>
-        private readonly struct LoadEmitter : IComplexCommandEmitterWithOffsets
+        private readonly struct LoadEmitter : IVectorizedCommandEmitter
         {
             private readonly struct IOEmitter : IIOEmitter<int>
             {
@@ -414,6 +415,21 @@ namespace ILGPU.Backends.PTX
                     command,
                     register as HardwareRegister,
                     offset);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Emit(
+                PTXCodeGenerator codeGenerator,
+                string command,
+                PrimitiveRegister[] primitiveRegisters,
+                int offset)
+            {
+                using var commandEmitter = codeGenerator.BeginCommand(command);
+                commandEmitter.AppendAddressSpace(Emitter.SourceType.AddressSpace);
+                commandEmitter.AppendVectorSuffix(primitiveRegisters.Length);
+                commandEmitter.AppendSuffix(primitiveRegisters[0].BasicValueType);
+                commandEmitter.AppendVectorArgument(primitiveRegisters);
+                commandEmitter.AppendArgumentValue(Emitter.AddressRegister, offset);
+            }
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Load)"/>
@@ -423,7 +439,9 @@ namespace ILGPU.Backends.PTX
             var sourceType = load.Source.Type as PointerType;
             var targetRegister = Allocate(load);
 
-            EmitComplexCommandWithOffsets(
+            EmitVectorizedCommand(
+                load.Source,
+                sourceType.ElementType.Alignment,
                 PTXInstructions.LoadOperation,
                 new LoadEmitter(sourceType, address),
                 targetRegister);
@@ -432,7 +450,7 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Emits complex store instructions.
         /// </summary>
-        private readonly struct StoreEmitter : IComplexCommandEmitterWithOffsets
+        private readonly struct StoreEmitter : IVectorizedCommandEmitter
         {
             private readonly struct IOEmitter : IIOEmitter<int>
             {
@@ -495,6 +513,21 @@ namespace ILGPU.Backends.PTX
                     command,
                     register,
                     offset);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Emit(
+                PTXCodeGenerator codeGenerator,
+                string command,
+                PrimitiveRegister[] primitiveRegisters,
+                int offset)
+            {
+                using var commandEmitter = codeGenerator.BeginCommand(command);
+                commandEmitter.AppendAddressSpace(Emitter.TargetType.AddressSpace);
+                commandEmitter.AppendVectorSuffix(primitiveRegisters.Length);
+                commandEmitter.AppendSuffix(primitiveRegisters[0].BasicValueType);
+                commandEmitter.AppendArgumentValue(Emitter.AddressRegister, offset);
+                commandEmitter.AppendVectorArgument(primitiveRegisters);
+            }
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(Store)"/>
@@ -504,7 +537,9 @@ namespace ILGPU.Backends.PTX
             var targetType = store.Target.Type as PointerType;
             var value = Load(store.Value);
 
-            EmitComplexCommandWithOffsets(
+            EmitVectorizedCommand(
+                store.Target,
+                targetType.ElementType.Alignment,
                 PTXInstructions.StoreOperation,
                 new StoreEmitter(targetType, address),
                 value);

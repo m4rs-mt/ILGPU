@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Xunit.Abstractions;
 
 #pragma warning disable CA1815 // Override equals and operator equals on value types
@@ -350,6 +351,68 @@ namespace ILGPU.Tests
 
         public void Serialize(IXunitSerializationInfo info) =>
             Value.Serialize(info);
+    }
+
+    [StructLayout(LayoutKind.Sequential, Size = 1024)]
+    public struct CustomSizeStruct : IXunitSerializable
+    {
+        public byte Data;
+
+        public void Deserialize(IXunitSerializationInfo info) =>
+            Data = info.GetValue<byte>(nameof(Data));
+
+        public void Serialize(IXunitSerializationInfo info) =>
+            info.AddValue(nameof(Data), Data);
+    }
+
+    public unsafe struct ShortFixedBufferStruct : IXunitSerializable
+    {
+        public const int Length = 7;
+
+        public fixed short Data[Length];
+
+        public ShortFixedBufferStruct(short data)
+        {
+            for (int i = 0; i < Length; ++i)
+                Data[i] = data;
+        }
+
+        public void Deserialize(IXunitSerializationInfo info)
+        {
+            for (int i = 0; i < Length; ++i)
+                Data[i] = info.GetValue<short>(nameof(Data) + i);
+        }
+
+        public void Serialize(IXunitSerializationInfo info)
+        {
+            for (int i = 0; i < Length; ++i)
+                info.AddValue(nameof(Data) + i, Data[i]);
+        }
+    }
+
+    public unsafe struct LongFixedBufferStruct : IXunitSerializable
+    {
+        public const int Length = 19;
+
+        public fixed long Data[Length];
+
+        public LongFixedBufferStruct(long data)
+        {
+            for (int i = 0; i < Length; ++i)
+                Data[i] = data;
+        }
+
+        public void Deserialize(IXunitSerializationInfo info)
+        {
+            for (int i = 0; i < Length; ++i)
+                Data[i] = info.GetValue<long>(nameof(Data) + i);
+        }
+
+        public void Serialize(IXunitSerializationInfo info)
+        {
+            for (int i = 0; i < Length; ++i)
+                info.AddValue(nameof(Data) + i, Data[i]);
+        }
     }
 
     #endregion

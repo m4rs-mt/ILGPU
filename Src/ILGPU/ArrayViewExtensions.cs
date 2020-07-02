@@ -288,7 +288,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView<T> GetRowView(int y)
         {
-            Debug.Assert(y >= 0 && y < Height, "y out of bounds");
+            Trace.Assert(y >= 0 && y < Height, "y out of bounds");
             return AsLinearView().GetSubView(y * Width, Width);
         }
 
@@ -448,7 +448,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ArrayView2D<T> GetSliceView(int z)
         {
-            Debug.Assert(z >= 0 && z < Depth, "z out of bounds");
+            Trace.Assert(z >= 0 && z < Depth, "z out of bounds");
             return new ArrayView2D<T>(
                 BaseView.AsLinearView().GetSubView(z * Width * Height, Width * Height),
                 Height);

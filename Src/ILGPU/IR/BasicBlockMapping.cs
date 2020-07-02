@@ -171,8 +171,8 @@ namespace ILGPU.IR
                     ref visited,
                     Math.Max(bucketIndex + 1, visited.Length * 2));
             }
-            ref var entry = ref visited[bucketIndex];
 
+            ref var entry = ref visited[bucketIndex];
             bool added = (entry & bitMask) == 0;
             entry |= bitMask;
             AssertAdd(block, added);
@@ -205,6 +205,42 @@ namespace ILGPU.IR
                 (visited[bucketIndex] & bitMask) != 0;
             AssertContained(block, contained);
             return contained;
+        }
+
+        /// <summary>
+        /// Asserts that the given block has been removed from the set or not.
+        /// </summary>
+        /// <param name="block">The basic block.</param>
+        /// <param name="removed">True, whether the block has been removed.</param>
+        [SuppressMessage(
+            "Performance",
+            "CA1822:Mark members as static",
+            Justification = "For debugging purposes only")]
+        [Conditional("DEBUG")]
+        readonly partial void AssertRemoved(BasicBlock block, bool removed);
+
+        /// <summary>
+        /// Removes the given block from this set and returns true if the block has been
+        /// removed.
+        /// </summary>
+        /// <param name="block">The basic block.</param>
+        /// <returns>True, whether the block has been removed.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Remove(BasicBlock block)
+        {
+            block.Assert(block.Method == Method && block.BlockIndex >= 0);
+            int bucketIndex = ComputeBucketIndex(block.BlockIndex, out ulong bitMask);
+            if (bucketIndex >= visited.Length)
+            {
+                AssertRemoved(block, false);
+                return false;
+            }
+
+            ref var entry = ref visited[bucketIndex];
+            bool removed = (entry & bitMask) != 0;
+            entry &= ~bitMask;
+            AssertRemoved(block, removed);
+            return removed;
         }
 
         #endregion
@@ -488,7 +524,7 @@ namespace ILGPU.IR
         /// <returns>The value associated to the given block.</returns>
         public T this[BasicBlock block]
         {
-            get => GetItemRef(block);
+            readonly get => GetItemRef(block);
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
@@ -717,6 +753,10 @@ namespace ILGPU.IR
         /// <summary cref="AssertContained(BasicBlock, bool)"/>
         readonly partial void AssertContained(BasicBlock block, bool contained) =>
             EntryBlock.Assert(blockSet.Contains(block) == contained);
+
+        /// <summary cref="AssertRemoved(BasicBlock, bool)"/>
+        readonly partial void AssertRemoved(BasicBlock block, bool removed) =>
+            EntryBlock.Assert(blockSet.Remove(block) == removed);
 
         #endregion
     }

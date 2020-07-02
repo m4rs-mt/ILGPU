@@ -647,5 +647,12 @@ namespace ILGPU.Backends.PTX
                 { (AtomicKind.Max, ArithmeticBasicValueType.UInt32), "u32" },
                 { (AtomicKind.Max, ArithmeticBasicValueType.UInt64), "u64" },
             };
+
+        private static readonly Dictionary<int, string> VectorSuffixes =
+            new Dictionary<int, string>()
+            {
+                { 2, "v2" },
+                { 4, "v4" },
+            };
     }
 }

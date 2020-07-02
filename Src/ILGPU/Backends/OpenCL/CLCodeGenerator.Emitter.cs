@@ -28,6 +28,20 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         public struct StatementEmitter : IDisposable
         {
+            #region Static
+
+            /// <summary>
+            /// Indicates char tokens in a formatted floating-point literal that
+            /// do not require a ".0f" suffix.
+            /// </summary>
+            private static readonly char[] FormattedFloatLiteralTokens =
+            {
+                '.',
+                'E'
+            };
+
+            #endregion
+
             #region Instance
 
             private readonly StringBuilder stringBuilder;
@@ -456,9 +470,17 @@ namespace ILGPU.Backends.OpenCL
                 }
                 else
                 {
-                    stringBuilder.Append(
-                        value.ToString(CultureInfo.InvariantCulture));
-                    if (value % 1.0f == 0.0f)
+                    // In C#, the floating point value "1.0f" can be shortened to "1f".
+                    // However, in the C programming language, it is necessary to include
+                    // the ".0f" suffix. However, if the stringified value already
+                    // contains a decimal point, or the exponent notation, appending the
+                    // "f" suffix is sufficient.
+                    var formattedValue =
+                        value.ToString("G9", CultureInfo.InvariantCulture);
+                    stringBuilder.Append(formattedValue);
+
+                    var idx = formattedValue.IndexOfAny(FormattedFloatLiteralTokens);
+                    if (idx == -1)
                         stringBuilder.Append(".0f");
                     else
                         stringBuilder.Append('f');
@@ -486,7 +508,7 @@ namespace ILGPU.Backends.OpenCL
                 else
                 {
                     stringBuilder.Append(
-                        value.ToString(CultureInfo.InvariantCulture));
+                        value.ToString("G17", CultureInfo.InvariantCulture));
                 }
             }
 
