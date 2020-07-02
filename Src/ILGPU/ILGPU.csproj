@@ -145,11 +145,6 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
         </Compile>
-        <Compile Update="Runtime\ExchangeBufferExtensions.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>ExchangeBufferExtensions.tt</DependentUpon>
-        </Compile>
         <Compile Update="Runtime\KernelLoaders.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -264,6 +259,6 @@
         </EmbeddedResource>
     </ItemGroup>
 
-    <Import Project="Properties\ILGPU.nuspec.targets"/>
+    <Import Project="Properties\ILGPU.nuspec.targets" />
     <Import Project="..\TextTransform.targets" />
 </Project>
