@@ -547,6 +547,8 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Ldelem, 2, 1, typeof(double));
                     return true;
                 case ILOpCode.Ldelem_Ref:
+                    AppendInstruction(ILInstructionType.Ldelem, 2, 1, typeof(object));
+                    return true;
                 case ILOpCode.Ldelem:
                     AppendInstruction(ILInstructionType.Ldelem, 2, 1, ReadTypeArg());
                     return true;
@@ -578,6 +580,8 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Stelem, 3, 0, NativePtrType);
                     return true;
                 case ILOpCode.Stelem_Ref:
+                    AppendInstruction(ILInstructionType.Stelem, 3, 0, typeof(object));
+                    return true;
                 case ILOpCode.Stelem:
                     AppendInstruction(ILInstructionType.Stelem, 3, 0, ReadTypeArg());
                     return true;
@@ -631,7 +635,7 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Ldind, 1, 1, NativePtrType);
                     return true;
                 case ILOpCode.Ldind_Ref:
-                    AppendInstruction(ILInstructionType.Ldind, 1, 1, ReadTypeArg());
+                    AppendInstruction(ILInstructionType.Ldind, 1, 1, typeof(object));
                     return true;
                 case ILOpCode.Stind_I1:
                     AppendInstruction(ILInstructionType.Stind, 2, 0, typeof(byte));
@@ -655,7 +659,7 @@ namespace ILGPU.Frontend
                     AppendInstruction(ILInstructionType.Stind, 2, 0, NativePtrType);
                     return true;
                 case ILOpCode.Stind_Ref:
-                    AppendInstruction(ILInstructionType.Stind, 2, 0, ReadTypeArg());
+                    AppendInstruction(ILInstructionType.Stind, 2, 0, typeof(object));
                     return true;
                 case ILOpCode.Localloc:
                     AppendInstruction(ILInstructionType.Localloc, 1, 1, ReadTypeArg());
@@ -676,7 +680,7 @@ namespace ILGPU.Frontend
 
                 // Token
                 case ILOpCode.Ldtoken:
-                    AppendInstruction(ILInstructionType.LdToken, 0, 1, AssociatedModule.ResolveMember(ReadIntArg()));
+                    AppendInstruction(ILInstructionType.LdToken, 0, 1, AssociatedModule.ResolveMember(ReadIntArg(), TypeGenericArguments, MethodGenericArguments));
                     return true;
 
                 default:
