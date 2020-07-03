@@ -24,7 +24,7 @@ namespace ILGPU.Tests
             Action<Context> prepareContext,
             Func<Context, Accelerator> createAccelerator)
         {
-            Context = new Context(level);
+            Context = new Context(ContextFlags.EnableAssertions, level);
             prepareContext?.Invoke(Context);
             Accelerator = createAccelerator(Context);
         }

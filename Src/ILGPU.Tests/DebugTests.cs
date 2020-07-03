@@ -1,4 +1,7 @@
-﻿using System.Diagnostics;
+﻿// Enforce DEBUG mode in all cases to preserve Debug calls
+#define DEBUG
+
+using System.Diagnostics;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -16,6 +19,7 @@ namespace ILGPU.Tests
             ArrayView<int> data)
         {
             Debug.Assert(data[index] >= 0);
+            Trace.Assert(data[index] >= 0);
         }
 
         [Theory]
@@ -37,6 +41,7 @@ namespace ILGPU.Tests
             ArrayView<int> data)
         {
             Debug.Assert(data[index] >= 0, "Invalid kernel argument");
+            Trace.Assert(data[index] >= 0, "Invalid kernel argument");
         }
 
         [Theory]
@@ -58,7 +63,10 @@ namespace ILGPU.Tests
             ArrayView<int> data)
         {
             if (data[index] < 0)
+            {
                 Debug.Fail("Invalid kernel argument < 0");
+                Trace.Fail("Invalid kernel argument < 0");
+            }
         }
 
         [Theory]
