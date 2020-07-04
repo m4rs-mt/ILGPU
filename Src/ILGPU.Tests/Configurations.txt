@@ -1,5 +1,7 @@
 ﻿ArrayViews: Debug, Release, O2
 Arrays: Debug, Release, O2
+DebugTests: Debug, Release, O2
+DisassemblerTests: Debug, Release, O2
 EnumValues: Debug, Release, O2
 KernelEntryPoints: Debug, Release, O2
 MemoryBufferOperations : Debug, Release, O2

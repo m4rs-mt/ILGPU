@@ -741,9 +741,7 @@ namespace ILGPU.Backends
             BackendFlags backendFlags,
             ArgumentMapper argumentMapper)
             : base(context, backendType, backendFlags, argumentMapper)
-        {
-            IntrinsicProvider = context.IntrinsicManager.CreateProvider<TDelegate>(this);
-        }
+        { }
 
         #endregion
 
@@ -752,11 +750,24 @@ namespace ILGPU.Backends
         /// <summary>
         /// Returns the current intrinsic provider.
         /// </summary>
-        public IntrinsicImplementationProvider<TDelegate> IntrinsicProvider { get; }
+        public IntrinsicImplementationProvider<TDelegate> IntrinsicProvider
+        {
+            get;
+            private set;
+        }
 
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Initializes the current intrinsic provider.
+        /// </summary>
+        protected void InitIntrinsicProvider()
+        {
+            IntrinsicProvider?.Dispose();
+            IntrinsicProvider = Context.IntrinsicManager.CreateProvider<TDelegate>(this);
+        }
 
         /// <summary>
         /// Initializes the associated kernel transformers.
