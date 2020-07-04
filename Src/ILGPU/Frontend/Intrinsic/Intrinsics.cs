@@ -208,7 +208,7 @@ namespace ILGPU.Frontend.Intrinsic
 
             return context.Method.Name switch
             {
-                nameof(Debug.Write) when context.NumArguments == 1 =>
+                nameof(Debug.Assert) when context.NumArguments == 2 =>
                     builder.CreateDebug(location, DebugKind.Trace, context[0]),
                 nameof(Debug.Fail) when context.NumArguments == 1 =>
                     builder.CreateDebug(location, DebugKind.AssertFailed, context[0]),

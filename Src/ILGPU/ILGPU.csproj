@@ -9,12 +9,12 @@
 
     <PropertyGroup>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Version>0.8.1</Version>
+        <Version>0.8.1.1</Version>
         <NeutralLanguage>en-US</NeutralLanguage>
         <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
         <LangVersion>8.0</LangVersion>
-        <AssemblyVersion>0.8.1.0</AssemblyVersion>
-        <FileVersion>0.8.1.0</FileVersion>
+        <AssemblyVersion>0.8.1.1</AssemblyVersion>
+        <FileVersion>0.8.1.1</FileVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(TargetFramework)'!='net47'">

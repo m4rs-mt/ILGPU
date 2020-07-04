@@ -35,11 +35,6 @@ namespace ILGPU.IR
     public static class Locations
     {
         /// <summary>
-        /// The parent location data key in the scope of an exception dictionary.
-        /// </summary>
-        public const string DataKey = "Source";
-
-        /// <summary>
         /// Constructs a new exception of the given type based on the given
         /// message, the formatting arguments and the current sequence point.
         /// information.
@@ -59,10 +54,7 @@ namespace ILGPU.IR
             message = (location?.FormatErrorMessage(
                 message ?? ErrorMessages.InternalCompilerError))
                 ?? ErrorMessages.InternalCompilerError;
-            var result = Activator.CreateInstance(typeof(TException), message)
-                as TException;
-            result.Data.Add(DataKey, location);
-            return result;
+            return Activator.CreateInstance(typeof(TException), message) as TException;
         }
 
         /// <summary>

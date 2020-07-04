@@ -68,6 +68,7 @@ namespace ILGPU.Backends.OpenCL
         {
             Vendor = vendor;
 
+            InitIntrinsicProvider();
             InitializeKernelTransformers(
                 IntrinsicSpecializerFlags.None,
                 builder =>
