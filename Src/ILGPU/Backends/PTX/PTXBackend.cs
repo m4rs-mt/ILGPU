@@ -80,6 +80,7 @@ namespace ILGPU.Backends.PTX
             Architecture = architecture;
             InstructionSet = instructionSet;
 
+            InitIntrinsicProvider();
             InitializeKernelTransformers(
                 Context.HasFlags(ContextFlags.EnableAssertions) ?
                 IntrinsicSpecializerFlags.EnableAssertions :
