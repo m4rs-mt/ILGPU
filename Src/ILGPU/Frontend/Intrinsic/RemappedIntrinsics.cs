@@ -83,7 +83,17 @@ namespace ILGPU.Frontend.Intrinsic
             RegisterMathRemappings();
 
             // Remap debug assert
-            var debugType = typeof(Debug);
+            AddDebugRemapping(remappedType, typeof(Debug));
+            AddDebugRemapping(remappedType, typeof(Trace));
+        }
+
+        /// <summary>
+        /// Registers a new debug mapping.
+        /// </summary>
+        /// <param name="remappedType">The remapped intrinsics type.</param>
+        /// <param name="debugType">The debug type.</param>
+        private static void AddDebugRemapping(Type remappedType, Type debugType)
+        {
             AddDebugRemapping(
                 remappedType,
                 nameof(DebugAssertCondition),

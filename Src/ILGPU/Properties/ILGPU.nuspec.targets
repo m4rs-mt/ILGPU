@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <PackageId>ILGPU</PackageId>
-        <PackageVersion>$(Version)-beta1</PackageVersion>
+        <PackageVersion>$(Version)</PackageVersion>
 
         <Title>ILGPU</Title>
         <Copyright>Copyright (c) 2016-2020 Marcel Koester. All rights reserved.</Copyright>
