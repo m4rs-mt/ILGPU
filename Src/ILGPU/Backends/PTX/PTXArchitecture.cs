@@ -84,6 +84,11 @@ namespace ILGPU.Backends
         /// The 7.5 architecture.
         /// </summary>
         SM_75,
+
+        /// <summary>
+        /// The 8.0 architecture.
+        /// </summary>
+        SM_80,
     }
 
     /// <summary>
@@ -116,6 +121,8 @@ namespace ILGPU.Backends
             { (7L << 32) | 0L, PTXArchitecture.SM_70 },
             { (7L << 32) | 2L, PTXArchitecture.SM_72 },
             { (7L << 32) | 5L, PTXArchitecture.SM_75 },
+
+            { (8L << 32) | 0L, PTXArchitecture.SM_80 },
         };
 
         /// <summary>
