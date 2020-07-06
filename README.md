@@ -26,6 +26,16 @@ If the tests stop unexpectedly, you can simply run the remaining tests again to 
 Note: You can unload ILGPU.Tests.Cuda (for example) if you do not have a Cuda-capable device to
 execute the Cuda test cases.
 
+# Related Information
+* ILGPU Homepage (www.ilgpu.net)
+* ILGPU Algorithms (https://github.com/m4rs-mt/ILGPU.Algorithms)
+* ILGPU Samples (https://github.com/m4rs-mt/ILGPU.Samples)
+* ILGPU Class Reference (http://www.ilgpu.net/Documentation/LatestReference)
+* ILGPU Documentation (http://www.ilgpu.net/Documentation)
+* Nuget (https://www.nuget.org/packages/ILGPU)
+* Release Notes (http://www.ilgpu.net/ReleaseVersions)
+* Project Discord (https://discord.gg/X6RBCff)
+
 # General Contribution Guidelines
 
 * Make sure that you agree with the general coding style (in terms of braces, whitespaces etc.).
