@@ -259,7 +259,9 @@ namespace ILGPU.Backends.OpenCL
             Float
         }
 
-        private static readonly Dictionary<ArithmeticBasicValueType, CLUnaryCategory> UnaryCategoryLookup =
+        private static readonly Dictionary<
+            ArithmeticBasicValueType,
+            CLUnaryCategory> UnaryCategoryLookup =
             new Dictionary<ArithmeticBasicValueType, CLUnaryCategory>()
             {
                 { ArithmeticBasicValueType.UInt1, CLUnaryCategory.Boolean },

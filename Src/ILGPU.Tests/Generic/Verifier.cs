@@ -63,7 +63,9 @@ namespace ILGPU.Tests
 
             public void Visit(AddressSpaceCast value)
             {
-                if (Get<AddressSpaceCast>().TargetAddressSpace != value.TargetAddressSpace)
+                if (
+                    Get<AddressSpaceCast>().TargetAddressSpace
+                    != value.TargetAddressSpace)
                     Fail();
             }
 

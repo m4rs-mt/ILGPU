@@ -16,7 +16,8 @@ namespace ILGPU.Tests
         /// <param name="methodName">The associated method name.</param>
         public KernelMethodAttribute(string methodName)
         {
-            MethodName = methodName ?? throw new ArgumentNullException(nameof(methodName));
+            MethodName = methodName
+                ?? throw new ArgumentNullException(nameof(methodName));
         }
 
         /// <summary>
