@@ -34,7 +34,6 @@ execute the Cuda test cases.
 * ILGPU Documentation (http://www.ilgpu.net/Documentation)
 * Nuget (https://www.nuget.org/packages/ILGPU)
 * Release Notes (http://www.ilgpu.net/ReleaseVersions)
-* Project Discord (https://discord.gg/X6RBCff)
 
 # General Contribution Guidelines
 
