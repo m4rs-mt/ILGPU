@@ -29,6 +29,16 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>AlgorithmContextMappings.tt</DependentUpon>
     </None>
+    <None Include="HistogramLaunchers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HistogramLaunchers.tt</DependentUpon>
+    </None>
+    <None Include="HistogramOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HistogramOperations.tt</DependentUpon>
+    </None>
     <None Include="RadixSortOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -55,6 +65,14 @@
     <None Update="CL\CLContext.Generated.tt">
       <LastGenOutput>CLContext.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="HistogramLaunchers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>HistogramLaunchers.cs</LastGenOutput>
+    </None>
+    <None Update="HistogramOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>HistogramOperations.cs</LastGenOutput>
     </None>
     <None Update="IL\ILContext.Generated.tt">
       <LastGenOutput>ILContext.Generated.cs</LastGenOutput>
@@ -123,6 +141,16 @@
       <DependentUpon>CLContext.Generated.tt</DependentUpon>
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="HistogramLaunchers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HistogramLaunchers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="HistogramOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HistogramOperations.tt</DependentUpon>
     </Compile>
     <Compile Update="IL\ILContext.Generated.cs">
       <DependentUpon>ILContext.Generated.tt</DependentUpon>

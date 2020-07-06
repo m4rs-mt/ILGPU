@@ -246,6 +246,8 @@ ModelManifest.xml
 # Ignore specific template outputs
 Src/ILGPU.Algorithms/AlgorithmContextMappings.cs
 Src/ILGPU.Algorithms/CL/CLContext.Generated.cs
+Src/ILGPU.Algorithms/HistogramLaunchers.cs
+Src/ILGPU.Algorithms/HistogramOperations.cs
 Src/ILGPU.Algorithms/IL/ILContext.Generated.cs
 Src/ILGPU.Algorithms/PTX/PTXContext.Generated.cs
 Src/ILGPU.Algorithms/RadixSortOperations.cs
@@ -263,6 +265,7 @@ Src/ILGPU.Algorithms/XMath/Cordic.Trig.cs
 
 # Generated test source files
 Src/ILGPU.Algorithms.Tests/Generic/ConfigurationBase.cs
+Src/ILGPU.Algorithms.Tests/HistogramTests.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Log.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Pow.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Rcp.cs

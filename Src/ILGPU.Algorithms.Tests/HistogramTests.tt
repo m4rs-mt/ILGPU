@@ -1,0 +1,325 @@
+﻿// -----------------------------------------------------------------------------
+//                             ILGPU.Algorithms
+//                  Copyright (c) 2020 ILGPU Algorithms Project
+//                Copyright(c) 2016-2018 ILGPU Lightning Project
+//                                www.ilgpu.net
+//
+// File: HistogramTests.tt/HistogramTests.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../ILGPU/Src/ILGPU/TypeInformation.tt"#>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ILGPU.Algorithms.HistogramOperations;
+using ILGPU.Runtime;
+using ILGPU.Tests;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using Xunit;
+using Xunit.Abstractions;
+
+<#
+var incrementTypes = AtomicNumericTypes;
+var inputTypes = NumericTypes;
+#>
+namespace ILGPU.Algorithms.Tests
+{
+    public abstract partial class HistogramTests : TestBase
+    {
+        protected HistogramTests(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
+        { }
+
+        #region Initialize Helpers
+
+<# foreach (var inputType in inputTypes) { #>
+        <#= inputType.Type #>[] InitializeInput1D_<#= inputType.Name #>(int length)
+        {
+            return Enumerable.Range(1, length).Select(x => (<#= inputType.Type #>)x).ToArray();
+        }
+
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional")]
+        <#= inputType.Type #>[,] InitializeInput2D_<#= inputType.Name #>(int length)
+        {
+            var inputArray = new <#= inputType.Type #>[length, length];
+            var values = Enumerable.Range(1, length * length).GetEnumerator();
+
+            for (var i = 0; i < length; i++)
+            {
+                for (var j = 0; j < length; j++)
+                {
+                    values.MoveNext();
+                    inputArray[i, j] = (<#= inputType.Type #>)values.Current;
+                }
+            }
+
+            return inputArray;
+        }
+
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional")]
+        <#= inputType.Type #>[,,] InitializeInput3D_<#= inputType.Name #>(int length)
+        {
+            var inputArray = new <#= inputType.Type #>[length, length, length];
+            var values = Enumerable.Range(1, length * length * length).GetEnumerator();
+
+            for (var i = 0; i < length; i++)
+            {
+                for (var j = 0; j < length; j++)
+                {
+                    for (var k = 0; k < length; k++)
+                    {
+                        values.MoveNext();
+                        inputArray[i, j, k] = (<#= inputType.Type #>)values.Current;
+                    }
+                }
+            }
+
+            return inputArray;
+        }
+
+<# } #>
+        void ApplyHistogram1D<
+            T,
+            TBinType,
+            TLocator,
+            TIncrementor>(
+                TBinType[] histogram,
+                T[] values,
+                out int[] expectedOverflow)
+            where T : unmanaged
+            where TBinType : unmanaged
+            where TLocator : struct, IComputeSingleBinOperation<T>
+            where TIncrementor : struct, IIncrementOperation<TBinType>
+        {
+            var numBins = histogram.Length;
+            TLocator operation = default;
+            TIncrementor increment = default;
+            var histogramOverflow = false;
+
+            foreach (var value in values)
+            {
+                var binIdx = operation.ComputeHistogramBin(value, numBins);
+                increment.Increment(ref histogram[binIdx], out var incrementOverflow);
+                histogramOverflow |= incrementOverflow;
+            }
+
+            expectedOverflow = new[] { histogramOverflow ? 1 : 0 };
+        }
+
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional")]
+        void ApplyHistogram2D<
+            T,
+            TBinType,
+            TLocator,
+            TIncrementor>(
+                TBinType[] histogram,
+                T[,] values,
+                out int[] expectedOverflow)
+            where T : unmanaged
+            where TBinType : unmanaged
+            where TLocator : struct, IComputeSingleBinOperation<T>
+            where TIncrementor : struct, IIncrementOperation<TBinType>
+        {
+            var numBins = histogram.Length;
+            TLocator operation = default;
+            TIncrementor increment = default;
+            var histogramOverflow = false;
+
+            foreach (var value in values)
+            {
+                var binIdx = operation.ComputeHistogramBin(value, numBins);
+                increment.Increment(ref histogram[binIdx], out var incrementOverflow);
+                histogramOverflow |= incrementOverflow;
+            }
+
+            expectedOverflow = new[] { histogramOverflow ? 1 : 0 };
+        }
+
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional")]
+        void ApplyHistogram3D<
+            T,
+            TBinType,
+            TLocator,
+            TIncrementor>(
+                TBinType[] histogram,
+                T[,,] values,
+                out int[] expectedOverflow)
+            where T : unmanaged
+            where TBinType : unmanaged
+            where TLocator : struct, IComputeSingleBinOperation<T>
+            where TIncrementor : struct, IIncrementOperation<TBinType>
+        {
+            var numBins = histogram.Length;
+            TLocator operation = default;
+            TIncrementor increment = default;
+            var histogramOverflow = false;
+
+            foreach (var value in values)
+            {
+                var binIdx = operation.ComputeHistogramBin(value, numBins);
+                increment.Increment(ref histogram[binIdx], out var incrementOverflow);
+                histogramOverflow |= incrementOverflow;
+            }
+
+            expectedOverflow = new[] { histogramOverflow ? 1 : 0 };
+        }
+
+        #endregion
+
+        #region Histogram Modulo Operations
+
+<# foreach (var inputType in inputTypes) { #>
+        internal readonly struct ModuloBin<#= inputType.Name #>Operation
+            : IComputeSingleBinOperation<<#= inputType.Type #>>
+        {
+            public int ComputeHistogramBin(<#= inputType.Type #> value, int numBins) =>
+<#      if (inputType.IsFloat) { #>
+                (int)XMath.Abs(XMath.Rem(value, numBins));
+<#      } else { #>
+                (int)XMath.Abs(value % (uint)numBins);
+<#      } #>
+        };
+
+<# } #>
+        #endregion
+
+<# for (int i = 1; i <= 3; ++i) { #>
+        #region Histogram <#= i #>D Tests
+
+<#      foreach (var inputType in inputTypes) { #>
+<#          foreach (var binType in incrementTypes) { #>
+        [Theory]
+        [InlineData(64, 1024)]
+        [InlineData(256, 1024)]
+        public void Histogram<#= i #>D_CreateBin<#= binType.Name #>From<#= inputType.Name #>(
+            int numBins,
+            int length)
+        {
+<#              if (i > 1) { #>
+            length = (int)System.Math.Pow(length, 1.0 / <#= i #>.0);
+<#              } #>
+
+            var inputArray = InitializeInput<#= i #>D_<#= inputType.Name #>(length);
+            var expected = new <#= binType.Type #>[numBins];
+            ApplyHistogram<#= i #>D<
+                <#= inputType.Type #>,
+                <#= binType.Type #>,
+                ModuloBin<#= inputType.Name #>Operation,
+                HistogramIncrement<#= binType.Name #>>(
+                    expected,
+                    inputArray,
+                    out var expectedOverflow);
+
+            using var input = Accelerator.Allocate<<#= inputType.Type #>>(
+                new Index<#= i #>(length));
+            input.CopyFrom(
+                inputArray,
+                Index<#= i #>.Zero,
+                Index<#= i #>.Zero,
+                input.Extent);
+
+            using var histogram = Accelerator.Allocate<<#= binType.Type #>>(numBins);
+            histogram.MemSetToZero();
+
+            using var histogramOverflow = Accelerator.Allocate<int>(1);
+            histogramOverflow.MemSetToZero();
+
+            Accelerator.Synchronize();
+            Accelerator.Histogram<#= i > 1 ? $"{i}D" : "" #><
+                <#= inputType.Type #>,
+                ModuloBin<#= inputType.Name #>Operation>(
+                    Accelerator.DefaultStream,
+                    input.View,
+                    histogram.View,
+                    histogramOverflow.View);
+            Accelerator.Synchronize();
+
+            Verify(histogram, expected);
+            Verify(histogramOverflow, expectedOverflow);
+        }
+
+<#              /*  NB: Disabled overflow test for floats as they are not reliable  */ #>
+<#              if (!binType.IsFloat) { #>
+        [Fact]
+        public void HistogramOverflow<#= i #>D_CreateBin<#= binType.Name #>From<#= inputType.Name #>()
+        {
+            var length = 32;
+            var inputArray = InitializeInput<#= i #>D_<#= inputType.Name #>(length);
+
+            // Prepare a histogram that is just about to overflow
+            var expected = new <#= binType.Type #>[]
+            {
+                <#= binType.Type #>.MaxValue - (<#= binType.Type #>)Math.Pow(length, <#= i #>) - 1
+            };
+            ApplyHistogram<#= i #>D<
+                <#= inputType.Type #>,
+                <#= binType.Type #>,
+                ModuloBin<#= inputType.Name #>Operation,
+                HistogramIncrement<#= binType.Name #>>(
+                    expected,
+                    inputArray,
+                    out var expectedOverflow1);
+
+            using var input = Accelerator.Allocate<<#= inputType.Type #>>(new Index<#= i #>(length));
+            input.CopyFrom(
+                inputArray,
+                Index<#= i #>.Zero,
+                Index<#= i #>.Zero,
+                input.Extent);
+
+            using var histogram = Accelerator.Allocate<<#= binType.Type #>>(
+                expected.Length);
+            histogram.CopyFrom(expected, Index1.Zero, Index1.Zero, histogram.Extent);
+
+            using var histogramOverflow = Accelerator.Allocate<int>(1);
+            histogramOverflow.MemSetToZero();
+
+            // Check that the expected histogram has not yet overflowed
+            Accelerator.Synchronize();
+            Verify(histogramOverflow, expectedOverflow1);
+
+            // Apply the histogram operation one more time to generate an overflow
+            ApplyHistogram<#= i #>D<
+                <#= inputType.Type #>,
+                <#= binType.Type #>,
+                ModuloBin<#= inputType.Name #>Operation,
+                HistogramIncrement<#= binType.Name #>>(
+                    expected,
+                    inputArray,
+                    out var expectedOverflow2);
+
+            Accelerator.Histogram<#= i > 1 ? $"{i}D" : "" #><
+                <#= inputType.Type #>,
+                ModuloBin<#= inputType.Name #>Operation>(
+                    Accelerator.DefaultStream,
+                    input.View,
+                    histogram.View,
+                    histogramOverflow.View);
+            Accelerator.Synchronize();
+
+            Verify(histogram, expected);
+            Verify(histogramOverflow, expectedOverflow2);
+        }
+<#              } #>
+<#          } #>
+<#      } #>
+        #endregion
+
+<# } #>
+    }
+}

@@ -29,6 +29,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Histogram.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Histogram.cs</LastGenOutput>
+    </None>
+    <None Update="HistogramTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>HistogramTests.cs</LastGenOutput>
+    </None>
     <None Update="XMathTests.Log.tt">
       <LastGenOutput>XMathTests.Log.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -56,6 +64,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Histogram.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Histogram.tt</DependentUpon>
+    </Compile>
+    <Compile Update="HistogramTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HistogramTests.tt</DependentUpon>
+    </Compile>
     <Compile Update="XMathTests.Log.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>

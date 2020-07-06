@@ -1,1 +1,2 @@
-﻿XMathTests: Debug, Release
+﻿HistogramTests: Debug, Release
+XMathTests: Debug, Release
