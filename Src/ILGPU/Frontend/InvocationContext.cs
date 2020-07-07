@@ -12,7 +12,6 @@
 using ILGPU.IR;
 using ILGPU.IR.Construction;
 using ILGPU.IR.Values;
-using ILGPU.Util;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;

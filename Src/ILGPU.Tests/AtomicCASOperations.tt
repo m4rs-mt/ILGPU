@@ -7,7 +7,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 <#
-var atomicTypes = DefaultIntTypes.Concat(FloatTypes.Select(t => (t.Item1, t.Item2))).ToArray();
+var atomicTypes = AtomicNumericTypes;
 #>
 namespace ILGPU.Tests
 {
@@ -17,16 +17,16 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-<# foreach (var (typeName, type) in atomicTypes) { #>
+<# foreach (var type in atomicTypes) { #>
 <#      var baseName = "_" + type.Name; #>
 <#      var casTestName = "AtomicOperationCAS" + baseName; #>
 <#      var casKernelName = "AtomicOperationKernelCAS" + baseName; #>
         internal static void <#= casKernelName #>(
             Index1 index,
-            ArrayView<<#= typeName #>> a,
-            ArrayView<<#= typeName #>> b,
-            ArrayView<<#= typeName #>> c,
-            ArrayView<<#= typeName #>> d)
+            ArrayView<<#= type.Type #>> a,
+            ArrayView<<#= type.Type #>> b,
+            ArrayView<<#= type.Type #>> c,
+            ArrayView<<#= type.Type #>> d)
         {
             d[index] = Atomic.CompareExchange(
                 ref a[0],
@@ -35,26 +35,26 @@ namespace ILGPU.Tests
         }
 
         [Theory]
-        [InlineData((<#= typeName #>)0, (<#= typeName #>)1)]
-        [InlineData((<#= typeName #>)1, (<#= typeName #>)0)]
-        [InlineData(<#= typeName #>.MaxValue, <#= typeName #>.MinValue)]
-        [InlineData(<#= typeName #>.MinValue, <#= typeName #>.MaxValue)]
+        [InlineData((<#= type.Type #>)0, (<#= type.Type #>)1)]
+        [InlineData((<#= type.Type #>)1, (<#= type.Type #>)0)]
+        [InlineData(<#= type.Type #>.MaxValue, <#= type.Type #>.MinValue)]
+        [InlineData(<#= type.Type #>.MinValue, <#= type.Type #>.MaxValue)]
         [KernelMethod(nameof(<#= casKernelName #>))]
         public void <#= casTestName #>(
-            <#= typeName #> first,
-            <#= typeName #> second)
+            <#= type.Type #> first,
+            <#= type.Type #> second)
         {
             const int length = 1024;
-            using var a = Accelerator.Allocate<<#= typeName #>>(1);
-            using var b = Accelerator.Allocate<<#= typeName #>>(length);
-            using var c = Accelerator.Allocate<<#= typeName #>>(length);
-            using var d = Accelerator.Allocate<<#= typeName #>>(length);
+            using var a = Accelerator.Allocate<<#= type.Type #>>(1);
+            using var b = Accelerator.Allocate<<#= type.Type #>>(length);
+            using var c = Accelerator.Allocate<<#= type.Type #>>(length);
+            using var d = Accelerator.Allocate<<#= type.Type #>>(length);
             Initialize(a, first);
             Initialize(b, first);
             Initialize(c, second);
             Execute(length, a.View, b.View, c.View, d.View);
 
-            var reference = new <#= typeName #>[] { second };
+            var reference = new <#= type.Type #>[] { second };
             Verify(a, reference);
 
             var data = d.GetAsArray(Accelerator.DefaultStream);

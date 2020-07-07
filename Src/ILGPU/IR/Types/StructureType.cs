@@ -498,7 +498,7 @@ namespace ILGPU.IR.Types
                 internal readonly bool CanBeAligned(StructureType parentType)
                 {
                     int requiredAlignment = RequiredAlignment;
-                    return 
+                    return
                         // Check for a relative alignment inside the structure
                         Offset % requiredAlignment == 0 &&
                         // Check for a relative alignment of odd structure accesses

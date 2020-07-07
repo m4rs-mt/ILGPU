@@ -9,28 +9,30 @@ using Xunit;
 using Xunit.Abstractions;
 
 <#
-var types = IntTypes.Concat(FloatTypes.Select(t => (t.Item1, t.Item2)));
+var types = IntTypes.Concat(FloatTypes);
 #>
 namespace ILGPU.Tests
 {
     public abstract class ConvertFloatOperations : TestBase
     {
-        protected ConvertFloatOperations(ITestOutputHelper output, TestContext testContext)
+        protected ConvertFloatOperations(
+            ITestOutputHelper output,
+            TestContext testContext)
             : base(output, testContext)
         { }
 
-<# foreach (var (typeName, type, suffix) in FloatTypes) { #>
-<#      foreach (var (targetTypeName, targetType) in types) { #>
-<#         var floatRanges = GetFloatRanges(typeName, suffix, true); #>
+<# foreach (var type in FloatTypes) { #>
+<#      foreach (var targetType in types) { #>
+<#         var floatRanges = GetFloatRanges(type, true); #>
 <#         var baseName = "_" + type.Name + "_" + targetType.Name; #>
 <#         var testName = "ConvertOperation" + baseName; #>
 <#         var kernelName = "ConvertOperationKernel" + baseName; #>
         internal static void <#= kernelName #>(
             Index1 index,
-            ArrayView<<#= typeName #>> a,
-            ArrayView<<#= targetTypeName #>> b)
+            ArrayView<<#= type.Type #>> a,
+            ArrayView<<#= targetType.Type #>> b)
         {
-            b[index] = (<#= targetTypeName #>)a[index];
+            b[index] = (<#= targetType.Type #>)a[index];
         }
 
         [Theory]
@@ -41,15 +43,16 @@ namespace ILGPU.Tests
         [InlineData(2.0f * (float)Math.PI)]
         [InlineData(0.5f * (float)Math.PI)]
         [KernelMethod(nameof(<#= kernelName #>))]
-        public void <#= testName #>(<#= typeName #> value)
+        public void <#= testName #>(float value)
         {
+            var convertedValue = (<#= type.Type #>)value;
             const int length = 32;
-            using var a = Accelerator.Allocate<<#= typeName #>>(length);
-            using var b = Accelerator.Allocate<<#= targetTypeName #>>(length);
-            Initialize(a, value);
+            using var a = Accelerator.Allocate<<#= type.Type #>>(length);
+            using var b = Accelerator.Allocate<<#= targetType.Type #>>(length);
+            Initialize(a, convertedValue);
             Execute(length, a.View, b.View);
 
-            var result = (<#= targetTypeName #>)value;
+            var result = (<#= targetType.Type #>)convertedValue;
             var reference = Enumerable.Repeat(result, length).ToArray();
             Verify(b, reference);
         }

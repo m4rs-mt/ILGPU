@@ -128,7 +128,10 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(WarpShuffleDownKernel))]
         public void WarpShuffleDown(int warpMultiplier)
         {
-            for (int shiftAmount = 0; shiftAmount < Math.Min(4, Accelerator.WarpSize); ++shiftAmount)
+            for (
+                int shiftAmount = 0;
+                shiftAmount < Math.Min(4, Accelerator.WarpSize);
+                ++shiftAmount)
             {
                 var length = Accelerator.WarpSize * warpMultiplier;
                 using var dataBuffer = Accelerator.Allocate<int>(length);
@@ -142,7 +145,10 @@ namespace ILGPU.Tests
                         expected[baseIdx + j] = j + shiftAmount;
 
                     // Do no test the remaining values as they are undefined
-                    // for (int j = Accelerator.WarpSize - shiftAmount; j < Accelerator.WarpSize; ++j)
+                    // for (
+                    //     int j = Accelerator.WarpSize - shiftAmount;
+                    //     j < Accelerator.WarpSize;
+                    //     ++j)
                     //     expected[baseIdx + j] = j;
                 }
 
@@ -163,7 +169,10 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(WarpShuffleUpKernel))]
         public void WarpShuffleUp(int warpMultiplier)
         {
-            for (int shiftAmount = 0; shiftAmount < Math.Min(4, Accelerator.WarpSize); ++shiftAmount)
+            for (
+                int shiftAmount = 0;
+                shiftAmount < Math.Min(4, Accelerator.WarpSize);
+                ++shiftAmount)
             {
                 var length = Accelerator.WarpSize * warpMultiplier;
                 using var dataBuffer = Accelerator.Allocate<int>(length);

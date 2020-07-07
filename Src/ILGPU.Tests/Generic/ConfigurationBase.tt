@@ -1,92 +1,65 @@
 ﻿<#@ assembly name="System.Core" #>
+<#@ include file="../../ILGPU/Static/TypeInformation.ttinclude" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#+
-public static readonly (string, Type)[] SignedIntTypes =
-    {
-        ("sbyte", typeof(sbyte)),
-        ("short", typeof(short)),
-        ("int", typeof(int)),
-        ("long", typeof(long)),
-    };
-public static readonly (string, Type)[] UnsignedIntTypes =
-    {
-        ("byte", typeof(byte)),
-        ("ushort", typeof(ushort)),
-        ("uint", typeof(uint)),
-        ("ulong", typeof(ulong)),
-    };
-
-public static readonly (string, Type)[] IntTypes =
-    SignedIntTypes.Concat(UnsignedIntTypes).ToArray();
-
-public static readonly (string, Type)[] DefaultIntTypes =
-    SignedIntTypes.Skip(2).Concat(UnsignedIntTypes.Skip(2)).ToArray();
-
-public static readonly (string, Type, string)[] FloatTypes =
-    {
-        ("float", typeof(float), "f"),
-        ("double", typeof(double), ""),
-    };
-
 public static IEnumerable<string> GetFloatRanges(
-    string typeName,
-    string suffix,
+    TypeInformation type,
     bool maxRanges,
     bool useZero = true,
     bool useInfinity = true,
     bool useMultiplesOfPi = true,
     bool useNaN = true)
 {
-    var isFloat = suffix != string.Empty;
+    var isFloat = type == FloatTypes[1];
     var pi = isFloat ? "(float)Math.PI" : "Math.PI";
     IEnumerable<string> result = new string[]
         {
-            "-1.0" + suffix,
-            "1.0" + suffix,
-            pi,
-            "-" + pi,
+            type.FormatNumber("-1.0"),
+            type.FormatNumber("1.0"),
+            type.Prefix + pi,
+            type.Prefix + "(-" + pi + ")",
         };
     if (useZero)
     {
         result = new string[]
             {
-                "0.0" + suffix,
+                type.FormatNumber("0.0"),
             }.Concat(result);
     }
     if (useInfinity)
     {
         result = result.Concat(new string[]
             {
-                typeName + ".PositiveInfinity",
-                typeName + ".NegativeInfinity",
+                type.Type + ".PositiveInfinity",
+                type.Type + ".NegativeInfinity",
             });
     }
     if (maxRanges)
     {
         result = result.Concat(new string[]
             {
-                "(" + typeName + ")float.MaxValue",
-                "(" + typeName + ")float.MinValue",
-                "(" + typeName + ")float.Epsilon",
+                type.Type + ".MaxValue",
+                type.Type + ".MinValue",
+                type.Type + ".Epsilon",
             });
     }
     if (useMultiplesOfPi)
     {
         result = result.Concat(new string[]
             {
-                "2.0" + suffix + " * " + pi,
-                "-2.0" + suffix + " * " + pi,
-                "0.5" + suffix + " * " + pi,
-                "-0.5" + suffix + " * " + pi,
+                "(" + type.Type + ")(" + type.FormatNumber("2.0") + " * " + pi + ")",
+                "(" + type.Type + ")(" + type.FormatNumber("-2.0") + " * " + pi + ")",
+                "(" + type.Type + ")(" + type.FormatNumber("0.5") + " * " + pi + ")",
+                "(" + type.Type + ")(" + type.FormatNumber("-0.5") + " * " + pi + ")",
             });
     }
     if (useNaN)
     {
         result = result.Concat(new string[]
         {
-            typeName + ".NaN"
+            type.Type + ".NaN"
         });
     }
     return result;
@@ -101,7 +74,12 @@ public sealed class TestConfig
     public TestConfig(string name, string[] optimizationLevels)
     {
         Name = name;
-        OptimizationLevels = optimizationLevels ?? new string[] { "Debug", "Release", "O2" };
+        OptimizationLevels = optimizationLevels ?? new string[]
+        {
+            "Debug",
+            "Release",
+            "O2"
+        };
     }
 
     public string Name { get; }

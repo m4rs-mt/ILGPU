@@ -367,7 +367,9 @@ namespace ILGPU.Util
         /// Returns true if the given arithmetic basic value type represents a float.
         /// </summary>
         /// <param name="value">The arithmetic basic value type.</param>
-        /// <returns>True, if the given arithmetic basic value represents a float.</returns>
+        /// <returns>
+        /// True, if the given arithmetic basic value represents a float.
+        /// </returns>
         public static bool IsFloat(this ArithmeticBasicValueType value)
         {
             switch (value)

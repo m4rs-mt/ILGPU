@@ -47,11 +47,16 @@ namespace ILGPU.Backends.PTX
             CompareFlags flags,
             ArithmeticBasicValueType type)
         {
-            var unorderedFloatComparison = type.IsFloat() && flags.HasFlag(CompareFlags.UnsignedOrUnordered);
+            var unorderedFloatComparison = type.IsFloat()
+                && flags.HasFlag(CompareFlags.UnsignedOrUnordered);
             if (unorderedFloatComparison)
             {
-                if (CompareUnorderedFloatOperations.TryGetValue((kind, type), out string operation))
+                if (CompareUnorderedFloatOperations.TryGetValue(
+                    (kind, type),
+                    out string operation))
+                {
                     return operation;
+                }
             }
             else
             {

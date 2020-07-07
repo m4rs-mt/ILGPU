@@ -1,0 +1,153 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Operations>
+    <Operation Name="Neg">
+        <Summary>The neg operation.</Summary>
+        <Flags>IntsAndFloats</Flags>
+        <Op>-{Value0}</Op>
+    </Operation>
+    <Operation Name="Not">
+        <Summary>The logical not operation.</Summary>
+        <Flags>BoolsAndInts</Flags>
+        <BoolOp>!{Value0}</BoolOp>
+        <Op>~{Value0}</Op>
+    </Operation>
+    <Operation Name="Abs">
+        <Summary>The abs operation.</Summary>
+        <Flags>IntsAndFloats</Flags>
+        <Call>IntrinsicMath.Abs</Call>
+    </Operation>
+    <Operation Name="RcpF">
+        <Summary>The reciprocal operation.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Rcp</Call>
+        <Implementation>{Const1} / {Value0}</Implementation>
+    </Operation>
+
+    <Operation Name="IsNaNF" IsPredicate="true">
+        <Summary>The is-not-a-number operation.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.IsNaN</Call>
+        <Implementation>{TypeName}.IsNaN({Value0})</Implementation>
+    </Operation>
+    <Operation Name="IsInfF" IsPredicate="true">
+        <Summary>The is-infinity operation.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.IsInfinity</Call>
+        <Implementation>{TypeName}.IsInfinity({Value0})</Implementation>
+    </Operation>
+
+    <Operation Name="SqrtF">
+        <Summary>Computes sqrt(value).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Sqrt</Call>
+        <Implementation>{MathType}.Sqrt({Value0})</Implementation>
+    </Operation>
+    <Operation Name="RsqrtF">
+        <Summary>Computes 1/sqrt(value).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Rsqrt</Call>
+        <Implementation>Rcp(Sqrt({Value0}))</Implementation>
+    </Operation>
+
+    <Operation Name="AsinF">
+        <Summary>Computes asin(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Asin</Call>
+        <Implementation>{MathType}.Asin({Value0})</Implementation>
+    </Operation>
+    <Operation Name="SinF">
+        <Summary>Computes sin(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Sin</Call>
+        <Implementation>{MathType}.Sin({Value0})</Implementation>
+    </Operation>
+    <Operation Name="SinhF">
+        <Summary>Computes sinh(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Sinh</Call>
+        <Implementation>{MathType}.Sinh({Value0})</Implementation>
+    </Operation>
+
+    <Operation Name="AcosF">
+        <Summary>Computes acos(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Acos</Call>
+        <Implementation>{MathType}.Acos({Value0})</Implementation>
+    </Operation>
+    <Operation Name="CosF">
+        <Summary>Computes cos(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Cos</Call>
+        <Implementation>{MathType}.Cos({Value0})</Implementation>
+    </Operation>
+    <Operation Name="CoshF">
+        <Summary>Computes cosh(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Cosh</Call>
+        <Implementation>{MathType}.Cosh({Value0})</Implementation>
+    </Operation>
+
+    <Operation Name="TanF">
+        <Summary>Computes tan(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Tan</Call>
+        <Implementation>{MathType}.Tan({Value0})</Implementation>
+    </Operation>
+    <Operation Name="TanhF">
+        <Summary>Computes tanh(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Tanh</Call>
+        <Implementation>{MathType}.Tanh({Value0})</Implementation>
+    </Operation>
+    <Operation Name="AtanF">
+        <Summary>Computes atan(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Atan</Call>
+        <Implementation>{MathType}.Atan({Value0})</Implementation>
+    </Operation>
+
+    <Operation Name="ExpF">
+        <Summary>Computes exp(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Exp</Call>
+        <Implementation>{MathType}.Exp({Value0})</Implementation>
+    </Operation>
+    <Operation Name="Exp2F">
+        <Summary>Computes 2^x.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Exp2</Call>
+        <Implementation>{MathType}.Pow({Const2}, {Value0})</Implementation>
+    </Operation>
+
+    <Operation Name="FloorF">
+        <Summary>Computes floor(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Floor</Call>
+        <Implementation>{MathType}.Floor({Value0})</Implementation>
+    </Operation>
+    <Operation Name="CeilingF">
+        <Summary>Computes ceil(x).</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Ceiling</Call>
+        <Implementation>{MathType}.Ceiling({Value0})</Implementation>
+    </Operation>
+
+    <Operation Name="LogF">
+        <Summary>Computes log(x) to base e.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Log</Call>
+        <Implementation>{MathType}.Log({Value0})</Implementation>
+    </Operation>
+    <Operation Name="Log2F">
+        <Summary>Computes log(x) to base 2.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Log2</Call>
+        <Implementation>{MathType}.Log({Value0}, {Const2})</Implementation>
+    </Operation>
+    <Operation Name="Log10F">
+        <Summary>Computes log(x) to base 10.</Summary>
+        <Flags>Floats</Flags>
+        <Call>IntrinsicMath.CPUOnly.Log10</Call>
+        <Implementation>{MathType}.Log10({Value0})</Implementation>
+    </Operation>
+</Operations>

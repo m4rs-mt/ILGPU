@@ -14,7 +14,6 @@ using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
-using System.Diagnostics;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
