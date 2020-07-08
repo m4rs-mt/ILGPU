@@ -3,7 +3,7 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: ExchnageBuffer.cs
+// File: ExchangeBuffer.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
@@ -145,10 +145,10 @@ namespace ILGPU.Runtime
             : base(buffer.Accelerator, buffer.Extent.Size)
         {
             cpuMemory = buffer.Accelerator is CudaAccelerator &&
-                    mode == ExchangeBufferMode.PreferPagedLockedMemory
-                    ? CudaViewSource.Create(buffer.LengthInBytes)
-                    : (ViewPointerWrapper)UnmanagedMemoryViewSource.Create(
-                        buffer.LengthInBytes);
+                mode == ExchangeBufferMode.PreferPagedLockedMemory
+                ? CudaViewSource.Create(buffer.LengthInBytes)
+                : (ViewPointerWrapper)UnmanagedMemoryViewSource.Create(
+                    buffer.LengthInBytes);
 
             cpuMemoryPointer = cpuMemory.NativePtr.ToPointer();
         }
@@ -187,11 +187,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="index">The element index to access.</param>
         /// <returns>A reference to the i-th element in CPU memory.</returns>
-        public T this[TIndex index]
-        {
-            get => CPUView[index];
-            set => CPUView[index] = value;
-        }
+        public ref T this[TIndex index] => ref CPUView[index];
 
         #endregion
 
