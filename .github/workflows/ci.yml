@@ -5,6 +5,34 @@ on:
   pull_request:
 
 jobs:
+  check-style:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Check line length
+        run: |
+          $found = $false
+          Foreach ($pattern in "*.cs","*.tt") {
+            Foreach ($file in Get-ChildItem -Path Src -Filter $pattern -Recurse -File) {
+              If (-Not (($file.Directory.Name -Eq "Resources") -Or (Select-String -Path $file -Pattern "^// disable: max_line_length" -Quiet))) {
+                $index = 1
+                Foreach ($line in Get-Content $file)
+                {
+                  If ($line.Length -gt 90) {
+                    Write-Host "${file}:${index}: line too long ($($line.Length) > 90 characters)"
+                    $found = $true
+                  }
+                  $index++
+                }
+              }
+            }
+          }
+          
+          If ($found) {
+            Exit 1
+          }
+
   build-and-test:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     strategy:
@@ -48,7 +76,7 @@ jobs:
 
   publish-nuget:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build-and-test
+    needs: [check-style, build-and-test]
     runs-on: windows-latest
     steps:
       - name: Download NuGet package artifact

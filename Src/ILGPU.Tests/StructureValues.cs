@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using Xunit;
 using Xunit.Abstractions;
 

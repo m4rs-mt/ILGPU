@@ -89,6 +89,16 @@ namespace ILGPU.Backends
         /// </summary>
         public static readonly PTXInstructionSet ISA_64 = new PTXInstructionSet(6, 4);
 
+        /// <summary>
+        /// The 6.5 ISA.
+        /// </summary>
+        public static readonly PTXInstructionSet ISA_65 = new PTXInstructionSet(6, 5);
+
+        /// <summary>
+        /// The 7.0 ISA.
+        /// </summary>
+        public static readonly PTXInstructionSet ISA_70 = new PTXInstructionSet(7, 0);
+
         #endregion
 
         #region Instance

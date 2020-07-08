@@ -11,11 +11,9 @@
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
-using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading;
 

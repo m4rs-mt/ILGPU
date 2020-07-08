@@ -29,48 +29,59 @@ var floatLimits = new (string, string)[]
         ("MaxValue", "{0}.MaxValue"),
         ("MinValue", "{0}.MinValue"),
         ("Epsilon", "{0}.Epsilon"),
-        ("Precision9", "123456.789{1}"),
-        ("Precision17", "1.0000000000000002{1}"),
+        ("Precision9", "{2}123456.789{1}"),
+        ("Precision17", "{2}1.0000000000000002{1}"),
     };
 #>
+
+#pragma warning disable IDE0047 // Remove unnecessary parentheses
+
 namespace ILGPU.Tests
 {
     public abstract class CompareFloatOperations : TestBase
     {
-        protected CompareFloatOperations(ITestOutputHelper output, TestContext testContext)
+        protected CompareFloatOperations(
+            ITestOutputHelper output,
+            TestContext testContext)
             : base(output, testContext)
         { }
 
 <# foreach (var (operationName, infix) in operationConfigurations) { #>
-<#      foreach (var (typeName, type, suffix) in FloatTypes) { #>
-<#         var floatRanges = GetFloatRanges(typeName, suffix, true, true, true, false); #>
+<#      foreach (var type in FloatTypes) { #>
+<#         var floatRanges = GetFloatRanges(type, true, true, true, false); #>
 <#         var baseName = "_" + operationName + "_" + type.Name; #>
 <#         var testName = "CompareOperation" + baseName; #>
 <#         var kernelName = "CompareOperationKernel" + testName; #>
         internal static void <#= kernelName #>(
             Index1 index,
-            ArrayView<<#= typeName #>> a,
-            ArrayView<<#= typeName #>> b,
+            ArrayView<<#= type.Type #>> a,
+            ArrayView<<#= type.Type #>> b,
             ArrayView<int> c)
         {
             var result = a[index] <#= infix #> b[index];
             c[index] = result ? 1 : 0;
         }
 
-        [Theory]
+        public static TheoryData<object, object> <#= testName #>Data =>
+            new TheoryData<object, object>
+            {
 <#          foreach (var range in floatRanges) { #>
 <#              foreach (var range2 in floatRanges) { #>
-        [InlineData(<#= range #>, <#= range2 #>)]
+                { <#= range #>, <#= range2 #> },
 <#              } #>
 <#          } #>
+            };
+
+        [Theory]
+        [MemberData(nameof(<#= testName #>Data))]
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>(
-            <#= typeName #> left,
-            <#= typeName #> right)
+            <#= type.Type #> left,
+            <#= type.Type #> right)
         {
             const int length = 32;
-            using var a = Accelerator.Allocate<<#= typeName #>>(length);
-            using var b = Accelerator.Allocate<<#= typeName #>>(length);
+            using var a = Accelerator.Allocate<<#= type.Type #>>(length);
+            using var b = Accelerator.Allocate<<#= type.Type #>>(length);
             using var c = Accelerator.Allocate<int>(length);
             Initialize(a, left);
             Initialize(b, right);
@@ -84,15 +95,19 @@ namespace ILGPU.Tests
 <#      } #>
 <# } #>
 
-<# foreach (var (typeName, type, suffix) in FloatTypes) { #>
+<# foreach (var type in FloatTypes) { #>
 <#      foreach (var (limitName, limitFormat) in floatLimits) { #>
 <#          var baseName = "_" + limitName + "_" + type.Name; #>
 <#          var testName = "Constant" + baseName; #>
 <#          var kernelName = "ConstantKernel" + testName; #>
-<#          var testValue = string.Format(limitFormat, typeName, suffix); #>
+<#          var testValue = string.Format(
+                limitFormat,
+                type.Type,
+                type.Suffix,
+                type.Prefix); #>
         internal static void <#= kernelName #>(
             Index1 index,
-            ArrayView<<#= typeName #>> input,
+            ArrayView<<#= type.Type #>> input,
             ArrayView<int> output)
         {
             output[index] = input[index] == <#= testValue #> ? 1 : 0;
@@ -102,10 +117,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>()
         {
-            var inputArray = new [] { 0.0<#= suffix #>, <#= testValue #> };
-            var expected = inputArray.Select(x => x == <#= testValue #> ? 1 : 0).ToArray();
+            var inputArray = new [] { <#= type.FormatNumber("0.0") #>, <#= testValue #> };
+            var expected = inputArray.Select(
+                x => x == <#= testValue #> ? 1 : 0).ToArray();
 
-            using var input = Accelerator.Allocate<<#= typeName #>>(inputArray.Length);
+            using var input = Accelerator.Allocate<<#= type.Type #>>(inputArray.Length);
             using var output = Accelerator.Allocate<int>(inputArray.Length);
             input.CopyFrom(inputArray, 0, 0, inputArray.Length);
 
@@ -117,3 +133,5 @@ namespace ILGPU.Tests
 <# } #>
     }
 }
+
+#pragma warning restore IDE0047 // Remove unnecessary parentheses

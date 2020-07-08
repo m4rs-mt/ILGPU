@@ -15,11 +15,9 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -45,6 +43,8 @@ namespace ILGPU.Backends.PTX
             ImmutableSortedSet.Create(
                 Comparer<PTXInstructionSet>.Create((first, second) =>
                     second.CompareTo(first)),
+                PTXInstructionSet.ISA_70,
+                PTXInstructionSet.ISA_65,
                 PTXInstructionSet.ISA_64,
                 PTXInstructionSet.ISA_63,
                 PTXInstructionSet.ISA_62,

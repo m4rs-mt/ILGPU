@@ -97,9 +97,12 @@ namespace ILGPU
         /// <typeparam name="TSecond">
         /// The base type that should be represented with <typeparamref name="TFirst"/>.
         /// </typeparam>
-        /// <param name="numSecondElements">The number of <typeparamref name="TSecond"/> elements to be stored.</param>
+        /// <param name="numSecondElements">
+        /// The number of <typeparamref name="TSecond"/> elements to be stored.
+        /// </param>
         /// <returns>
-        /// The number of required <typeparamref name="TFirst"/> instances to store <paramref name="numSecondElements"/>
+        /// The number of required <typeparamref name="TFirst"/> instances to store
+        /// <paramref name="numSecondElements"/>
         /// instances of type <typeparamref name="TSecond"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

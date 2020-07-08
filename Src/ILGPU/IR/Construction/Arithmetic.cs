@@ -68,8 +68,8 @@ namespace ILGPU.IR.Construction
 
                         if (node is CompareValue compareValue)
                         {
-                            // When the comparison is inverted, and we are comparing floats,
-                            // toggle between ordered/unordered float comparison.
+                            // When the comparison is inverted, and we are comparing
+                            // floats, toggle between ordered/unordered float comparison.
                             var compareFlags = compareValue.Flags;
                             if (compareValue.Left.BasicValueType.IsFloat() &&
                                 compareValue.Right.BasicValueType.IsFloat())

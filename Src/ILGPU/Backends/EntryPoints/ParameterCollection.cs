@@ -125,8 +125,8 @@ namespace ILGPU.Backends.EntryPoints
         {
             ParameterTypes = parameterTypes;
 
-            var specializedParameters = ImmutableArray.CreateBuilder<SpecializedParameter>(
-                parameterTypes.Length);
+            var specializedParameters =
+                ImmutableArray.CreateBuilder<SpecializedParameter>(parameterTypes.Length);
             for (int i = 0, e = Count; i < e; ++i)
             {
                 var paramType = this[i];

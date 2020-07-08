@@ -254,12 +254,14 @@ Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
 Src/ILGPU/IR/Construction/ArithmeticOperations.cs
 Src/ILGPU/IR/Construction/CompareOperations.cs
 Src/ILGPU/IR/Intrinsics/IntrinsicMatchers.cs
+Src/ILGPU/IntrinsicMath.CPUOnly.cs
 Src/ILGPU/ReductionOperations.cs
 Src/ILGPU/Runtime/ExchangeBufferExtensions.cs
 Src/ILGPU/Runtime/KernelLoaders.cs
 Src/ILGPU/Runtime/MemoryBuffers.cs
 Src/ILGPU/Runtime/SharedMemoryKernelLoaders.cs
 Src/ILGPU/ShuffleOperations.cs
+Src/ILGPU/Static/ArithmeticEnums.cs
 Src/ILGPU/TypeInformation.cs
 Src/ILGPU/Util/DataBlocks.cs
 Src/ILGPU/Util/PrimitiveDataBlocks.cs

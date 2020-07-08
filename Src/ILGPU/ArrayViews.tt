@@ -42,7 +42,8 @@ namespace ILGPU
         /// <summary>
         /// Represents the native size of a single element.
         /// </summary>
-        public static readonly int ElementSize = ArrayView<T, <#= indexType #>>.ElementSize;
+        public static readonly int ElementSize =
+            ArrayView<T, <#= indexType #>>.ElementSize;
 
         #endregion
 
@@ -115,7 +116,9 @@ namespace ILGPU
         /// <returns>The new sub view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Obsolete("Use BaseView.GetSubView instead")]
-        public <#= typeName #><T> GetSubView(<#= indexType #> offset, <#= indexType #> subViewExtent) =>
+        public <#= typeName #><T> GetSubView(
+            <#= indexType #> offset,
+            <#= indexType #> subViewExtent) =>
             new <#= typeName #><T>(BaseView.GetSubView(offset, subViewExtent));
 
         /// <summary>
@@ -179,14 +182,16 @@ namespace ILGPU
         /// Converts the given specialized array view into a corresponding generic view.
         /// </summary>
         /// <returns>The corresponding generic view.</returns>
-        public static implicit operator ArrayView<T, <#= indexType #>>(<#= typeName #><T> view) =>
+        public static implicit operator ArrayView<T, <#= indexType #>>(
+            <#= typeName #><T> view) =>
             view.BaseView;
 
         /// <summary>
         /// Converts the given generic array view into a corresponding specialized view.
         /// </summary>
         /// <returns>The corresponding specialized view.</returns>
-        public static implicit operator <#= typeName #><T>(ArrayView<T, <#= indexType #>> baseView) =>
+        public static implicit operator <#= typeName #><T>(
+            ArrayView<T, <#= indexType #>> baseView) =>
             new <#= typeName #><T>(baseView);
 
         #endregion

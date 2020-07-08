@@ -259,7 +259,9 @@ namespace ILGPU.Backends.OpenCL
             Float
         }
 
-        private static readonly Dictionary<ArithmeticBasicValueType, CLUnaryCategory> UnaryCategoryLookup =
+        private static readonly Dictionary<
+            ArithmeticBasicValueType,
+            CLUnaryCategory> UnaryCategoryLookup =
             new Dictionary<ArithmeticBasicValueType, CLUnaryCategory>()
             {
                 { ArithmeticBasicValueType.UInt1, CLUnaryCategory.Boolean },
@@ -305,15 +307,15 @@ namespace ILGPU.Backends.OpenCL
 
                 { (UnaryArithmeticKind.SinF, CLUnaryCategory.Float), ("sin", true) },
                 { (UnaryArithmeticKind.AsinF, CLUnaryCategory.Float), ("asin", true) },
-                { (UnaryArithmeticKind.SinHF, CLUnaryCategory.Float), ("sinh", true) },
+                { (UnaryArithmeticKind.SinhF, CLUnaryCategory.Float), ("sinh", true) },
 
                 { (UnaryArithmeticKind.CosF, CLUnaryCategory.Float), ("cos", true) },
                 { (UnaryArithmeticKind.AcosF, CLUnaryCategory.Float), ("acos", true) },
-                { (UnaryArithmeticKind.CosHF, CLUnaryCategory.Float), ("cosh", true) },
+                { (UnaryArithmeticKind.CoshF, CLUnaryCategory.Float), ("cosh", true) },
 
                 { (UnaryArithmeticKind.TanF, CLUnaryCategory.Float), ("tan", true) },
                 { (UnaryArithmeticKind.AtanF, CLUnaryCategory.Float), ("atan", true) },
-                { (UnaryArithmeticKind.TanHF, CLUnaryCategory.Float), ("tanh", true) },
+                { (UnaryArithmeticKind.AtanF, CLUnaryCategory.Float), ("tanh", true) },
 
                 { (UnaryArithmeticKind.ExpF, CLUnaryCategory.Float), ("exp", true) },
                 { (UnaryArithmeticKind.Exp2F, CLUnaryCategory.Float), ("exp2", true) },

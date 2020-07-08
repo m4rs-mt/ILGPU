@@ -67,10 +67,20 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
         </None>
+        <None Include="IntrinsicMath.CPUOnly.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
+        </None>
         <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
+        </None>
+        <None Include="Static\ArithmeticEnums.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>ArithmeticEnums.tt</DependentUpon>
         </None>
         <None Include="Runtime\KernelLoaders.cs">
           <DesignTime>True</DesignTime>
@@ -81,11 +91,6 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>MemoryBuffers.tt</DependentUpon>
-        </None>
-        <None Include="TypeInformation.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>TypeInformation.tt</DependentUpon>
         </None>
         <None Include="IR\Construction\CompareOperations.cs">
             <DesignTime>True</DesignTime>
@@ -140,6 +145,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
         </Compile>
+        <Compile Update="IntrinsicMath.CPUOnly.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
+        </Compile>
         <Compile Update="IR\Intrinsics\IntrinsicMatchers.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -149,6 +159,10 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>ExchangeBufferExtensions.tt</DependentUpon>
+        <Compile Update="Static\ArithmeticEnums.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>ArithmeticEnums.tt</DependentUpon>
         </Compile>
         <Compile Update="Runtime\KernelLoaders.cs">
           <DesignTime>True</DesignTime>
@@ -159,11 +173,6 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>MemoryBuffers.tt</DependentUpon>
-        </Compile>
-        <Compile Update="TypeInformation.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>TypeInformation.tt</DependentUpon>
         </Compile>
         <Compile Update="IR\Construction\CompareOperations.cs">
             <DesignTime>True</DesignTime>
@@ -213,6 +222,10 @@
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>RemappedIntrinsics.Generated.cs</LastGenOutput>
         </None>
+        <None Update="IntrinsicMath.CPUOnly.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>IntrinsicMath.CPUOnly.cs</LastGenOutput>
+        </None>
         <None Update="IR\Construction\CompareOperations.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>CompareOperations.cs</LastGenOutput>
@@ -228,6 +241,9 @@
         <None Update="Runtime\ExchangeBufferExtensions.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>ExchangeBufferExtensions.cs</LastGenOutput>
+        <None Update="Static\ArithmeticEnums.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>ArithmeticEnums.cs</LastGenOutput>
         </None>
         <None Update="Runtime\KernelLoaders.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
@@ -236,10 +252,6 @@
         <None Update="Runtime\MemoryBuffers.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
-        </None>
-        <None Update="TypeInformation.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>TypeInformation.cs</LastGenOutput>
         </None>
         <None Update="Util\PrimitiveDataBlocks.tt">
           <LastGenOutput>PrimitiveDataBlocks.cs</LastGenOutput>
