@@ -32,12 +32,13 @@ namespace ILGPU.Runtime
     <# var arrayViewType = $"ArrayView<T, {indexName}>"; #>
     <# var highLevelView =  i == 1 ? "ArrayView" : $"ArrayView{dimensionName}"; #>
     <# var memoryBufferType = $"MemoryBuffer<T, {indexName}>"; #>
-    <# var highLevelMemBuf =  i == 1 ? "MemoryBuffer" : $"MemoryBuffer{dimensionName}";#>
+    <# var highLevelMemBuf = i == 1 ? "MemoryBuffer" : $"MemoryBuffer{dimensionName}";#>
 
         /// <summary>
-        /// Allocates a new <#= dimensionName #> exchange buffer that allocates the specified amount of
-        /// elements on the current accelerator. Furthermore, it keeps a buffer of the
-        /// same size in pinned CPU memory to enable asynchronous memory transfers.
+        /// Allocates a new <#= dimensionName #> exchange buffer
+        /// that allocates the specified amount of elements on the current
+        /// accelerator. Furthermore, it keeps a buffer of the same size in pinned
+        /// CPU memory to enable asynchronous memory transfers.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="accelerator">The associated accelerator to use.</param>
@@ -55,9 +56,10 @@ namespace ILGPU.Runtime
                 ExchangeBufferMode.PreferPagedLockedMemory);
 
         /// <summary>
-        /// Allocates a new <#= dimensionName #> exchange buffer that allocates the specified amount of
-        /// elements on the current accelerator. Furthermore, it keeps a buffer of the
-        /// same size in pinned CPU memory to enable asynchronous memory transfers.
+        /// Allocates a new <#= dimensionName #> exchange buffer
+        /// that allocates the specified amount of elements on the current
+        /// accelerator. Furthermore, it keeps a buffer of the same size in pinned
+        /// CPU memory to enable asynchronous memory transfers.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="accelerator">The associated accelerator to use.</param>
@@ -83,14 +85,16 @@ namespace ILGPU.Runtime
     <# var arrayViewType = $"ArrayView<T, {indexName}>"; #>
     <# var highLevelView =  i == 1 ? "ArrayView" : $"ArrayView{dimensionName}"; #>
     <# var memoryBufferType = $"MemoryBuffer<T, {indexName}>"; #>
-    <# var highLevelMemBuf =  i == 1 ? "MemoryBuffer" : $"MemoryBuffer{dimensionName}"; #>
+    <# var highLevelMemBuf =  i == 1 ? "MemoryBuffer" :
+        $"MemoryBuffer{dimensionName}"; #>
 
     /// <summary>
-    /// <#= dimensionName #> implementation of <see cref="ExchangeBufferBase{T, TIndex}"/>
+    /// <#= dimensionName #> implementation of
+    /// <see cref="ExchangeBufferBase{T, TIndex}"/>
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed unsafe class <#= typeName #><T> : ExchangeBufferBase<T, <#= indexName #>>
+    public sealed unsafe class <#=typeName#><T> : ExchangeBufferBase<T, <#=indexName#>>
         where T : unmanaged
     {
         #region Instance
@@ -126,9 +130,11 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Gets this buffer as a higher level memory buffer.
         /// </summary>
-        /// <returns> A <see cref="<#= highLevelMemBuf #>{T}"/> containing the data in this
-        /// exchanage buffer.</returns>
-        public <#= highLevelMemBuf #><T> As<#= highLevelMemBuf #>() => new <#= highLevelMemBuf #><T>(Buffer);
+        /// <returns> A <see cref="<#= highLevelMemBuf #>{T}"/> containing
+        /// the data in this exchanage buffer.
+        /// </returns>
+        public <#= highLevelMemBuf #><T> As<#= highLevelMemBuf #>() =>
+            new <#= highLevelMemBuf #><T>(Buffer);
 
 <#if(i > 1)
         {#>
@@ -137,18 +143,20 @@ namespace ILGPU.Runtime
         /// using the current extent.
         /// </summary>
         /// <returns></returns>
-        public <#= highLevelView #><T> As<#= dimensionName #>View() => As<#= dimensionName #>View(Extent);
+        public <#= highLevelView #><T> As<#= dimensionName #>View() =>
+            As<#= dimensionName #>View(Extent);
 
         /// <summary>
-        /// Gets this buffer as a <#= dimensionName #> array from the accelerator using the
-        /// default stream.
+        /// Gets this buffer as a <#= dimensionName #> array from
+        /// the accelerator using the default stream.
         /// </summary>
         /// <returns>The array containing all the elements in the buffer.</returns>
         [SuppressMessage(
             "Microsoft.Performance",
             "CA1814: PreferJaggedArraysOverMultidimensional",
             Target = "target")]
-        public T[,<#if(i == 3){#>,<#}#>] GetAs<#= dimensionName #>Array() => GetAs<#= dimensionName #>Array(Accelerator.DefaultStream);
+        public T[,<#if(i == 3){#>,<#}#>] GetAs<#= dimensionName #>Array() =>
+            GetAs<#= dimensionName #>Array(Accelerator.DefaultStream);
 
         /// <summary>
         /// Gets this buffer as a <#= dimensionName #> array from the accelerator.
@@ -158,7 +166,8 @@ namespace ILGPU.Runtime
             "Microsoft.Performance",
             "CA1814: PreferJaggedArraysOverMultidimensional",
             Target = "target")]
-        public T[,<#if(i == 3){#>,<#}#>] GetAs<#= dimensionName #>Array(AcceleratorStream stream)
+        public T[,<#if(i == 3){#>,<#}#>] GetAs<#= dimensionName #>Array(
+            AcceleratorStream stream)
         {
             var buffer = new <#= highLevelMemBuf #><T>(Buffer);
             var array = buffer.GetAs<#= dimensionName #>Array(stream);
