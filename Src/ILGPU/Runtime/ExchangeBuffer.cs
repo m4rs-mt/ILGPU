@@ -19,54 +19,6 @@ using System.Runtime.CompilerServices;
 namespace ILGPU.Runtime
 {
     /// <summary>
-    /// A static helper class for the class <see cref="ExchangeBuffer{T}"/>.
-    /// </summary>
-    public static class ExchangeBuffer
-    {
-        /// <summary>
-        /// Allocates a new exchange buffer that allocates the specified amount of
-        /// elements on the current accelerator. Furthermore, it keeps a buffer of the
-        /// same size in pinned CPU memory to enable asynchronous memory transfers
-        /// between the CPU and the GPU.
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="accelerator">The associated accelerator to use.</param>
-        /// <param name="extent">The extent (number of elements to allocate).</param>
-        /// <returns>The allocated exchange buffer.</returns>
-        /// <remarks>
-        /// This function uses the default buffer allocation mode
-        /// <see cref="ExchangeBufferMode.PreferPagedLockedMemory"/>
-        /// </remarks>
-        public static ExchangeBuffer<T> AllocateExchangeBuffer<T>(
-            this Accelerator accelerator,
-            Index1 extent)
-            where T : unmanaged =>
-            accelerator.AllocateExchangeBuffer<T>(
-                extent,
-                ExchangeBufferMode.PreferPagedLockedMemory);
-
-        /// <summary>
-        /// Allocates a new exchange buffer that allocates the specified amount of
-        /// elements on the current accelerator. Furthermore, it keeps a buffer of the
-        /// same size in pinned CPU memory to enable asynchronous memory transfers
-        /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
-        /// <param name="accelerator">The associated accelerator to use.</param>
-        /// <param name="extent">The extent (number of elements to allocate).</param>
-        /// <param name="mode">The current allocation mode.</param>
-        /// <returns>The allocated exchange buffer.</returns>
-        public static ExchangeBuffer<T> AllocateExchangeBuffer<T>(
-            this Accelerator accelerator,
-            Index1 extent,
-            ExchangeBufferMode mode)
-            where T : unmanaged
-        {
-            var gpuBuffer = accelerator.Allocate<T>(extent);
-            return new ExchangeBuffer<T>(gpuBuffer, mode);
-        }
-    }
-
-    /// <summary>
     /// Specifies the allocation mode for a single exchange buffer.
     /// </summary>
     public enum ExchangeBufferMode
@@ -83,14 +35,14 @@ namespace ILGPU.Runtime
     }
 
     /// <summary>
-    /// A buffer that stores a specified amount of elements on the associated accelerator
-    /// instance. Furthermore, it keeps a buffer of the same size in pinned CPU memory
-    /// to enable asynchronous memory transfers between the CPU and the GPU.
+    /// The base class for all exchange buffers.
+    /// Contains methods and types that are shared by all implementations.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    /// <remarks>Members of this class are not thread safe.</remarks>
-    public sealed unsafe class ExchangeBuffer<T> : MemoryBuffer, IMemoryBuffer<T>
+    /// <typeparam name="TIndex">The index type.</typeparam>
+    public unsafe class ExchangeBufferBase<T, TIndex> : MemoryBuffer, IMemoryBuffer<T>
         where T : unmanaged
+        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
     {
         #region Constants
 
@@ -104,10 +56,10 @@ namespace ILGPU.Runtime
         #region Nested Types
 
         /// <summary>
-        /// Represents a view source that allocates native memory in page-locked CPU
+        /// Represents a view source that allocates native memory in page-locked CPU.
         /// memory.
         /// </summary>
-        sealed class CudaViewSource : ViewPointerWrapper
+        protected class CudaViewSource : ViewPointerWrapper
         {
             /// <summary>
             /// Creates a new Cuda view source.
@@ -166,34 +118,39 @@ namespace ILGPU.Runtime
         private readonly ViewPointerWrapper cpuMemory;
 
         /// <summary>
+        /// Property for accessing cpuMemory.
+        /// </summary>
+        protected ViewPointerWrapper CPUMemory => cpuMemory;
+
+        /// <summary>
         /// A cached version of the CPU memory pointer.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private readonly void* cpuMemoryPointer;
 
         /// <summary>
-        /// Initializes this memory buffer.
+        /// Property for accessing cpuMemoryPointer.
         /// </summary>
-        /// <param name="buffer">The underlying memory buffer.</param>
-        /// <param name="mode">The current buffer allocation mode.</param>
-        internal ExchangeBuffer(MemoryBuffer<T, Index1> buffer, ExchangeBufferMode mode)
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        [CLSCompliant(false)]
+        protected void* CPUMemoryPointer => cpuMemoryPointer;
+
+        /// <summary>
+        /// Constructs the base class for all exchange buffer implementations.
+        /// </summary>
+        /// <param name="buffer">The memory buffer to use.</param>
+        /// <param name="mode">The exchange buffer mode to use.</param>
+        internal ExchangeBufferBase(MemoryBuffer<T, TIndex> buffer,
+            ExchangeBufferMode mode)
             : base(buffer.Accelerator, buffer.Extent.Size)
         {
-            // Allocate CPU memory
-            cpuMemory = Accelerator is CudaAccelerator &&
+            cpuMemory = buffer.Accelerator is CudaAccelerator &&
                 mode == ExchangeBufferMode.PreferPagedLockedMemory
                 ? CudaViewSource.Create(buffer.LengthInBytes)
                 : (ViewPointerWrapper)UnmanagedMemoryViewSource.Create(
                     buffer.LengthInBytes);
 
             cpuMemoryPointer = cpuMemory.NativePtr.ToPointer();
-            CPUView = new ArrayView<T>(cpuMemory, 0, buffer.Length);
-
-            // Cache local data
-            Buffer = buffer;
-            NativePtr = buffer.NativePtr;
-            View = buffer.View;
-            Extent = buffer.Extent;
         }
 
         #endregion
@@ -203,12 +160,12 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the underlying generic memory buffer.
         /// </summary>
-        public MemoryBuffer<T, Index1> Buffer { get; }
+        public MemoryBuffer<T, TIndex> Buffer { get; protected set; }
 
         /// <summary>
         /// Returns an array view that can access this array.
         /// </summary>
-        public ArrayView<T> View { get; }
+        public ArrayView<T, TIndex> View { get; protected set; }
 
         /// <summary>
         /// Returns the length of this buffer in bytes.
@@ -218,25 +175,19 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the extent of this buffer.
         /// </summary>
-        public Index1 Extent { get; }
+        public TIndex Extent { get; protected set; }
 
         /// <summary>
         /// Returns an array view to the CPU part of this buffer.
         /// </summary>
-        public ArrayView<T> CPUView { get; }
+        public ArrayView<T, TIndex> CPUView { get; protected set; }
 
         /// <summary>
         /// Returns a reference to the i-th element in CPU memory.
         /// </summary>
         /// <param name="index">The element index to access.</param>
         /// <returns>A reference to the i-th element in CPU memory.</returns>
-        public unsafe ref T this[Index1 index]
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => ref Unsafe.Add(
-                ref Unsafe.AsRef<T>(cpuMemoryPointer),
-                index);
-        }
+        public ref T this[TIndex index] => ref CPUView[index];
 
         #endregion
 
@@ -271,26 +222,19 @@ namespace ILGPU.Runtime
             Buffer.GetAsRawArray(stream, byteOffset, byteExtent);
 
         /// <summary>
+        /// Copies the current contents into a new array using the default
+        /// accelerator stream.
+        /// </summary>
+        /// <returns>A new array holding the requested contents.</returns>
+        public T[] GetAsArray() => GetAsArray(Accelerator.DefaultStream);
+
+        /// <summary>
         /// Copies the current contents into a new array.
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
         /// <returns>A new array holding the requested contents.</returns>
-        public unsafe T[] GetAsArray(AcceleratorStream stream)
-        {
-            CopyFromAccelerator(stream);
-            stream.Synchronize();
-
-            var data = new T[Length];
-            fixed (T* ptr = &data[0])
-            {
-                System.Buffer.MemoryCopy(
-                    cpuMemoryPointer,
-                    ptr,
-                    LengthInBytes,
-                    LengthInBytes);
-            }
-            return data;
-        }
+        public unsafe T[] GetAsArray(AcceleratorStream stream) =>
+            Buffer.GetAsArray(stream);
 
         /// <summary>
         /// Copes data from CPU memory to the associated accelerator.
@@ -307,7 +251,7 @@ namespace ILGPU.Runtime
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
-            Buffer.CopyFromView(stream, CPUView, 0);
+            Buffer.CopyFromView(stream, CPUView.AsLinearView(), 0);
         }
 
         /// <summary>
@@ -324,41 +268,46 @@ namespace ILGPU.Runtime
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-
-            Buffer.CopyToView(stream, CPUView, 0);
+            Buffer.CopyToView(stream, CPUView.BaseView, 0);
         }
 
         /// <summary>
-        /// Returns the underlying generic memory buffer.
+        /// Gets the part of this buffer on CPU memory as a 2D View.
         /// </summary>
-        /// <returns>The underlying generic memory buffer.</returns>
-        public MemoryBuffer<T, Index1> ToMemoryBuffer() => Buffer;
+        /// <param name="extent"></param>
+        /// <returns>The view.</returns>
+        public ArrayView2D<T> As2DView(Index2 extent) =>
+            CPUView.BaseView.As2DView<T>(extent);
 
         /// <summary>
-        /// Returns an array view that can access this array.
+        /// Gets the part of this buffer on CPU memory as a 2D View.
         /// </summary>
-        /// <returns>An array view that can access this array.</returns>
-        public ArrayView<T, Index1> ToArrayView() => View;
+        /// <param name="extent"></param>
+        /// <returns>The view.</returns>
+        public ArrayView3D<T> As3DView(Index3 extent) =>
+            CPUView.BaseView.As3DView<T>(extent);
 
         #endregion
 
         #region Operators
 
         /// <summary>
-        /// Implicitly converts this buffer into an array view.
+        /// Implicitly converts this buffer into a generic array view.
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
-        public static implicit operator ArrayView<T>(ExchangeBuffer<T> buffer)
+        public static implicit operator ArrayView<T, TIndex>(
+            ExchangeBufferBase<T, TIndex> buffer)
         {
             Debug.Assert(buffer != null, "Invalid buffer");
             return buffer.View;
         }
 
         /// <summary>
-        /// Implicitly converts this buffer into an array view.
+        /// Implicitly converts this buffer into a memory buffer.
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
-        public static implicit operator MemoryBuffer<T, Index1>(ExchangeBuffer<T> buffer)
+        public static implicit operator MemoryBuffer<T, TIndex>(
+            ExchangeBufferBase<T, TIndex> buffer)
         {
             Debug.Assert(buffer != null, "Invalid buffer");
             return buffer.Buffer;
