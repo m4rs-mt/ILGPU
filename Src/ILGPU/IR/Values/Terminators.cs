@@ -25,6 +25,36 @@ namespace ILGPU.IR.Values
     /// </summary>
     public abstract class TerminatorValue : Value
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Remaps basic blocks.
+        /// </summary>
+        public interface IBlockRemapper
+        {
+            /// <summary>
+            /// Returns true if the given blocks contain a block to remap.
+            /// </summary>
+            /// <param name="blocks">The blocks to check.</param>
+            /// <returns>True, if the given blocks contain the old block.</returns>
+            bool CanRemap(in ReadOnlySpan<BasicBlock> blocks);
+        }
+
+        /// <summary>
+        /// An abstract target remapper.
+        /// </summary>
+        public interface ITargetRemapper : IBlockRemapper
+        {
+            /// <summary>
+            /// Remaps the given block to a new one.
+            /// </summary>
+            /// <param name="block">The old block to remap.</param>
+            /// <returns>The remapped block.</returns>
+            BasicBlock Remap(BasicBlock block);
+        }
+
+        #endregion
+
         #region Instance
 
         private BlockList branchTargets;
