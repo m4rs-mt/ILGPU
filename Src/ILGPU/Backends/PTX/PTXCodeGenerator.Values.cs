@@ -281,12 +281,33 @@ namespace ILGPU.Backends.PTX
             var falseValue = Load(predicate.FalseValue);
 
             var targetRegister = Allocate(predicate);
-            EmitComplexCommand(
-                PTXInstructions.GetSelectValueOperation(predicate.BasicValueType),
-                new PredicateEmitter(condition),
-                targetRegister,
-                trueValue,
-                falseValue);
+            if (predicate.BasicValueType == BasicValueType.Int1)
+            {
+                // We need a specific sequence of instructions for predicate registers
+                var conditionRegister = EnsureHardwareRegister(condition);
+                using (var statement1 = BeginMove(
+                    new PredicateConfiguration(conditionRegister, true)))
+                {
+                    statement1.AppendSuffix(BasicValueType.Int1);
+                    statement1.AppendArgument(targetRegister as PrimitiveRegister);
+                    statement1.AppendArgument(trueValue as PrimitiveRegister);
+                }
+
+                using var statement2 = BeginMove(
+                    new PredicateConfiguration(conditionRegister, false));
+                statement2.AppendSuffix(BasicValueType.Int1);
+                statement2.AppendArgument(targetRegister as PrimitiveRegister);
+                statement2.AppendArgument(falseValue as PrimitiveRegister);
+            }
+            else
+            {
+                EmitComplexCommand(
+                    PTXInstructions.GetSelectValueOperation(predicate.BasicValueType),
+                    new PredicateEmitter(condition),
+                    targetRegister,
+                    trueValue,
+                    falseValue);
+            }
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(SwitchPredicate)"/>
