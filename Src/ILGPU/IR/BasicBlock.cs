@@ -274,7 +274,7 @@ namespace ILGPU.IR
             : Terminator.Targets;
 
         /// <summary>
-        /// Returns the number of detected blocks.
+        /// Returns the number of values.
         /// </summary>
         public int Count => values.Count;
 
@@ -377,7 +377,7 @@ namespace ILGPU.IR
         {
             foreach (Value value in this)
             {
-                if (value is MemoryValue)
+                if (value is MemoryValue || value is MethodCall)
                     return true;
             }
             return false;
