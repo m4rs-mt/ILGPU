@@ -97,6 +97,54 @@ namespace ILGPU.IR.Values
             targets.MoveTo(ref branchTargets);
         }
 
+        /// <summary>
+        /// Remaps the current block targets.
+        /// </summary>
+        /// <typeparam name="TTargetRemapper">The target remapper type.</typeparam>
+        /// <param name="methodBuilder">The current method builder.</param>
+        /// <param name="remapper">The remapper instance.</param>
+        /// <returns>The remapped terminator value.</returns>
+        public TerminatorValue RemapTargets<TTargetRemapper>(
+            Method.Builder methodBuilder,
+            TTargetRemapper remapper)
+            where TTargetRemapper : ITargetRemapper
+        {
+            var blockBuilder = methodBuilder[BasicBlock];
+            return RemapTargets(blockBuilder, remapper);
+        }
+
+        /// <summary>
+        /// Remaps the current block targets.
+        /// </summary>
+        /// <typeparam name="TTargetRemapper">The target remapper type.</typeparam>
+        /// <param name="blockBuilder">The current block builder.</param>
+        /// <param name="remapper">The remapper instance.</param>
+        /// <returns>The remapped terminator value.</returns>
+        public TerminatorValue RemapTargets<TTargetRemapper>(
+            BasicBlock.Builder blockBuilder,
+            TTargetRemapper remapper)
+            where TTargetRemapper : ITargetRemapper
+        {
+            this.Assert(blockBuilder.BasicBlock == BasicBlock);
+            if (!remapper.CanRemap(Targets))
+                return this;
+
+            var targets = BlockList.Create(NumTargets);
+            foreach (var target in Targets)
+                targets.Add(remapper.Remap(target));
+            return RemapTargets(blockBuilder, ref targets);
+        }
+
+        /// <summary>
+        /// Remaps the current targets to the given target list.
+        /// </summary>
+        /// <param name="builder">The builder to use.</param>
+        /// <param name="targets">The new targets.</param>
+        /// <returns>The new terminator value.</returns>
+        protected abstract TerminatorValue RemapTargets(
+            BasicBlock.Builder builder,
+            ref BlockList targets);
+
         #endregion
     }
 
@@ -154,6 +202,14 @@ namespace ILGPU.IR.Values
             builder.CreateReturn(
                 Location,
                 rebuilder.Rebuild(ReturnValue));
+
+        /// <summary>
+        /// Throws an <see cref="InvalidOperationException"/>.
+        /// </summary>
+        protected override TerminatorValue RemapTargets(
+            BasicBlock.Builder builder,
+            ref BlockList targets) =>
+            throw this.GetInvalidOperationException();
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -243,6 +299,16 @@ namespace ILGPU.IR.Values
             builder.CreateBranch(
                 Location,
                 rebuilder.LookupTarget(Target));
+
+        /// <summary>
+        /// Creates a new branch using the given targets.
+        /// </summary>
+        protected override TerminatorValue RemapTargets(
+            BasicBlock.Builder builder,
+            ref BlockList targets) =>
+            builder.CreateBranch(
+                Location,
+                targets[0]);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -394,6 +460,18 @@ namespace ILGPU.IR.Values
                 rebuilder.Rebuild(Condition),
                 rebuilder.LookupTarget(TrueTarget),
                 rebuilder.LookupTarget(FalseTarget));
+
+        /// <summary>
+        /// Creates a new if branch using the given targets.
+        /// </summary>
+        protected override TerminatorValue RemapTargets(
+            BasicBlock.Builder builder,
+            ref BlockList targets) =>
+            builder.CreateIfBranch(
+                Location,
+                Condition,
+                targets[0],
+                targets[1]);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -585,6 +663,17 @@ namespace ILGPU.IR.Values
             return branchBuilder.Seal();
         }
 
+        /// <summary>
+        /// Creates a new switch branch using the given targets.
+        /// </summary>
+        protected override TerminatorValue RemapTargets(
+            BasicBlock.Builder builder,
+            ref BlockList targets) =>
+            builder.CreateSwitchBranch(
+                Location,
+                Condition,
+                ref targets);
+
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
@@ -716,11 +805,19 @@ namespace ILGPU.IR.Values
         protected internal override Value Rebuild(
             IRBuilder builder,
             IRRebuilder rebuilder) =>
-            throw new InvalidOperationException();
+            throw this.GetInvalidOperationException();
+
+        /// <summary>
+        /// Throws an <see cref="InvalidOperationException"/>.
+        /// </summary>
+        protected override TerminatorValue RemapTargets(
+            BasicBlock.Builder builder,
+            ref BlockList targets) =>
+            throw this.GetInvalidOperationException();
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) =>
-            throw new InvalidOperationException();
+            throw this.GetInvalidOperationException();
 
         #endregion
 
