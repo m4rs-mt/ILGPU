@@ -273,8 +273,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IBackendCodeGenerator.GenerateCode(Predicate)"/>
-        public void GenerateCode(Predicate predicate)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(IfPredicate)"/>
+        public void GenerateCode(IfPredicate predicate)
         {
             var condition = LoadPrimitive(predicate.Condition);
             var trueValue = Load(predicate.TrueValue);
@@ -288,6 +288,10 @@ namespace ILGPU.Backends.PTX
                 trueValue,
                 falseValue);
         }
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(SwitchPredicate)"/>
+        public void GenerateCode(SwitchPredicate predicate) =>
+            throw new InvalidCodeGenerationException();
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(GenericAtomic)"/>
         public void GenerateCode(GenericAtomic atomic)
