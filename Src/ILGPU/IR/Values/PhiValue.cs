@@ -31,15 +31,8 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Remaps phi argument blocks.
         /// </summary>
-        public interface IArgumentRemapper
+        public interface IArgumentRemapper : TerminatorValue.IBlockRemapper
         {
-            /// <summary>
-            /// Returns true if the given blocks contain a block to remap.
-            /// </summary>
-            /// <param name="blocks">The blocks to check.</param>
-            /// <returns>True, if the given blocks contain the old block.</returns>
-            bool CanRemap(in ReadOnlySpan<BasicBlock> blocks);
-
             /// <summary>
             /// Tries to remap the given block to a new one.
             /// </summary>
