@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -385,9 +386,9 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
-            Count > 0
+            Count < 1
             ? string.Empty
-            : Nodes.ToString();
+            : Nodes.ToString(new ValueReference.ToReferenceFormatter());
 
         #endregion
     }
