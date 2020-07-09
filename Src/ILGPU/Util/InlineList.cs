@@ -213,6 +213,18 @@ namespace ILGPU.Util
         }
 
         /// <summary>
+        /// Resizes the current list to have a sufficient capacity for all items while
+        /// settings the number of elements to <paramref name="count"/>.
+        /// </summary>
+        /// <param name="count">The desired number of elements.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Resize(int count)
+        {
+            Reserve(count);
+            Count = count;
+        }
+
+        /// <summary>
         /// Returns true if the given item is contained in this list.
         /// </summary>
         /// <param name="item">The item to look for.</param>
