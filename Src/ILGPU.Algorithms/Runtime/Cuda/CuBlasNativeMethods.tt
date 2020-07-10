@@ -29,6 +29,7 @@ var apis = new (string, bool)[]
 using System;
 using System.Runtime.InteropServices;
 
+// disable: max_line_length
 #pragma warning disable IDE1006 // Naming Styles
 
 namespace ILGPU.Runtime.Cuda.API

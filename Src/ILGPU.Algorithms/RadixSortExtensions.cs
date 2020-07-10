@@ -72,15 +72,21 @@ namespace ILGPU.Algorithms
         /// Allocates a temporary memory view.
         /// </summary>
         /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
-        /// <typeparam name="TRadixSortOperation">The type of the radix-sort operation.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
         /// <param name="input">The input view.</param>
         /// <returns>The allocated temporary view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ArrayView<int> AllocateTempRadixSortView<T, TRadixSortOperation>(ArrayView<T> input)
+        private ArrayView<int> AllocateTempRadixSortView<T, TRadixSortOperation>(
+            ArrayView<T> input)
             where T : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
-            var tempSize = Accelerator.ComputeRadixSortTempStorageSize<T, TRadixSortOperation>(input.Length);
+            var tempSize = Accelerator.ComputeRadixSortTempStorageSize<
+                T,
+                TRadixSortOperation>(
+                input.Length);
             return bufferCache.Allocate<int>(tempSize);
         }
 
@@ -88,7 +94,9 @@ namespace ILGPU.Algorithms
         /// Creates a new radix sort operation.
         /// </summary>
         /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
-        /// <typeparam name="TRadixSortOperation">The type of the radix-sort operation.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
         /// <returns>The created radix sort handler.</returns>
         public BufferedRadixSort<T> CreateRadixSort<T, TRadixSortOperation>()
             where T : unmanaged
@@ -181,13 +189,18 @@ namespace ILGPU.Algorithms
             where T : unmanaged;
 
         /// <summary>
-        /// Computes the required number of temp-storage elements for a radix sort operation and the given data length.
+        /// Computes the required number of temp-storage elements for a radix sort
+        /// operation and the given data length.
         /// </summary>
         /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
-        /// <typeparam name="TRadixSortOperation">The type of the radix-sort operation.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="dataLength">The number of data elements to sort.</param>
-        /// <returns>The required number of temp-storage elements in 32 bit ints.</returns>
+        /// <returns>
+        /// The required number of temp-storage elements in 32 bit ints.
+        /// </returns>
         public static Index1 ComputeRadixSortTempStorageSize<T, TRadixSortOperation>(
             this Accelerator accelerator,
             Index1 dataLength)
@@ -216,17 +229,25 @@ namespace ILGPU.Algorithms
 
         #region RadixSort Implementation
 
-        private static readonly MethodInfo CPURadixSortKernel1Method = typeof(RadixSortExtensions).
-            GetMethod(nameof(CPURadixSortKernel1), BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly MethodInfo CPURadixSortKernel1Method =
+            typeof(RadixSortExtensions).GetMethod(
+                nameof(CPURadixSortKernel1),
+                BindingFlags.NonPublic | BindingFlags.Static);
 
-        private static readonly MethodInfo CPURadixSortKernel2Method = typeof(RadixSortExtensions).
-            GetMethod(nameof(CPURadixSortKernel2), BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly MethodInfo CPURadixSortKernel2Method =
+            typeof(RadixSortExtensions).GetMethod(
+                nameof(CPURadixSortKernel2),
+                BindingFlags.NonPublic | BindingFlags.Static);
 
-        private static readonly MethodInfo RadixSortKernel1Method = typeof(RadixSortExtensions).
-            GetMethod(nameof(RadixSortKernel1), BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly MethodInfo RadixSortKernel1Method =
+            typeof(RadixSortExtensions).GetMethod(
+                nameof(RadixSortKernel1),
+                BindingFlags.NonPublic | BindingFlags.Static);
 
-        private static readonly MethodInfo RadixSortKernel2Method = typeof(RadixSortExtensions).
-            GetMethod(nameof(RadixSortKernel2), BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly MethodInfo RadixSortKernel2Method =
+            typeof(RadixSortExtensions).GetMethod(
+                nameof(RadixSortKernel2),
+                BindingFlags.NonPublic | BindingFlags.Static);
 
         /// <summary>
         /// Represents a single specialization.
@@ -269,10 +290,14 @@ namespace ILGPU.Algorithms
             where TSpecialization : struct, IRadixSortSpecialization
         {
             TSpecialization specialization = default;
-            var scanMemory = SharedMemory.Allocate<int>(groupSize * specialization.UnrollFactor);
+            var scanMemory = SharedMemory.Allocate<int>(
+                groupSize * specialization.UnrollFactor);
 
             int gridIdx = Grid.IdxX;
-            for (int i = Grid.GlobalIndex.X; i < paddedLength; i += GridExtensions.GridStrideLoopStride)
+            for (
+                int i = Grid.GlobalIndex.X;
+                i < paddedLength;
+                i += GridExtensions.GridStrideLoopStride)
             {
                 bool inRange = i < view.Length;
 
@@ -281,7 +306,10 @@ namespace ILGPU.Algorithms
                 T value = operation.DefaultValue;
                 if (inRange)
                     value = view[i];
-                var bits = operation.ExtractRadixBits(value, shift, specialization.UnrollFactor - 1);
+                var bits = operation.ExtractRadixBits(
+                    value,
+                    shift,
+                    specialization.UnrollFactor - 1);
 
                 for (int j = 0; j < specialization.UnrollFactor; ++j)
                     scanMemory[Group.IdxX + groupSize * j] = 0;
@@ -292,7 +320,8 @@ namespace ILGPU.Algorithms
                 for (int j = 0; j < specialization.UnrollFactor; ++j)
                 {
                     var address = Group.IdxX + groupSize * j;
-                    scanMemory[address] = GroupExtensions.ExclusiveScan<int, AddInt32>(scanMemory[address]);
+                    scanMemory[address] =
+                        GroupExtensions.ExclusiveScan<int, AddInt32>(scanMemory[address]);
                 }
                 Group.Barrier();
 
@@ -336,7 +365,9 @@ namespace ILGPU.Algorithms
         /// <param name="output">The input view to use.</param>
         /// <param name="counter">The global counter view.</param>
         /// <param name="numGroups">The number of virtually launched groups.</param>
-        /// <param name="numIterationsPerGroup">The number of iterations per group.</param>
+        /// <param name="numIterationsPerGroup">
+        /// The number of iterations per group.
+        /// </param>
         /// <param name="shift">The bit shift to use.</param>
         internal static void CPURadixSortKernel1<T, TOperation, TSpecialization>(
             ArrayView<T> input,
@@ -367,7 +398,10 @@ namespace ILGPU.Algorithms
                 // Read value from global memory
                 TOperation operation = default;
                 T value = input[i];
-                var bits = operation.ExtractRadixBits(value, shift, specialization.UnrollFactor - 1);
+                var bits = operation.ExtractRadixBits(
+                    value,
+                    shift,
+                    specialization.UnrollFactor - 1);
                 ++scanMemory[bits];
             }
 
@@ -391,7 +425,10 @@ namespace ILGPU.Algorithms
                 // Read value from global memory
                 TOperation operation = default;
                 T value = input[i];
-                var bits = operation.ExtractRadixBits(value, shift, specialization.UnrollFactor - 1);
+                var bits = operation.ExtractRadixBits(
+                    value,
+                    shift,
+                    specialization.UnrollFactor - 1);
 
                 Index1 pos = tileInfo.StartIndex;
                 pos += addMemory[bits]++;
@@ -455,7 +492,8 @@ namespace ILGPU.Algorithms
                     specialization.UnrollFactor - 1);
 
                 int offset = 0;
-                int pos = GetExclusiveCount(bits * numGroups + gridIdx, counter) + Group.IdxX;
+                int pos = GetExclusiveCount(bits * numGroups + gridIdx, counter) +
+                    Group.IdxX;
 
                 for (int w = 0; w < bits; ++w)
                 {
@@ -486,7 +524,9 @@ namespace ILGPU.Algorithms
         /// <param name="output">The output view to use.</param>
         /// <param name="counter">The global counter view.</param>
         /// <param name="numGroups">The number of virtually launched groups.</param>
-        /// <param name="numIterationsPerGroup">The number of iterations per group.</param>
+        /// <param name="numIterationsPerGroup">
+        /// The number of iterations per group.
+        /// </param>
         /// <param name="shift">The bit shift to use.</param>
         internal static void CPURadixSortKernel2<T, TOperation, TSpecialization>(
             ArrayView<T> input,
@@ -559,10 +599,13 @@ namespace ILGPU.Algorithms
         /// Creates a new radix sort operation.
         /// </summary>
         /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
-        /// <typeparam name="TRadixSortOperation">The type of the radix-sort operation.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created radix sort handler.</returns>
-        public static RadixSort<T> CreateRadixSort<T, TRadixSortOperation>(this Accelerator accelerator)
+        public static RadixSort<T> CreateRadixSort<T, TRadixSortOperation>(
+            this Accelerator accelerator)
             where T : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
@@ -575,9 +618,13 @@ namespace ILGPU.Algorithms
             if (accelerator.AcceleratorType == AcceleratorType.CPU)
             {
                 var pass1Kernel = accelerator.LoadKernel<CPUPass1KernelDelegate<T>>(
-                    CPURadixSortKernel1Method.MakeGenericMethod(typeof(T), typeof(TRadixSortOperation), specializationType));
+                    CPURadixSortKernel1Method.MakeGenericMethod(
+                        typeof(T),
+                        typeof(TRadixSortOperation), specializationType));
                 var pass2Kernel = accelerator.LoadKernel<CPUPass2KernelDelegate<T>>(
-                    CPURadixSortKernel2Method.MakeGenericMethod(typeof(T), typeof(TRadixSortOperation), specializationType));
+                    CPURadixSortKernel2Method.MakeGenericMethod(
+                        typeof(T),
+                        typeof(TRadixSortOperation), specializationType));
 
                 return (stream, input, tempView) =>
                 {
@@ -597,7 +644,10 @@ namespace ILGPU.Algorithms
                         out var tempOutputView);
 
                     TRadixSortOperation radixSortOperation = default;
-                    for (int bitIdx = 0; bitIdx < radixSortOperation.NumBits; bitIdx += specialization.BitIncrement)
+                    for (
+                        int bitIdx = 0;
+                        bitIdx < radixSortOperation.NumBits;
+                        bitIdx += specialization.BitIncrement)
                     {
                         initializer(stream, counterView, 0);
                         pass1Kernel(
@@ -646,7 +696,8 @@ namespace ILGPU.Algorithms
                         input.Length,
                         out int numIterationsPerGroup);
                     int numVirtualGroups = gridDim * numIterationsPerGroup;
-                    int lengthInformation = XMath.DivRoundUp(input.Length, groupDim) * groupDim;
+                    int lengthInformation = XMath.DivRoundUp(input.Length, groupDim) *
+                        groupDim;
 
                     VerifyArguments<T, TRadixSortOperation>(
                         accelerator,
@@ -660,7 +711,10 @@ namespace ILGPU.Algorithms
                         out var tempOutputView);
 
                     TRadixSortOperation radixSortOperation = default;
-                    for (int bitIdx = 0; bitIdx < radixSortOperation.NumBits; bitIdx += specialization.BitIncrement)
+                    for (
+                        int bitIdx = 0;
+                        bitIdx < radixSortOperation.NumBits;
+                        bitIdx += specialization.BitIncrement)
                     {
                         initializer(stream, counterView, 0);
                         pass1Kernel(
@@ -715,7 +769,8 @@ namespace ILGPU.Algorithms
             var viewManager = new TempViewManager(tempView, nameof(tempView));
 
             int counterOffset = numVirtualGroups * unrollFactor;
-            int tempScanMemorySize = accelerator.ComputeScanTempStorageSize<T>(counterOffset);
+            int tempScanMemorySize =
+                accelerator.ComputeScanTempStorageSize<T>(counterOffset);
 
             counterView = viewManager.Allocate<int>(counterOffset);
             counterView2 = viewManager.Allocate<int>(counterOffset);
@@ -729,7 +784,8 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The created provider.</returns>
-        public static RadixSortProvider CreateRadixSortProvider(this Accelerator accelerator) =>
+        public static RadixSortProvider CreateRadixSortProvider(
+            this Accelerator accelerator) =>
             new RadixSortProvider(accelerator);
 
         #endregion

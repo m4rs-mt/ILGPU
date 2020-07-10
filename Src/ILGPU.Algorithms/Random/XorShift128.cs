@@ -53,7 +53,10 @@ namespace ILGPU.Algorithms.Random
         /// <param name="state1">The initial state value 1.</param>
         /// <param name="state2">The initial state value 2.</param>
         /// <param name="state3">The initial state value 3.</param>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1025:ReplaceRepetitiveArgumentsWithParamsArray", Justification = "Performance reasons")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Microsoft.Design",
+            "CA1025:ReplaceRepetitiveArgumentsWithParamsArray",
+            Justification = "Performance reasons")]
         public XorShift128(uint state0, uint state1, uint state2, uint state3)
         {
             Debug.Assert(state0 != 0 || state1 != 0 ||

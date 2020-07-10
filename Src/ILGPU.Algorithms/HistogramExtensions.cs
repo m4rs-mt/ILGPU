@@ -359,7 +359,8 @@ namespace ILGPU.Algorithms
                        input.Length,
                        out int numIterationsPerGroup);
                 int numVirtualGroups = gridDim * numIterationsPerGroup;
-                int lengthInformation = XMath.DivRoundUp(input.Length, groupDim) * groupDim;
+                int lengthInformation =
+                    XMath.DivRoundUp(input.Length, groupDim) * groupDim;
 
                 kernel(
                     stream,

@@ -16,6 +16,8 @@ using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 
+// disable: max_line_length
+
 namespace ILGPU.Algorithms.PTX
 {
     /// <summary>

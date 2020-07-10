@@ -35,7 +35,9 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="numerator">The numerator.</param>
         /// <param name="denominator">The denominator.</param>
-        /// <returns>The numerator divided by the denominator rounded up (away from zero).</returns>
+        /// <returns
+        /// >The numerator divided by the denominator rounded up (away from zero).
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int DivRoundUp(int numerator, int denominator) =>
             IntrinsicMath.DivRoundUp(numerator, denominator);
@@ -61,7 +63,9 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="numerator">The numerator.</param>
         /// <param name="denominator">The denominator.</param>
-        /// <returns>The numerator divided by the denominator rounded up (away from zero).</returns>
+        /// <returns>
+        /// The numerator divided by the denominator rounded up (away from zero).
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long DivRoundUp(long numerator, long denominator) =>
             IntrinsicMath.DivRoundUp(numerator, denominator);
@@ -93,7 +97,8 @@ namespace ILGPU.Algorithms
         /// <returns>The composed integer.</returns>
         [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ulong ComposeULong(IntrinsicMath.IntegerParts parts) => parts.ToULong();
+        public static ulong ComposeULong(IntrinsicMath.IntegerParts parts) =>
+            parts.ToULong();
 
         /// <summary>
         /// Composes an integer from the given lower and upper parts.
@@ -102,6 +107,7 @@ namespace ILGPU.Algorithms
         /// <returns>The composed integer.</returns>
         [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static long ComposeLong(IntrinsicMath.IntegerParts parts) => (long)parts.ToULong();
+        public static long ComposeLong(IntrinsicMath.IntegerParts parts) =>
+            (long)parts.ToULong();
     }
 }

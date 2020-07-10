@@ -38,14 +38,17 @@ namespace ILGPU.Runtime.Cuda
         #region Nested Types
 
         /// <summary>
-        /// A custom handler type that automatically updates the pointer mode to be compatible
-        /// with the requested pointer mode.
+        /// A custom handler type that automatically updates the pointer mode to be
+        /// compatible with the requested pointer mode.
         /// </summary>
         public readonly struct AutomaticMode : ICuBlasPointerModeHandler<AutomaticMode>
         {
-            /// <summary cref="ICuBlasPointerModeHandler{THandler}.UpdatePointerMode(CuBlas{THandler}, CuBlasPointerMode)"/>
+            /// <summary cref="ICuBlasPointerModeHandler{THandler}.UpdatePointerMode(
+            /// CuBlas{THandler}, CuBlasPointerMode)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void UpdatePointerMode(CuBlas<AutomaticMode> parent, CuBlasPointerMode pointerMode)
+            public void UpdatePointerMode(
+                CuBlas<AutomaticMode> parent,
+                CuBlasPointerMode pointerMode)
             {
                 // Setup the internal pointer mode ot the desired one
                 parent.PointerMode = pointerMode;
@@ -57,9 +60,12 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         public readonly struct ManualMode : ICuBlasPointerModeHandler<ManualMode>
         {
-            /// <summary cref="ICuBlasPointerModeHandler{THandler}.UpdatePointerMode(CuBlas{THandler}, CuBlasPointerMode)"/>
+            /// <summary cref="ICuBlasPointerModeHandler{THandler}.UpdatePointerMode(
+            /// CuBlas{THandler}, CuBlasPointerMode)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void UpdatePointerMode(CuBlas<ManualMode> parent, CuBlasPointerMode pointerMode)
+            public void UpdatePointerMode(
+                CuBlas<ManualMode> parent,
+                CuBlasPointerMode pointerMode)
             {
                 // Do nothing
             }
@@ -76,8 +82,8 @@ namespace ILGPU.Runtime.Cuda
         public static AutomaticMode Automatic { get; } = default;
 
         /// <summary>
-        /// Returns a manual pointer mode handler that does not change the underlying pointer
-        /// mode of the <see cref="CuBlas{TPointerModeHandler}"/> class.
+        /// Returns a manual pointer mode handler that does not change the underlying
+        /// pointer mode of the <see cref="CuBlas{TPointerModeHandler}"/> class.
         /// </summary>
         public static ManualMode Manual { get; } = default;
 

@@ -27,7 +27,8 @@ namespace ILGPU.Algorithms.PTX
         private static readonly Type PTXMathType = typeof(PTXMath);
 
         /// <summary>
-        /// Represents the <see cref="PTXMath.GenerateMathIntrinsic(PTXBackend, PTXCodeGenerator, IR.Value)"/>
+        /// Represents the <see cref="PTXMath.GenerateMathIntrinsic(PTXBackend,
+        /// PTXCodeGenerator, IR.Value)"/>
         /// methods.
         /// </summary>
         private static readonly MethodInfo MathCodeGenerator =
@@ -36,7 +37,8 @@ namespace ILGPU.Algorithms.PTX
                 AlgorithmContext.IntrinsicBindingFlags);
 
         /// <summary>
-        /// Represents the intrinsic representation of the <see cref="MathCodeGenerator"/>.
+        /// Represents the intrinsic representation of the
+        /// <see cref="MathCodeGenerator"/>.
         /// </summary>
         private static readonly PTXIntrinsic MathCodeGeneratorIntrinsic =
             new PTXIntrinsic(
@@ -83,7 +85,9 @@ namespace ILGPU.Algorithms.PTX
             Type targetType,
             string name)
         {
-            var sourceMethod = sourceType.GetMethod(name, AlgorithmContext.IntrinsicBindingFlags);
+            var sourceMethod = sourceType.GetMethod(
+                name,
+                AlgorithmContext.IntrinsicBindingFlags);
             manager.RegisterMethod(
                 sourceMethod,
                 new PTXIntrinsic(targetType, name, IntrinsicImplementationMode.Redirect));

@@ -29,7 +29,8 @@ namespace ILGPU.Runtime.Cuda
         #region Nested Types
 
         /// <summary>
-        /// Represents a scoped assignment of a <see cref="CuBlas{TPointerModeHandler}.PointerMode"/> value.
+        /// Represents a scoped assignment of a <see cref="CuBlas{TPointerModeHandler}.
+        /// PointerMode"/> value.
         /// </summary>
         public readonly struct PointerModeScope : IDisposable
         {
@@ -40,7 +41,9 @@ namespace ILGPU.Runtime.Cuda
             /// </summary>
             /// <param name="parent">The parent pointer scope.</param>
             /// <param name="pointerMode">The new pointer mode.</param>
-            internal PointerModeScope(CuBlas<TPointerModeHandler> parent, CuBlasPointerMode pointerMode)
+            internal PointerModeScope(
+                CuBlas<TPointerModeHandler> parent,
+                CuBlasPointerMode pointerMode)
             {
                 Debug.Assert(parent != null, "Invalid parent");
 
@@ -230,7 +233,8 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="pointerMode">The pointer mode to ensure.</param>
         /// <remarks>
-        /// Checks whether the given mode is compatible with the current one in debug builds.
+        /// Checks whether the given mode is compatible with the current one in debug
+        /// builds.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsurePointerMode(CuBlasPointerMode pointerMode)

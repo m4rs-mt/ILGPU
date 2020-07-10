@@ -25,7 +25,9 @@ namespace ILGPU.Algorithms
         /// <summary>
         /// Constructs a new sequential group executor.
         /// </summary>
-        /// <param name="fieldAddress">The target field address in global memory to use.</param>
+        /// <param name="fieldAddress">
+        /// The target field address in global memory to use.
+        /// </param>
         public SequentialGroupExecutor(VariableView<int> fieldAddress)
         {
             address = fieldAddress;
@@ -49,7 +51,8 @@ namespace ILGPU.Algorithms
         /// Waits for all previous groups to finish.
         /// </summary>
         /// <remarks>
-        /// Caution: ensure that the internal state is reset before calling the <see cref="Wait"/> method.
+        /// Caution: ensure that the internal state is reset before calling the
+        /// <see cref="Wait"/> method.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Wait()
@@ -57,7 +60,8 @@ namespace ILGPU.Algorithms
             if (Group.IsFirstThread)
             {
                 do { }
-                while (Atomic.CompareExchange(ref address.Value, int.MaxValue, 0) < Grid.IdxX);
+                while (Atomic.CompareExchange(ref address.Value, int.MaxValue, 0) <
+                    Grid.IdxX);
             }
             Group.Barrier();
         }
@@ -91,9 +95,15 @@ namespace ILGPU.Algorithms
         /// <summary>
         /// Constructs a new sequential group executor.
         /// </summary>
-        /// <param name="executorView">The target field address in global memory to use.</param>
-        /// <param name="dataView">The target data address in global memory to use.</param>
-        public SequentialGroupExecutor(VariableView<int> executorView, VariableView<T> dataView)
+        /// <param name="executorView">
+        /// The target field address in global memory to use.
+        /// </param>
+        /// <param name="dataView">
+        /// The target data address in global memory to use.
+        /// </param>
+        public SequentialGroupExecutor(
+            VariableView<int> executorView,
+            VariableView<T> dataView)
         {
             address = dataView;
             executor = new SequentialGroupExecutor(executorView);
@@ -113,7 +123,8 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <returns>The value from the previous group.</returns>
         /// <remarks>
-        /// Caution: ensure that the internal state is reset before calling the <see cref="Wait"/> method.
+        /// Caution: ensure that the internal state is reset before calling the
+        /// <see cref="Wait"/> method.
         /// </remarks>
         public T Wait()
         {

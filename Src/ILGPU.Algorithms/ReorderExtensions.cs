@@ -17,16 +17,27 @@ using System.Runtime.InteropServices;
 namespace ILGPU.Algorithms
 {
     /// <summary>
-    /// Reorders and transforms elements in the source view by storing the reordered elements in the target view.
-    /// The values are reordered according to: target(idx) = transform(source(reorderView(idx))).
+    /// Reorders and transforms elements in the source view by storing the reordered
+    /// elements in the target view. The values are reordered according to:
+    /// target(idx) = transform(source(reorderView(idx))).
     /// </summary>
-    /// <typeparam name="TSource">The source type of the elements to reorder and transform.</typeparam>
-    /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
-    /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+    /// <typeparam name="TSource">
+    /// The source type of the elements to reorder and transform.
+    /// </typeparam>
+    /// <typeparam name="TTarget">
+    /// The target type of the elements that have been transformed.
+    /// </typeparam>
+    /// <typeparam name="TTransformer">
+    /// The transformer to transform elements from the source type to the target type.
+    /// </typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="source">The source elements to transform</param>
-    /// <param name="target">The target elements that will contain the transformed values.</param>
-    /// <param name="reorderView">The view of indices such that target(idx) = transform(source(reorderView(idx))).</param>
+    /// <param name="target">
+    /// The target elements that will contain the transformed values.
+    /// </param>
+    /// <param name="reorderView">
+    /// The view of indices such that target(idx) = transform(source(reorderView(idx))).
+    /// </param>
     /// <param name="transformer">The used transformer.</param>
     public delegate void ReorderTransformer<TSource, TTarget, TTransformer>(
         AcceleratorStream stream,
@@ -48,13 +59,21 @@ namespace ILGPU.Algorithms
         /// <summary>
         /// Represents a transformer that is used for reordering and transforming
         /// elements of type <typeparamref name="TSource"/> to elements of type
-        /// <typeparamref name="TTarget"/> using a transformer of type <typeparamref name="TTransformer"/>.
+        /// <typeparamref name="TTarget"/> using a transformer of type
+        /// <typeparamref name="TTransformer"/>.
         /// </summary>
-        /// <typeparam name="TSource">The source type of the elements to transform.</typeparam>
-        /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+        /// <typeparam name="TSource">
+        /// The source type of the elements to transform.
+        /// </typeparam>
+        /// <typeparam name="TTarget">
+        /// The target type of the elements that have been transformed.
+        /// </typeparam>
+        /// <typeparam name="TTransformer">
+        /// The transformer to transform elements from the source type to the target type.
+        /// </typeparam>
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        internal readonly struct ReorderTransformWrapper<TSource, TTarget, TTransformer> : ITransformer<Index1, TTarget>
+        internal readonly struct ReorderTransformWrapper<TSource, TTarget, TTransformer> :
+            ITransformer<Index1, TTarget>
             where TSource : unmanaged
             where TTarget : unmanaged
             where TTransformer : struct, ITransformer<TSource, TTarget>
@@ -66,7 +85,9 @@ namespace ILGPU.Algorithms
             /// </summary>
             /// <param name="view">The source elements.</param>
             /// <param name="transformer">The used transformer.</param>
-            public ReorderTransformWrapper(ArrayView<TSource> view, in TTransformer transformer)
+            public ReorderTransformWrapper(
+                ArrayView<TSource> view,
+                in TTransformer transformer)
             {
                 SourceView = view;
                 Transformer = transformer;
@@ -105,15 +126,22 @@ namespace ILGPU.Algorithms
         #region Reorder
 
         /// <summary>
-        /// Creates a reorder transformer that is defined by the given source and target type and the specified
-        /// transformer type.
+        /// Creates a reorder transformer that is defined by the given source and target
+        /// type and the specified transformer type.
         /// </summary>
-        /// <typeparam name="TSource">The source value type of the transformation.</typeparam>
-        /// <typeparam name="TTarget">The target value type of the transformation.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+        /// <typeparam name="TSource">
+        /// The source value type of the transformation.
+        /// </typeparam>
+        /// <typeparam name="TTarget">
+        /// The target value type of the transformation.
+        /// </typeparam>
+        /// <typeparam name="TTransformer">
+        /// The transformer to transform elements from the source type to the target type.
+        /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
-        public static ReorderTransformer<TSource, TTarget, TTransformer> CreateReorderTransformer<
+        public static ReorderTransformer<TSource, TTarget, TTransformer>
+            CreateReorderTransformer<
             TSource,
             TTarget,
             TTransformer>(
@@ -137,20 +165,27 @@ namespace ILGPU.Algorithms
                 if (reorderView.Length < source.Length)
                     throw new ArgumentOutOfRangeException(nameof(reorderView));
                 baseTransformer(stream, reorderView, target,
-                    new ReorderTransformWrapper<TSource, TTarget, TTransformer>(source, transformer));
+                    new ReorderTransformWrapper<TSource, TTarget, TTransformer>(
+                        source,
+                        transformer));
             };
         }
 
         /// <summary>
-        /// Reorders elements in the source view by storing the reordered elements in the target view.
-        /// The values are reordered according to: target(idx) = source(reorderView(idx)).
+        /// Reorders elements in the source view by storing the reordered elements in the
+        /// target view. The values are reordered according to:
+        /// target(idx) = source(reorderView(idx)).
         /// </summary>
         /// <typeparam name="T">The type of the elements to reorder.</typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
-        /// <param name="target">The target elements that will contain the transformed values.</param>
-        /// <param name="reorderView">The view of indices such that target(idx) = source(reorderView(idx)).</param>
+        /// <param name="target">
+        /// The target elements that will contain the transformed values.
+        /// </param>
+        /// <param name="reorderView">
+        /// The view of indices such that target(idx) = source(reorderView(idx)).
+        /// </param>
         public static void Reorder<T>(
             this Accelerator accelerator,
             AcceleratorStream stream,
@@ -168,16 +203,26 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Reorders and transforms elements in the source view by storing the reordered elements in the target view.
-        /// The values are reordered according to: target(idx) = transform(source(reorderView(idx))).
+        /// Reorders and transforms elements in the source view by storing the reordered
+        /// elements in the target view. The values are reordered according to:
+        /// target(idx) = transform(source(reorderView(idx))).
         /// </summary>
-        /// <typeparam name="T">The type of the elements to reorder and transform.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+        /// <typeparam name="T">
+        /// The type of the elements to reorder and transform.
+        /// </typeparam>
+        /// <typeparam name="TTransformer">
+        /// The transformer to transform elements from the source type to the target type.
+        /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
-        /// <param name="target">The target elements that will contain the transformed values.</param>
-        /// <param name="reorderView">The view of indices such that target(idx) = transform(source(reorderView(idx))).</param>
+        /// <param name="target">
+        /// The target elements that will contain the transformed values.
+        /// </param>
+        /// <param name="reorderView">
+        /// The view of indices such that target(idx) =
+        /// transform(source(reorderView(idx))).
+        /// </param>
         /// <param name="transformer">The used transformer.</param>
         public static void ReorderTransform<T, TTransformer>(
             this Accelerator accelerator,
@@ -198,17 +243,29 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Reorders and transforms elements in the source view by storing the reordered elements in the target view.
-        /// The values are reordered according to: target(idx) = transform(source(reorderView(idx))).
+        /// Reorders and transforms elements in the source view by storing the reordered
+        /// elements in the target view. The values are reordered according to:
+        /// target(idx) = transform(source(reorderView(idx))).
         /// </summary>
-        /// <typeparam name="TSource">The source type of the elements to reorder and transform.</typeparam>
-        /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+        /// <typeparam name="TSource">
+        /// The source type of the elements to reorder and transform.
+        /// </typeparam>
+        /// <typeparam name="TTarget">
+        /// The target type of the elements that have been transformed.
+        /// </typeparam>
+        /// <typeparam name="TTransformer">
+        /// The transformer to transform elements from the source type to the target type.
+        /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
-        /// <param name="target">The target elements that will contain the transformed values.</param>
-        /// <param name="reorderView">The view of indices such that target(idx) = transform(source(reorderView(idx))).</param>
+        /// <param name="target">
+        /// The target elements that will contain the transformed values.
+        /// </param>
+        /// <param name="reorderView">
+        /// The view of indices such that target(idx) =
+        /// transform(source(reorderView(idx))).
+        /// </param>
         /// <param name="transformer">The used transformer.</param>
         public static void ReorderTransform<TSource, TTarget, TTransformer>(
             this Accelerator accelerator,

@@ -61,7 +61,9 @@ namespace ILGPU.Algorithms.IL
             Type targetType,
             string name)
         {
-            var sourceMethod = sourceType.GetMethod(name, AlgorithmContext.IntrinsicBindingFlags);
+            var sourceMethod = sourceType.GetMethod(
+                name,
+                AlgorithmContext.IntrinsicBindingFlags);
             manager.RegisterMethod(
                 sourceMethod,
                 new ILIntrinsic(targetType, name, IntrinsicImplementationMode.Redirect));

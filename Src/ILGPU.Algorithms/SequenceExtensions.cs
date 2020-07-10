@@ -35,8 +35,9 @@ namespace ILGPU.Algorithms
         where TSequencer : struct, ISequencer<T>;
 
     /// <summary>
-    /// Computes a new sequence of batched values of length sequenceBatchLength, and writes
-    /// the computed values to the given view. Afterwards, the target view will contain the following values:
+    /// Computes a new sequence of batched values of length sequenceBatchLength, and
+    /// writes the computed values to the given view. Afterwards, the target view will
+    /// contain the following values:
     /// - [0, sequenceBatchLength - 1] = 0,,
     /// - [sequenceBatchLength, sequenceBatchLength * 2 -1] = 1,
     /// - ...
@@ -56,8 +57,9 @@ namespace ILGPU.Algorithms
         where TSequencer : struct, ISequencer<T>;
 
     /// <summary>
-    /// Computes a new repeated sequence of values from 0 to sequenceLength, from 0 to sequenceLength, ... and writes
-    /// the computed values to the given view. Afterwards, the target view will contain the following values:
+    /// Computes a new repeated sequence of values from 0 to sequenceLength, from 0 to
+    /// sequenceLength, ... and writes the computed values to the given view. Afterwards,
+    /// the target view will contain the following values:
     /// - [0, sequenceLength - 1] = [0, sequenceLength]
     /// - [sequenceLength, sequenceLength * 2 -1] = [0, sequenceLength]
     /// - ...
@@ -77,15 +79,17 @@ namespace ILGPU.Algorithms
         where TSequencer : struct, ISequencer<T>;
 
     /// <summary>
-    /// Computes a new repeated sequence (of length sequenceLength) of batched values (of length sequenceBatchLength),
-    /// and writes the computed values to the given view. Afterwards, the target view will contain the following values:
+    /// Computes a new repeated sequence (of length sequenceLength) of batched values (of
+    /// length sequenceBatchLength), and writes the computed values to the given view.
+    /// Afterwards, the target view will contain the following values:
     /// - [0, sequenceLength - 1] =
     ///       - [0, sequenceBatchLength - 1] = sequencer(0),
     ///       - [sequenceBatchLength, sequenceBatchLength * 2 - 1] = sequencer(1),
     ///       - ...
     /// - [sequenceLength, sequenceLength * 2 - 1]
     ///       - [sequenceLength, sequenceLength + sequenceBatchLength - 1] = sequencer(0),
-    ///       - [sequenceLength + sequenceBatchLength, sequenceLength + sequenceBatchLength * 2 - 1] = sequencer(1),
+    ///       - [sequenceLength + sequenceBatchLength,
+    ///          sequenceLength + sequenceBatchLength * 2 - 1] = sequencer(1),
     ///       - ...
     /// - ...
     /// </summary>
@@ -122,7 +126,9 @@ namespace ILGPU.Algorithms
         /// <param name="index">The current thread index.</param>
         /// <param name="view">The target view.</param>
         /// <param name="sequenceLength">The length of the sequence.</param>
-        /// <param name="sequenceBatchLength">The length of a single batch within a sequence.</param>
+        /// <param name="sequenceBatchLength">
+        /// The length of a single batch within a sequence.
+        /// </param>
         /// <param name="sequencer">The sequencer instance.</param>
         internal static void SequenceKernel<T, TSequencer>(
             Index1 index,
@@ -141,7 +147,8 @@ namespace ILGPU.Algorithms
             }
         }
         /// <summary>
-        /// Creates a raw sequencer that is defined by the given element type and the type of the sequencer.
+        /// Creates a raw sequencer that is defined by the given element type and the type
+        /// of the sequencer.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
@@ -170,7 +177,8 @@ namespace ILGPU.Algorithms
         #endregion
 
         /// <summary>
-        /// Creates a sequencer that is defined by the given element type and the type of the sequencer.
+        /// Creates a sequencer that is defined by the given element type and the type of
+        /// the sequencer.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
@@ -199,13 +207,16 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Creates a batched sequencer that is defined by the given element type and the type of the sequencer.
+        /// Creates a batched sequencer that is defined by the given element type and the
+        /// type of the sequencer.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded sequencer.</returns>
-        public static BatchedSequencer<T, TSequencer> CreateBatchedSequencer<T, TSequencer>(
+        public static BatchedSequencer<T, TSequencer> CreateBatchedSequencer<
+            T,
+            TSequencer>(
             this Accelerator accelerator)
             where T : unmanaged
             where TSequencer : struct, ISequencer<T>
@@ -231,13 +242,16 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Creates a repeated sequencer that is defined by the given element type and the type of the sequencer.
+        /// Creates a repeated sequencer that is defined by the given element type and the
+        /// type of the sequencer.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded sequencer.</returns>
-        public static RepeatedSequencer<T, TSequencer> CreateRepeatedSequencer<T, TSequencer>(
+        public static RepeatedSequencer<T, TSequencer> CreateRepeatedSequencer<
+            T,
+            TSequencer>(
             this Accelerator accelerator)
             where T : unmanaged
             where TSequencer : struct, ISequencer<T>
@@ -258,13 +272,15 @@ namespace ILGPU.Algorithms
 
 
         /// <summary>
-        /// Creates a repeated batched sequencer that is defined by the given element type and the type of the sequencer.
+        /// Creates a repeated batched sequencer that is defined by the given element type
+        /// and the type of the sequencer.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TSequencer">The type of the sequencer to use.</typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded sequencer.</returns>
-        public static RepeatedBatchedSequencer<T, TSequencer> CreateRepeatedBatchedSequencer<T, TSequencer>(
+        public static RepeatedBatchedSequencer<T, TSequencer>
+            CreateRepeatedBatchedSequencer<T, TSequencer>(
             this Accelerator accelerator)
             where T : unmanaged
             where TSequencer : struct, ISequencer<T>
@@ -316,8 +332,9 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Computes a new repeated sequence of values from 0 to sequenceLength, from 0 to sequenceLength, ... and writes
-        /// the computed values to the given view. Afterwards, the target view will contain the following values:
+        /// Computes a new repeated sequence of values from 0 to sequenceLength, from 0 to
+        /// sequenceLength, ... and writes the computed values to the given view.
+        /// Afterwards, the target view will contain the following values:
         /// - [0, sequenceLength - 1] = [0, sequenceLength]
         /// - [sequenceLength, sequenceLength * 2 -1] = [0, sequenceLength]
         /// - ...
@@ -346,8 +363,9 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Computes a new sequence of batched values of length sequenceBatchLength, and writes
-        /// the computed values to the given view. Afterwards, the target view will contain the following values:
+        /// Computes a new sequence of batched values of length sequenceBatchLength, and
+        /// writes the computed values to the given view. Afterwards, the target view will
+        /// contain the following values:
         /// - [0, sequenceBatchLength - 1] = 0,,
         /// - [sequenceBatchLength, sequenceBatchLength * 2 -1] = 1,
         /// - ...
@@ -376,15 +394,18 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Computes a new repeated sequence (of length sequenceLength) of batched values (of length sequenceBatchLength),
-        /// and writes the computed values to the given view. Afterwards, the target view will contain the following values:
+        /// Computes a new repeated sequence (of length sequenceLength) of batched values
+        /// (of length sequenceBatchLength), and writes the computed values to the given
+        /// view. Afterwards, the target view will contain the following values:
         /// - [0, sequenceLength - 1] = 
         ///       - [0, sequenceBatchLength - 1] = sequencer(0),
         ///       - [sequenceBatchLength, sequenceBatchLength * 2 - 1] = sequencer(1),
         ///       - ...
         /// - [sequenceLength, sequenceLength * 2 - 1]
-        ///       - [sequenceLength, sequenceLength + sequenceBatchLength - 1] = sequencer(0),
-        ///       - [sequenceLength + sequenceBatchLength, sequenceLength + sequenceBatchLength * 2 - 1] = sequencer(1),
+        ///       - [sequenceLength,
+        ///          sequenceLength + sequenceBatchLength - 1] = sequencer(0),
+        ///       - [sequenceLength + sequenceBatchLength,
+        ///          sequenceLength + sequenceBatchLength * 2 - 1] = sequencer(1),
         ///       - ...
         /// - ...
         /// </summary>

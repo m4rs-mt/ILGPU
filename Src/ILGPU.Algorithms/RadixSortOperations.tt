@@ -31,7 +31,8 @@ namespace ILGPU.Algorithms.RadixSortOperations
 <#      if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
     [CLSCompliant(false)]
 <#      } #>
-    public readonly struct Ascending<#=type.Name #> : IRadixSortOperation<<#= type.Type #>>
+    public readonly struct Ascending<#=type.Name #> :
+        IRadixSortOperation<<#= type.Type #>>
     {
         /// <summary>
         /// Returns the number of bits to sort.
@@ -53,26 +54,28 @@ namespace ILGPU.Algorithms.RadixSortOperations
         public int ExtractRadixBits(<#= type.Type #> value, int shift, int bitMask)
         {
 <# if (type.IsSignedInt) { #>
-            // Negative integers are stored using two's complement, so they are already in the
-            // correct order (within negative numbers). However, the sign-bit causes negative
-            // integers to be incorrected sorted after positive numbers. So, we flip the
-            // sign-bit, causing negative numbers to be ordered before positive numbers.
+            // Negative integers are stored using two's complement, so they are already in
+            // the correct order (within negative numbers). However, the sign-bit causes
+            // negative integers to be incorrected sorted after positive numbers. So, we
+            // flip the sign-bit, causing negative numbers to be ordered before positive
+            // numbers.
 <# } else if (type.IsFloat) { #>
             // Floating point numbers have a sign-bit, causing negative integers to be
             // incorrected sorted after positive numbers. So, we flip the sign-bit,
             // causing negative numbers to be ordered before positive numbers.
             //
-            // In addition, the exponent and mantissa are always stored as positive numbers,
-            // incorrectly causing larger negative numbers to be ordered after smaller negative
-            // numbers. So, if the number is negative, we apply a one's complement to the
-            // exponent and mantissa (flip the bits), causing larger negative numbers to be
-            // ordered before smaller negative numbers.
+            // In addition, the exponent and mantissa are always stored as positive
+            // numbers, incorrectly causing larger negative numbers to be ordered after
+            // smaller negative numbers. So, if the number is negative, we apply a one's
+            // complement to the exponent and mantissa (flip the bits), causing larger
+            // negative numbers to be ordered before smaller negative numbers.
             //
-            // In order to flip the exponent and mantissa only for negative numbers, we build
-            // as mask by right-shifting the sign-bit all the way to the end. If the sign-bit
-            // was set, it will be extended to fill all the bits. If the sign-bit was not set,
-            // it will be zero all the way. Finally, we OR this with the sign-bit flipping
-            // because we still want negative numbers before positive numbers.
+            // In order to flip the exponent and mantissa only for negative numbers, we
+            // build as mask by right-shifting the sign-bit all the way to the end. If the
+            // sign-bit was set, it will be extended to fill all the bits. If the sign-bit
+            // was not set, it will be zero all the way. Finally, we OR this with the
+            // sign-bit flipping because we still want negative numbers before positive
+            // numbers.
 <# } #>
 
 <# if (type.IsSignedInt && type.Name == "Int64") { #>
@@ -96,7 +99,8 @@ namespace ILGPU.Algorithms.RadixSortOperations
 <#      if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
     [CLSCompliant(false)]
 <#      } #>
-    public readonly struct Descending<#= type.Name #> : IRadixSortOperation<<#= type.Type #>>
+    public readonly struct Descending<#= type.Name #> :
+        IRadixSortOperation<<#= type.Type #>>
     {
         /// <summary>
         /// Returns the number of bits to sort.

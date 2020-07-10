@@ -40,7 +40,8 @@ namespace ILGPU.Algorithms.ScanReduceOperations
         T Apply(T first, T second);
 
         /// <summary>
-        /// Performs an atomic operation of the form target = AtomicUpdate(target.Value, value).
+        /// Performs an atomic operation of the form target =
+        /// AtomicUpdate(target.Value, value).
         /// </summary>
         /// <param name="target">The target address to update.</param>
         /// <param name="value">The value.</param>

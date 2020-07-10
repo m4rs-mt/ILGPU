@@ -17,6 +17,8 @@ using System;
 using System.Runtime.CompilerServices;
 using static ILGPU.Algorithms.GroupExtensions;
 
+// disable: max_line_length
+
 namespace ILGPU.Algorithms
 {
     /// <summary>

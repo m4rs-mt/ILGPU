@@ -30,7 +30,8 @@ namespace ILGPU.Algorithms.HistogramOperations
 <# if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
     [CLSCompliant(false)]
 <# } #>
-    public readonly struct HistogramIncrement<#= type.Name #> : IIncrementOperation<<#= type.Type #>>
+    public readonly struct HistogramIncrement<#= type.Name #> :
+        IIncrementOperation<<#= type.Type #>>
     {
         /// <summary>
         /// Atomically increments a histogram bin of type <#= type.Type #>.

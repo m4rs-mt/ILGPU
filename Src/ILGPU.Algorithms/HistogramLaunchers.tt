@@ -82,7 +82,10 @@ namespace ILGPU.Algorithms
         /// The operation to compute the bin location.
         /// </typeparam>
         internal readonly struct ComputeSingleBinAdapter<#= type.Name #><T, TLocator>
-            : IComputeMultiBinOperation<T, <#= type.Type #>, HistogramIncrement<#= type.Name #>>
+            : IComputeMultiBinOperation<
+                T,
+                <#= type.Type #>,
+                HistogramIncrement<#= type.Name #>>
             where T : unmanaged
             where TLocator : struct, IComputeSingleBinOperation<T>
         {

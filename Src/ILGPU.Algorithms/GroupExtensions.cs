@@ -93,10 +93,14 @@ namespace ILGPU.Algorithms
         /// <returns>The resulting value for the current lane.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
-        public static T ExclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
+        public static T ExclusiveScanWithBoundaries<T, TScanOperation>(
+            T value,
+            out ScanBoundaries<T> boundaries)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
-            ILGroupExtensions.ExclusiveScanWithBoundaries<T, TScanOperation>(value, out boundaries);
+            ILGroupExtensions.ExclusiveScanWithBoundaries<T, TScanOperation>(
+                value,
+                out boundaries);
 
         /// <summary>
         /// Performs a group-wide inclusive scan.
@@ -108,10 +112,14 @@ namespace ILGPU.Algorithms
         /// <returns>The resulting value for the current lane.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
-        public static T InclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
+        public static T InclusiveScanWithBoundaries<T, TScanOperation>(
+            T value,
+            out ScanBoundaries<T> boundaries)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
-            ILGroupExtensions.InclusiveScanWithBoundaries<T, TScanOperation>(value, out boundaries);
+            ILGroupExtensions.InclusiveScanWithBoundaries<T, TScanOperation>(
+                value,
+                out boundaries);
 
         #endregion
 
@@ -147,7 +155,8 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
-        public readonly struct InclusiveGroupScan<T, TScanOperation> : IGroupScan<T, TScanOperation>
+        public readonly struct InclusiveGroupScan<T, TScanOperation> :
+            IGroupScan<T, TScanOperation>
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
@@ -175,7 +184,8 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <typeparam name="TScanOperation">The type of the warp scan logic.</typeparam>
-        public readonly struct ExclusiveGroupScan<T, TScanOperation> : IGroupScan<T, TScanOperation>
+        public readonly struct ExclusiveGroupScan<T, TScanOperation> :
+            IGroupScan<T, TScanOperation>
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {

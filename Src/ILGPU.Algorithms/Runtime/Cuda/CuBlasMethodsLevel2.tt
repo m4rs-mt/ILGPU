@@ -20,6 +20,8 @@
 using ILGPU.Util;
 using System.Runtime.CompilerServices;
 
+// disable: max_line_length
+
 namespace ILGPU.Runtime.Cuda
 {
     partial class CuBlas<TPointerModeHandler>

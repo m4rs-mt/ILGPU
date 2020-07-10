@@ -42,7 +42,9 @@ namespace ILGPU.Algorithms.CL
             manager.RegisterBinaryArithmetic(
                 BinaryArithmeticKind.<#= kind #>,
                 BasicValueType.<#= basicType #>,
-                GetMathIntrinsic("<#= name #>", typeof(<#= type #>), typeof(<#= type #>)));
+                GetMathIntrinsic(
+                    "<#= name #>",
+                    typeof(<#= type #>), typeof(<#= type #>)));
 <# } #>
 
 <# foreach (var (name, type, kind, basicType) in unaryMathFunctions) { #>

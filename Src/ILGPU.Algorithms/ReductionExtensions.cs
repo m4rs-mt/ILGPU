@@ -45,11 +45,15 @@ namespace ILGPU.Algorithms
         /// Computes a group size for reduction-kernel dispatch.
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
-        /// <returns>The grouped reduction dimension for reduction-kernel dispatch.</returns>
+        /// <returns>
+        /// The grouped reduction dimension for reduction-kernel dispatch.
+        /// </returns>
         private static Index1 ComputeReductionGroupSize(Accelerator accelerator)
         {
             var warpSize = accelerator.WarpSize;
-            return Math.Max(warpSize, (accelerator.MaxNumThreadsPerGroup / warpSize) * warpSize);
+            return Math.Max(
+                warpSize,
+                (accelerator.MaxNumThreadsPerGroup / warpSize) * warpSize);
         }
 
         /// <summary>
@@ -57,7 +61,9 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="dataLength">The number of data elements to reduce.</param>
-        /// <returns>The grouped reduction dimension for reduction-kernel dispatch.</returns>
+        /// <returns>
+        /// The grouped reduction dimension for reduction-kernel dispatch.
+        /// </returns>
         private static (Index1, Index1) ComputeReductionDimension(
             Accelerator accelerator,
             Index1 dataLength)
@@ -161,7 +167,9 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="input">The input elements to reduce.</param>
-        /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
+        /// <remarks>
+        /// Uses the internal cache to realize a temporary output buffer.
+        /// </remarks>
         /// <returns>The reduced value.</returns>
         public static T Reduce<T, TReduction>(
             this Accelerator accelerator,
@@ -185,7 +193,9 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="input">The input elements to reduce.</param>
-        /// <remarks>Uses the internal cache to realize a temporary output buffer.</remarks>
+        /// <remarks>
+        /// Uses the internal cache to realize a temporary output buffer.
+        /// </remarks>
         /// <returns>The reduced value.</returns>
         public static Task<T> ReduceAsync<T, TReduction>(
             this Accelerator accelerator,

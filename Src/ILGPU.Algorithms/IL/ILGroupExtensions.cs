@@ -72,25 +72,35 @@ namespace ILGPU.Algorithms.IL
             where TScanOperation : struct, IScanReduceOperation<T> =>
             InclusiveScanWithBoundaries<T, TScanOperation>(value, out var _);
 
-        /// <summary cref="GroupExtensions.ExclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
+        /// <summary cref="GroupExtensions.ExclusiveScanWithBoundaries{T, TScanOperation}(
+        /// T, out ScanBoundaries{T})"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T ExclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
+        public static T ExclusiveScanWithBoundaries<T, TScanOperation>(
+            T value,
+            out ScanBoundaries<T> boundaries)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(value);
-            boundaries = new ScanBoundaries<T>(sharedMemory[0], sharedMemory[Group.DimX - 1]);
+            boundaries = new ScanBoundaries<T>(
+                sharedMemory[0],
+                sharedMemory[Group.DimX - 1]);
             return Group.IsFirstThread ? default : sharedMemory[Group.IdxX - 1];
         }
 
-        /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
+        /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(
+        /// T, out ScanBoundaries{T})"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T InclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
+        public static T InclusiveScanWithBoundaries<T, TScanOperation>(
+            T value,
+            out ScanBoundaries<T> boundaries)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
             var sharedMemory = InclusiveScanImplementation<T, TScanOperation>(value);
-            boundaries = new ScanBoundaries<T>(sharedMemory[0], sharedMemory[Group.DimX - 1]);
+            boundaries = new ScanBoundaries<T>(
+                sharedMemory[0],
+                sharedMemory[Group.DimX - 1]);
             return sharedMemory[Group.IdxX];
         }
 
@@ -102,7 +112,8 @@ namespace ILGPU.Algorithms.IL
         /// <param name="value">The value to scan.</param>
         /// <returns>The resulting value for the current lane.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ArrayView<T> InclusiveScanImplementation<T, TScanOperation>(T value)
+        private static ArrayView<T> InclusiveScanImplementation<T, TScanOperation>(
+            T value)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T>
         {
@@ -117,7 +128,9 @@ namespace ILGPU.Algorithms.IL
             {
                 TScanOperation scanOperation = default;
                 for (int i = 1; i < Group.DimX; ++i)
-                    sharedMemory[i] = scanOperation.Apply(sharedMemory[i - 1], sharedMemory[i]);
+                    sharedMemory[i] = scanOperation.Apply(
+                        sharedMemory[i - 1],
+                        sharedMemory[i]);
             }
             Group.Barrier();
 

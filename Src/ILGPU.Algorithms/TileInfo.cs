@@ -24,7 +24,9 @@ namespace ILGPU.Algorithms
         /// Constructs a new tile information instance.
         /// </summary>
         /// <param name="input">The input view.</param>
-        /// <param name="numIterationsPerGroup">The number of iterations per group to compute the tile size.</param>
+        /// <param name="numIterationsPerGroup">
+        /// The number of iterations per group to compute the tile size.
+        /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TileInfo(ArrayView<T> input, Index1 numIterationsPerGroup)
         {

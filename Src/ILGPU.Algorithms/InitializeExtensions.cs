@@ -57,7 +57,8 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="minDataSize">The minimum data size for maximum occupancy.</param>
         /// <returns>The loaded initializer.</returns>
-        private static Action<AcceleratorStream, Index1, ArrayView<T>, T> CreateRawInitializer<T>(
+        private static Action<AcceleratorStream, Index1, ArrayView<T>, T>
+            CreateRawInitializer<T>(
             this Accelerator accelerator,
             out Index1 minDataSize)
             where T : unmanaged
@@ -79,7 +80,8 @@ namespace ILGPU.Algorithms
             this Accelerator accelerator)
             where T : unmanaged
         {
-            var rawInitializer = accelerator.CreateRawInitializer<T>(out Index1 minDataSize);
+            var rawInitializer = accelerator.CreateRawInitializer<T>(
+                out Index1 minDataSize);
             return (stream, view, value) =>
             {
                 if (!view.IsValid)

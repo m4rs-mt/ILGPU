@@ -44,7 +44,10 @@ namespace ILGPU.Algorithms.PTX
 
             if (warpIdx == 0)
             {
-                for (int bankIdx = laneIdx; bankIdx < NumMemoryBanks; bankIdx += Warp.WarpSize)
+                for (
+                    int bankIdx = laneIdx;
+                    bankIdx < NumMemoryBanks;
+                    bankIdx += Warp.WarpSize)
                     sharedMemory[bankIdx] = reduction.Identity;
             }
             Group.Barrier();
@@ -114,11 +117,13 @@ namespace ILGPU.Algorithms.PTX
             public T Scan(T value) =>
                 PTXWarpExtensions.InclusiveScan<T, TScanOperation>(value);
 
-            /// <summary cref="IScanImplementation{T, TScanOperation}.ScanRightBoundary(T, T)"/>
+            /// <summary cref="IScanImplementation{T, TScanOperation}.ScanRightBoundary(
+            /// T, T)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public T ScanRightBoundary(T boundaryValue, T value) => boundaryValue;
 
-            /// <summary cref="IScanImplementation{T, TScanOperation}.Load(int, ArrayView{T})"/>
+            /// <summary cref="IScanImplementation{T, TScanOperation}.Load(int,
+            /// ArrayView{T})"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public T Load(int warpIdx, ArrayView<T> values)
             {
@@ -144,7 +149,8 @@ namespace ILGPU.Algorithms.PTX
             public T Scan(T value) =>
                 PTXWarpExtensions.ExclusiveScan<T, TScanOperation>(value);
 
-            /// <summary cref="IScanImplementation{T, TScanOperation}.ScanRightBoundary(T, T)"/>
+            /// <summary cref="IScanImplementation{T, TScanOperation}.ScanRightBoundary(
+            /// T, T)"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public T ScanRightBoundary(T boundaryValue, T value)
             {
@@ -152,7 +158,8 @@ namespace ILGPU.Algorithms.PTX
                 return scanOperation.Apply(boundaryValue, value);
             }
 
-            /// <summary cref="IScanImplementation{T, TScanOperation}.Load(int, ArrayView{T})"/>
+            /// <summary cref="IScanImplementation{T, TScanOperation}.Load(int,
+            /// ArrayView{T})"/>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public T Load(int warpIdx, ArrayView<T> values) =>
                 values[warpIdx];
@@ -194,18 +201,23 @@ namespace ILGPU.Algorithms.PTX
             TScanImplementation scanImplementation = default;
             var scannedValue = scanImplementation.Scan(value);
             if (Warp.IsLastLane)
-                sharedMemory[warpIdx] = scanImplementation.ScanRightBoundary(scannedValue, value);
+                sharedMemory[warpIdx] = scanImplementation.ScanRightBoundary(
+                    scannedValue,
+                    value);
             Group.Barrier();
 
             // Reduce results again in the first warp
             if (warpIdx < 1)
             {
                 ref T sharedBoundary = ref sharedMemory[Group.IdxX];
-                sharedBoundary = PTXWarpExtensions.InclusiveScan<T, TScanOperation>(sharedBoundary);
+                sharedBoundary = PTXWarpExtensions.InclusiveScan<T, TScanOperation>(
+                    sharedBoundary);
             }
             Group.Barrier();
 
-            T leftBoundary = warpIdx < 1 ? scanOperation.Identity : sharedMemory[warpIdx - 1];
+            T leftBoundary = warpIdx < 1
+                ? scanOperation.Identity
+                : sharedMemory[warpIdx - 1];
             return scanOperation.Apply(leftBoundary, scannedValue);
         }
 
@@ -223,7 +235,9 @@ namespace ILGPU.Algorithms.PTX
             where TScanOperation : struct, IScanReduceOperation<T>
             where TScanImplementation : struct, IScanImplementation<T, TScanOperation>
         {
-            var result = ComputeScan<T, TScanOperation, TScanImplementation>(value, out var _);
+            var result = ComputeScan<T, TScanOperation, TScanImplementation>(
+                value,
+                out var _);
             Group.Barrier();
             return result;
         }
@@ -248,7 +262,9 @@ namespace ILGPU.Algorithms.PTX
             var result = ComputeScan<T, TScanOperation, TScanImplementation>(
                 value,
                 out var sharedMemory);
-            boundaries = new ScanBoundaries<T>(sharedMemory[0], sharedMemory[Warp.WarpSize - 1]);
+            boundaries = new ScanBoundaries<T>(
+                sharedMemory[0],
+                sharedMemory[Warp.WarpSize - 1]);
             Group.Barrier();
             return result;
         }
@@ -262,34 +278,52 @@ namespace ILGPU.Algorithms.PTX
         public static T ExclusiveScan<T, TScanOperation>(T value)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
-            PerformScan<T, TScanOperation, ExclusiveScanImplementation<T, TScanOperation>>(
-                value);
+            PerformScan<
+                T,
+                TScanOperation,
+                ExclusiveScanImplementation<T, TScanOperation>>(
+                    value);
 
         /// <summary cref="GroupExtensions.InclusiveScan{T, TScanOperation}(T)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T InclusiveScan<T, TScanOperation>(T value)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
-            PerformScan<T, TScanOperation, InclusiveScanImplementation<T, TScanOperation>>(
-                value);
+            PerformScan<
+                T,
+                TScanOperation,
+                InclusiveScanImplementation<T, TScanOperation>>(
+                    value);
 
-        /// <summary cref="GroupExtensions.ExclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
+        /// <summary cref="GroupExtensions.ExclusiveScanWithBoundaries{T, TScanOperation}(
+        /// T, out ScanBoundaries{T})"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T ExclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
+        public static T ExclusiveScanWithBoundaries<T, TScanOperation>(
+            T value,
+            out ScanBoundaries<T> boundaries)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
-            PerformScan<T, TScanOperation, ExclusiveScanImplementation<T, TScanOperation>>(
-                value,
-                out boundaries);
+            PerformScan<
+                T,
+                TScanOperation,
+                ExclusiveScanImplementation<T, TScanOperation>>(
+                    value,
+                    out boundaries);
 
-        /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(T, out ScanBoundaries{T})"/>
+        /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(
+        /// T, out ScanBoundaries{T})"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T InclusiveScanWithBoundaries<T, TScanOperation>(T value, out ScanBoundaries<T> boundaries)
+        public static T InclusiveScanWithBoundaries<T, TScanOperation>(
+            T value,
+            out ScanBoundaries<T> boundaries)
             where T : unmanaged
             where TScanOperation : struct, IScanReduceOperation<T> =>
-            PerformScan<T, TScanOperation, InclusiveScanImplementation<T, TScanOperation>>(
-                value,
-                out boundaries);
+            PerformScan<
+                T,
+                TScanOperation,
+                InclusiveScanImplementation<T, TScanOperation>>(
+                    value,
+                    out boundaries);
 
         #endregion
     }

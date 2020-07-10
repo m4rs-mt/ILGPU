@@ -38,7 +38,10 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="array">The source array.</param>
         /// <returns>The extent of a two-dimensional array.</returns>
-        [SuppressMessage("Performance", "CA1814:Prefer jagged arrays over multidimensional", Target = "array")]
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Target = "array")]
         public static Index2 GetExtent<T>(this T[,] array)
         {
             Debug.Assert(array != null, "Invalid array");
@@ -53,7 +56,10 @@ namespace ILGPU.Algorithms
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="array">The source array.</param>
         /// <returns>The extent of a three-dimensional array.</returns>
-        [SuppressMessage("Performance", "CA1814:Prefer jagged arrays over multidimensional", Target = "array")]
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Target = "array")]
         public static Index3 GetExtent<T>(this T[,,] array)
         {
             Debug.Assert(array != null, "Invalid array");
@@ -80,7 +86,10 @@ namespace ILGPU.Algorithms
         /// <param name="array">The source array.</param>
         /// <param name="index">The element index.</param>
         /// <returns>The value at the given index.</returns>
-        [SuppressMessage("Performance", "CA1814:Prefer jagged arrays over multidimensional", Target = "array")]
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Target = "array")]
         public static T GetValue<T>(this T[,] array, Index2 index) =>
             array[index.X, index.Y];
 
@@ -91,7 +100,10 @@ namespace ILGPU.Algorithms
         /// <param name="array">The source array.</param>
         /// <param name="index">The element index.</param>
         /// <returns>The value at the given index.</returns>
-        [SuppressMessage("Performance", "CA1814:Prefer jagged arrays over multidimensional", Target = "array")]
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Target = "array")]
         public static T GetValue<T>(this T[,,] array, Index3 index) =>
             array[index.X, index.Y, index.Z];
 
@@ -112,7 +124,10 @@ namespace ILGPU.Algorithms
         /// <param name="array">The target array.</param>
         /// <param name="value">The value to set.</param>
         /// <param name="index">The element index.</param>
-        [SuppressMessage("Performance", "CA1814:Prefer jagged arrays over multidimensional", Target = "array")]
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Target = "array")]
         public static void SetValue<T>(this T[,] array, T value, Index2 index) =>
             array[index.X, index.Y] = value;
 
@@ -123,7 +138,10 @@ namespace ILGPU.Algorithms
         /// <param name="array">The target array.</param>
         /// <param name="value">The value to set.</param>
         /// <param name="index">The element index.</param>
-        [SuppressMessage("Performance", "CA1814:Prefer jagged arrays over multidimensional", Target = "array")]
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Target = "array")]
         public static void SetValue<T>(this T[,,] array, T value, Index3 index) =>
             array[index.X, index.Y, index.Z] = value;
     }

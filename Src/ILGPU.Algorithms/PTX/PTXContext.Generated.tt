@@ -63,7 +63,10 @@ namespace ILGPU.Algorithms.PTX
             manager.RegisterBinaryArithmetic(
                 BinaryArithmeticKind.<#= kind #>,
                 BasicValueType.<#= basicType #>,
-                GetMathIntrinsic("<#= name #>", typeof(<#= type #>), typeof(<#= type #>)));
+                GetMathIntrinsic(
+                    "<#= name #>",
+                    typeof(<#= type #>),
+                    typeof(<#= type #>)));
 <# } #>
 
 <# foreach (var (name, type, kind, basicType) in hardwareMathFunctions) { #>

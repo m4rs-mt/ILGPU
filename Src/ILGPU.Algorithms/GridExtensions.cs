@@ -30,7 +30,9 @@ namespace ILGPU.Algorithms
     /// <summary>
     /// Represents a functional grid-stride-loop body.
     /// </summary>
-    /// <typeparam name="T">The type of the intermediate values inside the loop.</typeparam>
+    /// <typeparam name="T">
+    /// The type of the intermediate values inside the loop.
+    /// </typeparam>
     public interface IGridStrideLoopBody<T>
         where T : struct
     {
@@ -60,7 +62,9 @@ namespace ILGPU.Algorithms
         /// <param name="length">The global length.</param>
         /// <param name="loopBody">The loop body.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void GridStrideLoop<TLoopBody>(Index1 length, ref TLoopBody loopBody)
+        public static void GridStrideLoop<TLoopBody>(
+            Index1 length,
+            ref TLoopBody loopBody)
             where TLoopBody : struct, IGridStrideLoopBody
         {
             for (
@@ -100,11 +104,14 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Returns a kernel extent (a grouped index) with the maximum number of groups using the
-        /// maximum number of threads per group to launch common grid-stride loop kernels.
+        /// Returns a kernel extent (a grouped index) with the maximum number of groups
+        /// using the maximum number of threads per group to launch common grid-stride
+        /// loop kernels.
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
-        /// <param name="numDataElements">The number of parallel data elements to process.</param>
+        /// <param name="numDataElements">
+        /// The number of parallel data elements to process.
+        /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static (Index1, Index1) ComputeGridStrideLoopExtent(
             this Accelerator accelerator,
@@ -114,12 +121,17 @@ namespace ILGPU.Algorithms
                 out var _);
 
         /// <summary>
-        /// Returns a kernel extent (a grouped index) with the maximum number of groups using the
-        /// maximum number of threads per group to launch common grid-stride loop kernels.
+        /// Returns a kernel extent (a grouped index) with the maximum number of groups
+        /// using the maximum number of threads per group to launch common grid-stride
+        /// loop kernels.
         /// </summary>
         /// <param name="accelerator">The accelerator.</param>
-        /// <param name="numDataElements">The number of parallel data elements to process.</param>
-        /// <param name="numIterationsPerGroup">The number of loop iterations per group.</param>
+        /// <param name="numDataElements">
+        /// The number of parallel data elements to process.
+        /// </param>
+        /// <param name="numIterationsPerGroup">
+        /// The number of loop iterations per group.
+        /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static (Index1, Index1) ComputeGridStrideLoopExtent(
             this Accelerator accelerator,
@@ -131,7 +143,8 @@ namespace ILGPU.Algorithms
             var numParallelGroups = XMath.DivRoundUp(numDataElements, groupDim);
             var dimension = XMath.Min(gridDim, numParallelGroups);
 
-            numIterationsPerGroup = XMath.DivRoundUp(numDataElements, dimension * groupDim);
+            numIterationsPerGroup =
+                XMath.DivRoundUp(numDataElements, dimension * groupDim);
 
             return (dimension, groupDim);
         }

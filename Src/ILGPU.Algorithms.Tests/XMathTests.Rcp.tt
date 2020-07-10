@@ -35,7 +35,10 @@ namespace ILGPU.Algorithms.Tests
     partial class XMathTests
     {
 <# foreach (var function in rcpFunctions) { #>
-        internal static void <#= function.KernelName #>(Index1 index, ArrayView<<#= function.DataType #>> input, ArrayView<<#= function.DataType #>> output)
+        internal static void <#= function.KernelName #>(
+            Index1 index,
+            ArrayView<<#= function.DataType #>> input,
+            ArrayView<<#= function.DataType #>> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index]);
         }
@@ -51,16 +54,27 @@ namespace ILGPU.Algorithms.Tests
 #>
             // [<#= start #>, <#= end #>]
             var inputValues = new List<<#= function.DataType #>>();
-            for (var x = <#= start #><#= function.ValueSuffix #>; x <= <#= end #><#= function.ValueSuffix #>; x += <#= step #><#= function.ValueSuffix #>)
+            for (
+                var x = <#= start #><#= function.ValueSuffix #>;
+                x <= <#= end #><#= function.ValueSuffix #>;
+                x += <#= step #><#= function.ValueSuffix #>)
                 inputValues.Add(x);
 
-            var edgeCases = new <#= function.DataType #>[] { 0.0<#= function.ValueSuffix #>, <#= function.DataType #>.NaN, <#= function.DataType #>.PositiveInfinity, <#= function.DataType #>.NegativeInfinity };
+            var edgeCases = new <#= function.DataType #>[]
+            {
+                0.0<#= function.ValueSuffix #>,
+                <#= function.DataType #>.NaN,
+                <#= function.DataType #>.PositiveInfinity,
+                <#= function.DataType #>.NegativeInfinity
+            };
             for (var x = 0; x < edgeCases.Length; x++)
                 inputValues.Add(edgeCases[x]);
 
             var inputArray = inputValues.ToArray();
-            using var input = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
-            using var output = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+            using var input = Accelerator.Allocate<<#= function.DataType #>>(
+                inputArray.Length);
+            using var output = Accelerator.Allocate<<#= function.DataType #>>(
+                inputArray.Length);
 
             input.CopyFrom(inputArray, 0, 0, inputArray.Length);
             Execute(input.Length, input.View, output.View);

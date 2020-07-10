@@ -25,47 +25,56 @@ namespace ILGPU.Algorithms
         /// <summary>
         /// Represents the offset of the x-component of a <see cref="Vector2"/>.
         /// </summary>
-        public static readonly int Vector2XOffset = Interop.OffsetOf<Vector2>(nameof(Vector2.X));
+        public static readonly int Vector2XOffset =
+            Interop.OffsetOf<Vector2>(nameof(Vector2.X));
 
         /// <summary>
         /// Represents the offset of the y-component of a <see cref="Vector2"/>.
         /// </summary>
-        public static readonly int Vector2YOffset = Interop.OffsetOf<Vector2>(nameof(Vector2.Y));
+        public static readonly int Vector2YOffset =
+            Interop.OffsetOf<Vector2>(nameof(Vector2.Y));
 
         /// <summary>
         /// Represents the offset of the x-component of a <see cref="Vector3"/>.
         /// </summary>
-        public static readonly int Vector3XOffset = Interop.OffsetOf<Vector3>(nameof(Vector3.X));
+        public static readonly int Vector3XOffset =
+            Interop.OffsetOf<Vector3>(nameof(Vector3.X));
 
         /// <summary>
         /// Represents the offset of the y-component of a <see cref="Vector3"/>.
         /// </summary>
-        public static readonly int Vector3YOffset = Interop.OffsetOf<Vector3>(nameof(Vector3.Y));
+        public static readonly int Vector3YOffset =
+            Interop.OffsetOf<Vector3>(nameof(Vector3.Y));
 
         /// <summary>
         /// Represents the offset of the z-component of a <see cref="Vector3"/>.
         /// </summary>
-        public static readonly int Vector3ZOffset = Interop.OffsetOf<Vector3>(nameof(Vector3.Z));
+        public static readonly int Vector3ZOffset =
+            Interop.OffsetOf<Vector3>(nameof(Vector3.Z));
 
         /// <summary>
         /// Represents the offset of the x-component of a <see cref="Vector4"/>.
         /// </summary>
-        public static readonly int Vector4XOffset = Interop.OffsetOf<Vector4>(nameof(Vector4.X));
+        public static readonly int Vector4XOffset =
+            Interop.OffsetOf<Vector4>(nameof(Vector4.X));
 
         /// <summary>
         /// Represents the offset of the y-component of a <see cref="Vector4"/>.
         /// </summary>
-        public static readonly int Vector4YOffset = Interop.OffsetOf<Vector4>(nameof(Vector4.Y));
+        public static readonly int Vector4YOffset =
+            Interop.OffsetOf<Vector4>(nameof(Vector4.Y));
 
         /// <summary>
         /// Represents the offset of the z-component of a <see cref="Vector4"/>.
         /// </summary>
-        public static readonly int Vector4ZOffset = Interop.OffsetOf<Vector4>(nameof(Vector4.Z));
+        public static readonly int Vector4ZOffset =
+            Interop.OffsetOf<Vector4>(nameof(Vector4.Z));
 
         /// <summary>
         /// Represents the offset of the w-component of a <see cref="Vector4"/>.
         /// </summary>
-        public static readonly int Vector4WOffset = Interop.OffsetOf<Vector4>(nameof(Vector4.W));
+        public static readonly int Vector4WOffset =
+            Interop.OffsetOf<Vector4>(nameof(Vector4.W));
 
         #endregion
 

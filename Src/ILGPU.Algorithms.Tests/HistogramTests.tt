@@ -25,6 +25,8 @@ using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
+// disable: max_line_length
+
 <#
 var incrementTypes = AtomicNumericTypes;
 var inputTypes = NumericTypes;

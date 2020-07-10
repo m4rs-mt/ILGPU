@@ -15,6 +15,9 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
+
+// disable: max_line_length
+
 namespace ILGPU.Algorithms
 {
     partial class XMath
@@ -42,21 +45,24 @@ namespace ILGPU.Algorithms
 
                 // Deal with negative exponents
                 if (value < 0)
-                    return 1.0<#= operation.ValueSuffix #> / Exp(-1.0<#= operation.ValueSuffix #> * value);
+                    return 1.0<#= operation.ValueSuffix #> /
+                        Exp(-1.0<#= operation.ValueSuffix #> * value);
 
-                // The exponential function is related to hyperbolic functions with the identity:
+                // The exponential function is related to hyperbolic functions with the
+                // identity:
                 //  exp(x) = cosh(x) + sinh(x)
                 //
-                // Furthermore, the hyperbolic CORDIC algorithm cannot handle the full range of input
-                // values, so we simplify the calculations using the formula:
+                // Furthermore, the hyperbolic CORDIC algorithm cannot handle the full
+                // range of input values, so we simplify the calculations using the
+                // formula:
                 //
                 //  exp(x) = exp(quotient * ln(2) + remainder)
                 //         = exp(quotient * ln(2)) * exp(remainder)
                 //         = exp(ln(2)) ^ quotient * exp(remainder)
                 //         = 2^quotient * exp(remainder)
                 //
-                // We can calculate 2^quotient easily using repeated multiplication, and the remainder fits
-                // within the CORDIC input range.
+                // We can calculate 2^quotient easily using repeated multiplication, and
+                // the remainder fits within the CORDIC input range.
                 //
                 // Reference:
                 //  https://en.wikipedia.org/wiki/Hyperbolic_functions#Relationship_to_the_exponential_function
@@ -75,7 +81,9 @@ namespace ILGPU.Algorithms
                     quotient -= 1;
                 }
 
-                return twoPowQuotient * (cosh + sinh) * HyperbolicGain<#= operation.XMathSuffix #>;
+                return twoPowQuotient *
+                    (cosh + sinh) *
+                    HyperbolicGain<#= operation.XMathSuffix #>;
             }
 
 <# } #>

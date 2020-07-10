@@ -20,9 +20,12 @@ namespace ILGPU.Algorithms.Sequencers
         where T : struct
     {
         /// <summary>
-        /// Computes the sequence element for the corresponding <paramref name="sequenceIndex"/>.
+        /// Computes the sequence element for the corresponding
+        /// <paramref name="sequenceIndex"/>.
         /// </summary>
-        /// <param name="sequenceIndex">The sequence index for the computation of the corresponding value.</param>
+        /// <param name="sequenceIndex">
+        /// The sequence index for the computation of the corresponding value.
+        /// </param>
         /// <returns>The computed sequence value.</returns>
         T ComputeSequenceElement(Index1 sequenceIndex);
     }

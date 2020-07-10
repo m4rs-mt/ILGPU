@@ -15,6 +15,9 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
+
+// disable: max_line_length
+
 <#
     // Pre-calculate a table of inverse tangents of negative powers of two, in radians.
     // i.e. angles = atan(2.^(-i))

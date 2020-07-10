@@ -17,7 +17,8 @@ namespace ILGPU.Algorithms
     partial class XMath
     {
         /// <summary>
-        /// Rounds the value to the nearest value (halfway cases are rounded away from zero).
+        /// Rounds the value to the nearest value (halfway cases are rounded away from
+        /// zero).
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The nearest value.</returns>
@@ -26,7 +27,8 @@ namespace ILGPU.Algorithms
             Utilities.Select(value < 0.0, Floor(value), Ceiling(value));
 
         /// <summary>
-        /// Rounds the value to the nearest value (halfway cases are rounded away from zero).
+        /// Rounds the value to the nearest value (halfway cases are rounded away from
+        /// zero).
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The nearest value.</returns>

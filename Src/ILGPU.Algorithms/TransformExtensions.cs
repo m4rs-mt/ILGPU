@@ -30,7 +30,9 @@ namespace ILGPU.Algorithms
         /// into a transformed value of type <typeparamref name="TTarget"/>.
         /// </summary>
         /// <param name="value">The value to transform.</param>
-        /// <returns>The transformed value of type <typeparamref name="TTarget"/>.</returns>
+        /// <returns>
+        /// The transformed value of type <typeparamref name="TTarget"/>.
+        /// </returns>
         TTarget Transform(TSource value);
     }
 
@@ -57,7 +59,9 @@ namespace ILGPU.Algorithms
     /// </summary>
     /// <typeparam name="TSource">The source value type of the transformation.</typeparam>
     /// <typeparam name="TTarget">The target value type of the transformation.</typeparam>
-    /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+    /// <typeparam name="TTransformer">
+    /// The transformer to transform elements from the source type to the target type.
+    /// </typeparam>
     static class TransformImpl<TSource, TTarget, TTransformer>
         where TSource : unmanaged
         where TTarget : unmanaged
@@ -79,10 +83,14 @@ namespace ILGPU.Algorithms
     /// </summary>
     /// <typeparam name="TSource">The source value type of the transformation.</typeparam>
     /// <typeparam name="TTarget">The target value type of the transformation.</typeparam>
-    /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+    /// <typeparam name="TTransformer">
+    /// The transformer to transform elements from the source type to the target type.
+    /// </typeparam>
     /// <param name="stream">The accelerator stream.</param>
     /// <param name="source">The source elements to transform</param>
-    /// <param name="target">The target elements that will contain the transformed values.</param>
+    /// <param name="target">
+    /// The target elements that will contain the transformed values.
+    /// </param>
     /// <param name="transformer">The used transformer.</param>
     public delegate void Transformer<TSource, TTarget, TTransformer>(
         AcceleratorStream stream,
@@ -103,9 +111,15 @@ namespace ILGPU.Algorithms
         /// <summary>
         /// Implements a transformer algorithm.
         /// </summary>
-        /// <typeparam name="TSource">The source value type of the transformation.</typeparam>
-        /// <typeparam name="TTarget">The target value type of the transformation.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+        /// <typeparam name="TSource">
+        /// The source value type of the transformation.
+        /// </typeparam>
+        /// <typeparam name="TTarget">
+        /// The target value type of the transformation.
+        /// </typeparam>
+        /// <typeparam name="TTransformer">
+        /// The transformer to transform elements from the source type to the target type.
+        /// </typeparam>
         /// <param name="index"></param>
         /// <param name="source"></param>
         /// <param name="target"></param>
@@ -125,12 +139,18 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Creates a raw transformer that is defined by the given source and target type and the specified
-        /// transformer type.
+        /// Creates a raw transformer that is defined by the given source and target type
+        /// and the specified transformer type.
         /// </summary>
-        /// <typeparam name="TSource">The source value type of the transformation.</typeparam>
-        /// <typeparam name="TTarget">The target value type of the transformation.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+        /// <typeparam name="TSource">
+        /// The source value type of the transformation.
+        /// </typeparam>
+        /// <typeparam name="TTarget">
+        /// The target value type of the transformation.
+        /// </typeparam>
+        /// <typeparam name="TTransformer">
+        /// The transformer to transform elements from the source type to the target type.
+        /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="minDataSize">The minimum data size for maximum occupancy.</param>
         /// <returns>The loaded transformer.</returns>
@@ -160,12 +180,18 @@ namespace ILGPU.Algorithms
         #endregion
 
         /// <summary>
-        /// Creates a raw transformer that is defined by the given source and target type and the specified
-        /// transformer type.
+        /// Creates a raw transformer that is defined by the given source and target type
+        /// and the specified transformer type.
         /// </summary>
-        /// <typeparam name="TSource">The source value type of the transformation.</typeparam>
-        /// <typeparam name="TTarget">The target value type of the transformation.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+        /// <typeparam name="TSource">
+        /// The source value type of the transformation.
+        /// </typeparam>
+        /// <typeparam name="TTarget">
+        /// The target value type of the transformation.
+        /// </typeparam>
+        /// <typeparam name="TTransformer">
+        /// The transformer to transform elements from the source type to the target type.
+        /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
         public static Transformer<TSource, TTarget, TTransformer>
@@ -201,10 +227,13 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Creates a new transformer that is defined by the element type and the specified transformer type.
+        /// Creates a new transformer that is defined by the element type and the
+        /// specified transformer type.
         /// </summary>
         /// <typeparam name="T">The type of the elements to transform.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+        /// <typeparam name="TTransformer">
+        /// The transformer to transform elements from the source type to the target type.
+        /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <returns>The loaded transformer.</returns>
         public static Transformer<T, T, TTransformer> CreateTransformer<T, TTransformer>(
@@ -216,14 +245,19 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Transforms elements in the source view into elements in the target view using the given transformer.
+        /// Transforms elements in the source view into elements in the target view using
+        /// the given transformer.
         /// </summary>
         /// <typeparam name="T">The type of the elements to transform.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+        /// <typeparam name="TTransformer">
+        /// The transformer to transform elements from the source type to the target type.
+        /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
-        /// <param name="target">The target elements that will contain the transformed values.</param>
+        /// <param name="target">
+        /// The target elements that will contain the transformed values.
+        /// </param>
         /// <param name="transformer">The used transformer.</param>
         public static void Transform<T, TTransformer>(
             this Accelerator accelerator,
@@ -242,15 +276,24 @@ namespace ILGPU.Algorithms
         }
 
         /// <summary>
-        /// Transforms elements in the source view into elements in the target view using the given transformer.
+        /// Transforms elements in the source view into elements in the target view using
+        /// the given transformer.
         /// </summary>
-        /// <typeparam name="TSource">The source type of the elements to transform.</typeparam>
-        /// <typeparam name="TTarget">The target type of the elements that have been transformed.</typeparam>
-        /// <typeparam name="TTransformer">The transformer to transform elements from the source type to the target type.</typeparam>
+        /// <typeparam name="TSource">
+        /// The source type of the elements to transform.
+        /// </typeparam>
+        /// <typeparam name="TTarget">
+        /// The target type of the elements that have been transformed.
+        /// </typeparam>
+        /// <typeparam name="TTransformer">
+        /// The transformer to transform elements from the source type to the target type.
+        /// </typeparam>
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="stream">The accelerator stream.</param>
         /// <param name="source">The source elements to transform</param>
-        /// <param name="target">The target elements that will contain the transformed values.</param>
+        /// <param name="target">
+        /// The target elements that will contain the transformed values.
+        /// </param>
         /// <param name="transformer">The used transformer.</param>
         public static void Transform<TSource, TTarget, TTransformer>(
             this Accelerator accelerator,

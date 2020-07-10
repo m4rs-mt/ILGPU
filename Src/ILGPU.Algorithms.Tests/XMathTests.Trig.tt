@@ -21,6 +21,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
+// disable: max_line_length
+
 <#
     var unaryTrigFunctions = new []
     {
@@ -54,12 +56,15 @@ using Xunit;
 #>
 namespace ILGPU.Algorithms.Tests
 {
-    // Performs tests on the various trigonometric functions across a range of input values
-    // and ensures a minimum precision on each accelerator type.
+    // Performs tests on the various trigonometric functions across a range of input
+    // values and ensures a minimum precision on each accelerator type.
     partial class XMathTests
     {
 <# foreach (var function in unaryTrigFunctions) { #>
-        internal static void <#= function.KernelName #>(Index1 index, ArrayView<<#= function.DataType #>> input, ArrayView<<#= function.DataType #>> output)
+        internal static void <#= function.KernelName #>(
+            Index1 index,
+            ArrayView<<#= function.DataType #>> input,
+            ArrayView<<#= function.DataType #>> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index]);
         }
@@ -74,9 +79,17 @@ namespace ILGPU.Algorithms.Tests
 #>
             // [<#= startRange #>, <#= endRange #>] degrees
             var inputArray =
-                Enumerable.Range(<#= startRange #>, <#= endRange - startRange + 1 #>)<#= function.Condition #>
+                Enumerable.Range(
+                    <#= startRange #>,
+                    <#= endRange - startRange + 1 #>)<#= function.Condition #>
                 <#= function.Projection #>
-                .Concat(new <#= function.DataType #>[] { 0.0<#= function.ValueSuffix #>, <#= function.DataType #>.NaN, <#= function.DataType #>.PositiveInfinity, <#= function.DataType #>.NegativeInfinity }) // Edge cases
+                .Concat(new <#= function.DataType #>[]
+                {
+                    0.0<#= function.ValueSuffix #>,
+                    <#= function.DataType #>.NaN,
+                    <#= function.DataType #>.PositiveInfinity,
+                    <#= function.DataType #>.NegativeInfinity
+                }) // Edge cases
                 .ToArray();
 
             using var input = Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
@@ -85,7 +98,8 @@ namespace ILGPU.Algorithms.Tests
             input.CopyFrom(inputArray, 0, 0, inputArray.Length);
             Execute(input.Length, input.View, output.View);
 
-            var expected = inputArray.Select(Math<#= function.MathSuffix #>.<#= function.Name #>).ToArray();
+            var expected = inputArray.Select(
+                Math<#= function.MathSuffix #>.<#= function.Name #>).ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
@@ -96,7 +110,10 @@ namespace ILGPU.Algorithms.Tests
 
 <# } #>
 <# foreach (var function in binaryTrigFunctions) { #>
-        internal static void <#= function.KernelName #>(Index1 index, ArrayView<XMathTuple<<#= function.DataType #>>> input, ArrayView<<#= function.DataType #>> output)
+        internal static void <#= function.KernelName #>(
+            Index1 index,
+            ArrayView<XMathTuple<<#= function.DataType #>>> input,
+            ArrayView<<#= function.DataType #>> output)
         {
             output[index] = XMath.<#= function.Name #>(input[index].X, input[index].Y);
         }
@@ -112,20 +129,34 @@ namespace ILGPU.Algorithms.Tests
 #>
             // [<#= start #>, <#= end #>]
             var inputValues = new List<XMathTuple<<#= function.DataType #>>>();
-            for (var x = <#= start.ToString("F1") #><#= function.ValueSuffix #>; x <= <#= end #><#= function.ValueSuffix #>; x += <#= step #><#= function.ValueSuffix #>)
+            for (
+                var x = <#= start.ToString("F1") #><#= function.ValueSuffix #>;
+                x <= <#= end #><#= function.ValueSuffix #>;
+                x += <#= step #><#= function.ValueSuffix #>)
             {
-                for (var y = <#= start.ToString("F1") #><#= function.ValueSuffix #>; y <= <#= end #><#= function.ValueSuffix #>; y += <#= step #><#= function.ValueSuffix #>)
+                for (
+                    var y = <#= start.ToString("F1") #><#= function.ValueSuffix #>;
+                    y <= <#= end #><#= function.ValueSuffix #>;
+                    y += <#= step #><#= function.ValueSuffix #>)
                 {
                     inputValues.Add(new XMathTuple<<#= function.DataType #>>(x, y));
                 }
             }
 
-            var edgeCases = new <#= function.DataType #>[] { 0.0<#= function.ValueSuffix #>, <#= function.DataType #>.NaN, <#= function.DataType #>.PositiveInfinity, <#= function.DataType #>.NegativeInfinity };
+            var edgeCases = new <#= function.DataType #>[]
+            {
+                0.0<#= function.ValueSuffix #>,
+                <#= function.DataType #>.NaN,
+                <#= function.DataType #>.PositiveInfinity,
+                <#= function.DataType #>.NegativeInfinity
+            };
             for (var x = 0; x < edgeCases.Length; x++)
             {
                 for (var y = 0; y < edgeCases.Length; y++)
                 {
-                    inputValues.Add(new XMathTuple<<#= function.DataType #>>(edgeCases[x], edgeCases[y]));
+                    inputValues.Add(new XMathTuple<<#= function.DataType #>>(
+                        edgeCases[x],
+                        edgeCases[y]));
                 }
             }
 
@@ -136,7 +167,9 @@ namespace ILGPU.Algorithms.Tests
             input.CopyFrom(inputArray, 0, 0, inputArray.Length);
             Execute(input.Length, input.View, output.View);
 
-            var expected = inputArray.Select(v => Math<#= function.MathSuffix #>.<#= function.Name #>(v.X, v.Y)).ToArray();
+            var expected = inputArray.Select(
+                v => Math<#= function.MathSuffix #>.<#= function.Name #>(
+                    v.X, v.Y)).ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
@@ -151,7 +184,12 @@ namespace ILGPU.Algorithms.Tests
 <#+
     class TrigFunction : XMathFunction
     {
-        public TrigFunction(string name, string dataType, Precision precision, string projection, string condition = null)
+        public TrigFunction(
+            string name,
+            string dataType,
+            Precision precision,
+            string projection,
+            string condition = null)
             : base(name, dataType, precision)
         {
             Projection = projection;
