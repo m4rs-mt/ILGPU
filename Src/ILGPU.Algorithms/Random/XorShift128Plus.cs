@@ -1,16 +1,16 @@
-﻿// -----------------------------------------------------------------------------
-//                             ILGPU.Algorithms
-//                  Copyright (c) 2019 ILGPU Algorithms Project
-//                 Copyright (c) 2017-2018 ILGPU Samples Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2019 ILGPU Algorithms Project
+//                     Copyright (c) 2017-2018 ILGPU Samples Project
+//                                    www.ilgpu.net
 //
 // File: XorShift128Plus.cs
 //
 // Algorithm: https://en.wikipedia.org/wiki/Xorshift
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details.
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using System;
 using System.Diagnostics;

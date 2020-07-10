@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                             ILGPU.Algorithms
-//                  Copyright (c) 2020 ILGPU Algorithms Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
 //
 // File: CuBlas.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;

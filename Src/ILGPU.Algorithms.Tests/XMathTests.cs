@@ -1,4 +1,15 @@
-﻿using ILGPU.Runtime;
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: XMathTests.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+using ILGPU.Runtime;
 using ILGPU.Tests;
 using System;
 using System.Collections.Generic;

@@ -1,13 +1,13 @@
-﻿// -----------------------------------------------------------------------------
-//                             ILGPU.Algorithms
-//                  Copyright (c) 2020 ILGPU Algorithms Project
-//                                www.ilgpu.net
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
 //
 // File: Enums.cs
 //
-// This file is part of ILGPU and is distributed under the University of
-// Illinois Open Source License. See LICENSE.txt for details
-// -----------------------------------------------------------------------------
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
 
 #pragma warning disable IDE1006 // Naming Styles
 #pragma warning disable CA1707 // Identifiers should not contain underscores
