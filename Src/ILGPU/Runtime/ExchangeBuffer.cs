@@ -13,6 +13,7 @@ using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -312,6 +313,29 @@ namespace ILGPU.Runtime
             Debug.Assert(buffer != null, "Invalid buffer");
             return buffer.Buffer;
         }
+
+        /// <summary>
+        /// Gets the part of this exchange buffer in CPU memory
+        /// as a <see cref="Span{T}"/> which points to the same location.
+        /// </summary>
+        /// <param name="buffer">The buffer to convert.</param>
+        /// <remarks>
+        /// No copying takes place during this operation. Manipulating the span will
+        /// also manipulate the CPUView of this buffer.
+        /// </remarks>
+        public static explicit operator Span<T>(ExchangeBufferBase<T, TIndex> buffer) =>
+            new Span<T>(buffer.cpuMemoryPointer, buffer.Length);
+
+        /// <summary>
+        /// Gets the part of this exchange buffer in CPU memory
+        /// as a <see cref="Memory{T}"/>.
+        /// </summary>
+        /// <param name="buffer">The buffer to convert.</param>
+        /// <remarks>
+        /// The <see cref="Memory{T}"/> instance returned is a copy.
+        /// </remarks>
+        public static explicit operator Memory<T>(ExchangeBufferBase<T, TIndex> buffer) =>
+            new Memory<T>(buffer.GetAsArray());
 
         #endregion
 
