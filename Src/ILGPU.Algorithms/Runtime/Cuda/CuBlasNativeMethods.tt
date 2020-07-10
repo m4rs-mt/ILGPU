@@ -29,6 +29,8 @@ var apis = new (string, bool)[]
 using System;
 using System.Runtime.InteropServices;
 
+#pragma warning disable IDE1006 // Naming Styles
+
 namespace ILGPU.Runtime.Cuda.API
 {
 <# foreach (var (className, define) in apis) { #>
@@ -1340,3 +1342,5 @@ namespace ILGPU.Runtime.Cuda.API
     }
 <# } #>
 }
+
+#pragma warning restore IDE1006 // Naming Styles
