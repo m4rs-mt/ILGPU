@@ -449,6 +449,7 @@ namespace ILGPU.Backends.PTX
 
                 { (UnaryArithmeticKind.SinF, ArithmeticBasicValueType.Float32), "sin.approx.ftz.f32" },
                 { (UnaryArithmeticKind.CosF, ArithmeticBasicValueType.Float32), "cos.approx.ftz.f32" },
+                { (UnaryArithmeticKind.TanhF, ArithmeticBasicValueType.Float32), "tanh.approx.ftz.f32" },
 
                 { (UnaryArithmeticKind.Log2F, ArithmeticBasicValueType.Float32), "lg2.approx.ftz.f32" },
                 { (UnaryArithmeticKind.Exp2F, ArithmeticBasicValueType.Float32), "ex2.approx.ftz.f32" },
