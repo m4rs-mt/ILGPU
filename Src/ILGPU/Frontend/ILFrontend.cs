@@ -130,6 +130,16 @@ namespace ILGPU.Frontend
         /// </summary>
         public DebugInformationManager DebugInformationManager { get; }
 
+        /// <summary>
+        /// Returns true if the code generation has failed.
+        /// </summary>
+        public bool IsFaulted => LastException != null;
+
+        /// <summary>
+        /// Returns the exception from code generation failure.
+        /// </summary>
+        public Exception LastException { get; private set; }
+
         #endregion
 
         #region Methods
@@ -160,20 +170,41 @@ namespace ILGPU.Frontend
                     "Invalid processing state");
 
                 detectedMethods.Clear();
-                codeGenerationPhase.GenerateCodeInternal(
-                    current.Method,
-                    current.IsExternalRequest,
-                    detectedMethods,
-                    out Method method);
-                current.SetResult(method);
+                try
+                {
+                    codeGenerationPhase.GenerateCodeInternal(
+                        current.Method,
+                        current.IsExternalRequest,
+                        detectedMethods,
+                        out Method method);
+                    current.SetResult(method);
+                }
+#pragma warning disable CA1031 // Do not catch general exception types
+                catch (Exception e)
+#pragma warning restore CA1031 // Do not catch general exception types
+                {
+                    codeGenerationPhase.RecordException(e);
+                }
 
                 // Check dependencies
                 lock (processingSyncObject)
                 {
                     --activeThreads;
 
-                    foreach (var detectedMethod in detectedMethods)
-                        processing.Push(new ProcessingEntry(detectedMethod, null));
+                    try
+                    {
+                        foreach (var detectedMethod in detectedMethods)
+                            processing.Push(new ProcessingEntry(detectedMethod, null));
+
+                    }
+#pragma warning disable CA1031 // Do not catch general exception types
+                    catch (Exception e)
+#pragma warning restore CA1031 // Do not catch general exception types
+                    {
+                        codeGenerationPhase.RecordException(e);
+                        detectedMethods.Clear();
+                        processing.Clear();
+                    }
 
                     if (detectedMethods.Count > 0)
                     {
@@ -238,6 +269,7 @@ namespace ILGPU.Frontend
                 "This code generation phase had nothing to do");
             if (phase.HadWorkToDo)
                 driverNotifier.Wait();
+            LastException = codeGenerationPhase.FirstException;
 
             if (Interlocked.CompareExchange(
                 ref codeGenerationPhase,
@@ -304,6 +336,12 @@ namespace ILGPU.Frontend
         /// Returns true if this result has a function value.
         /// </summary>
         public bool HasResult => Result != null;
+
+        /// <summary>
+        /// The first exception during code generation, if any.
+        /// </summary>
+        public Exception FirstException { get; internal set; }
+
     }
 
     /// <summary>
@@ -316,6 +354,7 @@ namespace ILGPU.Frontend
 
         private volatile bool isFinished = false;
         private volatile bool hadWorkToDo = false;
+        private volatile Exception firstException = null;
 
         /// <summary>
         /// Constructs a new generation phase.
@@ -367,6 +406,11 @@ namespace ILGPU.Frontend
         /// Returns true if the code generation phase had work to do.
         /// </summary>
         public bool HadWorkToDo => hadWorkToDo;
+
+        /// <summary>
+        /// Returns the first exception recorded during code-generation.
+        /// </summary>
+        public Exception FirstException => firstException;
 
         #endregion
 
@@ -445,6 +489,16 @@ namespace ILGPU.Frontend
                 throw new ArgumentNullException(nameof(method));
             hadWorkToDo = true;
             return Frontend.GenerateCode(method);
+        }
+
+        /// <summary>
+        /// Records an exception during code-generation.
+        /// </summary>
+        /// <param name="exception">The exception to record.</param>
+        internal void RecordException(Exception exception)
+        {
+            Debug.Assert(exception != null);
+            Interlocked.CompareExchange(ref firstException, exception, null);
         }
 
         #endregion

@@ -545,6 +545,16 @@ namespace ILGPU
         /// </summary>
         public IRContext IRContext { get; }
 
+        /// <summary>
+        /// Returns true if the code generation has failed.
+        /// </summary>
+        public bool IsFaulted => Context.ILFrontend.IsFaulted;
+
+        /// <summary>
+        /// Returns the exception from code generation failure.
+        /// </summary>
+        public Exception LastException => Context.ILFrontend.LastException;
+
         #endregion
 
         #region Methods
