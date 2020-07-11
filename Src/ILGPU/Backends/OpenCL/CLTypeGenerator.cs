@@ -70,6 +70,7 @@ namespace ILGPU.Backends.OpenCL
                 "short",
                 "int",
                 "long",
+                "half",
                 "float",
                 "double");
 
@@ -84,6 +85,7 @@ namespace ILGPU.Backends.OpenCL
                 "short",
                 "int",
                 "long",
+                "half",
                 "float",
                 "double",
                 "uchar",
@@ -102,6 +104,7 @@ namespace ILGPU.Backends.OpenCL
                 null,
                 "atomic_int",
                 "atomic_long",
+                null,
                 null,
                 null,
                 null,

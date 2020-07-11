@@ -69,6 +69,8 @@ namespace ILGPU.IR.Construction
             var isUnsigned = (flags & CompareFlags.UnsignedOrUnordered) == CompareFlags.UnsignedOrUnordered;
             switch (left.BasicValueType)
             {
+                case BasicValueType.Float16:
+                    return CreatePrimitiveValue(location, <#= operation.Prefix #>left.Float16Value<#= operation.Operation #>right.Float16Value<#= operation.Suffix #>);
                 case BasicValueType.Float32:
                     return CreatePrimitiveValue(location, <#= operation.Prefix #>left.Float32Value<#= operation.Operation #>right.Float32Value<#= operation.Suffix #>);
                 case BasicValueType.Float64:

@@ -103,6 +103,9 @@ namespace ILGPU.IR.Construction
             {
                 return primitiveType.BasicValueType switch
                 {
+                    BasicValueType.Float16 => CreatePrimitiveValue(
+                        location,
+                        Interop.FloatAsInt(primitive.Float16Value)),
                     BasicValueType.Float32 => CreatePrimitiveValue(
                         location,
                         Interop.FloatAsInt(primitive.Float32Value)),
@@ -117,6 +120,7 @@ namespace ILGPU.IR.Construction
 
             var basicValueType = primitiveType.BasicValueType switch
             {
+                BasicValueType.Float16 => BasicValueType.Int16,
                 BasicValueType.Float32 => BasicValueType.Int32,
                 BasicValueType.Float64 => BasicValueType.Int64,
                 _ => throw location.GetNotSupportedException(
@@ -145,6 +149,9 @@ namespace ILGPU.IR.Construction
             {
                 return primitiveType.BasicValueType switch
                 {
+                    BasicValueType.Int16 => CreatePrimitiveValue(
+                        location,
+                        Interop.IntAsFloat(primitive.UInt16Value)),
                     BasicValueType.Int32 => CreatePrimitiveValue(
                         location,
                         Interop.IntAsFloat(primitive.UInt32Value)),
@@ -159,6 +166,7 @@ namespace ILGPU.IR.Construction
 
             var basicValueType = primitiveType.BasicValueType switch
             {
+                BasicValueType.Int16 => BasicValueType.Float16,
                 BasicValueType.Int32 => BasicValueType.Float32,
                 BasicValueType.Int64 => BasicValueType.Float64,
                 _ => throw location.GetNotSupportedException(

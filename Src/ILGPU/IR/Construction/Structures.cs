@@ -12,6 +12,7 @@
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
@@ -34,7 +35,7 @@ namespace ILGPU.IR.Construction
                 throw location.GetArgumentNullException(nameof(instance));
 
             var managedType = instance.GetType();
-            if (managedType.IsPrimitive)
+            if (managedType.IsILGPUPrimitiveType())
                 return CreatePrimitiveValue(location, instance);
             if (managedType.IsEnum)
                 return CreateEnumValue(location, instance);

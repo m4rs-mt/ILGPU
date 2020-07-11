@@ -48,6 +48,11 @@ namespace ILGPU.Backends.PTX
         private static readonly Type PTXIntrinsicsType = typeof(PTXIntrinsics);
 
         /// <summary>
+        /// The Half implementation type.
+        /// </summary>
+        private static readonly Type HalfType = typeof(HalfExtensions);
+
+        /// <summary>
         /// Creates a new PTX intrinsic.
         /// </summary>
         /// <param name="name">The name of the intrinsic.</param>
@@ -78,13 +83,46 @@ namespace ILGPU.Backends.PTX
             IntrinsicImplementationMode mode) =>
             new PTXIntrinsic(PTXIntrinsicsType, name, mode);
 
+        private static PTXIntrinsic CreateFP16Intrinsic(
+            string name,
+            PTXArchitecture? maxArchitecture) =>
+            maxArchitecture.HasValue
+            ? new PTXIntrinsic(
+                HalfType,
+                name,
+                IntrinsicImplementationMode.Redirect,
+                null,
+                maxArchitecture.Value)
+            : new PTXIntrinsic(HalfType, name, IntrinsicImplementationMode.Redirect);
+
         /// <summary>
         /// Registers all PTX intrinsics with the given manager.
         /// </summary>
         /// <param name="manager">The target implementation manager.</param>
         public static void Register(IntrinsicImplementationManager manager)
         {
-            // Register atomics
+            RegisterAtomics(manager);
+            RegisterBroadcasts(manager);
+            RegisterWarpShuffles(manager);
+            RegisterFP16(manager);
+
+            // Register assert support
+            manager.RegisterDebug(
+                DebugKind.AssertFailed,
+                CreateIntrinsic(
+                    nameof(AssertFailed),
+                    IntrinsicImplementationMode.Redirect));
+        }
+
+        #endregion
+
+        #region Atomics
+
+        /// <summary>
+        /// Registers all atomic intrinsics with the given manager.
+        /// </summary>
+        /// <param name="manager">The target implementation manager.</param>
+        private static void RegisterAtomics(IntrinsicImplementationManager manager) =>
             manager.RegisterGenericAtomic(
                 AtomicKind.Add,
                 BasicValueType.Float64,
@@ -93,33 +131,6 @@ namespace ILGPU.Backends.PTX
                     IntrinsicImplementationMode.Redirect,
                     null,
                     PTXArchitecture.SM_53));
-
-            // Register broadcasts
-            manager.RegisterBroadcast(
-                BroadcastKind.GroupLevel,
-                CreateIntrinsic(
-                    nameof(GroupBroadcast),
-                    IntrinsicImplementationMode.Redirect));
-            manager.RegisterBroadcast(
-                BroadcastKind.WarpLevel,
-                CreateIntrinsic(
-                    nameof(WarpBroadcast),
-                    IntrinsicImplementationMode.Redirect));
-
-            // Register assert support
-            manager.RegisterDebug(
-                DebugKind.AssertFailed,
-                CreateIntrinsic(
-                    nameof(AssertFailed),
-                    IntrinsicImplementationMode.Redirect));
-
-            // Register shuffles
-            RegisterWarpShuffles(manager);
-        }
-
-        #endregion
-
-        #region Atomics
 
         /// <summary>
         /// Represents an atomic compare-exchange operation of type double.
@@ -144,6 +155,25 @@ namespace ILGPU.Backends.PTX
         #endregion
 
         #region Broadcasts
+
+        /// <summary>
+        /// Registers all broadcast intrinsics with the given manager.
+        /// </summary>
+        /// <param name="manager">The target implementation manager.</param>
+        private static void RegisterBroadcasts(
+            IntrinsicImplementationManager manager)
+        {
+            manager.RegisterBroadcast(
+                BroadcastKind.GroupLevel,
+                CreateIntrinsic(
+                    nameof(GroupBroadcast),
+                    IntrinsicImplementationMode.Redirect));
+            manager.RegisterBroadcast(
+                BroadcastKind.WarpLevel,
+                CreateIntrinsic(
+                    nameof(WarpBroadcast),
+                    IntrinsicImplementationMode.Redirect));
+        }
 
         /// <summary>
         /// Implements a single group-broadcast operation.
