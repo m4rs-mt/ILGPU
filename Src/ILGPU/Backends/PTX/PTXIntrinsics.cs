@@ -130,7 +130,7 @@ namespace ILGPU.Backends.PTX
                     nameof(AtomicAddF64),
                     IntrinsicImplementationMode.Redirect,
                     null,
-                    PTXArchitecture.SM_53));
+                    PTXArchitecture.SM_60));
 
         /// <summary>
         /// Represents an atomic compare-exchange operation of type double.

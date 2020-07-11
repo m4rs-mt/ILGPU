@@ -65,18 +65,19 @@ namespace ILGPU.Backends.PTX
         { }
 
         /// <summary>
-        /// Constructs a new PTX intrinsic that can handle all architectures.
+        /// Constructs a new PTX intrinsic that can handle all architectures
+        /// newer or equal to <paramref name="minArchitecture"/>.
         /// </summary>
         /// <param name="handlerType">The associated target handler type.</param>
         /// <param name="mode">The code-generation mode.</param>
-        /// <param name="architecture">The target architecture (if any).</param>
+        /// <param name="minArchitecture">The target/minimum architecture.</param>
         public PTXIntrinsic(
             Type handlerType,
             IntrinsicImplementationMode mode,
-            PTXArchitecture architecture)
+            PTXArchitecture minArchitecture)
             : this(handlerType, mode)
         {
-            MinArchitecture = architecture;
+            MinArchitecture = minArchitecture;
         }
 
         /// <summary>
@@ -102,19 +103,19 @@ namespace ILGPU.Backends.PTX
         /// <param name="handlerType">The associated target handler type.</param>
         /// <param name="methodName">The target method name (or null).</param>
         /// <param name="mode">The code-generator mode.</param>
-        /// <param name="architecture">The target architecture (if any).</param>
+        /// <param name="minArchitecture">The target/minimum architecture.</param>
         public PTXIntrinsic(
             Type handlerType,
             string methodName,
             IntrinsicImplementationMode mode,
-            PTXArchitecture architecture)
+            PTXArchitecture minArchitecture)
             : base(
                   BackendType.PTX,
                   handlerType,
                   methodName,
                   mode)
         {
-            MinArchitecture = architecture;
+            MinArchitecture = minArchitecture;
         }
 
         /// <summary>
@@ -124,7 +125,7 @@ namespace ILGPU.Backends.PTX
         /// <param name="methodName">The target method name (or null).</param>
         /// <param name="mode">The code-generator mode.</param>
         /// <param name="minArchitecture">The min architecture (if any).</param>
-        /// <param name="maxArchitecture">The max architecture.</param>
+        /// <param name="maxArchitecture">The max architecture (exclusive).</param>
         public PTXIntrinsic(
             Type handlerType,
             string methodName,
@@ -148,11 +149,18 @@ namespace ILGPU.Backends.PTX
         /// <summary>
         /// Returns the associated architecture (if any).
         /// </summary>
+        /// <remarks>
+        /// This intrinsic will be used for any architecture greater than or equal this
+        /// value.
+        /// </remarks>
         public PTXArchitecture? MinArchitecture { get; }
 
         /// <summary>
         /// Returns the associated architecture (if any).
         /// </summary>
+        /// <remarks>
+        /// This intrinsic will be used for any architecture less than this value.
+        /// </remarks>
         public PTXArchitecture? MaxArchitecture { get; }
 
         #endregion
@@ -162,12 +170,10 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IntrinsicImplementation.CanHandleBackend(Backend)"/>
         protected internal override bool CanHandleBackend(Backend backend) =>
             backend is PTXBackend ptxBackend
-            ? MinArchitecture.HasValue &&
-                ptxBackend.Architecture < MinArchitecture.Value
-                ? false
-                : !MaxArchitecture.HasValue ||
-                    ptxBackend.Architecture <= MaxArchitecture.Value
-            : false;
+            && (!MinArchitecture.HasValue ||
+                ptxBackend.Architecture >= MinArchitecture.Value)
+            && (!MaxArchitecture.HasValue ||
+                    ptxBackend.Architecture < MaxArchitecture.Value);
 
         #endregion
     }
