@@ -150,7 +150,7 @@ namespace ILGPU.Tests
             var data = exchangeBuffer.GetAsArray();
             Accelerator.Synchronize();
 
-            Assert.Equal(expected.Length, data.Length); ;
+            Assert.Equal(expected.Length, data.Length);
 
             for (int i = 0; i < Length; i++)
                 Assert.Equal(expected[i], data[i]);
@@ -310,8 +310,8 @@ namespace ILGPU.Tests
             // These should theoretically be the same because AsSpanFromAccelerator
             // copies into cpuMemory.
             // Syncs on it's own
-            Span<int> fromAccelerator = exchangeBuffer.AsSpanFromAccelerator();
-            Span<int> fromCPU = exchangeBuffer.AsSpan();
+            Span<int> fromAccelerator = exchangeBuffer.GetAsSpan();
+            Span<int> fromCPU = exchangeBuffer.ToSpan();
 
             for (int i = 0; i < Length; i++)
             {

@@ -13,7 +13,6 @@ using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
-using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -288,6 +287,42 @@ namespace ILGPU.Runtime
         public ArrayView3D<T> As3DView(Index3 extent) =>
             CPUView.BaseView.As3DView<T>(extent);
 
+        /// <summary>
+        /// Gets the part of this exchange buffer in CPU memory
+        /// as a <see cref="Span{T}"/> which points to the same location.
+        /// </summary>
+        /// <remarks>
+        /// No copying takes place during this operation. Manipulating the span will
+        /// also manipulate the CPUView of this buffer.
+        /// </remarks>
+        public Span<T> ToSpan() => new Span<T>(cpuMemoryPointer, Length);
+
+        /// <summary>
+        /// Gets this exchnage buffer as a <see cref="Span{T}"/>, copying from the
+        /// accelerator in the process
+        /// </summary>
+        /// <returns>
+        /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
+        /// Uses the default accelerator stream.
+        /// </returns>
+        public Span<T> GetAsSpan() =>
+            GetAsSpan(Accelerator.DefaultStream);
+
+        /// <summary>
+        /// Gets this exchnage buffer as a <see cref="Span{T}"/>, copying from the
+        /// accelerator in the process.
+        /// </summary>
+        /// <param name="stream">The stream to use</param>
+        /// <returns>
+        /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
+        /// </returns>
+        public Span<T> GetAsSpan(AcceleratorStream stream)
+        {
+            CopyFromAccelerator(stream);
+            stream.Synchronize();
+            return ToSpan();
+        }
+
         #endregion
 
         #region Operators
@@ -312,42 +347,6 @@ namespace ILGPU.Runtime
         {
             Debug.Assert(buffer != null, "Invalid buffer");
             return buffer.Buffer;
-        }
-
-        /// <summary>
-        /// Gets the part of this exchange buffer in CPU memory
-        /// as a <see cref="Span{T}"/> which points to the same location.
-        /// </summary>
-        /// <remarks>
-        /// No copying takes place during this operation. Manipulating the span will
-        /// also manipulate the CPUView of this buffer.
-        /// </remarks>
-        public Span<T> AsSpan() => new Span<T>(cpuMemoryPointer, Length);
-
-        /// <summary>
-        /// Gets this exchnage buffer as a <see cref="Span{T}"/>, copying from the
-        /// accelerator in the process
-        /// </summary>
-        /// <returns>
-        /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
-        /// Uses the default accelerator stream.
-        /// </returns>
-        public Span<T> AsSpanFromAccelerator() =>
-            AsSpanFromAccelerator(Accelerator.DefaultStream);
-
-        /// <summary>
-        /// Gets this exchnage buffer as a <see cref="Span{T}"/>, copying from the
-        /// accelerator in the process.
-        /// </summary>
-        /// <param name="stream">The stream to use</param>
-        /// <returns>
-        /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
-        /// </returns>
-        public Span<T> AsSpanFromAccelerator(AcceleratorStream stream)
-        {
-            CopyFromAccelerator(stream);
-            stream.Synchronize();
-            return AsSpan();
         }
 
         #endregion
