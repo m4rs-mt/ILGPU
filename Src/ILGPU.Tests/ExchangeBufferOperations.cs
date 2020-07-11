@@ -1,4 +1,5 @@
 ﻿using ILGPU.Runtime;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -149,7 +150,7 @@ namespace ILGPU.Tests
             var data = exchangeBuffer.GetAsArray();
             Accelerator.Synchronize();
 
-            Assert.Equal(expected.Length, data.Length);;
+            Assert.Equal(expected.Length, data.Length); ;
 
             for (int i = 0; i < Length; i++)
                 Assert.Equal(expected[i], data[i]);
@@ -282,7 +283,41 @@ namespace ILGPU.Tests
                 Assert.Equal(expected[i], returnBuffer[i]);
                 Assert.Equal(constant, exchangeBuffer[i]);
                 Assert.Equal(constant2, exchangeBuffer2[i]);
-            } 
+            }
+        }
+
+        internal static void SpanKernel(Index1 index, ArrayView<int, Index1> data)
+        {
+            data[index] = data[index] - 5;
+        }
+
+        [Theory]
+        [InlineData(10)]
+        [KernelMethod(nameof(SpanKernel))]
+        public void AsSpan(int constant)
+        {
+            var exchangeBuffer = Accelerator.AllocateExchangeBuffer<int>(Length);
+            for (int i = 0; i < Length; i++)
+                exchangeBuffer[i] = constant;
+
+            exchangeBuffer.CopyToAccelerator();
+            var expected = Enumerable.Repeat(constant - 5, Length).ToArray();
+            Accelerator.Synchronize();
+
+            Execute(exchangeBuffer.Extent, exchangeBuffer.View);
+            Accelerator.Synchronize();
+
+            // These should theoretically be the same because AsSpanFromAccelerator
+            // copies into cpuMemory.
+            // Syncs on it's own
+            Span<int> fromAccelerator = exchangeBuffer.AsSpanFromAccelerator();
+            Span<int> fromCPU = exchangeBuffer.AsSpan();
+
+            for (int i = 0; i < Length; i++)
+            {
+                Assert.Equal(expected[i], fromAccelerator[i]);
+                Assert.Equal(expected[i], fromCPU[i]);
+            }
         }
     }
 }

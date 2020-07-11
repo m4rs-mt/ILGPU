@@ -318,24 +318,37 @@ namespace ILGPU.Runtime
         /// Gets the part of this exchange buffer in CPU memory
         /// as a <see cref="Span{T}"/> which points to the same location.
         /// </summary>
-        /// <param name="buffer">The buffer to convert.</param>
         /// <remarks>
         /// No copying takes place during this operation. Manipulating the span will
         /// also manipulate the CPUView of this buffer.
         /// </remarks>
-        public static explicit operator Span<T>(ExchangeBufferBase<T, TIndex> buffer) =>
-            new Span<T>(buffer.cpuMemoryPointer, buffer.Length);
+        public Span<T> AsSpan() => new Span<T>(cpuMemoryPointer, Length);
 
         /// <summary>
-        /// Gets the part of this exchange buffer in CPU memory
-        /// as a <see cref="Memory{T}"/>.
+        /// Gets this exchnage buffer as a <see cref="Span{T}"/>, copying from the
+        /// accelerator in the process
         /// </summary>
-        /// <param name="buffer">The buffer to convert.</param>
-        /// <remarks>
-        /// The <see cref="Memory{T}"/> instance returned is a copy.
-        /// </remarks>
-        public static explicit operator Memory<T>(ExchangeBufferBase<T, TIndex> buffer) =>
-            new Memory<T>(buffer.GetAsArray());
+        /// <returns>
+        /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
+        /// Uses the default accelerator stream.
+        /// </returns>
+        public Span<T> AsSpanFromAccelerator() =>
+            AsSpanFromAccelerator(Accelerator.DefaultStream);
+
+        /// <summary>
+        /// Gets this exchnage buffer as a <see cref="Span{T}"/>, copying from the
+        /// accelerator in the process.
+        /// </summary>
+        /// <param name="stream">The stream to use</param>
+        /// <returns>
+        /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
+        /// </returns>
+        public Span<T> AsSpanFromAccelerator(AcceleratorStream stream)
+        {
+            CopyFromAccelerator(stream);
+            stream.Synchronize();
+            return AsSpan();
+        }
 
         #endregion
 
