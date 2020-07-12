@@ -143,6 +143,17 @@ namespace ILGPU
         [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
+        public static ushort FloatAsInt(Half value) =>
+            value.RawValue;
+
+        /// <summary>
+        /// Casts the given float to an int via a reinterpret cast.
+        /// </summary>
+        /// <param name="value">The value to cast.</param>
+        /// <returns>The int value.</returns>
+        [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
         public static uint FloatAsInt(float value) =>
             Unsafe.As<float, uint>(ref value);
 
@@ -156,6 +167,17 @@ namespace ILGPU
         [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
         public static ulong FloatAsInt(double value) =>
             Unsafe.As<double, ulong>(ref value);
+
+        /// <summary>
+        /// Casts the given int to a float via a reinterpret cast.
+        /// </summary>
+        /// <param name="value">The value to cast.</param>
+        /// <returns>The float value.</returns>
+        [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [InteropIntrinsic(InteropIntrinsicKind.IntAsFloat)]
+        public static Half IntAsFloat(ushort value) =>
+            new Half(value);
 
         /// <summary>
         /// Casts the given int to a float via a reinterpret cast.

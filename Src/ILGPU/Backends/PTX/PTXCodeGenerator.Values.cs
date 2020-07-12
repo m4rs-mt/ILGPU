@@ -273,21 +273,46 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IBackendCodeGenerator.GenerateCode(Predicate)"/>
-        public void GenerateCode(Predicate predicate)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(IfPredicate)"/>
+        public void GenerateCode(IfPredicate predicate)
         {
             var condition = LoadPrimitive(predicate.Condition);
             var trueValue = Load(predicate.TrueValue);
             var falseValue = Load(predicate.FalseValue);
 
             var targetRegister = Allocate(predicate);
-            EmitComplexCommand(
-                PTXInstructions.GetSelectValueOperation(predicate.BasicValueType),
-                new PredicateEmitter(condition),
-                targetRegister,
-                trueValue,
-                falseValue);
+            if (predicate.BasicValueType == BasicValueType.Int1)
+            {
+                // We need a specific sequence of instructions for predicate registers
+                var conditionRegister = EnsureHardwareRegister(condition);
+                using (var statement1 = BeginMove(
+                    new PredicateConfiguration(conditionRegister, true)))
+                {
+                    statement1.AppendSuffix(BasicValueType.Int1);
+                    statement1.AppendArgument(targetRegister as PrimitiveRegister);
+                    statement1.AppendArgument(trueValue as PrimitiveRegister);
+                }
+
+                using var statement2 = BeginMove(
+                    new PredicateConfiguration(conditionRegister, false));
+                statement2.AppendSuffix(BasicValueType.Int1);
+                statement2.AppendArgument(targetRegister as PrimitiveRegister);
+                statement2.AppendArgument(falseValue as PrimitiveRegister);
+            }
+            else
+            {
+                EmitComplexCommand(
+                    PTXInstructions.GetSelectValueOperation(predicate.BasicValueType),
+                    new PredicateEmitter(condition),
+                    targetRegister,
+                    trueValue,
+                    falseValue);
+            }
         }
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(SwitchPredicate)"/>
+        public void GenerateCode(SwitchPredicate predicate) =>
+            throw new InvalidCodeGenerationException();
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(GenericAtomic)"/>
         public void GenerateCode(GenericAtomic atomic)
@@ -385,7 +410,8 @@ namespace ILGPU.Backends.PTX
                 {
                     using var commandEmitter = codeGenerator.BeginCommand(command);
                     commandEmitter.AppendAddressSpace(SourceType.AddressSpace);
-                    commandEmitter.AppendSuffix(register.BasicValueType);
+                    commandEmitter.AppendSuffix(
+                        ResolveIOType(register.BasicValueType));
                     commandEmitter.AppendArgument(register);
                     commandEmitter.AppendArgumentValue(AddressRegister, offset);
                 }
@@ -425,7 +451,8 @@ namespace ILGPU.Backends.PTX
                 using var commandEmitter = codeGenerator.BeginCommand(command);
                 commandEmitter.AppendAddressSpace(Emitter.SourceType.AddressSpace);
                 commandEmitter.AppendVectorSuffix(primitiveRegisters.Length);
-                commandEmitter.AppendSuffix(primitiveRegisters[0].BasicValueType);
+                commandEmitter.AppendSuffix(
+                    ResolveIOType(primitiveRegisters[0].BasicValueType));
                 commandEmitter.AppendVectorArgument(primitiveRegisters);
                 commandEmitter.AppendArgumentValue(Emitter.AddressRegister, offset);
             }
@@ -483,7 +510,8 @@ namespace ILGPU.Backends.PTX
                 {
                     using var commandEmitter = codeGenerator.BeginCommand(command);
                     commandEmitter.AppendAddressSpace(TargetType.AddressSpace);
-                    commandEmitter.AppendSuffix(register.BasicValueType);
+                    commandEmitter.AppendSuffix(
+                        ResolveIOType(register.BasicValueType));
                     commandEmitter.AppendArgumentValue(AddressRegister, offset);
                     commandEmitter.AppendArgument(register);
                 }
@@ -523,7 +551,8 @@ namespace ILGPU.Backends.PTX
                 using var commandEmitter = codeGenerator.BeginCommand(command);
                 commandEmitter.AppendAddressSpace(Emitter.TargetType.AddressSpace);
                 commandEmitter.AppendVectorSuffix(primitiveRegisters.Length);
-                commandEmitter.AppendSuffix(primitiveRegisters[0].BasicValueType);
+                commandEmitter.AppendSuffix(
+                    ResolveIOType(primitiveRegisters[0].BasicValueType));
                 commandEmitter.AppendArgumentValue(Emitter.AddressRegister, offset);
                 commandEmitter.AppendVectorArgument(primitiveRegisters);
             }
@@ -574,8 +603,15 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PrimitiveValue)"/>
         public void GenerateCode(PrimitiveValue value)
         {
+            // Check whether we are loading an FP16 value. In this case, we have to
+            // move the resulting constant into a register since the PTX compiler
+            // expects a converted FP16 value in the scope of a register.
             var description = ResolveRegisterDescription(value.Type);
-            Bind(value, new ConstantRegister(description, value));
+            var register = new ConstantRegister(description, value);
+            if (value.BasicValueType == BasicValueType.Float16)
+                Bind(value, EnsureHardwareRegister(register));
+            else
+                Bind(value, register);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(StringValue)"/>

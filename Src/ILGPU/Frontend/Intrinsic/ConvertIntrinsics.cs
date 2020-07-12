@@ -3,56 +3,60 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: UtilityIntrinsics.cs
+// File: ConvertIntrinsics.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
 {
-    enum UtilityIntrinsicKind
-    {
-        Select,
-    }
-
     /// <summary>
-    /// Marks intrinsic utility methods.
+    /// Marks compare intrinsics that are built in.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-    sealed class UtilityIntrinsicAttribute : IntrinsicAttribute
+    sealed class ConvertIntriniscAttribute : IntrinsicAttribute
     {
-        public UtilityIntrinsicAttribute(UtilityIntrinsicKind kind)
+        public ConvertIntriniscAttribute()
+            : this(ConvertFlags.None)
+        { }
+
+        public ConvertIntriniscAttribute(ConvertFlags flags)
         {
-            IntrinsicKind = kind;
+            IntrinsicFlags = flags;
         }
 
-        public override IntrinsicType Type => IntrinsicType.Atomic;
+        public override IntrinsicType Type => IntrinsicType.Convert;
 
         /// <summary>
-        /// Returns the associated intrinsic kind.
+        /// Returns the associated intrinsic flags.
         /// </summary>
-        public UtilityIntrinsicKind IntrinsicKind { get; }
+        public ConvertFlags IntrinsicFlags { get; }
     }
 
     partial class Intrinsics
     {
         /// <summary>
-        /// Handles utility functions.
+        /// Handles convert operations.
         /// </summary>
         /// <param name="context">The current invocation context.</param>
         /// <param name="attribute">The intrinsic attribute.</param>
         /// <returns>The resulting value.</returns>
-        private static ValueReference HandleUtilityOperation(
+        private static ValueReference HandleConvertOperation(
             ref InvocationContext context,
-            UtilityIntrinsicAttribute attribute) =>
-            context.Builder.CreateIfPredicate(
+            ConvertIntriniscAttribute attribute)
+        {
+            var returnType = context.Method.GetReturnType();
+            var typeNode = context.Builder.CreateType(returnType);
+            return context.Builder.CreateConvert(
                 context.Location,
                 context[0],
-                context[1],
-                context[2]);
+                typeNode,
+                attribute.IntrinsicFlags);
+        }
     }
 }

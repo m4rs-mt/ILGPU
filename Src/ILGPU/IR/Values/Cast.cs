@@ -424,9 +424,11 @@ namespace ILGPU.IR.Values
         {
             var basicValueType = source.Type.BasicValueType;
             initializer.Assert(
+                basicValueType == BasicValueType.Float16 ||
                 basicValueType == BasicValueType.Float32 ||
                 basicValueType == BasicValueType.Float64);
             initializer.Assert(
+                targetType.BasicValueType == BasicValueType.Int16 ||
                 targetType.BasicValueType == BasicValueType.Int32 ||
                 targetType.BasicValueType == BasicValueType.Int64);
         }
@@ -488,9 +490,11 @@ namespace ILGPU.IR.Values
         {
             var basicValueType = source.Type.BasicValueType;
             initializer.Assert(
+                basicValueType == BasicValueType.Int16 ||
                 basicValueType == BasicValueType.Int32 ||
                 basicValueType == BasicValueType.Int64);
             initializer.Assert(
+                targetType.BasicValueType == BasicValueType.Float16 ||
                 targetType.BasicValueType == BasicValueType.Float32 ||
                 targetType.BasicValueType == BasicValueType.Float64);
         }

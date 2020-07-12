@@ -145,6 +145,7 @@ namespace ILGPU.Backends.PTX
                 { BasicValueType.Int32, "selp.b32" },
                 { BasicValueType.Int64, "selp.b64" },
 
+                { BasicValueType.Float16, "selp.b16" },
                 { BasicValueType.Float32, "selp.b32" },
                 { BasicValueType.Float64, "selp.b64" },
             };
@@ -159,6 +160,7 @@ namespace ILGPU.Backends.PTX
                 { (CompareKind.Equal, ArithmeticBasicValueType.UInt16), "setp.eq.u16" },
                 { (CompareKind.Equal, ArithmeticBasicValueType.UInt32), "setp.eq.u32" },
                 { (CompareKind.Equal, ArithmeticBasicValueType.UInt64), "setp.eq.u64" },
+                { (CompareKind.Equal, ArithmeticBasicValueType.Float16), "setp.eq.f16" },
                 { (CompareKind.Equal, ArithmeticBasicValueType.Float32), "setp.eq.f32" },
                 { (CompareKind.Equal, ArithmeticBasicValueType.Float64), "setp.eq.f64" },
 
@@ -169,6 +171,7 @@ namespace ILGPU.Backends.PTX
                 { (CompareKind.NotEqual, ArithmeticBasicValueType.UInt16), "setp.ne.u16" },
                 { (CompareKind.NotEqual, ArithmeticBasicValueType.UInt32), "setp.ne.u32" },
                 { (CompareKind.NotEqual, ArithmeticBasicValueType.UInt64), "setp.ne.u64" },
+                { (CompareKind.NotEqual, ArithmeticBasicValueType.Float16), "setp.ne.f16" },
                 { (CompareKind.NotEqual, ArithmeticBasicValueType.Float32), "setp.ne.f32" },
                 { (CompareKind.NotEqual, ArithmeticBasicValueType.Float64), "setp.ne.f64" },
 
@@ -179,6 +182,7 @@ namespace ILGPU.Backends.PTX
                 { (CompareKind.LessThan, ArithmeticBasicValueType.UInt16), "setp.lo.u16" },
                 { (CompareKind.LessThan, ArithmeticBasicValueType.UInt32), "setp.lo.u32" },
                 { (CompareKind.LessThan, ArithmeticBasicValueType.UInt64), "setp.lo.u64" },
+                { (CompareKind.LessThan, ArithmeticBasicValueType.Float16), "setp.lt.f16" },
                 { (CompareKind.LessThan, ArithmeticBasicValueType.Float32), "setp.lt.f32" },
                 { (CompareKind.LessThan, ArithmeticBasicValueType.Float64), "setp.lt.f64" },
 
@@ -189,6 +193,7 @@ namespace ILGPU.Backends.PTX
                 { (CompareKind.LessEqual, ArithmeticBasicValueType.UInt16), "setp.ls.u16" },
                 { (CompareKind.LessEqual, ArithmeticBasicValueType.UInt32), "setp.ls.u32" },
                 { (CompareKind.LessEqual, ArithmeticBasicValueType.UInt64), "setp.ls.u64" },
+                { (CompareKind.LessEqual, ArithmeticBasicValueType.Float16), "setp.le.f16" },
                 { (CompareKind.LessEqual, ArithmeticBasicValueType.Float32), "setp.le.f32" },
                 { (CompareKind.LessEqual, ArithmeticBasicValueType.Float64), "setp.le.f64" },
 
@@ -199,6 +204,7 @@ namespace ILGPU.Backends.PTX
                 { (CompareKind.GreaterThan, ArithmeticBasicValueType.UInt16), "setp.hi.u16" },
                 { (CompareKind.GreaterThan, ArithmeticBasicValueType.UInt32), "setp.hi.u32" },
                 { (CompareKind.GreaterThan, ArithmeticBasicValueType.UInt64), "setp.hi.u64" },
+                { (CompareKind.GreaterThan, ArithmeticBasicValueType.Float16), "setp.gt.f16" },
                 { (CompareKind.GreaterThan, ArithmeticBasicValueType.Float32), "setp.gt.f32" },
                 { (CompareKind.GreaterThan, ArithmeticBasicValueType.Float64), "setp.gt.f64" },
 
@@ -209,6 +215,7 @@ namespace ILGPU.Backends.PTX
                 { (CompareKind.GreaterEqual, ArithmeticBasicValueType.UInt16), "setp.hs.u16" },
                 { (CompareKind.GreaterEqual, ArithmeticBasicValueType.UInt32), "setp.hs.u32" },
                 { (CompareKind.GreaterEqual, ArithmeticBasicValueType.UInt64), "setp.hs.u64" },
+                { (CompareKind.GreaterEqual, ArithmeticBasicValueType.Float16), "setp.ge.f16" },
                 { (CompareKind.GreaterEqual, ArithmeticBasicValueType.Float32), "setp.ge.f32" },
                 { (CompareKind.GreaterEqual, ArithmeticBasicValueType.Float64), "setp.ge.f64" },
             };
@@ -216,21 +223,27 @@ namespace ILGPU.Backends.PTX
         private static readonly Dictionary<(CompareKind, ArithmeticBasicValueType), string> CompareUnorderedFloatOperations =
             new Dictionary<(CompareKind, ArithmeticBasicValueType), string>()
             {
+                { (CompareKind.Equal, ArithmeticBasicValueType.Float16), "setp.equ.f16" },
                 { (CompareKind.Equal, ArithmeticBasicValueType.Float32), "setp.equ.f32" },
                 { (CompareKind.Equal, ArithmeticBasicValueType.Float64), "setp.equ.f64" },
 
+                { (CompareKind.NotEqual, ArithmeticBasicValueType.Float16), "setp.neu.f16" },
                 { (CompareKind.NotEqual, ArithmeticBasicValueType.Float32), "setp.neu.f32" },
                 { (CompareKind.NotEqual, ArithmeticBasicValueType.Float64), "setp.neu.f64" },
 
+                { (CompareKind.LessThan, ArithmeticBasicValueType.Float16), "setp.ltu.f16" },
                 { (CompareKind.LessThan, ArithmeticBasicValueType.Float32), "setp.ltu.f32" },
                 { (CompareKind.LessThan, ArithmeticBasicValueType.Float64), "setp.ltu.f64" },
 
+                { (CompareKind.LessEqual, ArithmeticBasicValueType.Float16), "setp.leu.f16" },
                 { (CompareKind.LessEqual, ArithmeticBasicValueType.Float32), "setp.leu.f32" },
                 { (CompareKind.LessEqual, ArithmeticBasicValueType.Float64), "setp.leu.f64" },
 
+                { (CompareKind.GreaterThan, ArithmeticBasicValueType.Float16), "setp.gtu.f16" },
                 { (CompareKind.GreaterThan, ArithmeticBasicValueType.Float32), "setp.gtu.f32" },
                 { (CompareKind.GreaterThan, ArithmeticBasicValueType.Float64), "setp.gtu.f64" },
 
+                { (CompareKind.GreaterEqual, ArithmeticBasicValueType.Float16), "setp.geu.f16" },
                 { (CompareKind.GreaterEqual, ArithmeticBasicValueType.Float32), "setp.geu.f32" },
                 { (CompareKind.GreaterEqual, ArithmeticBasicValueType.Float64), "setp.geu.f64" },
             };
@@ -245,6 +258,7 @@ namespace ILGPU.Backends.PTX
                 { (ArithmeticBasicValueType.Int8, ArithmeticBasicValueType.UInt16), "cvt.u16.s8" },
                 { (ArithmeticBasicValueType.Int8, ArithmeticBasicValueType.UInt32), "cvt.u32.s8" },
                 { (ArithmeticBasicValueType.Int8, ArithmeticBasicValueType.UInt64), "cvt.u64.s8" },
+                { (ArithmeticBasicValueType.Int8, ArithmeticBasicValueType.Float16), "cvt.rn.f16.s8" },
                 { (ArithmeticBasicValueType.Int8, ArithmeticBasicValueType.Float32), "cvt.rn.f32.s8" },
                 { (ArithmeticBasicValueType.Int8, ArithmeticBasicValueType.Float64), "cvt.rn.f64.s8" },
 
@@ -255,6 +269,7 @@ namespace ILGPU.Backends.PTX
                 { (ArithmeticBasicValueType.Int16, ArithmeticBasicValueType.UInt16), "cvt.u16.s16" },
                 { (ArithmeticBasicValueType.Int16, ArithmeticBasicValueType.UInt32), "cvt.u32.s16" },
                 { (ArithmeticBasicValueType.Int16, ArithmeticBasicValueType.UInt64), "cvt.u64.s16" },
+                { (ArithmeticBasicValueType.Int16, ArithmeticBasicValueType.Float16), "cvt.rn.f16.s16" },
                 { (ArithmeticBasicValueType.Int16, ArithmeticBasicValueType.Float32), "cvt.rn.f32.s16" },
                 { (ArithmeticBasicValueType.Int16, ArithmeticBasicValueType.Float64), "cvt.rn.f64.s16" },
 
@@ -265,6 +280,7 @@ namespace ILGPU.Backends.PTX
                 { (ArithmeticBasicValueType.Int32, ArithmeticBasicValueType.UInt16), "cvt.u16.s32" },
                 { (ArithmeticBasicValueType.Int32, ArithmeticBasicValueType.UInt32), "cvt.u32.s32" },
                 { (ArithmeticBasicValueType.Int32, ArithmeticBasicValueType.UInt64), "cvt.u64.s32" },
+                { (ArithmeticBasicValueType.Int32, ArithmeticBasicValueType.Float16), "cvt.rn.f16.s32" },
                 { (ArithmeticBasicValueType.Int32, ArithmeticBasicValueType.Float32), "cvt.rn.f32.s32" },
                 { (ArithmeticBasicValueType.Int32, ArithmeticBasicValueType.Float64), "cvt.rn.f64.s32" },
 
@@ -275,6 +291,7 @@ namespace ILGPU.Backends.PTX
                 { (ArithmeticBasicValueType.Int64, ArithmeticBasicValueType.UInt16), "cvt.u16.s64" },
                 { (ArithmeticBasicValueType.Int64, ArithmeticBasicValueType.UInt32), "cvt.u32.s64" },
                 { (ArithmeticBasicValueType.Int64, ArithmeticBasicValueType.UInt64), "cvt.u64.s64" },
+                { (ArithmeticBasicValueType.Int64, ArithmeticBasicValueType.Float16), "cvt.rn.f16.s64" },
                 { (ArithmeticBasicValueType.Int64, ArithmeticBasicValueType.Float32), "cvt.rn.f32.s64" },
                 { (ArithmeticBasicValueType.Int64, ArithmeticBasicValueType.Float64), "cvt.rn.f64.s64" },
 
@@ -285,6 +302,7 @@ namespace ILGPU.Backends.PTX
                 { (ArithmeticBasicValueType.UInt8, ArithmeticBasicValueType.UInt16), "cvt.u16.u8" },
                 { (ArithmeticBasicValueType.UInt8, ArithmeticBasicValueType.UInt32), "cvt.u32.u8" },
                 { (ArithmeticBasicValueType.UInt8, ArithmeticBasicValueType.UInt64), "cvt.u64.u8" },
+                { (ArithmeticBasicValueType.UInt8, ArithmeticBasicValueType.Float16), "cvt.rn.f16.u8" },
                 { (ArithmeticBasicValueType.UInt8, ArithmeticBasicValueType.Float32), "cvt.rn.f32.u8" },
                 { (ArithmeticBasicValueType.UInt8, ArithmeticBasicValueType.Float64), "cvt.rn.f64.u8" },
 
@@ -295,6 +313,7 @@ namespace ILGPU.Backends.PTX
                 { (ArithmeticBasicValueType.UInt16, ArithmeticBasicValueType.UInt8), "cvt.u8.u16" },
                 { (ArithmeticBasicValueType.UInt16, ArithmeticBasicValueType.UInt32), "cvt.u32.u16" },
                 { (ArithmeticBasicValueType.UInt16, ArithmeticBasicValueType.UInt64), "cvt.u64.u16" },
+                { (ArithmeticBasicValueType.UInt16, ArithmeticBasicValueType.Float16), "cvt.rn.f16.u16" },
                 { (ArithmeticBasicValueType.UInt16, ArithmeticBasicValueType.Float32), "cvt.rn.f32.u16" },
                 { (ArithmeticBasicValueType.UInt16, ArithmeticBasicValueType.Float64), "cvt.rn.f64.u16" },
 
@@ -305,6 +324,7 @@ namespace ILGPU.Backends.PTX
                 { (ArithmeticBasicValueType.UInt32, ArithmeticBasicValueType.UInt8), "cvt.u8.u32" },
                 { (ArithmeticBasicValueType.UInt32, ArithmeticBasicValueType.UInt16), "cvt.u16.u32" },
                 { (ArithmeticBasicValueType.UInt32, ArithmeticBasicValueType.UInt64), "cvt.u64.u32" },
+                { (ArithmeticBasicValueType.UInt32, ArithmeticBasicValueType.Float16), "cvt.rn.f16.u32" },
                 { (ArithmeticBasicValueType.UInt32, ArithmeticBasicValueType.Float32), "cvt.rn.f32.u32" },
                 { (ArithmeticBasicValueType.UInt32, ArithmeticBasicValueType.Float64), "cvt.rn.f64.u32" },
 
@@ -315,8 +335,20 @@ namespace ILGPU.Backends.PTX
                 { (ArithmeticBasicValueType.UInt64, ArithmeticBasicValueType.UInt8), "cvt.u8.u64" },
                 { (ArithmeticBasicValueType.UInt64, ArithmeticBasicValueType.UInt16), "cvt.u16.u64" },
                 { (ArithmeticBasicValueType.UInt64, ArithmeticBasicValueType.UInt32), "cvt.u32.u64" },
+                { (ArithmeticBasicValueType.UInt64, ArithmeticBasicValueType.Float16), "cvt.rn.f16.u64" },
                 { (ArithmeticBasicValueType.UInt64, ArithmeticBasicValueType.Float32), "cvt.rn.f32.u64" },
                 { (ArithmeticBasicValueType.UInt64, ArithmeticBasicValueType.Float64), "cvt.rn.f64.u64" },
+
+                { (ArithmeticBasicValueType.Float16, ArithmeticBasicValueType.Int8), "cvt.rzi.s8.f16" },
+                { (ArithmeticBasicValueType.Float16, ArithmeticBasicValueType.Int16), "cvt.rzi.s16.f16" },
+                { (ArithmeticBasicValueType.Float16, ArithmeticBasicValueType.Int32), "cvt.rzi.s32.f16" },
+                { (ArithmeticBasicValueType.Float16, ArithmeticBasicValueType.Int64), "cvt.rzi.s64.f16" },
+                { (ArithmeticBasicValueType.Float16, ArithmeticBasicValueType.UInt8), "cvt.rzi.u8.f16" },
+                { (ArithmeticBasicValueType.Float16, ArithmeticBasicValueType.UInt16), "cvt.rzi.u16.f16" },
+                { (ArithmeticBasicValueType.Float16, ArithmeticBasicValueType.UInt32), "cvt.rzi.u32.f16" },
+                { (ArithmeticBasicValueType.Float16, ArithmeticBasicValueType.UInt64), "cvt.rzi.u64.f16" },
+                { (ArithmeticBasicValueType.Float16, ArithmeticBasicValueType.Float32), "cvt.f32.f16" },
+                { (ArithmeticBasicValueType.Float16, ArithmeticBasicValueType.Float64), "cvt.f64.f16" },
 
                 { (ArithmeticBasicValueType.Float32, ArithmeticBasicValueType.Int8), "cvt.rzi.s8.f32" },
                 { (ArithmeticBasicValueType.Float32, ArithmeticBasicValueType.Int16), "cvt.rzi.s16.f32" },
@@ -326,6 +358,7 @@ namespace ILGPU.Backends.PTX
                 { (ArithmeticBasicValueType.Float32, ArithmeticBasicValueType.UInt16), "cvt.rzi.u16.f32" },
                 { (ArithmeticBasicValueType.Float32, ArithmeticBasicValueType.UInt32), "cvt.rzi.u32.f32" },
                 { (ArithmeticBasicValueType.Float32, ArithmeticBasicValueType.UInt64), "cvt.rzi.u64.f32" },
+                { (ArithmeticBasicValueType.Float32, ArithmeticBasicValueType.Float16), "cvt.rn.f16.f32" },
                 { (ArithmeticBasicValueType.Float32, ArithmeticBasicValueType.Float64), "cvt.f64.f32" },
 
                 { (ArithmeticBasicValueType.Float64, ArithmeticBasicValueType.Int8), "cvt.rzi.s8.f64" },
@@ -336,6 +369,7 @@ namespace ILGPU.Backends.PTX
                 { (ArithmeticBasicValueType.Float64, ArithmeticBasicValueType.UInt16), "cvt.rzi.u16.f64" },
                 { (ArithmeticBasicValueType.Float64, ArithmeticBasicValueType.UInt32), "cvt.rzi.u32.f64" },
                 { (ArithmeticBasicValueType.Float64, ArithmeticBasicValueType.UInt64), "cvt.rzi.u64.f64" },
+                { (ArithmeticBasicValueType.Float64, ArithmeticBasicValueType.Float16), "cvt.rn.f16.f64" },
                 { (ArithmeticBasicValueType.Float64, ArithmeticBasicValueType.Float32), "cvt.rn.f32.f64" },
             };
 
@@ -348,6 +382,7 @@ namespace ILGPU.Backends.PTX
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Int16), "neg.s16" },
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Int32), "neg.s32" },
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Int64), "neg.s64" },
+                { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Float16), "neg.f16" },
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Float32), "neg.f32" },
                 { (UnaryArithmeticKind.Neg, ArithmeticBasicValueType.Float64), "neg.f64" },
 
@@ -359,6 +394,7 @@ namespace ILGPU.Backends.PTX
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.UInt16), "not.b16" },
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.UInt32), "not.b32" },
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.UInt64), "not.b64" },
+                { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.Float16), "not.b16" },
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.Float32), "not.b32" },
                 { (UnaryArithmeticKind.Not, ArithmeticBasicValueType.Float64), "not.b64" },
 
@@ -368,6 +404,7 @@ namespace ILGPU.Backends.PTX
                 { (UnaryArithmeticKind.Abs, ArithmeticBasicValueType.Int16), "abs.s16" },
                 { (UnaryArithmeticKind.Abs, ArithmeticBasicValueType.Int32), "abs.s32" },
                 { (UnaryArithmeticKind.Abs, ArithmeticBasicValueType.Int64), "abs.s64" },
+                { (UnaryArithmeticKind.Abs, ArithmeticBasicValueType.Float16), "abs.f16" },
                 { (UnaryArithmeticKind.Abs, ArithmeticBasicValueType.Float32), "abs.f32" },
                 { (UnaryArithmeticKind.Abs, ArithmeticBasicValueType.Float64), "abs.f64" },
 
@@ -389,7 +426,12 @@ namespace ILGPU.Backends.PTX
                 { (UnaryArithmeticKind.SinF, ArithmeticBasicValueType.Float32), "sin.approx.f32" },
                 { (UnaryArithmeticKind.CosF, ArithmeticBasicValueType.Float32), "cos.approx.f32" },
 
+                { (UnaryArithmeticKind.TanhF, ArithmeticBasicValueType.Float16), "tanh.approx.f16" },
+                { (UnaryArithmeticKind.TanhF, ArithmeticBasicValueType.Float32), "tanh.approx.f32" },
+
                 { (UnaryArithmeticKind.Log2F, ArithmeticBasicValueType.Float32), "lg2.approx.f32" },
+
+                { (UnaryArithmeticKind.Exp2F, ArithmeticBasicValueType.Float16), "ex2.approx.f16" },
                 { (UnaryArithmeticKind.Exp2F, ArithmeticBasicValueType.Float32), "ex2.approx.f32" },
 
                 { (UnaryArithmeticKind.FloorF, ArithmeticBasicValueType.Float32), "cvt.rmi.f32.f32" },
@@ -407,6 +449,7 @@ namespace ILGPU.Backends.PTX
 
                 { (UnaryArithmeticKind.SinF, ArithmeticBasicValueType.Float32), "sin.approx.ftz.f32" },
                 { (UnaryArithmeticKind.CosF, ArithmeticBasicValueType.Float32), "cos.approx.ftz.f32" },
+                { (UnaryArithmeticKind.TanhF, ArithmeticBasicValueType.Float32), "tanh.approx.ftz.f32" },
 
                 { (UnaryArithmeticKind.Log2F, ArithmeticBasicValueType.Float32), "lg2.approx.ftz.f32" },
                 { (UnaryArithmeticKind.Exp2F, ArithmeticBasicValueType.Float32), "ex2.approx.ftz.f32" },
@@ -429,6 +472,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.UInt16), "add.u16" },
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.UInt32), "add.u32" },
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.UInt64), "add.u64" },
+                { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.Float16), "add.f16" },
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.Float32), "add.f32" },
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.Float64), "add.f64" },
 
@@ -439,6 +483,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Sub, ArithmeticBasicValueType.UInt16), "sub.u16" },
                 { (BinaryArithmeticKind.Sub, ArithmeticBasicValueType.UInt32), "sub.u32" },
                 { (BinaryArithmeticKind.Sub, ArithmeticBasicValueType.UInt64), "sub.u64" },
+                { (BinaryArithmeticKind.Sub, ArithmeticBasicValueType.Float16), "sub.f16" },
                 { (BinaryArithmeticKind.Sub, ArithmeticBasicValueType.Float32), "sub.f32" },
                 { (BinaryArithmeticKind.Sub, ArithmeticBasicValueType.Float64), "sub.f64" },
 
@@ -449,6 +494,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Mul, ArithmeticBasicValueType.UInt16), "mul.lo.u16" },
                 { (BinaryArithmeticKind.Mul, ArithmeticBasicValueType.UInt32), "mul.lo.u32" },
                 { (BinaryArithmeticKind.Mul, ArithmeticBasicValueType.UInt64), "mul.lo.u64" },
+                { (BinaryArithmeticKind.Mul, ArithmeticBasicValueType.Float16), "mul.f16" },
                 { (BinaryArithmeticKind.Mul, ArithmeticBasicValueType.Float32), "mul.f32" },
                 { (BinaryArithmeticKind.Mul, ArithmeticBasicValueType.Float64), "mul.f64" },
 
@@ -480,6 +526,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.And, ArithmeticBasicValueType.UInt16), "and.b16" },
                 { (BinaryArithmeticKind.And, ArithmeticBasicValueType.UInt32), "and.b32" },
                 { (BinaryArithmeticKind.And, ArithmeticBasicValueType.UInt64), "and.b64" },
+                { (BinaryArithmeticKind.And, ArithmeticBasicValueType.Float16), "and.b16" },
                 { (BinaryArithmeticKind.And, ArithmeticBasicValueType.Float32), "and.b32" },
                 { (BinaryArithmeticKind.And, ArithmeticBasicValueType.Float64), "and.b64" },
 
@@ -491,6 +538,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.UInt16), "or.b16" },
                 { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.UInt32), "or.b32" },
                 { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.UInt64), "or.b64" },
+                { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.Float16), "or.b16" },
                 { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.Float32), "or.b32" },
                 { (BinaryArithmeticKind.Or, ArithmeticBasicValueType.Float64), "or.b64" },
 
@@ -502,6 +550,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.UInt16), "xor.b16" },
                 { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.UInt32), "xor.b32" },
                 { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.UInt64), "xor.b64" },
+                { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.Float16), "xor.b16" },
                 { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.Float32), "xor.b32" },
                 { (BinaryArithmeticKind.Xor, ArithmeticBasicValueType.Float64), "xor.b64" },
 
@@ -512,6 +561,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Shl, ArithmeticBasicValueType.UInt16), "shl.b16" },
                 { (BinaryArithmeticKind.Shl, ArithmeticBasicValueType.UInt32), "shl.b32" },
                 { (BinaryArithmeticKind.Shl, ArithmeticBasicValueType.UInt64), "shl.b64" },
+                { (BinaryArithmeticKind.Shl, ArithmeticBasicValueType.Float16), "shl.b16" },
                 { (BinaryArithmeticKind.Shl, ArithmeticBasicValueType.Float32), "shl.b32" },
                 { (BinaryArithmeticKind.Shl, ArithmeticBasicValueType.Float64), "shl.b64" },
 
@@ -521,6 +571,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Shr, ArithmeticBasicValueType.UInt16), "shr.u16" },
                 { (BinaryArithmeticKind.Shr, ArithmeticBasicValueType.UInt32), "shr.u32" },
                 { (BinaryArithmeticKind.Shr, ArithmeticBasicValueType.UInt64), "shr.u64" },
+                { (BinaryArithmeticKind.Shr, ArithmeticBasicValueType.Float16), "shr.b16" },
                 { (BinaryArithmeticKind.Shr, ArithmeticBasicValueType.Float32), "shr.b32" },
                 { (BinaryArithmeticKind.Shr, ArithmeticBasicValueType.Float64), "shr.b64" },
 
@@ -533,6 +584,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Max, ArithmeticBasicValueType.UInt16), "max.u16" },
                 { (BinaryArithmeticKind.Max, ArithmeticBasicValueType.UInt32), "max.u32" },
                 { (BinaryArithmeticKind.Max, ArithmeticBasicValueType.UInt64), "max.u64" },
+                { (BinaryArithmeticKind.Max, ArithmeticBasicValueType.Float16), "max.f16" },
                 { (BinaryArithmeticKind.Max, ArithmeticBasicValueType.Float32), "max.f32" },
                 { (BinaryArithmeticKind.Max, ArithmeticBasicValueType.Float64), "max.f64" },
 
@@ -543,6 +595,7 @@ namespace ILGPU.Backends.PTX
                 { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.UInt16), "min.u16" },
                 { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.UInt32), "min.u32" },
                 { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.UInt64), "min.u64" },
+                { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.Float16), "min.f16" },
                 { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.Float32), "min.f32" },
                 { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.Float64), "min.f64" },
             };
@@ -552,14 +605,23 @@ namespace ILGPU.Backends.PTX
             {
                 // Basic arithmetic
                 
+                { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.Float16), "add.ftz.f16" },
                 { (BinaryArithmeticKind.Add, ArithmeticBasicValueType.Float32), "add.ftz.f32" },
+
+                { (BinaryArithmeticKind.Sub, ArithmeticBasicValueType.Float16), "sub.ftz.f16" },
                 { (BinaryArithmeticKind.Sub, ArithmeticBasicValueType.Float32), "sub.ftz.f32" },
+
+                { (BinaryArithmeticKind.Mul, ArithmeticBasicValueType.Float16), "mul.ftz.f16" },
                 { (BinaryArithmeticKind.Mul, ArithmeticBasicValueType.Float32), "mul.ftz.f32" },
+
                 { (BinaryArithmeticKind.Div, ArithmeticBasicValueType.Float32), "div.approx.ftz.f32" },
 
                 // Functions
 
+                { (BinaryArithmeticKind.Max, ArithmeticBasicValueType.Float16), "max.ftz.f16" },
                 { (BinaryArithmeticKind.Max, ArithmeticBasicValueType.Float32), "max.ftz.f32" },
+
+                { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.Float16), "min.ftz.f16" },
                 { (BinaryArithmeticKind.Min, ArithmeticBasicValueType.Float32), "min.ftz.f32" },
             };
 
@@ -576,6 +638,7 @@ namespace ILGPU.Backends.PTX
                 { (TernaryArithmeticKind.MultiplyAdd, ArithmeticBasicValueType.UInt32), "mad.lo.u32" },
                 { (TernaryArithmeticKind.MultiplyAdd, ArithmeticBasicValueType.UInt64), "mad.lo.u64" },
 
+                { (TernaryArithmeticKind.MultiplyAdd, ArithmeticBasicValueType.Float16), "fma.rn.f16" },
                 { (TernaryArithmeticKind.MultiplyAdd, ArithmeticBasicValueType.Float32), "fma.rn.f32" },
                 { (TernaryArithmeticKind.MultiplyAdd, ArithmeticBasicValueType.Float64), "fma.rn.f64" },
             };
@@ -613,6 +676,7 @@ namespace ILGPU.Backends.PTX
                 { (AtomicKind.Add, ArithmeticBasicValueType.Int64), "u64" },
                 { (AtomicKind.Add, ArithmeticBasicValueType.UInt32), "u32" },
                 { (AtomicKind.Add, ArithmeticBasicValueType.UInt64), "u64" },
+                { (AtomicKind.Add, ArithmeticBasicValueType.Float16), "f16" },
                 { (AtomicKind.Add, ArithmeticBasicValueType.Float32), "f32" },
                 { (AtomicKind.Add, ArithmeticBasicValueType.Float64), "f64" },
 

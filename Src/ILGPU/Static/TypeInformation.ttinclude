@@ -87,6 +87,7 @@ public static readonly TypeInformation[] DefaultIntTypes =
 
 public static readonly TypeInformation[] FloatTypes =
     {
+        new TypeInformation("Half", "Half", TypeInformationKind.Float, "(Half)", "f"),
         new TypeInformation("Float", "float", TypeInformationKind.Float, null, "f"),
         new TypeInformation("Double", "double", TypeInformationKind.Float),
     };
@@ -96,38 +97,19 @@ public static readonly TypeInformation[] NumericTypes =
 
 // Atomic information
 
-public class AtomicTypeInformation : TypeInformation
-{
-    public AtomicTypeInformation(
-        string name,
-        string type,
-        TypeInformationKind kind)
-        : base(name, type, kind)
-    { }
-}
+public static readonly TypeInformation[] AtomicSignedIntTypes =
+    SignedIntTypes.Skip(2).ToArray();
 
-public static readonly AtomicTypeInformation[] AtomicSignedIntTypes =
-    {
-        new AtomicTypeInformation("Int32", "int", TypeInformationKind.SignedInt),
-        new AtomicTypeInformation("Int64", "long", TypeInformationKind.SignedInt),
-    };
+public static readonly TypeInformation[] AtomicUnsignedIntTypes =
+    UnsignedIntTypes.Skip(2).ToArray();
 
-public static readonly AtomicTypeInformation[] AtomicUnsignedIntTypes =
-    {
-        new AtomicTypeInformation("UInt32", "uint", TypeInformationKind.UnsignedInt),
-        new AtomicTypeInformation("UInt64", "ulong", TypeInformationKind.UnsignedInt),
-    };
-
-public static readonly AtomicTypeInformation[] AtomicIntTypes =
+public static readonly TypeInformation[] AtomicIntTypes =
     AtomicSignedIntTypes.Concat(AtomicUnsignedIntTypes).ToArray();
 
-public static readonly AtomicTypeInformation[] AtomicFloatTypes =
-    {
-        new AtomicTypeInformation("Float", "float", TypeInformationKind.Float),
-        new AtomicTypeInformation("Double", "double", TypeInformationKind.Float),
-    };
+public static readonly TypeInformation[] AtomicFloatTypes =
+    FloatTypes.Skip(1).ToArray();
 
-public static readonly AtomicTypeInformation[] AtomicNumericTypes =
+public static readonly TypeInformation[] AtomicNumericTypes =
     AtomicIntTypes.Concat(AtomicFloatTypes).ToArray();
 
 // Math operations

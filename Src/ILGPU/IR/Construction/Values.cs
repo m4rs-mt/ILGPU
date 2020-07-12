@@ -12,6 +12,7 @@
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -68,21 +69,36 @@ namespace ILGPU.IR.Construction
         {
             if (value == null)
                 throw location.GetArgumentNullException(nameof(value));
-            return Type.GetTypeCode(value.GetType()) switch
+            var type = value.GetType();
+            return type.GetArithmeticBasicValueType() switch
             {
-                TypeCode.Boolean => CreatePrimitiveValue(location, (bool)value),
-                TypeCode.SByte => CreatePrimitiveValue(location, (sbyte)value),
-                TypeCode.Int16 => CreatePrimitiveValue(location, (short)value),
-                TypeCode.Int32 => CreatePrimitiveValue(location, (int)value),
-                TypeCode.Int64 => CreatePrimitiveValue(location, (long)value),
-                TypeCode.Byte => CreatePrimitiveValue(location, (byte)value),
-                TypeCode.UInt16 => CreatePrimitiveValue(location, (ushort)value),
-                TypeCode.UInt32 => CreatePrimitiveValue(location, (uint)value),
-                TypeCode.UInt64 => CreatePrimitiveValue(location, (ulong)value),
-                TypeCode.Single => CreatePrimitiveValue(location, (float)value),
-                TypeCode.Double => CreatePrimitiveValue(location, (double)value),
-                TypeCode.String => CreatePrimitiveValue(location, (string)value),
-                _ => throw location.GetArgumentException(nameof(value))
+                ArithmeticBasicValueType.UInt1 =>
+                    CreatePrimitiveValue(location, (bool)value),
+                ArithmeticBasicValueType.Int8 =>
+                    CreatePrimitiveValue(location, (sbyte)value),
+                ArithmeticBasicValueType.Int16 =>
+                    CreatePrimitiveValue(location, (short)value),
+                ArithmeticBasicValueType.Int32 =>
+                    CreatePrimitiveValue(location, (int)value),
+                ArithmeticBasicValueType.Int64 =>
+                    CreatePrimitiveValue(location, (long)value),
+                ArithmeticBasicValueType.UInt8 =>
+                    CreatePrimitiveValue(location, (byte)value),
+                ArithmeticBasicValueType.UInt16 =>
+                    CreatePrimitiveValue(location, (ushort)value),
+                ArithmeticBasicValueType.UInt32 =>
+                    CreatePrimitiveValue(location, (uint)value),
+                ArithmeticBasicValueType.UInt64 =>
+                    CreatePrimitiveValue(location, (ulong)value),
+                ArithmeticBasicValueType.Float16 =>
+                    CreatePrimitiveValue(location, (Half)value),
+                ArithmeticBasicValueType.Float32 =>
+                    CreatePrimitiveValue(location, (float)value),
+                ArithmeticBasicValueType.Float64 =>
+                    CreatePrimitiveValue(location, (double)value),
+                _ => type == typeof(string)
+                    ? CreatePrimitiveValue(location, (string)value)
+                    : throw location.GetArgumentException(nameof(value))
             };
         }
 
@@ -204,6 +220,18 @@ namespace ILGPU.IR.Construction
             CreatePrimitiveValue(location, (long)value);
 
         /// <summary>
+        /// Creates a primitive <see cref="Half"/> value.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>The created primitive value.</returns>
+        public PrimitiveValue CreatePrimitiveValue(Location location, Half value) =>
+            Append(new PrimitiveValue(
+                GetInitializer(location),
+                BasicValueType.Float16,
+                value.RawValue));
+
+        /// <summary>
         /// Creates a primitive <see cref="float"/> value.
         /// </summary>
         /// <param name="location">The current location.</param>
@@ -261,29 +289,31 @@ namespace ILGPU.IR.Construction
                 throw location.GetArgumentNullException(nameof(type));
             if (value != null && type != value.GetType())
                 throw location.GetArgumentException(nameof(type));
-            return Type.GetTypeCode(type) switch
+            return type.GetArithmeticBasicValueType() switch
             {
-                TypeCode.Boolean =>
+                ArithmeticBasicValueType.UInt1 =>
                     CreatePrimitiveValue(location, Convert.ToBoolean(value)),
-                TypeCode.SByte =>
+                ArithmeticBasicValueType.Int8 =>
                     CreatePrimitiveValue(location, Convert.ToSByte(value)),
-                TypeCode.Byte =>
+                ArithmeticBasicValueType.UInt8 =>
                     CreatePrimitiveValue(location, Convert.ToByte(value)),
-                TypeCode.Int16 =>
+                ArithmeticBasicValueType.Int16 =>
                     CreatePrimitiveValue(location, Convert.ToInt16(value)),
-                TypeCode.UInt16 =>
+                ArithmeticBasicValueType.UInt16 =>
                     CreatePrimitiveValue(location, Convert.ToUInt16(value)),
-                TypeCode.Int32 =>
+                ArithmeticBasicValueType.Int32 =>
                     CreatePrimitiveValue(location, Convert.ToInt32(value)),
-                TypeCode.UInt32 =>
+                ArithmeticBasicValueType.UInt32 =>
                     CreatePrimitiveValue(location, Convert.ToUInt32(value)),
-                TypeCode.Int64 =>
+                ArithmeticBasicValueType.Int64 =>
                     CreatePrimitiveValue(location, Convert.ToInt64(value)),
-                TypeCode.UInt64 =>
+                ArithmeticBasicValueType.UInt64 =>
                     CreatePrimitiveValue(location, Convert.ToUInt64(value)),
-                TypeCode.Single =>
+                ArithmeticBasicValueType.Float16 =>
+                    CreatePrimitiveValue(location, (Half)value),
+                ArithmeticBasicValueType.Float32 =>
                     CreatePrimitiveValue(location, Convert.ToSingle(value)),
-                TypeCode.Double =>
+                ArithmeticBasicValueType.Float64 =>
                     CreatePrimitiveValue(location, Convert.ToDouble(value)),
                 _ => value == null
                     ? CreateNull(location, CreateType(type))

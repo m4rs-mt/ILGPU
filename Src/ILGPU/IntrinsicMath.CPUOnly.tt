@@ -110,6 +110,31 @@ namespace ILGPU
 #endif
 
             #endregion
+
+            #region Half Precision
+
+<# foreach (var op in unaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="value">The value.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static <#= op.IsPredicate ? "bool" : "Half" #> <#= op.MethodName #>(Half value) =>
+                <#= op.IsPredicate ? string.Empty : "(Half)" #><#= op.MethodName #>((float)value);
+
+<# } #>
+<# foreach (var op in binaryOps) { #>
+            /// <summary>
+            /// <#= op.Summary #>
+            /// </summary>
+            /// <param name="left">The left operand.</param>
+            /// <param name="right">The right operand.</param>
+            [MathIntrinsic(MathIntrinsicKind.<#= op.Name #>)]
+            public static Half <#= op.MethodName #>(Half left, Half right) =>
+                HalfExtensions.<#= op.MethodName #>FP32(left, right);
+
+<# } #>
+            #endregion
         }
     }
 }
