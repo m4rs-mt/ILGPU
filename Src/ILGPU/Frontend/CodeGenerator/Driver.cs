@@ -45,22 +45,43 @@ namespace ILGPU.Frontend
                     return true;
 
                 case ILInstructionType.Ldarg:
-                    LoadVariable(
-                        new VariableRef(
-                            instruction.GetArgumentAs<int>(),
-                            VariableRefType.Argument));
+                    {
+                        var index = instruction.GetArgumentAs<int>() -
+                            LambdaArgumentOffset;
+                        if (index >= 0)
+                        {
+                            LoadVariable(
+                                new VariableRef(
+                                    index,
+                                    VariableRefType.Argument));
+                        }
+                    }
                     return true;
                 case ILInstructionType.Ldarga:
-                    LoadVariableAddress(
-                        new VariableRef(
-                            instruction.GetArgumentAs<int>(),
-                            VariableRefType.Argument));
+                    {
+                        var index = instruction.GetArgumentAs<int>() -
+                            LambdaArgumentOffset;
+                        if (index >= 0)
+                        {
+                            LoadVariableAddress(
+                                new VariableRef(
+                                    index,
+                                    VariableRefType.Argument));
+                        }
+                    }
                     return true;
                 case ILInstructionType.Starg:
-                    StoreVariable(
-                        new VariableRef(
-                            instruction.GetArgumentAs<int>(),
-                            VariableRefType.Argument));
+                    {
+                        var index = instruction.GetArgumentAs<int>() -
+                            LambdaArgumentOffset;
+                        if (index >= 0)
+                        {
+                            StoreVariable(
+                                new VariableRef(
+                                    index,
+                                    VariableRefType.Argument));
+                        }
+                    }
                     return true;
 
                 case ILInstructionType.Ldloc:
