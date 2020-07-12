@@ -16,6 +16,7 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading;
 
@@ -147,6 +148,10 @@ namespace ILGPU.Frontend
         /// <summary>
         /// The code-generation thread.
         /// </summary>
+        [SuppressMessage(
+            "Design",
+            "CA1031:Do not catch general exception types",
+            Justification = "Must be caught to propagate errors")]
         private void DoWork()
         {
             var detectedMethods = new HashSet<MethodBase>();
@@ -179,9 +184,7 @@ namespace ILGPU.Frontend
                         out Method method);
                     current.SetResult(method);
                 }
-#pragma warning disable CA1031 // Do not catch general exception types
                 catch (Exception e)
-#pragma warning restore CA1031 // Do not catch general exception types
                 {
                     codeGenerationPhase.RecordException(e);
                 }
@@ -197,9 +200,7 @@ namespace ILGPU.Frontend
                             processing.Push(new ProcessingEntry(detectedMethod, null));
 
                     }
-#pragma warning disable CA1031 // Do not catch general exception types
                     catch (Exception e)
-#pragma warning restore CA1031 // Do not catch general exception types
                     {
                         codeGenerationPhase.RecordException(e);
                         detectedMethods.Clear();

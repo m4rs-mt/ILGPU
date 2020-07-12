@@ -73,6 +73,7 @@ namespace ILGPU.Frontend
         private void SetupVariables()
         {
             var builder = EntryBlock.Builder;
+            LambdaArgumentOffset = Method.IsNotCapturingLambda() ? 1 : 0;
 
             // Check for SSA variables
             for (int i = 0, e = DisassembledMethod.Count; i < e; ++i)
@@ -82,17 +83,19 @@ namespace ILGPU.Frontend
                 {
                     case ILInstructionType.Ldarga:
                         variables.Add(new VariableRef(
-                            instruction.GetArgumentAs<int>(), VariableRefType.Argument));
+                            instruction.GetArgumentAs<int>() - LambdaArgumentOffset,
+                            VariableRefType.Argument));
                         break;
                     case ILInstructionType.Ldloca:
                         variables.Add(new VariableRef(
-                            instruction.GetArgumentAs<int>(), VariableRefType.Local));
+                            instruction.GetArgumentAs<int>(),
+                            VariableRefType.Local));
                         break;
                 }
             }
 
             // Initialize params
-            if (!Method.IsStatic)
+            if (!Method.IsStatic && !Method.IsNotCapturingLambda())
             {
                 var declaringType = builder.CreateType(Method.DeclaringType);
                 declaringType = builder.CreatePointerType(
@@ -223,6 +226,12 @@ namespace ILGPU.Frontend
         /// Gets or sets the current location.
         /// </summary>
         private Location Location { get; set; }
+
+        /// <summary>
+        /// Gets or sets the offset for load/store argument instructions in a lambda.
+        /// This is used to shift arguments because of the unused 'this' argument.
+        /// </summary>
+        private int LambdaArgumentOffset { get; set; }
 
         #endregion
 

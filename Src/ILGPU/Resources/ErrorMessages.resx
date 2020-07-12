@@ -127,7 +127,7 @@
     <value>An entry point must receive a compatible index type as first parameter</value>
   </data>
   <data name="InvalidEntryPointInstanceKernelMethod" xml:space="preserve">
-    <value>Only static methods are supported at the moment</value>
+    <value>Only static methods and non-capturing lambdas are supported at the moment</value>
   </data>
   <data name="InvalidILCode" xml:space="preserve">
     <value>Invalid IL Code</value>
