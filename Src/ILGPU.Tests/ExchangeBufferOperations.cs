@@ -85,7 +85,7 @@ namespace ILGPU.Tests
 
             Assert.Equal(expected.Length, exchangeBuffer.Length);
             for (int i = 0; i < Length * Length; i++)
-                Assert.Equal(expected[i], exchangeBuffer.CPUView.BaseView[i]);
+                Assert.Equal(expected[i], exchangeBuffer.CPUView[i]);
         }
 
         internal static void Copy3DKernel(Index3 index, ArrayView<long, Index3> data)
@@ -122,7 +122,7 @@ namespace ILGPU.Tests
 
             Assert.Equal(expected.Length, exchangeBuffer.Length);
             for (int i = 0; i < Length * Length * Length; i++)
-                Assert.Equal(expected[i], exchangeBuffer.CPUView.BaseView[i]);
+                Assert.Equal(expected[i], exchangeBuffer.CPUView[i]);
         }
 
         // No need for kernel, assuming copy tests pass.
@@ -307,17 +307,13 @@ namespace ILGPU.Tests
             Execute(exchangeBuffer.Extent, exchangeBuffer.View);
             Accelerator.Synchronize();
 
-            // These should theoretically be the same because AsSpanFromAccelerator
+            // These should theoretically be the same because GetAsSpan
             // copies into cpuMemory.
             // Syncs on it's own
             Span<int> fromAccelerator = exchangeBuffer.GetAsSpan();
-            Span<int> fromCPU = exchangeBuffer.ToSpan();
 
             for (int i = 0; i < Length; i++)
-            {
                 Assert.Equal(expected[i], fromAccelerator[i]);
-                Assert.Equal(expected[i], fromCPU[i]);
-            }
         }
     }
 }
