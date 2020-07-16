@@ -98,7 +98,13 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="predicate">The node.</param>
-        void Visit(Predicate predicate);
+        void Visit(IfPredicate predicate);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="predicate">The node.</param>
+        void Visit(SwitchPredicate predicate);
 
         /// <summary>
         /// Visits the node.

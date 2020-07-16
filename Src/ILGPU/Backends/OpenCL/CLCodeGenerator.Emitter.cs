@@ -351,6 +351,9 @@ namespace ILGPU.Backends.OpenCL
                     case BasicValueType.Int64:
                         AppendConstant(value.UInt64Value);
                         break;
+                    case BasicValueType.Float16:
+                        AppendConstant(value.Float16Value);
+                        break;
                     case BasicValueType.Float32:
                         AppendConstant(value.Float32Value);
                         break;

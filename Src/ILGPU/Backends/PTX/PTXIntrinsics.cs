@@ -11,6 +11,7 @@
 
 using ILGPU.AtomicOperations;
 using ILGPU.Frontend;
+using ILGPU.IR;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using System;
@@ -48,6 +49,11 @@ namespace ILGPU.Backends.PTX
         private static readonly Type PTXIntrinsicsType = typeof(PTXIntrinsics);
 
         /// <summary>
+        /// The Half implementation type.
+        /// </summary>
+        private static readonly Type HalfType = typeof(HalfExtensions);
+
+        /// <summary>
         /// Creates a new PTX intrinsic.
         /// </summary>
         /// <param name="name">The name of the intrinsic.</param>
@@ -78,33 +84,28 @@ namespace ILGPU.Backends.PTX
             IntrinsicImplementationMode mode) =>
             new PTXIntrinsic(PTXIntrinsicsType, name, mode);
 
+        private static PTXIntrinsic CreateFP16Intrinsic(
+            string name,
+            PTXArchitecture? maxArchitecture) =>
+            maxArchitecture.HasValue
+            ? new PTXIntrinsic(
+                HalfType,
+                name,
+                IntrinsicImplementationMode.Redirect,
+                null,
+                maxArchitecture.Value)
+            : new PTXIntrinsic(HalfType, name, IntrinsicImplementationMode.Redirect);
+
         /// <summary>
         /// Registers all PTX intrinsics with the given manager.
         /// </summary>
         /// <param name="manager">The target implementation manager.</param>
         public static void Register(IntrinsicImplementationManager manager)
         {
-            // Register atomics
-            manager.RegisterGenericAtomic(
-                AtomicKind.Add,
-                BasicValueType.Float64,
-                CreateIntrinsic(
-                    nameof(AtomicAddF64),
-                    IntrinsicImplementationMode.Redirect,
-                    null,
-                    PTXArchitecture.SM_53));
-
-            // Register broadcasts
-            manager.RegisterBroadcast(
-                BroadcastKind.GroupLevel,
-                CreateIntrinsic(
-                    nameof(GroupBroadcast),
-                    IntrinsicImplementationMode.Redirect));
-            manager.RegisterBroadcast(
-                BroadcastKind.WarpLevel,
-                CreateIntrinsic(
-                    nameof(WarpBroadcast),
-                    IntrinsicImplementationMode.Redirect));
+            RegisterAtomics(manager);
+            RegisterBroadcasts(manager);
+            RegisterWarpShuffles(manager);
+            RegisterFP16(manager);
 
             // Register assert support
             manager.RegisterDebug(
@@ -113,13 +114,34 @@ namespace ILGPU.Backends.PTX
                     nameof(AssertFailed),
                     IntrinsicImplementationMode.Redirect));
 
-            // Register shuffles
-            RegisterWarpShuffles(manager);
+            // Register math
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.TanhF,
+                BasicValueType.Float32,
+                CreateIntrinsic(
+                    nameof(Tanh),
+                    IntrinsicImplementationMode.GenerateCode,
+                    null,
+                    PTXArchitecture.SM_80));
         }
 
         #endregion
 
         #region Atomics
+
+        /// <summary>
+        /// Registers all atomic intrinsics with the given manager.
+        /// </summary>
+        /// <param name="manager">The target implementation manager.</param>
+        private static void RegisterAtomics(IntrinsicImplementationManager manager) =>
+            manager.RegisterGenericAtomic(
+                AtomicKind.Add,
+                BasicValueType.Float64,
+                CreateIntrinsic(
+                    nameof(AtomicAddF64),
+                    IntrinsicImplementationMode.Redirect,
+                    null,
+                    PTXArchitecture.SM_60));
 
         /// <summary>
         /// Represents an atomic compare-exchange operation of type double.
@@ -146,6 +168,25 @@ namespace ILGPU.Backends.PTX
         #region Broadcasts
 
         /// <summary>
+        /// Registers all broadcast intrinsics with the given manager.
+        /// </summary>
+        /// <param name="manager">The target implementation manager.</param>
+        private static void RegisterBroadcasts(
+            IntrinsicImplementationManager manager)
+        {
+            manager.RegisterBroadcast(
+                BroadcastKind.GroupLevel,
+                CreateIntrinsic(
+                    nameof(GroupBroadcast),
+                    IntrinsicImplementationMode.Redirect));
+            manager.RegisterBroadcast(
+                BroadcastKind.WarpLevel,
+                CreateIntrinsic(
+                    nameof(WarpBroadcast),
+                    IntrinsicImplementationMode.Redirect));
+        }
+
+        /// <summary>
         /// Implements a single group-broadcast operation.
         /// </summary>
         /// <typeparam name="T">The type to broadcast.</typeparam>
@@ -168,6 +209,20 @@ namespace ILGPU.Backends.PTX
         private static T WarpBroadcast<T>(T value, int laneIndex)
             where T : unmanaged =>
             Warp.Shuffle(value, laneIndex);
+
+        #endregion
+
+        #region Math
+
+        /// <summary>
+        /// Computes tanh(x).
+        /// </summary>
+        public static void Tanh(
+            PTXBackend backend,
+            PTXCodeGenerator codeGenerator,
+            Value value) =>
+            throw new NotSupportedIntrinsicException(
+                UnaryArithmeticKind.TanhF.ToString());
 
         #endregion
     }
