@@ -191,8 +191,14 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns an array view to the CPU part of this buffer.
         /// </summary>
+        [Obsolete("Replaced by Span property")]
         [CLSCompliant(false)]
-        public Span<T> CPUView => new Span<T>(cpuMemoryPointer, Length);
+        public ArrayView<T, TIndex> CPUView => cpuView;
+
+        /// <summary>
+        /// Returns a span to the part of this buffer in CPU memory
+        /// </summary>
+        public Span<T> Span => new Span<T>(cpuMemoryPointer, Length);
 
         /// <summary>
         /// Returns a reference to the i-th element in CPU memory.
@@ -322,7 +328,7 @@ namespace ILGPU.Runtime
         {
             CopyFromAccelerator(stream);
             stream.Synchronize();
-            return CPUView;
+            return Span;
         }
 
         #endregion
