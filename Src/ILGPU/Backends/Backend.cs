@@ -576,6 +576,8 @@ namespace ILGPU.Backends
                     generationResult = frontendPhase.GenerateCode(entry.MethodSource);
                 }
 
+                if (codeGenerationPhase.IsFaulted)
+                    throw codeGenerationPhase.LastException;
                 generatedKernelMethod = generationResult.Result;
                 codeGenerationPhase.Optimize();
 
