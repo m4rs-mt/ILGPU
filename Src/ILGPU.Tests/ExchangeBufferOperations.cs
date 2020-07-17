@@ -85,7 +85,7 @@ namespace ILGPU.Tests
 
             Assert.Equal(expected.Length, exchangeBuffer.Length);
             for (int i = 0; i < Length * Length; i++)
-                Assert.Equal(expected[i], exchangeBuffer.CPUView[i]);
+                Assert.Equal(expected[i], exchangeBuffer.Span[i]);
         }
 
         internal static void Copy3DKernel(Index3 index, ArrayView<long, Index3> data)
@@ -122,7 +122,7 @@ namespace ILGPU.Tests
 
             Assert.Equal(expected.Length, exchangeBuffer.Length);
             for (int i = 0; i < Length * Length * Length; i++)
-                Assert.Equal(expected[i], exchangeBuffer.CPUView[i]);
+                Assert.Equal(expected[i], exchangeBuffer.Span[i]);
         }
 
         // No need for kernel, assuming copy tests pass.
