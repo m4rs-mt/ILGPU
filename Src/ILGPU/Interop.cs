@@ -32,7 +32,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static ref byte ComputeEffectiveAddress(
             ref byte nativePtr,
-            Index1 index,
+            long index,
             int elementSize) =>
             ref Unsafe.AddByteOffset(
                 ref nativePtr,
