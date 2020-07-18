@@ -110,10 +110,10 @@ namespace ILGPU.Runtime
         {
             <#if(i > 1)
             {#>var baseView = new ArrayView<T>(CPUMemory, 0, buffer.Length);
-            cpuView = new <#= arrayViewType #>(baseView, buffer.Extent);
+            CPUView = new <#= arrayViewType #>(baseView, buffer.Extent);
             <#}
             else
-            {#>cpuView = new ArrayView<T>(CPUMemory, 0, buffer.Length);
+            {#>CPUView = new ArrayView<T>(CPUMemory, 0, buffer.Length);
             <#}#>
 
             // Cache local data
