@@ -311,7 +311,7 @@ namespace ILGPU.Runtime
         /// <returns>An allocated buffer on the this accelerator.</returns>
         public MemoryBuffer<T, TIndex> Allocate<T, TIndex>(TIndex extent)
             where T : unmanaged
-            where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
+            where TIndex : unmanaged, IGenericIndex<TIndex>
         {
             // Check for blittable types
             var typeContext = Context.TypeContext;
@@ -338,7 +338,7 @@ namespace ILGPU.Runtime
         protected abstract MemoryBuffer<T, TIndex> AllocateInternal<T, TIndex>(
             TIndex extent)
             where T : unmanaged
-            where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>;
+            where TIndex : unmanaged, IGenericIndex<TIndex>;
 
         /// <summary>
         /// Allocates a 1D buffer with the specified number of elements on this
@@ -347,9 +347,9 @@ namespace ILGPU.Runtime
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated 1D buffer on the this accelerator.</returns>
-        public MemoryBuffer<T> Allocate<T>(int extent)
+        public MemoryBuffer<T> Allocate<T>(long extent)
             where T : unmanaged =>
-            new MemoryBuffer<T>(Allocate<T, Index1>(extent));
+            new MemoryBuffer<T>(Allocate<T, LongIndex1>(extent));
 
         /// <summary>
         /// Allocates a 2D buffer with the specified number of elements on this
@@ -358,9 +358,9 @@ namespace ILGPU.Runtime
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated 2D buffer on the this accelerator.</returns>
-        public MemoryBuffer2D<T> Allocate<T>(Index2 extent)
+        public MemoryBuffer2D<T> Allocate<T>(LongIndex2 extent)
             where T : unmanaged =>
-            new MemoryBuffer2D<T>(Allocate<T, Index2>(extent));
+            new MemoryBuffer2D<T>(Allocate<T, LongIndex2>(extent));
 
         /// <summary>
         /// Allocates a 2D buffer with the specified number of elements on this
@@ -370,9 +370,9 @@ namespace ILGPU.Runtime
         /// <param name="width">The width of the 2D buffer.</param>
         /// <param name="height">The height of the 2D buffer.</param>
         /// <returns>An allocated 2D buffer on the this accelerator.</returns>
-        public MemoryBuffer2D<T> Allocate<T>(int width, int height)
+        public MemoryBuffer2D<T> Allocate<T>(long width, long height)
             where T : unmanaged =>
-            Allocate<T>(new Index2(width, height));
+            Allocate<T>(new LongIndex2(width, height));
 
         /// <summary>
         /// Allocates a 3D buffer with the specified number of elements on this
@@ -381,9 +381,9 @@ namespace ILGPU.Runtime
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="extent">The extent (number of elements to allocate).</param>
         /// <returns>An allocated 3D buffer on the this accelerator.</returns>
-        public MemoryBuffer3D<T> Allocate<T>(Index3 extent)
+        public MemoryBuffer3D<T> Allocate<T>(LongIndex3 extent)
             where T : unmanaged =>
-            new MemoryBuffer3D<T>(Allocate<T, Index3>(extent));
+            new MemoryBuffer3D<T>(Allocate<T, LongIndex3>(extent));
 
         /// <summary>
         /// Allocates a 2D buffer with the specified number of elements on this
@@ -394,9 +394,9 @@ namespace ILGPU.Runtime
         /// <param name="height">The height of the 3D buffer.</param>
         /// <param name="depth">The depth of the 3D buffer.</param>
         /// <returns>An allocated 2D buffer on the this accelerator.</returns>
-        public MemoryBuffer3D<T> Allocate<T>(int width, int height, int depth)
+        public MemoryBuffer3D<T> Allocate<T>(long width, long height, long depth)
             where T : unmanaged =>
-            Allocate<T>(new Index3(width, height, depth));
+            Allocate<T>(new LongIndex3(width, height, depth));
 
         /// <summary>
         /// Creates a new accelerator stream.
@@ -457,8 +457,8 @@ namespace ILGPU.Runtime
         public float EstimateOccupancyPerMultiprocessor<TIndex>(
             Kernel kernel,
             TIndex groupDim)
-            where TIndex : IIndex =>
-            EstimateOccupancyPerMultiprocessor(kernel, groupDim.Size);
+            where TIndex : struct, IIndex =>
+            EstimateOccupancyPerMultiprocessor(kernel, groupDim.GetIntSize());
 
         /// <summary>
         /// Estimates the occupancy of the given kernel with the given group size of a
@@ -510,8 +510,8 @@ namespace ILGPU.Runtime
         public int EstimateMaxActiveGroupsPerMultiprocessor<TIndex>(
             Kernel kernel,
             TIndex groupDim)
-            where TIndex : IIndex =>
-            EstimateMaxActiveGroupsPerMultiprocessor(kernel, groupDim.Size);
+            where TIndex : struct, IIndex =>
+            EstimateMaxActiveGroupsPerMultiprocessor(kernel, groupDim.GetIntSize());
 
         /// <summary>
         /// Estimates the maximum number of active groups per multiprocessor for the

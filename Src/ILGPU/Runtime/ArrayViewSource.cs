@@ -57,7 +57,7 @@ namespace ILGPU.Runtime
         /// <returns>The loaded effective address.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal unsafe ref byte LoadEffectiveAddress(
-            Index1 index,
+            long index,
             int elementSize) =>
             ref Unsafe.AddByteOffset(
                 ref Unsafe.AsRef<byte>(NativePtr.ToPointer()),
@@ -70,8 +70,8 @@ namespace ILGPU.Runtime
         /// <param name="byteExtent">The extent in bytes (number of elements).</param>
         /// <returns>A new array holding the requested contents.</returns>
         internal ArraySegment<byte> GetAsDebugRawArray(
-            Index1 byteOffset,
-            Index1 byteExtent) =>
+            long byteOffset,
+            long byteExtent) =>
             GetAsRawArray(Accelerator.DefaultStream, byteOffset, byteExtent);
 
         /// <summary>
@@ -83,8 +83,8 @@ namespace ILGPU.Runtime
         /// <returns>A new array holding the requested contents.</returns>
         protected internal abstract ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index1 byteOffset,
-            Index1 byteExtent);
+            long byteOffset,
+            long byteExtent);
 
         #endregion
     }
@@ -136,11 +136,11 @@ namespace ILGPU.Runtime
         }
 
         /// <summary cref="ArrayViewSource.GetAsRawArray(
-        /// AcceleratorStream, Index1, Index1)"/>
+        /// AcceleratorStream, long, long)"/>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index1 byteOffset,
-            Index1 byteExtent) => throw new InvalidOperationException();
+            long byteOffset,
+            long byteExtent) => throw new InvalidOperationException();
     }
 
     /// <summary>
@@ -154,19 +154,19 @@ namespace ILGPU.Runtime
         /// <param name="sizeInBytes">The size in bytes to allocate.</param>
         /// <returns>An unsafe array view source.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe UnmanagedMemoryViewSource Create(int sizeInBytes) =>
+        public static unsafe UnmanagedMemoryViewSource Create(long sizeInBytes) =>
             new UnmanagedMemoryViewSource(sizeInBytes);
 
-        private UnmanagedMemoryViewSource(int sizeInBytes)
-            : base(Marshal.AllocHGlobal(sizeInBytes))
+        private UnmanagedMemoryViewSource(long sizeInBytes)
+            : base(Marshal.AllocHGlobal(new IntPtr(sizeInBytes)))
         { }
 
         /// <summary cref="ArrayViewSource.GetAsRawArray(
-        /// AcceleratorStream, Index1, Index1)"/>
+        /// AcceleratorStream, long, long)"/>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index1 byteOffset,
-            Index1 byteExtent) => throw new InvalidOperationException();
+            long byteOffset,
+            long byteExtent) => throw new InvalidOperationException();
 
         #region IDispoable
 
