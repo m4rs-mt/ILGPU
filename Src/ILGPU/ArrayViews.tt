@@ -9,7 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Static/TypeInformation.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
@@ -17,16 +18,17 @@
 <#@ output extension=".cs" #>
 
 using ILGPU.Runtime;
-using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace ILGPU
 {
-<#  for (int i = 2; i <= 3; ++i) { #>
-<#      var typeName = i == 1 ? "ArrayView" : $"ArrayView{i}D"; #>
-<#      var indexType = $"Index{i}"; #>
+<#  foreach (var dim in IndexDimensions.Skip(1)) { #>
+<#      var dimension = dim.Dimension; #>
+<#      var typeName = $"ArrayView{dimension}D"; #>
+<#      var intIndexType = $"Index{dimension}"; #>
+<#      var indexType = "Long" + intIndexType; #>
     /// <summary>
     /// Represents a general view to an array on an accelerator.
     /// </summary>
@@ -34,7 +36,8 @@ namespace ILGPU
     [DebuggerTypeProxy(typeof(DebugArrayView<>))]
     [DebuggerDisplay("Extent = {Extent}, Length = {Length}")]
     [StructLayout(LayoutKind.Sequential)]
-    public readonly partial struct <#= typeName #><T> : IArrayView<T, <#= indexType #>>
+    public readonly partial struct <#= typeName #><T> :
+        IArrayView<T, <#= intIndexType #>, <#= indexType #>>
         where T : unmanaged
     {
         #region Constants
@@ -42,19 +45,19 @@ namespace ILGPU
         /// <summary>
         /// Represents the native size of a single element.
         /// </summary>
-        public static readonly int ElementSize =
-            ArrayView<T, <#= indexType #>>.ElementSize;
+        public static int ElementSize => ArrayView<T, <#= indexType #>>.ElementSize;
 
         #endregion
 
         #region Instance
 
         /// <summary>
-        /// Constructs a new <#= i #>D array view.
+        /// Constructs a new <#= dimension #>D array view.
         /// </summary>
         /// <param name="baseView">The source view.</param>
         public <#= typeName #>(ArrayView<T, <#= indexType #>> baseView)
         {
+            IndexTypeExtensions.AssertIntIndexRange(baseView.Length);
             BaseView = baseView;
         }
 
@@ -70,56 +73,50 @@ namespace ILGPU
         /// <summary>
         /// Returns true if this view points to a valid location.
         /// </summary>
-        public bool IsValid => BaseView.IsValid;
+        public readonly bool IsValid => BaseView.IsValid;
 
         /// <summary>
         /// Returns the length of this array view.
         /// </summary>
-        public int Length => BaseView.Length;
+        public readonly long Length => BaseView.Length;
+
+        /// <summary>
+        /// Returns the 32-bit length of this array view.
+        /// </summary>
+        public readonly int IntLength => BaseView.IntLength;
 
         /// <summary>
         /// Returns the extent of this view.
         /// </summary>
-        public <#= indexType #> Extent => BaseView.Extent;
+        public readonly <#= indexType #> Extent => BaseView.Extent;
+
+        /// <summary>
+        /// Returns the 32-bit extent of this view.
+        /// </summary>
+        public readonly <#= intIndexType #> IntExtent => BaseView.Extent.ToIntIndex();
 
         /// <summary>
         /// Returns the length of this array view in bytes.
         /// </summary>
-        public int LengthInBytes => BaseView.LengthInBytes;
+        public readonly long LengthInBytes => BaseView.LengthInBytes;
 
         /// <summary>
         /// Access the element at the given index.
         /// </summary>
         /// <param name="index">The element index.</param>
         /// <returns>The element at the given index.</returns>
-        public ref T this[<#= indexType #> index] => ref BaseView[index];
+        public readonly ref T this[<#= intIndexType #> index] => ref ToIntView()[index];
+
+        /// <summary>
+        /// Access the element at the given index.
+        /// </summary>
+        /// <param name="index">The element index.</param>
+        /// <returns>The element at the given index.</returns>
+        public readonly ref T this[<#= indexType #> index] => ref BaseView[index];
 
         #endregion
 
         #region Methods
-
-        /// <summary>
-        /// Returns a sub view of the current view starting at the given offset.
-        /// </summary>
-        /// <param name="offset">The starting offset.</param>
-        /// <returns>The new sub view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [Obsolete("Use BaseView.GetSubView instead")]
-        public <#= typeName #><T> GetSubView(<#= indexType #> offset) =>
-            new <#= typeName #><T>(BaseView.GetSubView(offset));
-
-        /// <summary>
-        /// Returns a sub view of the current view starting at the given offset.
-        /// </summary>
-        /// <param name="offset">The starting offset.</param>
-        /// <param name="subViewExtent">The extent of the new sub view.</param>
-        /// <returns>The new sub view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [Obsolete("Use BaseView.GetSubView instead")]
-        public <#= typeName #><T> GetSubView(
-            <#= indexType #> offset,
-            <#= indexType #> subViewExtent) =>
-            new <#= typeName #><T>(BaseView.GetSubView(offset, subViewExtent));
 
         /// <summary>
         /// Returns a sub view of the current view starting at the given offset.
@@ -135,7 +132,9 @@ namespace ILGPU
         /// region of memory.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> GetSubView(<#= indexType #> index, Index1 subViewExtent) =>
+        public readonly ArrayView<T> GetSubView(
+            <#= indexType #> index,
+            long subViewExtent) =>
             BaseView.GetSubView(index, subViewExtent);
 
         /// <summary>
@@ -144,7 +143,7 @@ namespace ILGPU
         /// <typeparam name="TOther">The target type.</typeparam>
         /// <returns>The casted array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public <#= typeName #><TOther> Cast<TOther>()
+        public readonly <#= typeName #><TOther> Cast<TOther>()
             where TOther : unmanaged =>
             new <#= typeName #><TOther>(BaseView.Cast<TOther>());
 
@@ -153,7 +152,15 @@ namespace ILGPU
         /// </summary>
         /// <returns>The converted linear view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> AsLinearView() => BaseView.AsLinearView();
+        public readonly ArrayView<T> AsLinearView() =>
+            BaseView.AsLinearView();
+
+        /// <summary>
+        /// Returns the associated 32-buffer view.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView<T, <#= intIndexType #>> ToIntView() =>
+            new ArrayView<T, <#= intIndexType #>>(AsLinearView(), IntExtent);
 
         /// <summary>
         /// Returns a variable view that points to the element at the specified index.
@@ -161,7 +168,7 @@ namespace ILGPU
         /// <param name="index">The variable index.</param>
         /// <returns>The resolved variable view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VariableView<T> GetVariableView(<#= indexType #> index) =>
+        public readonly VariableView<T> GetVariableView(<#= indexType #> index) =>
             BaseView.GetVariableView(index);
 
         #endregion
@@ -172,7 +179,7 @@ namespace ILGPU
         /// Returns the string representation of this view.
         /// </summary>
         /// <returns>The string representation of this view.</returns>
-        public override string ToString() => BaseView.ToString();
+        public readonly override string ToString() => BaseView.ToString();
 
         #endregion
 
@@ -187,6 +194,14 @@ namespace ILGPU
             view.BaseView;
 
         /// <summary>
+        /// Converts the given specialized array view into a corresponding generic view.
+        /// </summary>
+        /// <returns>The corresponding generic view.</returns>
+        public static explicit operator ArrayView<T, <#= intIndexType #>>(
+            <#= typeName #><T> view) =>
+            view.ToIntView();
+
+        /// <summary>
         /// Converts the given generic array view into a corresponding specialized view.
         /// </summary>
         /// <returns>The corresponding specialized view.</returns>
@@ -194,7 +209,29 @@ namespace ILGPU
             ArrayView<T, <#= indexType #>> baseView) =>
             new <#= typeName #><T>(baseView);
 
+        /// <summary>
+        /// Converts the given specialized array view into a corresponding generic view.
+        /// </summary>
+        /// <returns>The corresponding generic view.</returns>
+        public static implicit operator <#= typeName #><T>(
+            ArrayView<T, <#= intIndexType #>> view) =>
+            new <#= typeName #><T>(view.AsLinearView(), view.Extent);
+
         #endregion
+    }
+
+    namespace Runtime
+    {
+        partial class DebugArrayView<T>
+        {
+            /// <summary>
+            /// Constructs a new debug view.
+            /// </summary>
+            /// <param name="source">The target array view.</param>
+            public DebugArrayView(<#= typeName #><T> source)
+                : base(source.AsLinearView())
+            { }
+        }
     }
 
 <#  } #>

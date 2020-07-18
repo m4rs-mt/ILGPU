@@ -46,7 +46,7 @@ namespace ILGPU
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <returns>The converted 2D view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView2D<T> As2DView<T>(this ArrayView<T> view, int height)
+        public static ArrayView2D<T> As2DView<T>(this ArrayView<T> view, long height)
             where T : unmanaged =>
             new ArrayView2D<T>(view, height);
 
@@ -61,8 +61,8 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView2D<T> As2DView<T>(
             this ArrayView<T> view,
-            int width,
-            int height)
+            long width,
+            long height)
             where T : unmanaged =>
             new ArrayView2D<T>(view, width, height);
 
@@ -74,7 +74,9 @@ namespace ILGPU
         /// <param name="extent">The extent.</param>
         /// <returns>The converted 2D view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView2D<T> As2DView<T>(this ArrayView<T> view, Index2 extent)
+        public static ArrayView2D<T> As2DView<T>(
+            this ArrayView<T> view,
+            LongIndex2 extent)
             where T : unmanaged =>
             new ArrayView2D<T>(view, extent);
 
@@ -89,8 +91,8 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView3D<T> As3DView<T>(
             this ArrayView<T> view,
-            int height,
-            int depth)
+            long height,
+            long depth)
             where T : unmanaged =>
             new ArrayView3D<T>(view, height, depth);
 
@@ -105,7 +107,9 @@ namespace ILGPU
         /// </param>
         /// <returns>The converted 3D view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView3D<T> As3DView<T>(this ArrayView<T> view, Index2 extent)
+        public static ArrayView3D<T> As3DView<T>(
+            this ArrayView<T> view,
+            LongIndex2 extent)
             where T : unmanaged =>
             new ArrayView3D<T>(view, extent.X, extent.Y);
 
@@ -121,9 +125,9 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView3D<T> As3DView<T>(
             this ArrayView<T> view,
-            int width,
-            int height,
-            int depth)
+            long width,
+            long height,
+            long depth)
             where T : unmanaged =>
             new ArrayView3D<T>(view, width, height, depth);
 
@@ -141,8 +145,8 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView3D<T> As3DView<T>(
             this ArrayView<T> view,
-            Index2 extent,
-            int depth)
+            LongIndex2 extent,
+            long depth)
             where T : unmanaged =>
             new ArrayView3D<T>(view, extent, depth);
 
@@ -160,8 +164,8 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ArrayView3D<T> As3DView<T>(
             this ArrayView<T> view,
-            int width,
-            Index2 extent)
+            long width,
+            LongIndex2 extent)
             where T : unmanaged =>
             new ArrayView3D<T>(view, width, extent);
 
@@ -172,7 +176,9 @@ namespace ILGPU
         /// <param name="extent">The extent.</param>
         /// <returns>The converted 3D view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ArrayView3D<T> As3DView<T>(this ArrayView<T> view, Index3 extent)
+        public static ArrayView3D<T> As3DView<T>(
+            this ArrayView<T> view,
+            LongIndex3 extent)
             where T : unmanaged =>
             new ArrayView3D<T>(view, extent);
 
@@ -201,6 +207,20 @@ namespace ILGPU
             where T : unmanaged =>
             new VariableView<T>(view.GetSubView(element, 1));
 
+        /// <summary>
+        /// Returns a variable view to the given element.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="view">The view.</param>
+        /// <param name="element">The element index.</param>
+        /// <returns>The resolved variable view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static VariableView<T> GetVariableView<T>(
+            this ArrayView<T> view,
+            LongIndex1 element)
+            where T : unmanaged =>
+            new VariableView<T>(view.GetSubView(element, 1L));
+
         #endregion
     }
 
@@ -214,8 +234,8 @@ namespace ILGPU
         /// <param name="view">The linear view to the data.</param>
         /// <param name="height">The height (number of elements in y direction).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView2D(ArrayView<T> view, int height)
-            : this(view, new Index2(view.Length / height, height))
+        public ArrayView2D(ArrayView<T> view, long height)
+            : this(view, new LongIndex2(view.Length / height, height))
         { }
 
         /// <summary>
@@ -225,8 +245,8 @@ namespace ILGPU
         /// <param name="width">The width (number of elements in x direction).</param>
         /// <param name="height">The height (number of elements in y direction).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView2D(ArrayView<T> view, int width, int height)
-            : this(view, new Index2(width, height))
+        public ArrayView2D(ArrayView<T> view, long width, long height)
+            : this(view, new LongIndex2(width, height))
         { }
 
         /// <summary>
@@ -235,8 +255,8 @@ namespace ILGPU
         /// <param name="view">The linear view to the data.</param>
         /// <param name="extent">The extent (width, height) (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView2D(ArrayView<T> view, Index2 extent)
-            : this(new ArrayView<T, Index2>(view, extent))
+        public ArrayView2D(ArrayView<T> view, LongIndex2 extent)
+            : this(new ArrayView<T, LongIndex2>(view, extent))
         { }
 
         #endregion
@@ -246,24 +266,24 @@ namespace ILGPU
         /// <summary>
         /// Returns the Width of this view.
         /// </summary>
-        public int Width => Extent.X;
+        public readonly long Width => Extent.X;
 
         /// <summary>
         /// Returns the height of this view.
         /// </summary>
-        public int Height => Extent.Y;
+        public readonly long Height => Extent.Y;
 
         /// <summary>
         /// Returns the rows of this view that represents
         /// an implicitly transposed matrix.
         /// </summary>
-        public int Rows => Extent.X;
+        public readonly long Rows => Extent.X;
 
         /// <summary>
         /// Returns the columns of this view that represents
         /// an implicitly transposed matrix.
         /// </summary>
-        public int Columns => Extent.Y;
+        public readonly long Columns => Extent.Y;
 
         /// <summary>
         /// Accesses the element at the given index.
@@ -274,7 +294,20 @@ namespace ILGPU
         [SuppressMessage(
             "Microsoft.Design",
             "CA1023:IndexersShouldNotBeMultidimensional")]
-        public ref T this[int x, int y] => ref BaseView[new Index2(x, y)];
+        public readonly ref T this[int x, int y] =>
+            ref this[new Index2(x, y)];
+
+        /// <summary>
+        /// Accesses the element at the given index.
+        /// </summary>
+        /// <param name="x">The x index.</param>
+        /// <param name="y">The y index.</param>
+        /// <returns>The element at the given index.</returns>
+        [SuppressMessage(
+            "Microsoft.Design",
+            "CA1023:IndexersShouldNotBeMultidimensional")]
+        public readonly ref T this[long x, long y] =>
+            ref this[new LongIndex2(x, y)];
 
         #endregion
 
@@ -286,7 +319,7 @@ namespace ILGPU
         /// <param name="y">The y index of the row.</param>
         /// <returns>A linear view to a single row.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> GetRowView(int y)
+        public ArrayView<T> GetRowView(long y)
         {
             Trace.Assert(y >= 0 && y < Height, "y out of bounds");
             return AsLinearView().GetSubView(y * Width, Width);
@@ -306,8 +339,8 @@ namespace ILGPU
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <param name="depth">The depth (number of elements in z direction).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView3D(ArrayView<T> view, int height, int depth)
-            : this(view, new Index3(view.Length / (height * depth), height, depth))
+        public ArrayView3D(ArrayView<T> view, long height, long depth)
+            : this(view, new LongIndex3(view.Length / (height * depth), height, depth))
         { }
 
         /// <summary>
@@ -318,8 +351,8 @@ namespace ILGPU
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <param name="depth">The depth (number of elements in z direction).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView3D(ArrayView<T> view, int width, int height, int depth)
-            : this(view, new Index3(width, height, depth))
+        public ArrayView3D(ArrayView<T> view, long width, long height, long depth)
+            : this(view, new LongIndex3(width, height, depth))
         { }
 
         /// <summary>
@@ -332,8 +365,8 @@ namespace ILGPU
         /// </param>
         /// <param name="depth">The depth (number of elements in z direction).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView3D(ArrayView<T> view, Index2 extent, int depth)
-            : this(view, new Index3(extent, depth))
+        public ArrayView3D(ArrayView<T> view, LongIndex2 extent, long depth)
+            : this(view, new LongIndex3(extent, depth))
         { }
 
         /// <summary>
@@ -346,8 +379,8 @@ namespace ILGPU
         /// in z direction).
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView3D(ArrayView<T> view, int width, Index2 extent)
-            : this(view, new Index3(width, extent))
+        public ArrayView3D(ArrayView<T> view, long width, LongIndex2 extent)
+            : this(view, new LongIndex3(width, extent))
         { }
 
         /// <summary>
@@ -358,8 +391,8 @@ namespace ILGPU
         /// The extent (width, height, depth) (number of elements).
         /// </param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView3D(ArrayView<T> view, Index3 extent)
-            : this(new ArrayView<T, Index3>(view, extent))
+        public ArrayView3D(ArrayView<T> view, LongIndex3 extent)
+            : this(new ArrayView<T, LongIndex3>(view, extent))
         { }
 
         #endregion
@@ -369,17 +402,17 @@ namespace ILGPU
         /// <summary>
         /// Returns the Width of this view.
         /// </summary>
-        public int Width => Extent.X;
+        public readonly long Width => Extent.X;
 
         /// <summary>
         /// Returns the height of this view.
         /// </summary>
-        public int Height => Extent.Y;
+        public readonly long Height => Extent.Y;
 
         /// <summary>
         /// Returns the depth of this view.
         /// </summary>
-        public int Depth => Extent.Z;
+        public readonly long Depth => Extent.Z;
 
         /// <summary>
         /// Accesses the element at the given index.
@@ -391,7 +424,8 @@ namespace ILGPU
         [SuppressMessage(
             "Microsoft.Design",
             "CA1023:IndexersShouldNotBeMultidimensional")]
-        public ref T this[int x, int y, int z] => ref BaseView[new Index3(x, y, z)];
+        public readonly ref T this[int x, int y, int z] =>
+            ref this[new Index3(x, y, z)];
 
         /// <summary>
         /// Accesses the element at the given index.
@@ -402,7 +436,8 @@ namespace ILGPU
         [SuppressMessage(
             "Microsoft.Design",
             "CA1023:IndexersShouldNotBeMultidimensional")]
-        public ref T this[Index2 xy, int z] => ref this[xy.X, xy.Y, z];
+        public readonly ref T this[Index2 xy, int z] =>
+            ref this[xy.X, xy.Y, z];
 
         /// <summary>
         /// Accesses the element at the given index.
@@ -413,7 +448,8 @@ namespace ILGPU
         [SuppressMessage(
             "Microsoft.Design",
             "CA1023:IndexersShouldNotBeMultidimensional")]
-        public ref T this[int x, Index2 yz] => ref this[x, yz.X, yz.Y];
+        public readonly ref T this[int x, Index2 yz] =>
+            ref this[x, yz.X, yz.Y];
 
         #endregion
 
@@ -427,7 +463,7 @@ namespace ILGPU
         /// </param>
         /// <returns>A linear view to a single row.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> GetRowView(Index2 index) =>
+        public ArrayView<T> GetRowView(LongIndex2 index) =>
             GetRowView(index.X, index.Y);
 
         /// <summary>
@@ -437,7 +473,7 @@ namespace ILGPU
         /// <param name="z">The z index of the slice.</param>
         /// <returns>A linear view to a single row.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> GetRowView(int y, int z) =>
+        public ArrayView<T> GetRowView(long y, long z) =>
             GetSliceView(z).GetRowView(y);
 
         /// <summary>
@@ -446,7 +482,7 @@ namespace ILGPU
         /// <param name="z">The z index of the slice.</param>
         /// <returns>A 2D view to a single slice.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView2D<T> GetSliceView(int z)
+        public ArrayView2D<T> GetSliceView(long z)
         {
             Trace.Assert(z >= 0 && z < Depth, "z out of bounds");
             return new ArrayView2D<T>(
