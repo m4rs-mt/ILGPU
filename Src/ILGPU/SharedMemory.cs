@@ -51,7 +51,7 @@ namespace ILGPU
         /// <returns>An allocated region of shared memory.</returns>
         public static ArrayView<T, TIndex> Allocate<T, TIndex>(TIndex extent)
             where T : unmanaged
-            where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
+            where TIndex : unmanaged, IIntIndex, IGenericIndex<TIndex>
         {
             var baseView = Allocate<T>(extent.Size);
             return new ArrayView<T, TIndex>(baseView, extent);
@@ -86,7 +86,7 @@ namespace ILGPU
         /// <returns>An allocated region of shared memory.</returns>
         public static ArrayView2D<T> Allocate2D<T>(Index2 extent)
             where T : unmanaged =>
-            new ArrayView2D<T>(Allocate<T, Index2>(extent));
+            Allocate<T, Index2>(extent);
 
         /// <summary>
         /// Allocates a 3D chunk of shared memory with the specified number of elements.
@@ -111,7 +111,7 @@ namespace ILGPU
         /// <returns>An allocated region of shared memory.</returns>
         public static ArrayView3D<T> Allocate3D<T>(Index3 extent)
             where T : unmanaged =>
-            new ArrayView3D<T>(Allocate<T, Index3>(extent));
+            Allocate<T, Index3>(extent);
 
         /// <summary>
         /// Gets a chunk of dynamically allocated shared memory as typed memory view
