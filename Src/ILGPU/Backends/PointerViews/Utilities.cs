@@ -42,20 +42,8 @@ namespace ILGPU.Backends.PointerViews
             where TCollection : ICollection<Type>
         {
             collection.Add(typeof(void*));
-            collection.Add(typeof(int));
+            collection.Add(typeof(long));
         }
-
-        /// <summary>
-        /// Returns a specialized pointer constructor.
-        /// </summary>
-        /// <param name="implType">The view implementation type.</param>
-        /// <returns>The resolved pointer constructor.</returns>
-        public static ConstructorInfo GetPointerConstructor(Type implType) =>
-            implType.GetConstructor(new Type[]
-            {
-                typeof(void).MakePointerType(),
-                typeof(Index1),
-            });
 
         /// <summary>
         /// Returns a specialized view constructor.
@@ -65,7 +53,8 @@ namespace ILGPU.Backends.PointerViews
         public static ConstructorInfo GetViewConstructor(Type implType) =>
             implType.GetConstructor(new Type[]
             {
-                typeof(ArrayView<>).MakeGenericType(implType.GetGenericArguments()[0])
+                typeof(ArrayView<>).MakeGenericType(
+                    implType.GetGenericArguments()[0])
             });
 
         /// <summary>
