@@ -32,7 +32,7 @@ namespace ILGPU.Tests
                 using var buffer = Accelerator.Allocate<int>(extent.Size);
                 Execute(extent, buffer.View);
 
-                var expected = Enumerable.Range(0, extent.Size).ToArray();
+                var expected = Enumerable.Range(0, (int)extent.Size).ToArray();
                 Verify(buffer, expected);
             }
         }

@@ -40,12 +40,12 @@ namespace ILGPU.Tests
         {
             using var buffer = Accelerator.Allocate<int>(length);
             using var source = Accelerator.Allocate<int>(length);
-            var sourceData = Enumerable.Repeat(42, buffer.Length).ToArray();
+            var sourceData = Enumerable.Repeat(42, (int)buffer.Length).ToArray();
             source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, buffer.Length);
 
             Execute(buffer.Length, buffer.View, source.View);
 
-            var expected = Enumerable.Repeat(23, buffer.Length).ToArray();
+            var expected = Enumerable.Repeat(23, (int)buffer.Length).ToArray();
             Verify(buffer, expected);
         }
 
@@ -73,9 +73,9 @@ namespace ILGPU.Tests
         {
             using var buffer = Accelerator.Allocate<int>(length);
             using var source = Accelerator.Allocate<int>(length);
-            var partLength = source.Length / 3;
+            var partLength = (int)source.Length / 3;
             var sourceData = Enumerable.Repeat(13, partLength).Concat(
-                Enumerable.Repeat(42, source.Length - partLength)).ToArray();
+                Enumerable.Repeat(42, (int)source.Length - partLength)).ToArray();
             source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
 
             Execute(buffer.Length, buffer.View, source.View);
@@ -111,7 +111,7 @@ namespace ILGPU.Tests
         {
             using var buffer = Accelerator.Allocate<int>(length);
             using var source = Accelerator.Allocate<int>(64);
-            var sourceData = Enumerable.Range(0, source.Length).ToArray();
+            var sourceData = Enumerable.Range(0, (int)source.Length).ToArray();
             sourceData[57] = 23;
             source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
 
@@ -161,7 +161,7 @@ namespace ILGPU.Tests
         {
             using var buffer = Accelerator.Allocate<int>(length);
             using var source = Accelerator.Allocate<int>(64);
-            var sourceData = Enumerable.Range(0, source.Length).ToArray();
+            var sourceData = Enumerable.Range(0, (int)source.Length).ToArray();
             sourceData[57] = 23;
             source.CopyFrom(Accelerator.DefaultStream, sourceData, 0, 0, source.Length);
 

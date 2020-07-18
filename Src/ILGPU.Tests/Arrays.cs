@@ -154,7 +154,7 @@ namespace ILGPU.Tests
                 buffer.Length,
                 buffer.View,
                 value,
-                buffer.Length / 2);
+                (int)buffer.Length / 2);
 
             var expected = new T[] { value };
             Verify(buffer, expected);
@@ -319,7 +319,7 @@ namespace ILGPU.Tests
                 buffer.Length,
                 buffer.View,
                 value,
-                buffer.Length / 2);
+                (int)buffer.Length / 2);
 
             var expected = new T[] { value };
             Verify(buffer, expected);
