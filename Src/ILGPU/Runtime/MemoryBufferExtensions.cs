@@ -16,15 +16,6 @@ namespace ILGPU.Runtime
 {
     partial class MemoryBuffer<T>
     {
-        #region Properties
-
-        /// <summary>
-        /// Returns an array view that can access this buffer.
-        /// </summary>
-        ArrayView<T, Index1> IMemoryBuffer<T, Index1>.View => View;
-
-        #endregion
-
         #region Methods
 
         /// <summary>
@@ -32,7 +23,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <returns>The 2D view.</returns>
-        public ArrayView2D<T> As2DView(int height) =>
+        public ArrayView2D<T> As2DView(long height) =>
             View.As2DView(height);
 
         /// <summary>
@@ -41,7 +32,7 @@ namespace ILGPU.Runtime
         /// <param name="width">The width (number of elements in x direction).</param>
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <returns>The 2D view.</returns>
-        public ArrayView2D<T> As2DView(int width, int height) =>
+        public ArrayView2D<T> As2DView(long width, long height) =>
             View.As2DView(width, height);
 
         /// <summary>
@@ -49,7 +40,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="extent">The extent.</param>
         /// <returns>The 2D view.</returns>
-        public ArrayView2D<T> As2DView(Index2 extent) =>
+        public ArrayView2D<T> As2DView(LongIndex2 extent) =>
             View.As2DView(extent);
 
         /// <summary>
@@ -58,7 +49,7 @@ namespace ILGPU.Runtime
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <param name="depth">The depth (number of elements in z direction).</param>
         /// <returns>The 3D view.</returns>
-        public ArrayView3D<T> As3DView(int height, int depth) =>
+        public ArrayView3D<T> As3DView(long height, long depth) =>
             View.As3DView(height, depth);
 
         /// <summary>
@@ -68,7 +59,7 @@ namespace ILGPU.Runtime
         /// <param name="height">The height (number of elements in y direction).</param>
         /// <param name="depth">The depth (number of elements in z direction).</param>
         /// <returns>The 3D view.</returns>
-        public ArrayView3D<T> As3DView(int width, int height, int depth) =>
+        public ArrayView3D<T> As3DView(long width, long height, int depth) =>
             View.As3DView(width, height, depth);
 
         /// <summary>
@@ -76,7 +67,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="extent">The extent.</param>
         /// <returns>The 3D view.</returns>
-        public ArrayView3D<T> As3DView(Index3 extent) =>
+        public ArrayView3D<T> As3DView(LongIndex3 extent) =>
             View.As3DView(extent);
 
         #endregion
@@ -87,19 +78,14 @@ namespace ILGPU.Runtime
         #region Properties
 
         /// <summary>
-        /// Returns an array view that can access this buffer.
-        /// </summary>
-        ArrayView<T, Index2> IMemoryBuffer<T, Index2>.View => View.BaseView;
-
-        /// <summary>
         /// Returns the width (x-dimension) of this buffer.
         /// </summary>
-        public int Width => Extent.X;
+        public long Width => Extent.X;
 
         /// <summary>
         /// Returns the height (y-dimension) of this buffer.
         /// </summary>
-        public int Height => Extent.Y;
+        public long Height => Extent.Y;
 
         #endregion
 
@@ -123,9 +109,9 @@ namespace ILGPU.Runtime
             Target = "source")]
         public void CopyFrom(
             T[,] source,
-            Index2 sourceOffset,
-            Index2 targetOffset,
-            Index2 extent) =>
+            LongIndex2 sourceOffset,
+            LongIndex2 targetOffset,
+            LongIndex2 extent) =>
             CopyFrom(
                 Accelerator.DefaultStream,
                 source,
@@ -152,16 +138,16 @@ namespace ILGPU.Runtime
         public void CopyFrom(
             AcceleratorStream stream,
             T[,] source,
-            Index2 sourceOffset,
-            Index2 targetOffset,
-            Index2 extent)
+            LongIndex2 sourceOffset,
+            LongIndex2 targetOffset,
+            LongIndex2 extent)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 ||
-                sourceOffset.X >= source.GetLength(0) ||
-                sourceOffset.Y >= source.GetLength(1))
+                sourceOffset.X >= source.GetLongLength(0) ||
+                sourceOffset.Y >= source.GetLongLength(1))
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
             }
@@ -174,8 +160,8 @@ namespace ILGPU.Runtime
             }
 
             if (extent.X < 0 || extent.Y < 0 ||
-                sourceOffset.X + extent.X > source.GetLength(0) ||
-                sourceOffset.Y + extent.Y > source.GetLength(1) ||
+                sourceOffset.X + extent.X > source.GetLongLength(0) ||
+                sourceOffset.Y + extent.Y > source.GetLongLength(1) ||
                 targetOffset.X + extent.X > Extent.X ||
                 targetOffset.Y + extent.Y > Extent.Y)
             {
@@ -184,11 +170,12 @@ namespace ILGPU.Runtime
 
             var tempBuffer = new T[extent.Size];
 
-            for (int i = 0; i < extent.X; ++i)
+            for (long i = 0; i < extent.X; ++i)
             {
-                for (int j = 0; j < extent.Y; ++j)
+                for (long j = 0; j < extent.Y; ++j)
                 {
-                    var targetIdx = new Index2(i, j).ComputeLinearIndex(extent);
+                    var targetIdx = new LongIndex2(i, j).
+                        ComputeLinearIndex(extent);
                     tempBuffer[targetIdx] =
                         source[i + sourceOffset.X, j + sourceOffset.Y];
                 }
@@ -217,9 +204,9 @@ namespace ILGPU.Runtime
         [CLSCompliant(false)]
         public void CopyFrom(
             T[][] source,
-            Index2 sourceOffset,
-            Index2 targetOffset,
-            Index2 extent) =>
+            LongIndex2 sourceOffset,
+            LongIndex2 targetOffset,
+            LongIndex2 extent) =>
             CopyFrom(
                 Accelerator.DefaultStream,
                 source,
@@ -246,15 +233,15 @@ namespace ILGPU.Runtime
         public void CopyFrom(
             AcceleratorStream stream,
             T[][] source,
-            Index2 sourceOffset,
-            Index2 targetOffset,
-            Index2 extent)
+            LongIndex2 sourceOffset,
+            LongIndex2 targetOffset,
+            LongIndex2 extent)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 ||
-                sourceOffset.X >= source.Length)
+                sourceOffset.X >= source.LongLength)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
             }
@@ -267,7 +254,7 @@ namespace ILGPU.Runtime
             }
 
             if (extent.X < 0 || extent.Y < 0 ||
-                sourceOffset.X + extent.X > source.Length ||
+                sourceOffset.X + extent.X > source.LongLength ||
                 targetOffset.X + extent.X > Extent.X ||
                 targetOffset.Y + extent.Y > Extent.Y)
             {
@@ -276,7 +263,7 @@ namespace ILGPU.Runtime
 
             var tempBuffer = new T[extent.Size];
 
-            for (int i = 0; i < extent.X; ++i)
+            for (long i = 0; i < extent.X; ++i)
             {
                 var subData = source[i + sourceOffset.X];
                 if (subData == null)
@@ -284,11 +271,12 @@ namespace ILGPU.Runtime
 
                 // Skip entries that are out of bounds
                 for (
-                    int j = 0, e = IntrinsicMath.Min(subData.Length, extent.Y);
+                    long j = 0, e = IntrinsicMath.Min(subData.LongLength, extent.Y);
                     j < e;
                     ++j)
                 {
-                    var targetIdx = new Index2(i, j).ComputeLinearIndex(extent);
+                    var targetIdx = new LongIndex2(i, j).
+                        ComputeLinearIndex(extent);
                     tempBuffer[targetIdx] = subData[j + sourceOffset.Y];
                 }
             }
@@ -319,9 +307,9 @@ namespace ILGPU.Runtime
             Target = "target")]
         public void CopyTo(
             T[,] target,
-            Index2 sourceOffset,
-            Index2 targetOffset,
-            Index2 extent) =>
+            LongIndex2 sourceOffset,
+            LongIndex2 targetOffset,
+            LongIndex2 extent) =>
             CopyTo(
                 Accelerator.DefaultStream,
                 target,
@@ -348,9 +336,9 @@ namespace ILGPU.Runtime
         public void CopyTo(
             AcceleratorStream stream,
             T[,] target,
-            Index2 sourceOffset,
-            Index2 targetOffset,
-            Index2 extent)
+            LongIndex2 sourceOffset,
+            LongIndex2 targetOffset,
+            LongIndex2 extent)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
@@ -363,8 +351,8 @@ namespace ILGPU.Runtime
             }
 
             if (targetOffset.X < 0 || targetOffset.Y < 0 ||
-                targetOffset.X >= target.GetLength(0) ||
-                targetOffset.Y >= target.GetLength(1))
+                targetOffset.X >= target.GetLongLength(0) ||
+                targetOffset.Y >= target.GetLongLength(1))
             {
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
             }
@@ -372,8 +360,8 @@ namespace ILGPU.Runtime
             if (extent.X < 0 || extent.Y < 0 ||
                 sourceOffset.X + extent.X > Extent.X ||
                 sourceOffset.Y + extent.Y > Extent.Y ||
-                targetOffset.X + extent.X > target.GetLength(0) ||
-                targetOffset.Y + extent.Y > target.GetLength(1))
+                targetOffset.X + extent.X > target.GetLongLength(0) ||
+                targetOffset.Y + extent.Y > target.GetLongLength(1))
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));
             }
@@ -381,11 +369,12 @@ namespace ILGPU.Runtime
             var tempBuffer = new T[extent.Size];
             buffer.CopyTo(stream, tempBuffer, sourceOffset, 0, extent);
 
-            for (int i = 0; i < extent.X; ++i)
+            for (long i = 0; i < extent.X; ++i)
             {
-                for (int j = 0; j < extent.Y; ++j)
+                for (long j = 0; j < extent.Y; ++j)
                 {
-                    var sourceIdx = new Index2(i, j).ComputeLinearIndex(extent);
+                    var sourceIdx = new LongIndex2(i, j).
+                        ComputeLinearIndex(extent);
                     target[i + targetOffset.X, j + targetOffset.Y] =
                         tempBuffer[sourceIdx];
                 }
@@ -409,9 +398,9 @@ namespace ILGPU.Runtime
         [CLSCompliant(false)]
         public void CopyTo(
             T[][] target,
-            Index2 sourceOffset,
-            Index2 targetOffset,
-            Index2 extent) =>
+            LongIndex2 sourceOffset,
+            LongIndex2 targetOffset,
+            LongIndex2 extent) =>
             CopyTo(
                 Accelerator.DefaultStream,
                 target,
@@ -437,9 +426,9 @@ namespace ILGPU.Runtime
         public void CopyTo(
             AcceleratorStream stream,
             T[][] target,
-            Index2 sourceOffset,
-            Index2 targetOffset,
-            Index2 extent)
+            LongIndex2 sourceOffset,
+            LongIndex2 targetOffset,
+            LongIndex2 extent)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
@@ -452,7 +441,7 @@ namespace ILGPU.Runtime
             }
 
             if (targetOffset.X < 0 || targetOffset.Y < 0 ||
-                targetOffset.X >= target.Length)
+                targetOffset.X >= target.LongLength)
             {
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
             }
@@ -460,7 +449,7 @@ namespace ILGPU.Runtime
             if (extent.X < 0 || extent.Y < 0 ||
                 sourceOffset.X + extent.X > Extent.X ||
                 sourceOffset.Y + extent.Y > Extent.Y ||
-                targetOffset.X + extent.X > target.Length)
+                targetOffset.X + extent.X > target.LongLength)
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));
             }
@@ -468,15 +457,16 @@ namespace ILGPU.Runtime
             var tempBuffer = new T[extent.Size];
             buffer.CopyTo(stream, tempBuffer, sourceOffset, 0, extent);
 
-            for (int i = 0; i < extent.X; ++i)
+            for (long i = 0; i < extent.X; ++i)
             {
                 var subData = target[i + targetOffset.X];
                 if (subData == null)
                     continue;
 
-                for (int j = 0; j < extent.Y; ++j)
+                for (long j = 0; j < extent.Y; ++j)
                 {
-                    var sourceIdx = new Index2(i, j).ComputeLinearIndex(extent);
+                    var sourceIdx = new LongIndex2(i, j).
+                        ComputeLinearIndex(extent);
                     subData[j + targetOffset.Y] = tempBuffer[sourceIdx];
                 }
             }
@@ -513,7 +503,7 @@ namespace ILGPU.Runtime
         [SuppressMessage(
             "Microsoft.Performance",
             "CA1814: PreferJaggedArraysOverMultidimensional")]
-        public T[,] GetAs2DArray(Index2 offset, Index2 extent) =>
+        public T[,] GetAs2DArray(LongIndex2 offset, LongIndex2 extent) =>
             GetAs2DArray(Accelerator.DefaultStream, offset, extent);
 
         /// <summary>
@@ -526,13 +516,16 @@ namespace ILGPU.Runtime
         [SuppressMessage(
             "Microsoft.Performance",
             "CA1814: PreferJaggedArraysOverMultidimensional")]
-        public T[,] GetAs2DArray(AcceleratorStream stream, Index2 offset, Index2 extent)
+        public T[,] GetAs2DArray(
+            AcceleratorStream stream,
+            LongIndex2 offset,
+            LongIndex2 extent)
         {
             if (extent.X < 1 || extent.Y < 1)
                 throw new ArgumentOutOfRangeException(nameof(extent));
 
             var result = new T[extent.X, extent.Y];
-            CopyTo(stream, result, offset, Index2.Zero, extent);
+            CopyTo(stream, result, offset, LongIndex2.Zero, extent);
             return result;
         }
 
@@ -541,7 +534,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="y">The y index of the row.</param>
         /// <returns>A linear view to a single row.</returns>
-        public ArrayView<T> GetRowView(int y) => View.GetRowView(y);
+        public ArrayView<T> GetRowView(long y) => View.GetRowView(y);
 
         /// <summary>
         /// Converts the current view into a linear view.
@@ -557,24 +550,19 @@ namespace ILGPU.Runtime
         #region Properties
 
         /// <summary>
-        /// Returns an array view that can access this buffer.
-        /// </summary>
-        ArrayView<T, Index3> IMemoryBuffer<T, Index3>.View => View.BaseView;
-
-        /// <summary>
         /// Returns the width (x-dimension) of this buffer.
         /// </summary>
-        public int Width => Extent.X;
+        public long Width => Extent.X;
 
         /// <summary>
         /// Returns the height (y-dimension) of this buffer.
         /// </summary>
-        public int Height => Extent.Y;
+        public long Height => Extent.Y;
 
         /// <summary>
         /// Returns the depth (z-dimension) of this buffer.
         /// </summary>
-        public int Depth => Extent.Z;
+        public long Depth => Extent.Z;
 
         #endregion
 
@@ -598,9 +586,9 @@ namespace ILGPU.Runtime
             Target = "source")]
         public void CopyFrom(
             T[,,] source,
-            Index3 sourceOffset,
-            Index3 targetOffset,
-            Index3 extent) =>
+            LongIndex3 sourceOffset,
+            LongIndex3 targetOffset,
+            LongIndex3 extent) =>
             CopyFrom(
                 Accelerator.DefaultStream,
                 source,
@@ -627,17 +615,17 @@ namespace ILGPU.Runtime
         public void CopyFrom(
             AcceleratorStream stream,
             T[,,] source,
-            Index3 sourceOffset,
-            Index3 targetOffset,
-            Index3 extent)
+            LongIndex3 sourceOffset,
+            LongIndex3 targetOffset,
+            LongIndex3 extent)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 || sourceOffset.Z < 0 ||
-                sourceOffset.X >= source.GetLength(0) ||
-                sourceOffset.Y >= source.GetLength(1) ||
-                sourceOffset.Z >= source.GetLength(2))
+                sourceOffset.X >= source.GetLongLength(0) ||
+                sourceOffset.Y >= source.GetLongLength(1) ||
+                sourceOffset.Z >= source.GetLongLength(2))
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
             }
@@ -663,13 +651,14 @@ namespace ILGPU.Runtime
 
             var tempBuffer = new T[extent.Size];
 
-            for (int i = 0; i < extent.X; ++i)
+            for (long i = 0; i < extent.X; ++i)
             {
-                for (int j = 0; j < extent.Y; ++j)
+                for (long j = 0; j < extent.Y; ++j)
                 {
-                    for (int k = 0; k < extent.Z; ++k)
+                    for (long k = 0; k < extent.Z; ++k)
                     {
-                        var targetIdx = new Index3(i, j, k).ComputeLinearIndex(extent);
+                        var targetIdx = new LongIndex3(i, j, k).
+                            ComputeLinearIndex(extent);
                         tempBuffer[targetIdx] = source[
                             i + sourceOffset.X,
                             j + sourceOffset.Y,
@@ -701,9 +690,9 @@ namespace ILGPU.Runtime
         [CLSCompliant(false)]
         public void CopyFrom(
             T[][][] source,
-            Index3 sourceOffset,
-            Index3 targetOffset,
-            Index3 extent) =>
+            LongIndex3 sourceOffset,
+            LongIndex3 targetOffset,
+            LongIndex3 extent) =>
             CopyFrom(
                 Accelerator.DefaultStream,
                 source,
@@ -727,15 +716,15 @@ namespace ILGPU.Runtime
         public void CopyFrom(
             AcceleratorStream stream,
             T[][][] source,
-            Index3 sourceOffset,
-            Index3 targetOffset,
-            Index3 extent)
+            LongIndex3 sourceOffset,
+            LongIndex3 targetOffset,
+            LongIndex3 extent)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
             if (sourceOffset.X < 0 || sourceOffset.Y < 0 || sourceOffset.Z < 0 ||
-                sourceOffset.X >= source.Length)
+                sourceOffset.X >= source.LongLength)
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
             }
@@ -749,7 +738,7 @@ namespace ILGPU.Runtime
             }
 
             if (extent.X < 0 || extent.Y < 0 || extent.Z < 0 ||
-                sourceOffset.X + extent.X > source.Length ||
+                sourceOffset.X + extent.X > source.LongLength ||
                 targetOffset.X + extent.X > Extent.X ||
                 targetOffset.Y + extent.Y > Extent.Y ||
                 targetOffset.Z + extent.Z > Extent.Z)
@@ -759,13 +748,13 @@ namespace ILGPU.Runtime
 
             var tempBuffer = new T[extent.Size];
 
-            for (int i = 0; i < extent.X; ++i)
+            for (long i = 0; i < extent.X; ++i)
             {
                 var subData = source[i + sourceOffset.X];
                 if (subData == null)
                     continue;
 
-                for (int j = 0; j < extent.Y; ++j)
+                for (long j = 0; j < extent.Y; ++j)
                 {
                     var subSubData = subData[j + sourceOffset.Y];
                     if (subSubData == null)
@@ -773,11 +762,14 @@ namespace ILGPU.Runtime
 
                     // Skip entries that are out of bounds
                     for (
-                        int k = 0, e = IntrinsicMath.Min(subSubData.Length, extent.Z);
+                        long k = 0, e = IntrinsicMath.Min(
+                            subSubData.LongLength,
+                            extent.Z);
                         k < e;
                         ++k)
                     {
-                        var targetIdx = new Index3(i, j, k).ComputeLinearIndex(extent);
+                        var targetIdx = new LongIndex3(i, j, k).
+                            ComputeLinearIndex(extent);
                         tempBuffer[targetIdx] = subSubData[k + sourceOffset.Z];
                     }
                 }
@@ -809,9 +801,9 @@ namespace ILGPU.Runtime
             Target = "target")]
         public void CopyTo(
             T[,,] target,
-            Index3 sourceOffset,
-            Index3 targetOffset,
-            Index3 extent) =>
+            LongIndex3 sourceOffset,
+            LongIndex3 targetOffset,
+            LongIndex3 extent) =>
             CopyTo(
                 Accelerator.DefaultStream,
                 target,
@@ -838,9 +830,9 @@ namespace ILGPU.Runtime
         public void CopyTo(
             AcceleratorStream stream,
             T[,,] target,
-            Index3 sourceOffset,
-            Index3 targetOffset,
-            Index3 extent)
+            LongIndex3 sourceOffset,
+            LongIndex3 targetOffset,
+            LongIndex3 extent)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
@@ -854,9 +846,9 @@ namespace ILGPU.Runtime
             }
 
             if (targetOffset.X < 0 || targetOffset.Y < 0 || targetOffset.Z < 0 ||
-                targetOffset.X >= target.GetLength(0) ||
-                targetOffset.Y >= target.GetLength(1) ||
-                targetOffset.Z >= target.GetLength(2))
+                targetOffset.X >= target.GetLongLength(0) ||
+                targetOffset.Y >= target.GetLongLength(1) ||
+                targetOffset.Z >= target.GetLongLength(2))
             {
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
             }
@@ -865,9 +857,9 @@ namespace ILGPU.Runtime
                 sourceOffset.X + extent.X > Extent.X ||
                 sourceOffset.Y + extent.Y > Extent.Y ||
                 sourceOffset.Z + extent.Z > Extent.Z ||
-                targetOffset.X + extent.X > target.GetLength(0) ||
-                targetOffset.Y + extent.Y > target.GetLength(1) ||
-                targetOffset.Z + extent.Z > target.GetLength(2))
+                targetOffset.X + extent.X > target.GetLongLength(0) ||
+                targetOffset.Y + extent.Y > target.GetLongLength(1) ||
+                targetOffset.Z + extent.Z > target.GetLongLength(2))
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));
             }
@@ -875,13 +867,14 @@ namespace ILGPU.Runtime
             var tempBuffer = new T[extent.Size];
             buffer.CopyTo(stream, tempBuffer, sourceOffset, 0, extent);
 
-            for (int i = 0; i < extent.X; ++i)
+            for (long i = 0; i < extent.X; ++i)
             {
-                for (int j = 0; j < extent.Y; ++j)
+                for (long j = 0; j < extent.Y; ++j)
                 {
-                    for (int k = 0; k < extent.Z; ++k)
+                    for (long k = 0; k < extent.Z; ++k)
                     {
-                        var sourceIdx = new Index3(i, j, k).ComputeLinearIndex(extent);
+                        var sourceIdx = new LongIndex3(i, j, k).
+                            ComputeLinearIndex(extent);
                         target[
                             i + targetOffset.X,
                             j + targetOffset.Y,
@@ -908,9 +901,9 @@ namespace ILGPU.Runtime
         [CLSCompliant(false)]
         public void CopyTo(
             T[][][] target,
-            Index3 sourceOffset,
-            Index3 targetOffset,
-            Index3 extent) =>
+            LongIndex3 sourceOffset,
+            LongIndex3 targetOffset,
+            LongIndex3 extent) =>
             CopyTo(
                 Accelerator.DefaultStream,
                 target,
@@ -936,9 +929,9 @@ namespace ILGPU.Runtime
         public void CopyTo(
             AcceleratorStream stream,
             T[][][] target,
-            Index3 sourceOffset,
-            Index3 targetOffset,
-            Index3 extent)
+            LongIndex3 sourceOffset,
+            LongIndex3 targetOffset,
+            LongIndex3 extent)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
@@ -952,7 +945,7 @@ namespace ILGPU.Runtime
             }
 
             if (targetOffset.X < 0 || targetOffset.Y < 0 || targetOffset.Z < 0 ||
-                targetOffset.X >= target.Length)
+                targetOffset.X >= target.LongLength)
             {
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
             }
@@ -961,7 +954,7 @@ namespace ILGPU.Runtime
                 sourceOffset.X + extent.X > Extent.X ||
                 sourceOffset.Y + extent.Y > Extent.Y ||
                 sourceOffset.Z + extent.Z > Extent.Z ||
-                targetOffset.X + extent.X > target.Length)
+                targetOffset.X + extent.X > target.LongLength)
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));
             }
@@ -974,19 +967,20 @@ namespace ILGPU.Runtime
                 0,
                 extent);
 
-            for (int i = 0; i < extent.X; ++i)
+            for (long i = 0; i < extent.X; ++i)
             {
                 var subData = target[i + targetOffset.X];
                 if (subData == null)
                     continue;
-                for (int j = 0; j < extent.Y; ++j)
+                for (long j = 0; j < extent.Y; ++j)
                 {
                     var subSubData = subData[j + targetOffset.Y];
                     if (subSubData == null)
                         continue;
-                    for (int k = 0; k < extent.Z; ++k)
+                    for (long k = 0; k < extent.Z; ++k)
                     {
-                        var sourceIdx = new Index3(i, j, k).ComputeLinearIndex(extent);
+                        var sourceIdx = new LongIndex3(i, j, k).
+                            ComputeLinearIndex(extent);
                         subSubData[k + targetOffset.Z] = tempBuffer[sourceIdx];
                     }
                 }
@@ -1024,7 +1018,7 @@ namespace ILGPU.Runtime
         [SuppressMessage(
             "Microsoft.Performance",
             "CA1814: PreferJaggedArraysOverMultidimensional")]
-        public T[,,] GetAs3DArray(Index3 offset, Index3 extent) =>
+        public T[,,] GetAs3DArray(LongIndex3 offset, LongIndex3 extent) =>
             GetAs3DArray(Accelerator.DefaultStream, offset, extent);
 
         /// <summary>
@@ -1037,13 +1031,16 @@ namespace ILGPU.Runtime
         [SuppressMessage(
             "Microsoft.Performance",
             "CA1814: PreferJaggedArraysOverMultidimensional")]
-        public T[,,] GetAs3DArray(AcceleratorStream stream, Index3 offset, Index3 extent)
+        public T[,,] GetAs3DArray(
+            AcceleratorStream stream,
+            LongIndex3 offset,
+            LongIndex3 extent)
         {
             if (extent.X < 1 || extent.Y < 1 || extent.Z < 1)
                 throw new ArgumentOutOfRangeException(nameof(extent));
 
             var result = new T[extent.X, extent.Y, extent.Z];
-            CopyTo(stream, result, offset, Index3.Zero, extent);
+            CopyTo(stream, result, offset, LongIndex3.Zero, extent);
             return result;
         }
 
@@ -1053,14 +1050,14 @@ namespace ILGPU.Runtime
         /// <param name="y">The y index of the row.</param>
         /// <param name="z">The z index of the slice.</param>
         /// <returns>A linear view to a single row.</returns>
-        public ArrayView<T> GetRowView(int y, int z) => View.GetRowView(y, z);
+        public ArrayView<T> GetRowView(long y, long z) => View.GetRowView(y, z);
 
         /// <summary>
         /// Returns a 2D view to a single slice.
         /// </summary>
         /// <param name="z">The z index of the slice.</param>
         /// <returns>A 2D view to a single slice.</returns>
-        public ArrayView2D<T> GetSliceView(int z) => View.GetSliceView(z);
+        public ArrayView2D<T> GetSliceView(long z) => View.GetSliceView(z);
 
         /// <summary>
         /// Converts the current view into a linear view.
