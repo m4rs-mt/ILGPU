@@ -181,7 +181,16 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Internal array view
         /// </summary>
-        protected ArrayView<T, TIndex> CPUView { get; set; }
+        protected ArrayView<T, TIndex> CPUArrayView { get; set; }
+
+        /// <summary>
+        /// The part of this buffer in CPU memory
+        /// </summary>
+        /// <remarks>
+        /// Is obsolete, sole purpose is to prevent a breaking API change
+        /// </remarks>
+        [Obsolete("Replaced by Span property")]
+        public ArrayView<T, TIndex> CPUView => CPUArrayView;
 
         /// <summary>
         /// Returns a span to the part of this buffer in CPU memory
@@ -193,7 +202,7 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="index">The element index to access.</param>
         /// <returns>A reference to the i-th element in CPU memory.</returns>
-        public ref T this[TIndex index] => ref CPUView[index];
+        public ref T this[TIndex index] => ref CPUArrayView[index];
 
         #endregion
 
@@ -257,7 +266,7 @@ namespace ILGPU.Runtime
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
-            Buffer.CopyFromView(stream, CPUView.AsLinearView(), 0);
+            Buffer.CopyFromView(stream, CPUArrayView.AsLinearView(), 0);
         }
 
         /// <summary>
@@ -274,7 +283,7 @@ namespace ILGPU.Runtime
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-            Buffer.CopyToView(stream, CPUView.BaseView, 0);
+            Buffer.CopyToView(stream, CPUArrayView.BaseView, 0);
         }
 
         /// <summary>
@@ -283,7 +292,7 @@ namespace ILGPU.Runtime
         /// <param name="extent"></param>
         /// <returns>The view.</returns>
         public ArrayView2D<T> As2DView(Index2 extent) =>
-            CPUView.BaseView.As2DView<T>(extent);
+            CPUArrayView.BaseView.As2DView<T>(extent);
 
         /// <summary>
         /// Gets the part of this buffer on CPU memory as a 2D View.
@@ -291,7 +300,7 @@ namespace ILGPU.Runtime
         /// <param name="extent"></param>
         /// <returns>The view.</returns>
         public ArrayView3D<T> As3DView(Index3 extent) =>
-            CPUView.BaseView.As3DView<T>(extent);
+            CPUArrayView.BaseView.As3DView<T>(extent);
 
         /// <summary>
         /// Gets this exchange buffer as a <see cref="Span{T}"/>, copying from the
