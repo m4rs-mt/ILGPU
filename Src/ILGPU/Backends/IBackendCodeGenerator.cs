@@ -374,6 +374,10 @@ namespace ILGPU.Backends
             public void Visit(ConvertValue value) =>
                 CodeGenerator.GenerateCode(value);
 
+            /// <summary cref="IValueVisitor.Visit(IntAsPointerCast)"/>
+            public void Visit(IntAsPointerCast value) =>
+                throw new InvalidCodeGenerationException();
+
             /// <summary cref="IValueVisitor.Visit(PointerCast)"/>
             public void Visit(PointerCast value) =>
                 CodeGenerator.GenerateCode(value);
