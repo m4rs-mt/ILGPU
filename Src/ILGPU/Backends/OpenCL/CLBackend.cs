@@ -13,6 +13,7 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
+using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using System.Text;
@@ -36,8 +37,11 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         private sealed class CLAcceleratorSpecializer : AcceleratorSpecializer
         {
-            public CLAcceleratorSpecializer()
-                : base(AcceleratorType.OpenCL, null)
+            public CLAcceleratorSpecializer(PrimitiveType pointerType)
+                : base(
+                      AcceleratorType.OpenCL,
+                      null,
+                      pointerType)
             { }
         }
 
@@ -76,7 +80,7 @@ namespace ILGPU.Backends.OpenCL
                     var transformerBuilder = Transformer.CreateBuilder(
                         TransformerConfiguration.Empty);
                     transformerBuilder.AddBackendOptimizations(
-                        new CLAcceleratorSpecializer(),
+                        new CLAcceleratorSpecializer(PointerType),
                         context.OptimizationLevel);
                     builder.Add(transformerBuilder.ToTransformer());
                 });
