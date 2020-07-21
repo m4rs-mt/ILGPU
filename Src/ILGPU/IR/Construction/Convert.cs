@@ -50,10 +50,20 @@ namespace ILGPU.IR.Construction
             TypeNode targetType,
             ConvertFlags flags)
         {
-            location.Assert(targetType.BasicValueType != BasicValueType.None);
+            // Check for identity conversions
             if (node.Type == targetType)
                 return node;
 
+            // Check for int to pointer casts
+            if (targetType is PointerType pointerType &&
+                pointerType.ElementType.IsVoidType)
+            {
+                return CreateIntAsPointerCast(
+                    location,
+                    node);
+            }
+
+            location.Assert(targetType.BasicValueType != BasicValueType.None);
             if (!(targetType is PrimitiveType targetPrimitiveType))
             {
                 throw location.GetNotSupportedException(

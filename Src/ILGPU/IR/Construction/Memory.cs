@@ -215,6 +215,11 @@ namespace ILGPU.IR.Construction
             Value source,
             Value elementIndex)
         {
+            // Remove unnecessary pointer casts
+            if (elementIndex is IntAsPointerCast cast)
+                elementIndex = cast.Value;
+
+            // Assert a valid indexing type from here on
             location.Assert(
                 elementIndex.BasicValueType == IRTypeContext.ViewIndexType);
             var addressSpaceType = source.Type as IAddressSpaceType;
