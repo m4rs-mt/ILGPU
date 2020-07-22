@@ -114,6 +114,46 @@ namespace ILGPU.Tests
             Verify(buffer, expected);
         }
 
+        internal static void ArraySimpleDivergentKernel<T, TArraySize>(
+            Index1 index,
+            ArrayView<T> data,
+            T c,
+            int localIndex)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            TArraySize arraySize = default;
+            if (index > 10)
+            {
+                var array = new T[arraySize.Length];
+                for (int i = 0; i < arraySize.Length; ++i)
+                    array[i] = c;
+                data[index] = array[localIndex];
+            }
+            else
+            {
+                data[index] = c;
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ArraySimpleTestData))]
+        [KernelMethod(nameof(ArraySimpleDivergentKernel))]
+        public void ArraySimpleDivergent<T, TArraySize>(T value, TArraySize _)
+            where T : unmanaged
+            where TArraySize : unmanaged, ILength
+        {
+            using var buffer = Accelerator.Allocate<T>(1);
+            Execute<Index1, T, TArraySize>(
+                buffer.Length,
+                buffer.View,
+                value,
+                0);
+
+            var expected = new T[] { value };
+            Verify(buffer, expected);
+        }
+
         internal static void ArrayCallKernel<T, TArraySize>(
             Index1 index,
             ArrayView<T> data,
