@@ -14,6 +14,7 @@ using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
@@ -178,16 +179,30 @@ namespace ILGPU.Runtime
         public TIndex Extent { get; protected set; }
 
         /// <summary>
-        /// Returns an array view to the CPU part of this buffer.
+        /// Internal array view
         /// </summary>
-        public ArrayView<T, TIndex> CPUView { get; protected set; }
+        protected ArrayView<T, TIndex> CPUArrayView { get; set; }
+
+        /// <summary>
+        /// The part of this buffer in CPU memory
+        /// </summary>
+        /// <remarks>
+        /// Is obsolete, sole purpose is to prevent a breaking API change
+        /// </remarks>
+        [Obsolete("Replaced by Span property")]
+        public ArrayView<T, TIndex> CPUView => CPUArrayView;
+
+        /// <summary>
+        /// Returns a span to the part of this buffer in CPU memory
+        /// </summary>
+        public Span<T> Span => new Span<T>(cpuMemoryPointer, Length);
 
         /// <summary>
         /// Returns a reference to the i-th element in CPU memory.
         /// </summary>
         /// <param name="index">The element index to access.</param>
         /// <returns>A reference to the i-th element in CPU memory.</returns>
-        public ref T this[TIndex index] => ref CPUView[index];
+        public ref T this[TIndex index] => ref CPUArrayView[index];
 
         #endregion
 
@@ -251,7 +266,7 @@ namespace ILGPU.Runtime
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
-            Buffer.CopyFromView(stream, CPUView.AsLinearView(), 0);
+            Buffer.CopyFromView(stream, CPUArrayView.AsLinearView(), 0);
         }
 
         /// <summary>
@@ -268,7 +283,7 @@ namespace ILGPU.Runtime
         {
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
-            Buffer.CopyToView(stream, CPUView.BaseView, 0);
+            Buffer.CopyToView(stream, CPUArrayView.BaseView, 0);
         }
 
         /// <summary>
@@ -277,7 +292,7 @@ namespace ILGPU.Runtime
         /// <param name="extent"></param>
         /// <returns>The view.</returns>
         public ArrayView2D<T> As2DView(Index2 extent) =>
-            CPUView.BaseView.As2DView<T>(extent);
+            CPUArrayView.BaseView.As2DView<T>(extent);
 
         /// <summary>
         /// Gets the part of this buffer on CPU memory as a 2D View.
@@ -285,7 +300,33 @@ namespace ILGPU.Runtime
         /// <param name="extent"></param>
         /// <returns>The view.</returns>
         public ArrayView3D<T> As3DView(Index3 extent) =>
-            CPUView.BaseView.As3DView<T>(extent);
+            CPUArrayView.BaseView.As3DView<T>(extent);
+
+        /// <summary>
+        /// Gets this exchange buffer as a <see cref="Span{T}"/>, copying from the
+        /// accelerator in the process
+        /// </summary>
+        /// <returns>
+        /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
+        /// Uses the default accelerator stream.
+        /// </returns>
+        public Span<T> GetAsSpan() =>
+            GetAsSpan(Accelerator.DefaultStream);
+
+        /// <summary>
+        /// Gets this exchange buffer as a <see cref="Span{T}"/>, copying from the
+        /// accelerator in the process.
+        /// </summary>
+        /// <param name="stream">The stream to use</param>
+        /// <returns>
+        /// The <see cref="Span{T}"/> which accesses the part of this buffer on the CPU.
+        /// </returns>
+        public Span<T> GetAsSpan(AcceleratorStream stream)
+        {
+            CopyFromAccelerator(stream);
+            stream.Synchronize();
+            return Span;
+        }
 
         #endregion
 
