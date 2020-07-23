@@ -67,6 +67,42 @@ jobs:
       - name: Create NuGet package
         if: runner.os == 'Windows'
         run: dotnet pack --configuration=Release Src
+      - name: Fix NuGet Symbols Package
+        if: runner.os == 'Windows'
+        run: |
+          # WORKAROUND: The Symbols package should only contain Portable
+          # PDBs (no Windows PDBs allowed). Transfer ILGPU.pdb from Symbols
+          # package to Main NuGet package. Can be removed after updating
+          # ILGPU from net47 to net472.
+
+          # Get path to the Main and Symbols NuGet packages
+          $releaseDir = '.\Bin\Release'
+          $mainPkgPath =
+            Get-ChildItem -Path $releaseDir -Filter ILGPU.*.nupkg `
+            | Select-Object -First 1 -ExpandProperty Fullname
+          $symbolsPkgPath =
+            Get-ChildItem -Path $releaseDir -Filter ILGPU.*.snupkg `
+            | Select-Object -First 1 -ExpandProperty Fullname
+
+          # Transfer ILGPU.pdb from the Symbols to Main NuGet package
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $pdbEntryPath = 'lib/net47/ILGPU.pdb'
+
+          $mainPkgZip = [System.IO.Compression.ZipFile]::Open(
+            $mainPkgPath,
+            'Update')
+          [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+              $mainPkgZip,
+              "$releaseDir\net47\ILGPU.pdb",
+              $pdbEntryPath);
+          $mainPkgZip.Dispose()
+
+          $symbolsPkgZip = [System.IO.Compression.ZipFile]::Open(
+            $symbolsPkgPath,
+            'Update')
+          $symbolsPkgZip.GetEntry($pdbEntryPath).Delete();
+          $symbolsPkgZip.Dispose()
+
       - name: Upload NuGet package artifact
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v2
