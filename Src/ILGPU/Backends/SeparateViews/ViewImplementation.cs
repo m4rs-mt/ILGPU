@@ -92,7 +92,7 @@ namespace ILGPU.Backends.SeparateViews
             "Microsoft.Design",
             "CA1051: DoNotDeclareVisibleInstanceFields",
             Justification = "Implementation type that simplifies code generation")]
-        public readonly int Index;
+        public readonly long Index;
 
         /// <summary>
         /// The length.
@@ -101,14 +101,14 @@ namespace ILGPU.Backends.SeparateViews
             "Microsoft.Design",
             "CA1051: DoNotDeclareVisibleInstanceFields",
             Justification = "Implementation type that simplifies code generation")]
-        public readonly int Length;
+        public readonly long Length;
 
         /// <summary>
         /// Constructs a new array view implementation.
         /// </summary>
         /// <param name="index">The index into the view.</param>
         /// <param name="length">The length information.</param>
-        public ViewImplementation(int index, int length)
+        public ViewImplementation(long index, long length)
         {
             Index = index;
             Length = length;

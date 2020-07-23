@@ -26,7 +26,7 @@ namespace ILGPU.Runtime
     {<#int top = 3;
     for(int i = 1; i <= top; i++)
     {#>
-    <# var indexName = $"Index{i}"; #>
+    <# var indexName = $"LongIndex{i}"; #>
     <# var dimensionName = $"{i}D"; #>
     <# var typeName = i == 1 ? "ExchangeBuffer" : $"ExchangeBuffer{dimensionName}"; #>
     <# var arrayViewType = $"ArrayView<T, {indexName}>"; #>
@@ -79,7 +79,7 @@ namespace ILGPU.Runtime
     #>}
     <#for(int i = 1; i <= top; i++)
     {#>
-    <# var indexName = $"Index{i}"; #>
+    <# var indexName = $"LongIndex{i}"; #>
     <# var dimensionName = $"{i}D"; #>
     <# var typeName = i == 1 ? "ExchangeBuffer" : $"ExchangeBuffer{dimensionName}"; #>
     <# var arrayViewType = $"ArrayView<T, {indexName}>"; #>
@@ -104,7 +104,8 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="buffer">The underlying memory buffer.</param>
         /// <param name="mode">The current buffer allocation mode.</param>
-        internal <#= typeName #>(<#= memoryBufferType #> buffer,
+        internal <#= typeName #>(
+            <#= memoryBufferType #> buffer,
             ExchangeBufferMode mode)
             : base(buffer, mode)
         {

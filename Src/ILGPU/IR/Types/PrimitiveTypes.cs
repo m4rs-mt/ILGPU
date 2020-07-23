@@ -37,6 +37,32 @@ namespace ILGPU.IR.Types
                 4,
                 8);
 
+        /// <summary>
+        /// Maps integer-based type size values to <see cref="BasicValueType"/> entries.
+        /// </summary>
+        private static readonly ImmutableArray<BasicValueType> BasicSizeInformation =
+            ImmutableArray.Create(
+                BasicValueType.None,
+                BasicValueType.Int8,
+                BasicValueType.Int16,
+                BasicValueType.None,
+                BasicValueType.Int32,
+                BasicValueType.None,
+                BasicValueType.None,
+                BasicValueType.None,
+                BasicValueType.Int64);
+
+        /// <summary>
+        /// Determines the <see cref="BasicValueType"/> that corresponds to the given
+        /// type size in bytes (if any).
+        /// </summary>
+        /// <param name="size">The size in bytes.</param>
+        /// <returns>The basic value type (if any).</returns>
+        public static BasicValueType GetBasicValueTypeBySize(int size) =>
+            size > BasicSizeInformation.Length
+            ? BasicValueType.None
+            : BasicSizeInformation[size];
+
         #endregion
 
         #region Instance

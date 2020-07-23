@@ -112,6 +112,108 @@ public static readonly TypeInformation[] AtomicFloatTypes =
 public static readonly TypeInformation[] AtomicNumericTypes =
     AtomicIntTypes.Concat(AtomicFloatTypes).ToArray();
 
+// Index types
+
+public class IndexDimensionDefinition
+{
+    public IndexDimensionDefinition(int dimension, string propertyName)
+    {
+        Dimension = dimension;
+        PropertyName = propertyName;
+    }
+
+    public int Dimension { get; }
+
+    public string PropertyName { get; }
+
+    public string FieldName => PropertyName.ToLower();
+
+    public override string ToString() => PropertyName;
+}
+
+public class IndexTypeDefinition
+{
+    public IndexTypeDefinition(
+        int kind,
+        int otherKind,
+        int dimension,
+        string name,
+        string interfaceName,
+        TypeInformation baseType)
+    {
+        Kind = kind;
+        OtherKind = otherKind;
+        Dimension = dimension;
+        Name = name;
+        InterfaceName = interfaceName;
+        BaseType = baseType;
+    }
+
+    private int OtherKind { get; }
+
+    public int Kind { get; }
+
+    public int Dimension { get; }
+
+    public IndexTypeDefinition OppositeDefinition => IndexDefinitions[OtherKind];
+
+    public string Name { get; }
+
+    public string InterfaceName { get; }
+
+    public TypeInformation BaseType { get; }
+
+    public string BaseTypeName => BaseType.Type;
+
+    public bool IsIntIndex => Kind <= 3;
+
+    public bool IsLongIndex => Kind > 3;
+
+    public string Expression(
+        string delimiter,
+        Func<string, string> expression) =>
+        string.Join(
+            delimiter,
+            Enumerable.Range(0, Dimension).
+            Select(t => expression(IndexDimensions[t].PropertyName)));
+}
+
+public static readonly IndexDimensionDefinition[] IndexDimensions =
+    {
+        new IndexDimensionDefinition(1, "X"),
+        new IndexDimensionDefinition(2, "Y"),
+        new IndexDimensionDefinition(3, "Z"),
+    };
+
+public static readonly IndexTypeDefinition[] IndexDefinitions =
+    {
+        new IndexTypeDefinition(1, 3, 1,     "Index1",  "IIntIndex", SignedIntTypes[2]),
+        new IndexTypeDefinition(2, 4, 2,     "Index2",  "IIntIndex", SignedIntTypes[2]),
+        new IndexTypeDefinition(3, 5, 3,     "Index3",  "IIntIndex", SignedIntTypes[2]),
+
+        new IndexTypeDefinition(4, 0, 1, "LongIndex1", "ILongIndex", SignedIntTypes[3]),
+        new IndexTypeDefinition(5, 1, 2, "LongIndex2", "ILongIndex", SignedIntTypes[3]),
+        new IndexTypeDefinition(6, 2, 3, "LongIndex3", "ILongIndex", SignedIntTypes[3]),
+    };
+
+public static readonly IndexTypeDefinition[] IndexDefinitions1D =
+    {
+        IndexDefinitions[0],
+        IndexDefinitions[3]
+    };
+
+public static readonly IndexTypeDefinition[] IndexDefinitions2D =
+    {
+        IndexDefinitions[1],
+        IndexDefinitions[4]
+    };
+
+public static readonly IndexTypeDefinition[] IndexDefinitions3D =
+    {
+        IndexDefinitions[2],
+        IndexDefinitions[5]
+    };
+
 // Math operations
 
 [Flags]

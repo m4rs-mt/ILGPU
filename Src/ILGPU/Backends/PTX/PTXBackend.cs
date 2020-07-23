@@ -13,6 +13,7 @@ using ILGPU.Backends.EntryPoints;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
+using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using System.Text;
 
@@ -52,8 +53,11 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private sealed class PTXAcceleratorSpecializer : AcceleratorSpecializer
         {
-            public PTXAcceleratorSpecializer()
-                : base(AcceleratorType.Cuda, PTXBackend.WarpSize)
+            public PTXAcceleratorSpecializer(PrimitiveType pointerType)
+                : base(
+                      AcceleratorType.Cuda,
+                      PTXBackend.WarpSize,
+                      pointerType)
             { }
         }
 
@@ -90,7 +94,7 @@ namespace ILGPU.Backends.PTX
                 var transformerBuilder = Transformer.CreateBuilder(
                     TransformerConfiguration.Empty);
                 transformerBuilder.AddBackendOptimizations(
-                    new PTXAcceleratorSpecializer(),
+                    new PTXAcceleratorSpecializer(PointerType),
                     context.OptimizationLevel);
                 builder.Add(transformerBuilder.ToTransformer());
             });

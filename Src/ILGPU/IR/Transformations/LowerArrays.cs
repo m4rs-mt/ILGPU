@@ -88,23 +88,18 @@ namespace ILGPU.IR.Transformations
         {
             var builder = context.Builder;
             var location = value.Location;
-            int currentPosition = builder.InsertPosition;
 
-            // Allocate a memory array in the entry block
-            var methodBuilder = builder.MethodBuilder;
-            var entryBlock = methodBuilder[methodBuilder.EntryBlock];
-            var arrayLength = entryBlock.ComputeArrayLength(
+            // Allocate a memory array in the current block
+            var arrayLength = builder.ComputeArrayLength(
                 location,
                 value.Extent);
-            entryBlock.SetupInsertPosition(value);
-            var newArray = entryBlock.CreateStaticAllocaArray(
+            var newArray = builder.CreateStaticAllocaArray(
                 location,
                 arrayLength,
                 value.ArrayType.ElementType,
                 MemoryAddressSpace.Local);
 
             // Create resulting structure in current block
-            builder.InsertPosition = currentPosition;
             var instance = builder.CreateDynamicStructure(
                 location,
                 typeLowering.GetNumFields(value.ArrayType));
@@ -240,7 +235,7 @@ namespace ILGPU.IR.Transformations
             var linearAddress = GetLinearAddress(
                 context,
                 value.Source,
-                value.ElementIndex,
+                value.Offset,
                 out var ptr);
 
             var newLea = context.Builder.CreateLoadElementAddress(

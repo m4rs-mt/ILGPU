@@ -19,7 +19,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the length of this buffer.
         /// </summary>
-        int Length { get; }
+        long Length { get; }
 
         /// <summary>
         /// Sets the contents of the current buffer to zero.
@@ -44,7 +44,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the length of this buffer in bytes.
         /// </summary>
-        Index1 LengthInBytes { get; }
+        long LengthInBytes { get; }
 
         /// <summary>
         /// Copies the current contents into a new array.
@@ -60,7 +60,7 @@ namespace ILGPU.Runtime
     /// </summary>
     public interface IMemoryBuffer<T, TIndex> : IMemoryBuffer<T>
         where T : unmanaged
-        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
+        where TIndex : unmanaged, IGenericIndex<TIndex>
     {
         /// <summary>
         /// Returns an array view that can access this buffer.
@@ -102,21 +102,6 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             ArrayView<T, TIndex> source,
             TIndex targetOffset);
-
-        /// <summary>
-        /// Returns a sub view of the current view starting at the given offset.
-        /// </summary>
-        /// <param name="offset">The starting offset.</param>
-        /// <returns>The new sub view.</returns>
-        ArrayView<T, TIndex> GetSubView(TIndex offset);
-
-        /// <summary>
-        /// Returns a sub view of the current view starting at the given offset.
-        /// </summary>
-        /// <param name="offset">The starting offset.</param>
-        /// <param name="subViewExtent">The extent of the new sub view.</param>
-        /// <returns>The new sub view.</returns>
-        ArrayView<T, TIndex> GetSubView(TIndex offset, TIndex subViewExtent);
 
         /// <summary>
         /// Returns an array view that can access this array.

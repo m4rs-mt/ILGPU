@@ -40,7 +40,9 @@ namespace ILGPU
         /// <param name="baseView">The base view.</param>
         public VariableView(ArrayView<T> baseView)
         {
-            Trace.Assert(baseView.IsValid && baseView.Length == 1, "Invalid base view");
+            Trace.Assert(
+                baseView.IsValid && baseView.Length == 1L,
+                "Invalid base view");
             BaseView = baseView;
         }
 

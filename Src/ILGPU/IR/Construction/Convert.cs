@@ -20,7 +20,45 @@ namespace ILGPU.IR.Construction
     partial class IRBuilder
     {
         /// <summary>
-        /// Creates a compare operation.
+        /// Creates a convert operation to a 32bit integer.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="node">The operand.</param>
+        /// <returns>A node that represents the convert operation.</returns>
+        public ValueReference CreateConvertToInt32(
+            Location location,
+            Value node) =>
+            CreateConvert(location, node, BasicValueType.Int32);
+
+        /// <summary>
+        /// Creates a convert operation to a 64bit integer.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="node">The operand.</param>
+        /// <returns>A node that represents the convert operation.</returns>
+        public ValueReference CreateConvertToInt64(
+            Location location,
+            Value node) =>
+            CreateConvert(location, node, BasicValueType.Int64);
+
+        /// <summary>
+        /// Creates a convert operation.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="node">The operand.</param>
+        /// <param name="basicValueType">The target basic value type.</param>
+        /// <returns>A node that represents the convert operation.</returns>
+        public ValueReference CreateConvert(
+            Location location,
+            Value node,
+            BasicValueType basicValueType) =>
+            CreateConvert(
+                location,
+                node,
+                GetPrimitiveType(basicValueType));
+
+        /// <summary>
+        /// Creates a convert operation.
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <param name="node">The operand.</param>
@@ -37,7 +75,7 @@ namespace ILGPU.IR.Construction
                 ConvertFlags.None);
 
         /// <summary>
-        /// Creates a compare operation.
+        /// Creates a convert operation.
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <param name="node">The operand.</param>
@@ -50,10 +88,20 @@ namespace ILGPU.IR.Construction
             TypeNode targetType,
             ConvertFlags flags)
         {
-            location.Assert(targetType.BasicValueType != BasicValueType.None);
+            // Check for identity conversions
             if (node.Type == targetType)
                 return node;
 
+            // Check for int to pointer casts
+            if (targetType is PointerType pointerType &&
+                pointerType.ElementType.IsVoidType)
+            {
+                return CreateIntAsPointerCast(
+                    location,
+                    node);
+            }
+
+            location.Assert(targetType.BasicValueType != BasicValueType.None);
             if (!(targetType is PrimitiveType targetPrimitiveType))
             {
                 throw location.GetNotSupportedException(

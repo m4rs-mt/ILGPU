@@ -25,7 +25,9 @@ namespace ILGPU.Tests
             yield return new object[] { int.MinValue };
         }
 
-        internal static void CopyKernel(Index1 index, ArrayView<long, Index1> data)
+        internal static void CopyKernel(
+            Index1 index,
+            ArrayView<long, LongIndex1> data)
         {
             data[index] -= 5;
         }
@@ -44,7 +46,7 @@ namespace ILGPU.Tests
             var expected = Enumerable.Repeat(constant - 5, Length).ToArray();
             Accelerator.Synchronize();
 
-            Execute(exchangeBuffer.Extent, exchangeBuffer.View);
+            Execute(exchangeBuffer.Extent.ToIntIndex(), exchangeBuffer.View);
             Accelerator.Synchronize();
 
             exchangeBuffer.CopyFromAccelerator();
@@ -55,7 +57,9 @@ namespace ILGPU.Tests
                 Assert.Equal(expected[i], exchangeBuffer[i]);
         }
 
-        internal static void Copy2DKernel(Index2 index, ArrayView<long, Index2> data)
+        internal static void Copy2DKernel(
+            Index2 index,
+            ArrayView<long, LongIndex2> data)
         {
             data[index] -= 5;
         }
@@ -77,7 +81,7 @@ namespace ILGPU.Tests
             var expected = Enumerable.Repeat(constant - 5, Length * Length).ToArray();
             Accelerator.Synchronize();
 
-            Execute(exchangeBuffer.Extent, exchangeBuffer.View);
+            Execute(exchangeBuffer.Extent.ToIntIndex(), exchangeBuffer.View);
             Accelerator.Synchronize();
 
             exchangeBuffer.CopyFromAccelerator();
@@ -88,7 +92,9 @@ namespace ILGPU.Tests
                 Assert.Equal(expected[i], exchangeBuffer.Span[i]);
         }
 
-        internal static void Copy3DKernel(Index3 index, ArrayView<long, Index3> data)
+        internal static void Copy3DKernel(
+            Index3 index,
+            ArrayView<long, LongIndex3> data)
         {
             data[index] -= 5;
         }
@@ -114,7 +120,7 @@ namespace ILGPU.Tests
 
             Accelerator.Synchronize();
 
-            Execute(exchangeBuffer.Extent, exchangeBuffer.View);
+            Execute(exchangeBuffer.Extent.ToIntIndex(), exchangeBuffer.View);
             Accelerator.Synchronize();
 
             exchangeBuffer.CopyFromAccelerator();
@@ -233,8 +239,11 @@ namespace ILGPU.Tests
                             exchangeBuffer[new Index3(i, j, k)]);
         }
 
-        internal static void CopyAsyncKernel(Index1 index, ArrayView<long, Index1> data,
-            ArrayView<long, Index1> data2, ArrayView<long, Index1> returnBuffer)
+        internal static void CopyAsyncKernel(
+            Index1 index,
+            ArrayView<long, LongIndex1> data,
+            ArrayView<long, LongIndex1> data2,
+            ArrayView<long, LongIndex1> returnBuffer)
         {
             returnBuffer[index] = data[index] - data2[index];
         }
@@ -265,7 +274,10 @@ namespace ILGPU.Tests
             var expected = Enumerable.Repeat(constant - constant2, Length).ToArray();
             Accelerator.Synchronize();
 
-            Execute(exchangeBuffer.Extent, exchangeBuffer.View, exchangeBuffer2.View,
+            Execute(
+                exchangeBuffer.Extent.ToIntIndex(),
+                exchangeBuffer.View,
+                exchangeBuffer2.View,
                 returnBuffer.View);
 
             Accelerator.Synchronize();
@@ -286,7 +298,7 @@ namespace ILGPU.Tests
             }
         }
 
-        internal static void SpanKernel(Index1 index, ArrayView<int, Index1> data)
+        internal static void SpanKernel(Index1 index, ArrayView<int, LongIndex1> data)
         {
             data[index] = data[index] - 5;
         }
@@ -304,7 +316,7 @@ namespace ILGPU.Tests
             var expected = Enumerable.Repeat(constant - 5, Length).ToArray();
             Accelerator.Synchronize();
 
-            Execute(exchangeBuffer.Extent, exchangeBuffer.View);
+            Execute(exchangeBuffer.Length, exchangeBuffer.View);
             Accelerator.Synchronize();
 
             // These should theoretically be the same because GetAsSpan

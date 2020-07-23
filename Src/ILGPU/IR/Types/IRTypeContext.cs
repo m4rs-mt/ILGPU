@@ -52,9 +52,16 @@ namespace ILGPU.IR.Types
                 typeof(Index3));
 
         /// <summary>
-        /// Represents the index type of a view.
+        /// Returns true if the given basic value type can be used in combination with
+        /// a view type.
         /// </summary>
-        internal const BasicValueType ViewIndexType = BasicValueType.Int32;
+        /// <param name="basicValueType"></param>
+        /// <returns>
+        /// True if the given value type is a compatible view index type.
+        /// </returns>
+        internal static bool IsViewIndexType(BasicValueType basicValueType) =>
+            basicValueType == BasicValueType.Int32 |
+            basicValueType == BasicValueType.Int64;
 
         #endregion
 

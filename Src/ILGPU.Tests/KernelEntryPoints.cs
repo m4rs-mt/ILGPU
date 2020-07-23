@@ -255,7 +255,7 @@ namespace ILGPU.Tests
                 };
 
             using var buffer = Accelerator.Allocate<int>(length);
-            Execute(kernel.Method, new Index1(buffer.Length), buffer.View);
+            Execute(kernel.Method, new Index1((int)buffer.Length), buffer.View);
 
             var expected = Enumerable.Range(0, length).ToArray();
             Verify(buffer, expected);
@@ -313,7 +313,7 @@ namespace ILGPU.Tests
             Action<Index1, ArrayView<int>> kernel = instanceHost.InstanceKernel;
 
             using var buffer = Accelerator.Allocate<int>(length);
-            Execute(kernel.Method, new Index1(buffer.Length), buffer.View);
+            Execute(kernel.Method, new Index1((int)buffer.Length), buffer.View);
 
             var expected =
                 Enumerable.Range(instanceHost.InstanceOffset(), length).ToArray();
@@ -369,7 +369,7 @@ namespace ILGPU.Tests
                 };
 
             using var buffer = Accelerator.Allocate<int>(length);
-            Execute(kernel.Method, new Index1(buffer.Length), buffer.View);
+            Execute(kernel.Method, new Index1((int)buffer.Length), buffer.View);
 
             var expected =
                 Enumerable.Range(CaptureHost.CaptureProperty, length).ToArray();
@@ -435,7 +435,7 @@ namespace ILGPU.Tests
 
             using var buffer = Accelerator.Allocate<int>(length);
             Assert.Throws<NotSupportedException>(() =>
-                Execute(kernel.Method, new Index1(buffer.Length), buffer.View));
+                Execute(kernel.Method, new Index1((int)buffer.Length), buffer.View));
         }
 
         [Theory]
@@ -492,7 +492,7 @@ namespace ILGPU.Tests
 
             using var buffer = Accelerator.Allocate<int>(length);
             Assert.Throws<NotSupportedException>(() =>
-                Execute(kernel.Method, new Index1(buffer.Length), buffer.View));
+                Execute(kernel.Method, new Index1((int)buffer.Length), buffer.View));
         }
 
         [Theory]

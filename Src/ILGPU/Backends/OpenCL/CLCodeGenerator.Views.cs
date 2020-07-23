@@ -19,7 +19,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IBackendCodeGenerator.GenerateCode(LoadElementAddress)"/>
         public void GenerateCode(LoadElementAddress value)
         {
-            var elementIndex = LoadAs<PrimitiveVariable>(value.ElementIndex);
+            var elementIndex = LoadAs<PrimitiveVariable>(value.Offset);
             var source = Load(value.Source);
             var target = AllocatePointerType(value.Type as PointerType);
 

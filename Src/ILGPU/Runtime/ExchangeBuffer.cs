@@ -41,9 +41,11 @@ namespace ILGPU.Runtime
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
     /// <typeparam name="TIndex">The index type.</typeparam>
-    public unsafe class ExchangeBufferBase<T, TIndex> : MemoryBuffer, IMemoryBuffer<T>
+    public unsafe class ExchangeBufferBase<T, TIndex> :
+        MemoryBuffer,
+        IMemoryBuffer<T>
         where T : unmanaged
-        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>
+        where TIndex : unmanaged, IGenericIndex<TIndex>
     {
         #region Constants
 
@@ -68,7 +70,7 @@ namespace ILGPU.Runtime
             /// <param name="sizeInBytes">The size in bytes to allocate.</param>
             /// <returns>An unsafe array view source.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static CudaViewSource Create(int sizeInBytes)
+            public static CudaViewSource Create(long sizeInBytes)
             {
                 CudaException.ThrowIfFailed(
                     CudaAPI.Current.AllocateHostMemory(
@@ -86,11 +88,11 @@ namespace ILGPU.Runtime
             { }
 
             /// <summary cref="ArrayViewSource.GetAsRawArray(
-            /// AcceleratorStream, Index1, Index1)"/>
+            /// AcceleratorStream, long, long)"/>
             protected internal override ArraySegment<byte> GetAsRawArray(
                 AcceleratorStream stream,
-                Index1 byteOffset,
-                Index1 byteExtent) => throw new InvalidOperationException();
+                long byteOffset,
+                long byteExtent) => throw new InvalidOperationException();
 
             #region IDispoable
 
@@ -171,7 +173,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the length of this buffer in bytes.
         /// </summary>
-        public Index1 LengthInBytes => Buffer.LengthInBytes;
+        public long LengthInBytes => Buffer.LengthInBytes;
 
         /// <summary>
         /// Returns the extent of this buffer.
@@ -195,7 +197,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns a span to the part of this buffer in CPU memory
         /// </summary>
-        public Span<T> Span => new Span<T>(cpuMemoryPointer, Length);
+        public Span<T> Span => new Span<T>(cpuMemoryPointer, (int)Length);
 
         /// <summary>
         /// Returns a reference to the i-th element in CPU memory.
@@ -232,8 +234,8 @@ namespace ILGPU.Runtime
         /// <returns>A new array holding the requested contents.</returns>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index1 byteOffset,
-            Index1 byteExtent) =>
+            long byteOffset,
+            long byteExtent) =>
             Buffer.GetAsRawArray(stream, byteOffset, byteExtent);
 
         /// <summary>
@@ -289,17 +291,17 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Gets the part of this buffer on CPU memory as a 2D View.
         /// </summary>
-        /// <param name="extent"></param>
+        /// <param name="extent">The view extent.</param>
         /// <returns>The view.</returns>
-        public ArrayView2D<T> As2DView(Index2 extent) =>
+        public ArrayView2D<T> As2DView(LongIndex2 extent) =>
             CPUArrayView.BaseView.As2DView<T>(extent);
 
         /// <summary>
-        /// Gets the part of this buffer on CPU memory as a 2D View.
+        /// Gets the part of this buffer on CPU memory as a 3D View.
         /// </summary>
-        /// <param name="extent"></param>
+        /// <param name="extent">The view extent.</param>
         /// <returns>The view.</returns>
-        public ArrayView3D<T> As3DView(Index3 extent) =>
+        public ArrayView3D<T> As3DView(LongIndex3 extent) =>
             CPUArrayView.BaseView.As3DView<T>(extent);
 
         /// <summary>
@@ -337,22 +339,16 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
         public static implicit operator ArrayView<T, TIndex>(
-            ExchangeBufferBase<T, TIndex> buffer)
-        {
-            Debug.Assert(buffer != null, "Invalid buffer");
-            return buffer.View;
-        }
+            ExchangeBufferBase<T, TIndex> buffer) =>
+            buffer.View;
 
         /// <summary>
         /// Implicitly converts this buffer into a memory buffer.
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
         public static implicit operator MemoryBuffer<T, TIndex>(
-            ExchangeBufferBase<T, TIndex> buffer)
-        {
-            Debug.Assert(buffer != null, "Invalid buffer");
-            return buffer.Buffer;
-        }
+            ExchangeBufferBase<T, TIndex> buffer) =>
+            buffer.Buffer;
 
         #endregion
 

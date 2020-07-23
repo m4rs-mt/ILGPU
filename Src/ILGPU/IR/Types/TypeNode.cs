@@ -73,11 +73,21 @@ namespace ILGPU.IR.Types
         /// <param name="fieldAlignment">The field size in bytes.</param>
         /// <returns>The aligned field offset.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Align(int offset, int fieldAlignment)
+        public static long Align(long offset, int fieldAlignment)
         {
             var padding = (fieldAlignment - (offset % fieldAlignment)) % fieldAlignment;
             return offset + padding;
         }
+
+        /// <summary>
+        /// Computes a properly aligned offset in bytes for the given field size.
+        /// </summary>
+        /// <param name="offset">The current.</param>
+        /// <param name="fieldAlignment">The field size in bytes.</param>
+        /// <returns>The aligned field offset.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Align(int offset, int fieldAlignment) =>
+            (int)Align((long)offset, fieldAlignment);
 
         #endregion
 
@@ -206,8 +216,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// The type representation in the managed world.
         /// </summary>
-        public Type ManagedType =>
-            managedType ?? (managedType = GetManagedType());
+        public Type ManagedType => managedType ??= GetManagedType();
 
         #endregion
 
