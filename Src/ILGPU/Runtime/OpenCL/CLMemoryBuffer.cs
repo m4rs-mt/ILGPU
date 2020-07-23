@@ -50,11 +50,11 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(
-        /// AcceleratorStream, ArrayView{T}, Index1)"/>
+        /// AcceleratorStream, ArrayView{T}, LongIndex1)"/>
         protected internal unsafe override void CopyToView(
             AcceleratorStream stream,
             ArrayView<T> target,
-            Index1 sourceOffset)
+            LongIndex1 sourceOffset)
         {
             var clStream = (CLStream)stream;
 
@@ -87,11 +87,11 @@ namespace ILGPU.Runtime.OpenCL
         }
 
         /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(
-        /// AcceleratorStream, ArrayView{T}, Index1)"/>
+        /// AcceleratorStream, ArrayView{T}, LongIndex1)"/>
         protected internal unsafe override void CopyFromView(
             AcceleratorStream stream,
             ArrayView<T> source,
-            Index1 targetOffset)
+            LongIndex1 targetOffset)
         {
             var clStream = (CLStream)stream;
 

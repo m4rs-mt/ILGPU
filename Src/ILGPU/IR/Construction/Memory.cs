@@ -193,8 +193,8 @@ namespace ILGPU.IR.Construction
         {
             location.Assert(
                 source.Type.IsViewType &&
-                offset.BasicValueType == IRTypeContext.ViewIndexType &&
-                length.BasicValueType == IRTypeContext.ViewIndexType);
+                IRTypeContext.IsViewIndexType(offset.BasicValueType) &&
+                IRTypeContext.IsViewIndexType(length.BasicValueType));
 
             return Append(new SubViewValue(
                 GetInitializer(location),
@@ -221,7 +221,7 @@ namespace ILGPU.IR.Construction
 
             // Assert a valid indexing type from here on
             location.Assert(
-                elementIndex.BasicValueType == IRTypeContext.ViewIndexType);
+                IRTypeContext.IsViewIndexType(elementIndex.BasicValueType));
             var addressSpaceType = source.Type as IAddressSpaceType;
             location.AssertNotNull(addressSpaceType);
 

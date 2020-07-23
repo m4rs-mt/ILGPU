@@ -49,7 +49,8 @@ namespace ILGPU.Backends.PointerViews
                 builder.Add(typeContext.CreatePointerType(
                     type.ElementType,
                     type.AddressSpace));
-                builder.Add(typeContext.GetPrimitiveType(BasicValueType.Int32));
+                builder.Add(typeContext.GetPrimitiveType(
+                    BasicValueType.Int64));
                 return builder.Seal();
             }
         }
@@ -66,10 +67,14 @@ namespace ILGPU.Backends.PointerViews
             TypeLowering<ViewType> _,
             NewView value)
         {
-            var viewInstance = context.Builder.CreateDynamicStructure(
+            var builder = context.Builder;
+            var longLength = builder.CreateConvertToInt64(
+                value.Location,
+                value.Length);
+            var viewInstance = builder.CreateDynamicStructure(
                 value.Location,
                 value.Pointer,
-                value.Length);
+                longLength);
             context.ReplaceAndRemove(value, viewInstance);
         }
 
@@ -81,10 +86,19 @@ namespace ILGPU.Backends.PointerViews
             TypeLowering<ViewType> _,
             GetViewLength value)
         {
-            var length = context.Builder.CreateGetField(
+            var builder = context.Builder;
+            var length = builder.CreateGetField(
                 value.Location,
                 value.View,
                 new FieldSpan(1));
+
+            // Convert to a 32bit length value
+            if (value.Is32BitProperty)
+            {
+                length = builder.CreateConvertToInt32(
+                    value.Location,
+                    length);
+            }
             context.ReplaceAndRemove(value, length);
         }
 
@@ -107,10 +121,17 @@ namespace ILGPU.Backends.PointerViews
                 pointer,
                 value.Offset);
 
+            var length = value.Length;
+            if (length.BasicValueType != BasicValueType.Int64)
+            {
+                length = builder.CreateConvertToInt64(
+                    value.Location,
+                    length);
+            }
             var subView = builder.CreateDynamicStructure(
                 location,
                 newPointer,
-                value.Length);
+                length);
             context.ReplaceAndRemove(value, subView);
         }
 
@@ -172,10 +193,10 @@ namespace ILGPU.Backends.PointerViews
             // Compute new length:
             // newLength = length * sourceElementSize / targetElementSize;
             var sourceElementType = (typeLowering[value] as ViewType).ElementType;
-            var sourceElementSize = builder.CreateSizeOf(
+            var sourceElementSize = builder.CreateLongSizeOf(
                 location,
                 sourceElementType);
-            var targetElementSize = builder.CreateSizeOf(
+            var targetElementSize = builder.CreateLongSizeOf(
                 location,
                 value.TargetElementType);
             var newLength = builder.CreateArithmetic(
@@ -211,7 +232,7 @@ namespace ILGPU.Backends.PointerViews
             var newLea = builder.CreateLoadElementAddress(
                 location,
                 pointer,
-                value.ElementIndex);
+                value.Offset);
             context.ReplaceAndRemove(value, newLea);
         }
 

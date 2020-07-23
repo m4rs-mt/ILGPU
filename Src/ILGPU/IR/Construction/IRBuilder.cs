@@ -209,6 +209,17 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
+        /// Creates a node that represents the native size of the given type.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="type">The type.</param>
+        /// <returns>A reference to the requested value.</returns>
+        public ValueReference CreateLongSizeOf(Location location, TypeNode type) =>
+            CreateConvertToInt64(
+                location,
+                CreateSizeOf(location, type));
+
+        /// <summary>
         /// Creates a node that represents the native offset of the specified field
         /// index.
         /// </summary>
