@@ -67,6 +67,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
         </None>
+        <None Include="IndexTypes.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>IndexTypes.tt</DependentUpon>
+        </None>
         <None Include="IntrinsicMath.CPUOnly.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -150,6 +155,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
         </Compile>
+        <Compile Update="IndexTypes.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>IndexTypes.tt</DependentUpon>
+        </Compile>
         <Compile Update="IntrinsicMath.CPUOnly.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -232,6 +242,10 @@
         <None Update="Frontend\Intrinsic\RemappedIntrinsics.Generated.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>RemappedIntrinsics.Generated.cs</LastGenOutput>
+        </None>
+        <None Update="IndexTypes.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>IndexTypes.cs</LastGenOutput>
         </None>
         <None Update="IntrinsicMath.CPUOnly.tt">
           <Generator>TextTemplatingFileGenerator</Generator>

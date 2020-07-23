@@ -353,7 +353,19 @@ namespace ILGPU.Tests
             Value.Serialize(info);
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 1024)]
+    [StructLayout(LayoutKind.Sequential, Size = 64)]
+    public struct SmallCustomSizeStruct : IXunitSerializable
+    {
+        public byte Data;
+
+        public void Deserialize(IXunitSerializationInfo info) =>
+            Data = info.GetValue<byte>(nameof(Data));
+
+        public void Serialize(IXunitSerializationInfo info) =>
+            info.AddValue(nameof(Data), Data);
+    }
+
+    [StructLayout(LayoutKind.Sequential, Size = 512)]
     public struct CustomSizeStruct : IXunitSerializable
     {
         public byte Data;

@@ -81,8 +81,8 @@ namespace ILGPU.Frontend
                 targetPointerType.ElementType.IsRootType)
             {
                 // Must be a reflection array call
-                // FIXME: note that we have to update this spot once
-                // we add support for class types
+                // FIXME: note that we have to update this spot once we add support
+                // for class types
                 Location.Assert(value.Type is StructureType);
                 return value;
             }

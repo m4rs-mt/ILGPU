@@ -35,9 +35,6 @@ namespace ILGPU.IR.Values
             ValueReference length)
             : base(initializer)
         {
-            Debug.Assert(
-                length.BasicValueType == BasicValueType.Int32,
-                "Invalid length");
             Seal(pointer, length);
         }
 
@@ -135,6 +132,16 @@ namespace ILGPU.IR.Values
         /// </summary>
         public ValueReference View => this[0];
 
+        /// <summary>
+        /// Returns true if this is a 32bit element access.
+        /// </summary>
+        public bool Is32BitProperty => BasicValueType <= BasicValueType.Int32;
+
+        /// <summary>
+        /// Returns true if this is a 64bit element access.
+        /// </summary>
+        public bool Is64BitProperty => BasicValueType == BasicValueType.Int64;
+
         #endregion
 
         #region Object
@@ -159,15 +166,24 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
         /// <param name="view">The underlying view.</param>
+        /// <param name="lengthType">The underlying length type.</param>
         internal GetViewLength(
             in ValueInitializer initializer,
-            ValueReference view)
+            ValueReference view,
+            BasicValueType lengthType)
             : base(initializer, view)
-        { }
+        {
+            LengthType = lengthType;
+        }
 
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Returns the associated length type to return.
+        /// </summary>
+        public BasicValueType LengthType { get; }
 
         /// <summary cref="Value.ValueKind"/>
         public override ValueKind ValueKind => ValueKind.GetViewLength;
@@ -178,7 +194,7 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
         protected override TypeNode ComputeType(in ValueInitializer initializer) =>
-            initializer.Context.GetPrimitiveType(BasicValueType.Int32);
+            initializer.Context.GetPrimitiveType(LengthType);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
@@ -186,7 +202,8 @@ namespace ILGPU.IR.Values
             IRRebuilder rebuilder) =>
             builder.CreateGetViewLength(
                 Location,
-                rebuilder.Rebuild(View));
+                rebuilder.Rebuild(View),
+                LengthType);
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);

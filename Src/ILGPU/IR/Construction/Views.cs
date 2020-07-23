@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 
 namespace ILGPU.IR.Construction
@@ -27,7 +28,8 @@ namespace ILGPU.IR.Construction
             Value pointer,
             Value length)
         {
-            location.Assert(length.BasicValueType == BasicValueType.Int32);
+            location.Assert(
+                IRTypeContext.IsViewIndexType(length.BasicValueType));
 
             return Append(new NewView(
                 GetInitializer(location),
@@ -43,13 +45,38 @@ namespace ILGPU.IR.Construction
         /// <returns>The created node.</returns>
         public ValueReference CreateGetViewLength(
             Location location,
-            Value view)
+            Value view) =>
+            CreateGetViewLength(location, view, BasicValueType.Int32);
+
+        /// <summary>
+        /// Creates a node that resolves the length of the given view.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="view">The source view.</param>
+        /// <returns>The created node.</returns>
+        public ValueReference CreateGetViewLongLength(
+            Location location,
+            Value view) =>
+            CreateGetViewLength(location, view, BasicValueType.Int64);
+
+        /// <summary>
+        /// Creates a node that resolves the length of the given view.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="view">The source view.</param>
+        /// <param name="lengthType">The length type.</param>
+        /// <returns>The created node.</returns>
+        internal ValueReference CreateGetViewLength(
+            Location location,
+            Value view,
+            BasicValueType lengthType)
         {
             location.Assert(view.Type.IsViewType);
 
             return Append(new GetViewLength(
                 GetInitializer(location),
-                view));
+                view,
+                lengthType));
         }
     }
 }

@@ -9,7 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="../Static/TypeInformation.ttinclude" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
@@ -25,14 +26,16 @@ using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
 {
-<#  for (int i = 1; i <= 3; ++i) { #>
-<#      var typeName = i == 1 ? "MemoryBuffer" : $"MemoryBuffer{i}D"; #>
-<#      var arrayViewType = i == 1 ? "ArrayView" : $"ArrayView{i}D"; #>
-<#      var indexType = $"Index{i}"; #>
-<#      var arraySeparator = new string(Enumerable.Repeat(',', i - 1).ToArray()); #>
-<#      bool obsoleteCopyMethods = i > 1; #>
+<#  foreach (var dim in IndexDimensions) { #>
+<#      var dimension = dim.Dimension; #>
+<#      bool isBaseBuffer = dimension == 1; #>
+<#      var typeName = isBaseBuffer ? "MemoryBuffer" : $"MemoryBuffer{dimension}D"; #>
+<#      var indexType = $"LongIndex{dimension}"; #>
+<#      var viewTypeName = isBaseBuffer ? "ArrayView<T>" : $"ArrayView{dimension}D<T>"; #>
+<#      bool obsoleteCopyMethods = dimension > 1; #>
+<#      var arraySeparator = new string(Enumerable.Repeat(',', dimension - 1).ToArray()); #>
     /// <summary>
-    /// Represents a <#= i #>D memory buffer that can be used in the scope
+    /// Represents a <#= dimension #>D memory buffer that can be used in the scope
     /// of ILGPU runtime kernels.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
@@ -46,7 +49,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Represents the size of an element in bytes.
         /// </summary>
-        public static readonly int ElementSize = MemoryBuffer<T, <#= indexType #>>.ElementSize;
+        public static int ElementSize => MemoryBuffer<T, <#= indexType #>>.ElementSize;
 
         #endregion
 
@@ -82,12 +85,17 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns an array view that can access this array.
         /// </summary>
-        public <#= arrayViewType #><T> View { get; }
+        public <#= viewTypeName #> View { get; }
+
+        /// <summary>
+        /// Returns an array view that can access this array.
+        /// </summary>
+        ArrayView<T, <#= indexType #>> IMemoryBuffer<T, <#= indexType #>>.View => View;
 
         /// <summary>
         /// Returns the length of this buffer in bytes.
         /// </summary>
-        public Index1 LengthInBytes => Length * ElementSize;
+        public long LengthInBytes => buffer.LengthInBytes;
 
         /// <summary>
         /// Returns the extent of this buffer.
@@ -122,8 +130,8 @@ namespace ILGPU.Runtime
         /// <returns>A new array holding the requested contents.</returns>
         protected internal override ArraySegment<byte> GetAsRawArray(
             AcceleratorStream stream,
-            Index1 byteOffset,
-            Index1 byteExtent) =>
+            long byteOffset,
+            long byteExtent) =>
             buffer.GetAsRawArray(stream, byteOffset, byteExtent);
 
         /// <summary>
@@ -169,29 +177,6 @@ namespace ILGPU.Runtime
             buffer.GetAsArray(stream, offset, extent);
 
         /// <summary>
-        /// Returns a sub view of the current view starting at the given offset.
-        /// </summary>
-        /// <param name="offset">The starting offset.</param>
-        /// <returns>The new sub view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [Obsolete("Use View.GetSubView(TIndex, Index1) instead")]
-        public ArrayView<T, <#= indexType #>> GetSubView(<#= indexType #> offset) =>
-            View.GetSubView(offset);
-
-        /// <summary>
-        /// Returns a sub view of the current view starting at the given offset.
-        /// </summary>
-        /// <param name="offset">The starting offset.</param>
-        /// <param name="subViewExtent">The extent of the new sub view.</param>
-        /// <returns>The new sub view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [Obsolete("Use View.GetSubView(TIndex, Index1) instead")]
-        public ArrayView<T, <#= indexType #>> GetSubView(
-            <#= indexType #> offset,
-            <#= indexType #> subViewExtent) =>
-            View.GetSubView(offset, subViewExtent);
-
-        /// <summary>
         /// Returns the underlying generic memory buffer.
         /// </summary>
         /// <returns>The underlying generic memory buffer.</returns>
@@ -216,7 +201,7 @@ namespace ILGPU.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyTo(
             AcceleratorStream stream,
-            <#= arrayViewType #><T> target,
+            <#= viewTypeName #> target,
             <#= indexType #> sourceOffset) =>
             buffer.CopyTo(stream, target, sourceOffset);
 
@@ -227,7 +212,7 @@ namespace ILGPU.Runtime
         /// <param name="target">The target view.</param>
         /// <param name="sourceOffset">The source offset.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyTo(<#= arrayViewType #><T> target, <#= indexType #> sourceOffset) =>
+        public void CopyTo(<#= viewTypeName #> target, <#= indexType #> sourceOffset) =>
             buffer.CopyTo(target, sourceOffset);
 
         /// <summary>
@@ -261,7 +246,7 @@ namespace ILGPU.Runtime
         /// <param name="source">The source view.</param>
         /// <param name="targetOffset">The target offset.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyFrom(<#= arrayViewType #><T> source, <#= indexType #> targetOffset) =>
+        public void CopyFrom(<#= viewTypeName #> source, <#= indexType #> targetOffset) =>
             buffer.CopyFrom(source, targetOffset);
 
         /// <summary>
@@ -273,7 +258,7 @@ namespace ILGPU.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyFrom(
             AcceleratorStream stream,
-            <#= arrayViewType #><T> source,
+            <#= viewTypeName #> source,
             <#= indexType #> targetOffset) =>
             buffer.CopyFrom(stream, source, targetOffset);
 
@@ -541,7 +526,7 @@ namespace ILGPU.Runtime
             <#= typeName #><T> source,
             <#= indexType #> sourceOffset,
             <#= indexType #> targetOffset,
-            Index1 extent) =>
+            LongIndex1 extent) =>
             buffer.CopyFrom(
                 source,
                 sourceOffset,
@@ -590,7 +575,7 @@ namespace ILGPU.Runtime
             <#= typeName #><T> source,
             <#= indexType #> sourceOffset,
             <#= indexType #> targetOffset,
-            Index1 extent) =>
+            LongIndex1 extent) =>
             buffer.CopyFrom(
                 stream,
                 source,
@@ -651,9 +636,9 @@ namespace ILGPU.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyFrom(
             T[] source,
-            int sourceOffset,
+            long sourceOffset,
             <#= indexType #> targetOffset,
-            int extent) =>
+            long extent) =>
             buffer.CopyFrom(
                 source,
                 sourceOffset,
@@ -672,9 +657,9 @@ namespace ILGPU.Runtime
         public void CopyFrom(
             AcceleratorStream stream,
             T[] source,
-            int sourceOffset,
+            long sourceOffset,
             <#= indexType #> targetOffset,
-            int extent) =>
+            long extent) =>
             buffer.CopyFrom(
                 stream,
                 source,
@@ -690,21 +675,15 @@ namespace ILGPU.Runtime
         /// Implicitly converts this buffer into an array view.
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
-        public static implicit operator <#= arrayViewType #><T>(<#= typeName #><T> buffer)
-        {
-            Debug.Assert(buffer != null, "Invalid buffer");
-            return buffer.View;
-        }
+        public static implicit operator <#= viewTypeName #>(<#= typeName #><T> buffer) =>
+            buffer.View;
 
         /// <summary>
         /// Implicitly converts this buffer into an array view.
         /// </summary>
         /// <param name="buffer">The source buffer.</param>
-        public static implicit operator MemoryBuffer<T, <#= indexType #>>(<#= typeName #><T> buffer)
-        {
-            Debug.Assert(buffer != null, "Invalid buffer");
-            return buffer.buffer;
-        }
+        public static implicit operator MemoryBuffer<T, <#= indexType #>>(<#= typeName #><T> buffer) =>
+            buffer.buffer;
 
         #endregion
 
@@ -724,20 +703,21 @@ namespace ILGPU.Runtime
     public partial class MemoryBufferExtensions
     {
         /// <summary>
-        /// Allocates a <#= i #>D memory buffer with the given content on the associated
-        /// accelerator.
+        /// Allocates a <#= dimension #>D memory buffer with the given content on the
+        /// associated accelerator.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="accelerator">The current accelerator.</param>
         /// <param name="data">The initial data array.</param>
         /// <returns>The allocated memory buffer.</returns>
-<#      if (i > 1) { #>
+<#      if (dimension > 1) { #>
         [SuppressMessage(
             "Microsoft.Performance",
             "CA1814: PreferJaggedArraysOverMultidimensional",
             Target = "data")]
 <#      } #>
-<#      var allocExpression = Enumerable.Range(0, i).Select(t => $"data.GetLength({t})"); #>
+<#      var allocExpression = Enumerable.Range(0, dimension).
+            Select(t => $"data.GetLongLength({t})"); #>
         public static <#= typeName #><T> Allocate<T>(
             this Accelerator accelerator,
             T[<#= arraySeparator #>] data)
@@ -751,8 +731,8 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
-        /// Allocates a <#= i #>D memory buffer on the associated accelerator that is
-        /// initialized with 0-byte values.
+        /// Allocates a <#= dimension #>D memory buffer on the associated accelerator that
+        /// is initialized with 0-byte values.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <param name="accelerator">The current accelerator.</param>

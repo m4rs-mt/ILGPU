@@ -96,7 +96,7 @@ namespace ILGPU.Runtime
             fixed (byte* ptr = &rawData.Array[rawData.Offset])
             {
                 ref var castedPtr = ref Unsafe.AsRef<byte>(ptr);
-                for (Index1 i = 0, e = view.Length; i < e; ++i)
+                for (long i = 0, e = view.Length; i < e; ++i)
                 {
                     ref var elementPtr = ref Interop.ComputeEffectiveAddress(
                         ref castedPtr,
@@ -114,7 +114,7 @@ namespace ILGPU.Runtime
     /// <summary>public
     /// Represents a debugger array view.
     /// </summary>
-    sealed class DebugArrayView<T> : BaseDebugArrayView<T>
+    sealed partial class DebugArrayView<T> : BaseDebugArrayView<T>
         where T : unmanaged
     {
         #region Instance
@@ -125,22 +125,6 @@ namespace ILGPU.Runtime
         /// <param name="source">The target array view.</param>
         public DebugArrayView(ArrayView<T> source)
             : base(source)
-        { }
-
-        /// <summary>
-        /// Constructs a new debug view.
-        /// </summary>
-        /// <param name="source">The target array view.</param>
-        public DebugArrayView(ArrayView2D<T> source)
-            : this(source.AsLinearView())
-        { }
-
-        /// <summary>
-        /// Constructs a new debug view.
-        /// </summary>
-        /// <param name="source">The target array view.</param>
-        public DebugArrayView(ArrayView3D<T> source)
-            : this(source.AsLinearView())
         { }
 
         #endregion

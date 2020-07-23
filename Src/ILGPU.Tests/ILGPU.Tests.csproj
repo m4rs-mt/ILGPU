@@ -71,6 +71,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ConvertIntOperations.tt</DependentUpon>
     </None>
+    <None Include="FixedBuffers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FixedBuffers.tt</DependentUpon>
+    </None>
     <None Include="Generic\ConfigurationBase.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -124,6 +129,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ConvertIntOperations.tt</DependentUpon>
     </Compile>
+    <Compile Update="FixedBuffers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FixedBuffers.tt</DependentUpon>
+    </Compile>
     <Compile Update="Generic\ConfigurationBase.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -169,6 +179,10 @@
     <None Update="ConvertIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConvertIntOperations.cs</LastGenOutput>
+    </None>
+    <None Update="FixedBuffers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>FixedBuffers.cs</LastGenOutput>
     </None>
     <None Update="Generic\ConfigurationBase.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

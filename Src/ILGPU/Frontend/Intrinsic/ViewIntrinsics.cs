@@ -20,6 +20,7 @@ namespace ILGPU.Frontend.Intrinsic
     enum ViewIntrinsicKind
     {
         GetViewLength,
+        GetViewLongLength,
         GetViewLengthInBytes,
         GetSubView,
         GetSubViewImplicitLength,
@@ -28,7 +29,9 @@ namespace ILGPU.Frontend.Intrinsic
 
         IsValidView,
         GetViewExtent,
+        GetViewLongExtent,
         GetViewElementAddressByIndex,
+        GetViewLinearElementAddress,
         AsLinearView,
     }
 
@@ -75,10 +78,13 @@ namespace ILGPU.Frontend.Intrinsic
                 ViewIntrinsicKind.GetViewLength => builder.CreateGetViewLength(
                     location,
                     instanceValue),
+                ViewIntrinsicKind.GetViewLongLength => builder.CreateGetViewLongLength(
+                    location,
+                    instanceValue),
                 ViewIntrinsicKind.GetViewLengthInBytes => builder.CreateArithmetic(
                     location,
-                    builder.CreateGetViewLength(location, instanceValue),
-                    builder.CreateSizeOf(
+                    builder.CreateGetViewLongLength(location, instanceValue),
+                    builder.CreateLongSizeOf(
                         location,
                         (instanceValue.Type as AddressSpaceType).ElementType),
                     BinaryArithmeticKind.Mul),
@@ -94,7 +100,7 @@ namespace ILGPU.Frontend.Intrinsic
                         context[paramOffset],
                         builder.CreateArithmetic(
                             location,
-                            builder.CreateGetViewLength(location, instanceValue),
+                            builder.CreateGetViewLongLength(location, instanceValue),
                             context[paramOffset],
                             BinaryArithmeticKind.Sub)),
                 ViewIntrinsicKind.GetViewElementAddress =>
@@ -108,12 +114,15 @@ namespace ILGPU.Frontend.Intrinsic
                     builder.CreateType(context.GetMethodGenericArguments()[0])),
                 ViewIntrinsicKind.IsValidView => builder.CreateCompare(
                     location,
-                    builder.CreateGetViewLength(location, instanceValue),
-                    builder.CreatePrimitiveValue(location, 0),
+                    builder.CreateGetViewLongLength(location, instanceValue),
+                    builder.CreatePrimitiveValue(location, 0L),
                     CompareKind.GreaterThan),
                 ViewIntrinsicKind.GetViewExtent => builder.CreateIndex(
                     location,
                     builder.CreateGetViewLength(location, instanceValue)),
+                ViewIntrinsicKind.GetViewLongExtent => builder.CreateIndex(
+                    location,
+                    builder.CreateGetViewLongLength(location, instanceValue)),
                 ViewIntrinsicKind.GetViewElementAddressByIndex =>
                     builder.CreateLoadElementAddress(
                         location,
@@ -122,11 +131,47 @@ namespace ILGPU.Frontend.Intrinsic
                             location,
                             context[paramOffset++],
                             new FieldAccess(0))),
+                ViewIntrinsicKind.GetViewLinearElementAddress =>
+                    RemapToLinearElementAddress(ref context),
                 ViewIntrinsicKind.AsLinearView => instanceValue,
                 _ => throw context.Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedViewIntrinsic,
                     attribute.IntrinsicKind.ToString()),
             };
+        }
+
+        /// <summary>
+        /// Remaps intrinsic index-linerization functionality to a specific linearization
+        /// function (see also <see cref="IndexTypeExtensions.
+        /// GetViewLinearIndexMethod(Type, Type)"/>).
+        /// </summary>
+        /// <param name="context">The invocation context.</param>
+        /// <returns>The remapped call reference.</returns>
+        private static ValueReference RemapToLinearElementAddress(
+            ref InvocationContext context)
+        {
+            var builder = context.Builder;
+
+            // Extract the managed index type instance and resolve the index linerization
+            // method to compute either an int or a long value.
+            var methodGenerics = context.GetMethodGenericArguments();
+            var typeGenerics = context.GetTypeGenericArguments();
+            var linearMethod = IndexTypeExtensions.GetViewLinearIndexMethod(
+                methodGenerics[0],
+                typeGenerics[0]);
+            var targetMethod = context.DeclareFunction(linearMethod);
+
+            // Build a call to the specific access function
+            var viewInstance = builder.CreateLoad(
+                context.Location,
+                context[0]);
+            var callBuilder = context.Builder.CreateCall(
+                context.Location,
+                targetMethod);
+            callBuilder.Add(viewInstance);
+            for (int i = 1, e = context.NumArguments; i < e; ++i)
+                callBuilder.Add(context[i]);
+            return callBuilder.Seal();
         }
     }
 }

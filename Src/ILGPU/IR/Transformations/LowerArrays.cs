@@ -235,7 +235,7 @@ namespace ILGPU.IR.Transformations
             var linearAddress = GetLinearAddress(
                 context,
                 value.Source,
-                value.ElementIndex,
+                value.Offset,
                 out var ptr);
 
             var newLea = context.Builder.CreateLoadElementAddress(

@@ -130,10 +130,16 @@ namespace ILGPU.Tests
         /// </summary>
         /// <param name="dimension">The dimension.</param>
         /// <param name="arguments">The arguments.</param>
-        public void Execute(int dimension, params object[] arguments)
-        {
+        public void Execute(int dimension, params object[] arguments) =>
             Execute(new Index1(dimension), arguments);
-        }
+
+        /// <summary>
+        /// Executes an implicitly linked kernel with the given arguments.
+        /// </summary>
+        /// <param name="dimension">The dimension.</param>
+        /// <param name="arguments">The arguments.</param>
+        public void Execute(long dimension, params object[] arguments) =>
+            Execute(new LongIndex1(dimension).ToIntIndex(), arguments);
 
         /// <summary>
         /// Executes an implicitly linked kernel with the given arguments.
@@ -197,7 +203,28 @@ namespace ILGPU.Tests
             T[] expected,
             int? offset = null,
             int? length = null)
+            where T : unmanaged =>
+            Verify(
+                buffer.Buffer,
+                expected,
+                offset,
+                length);
+
+        /// <summary>
+        /// Verifies the contents of the given memory buffer.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="buffer">The target buffer.</param>
+        /// <param name="expected">The expected values.</param>
+        /// <param name="offset">The custom data offset to use (if any).</param>
+        /// <param name="length">The custom data length to use (if any).</param>
+        public void Verify<T, TIndex>(
+            MemoryBuffer<T, TIndex> buffer,
+            T[] expected,
+            int? offset = null,
+            int? length = null)
             where T : unmanaged
+            where TIndex : unmanaged, IGenericIndex<TIndex>
         {
             var data = buffer.GetAsArray(Accelerator.DefaultStream);
             Assert.Equal(data.Length, expected.Length);

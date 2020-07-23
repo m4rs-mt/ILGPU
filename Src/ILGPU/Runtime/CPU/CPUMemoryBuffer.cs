@@ -38,7 +38,8 @@ namespace ILGPU.Runtime.CPU
         internal CPUMemoryBuffer(CPUAccelerator accelerator, TIndex extent)
             : base(accelerator, extent)
         {
-            NativePtr = Marshal.AllocHGlobal(extent.Size * Interop.SizeOf<T>());
+            NativePtr = Marshal.AllocHGlobal(
+                new IntPtr(extent.Size * Interop.SizeOf<T>()));
         }
 
         #endregion
@@ -46,26 +47,28 @@ namespace ILGPU.Runtime.CPU
         #region Methods
 
         /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(
-        /// AcceleratorStream, ArrayView{T}, Index1)"/>
+        /// AcceleratorStream, ArrayView{T}, LongIndex1)"/>
         protected internal unsafe override void CopyToView(
             AcceleratorStream stream,
             ArrayView<T> target,
-            Index1 sourceOffset)
+            LongIndex1 sourceOffset)
         {
             var binding = stream.BindScoped();
 
             var sourceAddress = ComputeEffectiveAddress(sourceOffset);
+            var targetAddress = target.LoadEffectiveAddress();
             switch (target.AcceleratorType)
             {
                 case AcceleratorType.CPU:
-                    Unsafe.CopyBlock(
-                        target.LoadEffectiveAddress(),
+                    Buffer.MemoryCopy(
                         sourceAddress,
-                        (uint)target.LengthInBytes);
+                        targetAddress,
+                        target.LengthInBytes,
+                        target.LengthInBytes);
                     break;
                 case AcceleratorType.Cuda:
                     CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
-                        new IntPtr(target.LoadEffectiveAddress()),
+                        new IntPtr(targetAddress),
                         new IntPtr(sourceAddress),
                         new IntPtr(target.LengthInBytes),
                         stream));
@@ -79,27 +82,29 @@ namespace ILGPU.Runtime.CPU
         }
 
         /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(
-        /// AcceleratorStream, ArrayView{T}, Index1)"/>
+        /// AcceleratorStream, ArrayView{T}, LongIndex1)"/>
         protected internal unsafe override void CopyFromView(
             AcceleratorStream stream,
             ArrayView<T> source,
-            Index1 targetOffset)
+            LongIndex1 targetOffset)
         {
             var binding = stream.BindScoped();
 
+            var sourceAddress = source.LoadEffectiveAddress();
             var targetAddress = ComputeEffectiveAddress(targetOffset);
             switch (source.AcceleratorType)
             {
                 case AcceleratorType.CPU:
-                    Unsafe.CopyBlock(
+                    Buffer.MemoryCopy(
+                        sourceAddress,
                         targetAddress,
-                        source.LoadEffectiveAddress(),
-                        (uint)source.LengthInBytes);
+                        LengthInBytes,
+                        source.LengthInBytes);
                     break;
                 case AcceleratorType.Cuda:
                     CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
                         new IntPtr(targetAddress),
-                        new IntPtr(source.LoadEffectiveAddress()),
+                        new IntPtr(sourceAddress),
                         new IntPtr(source.LengthInBytes),
                         stream));
                     break;
@@ -115,7 +120,16 @@ namespace ILGPU.Runtime.CPU
         public unsafe override void MemSetToZero(AcceleratorStream stream)
         {
             stream.Synchronize();
-            Unsafe.InitBlock(NativePtr.ToPointer(), 0, (uint)LengthInBytes);
+            ref byte targetAddress = ref Unsafe.AsRef<byte>(NativePtr.ToPointer());
+            for (long offset = 0, e = LengthInBytes; offset < e; offset += uint.MaxValue)
+            {
+                Unsafe.InitBlock(
+                    ref Unsafe.AddByteOffset(
+                        ref targetAddress,
+                        new IntPtr(offset)),
+                    0,
+                    (uint)Math.Min(uint.MaxValue, e - offset));
+            }
         }
 
         #endregion
