@@ -36,7 +36,7 @@ namespace ILGPU
         /// <summary>
         /// Represents an atomic compare-exchange operation of type <#= type.Type #>.
         /// </summary>
-<#      if (type.IsUnsignedInt) { #>
+<#      if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
 <#      } #>
         public readonly struct CompareExchange<#= type.Name #> :
@@ -157,7 +157,7 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The comparison value.</param>
         /// <returns>The old value that was stored at the target location.</returns>
-<#      if (type.IsUnsignedInt) { #>
+<#      if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Max, AtomicFlags.Unsigned)]
 <#      } else if (type.IsInt) { #>
@@ -195,7 +195,7 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The comparison value.</param>
         /// <returns>The old value that was stored at the target location.</returns>
-<#      if (type.IsUnsignedInt) { #>
+<#      if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Min, AtomicFlags.Unsigned)]
 <#      } else if (type.IsInt) { #>
@@ -234,7 +234,7 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The comparison value.</param>
         /// <returns>The old value that was stored at the target location.</returns>
-<#      if (type.IsUnsignedInt) { #>
+<#      if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.And, AtomicFlags.Unsigned)]
 <#      } else if (type.IsInt) { #>
@@ -273,7 +273,7 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The comparison value.</param>
         /// <returns>The old value that was stored at the target location.</returns>
-<#      if (type.IsUnsignedInt) { #>
+<#      if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Or, AtomicFlags.Unsigned)]
 <#      } else if (type.IsInt) { #>
@@ -312,7 +312,7 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The comparison value.</param>
         /// <returns>The old value that was stored at the target location.</returns>
-<#      if (type.IsUnsignedInt) { #>
+<#      if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Xor, AtomicFlags.Unsigned)]
 <#      } else if (type.IsInt) { #>
@@ -341,7 +341,7 @@ namespace ILGPU
         /// <param name="target">The target location.</param>
         /// <param name="value">The target value.</param>
         /// <returns>The old value.</returns>
-<#      if (type.IsUnsignedInt) { #>
+<#      if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
         [AtomicIntrinsic(AtomicIntrinsicKind.Exchange, AtomicFlags.Unsigned)]
 <#      } else if (type.IsInt) { #>
