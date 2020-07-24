@@ -92,12 +92,11 @@ namespace ILGPU
         #region Operators
 
 <# foreach (var type in IntTypes) { #>
-<#      bool clsCompliant = type.IsUnsignedInt || type == IntTypes[0]; #>
         /// <summary>
         /// Implicitly converts a half to type <#= type.Name #>.
         /// </summary>
         /// <param name="halfValue">The half to convert.</param>
-<#      if (clsCompliant) { #>
+<#      if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
 <#      } #>
 <#      if (type.IsUnsignedInt) { #>
@@ -113,7 +112,7 @@ namespace ILGPU
         /// Explicitly converts an instance of type <#= type.Name #> to a half.
         /// </summary>
         /// <param name="<#= type.Type #>Value">The value to convert.</param>
-<#      if (clsCompliant) { #>
+<#      if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
 <#      } #>
 <#      if (type.IsUnsignedInt) { #>

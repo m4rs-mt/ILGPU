@@ -59,6 +59,8 @@ public class TypeInformation
 
     public bool IsFloat => Kind == TypeInformationKind.Float;
 
+    public bool IsCLSCompliant => !(IsUnsignedInt || Name == "Int8");
+
     public string FormatNumber(string number) =>
         Prefix + "(" + number + Suffix + ")";
 };
@@ -81,9 +83,6 @@ public static readonly TypeInformation[] UnsignedIntTypes =
 
 public static readonly TypeInformation[] IntTypes =
     SignedIntTypes.Concat(UnsignedIntTypes).ToArray();
-
-public static readonly TypeInformation[] DefaultIntTypes =
-    SignedIntTypes.Skip(2).Concat(UnsignedIntTypes.Skip(2)).ToArray();
 
 public static readonly TypeInformation[] FloatTypes =
     {
