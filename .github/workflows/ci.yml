@@ -64,7 +64,18 @@ jobs:
           nuget-version: '5.x'
       - name: Create NuGet package
         if: runner.os == 'Windows'
-        run: dotnet pack --configuration=Release Src
+        run: |
+          if ("${{ github.ref }}" -like "refs/tags/v*") {
+            $tag = "${{ github.ref }}".SubString(11)
+            $version = (Select-Xml -path Src/ILGPU/ILGPU.csproj -XPath "/Project/PropertyGroup/VersionPrefix/text()").node.Value
+            if (-not ($tag -eq $version)) {
+              echo "There is a mismatch between the project version ($version) and the tag ($tag)"
+              exit 1
+            }
+          } else {
+            $params = "--version-suffix", $(git rev-parse --short HEAD)
+          }
+          dotnet pack --configuration=Release @params Src
       - name: Fix NuGet Symbols Package
         if: runner.os == 'Windows'
         run: |
