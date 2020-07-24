@@ -162,9 +162,8 @@ namespace ILGPU.Algorithms
         {
             var result = accelerator.LoadAutoGroupedKernel(
                 (Action<Index1, ArrayView<T>, Index1, Index1, TSequencer>)SequenceKernel,
-                out int groupSize,
-                out int minGridSize);
-            minDataSize = groupSize * minGridSize;
+                out var info);
+            minDataSize = info.MinGroupSize.Value * info.MinGridSize.Value;
             return result;
         }
 

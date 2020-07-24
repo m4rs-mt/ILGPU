@@ -45,11 +45,10 @@ namespace ILGPU.Algorithms.PTX
 
             var argument = codeGenerator.LoadPrimitive(arithmeticValue.Value);
             var targetRegister = codeGenerator.AllocateHardware(arithmeticValue);
-            using (var command = codeGenerator.BeginCommand(instruction))
-            {
-                command.AppendArgument(targetRegister);
-                command.AppendArgument(argument);
-            }
+
+            using var command = codeGenerator.BeginCommand(instruction);
+            command.AppendArgument(targetRegister);
+            command.AppendArgument(argument);
         }
 
         #endregion

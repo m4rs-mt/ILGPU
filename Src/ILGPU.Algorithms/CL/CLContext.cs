@@ -144,13 +144,11 @@ namespace ILGPU.Algorithms.CL
             if (string.IsNullOrWhiteSpace(clCommand))
                 throw new InvalidCodeGenerationException();
 
-            using (var statement = codeGenerator.BeginStatement(target))
-            {
-                statement.AppendCommand(scanReduceOperation + clCommand);
-                statement.BeginArguments();
-                statement.Append(sourceValue);
-                statement.EndArguments();
-            }
+            using var statement = codeGenerator.BeginStatement(target);
+            statement.AppendCommand(scanReduceOperation + clCommand);
+            statement.BeginArguments();
+            statement.Append(sourceValue);
+            statement.EndArguments();
         }
     }
 }

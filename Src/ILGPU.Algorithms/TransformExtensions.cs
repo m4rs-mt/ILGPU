@@ -152,9 +152,8 @@ namespace ILGPU.Algorithms
                 ArrayView<TTarget>,
                 TTransformer>(
                 TransformKernel,
-                out int groupSize,
-                out int minGridSize);
-            minDataSize = groupSize * minGridSize;
+                out var info);
+            minDataSize = info.MinGroupSize.Value * info.MinGridSize.Value;
             return result;
         }
 
