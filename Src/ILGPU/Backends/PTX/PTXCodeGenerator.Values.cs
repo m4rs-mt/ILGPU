@@ -216,32 +216,48 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(FloatAsIntCast value)
         {
             var source = LoadHardware(value.Value);
-            Debug.Assert(
-                source.Kind == PTXRegisterKind.Float32 ||
-                source.Kind == PTXRegisterKind.Float64);
+            if (source.Kind == PTXRegisterKind.Int16)
+            {
+                // Reuse the register, since int16 and fp16 registers are the same
+                Bind(value, source);
+            }
+            else
+            {
+                Debug.Assert(
+                    source.Kind == PTXRegisterKind.Float32 ||
+                    source.Kind == PTXRegisterKind.Float64);
 
-            var targetRegister = AllocateHardware(value);
-            Debug.Assert(
-                targetRegister.Kind == PTXRegisterKind.Int32 ||
-                targetRegister.Kind == PTXRegisterKind.Int64);
+                var targetRegister = AllocateHardware(value);
+                Debug.Assert(
+                    targetRegister.Kind == PTXRegisterKind.Int32 ||
+                    targetRegister.Kind == PTXRegisterKind.Int64);
 
-            Move(source, targetRegister);
+                Move(source, targetRegister);
+            }
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(IntAsFloatCast)"/>
         public void GenerateCode(IntAsFloatCast value)
         {
             var source = LoadHardware(value.Value);
-            Debug.Assert(
-                source.Kind == PTXRegisterKind.Int32 ||
-                source.Kind == PTXRegisterKind.Int64);
+            if (source.Kind == PTXRegisterKind.Int16)
+            {
+                // Reuse the register, since int16 and fp16 registers are the same
+                Bind(value, source);
+            }
+            else
+            {
+                Debug.Assert(
+                    source.Kind == PTXRegisterKind.Int32 ||
+                    source.Kind == PTXRegisterKind.Int64);
 
-            var targetRegister = AllocateHardware(value);
-            Debug.Assert(
-                targetRegister.Kind == PTXRegisterKind.Float32 ||
-                targetRegister.Kind == PTXRegisterKind.Float64);
+                var targetRegister = AllocateHardware(value);
+                Debug.Assert(
+                    targetRegister.Kind == PTXRegisterKind.Float32 ||
+                    targetRegister.Kind == PTXRegisterKind.Float64);
 
-            Move(source, targetRegister);
+                Move(source, targetRegister);
+            }
         }
 
         /// <summary>
