@@ -86,6 +86,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>MemoryBufferOperations.tt</DependentUpon>
     </None>
+    <None Include="ReinterpretCasts.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ReinterpretCasts.tt</DependentUpon>
+    </None>
     <None Include="UnaryIntOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -144,6 +149,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>MemoryBufferOperations.tt</DependentUpon>
     </Compile>
+    <Compile Update="ReinterpretCasts.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ReinterpretCasts.tt</DependentUpon>
+    </Compile>
     <Compile Update="UnaryIntOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -191,6 +201,10 @@
     <None Update="MemoryBufferOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>MemoryBufferOperations.cs</LastGenOutput>
+    </None>
+    <None Update="ReinterpretCasts.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ReinterpretCasts.cs</LastGenOutput>
     </None>
     <None Update="UnaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
