@@ -11,6 +11,7 @@
 
 using ILGPU.Frontend.Intrinsic;
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -106,7 +107,7 @@ namespace ILGPU
         /// instances of type <typeparamref name="TSecond"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeRelativeSizeOf<TFirst, TSecond>(int numSecondElements)
+        public static int ComputeRelativeSizeOf<TFirst, TSecond>(long numSecondElements)
             where TFirst : unmanaged
             where TSecond : unmanaged
         {
@@ -116,7 +117,11 @@ namespace ILGPU
             var firstSize = SizeOf<TFirst>();
             var secondSize = SizeOf<TSecond>();
 
-            return IntrinsicMath.DivRoundUp(secondSize * numSecondElements, firstSize);
+            var relativeSize = IntrinsicMath.DivRoundUp(
+                secondSize * numSecondElements,
+                firstSize);
+            IndexTypeExtensions.AssertIntIndexRange(relativeSize);
+            return (int)relativeSize;
         }
 
         /// <summary>
