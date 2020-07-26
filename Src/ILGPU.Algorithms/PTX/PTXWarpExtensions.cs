@@ -65,7 +65,7 @@ namespace ILGPU.Algorithms.PTX
             var inclusive = InclusiveScan<T, TScanOperation>(value);
 
             var exclusive = Warp.ShuffleUp(inclusive, 1);
-            return Warp.IsFirstLane ? default : exclusive;
+            return Warp.IsFirstLane ? default(TScanOperation).Identity : exclusive;
         }
 
         /// <summary cref="WarpExtensions.InclusiveScan{T, TScanOperation}(T)"/>

@@ -85,7 +85,9 @@ namespace ILGPU.Algorithms.IL
             boundaries = new ScanBoundaries<T>(
                 sharedMemory[0],
                 sharedMemory[Group.DimX - 1]);
-            return Group.IsFirstThread ? default : sharedMemory[Group.IdxX - 1];
+            return Group.IsFirstThread
+                ? default(TScanOperation).Identity
+                : sharedMemory[Group.IdxX - 1];
         }
 
         /// <summary cref="GroupExtensions.InclusiveScanWithBoundaries{T, TScanOperation}(
