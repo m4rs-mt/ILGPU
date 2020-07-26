@@ -61,6 +61,10 @@ public class TypeInformation
 
     public bool IsCLSCompliant => !(IsUnsignedInt || Name == "Int8");
 
+    public string SizeOfType => Name == "Half" ? "sizeof(ushort)" : $"sizeof({Type})";
+
+    public string DefaultValue => Name == "Half" ? "Half.Zero" : "0";
+
     public string FormatNumber(string number) =>
         Prefix + "(" + number + Suffix + ")";
 };
