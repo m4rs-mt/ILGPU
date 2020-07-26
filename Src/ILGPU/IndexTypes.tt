@@ -448,6 +448,21 @@ namespace ILGPU
             index.ToIntIndex();
 <# } #>
 
+<# if (dimension > 1) { #>
+        /// <summary>
+        /// Converts the given value tuple into an equivalent <see cref="<#= name #>"/>.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        public static implicit operator <#= name #>(
+            (<#= def.Expression(", ", p => $"{baseType}") #>) values) =>
+            new <#= name #>(
+                values.Item1
+<# for (int j = 2; j <= dimension; ++j) { #>
+                , values.Item<#= j #>
+<# } #>
+                );
+
+<# } #>
         /// <summary>
         /// Adds two indices.
         /// </summary>
