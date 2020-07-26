@@ -86,7 +86,7 @@ namespace ILGPU
     /// <summary>
     /// Contains utility functions for handling index types.
     /// </summary>
-    static class IndexTypeExtensions
+    public static class IndexTypeExtensions
     {
         /// <summary>
         /// An internal mapping of the <see cref="IndexType"/> values to managed types.
