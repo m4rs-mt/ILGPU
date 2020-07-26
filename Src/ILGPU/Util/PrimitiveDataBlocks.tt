@@ -21,8 +21,8 @@
         new { TypeName = "Short", Info = SignedIntTypes[1] },
         new { TypeName = "Int", Info = SignedIntTypes[2] },
         new { TypeName = "Long", Info = SignedIntTypes[3] },
-        new { TypeName = "Float", Info = FloatTypes[0] },
-        new { TypeName = "Double", Info = FloatTypes[1] },
+        new { TypeName = "Float", Info = FloatTypes[1] },
+        new { TypeName = "Double", Info = FloatTypes[2] },
     };
 #>
 <# var typeParameterRanges = new int[] { 2, 3, 4 }; #>
