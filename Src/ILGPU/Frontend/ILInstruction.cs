@@ -786,7 +786,7 @@ namespace ILGPU.Frontend
 
             // Compute detailed offset information for all flags
             for (
-                int i = (int)ILInstructionFlags.Unsigned;
+                int i = (int)ILInstructionFlags.Unchecked;
                 i < (int)ILInstructionFlags.Constrained;
                 i <<= 1)
             {
