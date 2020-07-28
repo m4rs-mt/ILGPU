@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' == 'Unix'">netcoreapp2.0;netstandard2.1</TargetFrameworks>
+    <VersionPrefix>0.8.0</VersionPrefix>
     <Version>0.8.0</Version>
     <Platforms>AnyCPU</Platforms>
     <AssemblyVersion>0.8.0.0</AssemblyVersion>
