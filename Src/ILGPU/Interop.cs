@@ -82,7 +82,7 @@ namespace ILGPU
             "field offset")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Obsolete("Use ComputeRelativeSizeOf<TFirst, TSecond>(int) instead")]
-        public static int ComputeRelativeSizeOf<TFirst, TSecond>()
+        public static long ComputeRelativeSizeOf<TFirst, TSecond>()
             where TFirst : unmanaged
             where TSecond : unmanaged =>
             ComputeRelativeSizeOf<TFirst, TSecond>(1);
@@ -107,7 +107,7 @@ namespace ILGPU
         /// instances of type <typeparamref name="TSecond"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeRelativeSizeOf<TFirst, TSecond>(long numSecondElements)
+        public static long ComputeRelativeSizeOf<TFirst, TSecond>(long numSecondElements)
             where TFirst : unmanaged
             where TSecond : unmanaged
         {
@@ -120,8 +120,7 @@ namespace ILGPU
             var relativeSize = IntrinsicMath.DivRoundUp(
                 secondSize * numSecondElements,
                 firstSize);
-            IndexTypeExtensions.AssertIntIndexRange(relativeSize);
-            return (int)relativeSize;
+            return relativeSize;
         }
 
         /// <summary>
