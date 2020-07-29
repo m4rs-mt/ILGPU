@@ -378,6 +378,13 @@ namespace ILGPU
         }
 
         /// <summary>
+        /// Returns the associated 32-buffer view.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ArrayView<T, Index1> ToIntView() =>
+            new ArrayView<T, Index1>(AsLinearView(), IntExtent);
+
+        /// <summary>
         /// Converts the current view into a linear view.
         /// </summary>
         /// <returns>The converted linear view.</returns>
