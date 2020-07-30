@@ -1,2 +1,13 @@
+﻿ArrayExtensionTests: Debug, Release
+GroupExtensionTests: Debug, Release
 ﻿HistogramTests: Debug, Release
+InitializeTests: Debug, Release
+RadixSortExtensionTests: Debug, Release
+ReductionExtensionTests: Debug, Release
+ReorderExtensionTests: Debug, Release
+ScanExtensionTests: Debug, Release
+SequencerTests: Debug, Release
+TransformExtensionTests: Debug, Release
+VectorTests: Debug, Release
+WarpExtensionTests: Debug, Release
 XMathTests: Debug, Release

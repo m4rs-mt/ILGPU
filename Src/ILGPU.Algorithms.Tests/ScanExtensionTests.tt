@@ -1,0 +1,295 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Generic/ConfigurationBase.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+
+using ILGPU.Algorithms.ScanReduceOperations;
+using ILGPU.Runtime;
+using ILGPU.Tests;
+using System.Linq;
+using Xunit;
+using Xunit.Abstractions;
+
+#pragma warning disable xUnit1026 
+
+namespace ILGPU.Algorithms.Tests
+{
+    public abstract partial class ScanExtensionTests : TestBase
+    {
+        protected ScanExtensionTests(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
+        { }
+<#
+        var types = SignedIntTypes.Skip(2).Concat(
+            UnsignedIntTypes.Skip(2)).Concat(FloatTypes).ToArray();
+        var signedTypes = SignedIntTypes.Skip(2).Concat(FloatTypes).ToArray();
+#>
+
+        #region MemberData
+
+<#
+        foreach (var srOp in ScanReduceOperations) {
+#>
+        public static TheoryData<object, object, object, object, object, object>
+            Ascending<#= srOp.Name #>TestData =>
+            new TheoryData<object, object, object, object, object, object>
+        {
+            // Type, IScanReduceOperation, Sequencer, Start of Sequencer,
+            // StepSize of Sequencer, BufferSize
+<#
+        foreach (var type in types) {
+            foreach (var size in ArraySizes) {
+                if (type.Type == "float" && size > 1000) { continue; }
+#>
+            { default(<#= type.Type #>), default(Xunit<#= srOp.Name #><#= type.Name #>),
+                default(<#= type.Name #>TestSequencer), 0, 1, <#= size #> },
+<#
+            }
+        }
+#>
+        };
+
+        public static TheoryData<object, object, object, object, object, object>
+            Descending<#= srOp.Name #>TestData =>
+            new TheoryData<object, object, object, object, object, object>
+        {
+            // Type, IScanReduceOperation, Sequencer, Start of Sequencer,
+            // StepSize of Sequencer, BufferSize
+<#
+        foreach (var type in signedTypes) {
+            foreach (var size in ArraySizes) {
+                if (type.Type == "float" && size > 1000) { continue; }
+#>
+            { default(<#= type.Type #>), default(Xunit<#= srOp.Name #><#= type.Name #>),
+                default(<#= type.Name #>TestSequencer), 0, -1, <#= size #> },
+<#
+            }
+        }
+#>
+        };
+
+        public static TheoryData<object, object, object, object, object, object>
+            Constant<#= srOp.Name #>TestData =>
+            new TheoryData<object, object, object, object, object, object>
+        {
+            // Type, IScanReduceOperation, Sequencer, Start of Sequencer,
+            // StepSize of Sequencer, BufferSize
+<#
+        foreach (var type in signedTypes) {
+            foreach (var size in ArraySizes) {
+#>
+            { default(<#= type.Type #>), default(Xunit<#= srOp.Name #><#= type.Name #>),
+                default(<#= type.Name #>TestSequencer), 0, 0, <#= size #> },
+            { default(<#= type.Type #>), default(Xunit<#= srOp.Name #><#= type.Name #>),
+                default(<#= type.Name #>TestSequencer), 1, 0, <#= size #> },
+<#
+                if(type.IsUnsignedInt) { continue; }
+#>
+            { default(<#= type.Type #>), default(Xunit<#= srOp.Name #><#= type.Name #>),
+                default(<#= type.Name #>TestSequencer), -1, 0, <#= size #> },
+<#
+            }
+        }
+#>
+        };
+
+<#
+        }
+#>
+        #endregion
+    
+<#
+        SortingInformation[] sortings =
+        {
+            new SortingInformation("Ascending", SequenceSortingKind.Ascending),
+            new SortingInformation("Constant", SequenceSortingKind.Constant),
+            new SortingInformation("Descending", SequenceSortingKind.Descending),
+        };
+
+        foreach (var sorting in sortings) {
+            foreach (var srOp in ScanReduceOperations) {
+#>
+        [Theory]
+        [MemberData(nameof(<#= sorting.Name #><#= srOp.Name #>TestData))]
+        public void ScanInclusive<#= srOp.Name #><#= sorting.Name #>Test<
+            T,
+            TScanFunc,
+            TSequencer>(
+            T _,
+            TScanFunc func,
+            TSequencer sequencer,
+            T start,
+            T stepSize,
+            int length)
+            where T : unmanaged
+            where TSequencer : struct, ITestSequencer<T>
+            where TScanFunc : struct, IScanReduceOperation<T>
+        {
+            using var stream = Accelerator.CreateStream();
+            using var input = Accelerator.Allocate<T>(length);
+            using var output = Accelerator.Allocate<T>(length);
+            
+            var tmpMemSize = Accelerator.ComputeScanTempStorageSize<T>(output.Length);
+            using var tmp = Accelerator.Allocate<int>(tmpMemSize);
+
+            var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
+            input.CopyFrom(stream, inputSeq, 0, 0, length);
+            stream.Synchronize();
+
+            var scan = Accelerator.CreateInclusiveScan<T, TScanFunc>();
+
+            scan(stream, input.View, output.View, tmp);
+            stream.Synchronize();
+
+            var expected = CalcValues(inputSeq, func, ScanKind.Inclusive);
+            Verify(output, expected);
+        }
+
+<#
+            }
+        }
+        foreach (var sorting in sortings) {
+            foreach (var srOp in ScanReduceOperations) {
+#>
+        [Theory]
+        [MemberData(nameof(<#= sorting.Name #><#= srOp.Name #>TestData))]
+        public void ScanExclusive<#= srOp.Name #><#= sorting.Name #>Test<
+            T,
+            TScanFunc,
+            TSequencer>(
+            T _,
+            TScanFunc func,
+            TSequencer sequencer,
+            T start,
+            T stepSize,
+            int length)
+            where T : unmanaged
+            where TSequencer : struct, ITestSequencer<T>
+            where TScanFunc : struct, IScanReduceOperation<T>
+        {
+            using var stream = Accelerator.CreateStream();
+            using var input = Accelerator.Allocate<T>(length);
+            using var output = Accelerator.Allocate<T>(length);
+            
+            var tmpMemSize = Accelerator.ComputeScanTempStorageSize<T>(output.Length);
+            using var tmp = Accelerator.Allocate<int>(tmpMemSize);
+
+            var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
+            input.CopyFrom(stream, inputSeq, 0, 0, length);
+            stream.Synchronize();
+
+            var scan = Accelerator.CreateExclusiveScan<T, TScanFunc>();
+
+            scan(stream, input.View, output.View, tmp);
+            stream.Synchronize();
+
+            var expected = CalcValues(inputSeq, func, ScanKind.Exclusive);
+<#
+                if (srOp.Name == "Add") {
+#>
+            Verify(output, expected);
+<#
+                } else {
+#>
+            Verify(output, expected, 1);
+<#              
+                }
+#>
+        } 
+
+<#
+            }
+        }
+#>
+        [Theory]
+        [MemberData(nameof(AscendingAddTestData))]
+        [MemberData(nameof(AscendingMaxTestData))]
+        [MemberData(nameof(AscendingMinTestData))]
+        public void ExclusiveScanProviderAscendingTest<T, TScanFunc, TSequencer>(
+            T _,
+            TScanFunc func,
+            TSequencer sequencer,
+            T start,
+            T stepSize,
+            int length)
+            where T : unmanaged
+            where TSequencer : struct, ITestSequencer<T>
+            where TScanFunc : struct, IScanReduceOperation<T>
+        {
+            using var stream = Accelerator.CreateStream();
+            using var input = Accelerator.Allocate<T>(length);
+            using var output = Accelerator.Allocate<T>(length);
+
+            var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
+            input.CopyFrom(stream, inputSeq, 0, 0, length);
+
+            using var scanProvider = Accelerator.CreateScanProvider();
+            var scan = scanProvider.CreateExclusiveScan<T, TScanFunc>();
+            stream.Synchronize();
+
+            scan(stream, input, output);
+            stream.Synchronize();
+            
+            var expected = CalcValues(inputSeq, func, ScanKind.Exclusive);
+            Verify(output, expected, 1);
+        }
+
+        [Theory]
+        [MemberData(nameof(AscendingAddTestData))]
+        [MemberData(nameof(AscendingMaxTestData))]
+        [MemberData(nameof(AscendingMinTestData))]
+        public void InclusiveScanProviderAscendingTest<T, TScanFunc, TSequencer>(
+            T _,
+            TScanFunc func,
+            TSequencer sequencer,
+            T start,
+            T stepSize,
+            int length)
+            where T : unmanaged
+            where TSequencer : struct, ITestSequencer<T>
+            where TScanFunc : struct, IScanReduceOperation<T>
+        {
+            using var stream = Accelerator.CreateStream();
+            using var input = Accelerator.Allocate<T>(length);
+            using var output = Accelerator.Allocate<T>(length);
+
+            var inputSeq = sequencer.ComputeSequence(start, stepSize, length);
+            input.CopyFrom(stream, inputSeq, 0, 0, length);
+
+            using var scanProvider = Accelerator.CreateScanProvider();
+            var scan = scanProvider.CreateInclusiveScan<T, TScanFunc>();
+            stream.Synchronize();
+
+            scan(stream, input, output);
+            stream.Synchronize();
+            
+            var expected = CalcValues(inputSeq, func, ScanKind.Inclusive);
+            Verify(output, expected, 1);
+        }
+
+        #region Helper Methods
+
+        private T[] CalcValues<T, TFunction>(T[] values, TFunction func, ScanKind kind)
+            where T : unmanaged
+            where TFunction : struct, IScanReduceOperation<T>
+        {
+            T[] result = new T[values.Length];
+            result[0] = values[0];
+
+            for (int i = 1, e = values.Length; i < e; ++i)
+                result[i] = func.Apply(result[i-1], values[i]);
+
+            if (kind == ScanKind.Exclusive)
+            {
+                T[] zero = { default }; 
+                result = zero.Concat(result.Take(result.Length - 1)).ToArray();
+            }
+            return result;
+        }
+
+        #endregion
+    }
+}
+
+#pragma warning restore xUnit1026 // Theory methods should use all of their parameters

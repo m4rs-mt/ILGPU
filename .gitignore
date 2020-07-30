@@ -265,7 +265,17 @@ Src/ILGPU.Algorithms/XMath/Cordic.Trig.cs
 
 # Generated test source files
 Src/ILGPU.Algorithms.Tests/Generic/ConfigurationBase.cs
+Src/ILGPU.Algorithms.Tests/Generic/AlgorithmsTestData.cs
+Src/ILGPU.Algorithms.Tests/ArrayExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/GroupExtensionTests.cs
 Src/ILGPU.Algorithms.Tests/HistogramTests.cs
+Src/ILGPU.Algorithms.Tests/RadixSortExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/ReductionExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/ReorderExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/ScanExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/SequencerTests.cs
+Src/ILGPU.Algorithms.Tests/TransformerExtensionTests.cs
+Src/ILGPU.Algorithms.Tests/WarpExtensionTests.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Log.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Pow.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Rcp.cs

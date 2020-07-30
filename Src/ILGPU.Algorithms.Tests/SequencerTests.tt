@@ -1,0 +1,163 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="Generic/ConfigurationBase.tt" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+
+using ILGPU.Algorithms.Sequencers;
+using ILGPU.Runtime;
+using ILGPU.Tests;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace ILGPU.Algorithms.Tests
+{
+    public abstract partial class SequencerTests : TestBase
+    {
+        protected SequencerTests(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
+        { }
+
+        #region MemberData
+
+        public static TheoryData<object> TestDataLength =>
+            new TheoryData<object>
+        {
+<#
+        foreach (var size in ArraySizes) {
+#>
+            { <#= size #> },
+<#
+        }
+#>
+        };
+
+        #endregion
+
+        [Theory]
+        [MemberData(nameof(TestDataLength))]
+        public void SequencerIndex1(int bufferLength)
+        {
+            using var buffer = Accelerator.Allocate<Index1>(bufferLength);
+            using var stream = Accelerator.CreateStream();
+            Accelerator.Sequence(stream, buffer.View, new IndexSequencer());
+
+            Index1[] expected = new Index1[bufferLength];
+            for (int i = 0, e = bufferLength; i < e; ++i)
+                expected[i] = i;
+
+            stream.Synchronize();
+            Verify(buffer, expected);
+        }
+
+<#
+        foreach (var type in NumericTypes) {
+#>
+        [Theory]
+        [MemberData(nameof(TestDataLength))]
+        public void Sequencer<#= type.Name #>(int bufferLength)
+        {
+            using var buffer = Accelerator.Allocate<<#= type.Type #>>(bufferLength);
+            using var stream = Accelerator.CreateStream();
+            Accelerator.Sequence(stream, buffer.View, new <#= type.Name #>Sequencer());
+
+            <#= type.Type #>[] expected = new <#= type.Type #>[bufferLength];
+            for (int i = 0, e = bufferLength; i < e; ++i)
+                expected[i] = (<#= type.Type #>)i;
+
+            stream.Synchronize();
+            Verify(buffer, expected);
+        }
+
+<#
+        }
+#>
+
+<#
+        foreach (var type in NumericTypes) {
+#>
+        [Theory]
+        [MemberData(nameof(TestDataLength))]
+        public void RepeatedSequencer<#= type.Name #>(int bufferLength)
+        {
+            using var buffer = Accelerator.Allocate<<#= type.Type #>>(bufferLength);
+            using var stream = Accelerator.CreateStream();
+            Accelerator.RepeatedSequence(
+                stream,
+                buffer.View,
+                2,
+                new <#= type.Name #>Sequencer());
+
+            <#= type.Type #>[] expected = new <#= type.Type #>[bufferLength];
+            for (int i = 0, e = bufferLength-1; i < e; i += 2)
+                for (int j = 0; j<2; j++)
+                expected[i+j] = (<#= type.Type #>)j;
+
+            stream.Synchronize();
+            Verify(buffer, expected);
+        }
+
+<#
+        }
+#>
+
+<#
+        foreach (var type in NumericTypes) {
+#>
+        [Theory]
+        [MemberData(nameof(TestDataLength))]
+        public void BatchedSequencer<#= type.Name #>(int bufferLength)
+        {
+            using var buffer = Accelerator.Allocate<<#= type.Type #>>(bufferLength);
+            using var stream = Accelerator.CreateStream();
+            Accelerator.BatchedSequence(
+                stream,
+                buffer.View,
+                2,
+                new <#= type.Name #>Sequencer());
+
+            <#= type.Type #>[] expected = new <#= type.Type #>[bufferLength];
+            for (int i = 0, e = bufferLength; i < e; i+=2)
+                for (int j = 0; j<2 && i+j<e; ++j)
+                    expected[i+j] = (<#= type.Type #>)(i/2);
+
+            stream.Synchronize();
+            Verify(buffer, expected);
+        }
+
+<#
+        }
+#>
+
+
+<#
+        foreach (var type in NumericTypes) {
+#>
+        [Theory]
+        [MemberData(nameof(TestDataLength))]
+        public void RepeatedBatchedSequencer<#= type.Name #>(int bufferLength)
+        {
+            using var buffer = Accelerator.Allocate<<#= type.Type #>>(bufferLength);
+            using var stream = Accelerator.CreateStream();
+            Accelerator.RepeatedBatchedSequence(
+                stream,
+                buffer.View,
+                2,
+                4,
+                new <#= type.Name #>Sequencer());
+
+            <#= type.Type #>[] expected = new <#= type.Type #>[bufferLength];
+            for (int i = 0, e = bufferLength; i < e; i+=8)
+                for (int j = 0; j < 2; ++j) 
+                    for (int k = 0; k < 4 && (i+j*4+k) < e; ++k)
+                        expected[i+j*4+k] = (<#= type.Type #>)(j);
+
+            stream.Synchronize();
+            Verify(buffer, expected);
+        }
+
+<#
+        }
+#>
+    }
+}
