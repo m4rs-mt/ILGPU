@@ -303,7 +303,22 @@ namespace ILGPU.Frontend
                 Location = instruction.Location;
 
                 // Try to generate code for this instruction
-                if (!TryGenerateCode(instruction))
+                bool generated;
+                try
+                {
+                    generated = TryGenerateCode(instruction);
+                }
+                catch (InternalCompilerException)
+                {
+                    // If we already have an internal compiler exception, re-throw it.
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    // Wrap generic exceptions with location information.
+                    throw Location.GetException(e);
+                }
+                if (!generated)
                 {
                     throw Location.GetNotSupportedException(
                         ErrorMessages.NotSupportedInstruction,
