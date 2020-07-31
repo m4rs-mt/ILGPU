@@ -187,6 +187,7 @@ namespace ILGPU.Frontend
                 catch (Exception e)
                 {
                     codeGenerationPhase.RecordException(e);
+                    detectedMethods.Clear();
                 }
 
                 // Check dependencies
@@ -451,32 +452,48 @@ namespace ILGPU.Frontend
             HashSet<MethodBase> detectedMethods,
             out Method generatedMethod)
         {
-            generatedMethod = Context.Declare(method, out bool created);
-            if (!created & isExternalRequest)
-                return;
-
-            SequencePointEnumerator sequencePoints =
-                DebugInformationManager?.LoadSequencePoints(method)
-                ?? SequencePointEnumerator.Empty;
-            var disassembler = new Disassembler(method, sequencePoints);
-            var disassembledMethod = disassembler.Disassemble();
-
-            using (var builder = generatedMethod.CreateBuilder())
+            ILocation location = null;
+            try
             {
-                var codeGenerator = new CodeGenerator(
-                    Frontend,
-                    builder,
-                    disassembledMethod,
-                    detectedMethods);
-                codeGenerator.GenerateCode();
-            }
-            Verifier.Verify(generatedMethod);
+                generatedMethod = Context.Declare(method, out bool created);
+                if (!created & isExternalRequest)
+                    return;
+                location = generatedMethod;
 
-            // Evaluate inlining heuristic to adjust method declaration
-            Inliner.SetupInliningAttributes(
-                Context,
-                generatedMethod,
-                disassembledMethod);
+                SequencePointEnumerator sequencePoints =
+                    DebugInformationManager?.LoadSequencePoints(method)
+                    ?? SequencePointEnumerator.Empty;
+                var disassembler = new Disassembler(method, sequencePoints);
+                var disassembledMethod = disassembler.Disassemble();
+
+                using (var builder = generatedMethod.CreateBuilder())
+                {
+                    var codeGenerator = new CodeGenerator(
+                        Frontend,
+                        builder,
+                        disassembledMethod,
+                        detectedMethods);
+                    codeGenerator.GenerateCode();
+                }
+                Verifier.Verify(generatedMethod);
+
+                // Evaluate inlining heuristic to adjust method declaration
+                Inliner.SetupInliningAttributes(
+                    Context,
+                    generatedMethod,
+                    disassembledMethod);
+            }
+            catch (InternalCompilerException)
+            {
+                // If we already have an internal compiler exception, re-throw it.
+                throw;
+            }
+            catch (Exception e)
+            {
+                // Wrap generic exceptions with location information.
+                location ??= new Method.MethodLocation(method);
+                throw location.GetException(e);
+            }
         }
 
         /// <summary>

@@ -491,8 +491,9 @@ namespace ILGPU.Tests
                 };
 
             using var buffer = Accelerator.Allocate<int>(length);
-            Assert.Throws<NotSupportedException>(() =>
+            var e = Assert.Throws<InternalCompilerException>(() =>
                 Execute(kernel.Method, new Index1((int)buffer.Length), buffer.View));
+            Assert.IsType<NotSupportedException>(e.InnerException);
         }
 
         [Theory]
@@ -510,8 +511,9 @@ namespace ILGPU.Tests
 
             var extent = new Index2(length, length);
             using var buffer = Accelerator.Allocate<int>(extent.Size);
-            Assert.Throws<NotSupportedException>(() =>
+            var e = Assert.Throws<InternalCompilerException>(() =>
                 Execute(kernel.Method, extent, buffer.View, extent));
+            Assert.IsType<NotSupportedException>(e.InnerException);
         }
 
         [Theory]
@@ -529,8 +531,9 @@ namespace ILGPU.Tests
 
             var extent = new Index3(length, length, length);
             using var buffer = Accelerator.Allocate<int>(extent.Size);
-            Assert.Throws<NotSupportedException>(() =>
+            var e = Assert.Throws<InternalCompilerException>(() =>
                 Execute(kernel.Method, extent, buffer.View, extent));
+            Assert.IsType<NotSupportedException>(e.InnerException);
         }
     }
 }
