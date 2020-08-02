@@ -272,7 +272,7 @@ namespace ILGPU.IR.Analyses
                     return false;
                 for (int i = 0, e = Arguments.Length; i < e; ++i)
                 {
-                    if (!Arguments.Equals(other.Arguments[i]))
+                    if (!Arguments[i].Equals(other.Arguments[i]))
                         return false;
                 }
                 return true;
