@@ -43,6 +43,7 @@ namespace ILGPU.Runtime.Cuda
         /// Constructs a new cuda stream.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
+        /// <remarks>Creates a non-blocking stream.</remarks>
         internal CudaStream(Accelerator accelerator)
             : base(accelerator)
         {
@@ -50,6 +51,21 @@ namespace ILGPU.Runtime.Cuda
                 CudaAPI.Current.CreateStream(
                     out streamPtr,
                     StreamFlags.CU_STREAM_NON_BLOCKING));
+        }
+
+        /// <summary>
+        /// Constructs a new cuda stream with given <see cref="StreamFlags"/>
+        /// </summary>
+        /// <param name="accelerator">The associated accelerator.</param>
+        /// <param name="flag">
+        /// Stream flag to use. Allows blocking and non-blocking streams.
+        /// </param>
+        internal CudaStream(Accelerator accelerator, StreamFlags flag)
+            : base(accelerator)
+        {
+            CudaException.ThrowIfFailed(
+                CudaAPI.Current.CreateStream(
+                    out streamPtr, flag));
         }
 
         #endregion
