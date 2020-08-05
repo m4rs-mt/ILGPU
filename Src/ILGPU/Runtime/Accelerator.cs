@@ -12,6 +12,7 @@
 using ILGPU.Backends;
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.Resources;
+using ILGPU.Runtime.Cuda;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
