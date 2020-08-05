@@ -449,6 +449,13 @@ namespace ILGPU.Runtime.Cuda
         protected override AcceleratorStream CreateStreamInternal() =>
             new CudaStream(this);
 
+        /// <summary>
+        /// Creates a CUDA stream with blocking calls
+        /// </summary>
+        /// <returns>The created CUDA stream</returns>
+        public CudaStream CreateBlockingStream() =>
+            new CudaStream(this, StreamFlags.CU_STREAM_DEFAULT);
+
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() =>
             CudaException.ThrowIfFailed(
