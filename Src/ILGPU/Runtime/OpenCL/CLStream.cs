@@ -28,6 +28,12 @@ namespace ILGPU.Runtime.OpenCL
 
         private IntPtr queuePtr;
 
+        internal CLStream(Accelerator accelerator, IntPtr ptr)
+            : base(accelerator)
+        {
+            queuePtr = ptr;
+        }
+
         internal CLStream(CLAccelerator accelerator)
             : base(accelerator)
         {

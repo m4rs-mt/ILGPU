@@ -409,8 +409,19 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
+        /// Creates a new accelerator stream from an externally created one.
+        /// </summary>
+        /// <param name="ptr">The pointer to the externally created stream.</param>
+        /// <returns>The created accelerator stream.</returns>
+        public AcceleratorStream CreateStream(IntPtr ptr)
+        {
+            Bind(); return CreateStreamInternal();
+        }
+
+        /// <summary>
         /// Creates a new accelerator stream with flags.
         /// </summary>
+        /// <param name="flag">The flags to use.</param>
         /// <returns>The created accelerator stream.</returns>
         public AcceleratorStream CreateStream(StreamFlags flag)
         {
@@ -426,8 +437,16 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Creates a new accelerator stream with flags.
         /// </summary>
+        /// <param name="flag">The flags to use.</param>
         /// <returns>The created accelerator stream.</returns>
         protected abstract AcceleratorStream CreateStreamInternal(StreamFlags flag);
+
+        /// <summary>
+        /// Creates a new accelerator stream from an externally created one.
+        /// </summary>
+        /// <param name="ptr">The pointer to the externally created stream.</param>
+        /// <returns>The created accelerator stream.</returns>
+        protected abstract AcceleratorStream CreateStreamInternal(IntPtr ptr);
 
         /// <summary>
         /// Synchronizes pending operations.

@@ -223,6 +223,11 @@ namespace ILGPU.Runtime.CPU
         protected override AcceleratorStream CreateStreamInternal(StreamFlags flag) =>
             throw new NotSupportedException();
 
+        /// <summary cref="Accelerator.CreateStream(IntPtr)"/>
+        /// <param name="ptr">The pointer to use when creating the stream</param>
+        protected override AcceleratorStream CreateStreamInternal(IntPtr ptr) =>
+            throw new NotSupportedException();
+
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() { }
 
