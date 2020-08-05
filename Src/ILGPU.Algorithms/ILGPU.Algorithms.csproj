@@ -10,6 +10,7 @@
     <FileVersion>0.8.0.0</FileVersion>
     <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
     <LangVersion>8.0</LangVersion>
+    <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -168,6 +169,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>RadixSortOperations.tt</DependentUpon>
     </Compile>
+    <Compile Update="Resources\ErrorMessages.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ErrorMessages.resx</DependentUpon>
+    </Compile>
     <Compile Update="Runtime\Cuda\CuBlasMethodsLevel1.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -222,6 +228,13 @@
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\ErrorMessages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ErrorMessages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
   <Import Project="Properties\ILGPU.Algorithms.nuspec.targets" />

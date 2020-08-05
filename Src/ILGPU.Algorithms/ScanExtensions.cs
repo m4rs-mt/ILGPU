@@ -400,6 +400,8 @@ namespace ILGPU.Algorithms
                     throw new ArgumentNullException(nameof(input));
                 if (!output.IsValid)
                     throw new ArgumentNullException(nameof(output));
+                if (output.Length < input.Length)
+                    throw new ArgumentOutOfRangeException(nameof(output));
                 kernel(stream, (1, accelerator.MaxNumThreadsPerGroup), input, output);
             };
         }
@@ -539,8 +541,8 @@ namespace ILGPU.Algorithms
                     throw new ArgumentOutOfRangeException(nameof(output));
 
                 var viewManager = new TempViewManager(temp, nameof(temp));
-                var executorView = viewManager.Allocate<int>();
                 var tempView = viewManager.Allocate<T>();
+                var executorView = viewManager.Allocate<int>();
 
                 initializer(stream, temp.GetSubView(0, viewManager.NumInts), default);
 

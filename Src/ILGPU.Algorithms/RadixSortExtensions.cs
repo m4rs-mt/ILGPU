@@ -772,10 +772,10 @@ namespace ILGPU.Algorithms
             int tempScanMemorySize =
                 accelerator.ComputeScanTempStorageSize<T>(counterOffset);
 
+            tempOutputView = viewManager.Allocate<T>(input.Length);
             counterView = viewManager.Allocate<int>(counterOffset);
             counterView2 = viewManager.Allocate<int>(counterOffset);
             tempScanView = viewManager.Allocate<int>(tempScanMemorySize);
-            tempOutputView = viewManager.Allocate<T>(input.Length);
         }
 
         /// <summary>

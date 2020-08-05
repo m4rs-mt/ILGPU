@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Algorithms.Resources;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -85,6 +86,24 @@ namespace ILGPU.Algorithms
             var viewLength = Interop.ComputeRelativeSizeOf<int, T>(length);
             if (NumInts + viewLength > TempView.Length)
                 throw new ArgumentOutOfRangeException(ParamName);
+
+            // Ensure correct alignment when allocating types larger than a single int.
+            // NB: Structs are assumed to be int-aligned.
+            if (typeof(T).IsPrimitive)
+            {
+                var sizeOfAllocateT = Interop.SizeOf<T>();
+                var sizeOfInt = Interop.SizeOf<int>();
+                var allocationByteOffset = NumInts * sizeOfInt;
+                if (sizeOfAllocateT > sizeOfInt &&
+                    allocationByteOffset % sizeOfAllocateT != 0)
+                {
+                    throw new InvalidOperationException(string.Format(
+                        ErrorMessages.TempViewManagerUnalignedAllocation,
+                        typeof(T),
+                        sizeOfAllocateT,
+                        allocationByteOffset));
+                }
+            }
 
             var tempView = TempView.GetSubView(NumInts, viewLength);
             NumInts += viewLength;
