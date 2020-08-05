@@ -185,17 +185,7 @@ namespace ILGPU.Algorithms.Tests
             stream.Synchronize();
 
             var expected = CalcValues(inputSeq, func, ScanKind.Exclusive);
-<#
-                if (srOp.Name == "Add") {
-#>
             Verify(output, expected);
-<#
-                } else {
-#>
-            Verify(output, expected, 1);
-<#              
-                }
-#>
         } 
 
 <#
@@ -232,7 +222,7 @@ namespace ILGPU.Algorithms.Tests
             stream.Synchronize();
             
             var expected = CalcValues(inputSeq, func, ScanKind.Exclusive);
-            Verify(output, expected, 1);
+            Verify(output, expected);
         }
 
         [Theory]
@@ -265,7 +255,7 @@ namespace ILGPU.Algorithms.Tests
             stream.Synchronize();
             
             var expected = CalcValues(inputSeq, func, ScanKind.Inclusive);
-            Verify(output, expected, 1);
+            Verify(output, expected);
         }
 
         #region Helper Methods
@@ -282,7 +272,7 @@ namespace ILGPU.Algorithms.Tests
 
             if (kind == ScanKind.Exclusive)
             {
-                T[] zero = { default }; 
+                T[] zero = { default(TFunction).Identity }; 
                 result = zero.Concat(result.Take(result.Length - 1)).ToArray();
             }
             return result;
