@@ -140,6 +140,7 @@ namespace ILGPU.Algorithms.Tests
             using var tmpBuffer = Accelerator.Allocate<int>(tempMemSize);
 
             radixSort(stream, input.View, tmpBuffer.View);
+            stream.Synchronize();
 
             Verify(input, expected);
         }
@@ -185,6 +186,7 @@ namespace ILGPU.Algorithms.Tests
             using var tmpBuffer = Accelerator.Allocate<int>(tempMemSize);
 
             radixSort(stream, input.View, tmpBuffer.View);
+            stream.Synchronize();
 
             Verify(input, sequence);
         }
@@ -234,6 +236,7 @@ namespace ILGPU.Algorithms.Tests
                 radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
 
             radixSortUsingSortProvider(stream, input.View);
+            stream.Synchronize();
 
             Verify(input, expected);
         }
@@ -278,6 +281,7 @@ namespace ILGPU.Algorithms.Tests
                 radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
 
             radixSortUsingSortProvider(stream, input.View);
+            stream.Synchronize();
 
             Verify(input, sequence);
         }
@@ -311,6 +315,7 @@ namespace ILGPU.Algorithms.Tests
             using var tmpBuffer = Accelerator.Allocate<int>(tempMemSize);
 
             radixSort(stream, input.View, tmpBuffer.View);
+            stream.Synchronize();
 
             Verify(input, sequence);
         }
@@ -340,6 +345,7 @@ namespace ILGPU.Algorithms.Tests
                 radixSortProvider.CreateRadixSort<T, TRadixSortOp>();
 
             radixSortUsingSortProvider(stream, input.View);
+            stream.Synchronize();
 
             Verify(input, sequence);
         }
