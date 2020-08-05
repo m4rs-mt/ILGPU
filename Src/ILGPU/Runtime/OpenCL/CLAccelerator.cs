@@ -12,6 +12,7 @@
 using ILGPU.Backends.IL;
 using ILGPU.Backends.OpenCL;
 using ILGPU.Resources;
+using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
@@ -526,9 +527,13 @@ namespace ILGPU.Runtime.OpenCL
             MethodInfo launcher) =>
             new CLKernel(this, compiledKernel, launcher);
 
-        /// <summary cref="Accelerator.CreateStream"/>
+        /// <summary cref="Accelerator.CreateStream()"/>
         protected override AcceleratorStream CreateStreamInternal() =>
             new CLStream(this);
+
+        /// <summary cref="Accelerator.CreateStream(StreamFlags)"/>
+        protected override AcceleratorStream CreateStreamInternal(StreamFlags flag) =>
+            throw new NotSupportedException();
 
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() =>

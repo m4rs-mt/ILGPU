@@ -12,6 +12,7 @@
 using ILGPU.Backends;
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.Resources;
+using ILGPU.Runtime.Cuda;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
@@ -408,10 +409,25 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
+        /// Creates a new accelerator stream with flags.
+        /// </summary>
+        /// <returns>The created accelerator stream.</returns>
+        public AcceleratorStream CreateStream(StreamFlags flag)
+        {
+            Bind(); return CreateStreamInternal(flag);
+        }
+
+        /// <summary>
         /// Creates a new accelerator stream.
         /// </summary>
         /// <returns>The created accelerator stream.</returns>
         protected abstract AcceleratorStream CreateStreamInternal();
+
+        /// <summary>
+        /// Creates a new accelerator stream with flags.
+        /// </summary>
+        /// <returns>The created accelerator stream.</returns>
+        protected abstract AcceleratorStream CreateStreamInternal(StreamFlags flag);
 
         /// <summary>
         /// Synchronizes pending operations.

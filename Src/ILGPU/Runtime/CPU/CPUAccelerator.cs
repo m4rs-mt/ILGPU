@@ -12,6 +12,7 @@
 using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.Resources;
+using ILGPU.Runtime.Cuda;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
@@ -213,9 +214,14 @@ namespace ILGPU.Runtime.CPU
             return result;
         }
 
-        /// <summary cref="Accelerator.CreateStreamInternal"/>
+        /// <summary cref="Accelerator.CreateStreamInternal()"/>
         protected override AcceleratorStream CreateStreamInternal() =>
             new CPUStream(this);
+
+        /// <summary cref="Accelerator.CreateStream(StreamFlags)"/>
+        /// <param name="flag">The flags to use when creating a stream</param>
+        protected override AcceleratorStream CreateStreamInternal(StreamFlags flag) =>
+            throw new NotSupportedException();
 
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() { }

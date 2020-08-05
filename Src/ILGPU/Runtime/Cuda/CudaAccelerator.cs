@@ -445,16 +445,14 @@ namespace ILGPU.Runtime.Cuda
             MethodInfo launcher) =>
             new CudaKernel(this, compiledKernel, launcher);
 
-        /// <summary cref="Accelerator.CreateStream"/>
+        /// <summary cref="Accelerator.CreateStream()"/>
         protected override AcceleratorStream CreateStreamInternal() =>
             new CudaStream(this);
 
-        /// <summary>
-        /// Creates a CUDA stream with blocking calls
-        /// </summary>
-        /// <returns>The created CUDA stream</returns>
-        public CudaStream CreateBlockingStream() =>
-            new CudaStream(this, StreamFlags.CU_STREAM_DEFAULT);
+        /// <summary cref="Accelerator.CreateStream(StreamFlags)"/>
+        /// <param name="flag">The flags to use when creating a stream</param>
+        protected override AcceleratorStream CreateStreamInternal(StreamFlags flag) =>
+            new CudaStream(this, flag);
 
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() =>
