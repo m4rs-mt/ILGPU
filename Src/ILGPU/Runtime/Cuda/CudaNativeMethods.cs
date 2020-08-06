@@ -12,13 +12,13 @@
 #pragma warning disable IDE1006 // Naming Styles
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-using System.Diagnostics.CodeAnalysis;
+using System;
 
 namespace ILGPU.Runtime.Cuda
 {
     #region Enums
 
-    [SuppressMessage("Naming", "CA1717")]
+    [Flags]
     public enum StreamFlags
     {
         CU_STREAM_DEFAULT = 0,

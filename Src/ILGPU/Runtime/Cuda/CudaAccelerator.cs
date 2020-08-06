@@ -447,17 +447,22 @@ namespace ILGPU.Runtime.Cuda
 
         /// <summary cref="Accelerator.CreateStream()"/>
         protected override AcceleratorStream CreateStreamInternal() =>
-            new CudaStream(this);
+            new CudaStream(this, StreamFlags.CU_STREAM_NON_BLOCKING);
 
-        /// <summary cref="Accelerator.CreateStream(StreamFlags)"/>
-        /// <param name="flag">The flags to use when creating the stream</param>
-        protected override AcceleratorStream CreateStreamInternal(StreamFlags flag) =>
-            new CudaStream(this, flag);
+        /// <summary>
+        /// Creates a <see cref="CudaStream"/> object using
+        /// specified <see cref="StreamFlags"/>.
+        /// </summary>
+        /// <param name="flag">The flag to use.</param>
+        /// <returns>The created stream.</returns>
+        public CudaStream CreateStream(StreamFlags flag) => new CudaStream(this, flag);
 
-        /// <summary cref="Accelerator.CreateStream(IntPtr)"/>
-        /// <param name="ptr">The pointer to use when creating the stream</param>
-        protected override AcceleratorStream CreateStreamInternal(IntPtr ptr) =>
-            new CudaStream(this, ptr);
+        /// <summary>
+        /// Creates a <see cref="CudaStream"/> object using an externally created stream.
+        /// </summary>
+        /// <param name="ptr">A pointer to the externally created stream.</param>
+        /// <returns>The created stream.</returns>
+        public CudaStream CreateStream(IntPtr ptr) => new CudaStream(this, ptr);
 
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() =>

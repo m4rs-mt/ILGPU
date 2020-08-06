@@ -531,14 +531,13 @@ namespace ILGPU.Runtime.OpenCL
         protected override AcceleratorStream CreateStreamInternal() =>
             new CLStream(this);
 
-        /// <summary cref="Accelerator.CreateStream(StreamFlags)"/>
-        protected override AcceleratorStream CreateStreamInternal(StreamFlags flag) =>
-            throw new NotSupportedException();
-
-        /// <summary cref="Accelerator.CreateStream(IntPtr)"/>
-        /// <param name="ptr">The pointer to use when creating the stream</param>
-        protected override AcceleratorStream CreateStreamInternal(IntPtr ptr) =>
-            new CLStream(this, ptr);
+        /// <summary>
+        /// Creates a <see cref="CLStream"/> object from an externally
+        /// created stream/queue using its pointer
+        /// </summary>
+        /// <param name="ptr">The pointer to use while creating the new stream</param>
+        /// <returns>The created stream</returns>
+        public CLStream CreateStream(IntPtr ptr) => new CLStream(this, ptr);
 
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() =>
