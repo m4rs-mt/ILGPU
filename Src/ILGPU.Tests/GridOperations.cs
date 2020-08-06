@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ILGPU.Runtime;
+using ILGPU.Runtime.OpenCL;
+using System;
 using System.Diagnostics;
 using Xunit;
 using Xunit.Abstractions;
