@@ -1,4 +1,5 @@
-﻿using ILGPU.Runtime;
+﻿using ILGPU.IR.Values;
+using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using System;
 using System.Diagnostics;
@@ -51,6 +52,32 @@ namespace ILGPU.Tests
                     extent.GridDim.Z,
                 };
                 Verify(buffer, expected);
+            }
+        }
+
+        internal static void GridLaunchDimensionKernel(ArrayView<int> data)
+        {
+            data[0] = Grid.DimX;
+            data[1] = Grid.DimY;
+            data[2] = Grid.DimZ;
+        }
+
+        [Fact]
+        public void GridLaunchDimension()
+        {
+            using var buffer = Accelerator.Allocate<int>(3);
+            var kernel = Accelerator.LoadStreamKernel<ArrayView<int>>
+                (GridLaunchDimensionKernel);
+
+            kernel((new Index3(1, 2, 3), new Index3(4, 5, 6)), buffer.View);
+            Accelerator.Synchronize();
+
+            var data = buffer.GetAsArray();
+            int[] expected = { 1, 2, 3 };
+
+            for(int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i], data[i]);
             }
         }
     }
