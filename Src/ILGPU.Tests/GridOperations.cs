@@ -1,6 +1,4 @@
-﻿using ILGPU.IR.Values;
-using ILGPU.Runtime;
-using ILGPU.Runtime.OpenCL;
+﻿using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
 using Xunit;
