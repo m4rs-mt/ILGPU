@@ -27,16 +27,21 @@ namespace ILGPU.Runtime.Cuda
         #region Instance
 
         private IntPtr streamPtr;
+        private readonly bool responsibleForHandle;
 
         /// <summary>
         /// Constructs a new cuda stream from the given native pointer.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="ptr">The native stream pointer.</param>
-        internal CudaStream(Accelerator accelerator, IntPtr ptr)
+        /// <param name="responsible">
+        /// Whether ILGPU is responsible of disposing this stream.
+        /// </param>
+        internal CudaStream(Accelerator accelerator, IntPtr ptr, bool responsible)
             : base(accelerator)
         {
             streamPtr = ptr;
+            responsibleForHandle = responsible;
         }
 
         /// <summary>
@@ -52,6 +57,7 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CudaAPI.Current.CreateStream(
                     out streamPtr, flag));
+            responsibleForHandle = true;
         }
 
         #endregion
@@ -85,13 +91,16 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (streamPtr != IntPtr.Zero)
+            if (responsibleForHandle)
             {
-                CudaException.ThrowIfFailed(
-                    CudaAPI.Current.DestroyStream(streamPtr));
-                streamPtr = IntPtr.Zero;
+                if (streamPtr != IntPtr.Zero)
+                {
+                    CudaException.ThrowIfFailed(
+                        CudaAPI.Current.DestroyStream(streamPtr));
+                    streamPtr = IntPtr.Zero;
+                }
+                base.Dispose(disposing);
             }
-            base.Dispose(disposing);
         }
 
         #endregion
