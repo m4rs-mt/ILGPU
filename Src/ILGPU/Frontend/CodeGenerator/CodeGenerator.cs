@@ -322,8 +322,8 @@ namespace ILGPU.Frontend
                 {
                     throw Location.GetNotSupportedException(
                         ErrorMessages.NotSupportedInstruction,
-                        Method.Name,
-                        instruction);
+                        instruction,
+                        Method.Name);
                 }
             }
 

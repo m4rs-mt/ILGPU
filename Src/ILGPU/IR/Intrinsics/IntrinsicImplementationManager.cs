@@ -56,13 +56,13 @@ namespace ILGPU.IR.Intrinsics
             /// </summary>
             public struct Enumerator : IEnumerator<IntrinsicImplementation>
             {
-                private HashSet<IntrinsicImplementation>.Enumerator enumerator;
+                private List<IntrinsicImplementation>.Enumerator enumerator;
 
                 /// <summary>
                 /// Constructs a new implementation enumerator.
                 /// </summary>
                 /// <param name="implementationSet">The implementations.</param>
-                internal Enumerator(HashSet<IntrinsicImplementation> implementationSet)
+                internal Enumerator(List<IntrinsicImplementation> implementationSet)
                 {
                     enumerator = implementationSet.GetEnumerator();
                 }
@@ -89,8 +89,8 @@ namespace ILGPU.IR.Intrinsics
 
             #region Instance
 
-            private readonly HashSet<IntrinsicImplementation> implementations =
-                new HashSet<IntrinsicImplementation>();
+            private readonly List<IntrinsicImplementation> implementations =
+                new List<IntrinsicImplementation>();
 
             #endregion
 
@@ -101,7 +101,10 @@ namespace ILGPU.IR.Intrinsics
             /// </summary>
             /// <param name="implementation">The implementation to register.</param>
             public void Register(IntrinsicImplementation implementation) =>
-                implementations.Add(
+                // NB: Prepend to the list so that we preference the last registered
+                // implementations.
+                implementations.Insert(
+                    0,
                     implementation
                     ?? throw new ArgumentNullException(nameof(implementation)));
 

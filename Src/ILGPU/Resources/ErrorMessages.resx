@@ -157,7 +157,7 @@
     <value>Not supported indirect call to a method with the signature '{0}'</value>
   </data>
   <data name="NotSupportedInstruction" xml:space="preserve">
-    <value>Not supported instruction in method '{0}'.</value>
+    <value>Not supported instruction '{0}' in method '{1}'.</value>
   </data>
   <data name="NotSupportedInterfaceType" xml:space="preserve">
     <value>Interface type '{0}' is not supported</value>
