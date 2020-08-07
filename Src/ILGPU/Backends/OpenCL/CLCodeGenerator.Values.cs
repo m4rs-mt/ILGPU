@@ -510,7 +510,10 @@ namespace ILGPU.Backends.OpenCL
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(GridDimensionValue)"/>
         public void GenerateCode(GridDimensionValue value) =>
-            MakeIntrinsicValue(value, CLInstructions.GetGridSize, value.Dimension);
+            MakeIntrinsicValue(
+                value,
+                CLInstructions.GetGridSize,
+                value.Dimension);
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(GroupDimensionValue)"/>
         public void GenerateCode(GroupDimensionValue value) =>
