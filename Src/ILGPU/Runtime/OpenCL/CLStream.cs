@@ -44,6 +44,7 @@ namespace ILGPU.Runtime.OpenCL
                     accelerator.DeviceId,
                     accelerator.ContextPtr,
                     out queuePtr));
+            responsibleForHandle = true;
         }
 
         #endregion
