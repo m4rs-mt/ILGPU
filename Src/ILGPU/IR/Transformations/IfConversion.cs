@@ -208,6 +208,36 @@ namespace ILGPU.IR.Transformations
                 return true;
             }
 
+            /// <summary>
+            /// Returns true if the given set of phi values can be converted.
+            /// </summary>
+            /// <param name="phiValues">The phi values to convert.</param>
+            /// <param name="regions">The current regions.</param>
+            /// <returns>True, if the given set of phi values can be converted.</returns>
+            private static bool CanConvertPhis(
+                HashSet<PhiValue> phiValues,
+                Regions regions)
+            {
+                var foundRegions = new HashSet<int>();
+                foreach (var phiValue in phiValues)
+                {
+                    // Reject nodes which cannot be mapped to all predecessor regions
+                    if (phiValue.Sources.Length != regions.Count)
+                        return false;
+
+                    foreach (var source in phiValue.Sources)
+                    {
+                        // Check for references to another part of the program
+                        var regionIndex = regions.FindRegion(source);
+                        if (regionIndex is null || !foundRegions.Add(regionIndex.Value))
+                            return false;
+                    }
+
+                    foundRegions.Clear();
+                }
+                return true;
+            }
+
             #endregion
 
             #region Instance
@@ -333,7 +363,7 @@ namespace ILGPU.IR.Transformations
 
                 // Gather all phi values in the rest of the program that do not belong to
                 // the gathered part of the program
-                var phiValues = GatherPhis();
+                var phiValues = GatherPhis(block.Method);
 
                 // Check for very rare cases in which a phi node is linked to a value
                 // from other parts of the program or has multiple sources in one region
@@ -397,56 +427,26 @@ namespace ILGPU.IR.Transformations
             /// Gathers all <see cref="PhiValue"/> nodes that reference values from the
             /// region that we want to convert.
             /// </summary>
+            /// <param name="method">The parent method.</param>
             /// <returns>
             /// The set of all <see cref="PhiValue"/> that could be found.
             /// </returns>
-            private readonly HashSet<PhiValue> GatherPhis()
+            private readonly HashSet<PhiValue> GatherPhis(Method method)
             {
                 var phiValues = new HashSet<PhiValue>();
-                foreach (var block in Gathered)
+                var gathered = Gathered;
+                method.Blocks.ForEachValue<PhiValue>(phiValue =>
                 {
-                    foreach (Value value in block)
+                    foreach (var block in phiValue.Sources)
                     {
-                        foreach (Value use in value.Uses)
+                        if (gathered.Contains(block))
                         {
-                            if (use is PhiValue phiValue &&
-                                !Gathered.Contains(phiValue.BasicBlock))
-                            {
-                                phiValues.Add(phiValue);
-                            }
+                            phiValues.Add(phiValue);
+                            break;
                         }
                     }
-                }
+                });
                 return phiValues;
-            }
-
-            /// <summary>
-            /// Returns true if the given set of phi values can be converted.
-            /// </summary>
-            /// <param name="phiValues">The phi values to convert.</param>
-            /// <param name="regions">The current regions.</param>
-            /// <returns>True, if the given set of phi values can be converted.</returns>
-            private readonly bool CanConvertPhis(
-                HashSet<PhiValue> phiValues,
-                Regions regions)
-            {
-                var foundBlocks = new HashSet<BasicBlock>();
-                foreach (var phiValue in phiValues)
-                {
-                    // Reject nodes which cannot be mapped to all predecessor regions
-                    if (phiValue.Sources.Length != regions.Count)
-                        return false;
-
-                    foreach (var source in phiValue.Sources)
-                    {
-                        // Check for references to another part of the program
-                        if (!foundBlocks.Add(source) ||!Gathered.Contains(source))
-                            return false;
-                    }
-
-                    foundBlocks.Clear();
-                }
-                return true;
             }
 
             #endregion
