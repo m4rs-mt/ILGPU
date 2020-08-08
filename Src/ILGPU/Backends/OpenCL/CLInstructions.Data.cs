@@ -125,7 +125,7 @@ namespace ILGPU.Backends.OpenCL
         /// <summary>
         /// Resolves the current grid size.
         /// </summary>
-        public const string GetGridSize = "get_global_size";
+        public const string GetGridSize = "get_num_groups";
 
         /// <summary>
         /// Resolves the current grid index.
