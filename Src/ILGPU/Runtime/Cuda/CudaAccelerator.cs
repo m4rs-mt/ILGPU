@@ -260,7 +260,7 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetDeviceName(out string name, DeviceId));
             Name = name;
-            DefaultStream = new CudaStream(this, StreamFlags.CU_STREAM_NON_BLOCKING);
+            DefaultStream = new CudaStream(this, IntPtr.Zero, false);
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetTotalDeviceMemory(out long total, DeviceId));

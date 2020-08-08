@@ -99,8 +99,8 @@ namespace ILGPU.Runtime.Cuda
                         CudaAPI.Current.DestroyStream(streamPtr));
                     streamPtr = IntPtr.Zero;
                 }
-                base.Dispose(disposing);
             }
+            base.Dispose(disposing);
         }
 
         #endregion

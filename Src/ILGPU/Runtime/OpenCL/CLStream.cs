@@ -27,11 +27,13 @@ namespace ILGPU.Runtime.OpenCL
         #region Instance
 
         private IntPtr queuePtr;
+        private readonly bool responsibleForHandle;
 
-        internal CLStream(Accelerator accelerator, IntPtr ptr)
+        internal CLStream(Accelerator accelerator, IntPtr ptr, bool responsible)
             : base(accelerator)
         {
             queuePtr = ptr;
+            responsibleForHandle = responsible;
         }
 
         internal CLStream(CLAccelerator accelerator)
@@ -69,11 +71,14 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (queuePtr != IntPtr.Zero)
+            if (responsibleForHandle)
             {
-                CLException.ThrowIfFailed(
-                    CLAPI.ReleaseCommandQueue(queuePtr));
-                queuePtr = IntPtr.Zero;
+                if (queuePtr != IntPtr.Zero)
+                {
+                    CLException.ThrowIfFailed(
+                        CLAPI.ReleaseCommandQueue(queuePtr));
+                    queuePtr = IntPtr.Zero;
+                }
             }
             base.Dispose(disposing);
         }

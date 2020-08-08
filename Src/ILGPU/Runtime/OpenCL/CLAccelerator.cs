@@ -12,7 +12,6 @@
 using ILGPU.Backends.IL;
 using ILGPU.Backends.OpenCL;
 using ILGPU.Resources;
-using ILGPU.Runtime.Cuda;
 using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
@@ -536,8 +535,12 @@ namespace ILGPU.Runtime.OpenCL
         /// created stream/queue using its pointer
         /// </summary>
         /// <param name="ptr">The pointer to use while creating the new stream</param>
+        /// <param name="responsible">
+        /// Whether ILGPU is responsible of disposing this stream.
+        /// </param>
         /// <returns>The created stream</returns>
-        public CLStream CreateStream(IntPtr ptr) => new CLStream(this, ptr);
+        public CLStream CreateStream(IntPtr ptr, bool responsible) =>
+            new CLStream(this, ptr, responsible);
 
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() =>
