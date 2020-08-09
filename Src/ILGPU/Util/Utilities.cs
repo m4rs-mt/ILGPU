@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Frontend.Intrinsic;
 using System;
 using System.Runtime.CompilerServices;
 
@@ -62,6 +63,7 @@ namespace ILGPU.Util
         /// <remarks>
         /// Note that this function will be mapped to the ILGPU IR.
         /// </remarks>
+        [UtilityIntrinsic(UtilityIntrinsicKind.Select)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T Select<T>(bool takeFirst, T first, T second) =>
             takeFirst ? first : second;

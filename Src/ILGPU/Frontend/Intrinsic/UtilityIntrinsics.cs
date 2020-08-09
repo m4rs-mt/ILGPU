@@ -30,7 +30,7 @@ namespace ILGPU.Frontend.Intrinsic
             IntrinsicKind = kind;
         }
 
-        public override IntrinsicType Type => IntrinsicType.Atomic;
+        public override IntrinsicType Type => IntrinsicType.Utility;
 
         /// <summary>
         /// Returns the associated intrinsic kind.
