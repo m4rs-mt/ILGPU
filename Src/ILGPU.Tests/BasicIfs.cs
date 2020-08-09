@@ -324,6 +324,30 @@ namespace ILGPU.Tests
                 Enumerable.Repeat(res2, Length - 6)).ToArray();
             Verify(buffer, expected);
         }
+
+        internal static void IfWithoutBlocksKernel(
+            Index1 index,
+            ArrayView<int> data,
+            ArrayView<int> data2,
+            int a,
+            int b,
+            int c)
+        {
+            data[index] = a > 0 ? b : c;
+            data2[index] = a <= 0 ? b : c;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(IfWithoutBlocksKernel))]
+        public void IfWithoutBlocks()
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            using var buffer2 = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View, buffer2.View, 23, 42, 23);
+
+            Verify(buffer, Enumerable.Repeat(42, Length).ToArray());
+            Verify(buffer2, Enumerable.Repeat(23, Length).ToArray());
+        }
     }
 }
 
