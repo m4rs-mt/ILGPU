@@ -40,6 +40,16 @@ namespace ILGPU.Algorithms.Sequencers
     }
 
     /// <summary>
+    /// Represents an identity implementation of a half sequencer.
+    /// </summary>
+    public readonly struct HalfSequencer : ISequencer<Half>
+    {
+        /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)" />
+        public Half ComputeSequenceElement(Index1 sequenceIndex) =>
+            (Half)sequenceIndex.X;
+    }
+
+    /// <summary>
     /// Represents an identity implementation of a float sequencer.
     /// </summary>
     public readonly struct FloatSequencer : ISequencer<float>

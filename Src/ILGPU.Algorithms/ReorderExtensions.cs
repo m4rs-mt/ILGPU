@@ -10,6 +10,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Algorithms.Resources;
 using ILGPU.Runtime;
 using System;
 using System.Runtime.InteropServices;
@@ -164,6 +165,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentNullException(nameof(reorderView));
                 if (reorderView.Length < source.Length)
                     throw new ArgumentOutOfRangeException(nameof(reorderView));
+                if (source.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 baseTransformer(stream, reorderView, target,
                     new ReorderTransformWrapper<TSource, TTarget, TTransformer>(
                         source,

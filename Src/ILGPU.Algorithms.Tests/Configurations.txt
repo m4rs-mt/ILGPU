@@ -1,14 +1,14 @@
-﻿ArrayExtensionTests: Debug, Release
-GroupExtensionTests: Debug, Release
-﻿HistogramTests: Debug, Release
-InitializeTests: Debug, Release
-RadixSortExtensionTests: Debug, Release
-ReductionExtensionTests: Debug, Release
-ReorderExtensionTests: Debug, Release
-ScanExtensionTests: Debug, Release
-SequencerTests: Debug, Release
-TempViewManagerTests: Debug, Release
-TransformExtensionTests: Debug, Release
-VectorTests: Debug, Release
-WarpExtensionTests: Debug, Release
-XMathTests: Debug, Release
+﻿ArrayExtensionTests: Debug, Release, O2
+GroupExtensionTests: Debug, Release, O2
+﻿HistogramTests: Debug, Release, O2
+InitializeTests: Debug, Release, O2
+RadixSortExtensionTests: Debug, Release, O2
+ReductionExtensionTests: Debug, Release, O2
+ReorderExtensionTests: Debug, Release, O2
+ScanExtensionTests: Debug, Release, O2
+SequencerTests: Debug, Release, O2
+TempViewManagerTests: Debug, Release, O2
+TransformExtensionTests: Debug, Release, O2
+VectorTests: Debug, Release, O2
+WarpExtensionTests: Debug, Release, O2
+XMathTests: Debug, Release, O2

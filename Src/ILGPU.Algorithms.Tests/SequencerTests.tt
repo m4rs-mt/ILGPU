@@ -10,9 +10,17 @@ using ILGPU.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
+<#
+    var verifyWithinRelativeErrorMap =
+        new Dictionary<string, RelativeError>()
+        {
+            { "Half", new RelativeError(0E-00, 1E-03, 0E-00) }
+        };
+#>
+
 namespace ILGPU.Algorithms.Tests
 {
-    public abstract partial class SequencerTests : TestBase
+    public abstract partial class SequencerTests : AlgorithmsTestBase
     {
         protected SequencerTests(ITestOutputHelper output, TestContext testContext)
             : base(output, testContext)
@@ -66,7 +74,25 @@ namespace ILGPU.Algorithms.Tests
                 expected[i] = (<#= type.Type #>)i;
 
             stream.Synchronize();
+<# if (verifyWithinRelativeErrorMap.TryGetValue(type.Name, out var relativeError)) { #>
+            if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                VerifyWithinRelativeError(
+                    buffer,
+                    expected,
+                    <#= relativeError.Cuda #>);
+            else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
+                VerifyWithinRelativeError(
+                    buffer,
+                    expected,
+                    <#= relativeError.OpenCL #>);
+            else
+                VerifyWithinRelativeError(
+                    buffer,
+                    expected,
+                    <#= relativeError.CPU #>);
+<# } else { #>
             Verify(buffer, expected);
+<# } #>
         }
 
 <#
@@ -89,9 +115,9 @@ namespace ILGPU.Algorithms.Tests
                 new <#= type.Name #>Sequencer());
 
             <#= type.Type #>[] expected = new <#= type.Type #>[bufferLength];
-            for (int i = 0, e = bufferLength-1; i < e; i += 2)
-                for (int j = 0; j<2; j++)
-                expected[i+j] = (<#= type.Type #>)j;
+            for (int i = 0, e = bufferLength - 1; i < e; i += 2)
+                for (int j = 0; j < 2; j++)
+                expected[i + j] = (<#= type.Type #>)j;
 
             stream.Synchronize();
             Verify(buffer, expected);
@@ -117,12 +143,30 @@ namespace ILGPU.Algorithms.Tests
                 new <#= type.Name #>Sequencer());
 
             <#= type.Type #>[] expected = new <#= type.Type #>[bufferLength];
-            for (int i = 0, e = bufferLength; i < e; i+=2)
-                for (int j = 0; j<2 && i+j<e; ++j)
-                    expected[i+j] = (<#= type.Type #>)(i/2);
+            for (int i = 0, e = bufferLength; i < e; i += 2)
+                for (int j = 0; j < 2 && i+j<e; ++j)
+                    expected[i + j] = (<#= type.Type #>)(i / 2);
 
             stream.Synchronize();
+<# if (verifyWithinRelativeErrorMap.TryGetValue(type.Name, out var relativeError)) { #>
+            if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                VerifyWithinRelativeError(
+                    buffer,
+                    expected,
+                    <#= relativeError.Cuda #>);
+            else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
+                VerifyWithinRelativeError(
+                    buffer,
+                    expected,
+                    <#= relativeError.OpenCL #>);
+            else
+                VerifyWithinRelativeError(
+                    buffer,
+                    expected,
+                    <#= relativeError.CPU #>);
+<# } else { #>
             Verify(buffer, expected);
+<# } #>
         }
 
 <#
@@ -147,10 +191,10 @@ namespace ILGPU.Algorithms.Tests
                 new <#= type.Name #>Sequencer());
 
             <#= type.Type #>[] expected = new <#= type.Type #>[bufferLength];
-            for (int i = 0, e = bufferLength; i < e; i+=8)
+            for (int i = 0, e = bufferLength; i < e; i += 8)
                 for (int j = 0; j < 2; ++j) 
-                    for (int k = 0; k < 4 && (i+j*4+k) < e; ++k)
-                        expected[i+j*4+k] = (<#= type.Type #>)(j);
+                    for (int k = 0; k < 4 && (i + j * 4 + k) < e; ++k)
+                        expected[i + j * 4 + k] = (<#= type.Type #>)(j);
 
             stream.Synchronize();
             Verify(buffer, expected);

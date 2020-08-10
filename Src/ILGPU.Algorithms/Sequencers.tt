@@ -30,7 +30,7 @@ namespace ILGPU.Algorithms.Sequencers
     /// <summary>
     /// Represents an identity implementation of a sequencer.
     /// </summary>
-<#      if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
+<#      if (!type.IsCLSCompliant) { #>
     [CLSCompliant(false)]
 <#      } #>
     public readonly struct <#= type.Name #>Sequencer : ISequencer<<#= type.Type #>>

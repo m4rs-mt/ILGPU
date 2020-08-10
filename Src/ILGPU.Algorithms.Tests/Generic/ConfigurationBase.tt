@@ -4,22 +4,22 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ include file="../../ILGPU.Algorithms/TypeInformation.ttinclude" #>
 <#+
-    public enum SequenceSortingKind
-    {
-        Ascending,
-        Constant,
-        Descending,
-    }
+public enum SequenceSortingKind
+{
+    Ascending,
+    Constant,
+    Descending,
+}
 
-    public class SortingInformation
+public class SortingInformation
+{
+    public SortingInformation(
+        string name,
+        SequenceSortingKind kind)
     {
-        public SortingInformation(
-            string name,
-            SequenceSortingKind kind)
-        {
-            Name = name;
-            Kind = kind;
-        }
+        Name = name;
+        Kind = kind;
+    }
 
     public string Name { get; }
 
@@ -32,29 +32,29 @@
     public bool IsDescendingSorting => Kind == SequenceSortingKind.Descending;
 };
 
-    // Scan and Reduce struct
-    public struct ScanReduceOperation
+// Scan and Reduce struct
+public struct ScanReduceOperation
+{
+    public ScanReduceOperation(
+        string name,
+        string neutralElement,
+        string prefix,
+        string operation,
+        string suffix)
     {
-        public ScanReduceOperation(
-            string name,
-            string neutralElement,
-            string prefix,
-            string operation,
-            string suffix)
-        {
-            Name = name;
-            NeutralElement = neutralElement;
-            Prefix = prefix;
-            Operation = operation;
-            Suffix = suffix;
-        }
-
-        public string Name { get; }
-        public string NeutralElement { get; }
-        public string Prefix { get; }
-        public string Operation { get; }
-        public string Suffix { get; }
+        Name = name;
+        NeutralElement = neutralElement;
+        Prefix = prefix;
+        Operation = operation;
+        Suffix = suffix;
     }
+
+    public string Name { get; }
+    public string NeutralElement { get; }
+    public string Prefix { get; }
+    public string Operation { get; }
+    public string Suffix { get; }
+}
 
 // Scan and Reduce functions
 
@@ -66,5 +66,20 @@ public static readonly ScanReduceOperation[] ScanReduceOperations =
     };
 
 public static readonly int[] ArraySizes = { 1, 31, 32 , 33, 65, 127, 1000, 10000, 50000 };
+
+// VerifyWithinRelativeError
+public struct RelativeError
+{
+    public RelativeError(double cpu, double cuda, double opencl)
+    {
+        CPU = cpu;
+        Cuda = cuda;
+        OpenCL = opencl;
+    }
+
+    public double CPU { get; }
+    public double Cuda { get; }
+    public double OpenCL { get; }
+}
 
 #>

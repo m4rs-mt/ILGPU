@@ -48,7 +48,7 @@ namespace ILGPU.Algorithms
         /// Returns the total number of ints (32bit integers) that
         /// have been allocated.
         /// </summary>
-        public int NumInts { get; private set; }
+        public long NumInts { get; private set; }
 
         /// <summary>
         /// Returns the associated param name (for error messages).
@@ -80,7 +80,7 @@ namespace ILGPU.Algorithms
         /// <param name="length">The number of elements to allocate.</param>
         /// <returns>The allocated array view.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ArrayView<T> Allocate<T>(int length)
+        public ArrayView<T> Allocate<T>(long length)
             where T : unmanaged
         {
             var viewLength = Interop.ComputeRelativeSizeOf<int, T>(length);

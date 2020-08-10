@@ -10,6 +10,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Algorithms.Resources;
 using ILGPU.Algorithms.Sequencers;
 using ILGPU.Runtime;
 using System;
@@ -197,6 +198,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentNullException(nameof(view));
                 if (view.Length < 1)
                     throw new ArgumentOutOfRangeException(nameof(view));
+                if (view.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 rawSequencer(
                     stream,
                     Math.Min(view.Length, minDataSize),
@@ -231,6 +237,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentOutOfRangeException(nameof(view));
                 if (sequenceBatchLength < 1)
                     throw new ArgumentOutOfRangeException(nameof(sequenceBatchLength));
+                if (view.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 rawSequencer(
                     stream,
                     view.Length,
@@ -266,6 +277,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentOutOfRangeException(nameof(view));
                 if (sequenceLength < 1)
                     throw new ArgumentOutOfRangeException(nameof(sequenceLength));
+                if (view.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 rawSequencer(stream, view.Length, view, sequenceLength, 1, sequencer);
             };
         }
@@ -297,6 +313,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentOutOfRangeException(nameof(sequenceLength));
                 if (sequenceBatchLength < 1)
                     throw new ArgumentOutOfRangeException(nameof(sequenceBatchLength));
+                if (view.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 rawSequencer(
                     stream,
                     view.Length,

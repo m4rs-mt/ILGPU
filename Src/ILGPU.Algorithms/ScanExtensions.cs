@@ -10,6 +10,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Algorithms.Resources;
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Runtime;
 using ILGPU.Util;
@@ -100,7 +101,8 @@ namespace ILGPU.Algorithms
             where T : unmanaged
         {
             var tempSize = Accelerator.ComputeScanTempStorageSize<T>(input.Length);
-            return bufferCache.Allocate<int>(tempSize);
+            IndexTypeExtensions.AssertIntIndexRange(tempSize);
+            return bufferCache.Allocate<int>(tempSize.ToIntIndex());
         }
 
         /// <summary>
@@ -174,9 +176,9 @@ namespace ILGPU.Algorithms
         /// <param name="accelerator">The accelerator.</param>
         /// <param name="dataLength">The number of data elements to scan.</param>
         /// <returns>The required number of temp-storage elements in 32 bit ints.</returns>
-        public static Index1 ComputeScanTempStorageSize<T>(
+        public static LongIndex1 ComputeScanTempStorageSize<T>(
             this Accelerator accelerator,
-            Index1 dataLength)
+            LongIndex1 dataLength)
             where T : unmanaged
         {
             return accelerator.AcceleratorType switch
@@ -402,6 +404,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentNullException(nameof(output));
                 if (output.Length < input.Length)
                     throw new ArgumentOutOfRangeException(nameof(output));
+                if (input.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 kernel(stream, (1, accelerator.MaxNumThreadsPerGroup), input, output);
             };
         }
@@ -476,7 +483,7 @@ namespace ILGPU.Algorithms
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
         /// <returns>The required number of <see cref="int"/> elements in temporary memory.</returns>
-        private static int ComputeNumIntElementsForSinglePassScan<T>()
+        private static long ComputeNumIntElementsForSinglePassScan<T>()
             where T : unmanaged =>
             Interop.ComputeRelativeSizeOf<int, T>(1) + 1;
 
@@ -529,7 +536,9 @@ namespace ILGPU.Algorithms
                         ExclusiveScanImplementation<T,
                         TScanOperation>>);
 
-            int numIntTElements = ComputeNumIntElementsForSinglePassScan<T>();
+            long numIntTElementsLong = ComputeNumIntElementsForSinglePassScan<T>();
+            IndexTypeExtensions.AssertIntIndexRange(numIntTElementsLong);
+            int numIntTElements = (int)numIntTElementsLong;
 
             return (stream, input, output, temp) =>
             {
@@ -539,6 +548,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentNullException(nameof(output));
                 if (output.Length < input.Length)
                     throw new ArgumentOutOfRangeException(nameof(output));
+                if (input.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
 
                 var viewManager = new TempViewManager(temp, nameof(temp));
                 var tempView = viewManager.Allocate<T>();
@@ -675,6 +689,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentNullException(nameof(output));
                 if (output.Length < input.Length)
                     throw new ArgumentOutOfRangeException(nameof(output));
+                if (input.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
 
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
                     input.Length,

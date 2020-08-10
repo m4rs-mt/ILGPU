@@ -10,6 +10,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Algorithms.Resources;
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Runtime;
 using System;
@@ -125,6 +126,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentNullException(nameof(output));
                 if (output.Length < 1)
                     throw new ArgumentOutOfRangeException(nameof(output));
+                if (input.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 var dimension = ComputeReductionDimension(accelerator, input.Length);
 
                 TReduction reduction = default;

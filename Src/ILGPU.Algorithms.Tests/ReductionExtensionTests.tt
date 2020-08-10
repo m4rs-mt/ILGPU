@@ -24,9 +24,8 @@ namespace ILGPU.Algorithms.Tests
         { }
 
 <#
-        var types = SignedIntTypes.Skip(2).Concat(
-            UnsignedIntTypes.Skip(2)).Concat(FloatTypes).ToArray();
-        var signedTypes = SignedIntTypes.Skip(2).Concat(FloatTypes).ToArray();
+        var types = AtomicNumericTypes;
+        var signedTypes = AtomicSignedIntTypes.Concat(AtomicFloatTypes).ToArray();
 #>
         #region MemberData
 

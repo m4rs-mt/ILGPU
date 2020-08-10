@@ -31,7 +31,7 @@ namespace ILGPU.Algorithms.Tests
             // Type, RadixSortOperation, Sequencer, Start of Sequencer,
             // StepSize of Sequencer, BufferLength
 <#
-        var types = SignedIntTypes.Skip(2).Concat(UnsignedIntTypes.Skip(2));
+        var types = AtomicIntTypes;
         foreach (var type in types) {
             foreach (var size in ArraySizes) {
 #>

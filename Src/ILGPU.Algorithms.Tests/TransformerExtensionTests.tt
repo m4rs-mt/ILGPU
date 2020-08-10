@@ -39,8 +39,7 @@ namespace ILGPU.Algorithms.Tests
             new TheoryData<object, object, object>
         {
 <#
-        var types = SignedIntTypes.Skip(2).Concat(
-            UnsignedIntTypes.Skip(2)).Concat(FloatTypes).ToArray();
+        var types = AtomicNumericTypes;
         foreach (var type in types) {
             foreach (var size in ArraySizes) {
 #>

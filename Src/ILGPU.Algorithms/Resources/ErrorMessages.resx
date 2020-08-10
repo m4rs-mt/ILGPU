@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="NotSupportedArrayView64" xml:space="preserve">
+    <value>This function does not currently support ArrayViews of length &gt; int.MaxValue.</value>
+  </data>
   <data name="TempViewManagerUnalignedAllocation" xml:space="preserve">
     <value>The allocation of type '{0}' is not correctly aligned. Requires '{1}' byte alignment but was allocated at byte offset '{2}'.</value>
   </data>

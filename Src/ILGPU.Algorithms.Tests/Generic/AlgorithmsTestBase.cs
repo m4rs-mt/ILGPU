@@ -27,6 +27,38 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Compares two numbers for equality, within a defined tolerance.
         /// </summary>
+        private class HalfPrecisionComparer
+            : EqualityComparer<Half>
+        {
+            public readonly float Margin;
+
+            public HalfPrecisionComparer(uint decimalPlaces) =>
+                Margin = MathF.Pow(10, -decimalPlaces);
+
+            public override bool Equals(Half x, Half y)
+            {
+                if ((Half.IsNaN(x) && float.IsNaN(y)) ||
+                    (Half.IsPositiveInfinity(x) && Half.IsPositiveInfinity(y)) ||
+                    (Half.IsNegativeInfinity(x) && Half.IsNegativeInfinity(y)))
+                {
+                    return true;
+                }
+                else if ((Half.IsPositiveInfinity(x) && Half.IsNegativeInfinity(y)) ||
+                    (Half.IsNegativeInfinity(x) && Half.IsPositiveInfinity(y)))
+                {
+                    return false;
+                }
+
+                return Math.Abs(x - y) < Margin;
+            }
+
+            public override int GetHashCode(Half obj) =>
+                obj.GetHashCode();
+        }
+
+        /// <summary>
+        /// Compares two numbers for equality, within a defined tolerance.
+        /// </summary>
         private class FloatPrecisionComparer
             : EqualityComparer<float>
         {
@@ -85,6 +117,46 @@ namespace ILGPU.Algorithms.Tests
             }
 
             public override int GetHashCode(double obj) =>
+                obj.GetHashCode();
+        }
+
+        /// <summary>
+        /// Compares two numbers for equality, within a defined tolerance.
+        /// </summary>
+        private class HalfRelativeErrorComparer
+            : EqualityComparer<Half>
+        {
+            public readonly float RelativeError;
+
+            public HalfRelativeErrorComparer(float relativeError) =>
+                RelativeError = relativeError;
+
+            public override bool Equals(Half x, Half y)
+            {
+                if ((Half.IsNaN(x) && Half.IsNaN(y)) ||
+                    (Half.IsPositiveInfinity(x) && Half.IsPositiveInfinity(y)) ||
+                    (Half.IsNegativeInfinity(x) && Half.IsNegativeInfinity(y)))
+                {
+                    return true;
+                }
+                else if ((Half.IsPositiveInfinity(x) && Half.IsNegativeInfinity(y)) ||
+                    (Half.IsNegativeInfinity(x) && Half.IsPositiveInfinity(y)))
+                {
+                    return false;
+                }
+
+                var diff = Math.Abs(x - y);
+
+                if (diff == 0)
+                    return true;
+
+                if (x != 0)
+                    return Math.Abs(diff / x) < RelativeError;
+
+                return false;
+            }
+
+            public override int GetHashCode(Half obj) =>
                 obj.GetHashCode();
         }
 
@@ -171,7 +243,25 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Verifies the contents of the given memory buffer.
         /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="buffer">The target buffer.</param>
+        /// <param name="expected">The expected values.</param>
+        /// <param name="decimalPlaces">The acceptable error margin.</param>
+        public void VerifyWithinPrecision(
+            MemoryBuffer<Half> buffer,
+            Half[] expected,
+            uint decimalPlaces)
+        {
+            var data = buffer.GetAsArray(Accelerator.DefaultStream);
+            Assert.Equal(data.Length, expected.Length);
+
+            var comparer = new HalfPrecisionComparer(decimalPlaces);
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Assert.Equal(expected[i], data[i], comparer);
+        }
+
+        /// <summary>
+        /// Verifies the contents of the given memory buffer.
+        /// </summary>
         /// <param name="buffer">The target buffer.</param>
         /// <param name="expected">The expected values.</param>
         /// <param name="decimalPlaces">The acceptable error margin.</param>
@@ -191,7 +281,6 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Verifies the contents of the given memory buffer.
         /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
         /// <param name="buffer">The target buffer.</param>
         /// <param name="expected">The expected values.</param>
         /// <param name="decimalPlaces">The acceptable error margin.</param>
@@ -211,7 +300,25 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Verifies the contents of the given memory buffer.
         /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="buffer">The target buffer.</param>
+        /// <param name="expected">The expected values.</param>
+        /// <param name="relativeError">The acceptable error margin.</param>
+        public void VerifyWithinRelativeError(
+            MemoryBuffer<Half> buffer,
+            Half[] expected,
+            double relativeError)
+        {
+            var data = buffer.GetAsArray(Accelerator.DefaultStream);
+            Assert.Equal(data.Length, expected.Length);
+
+            var comparer = new HalfRelativeErrorComparer((float)relativeError);
+            for (int i = 0, e = data.Length; i < e; ++i)
+                Assert.Equal(expected[i], data[i], comparer);
+        }
+
+        /// <summary>
+        /// Verifies the contents of the given memory buffer.
+        /// </summary>
         /// <param name="buffer">The target buffer.</param>
         /// <param name="expected">The expected values.</param>
         /// <param name="relativeError">The acceptable error margin.</param>
@@ -231,7 +338,6 @@ namespace ILGPU.Algorithms.Tests
         /// <summary>
         /// Verifies the contents of the given memory buffer.
         /// </summary>
-        /// <typeparam name="T">The element type.</typeparam>
         /// <param name="buffer">The target buffer.</param>
         /// <param name="expected">The expected values.</param>
         /// <param name="relativeError">The acceptable error margin.</param>

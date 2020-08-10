@@ -25,8 +25,12 @@ namespace ILGPU.Algorithms.Tests
             new TheoryData<object, object>
         {
 <#
-        int value = 0; 
-        foreach (var type in NumericTypes) {
+        // TODO: Ignoring Half type, otherwise XUnit complains about an
+        // AmbiguiousMatchException.
+        var types = NumericTypes.Where(x => x.Name != "Half").ToArray();
+
+        int value = 0;
+        foreach (var type in types) {
 #>
             { (<#= type.Type #>)<#= value #>, 31 },
             { (<#= type.Type #>)<#= value #>, 63 },
@@ -40,7 +44,7 @@ namespace ILGPU.Algorithms.Tests
             new TheoryData<object, object, object>
         {
 <#
-        foreach (var type in NumericTypes) {
+        foreach (var type in types) {
 #>
             { (<#= type.Type #>)<#= value #>, 31, 63 },
             { (<#= type.Type #>)<#= value #>, 32, 64 },
@@ -54,7 +58,7 @@ namespace ILGPU.Algorithms.Tests
             new TheoryData<object, object, object, object>
         {
 <#
-        foreach (var type in NumericTypes) {
+        foreach (var type in types) {
 #>
             { (<#= type.Type #>)<#= value #>, 31, 63, 127 },
             { (<#= type.Type #>)<#= value #>, 32, 64, 128 },

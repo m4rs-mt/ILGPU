@@ -61,6 +61,15 @@ namespace ILGPU.Algorithms.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This function does not currently support ArrayViews of length &gt; int.MaxValue..
+        /// </summary>
+        internal static string NotSupportedArrayView64 {
+            get {
+                return ResourceManager.GetString("NotSupportedArrayView64", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to The allocation of type &apos;{0}&apos; is not correctly aligned. Requires &apos;{1}&apos; byte alignment but was allocated at byte offset &apos;{2}&apos;..
         /// </summary>
         internal static string TempViewManagerUnalignedAllocation {

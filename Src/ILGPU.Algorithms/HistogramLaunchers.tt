@@ -17,6 +17,7 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 using ILGPU.Algorithms.HistogramOperations;
+using ILGPU.Algorithms.Resources;
 using ILGPU.Runtime;
 using System;
 
@@ -49,7 +50,7 @@ namespace ILGPU.Algorithms
         /// <param name="histogramOverflow">
         /// Single-element view that indicates whether the histogram has overflowed.
         /// </param>
-<# if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
+<# if (!type.IsCLSCompliant) { #>
         [CLSCompliant(false)]
 <# } #>
         public static void Histogram<#= dimension #><T, TLocator>(
@@ -59,7 +60,7 @@ namespace ILGPU.Algorithms
             ArrayView<<#= type.Type #>> histogram,
             ArrayView<int> histogramOverflow)
             where T : unmanaged
-            where TLocator : struct, IComputeSingleBinOperation<T>
+            where TLocator : struct, IComputeSingleBinOperation<T, Index1>
         {
             var kernel = accelerator.CreateHistogram<
                 T,
@@ -67,7 +68,7 @@ namespace ILGPU.Algorithms
                 <#= type.Type #>,
                 HistogramIncrement<#= type.Name #>,
                 ComputeSingleBinAdapter<#= type.Name #><T, TLocator>>();
-            kernel(stream, view, histogram, histogramOverflow);
+            kernel(stream, view.ToIntView(), histogram, histogramOverflow);
         }
 
 <# } #>
@@ -87,7 +88,7 @@ namespace ILGPU.Algorithms
                 <#= type.Type #>,
                 HistogramIncrement<#= type.Name #>>
             where T : unmanaged
-            where TLocator : struct, IComputeSingleBinOperation<T>
+            where TLocator : struct, IComputeSingleBinOperation<T, Index1>
         {
             public void ComputeHistogramBins(
                 T value,
@@ -96,7 +97,7 @@ namespace ILGPU.Algorithms
                 out bool incrementOverflow)
             {
                 TLocator locator = default;
-                var binIdx = locator.ComputeHistogramBin(value, histogram.Length);
+                var binIdx = locator.ComputeHistogramBin(value, histogram.IntLength);
                 incrementOperation.Increment(
                     ref histogram[binIdx],
                     out incrementOverflow);

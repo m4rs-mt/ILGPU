@@ -10,6 +10,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Algorithms.Resources;
 using ILGPU.Runtime;
 using System;
 
@@ -88,6 +89,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentNullException(nameof(view));
                 if (view.Length < 1)
                     throw new ArgumentOutOfRangeException(nameof(view));
+                if (view.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 rawInitializer(stream, Math.Min(view.Length, minDataSize), view, value);
             };
         }

@@ -43,7 +43,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    input.Length,
+                    input.IntLength,
                     input.LoadEffectiveAddress(),
                     1,
                     &result));
@@ -62,7 +62,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    input.Length,
+                    input.IntLength,
                     input.LoadEffectiveAddress(),
                     1,
                     output.LoadEffectiveAddress()));
@@ -86,7 +86,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    input.Length,
+                    input.IntLength,
                     input.LoadEffectiveAddress(),
                     1,
                     Unsafe.AsPointer(ref result)));
@@ -105,7 +105,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    input.Length,
+                    input.IntLength,
                     input.LoadEffectiveAddress(),
                     1,
                     output.LoadEffectiveAddress()));
@@ -132,7 +132,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    x.Length,
+                    x.IntLength,
                     <#= paramGetter("alpha") #>,
                     x.LoadEffectiveAddress(),
                     1,
@@ -161,7 +161,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    x.Length,
+                    x.IntLength,
                     x.LoadEffectiveAddress(),
                     1,
                     y.LoadEffectiveAddress(),
@@ -187,7 +187,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    x.Length,
+                    x.IntLength,
                     x.LoadEffectiveAddress(),
                     1,
                     y.LoadEffectiveAddress(),
@@ -217,7 +217,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    x.Length,
+                    x.IntLength,
                     x.LoadEffectiveAddress(),
                     1,
                     y.LoadEffectiveAddress(),
@@ -295,7 +295,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    x.Length,
+                    x.IntLength,
                     x.LoadEffectiveAddress(),
                     1,
                     y.LoadEffectiveAddress(),
@@ -321,7 +321,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    x.Length,
+                    x.IntLength,
                     <#= paramGetter("alpha") #>,
                     x.LoadEffectiveAddress(),
                     1));
@@ -345,7 +345,7 @@ namespace ILGPU.Runtime.Cuda
             CuBlasException.ThrowIfFailed(
                 API.<#= func #>(
                     Handle,
-                    x.Length,
+                    x.IntLength,
                     x.LoadEffectiveAddress(),
                     1,
                     y.LoadEffectiveAddress(),

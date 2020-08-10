@@ -11,6 +11,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.RadixSortOperations;
+using ILGPU.Algorithms.Resources;
 using ILGPU.Algorithms.ScanReduceOperations;
 using ILGPU.Runtime;
 using ILGPU.Util;
@@ -207,7 +208,10 @@ namespace ILGPU.Algorithms
             where T : unmanaged
             where TRadixSortOperation : struct, IRadixSortOperation<T>
         {
-            Index1 tempScanMemory = accelerator.ComputeScanTempStorageSize<T>(dataLength);
+            LongIndex1 tempScanMemoryLong =
+                accelerator.ComputeScanTempStorageSize<T>(dataLength);
+            IndexTypeExtensions.AssertIntIndexRange(tempScanMemoryLong);
+            Index1 tempScanMemory = tempScanMemoryLong.ToIntIndex();
 
             int numGroups;
             if (accelerator.AcceleratorType == AcceleratorType.CPU)
@@ -220,7 +224,10 @@ namespace ILGPU.Algorithms
                 numGroups = gridDim * numIterationsPerGroup;
             }
 
-            int numIntTElements = Interop.ComputeRelativeSizeOf<int, T>(dataLength);
+            long numIntTElementsLong = Interop.ComputeRelativeSizeOf<int, T>(dataLength);
+            IndexTypeExtensions.AssertIntIndexRange(numIntTElementsLong);
+            int numIntTElements = (int)numIntTElementsLong;
+
             const int unrollFactor = 4;
             return numGroups * unrollFactor * 2 + numIntTElements + tempScanMemory;
         }
@@ -628,9 +635,18 @@ namespace ILGPU.Algorithms
 
                 return (stream, input, tempView) =>
                 {
+                    if (input.Length > int.MaxValue)
+                    {
+                        throw new NotSupportedException(
+                            ErrorMessages.NotSupportedArrayView64);
+                    }
+
                     var (gridDim, groupDim) = (accelerator.MaxNumThreads, 1);
                     int numVirtualGroups = gridDim;
-                    int numIterationsPerGroup = XMath.DivRoundUp(input.Length, gridDim);
+                    long numIterationsPerGroupLong =
+                        XMath.DivRoundUp(input.Length, gridDim);
+                    IndexTypeExtensions.AssertIntIndexRange(numIterationsPerGroupLong);
+                    int numIterationsPerGroup = (int)numIterationsPerGroupLong;
 
                     VerifyArguments<T, TRadixSortOperation>(
                         accelerator,
@@ -769,7 +785,7 @@ namespace ILGPU.Algorithms
             var viewManager = new TempViewManager(tempView, nameof(tempView));
 
             int counterOffset = numVirtualGroups * unrollFactor;
-            int tempScanMemorySize =
+            long tempScanMemorySize =
                 accelerator.ComputeScanTempStorageSize<T>(counterOffset);
 
             tempOutputView = viewManager.Allocate<T>(input.Length);

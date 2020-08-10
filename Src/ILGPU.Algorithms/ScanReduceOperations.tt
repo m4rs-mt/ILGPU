@@ -18,7 +18,7 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
 <#
-var reductionTypes = SignedIntTypes.Skip(2).Concat(UnsignedIntTypes.Skip(2).Concat(FloatTypes));
+var reductionTypes = AtomicNumericTypes;
 var operations = new []
     {
         new { Name = "Add", NeutralElement = "0", Prefix = "", Operation = " + ", Suffix = "" },
@@ -39,7 +39,7 @@ namespace ILGPU.Algorithms.ScanReduceOperations
     /// <summary>
     /// Represents an <#= op.Name #> reduction of type <#= type.Type #>.
     /// </summary>
-<#      if (type.IsUnsignedInt || type.Name.Contains("Int8")) { #>
+<#      if (!type.IsCLSCompliant) { #>
     [CLSCompliant(false)]
 <#      } #>
     public readonly struct <#= op.Name #><#= type.Name #> : IScanReduceOperation<<#= type.Type #>>

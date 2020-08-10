@@ -267,20 +267,6 @@ namespace ILGPU.Algorithms.Tests
     }
 }
 <#+
-    struct RelativeError
-    {
-        public RelativeError(double cpu, double cuda, double opencl)
-        {
-            CPU = cpu;
-            Cuda = cuda;
-            OpenCL = opencl;
-        }
-
-        public double CPU { get; }
-        public double Cuda { get; }
-        public double OpenCL { get; }
-    }
-
     class PowFunction : XMathFunctionBase
     {
         public PowFunction(string name, string dataType, RelativeError relativeError)

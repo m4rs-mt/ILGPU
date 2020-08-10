@@ -10,6 +10,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Algorithms.Resources;
 using ILGPU.Runtime;
 using System;
 using System.Reflection;
@@ -217,6 +218,11 @@ namespace ILGPU.Algorithms
                     throw new ArgumentOutOfRangeException(
                         nameof(target),
                         "The source view is larger than the target view");
+                if (source.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 rawTransformer(
                     stream,
                     Math.Min(source.Length, minDataSize),

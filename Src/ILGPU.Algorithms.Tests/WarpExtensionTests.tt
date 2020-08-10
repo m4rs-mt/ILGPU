@@ -23,8 +23,7 @@ namespace ILGPU.Algorithms.Tests
         { }
 
 <#
-        var types = SignedIntTypes.Skip(2).Concat(
-            UnsignedIntTypes.Skip(2)).Concat(FloatTypes).ToArray();
+        var types = AtomicNumericTypes;
         int[] fractions = { 1, 2, 4};
 #>
         #region Kernel implementation

@@ -15,8 +15,10 @@ namespace ILGPU.Algorithms.HistogramOperations
     /// Computes the histogram bin for a single input value.
     /// </summary>
     /// <typeparam name="T">The underlying type of the histogram operation.</typeparam>
-    public interface IComputeSingleBinOperation<T>
+    /// <typeparam name="TIndex">The index type.</typeparam>
+    public interface IComputeSingleBinOperation<T, TIndex>
         where T : unmanaged
+        where TIndex : struct, IGenericIndex<TIndex>
     {
         /// <summary>
         /// Calculates the histogram bin location for the given value.
@@ -24,7 +26,7 @@ namespace ILGPU.Algorithms.HistogramOperations
         /// <param name="value">The value to map.</param>
         /// <param name="numBins">The total  number of bins.</param>
         /// <returns>The bin location</returns>
-        int ComputeHistogramBin(T value, int numBins);
+        TIndex ComputeHistogramBin(T value, TIndex numBins);
     }
 
     /// <summary>

@@ -10,7 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Algorithms.HistogramOperations;
+using ILGPU.Algorithms.Resources;
 using ILGPU.Runtime;
+using System;
 using System.Reflection;
 
 namespace ILGPU.Algorithms
@@ -36,7 +38,7 @@ namespace ILGPU.Algorithms
         ArrayView<int> histogramOverflow)
         where T : unmanaged
         where TBinType : unmanaged
-        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>;
+        where TIndex : struct, IGenericIndex<TIndex>;
 
     /// <summary>
     /// Represents a histogram operation on the given view.
@@ -53,7 +55,7 @@ namespace ILGPU.Algorithms
         ArrayView<TBinType> histogram)
         where T : unmanaged
         where TBinType : unmanaged
-        where TIndex : unmanaged, IIndex, IGenericIndex<TIndex>;
+        where TIndex : struct, IGenericIndex<TIndex>;
 
     #endregion
 
@@ -294,6 +296,23 @@ namespace ILGPU.Algorithms
 
             return (stream, view, histogram, histogramOverflow) =>
             {
+                if (!view.IsValid)
+                    throw new ArgumentNullException(nameof(view));
+                if (view.Length < 1)
+                    throw new ArgumentOutOfRangeException(nameof(view));
+                if (!histogram.IsValid)
+                    throw new ArgumentNullException(nameof(histogram));
+                if (histogram.Length < 1)
+                    throw new ArgumentOutOfRangeException(nameof(histogram));
+                if (!histogramOverflow.IsValid)
+                    throw new ArgumentNullException(nameof(histogramOverflow));
+                if (histogramOverflow.Length < 1)
+                    throw new ArgumentOutOfRangeException(nameof(histogramOverflow));
+                if (view.Length > int.MaxValue || histogram.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 var input = view.AsLinearView();
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
                        input.Length,
@@ -354,6 +373,19 @@ namespace ILGPU.Algorithms
 
             return (stream, view, histogram) =>
             {
+                if (!view.IsValid)
+                    throw new ArgumentNullException(nameof(view));
+                if (view.Length < 1)
+                    throw new ArgumentOutOfRangeException(nameof(view));
+                if (!histogram.IsValid)
+                    throw new ArgumentNullException(nameof(histogram));
+                if (histogram.Length < 1)
+                    throw new ArgumentOutOfRangeException(nameof(histogram));
+                if (view.Length > int.MaxValue || histogram.Length > int.MaxValue)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedArrayView64);
+                }
                 var input = view.AsLinearView();
                 var (gridDim, groupDim) = accelerator.ComputeGridStrideLoopExtent(
                        input.Length,

@@ -12,6 +12,7 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Collections.Generic" #>
+<#@ include file="Generic/ConfigurationBase.tt" #>
 <#+
     static string ToUpperFirst(string s)
     {

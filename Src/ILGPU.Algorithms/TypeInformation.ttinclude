@@ -9,7 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-<#@ include file="../../ILGPU/Src/ILGPU/TypeInformation.tt"#>
+<#@ include file="../../ILGPU/Src/ILGPU/Static/TypeInformation.ttinclude" #>
 <#+
 // Math functions
 
@@ -99,22 +99,22 @@ public static readonly ValueTuple<string, Type, string, string>[] UnaryMathFunct
         ("Sin", typeof(double), "SinF", "Float64"),
         ("Asin", typeof(float), "AsinF", "Float32"),
         ("Asin", typeof(double), "AsinF", "Float64"),
-        ("Sinh", typeof(float), "SinHF", "Float32"),
-        ("Sinh", typeof(double), "SinHF", "Float64"),
+        ("Sinh", typeof(float), "SinhF", "Float32"),
+        ("Sinh", typeof(double), "SinhF", "Float64"),
 
         ("Cos", typeof(float), "CosF", "Float32"),
         ("Cos", typeof(double), "CosF", "Float64"),
         ("Acos", typeof(float), "AcosF", "Float32"),
         ("Acos", typeof(double), "AcosF", "Float64"),
-        ("Cosh", typeof(float), "CosHF", "Float32"),
-        ("Cosh", typeof(double), "CosHF", "Float64"),
+        ("Cosh", typeof(float), "CoshF", "Float32"),
+        ("Cosh", typeof(double), "CoshF", "Float64"),
 
         ("Tan", typeof(float), "TanF", "Float32"),
         ("Tan", typeof(double), "TanF", "Float64"),
         ("Atan", typeof(float), "AtanF", "Float32"),
         ("Atan", typeof(double), "AtanF", "Float64"),
-        ("Tanh", typeof(float), "TanHF", "Float32"),
-        ("Tanh", typeof(double), "TanHF", "Float64")
+        ("Tanh", typeof(float), "TanhF", "Float32"),
+        ("Tanh", typeof(double), "TanhF", "Float64")
     };
 
 public static readonly ValueTuple<string, Type, string, string>[] BinaryMathFunctions =
@@ -128,8 +128,8 @@ public static readonly ValueTuple<string, Type, string, string>[] BinaryMathFunc
         ("Atan2", typeof(float), "Atan2F", "Float32"),
         ("Atan2", typeof(double), "Atan2F", "Float64"),
 
-        ("Log", typeof(float), "LogF", "Float32"),
-        ("Log", typeof(double), "LogF", "Float64")
+        ("Log", typeof(float), "BinaryLogF", "Float32"),
+        ("Log", typeof(double), "BinaryLogF", "Float64")
     };
 
 // Group functions
