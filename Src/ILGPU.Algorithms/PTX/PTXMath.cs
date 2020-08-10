@@ -373,15 +373,13 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Pow(double @base, double exp)
         {
-            // TODO: The second condition of !XMath.IsNaN(), for the first two if/else conditions,
-            // can be removed after fixing https://github.com/m4rs-mt/ILGPU/issues/93
-            if (exp == 0.0 && !XMath.IsNaN(exp))
+            if (exp == 0.0)
             {
                 // Rule #2
                 // Ignoring Rule #1
                 return 1.0;
             }
-            else if (@base == 1.0 && !XMath.IsNaN(@base))
+            else if (@base == 1.0)
             {
                 // Rule #14 but ignoring second part about y = NaN
                 // Ignoring Rule #1
@@ -458,12 +456,12 @@ namespace ILGPU.Algorithms.PTX
             {
                 if (exp < 0.0)
                 {
-                    // Rule #14
+                    // Rule #15
                     return 0.0;
                 }
                 else
                 {
-                    // Rule #15
+                    // Rule #16
                     // NB: exp == 0.0 already handled by Rule #2
                     return double.PositiveInfinity;
                 }
@@ -483,15 +481,13 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Pow(float @base, float exp)
         {
-            // TODO: The second condition of !XMath.IsNaN(), for the first two if/else conditions,
-            // can be removed after fixing https://github.com/m4rs-mt/ILGPU/issues/93
-            if (exp == 0.0f && !XMath.IsNaN(exp))
+            if (exp == 0.0f)
             {
                 // Rule #2
                 // Ignoring Rule #1
                 return 1.0f;
             }
-            else if (@base == 1.0f && !XMath.IsNaN(@base))
+            else if (@base == 1.0f)
             {
                 // Rule #14 but ignoring second part about y = NaN
                 // Ignoring Rule #1
@@ -568,12 +564,12 @@ namespace ILGPU.Algorithms.PTX
             {
                 if (exp < 0.0f)
                 {
-                    // Rule #14
+                    // Rule #15
                     return 0.0f;
                 }
                 else
                 {
-                    // Rule #15
+                    // Rule #16
                     // NB: exp == 0.0 already handled by Rule #2
                     return float.PositiveInfinity;
                 }
