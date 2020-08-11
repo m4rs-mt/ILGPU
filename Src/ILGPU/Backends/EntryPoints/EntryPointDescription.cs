@@ -56,7 +56,7 @@ namespace ILGPU.Backends.EntryPoints
             // Try to get index type from first parameter
             var firstParamType = parameters[0].ParameterType;
             var indexType = firstParamType.GetIndexType();
-            if (indexType == IndexType.None)
+            if (indexType == IndexType.None || indexType > IndexType.Index3D)
             {
                 throw new NotSupportedException(
                     ErrorMessages.InvalidEntryPointIndexParameterOfWrongType);
@@ -88,8 +88,7 @@ namespace ILGPU.Backends.EntryPoints
             parameters ??= methodSource.GetParameters();
 
             KernelIndexParameterOffset = IndexType == IndexType.KernelConfig ? 0 : 1;
-            int maxNumParameters = parameters.Length - KernelIndexParameterOffset +
-                (!methodSource.IsStatic ? 1 : 0);
+            int maxNumParameters = parameters.Length - KernelIndexParameterOffset;
             var parameterTypes = ImmutableArray.CreateBuilder<Type>(maxNumParameters);
             for (int i = KernelIndexParameterOffset, e = parameters.Length; i < e; ++i)
             {
@@ -150,7 +149,7 @@ namespace ILGPU.Backends.EntryPoints
                 throw new NotSupportedException(
                     ErrorMessages.InvalidEntryPointWithoutDotNetMethod);
             }
-            if (!MethodSource.IsStatic)
+            if (!MethodSource.IsStatic && !MethodSource.IsNotCapturingLambda())
             {
                 throw new NotSupportedException(
                     ErrorMessages.InvalidEntryPointInstanceKernelMethod);

@@ -49,6 +49,15 @@ namespace ILGPU
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>|value|.</returns>
+        [MathIntrinsic(MathIntrinsicKind.Abs)]
+        public static Half Abs(Half value) =>
+            Half.Abs(value);
+
+        /// <summary>
+        /// Computes |value|.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>|value|.</returns>
         [CLSCompliant(false)]
         public static sbyte Abs(sbyte value) =>
             (sbyte)Abs((int)value);

@@ -12,11 +12,28 @@
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 
 namespace ILGPU.IR.Construction
 {
     partial class IRBuilder
     {
+        /// <summary>
+        /// Creates a cast operation that casts an integer value to a raw pointer.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="node">The operand.</param>
+        /// <returns>A node that represents the cast operation.</returns>
+        public ValueReference CreateIntAsPointerCast(
+            Location location,
+            Value node)
+        {
+            location.Assert(node.BasicValueType.IsInt());
+            return Append(new IntAsPointerCast(
+                GetInitializer(location),
+                node));
+        }
+
         /// <summary>
         /// Creates a cast operation that casts the element type of a pointer
         /// but does not change its address space.
@@ -32,10 +49,26 @@ namespace ILGPU.IR.Construction
         {
             var type = node.Type.As<PointerType>(location);
 
+            // Check whether the element types are the same
             if (type.ElementType == targetElementType)
                 return node;
+
+            // Check whether we are casting a nested pointer cast
             if (node is PointerCast pointerCast)
                 node = pointerCast.Value;
+
+            // Try to match casts of the initial base field to the its parent type
+            if (
+                node is LoadFieldAddress address &&
+                address.StructureType == targetElementType &&
+                address.FieldSpan == new FieldSpan(0))
+            {
+                // Convert to the appropriate address space
+                return CreateAddressSpaceCast(
+                    location,
+                    address.Source,
+                    type.AddressSpace);
+            }
 
             return Append(new PointerCast(
                 GetInitializer(location),
@@ -103,6 +136,9 @@ namespace ILGPU.IR.Construction
             {
                 return primitiveType.BasicValueType switch
                 {
+                    BasicValueType.Float16 => CreatePrimitiveValue(
+                        location,
+                        Interop.FloatAsInt(primitive.Float16Value)),
                     BasicValueType.Float32 => CreatePrimitiveValue(
                         location,
                         Interop.FloatAsInt(primitive.Float32Value)),
@@ -117,6 +153,7 @@ namespace ILGPU.IR.Construction
 
             var basicValueType = primitiveType.BasicValueType switch
             {
+                BasicValueType.Float16 => BasicValueType.Int16,
                 BasicValueType.Float32 => BasicValueType.Int32,
                 BasicValueType.Float64 => BasicValueType.Int64,
                 _ => throw location.GetNotSupportedException(
@@ -145,6 +182,9 @@ namespace ILGPU.IR.Construction
             {
                 return primitiveType.BasicValueType switch
                 {
+                    BasicValueType.Int16 => CreatePrimitiveValue(
+                        location,
+                        Interop.IntAsFloat(primitive.UInt16Value)),
                     BasicValueType.Int32 => CreatePrimitiveValue(
                         location,
                         Interop.IntAsFloat(primitive.UInt32Value)),
@@ -159,6 +199,7 @@ namespace ILGPU.IR.Construction
 
             var basicValueType = primitiveType.BasicValueType switch
             {
+                BasicValueType.Int16 => BasicValueType.Float16,
                 BasicValueType.Int32 => BasicValueType.Float32,
                 BasicValueType.Int64 => BasicValueType.Float64,
                 _ => throw location.GetNotSupportedException(

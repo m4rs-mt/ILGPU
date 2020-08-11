@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using DominanceOrder = ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder;
@@ -205,14 +204,12 @@ namespace ILGPU.IR.Analyses
         /// <param name="blocks">The list of block.</param>
         /// <returns>The immediate common dominator of all blocks.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BasicBlock GetImmediateCommonDominator<TList>(
-            TList blocks)
-            where TList : IReadOnlyList<BasicBlock>
+        public BasicBlock GetImmediateCommonDominator(ReadOnlySpan<BasicBlock> blocks)
         {
-            if (blocks.Count < 1)
+            if (blocks.Length < 1)
                 throw new ArgumentOutOfRangeException(nameof(blocks));
             var result = blocks[0];
-            for (int i = 1, e = blocks.Count; i < e; ++i)
+            for (int i = 1, e = blocks.Length; i < e; ++i)
                 result = GetImmediateCommonDominator(result, blocks[i]);
             return result;
         }

@@ -30,7 +30,7 @@ namespace ILGPU.Frontend.Intrinsic
             IntrinsicKind = kind;
         }
 
-        public override IntrinsicType Type => IntrinsicType.Atomic;
+        public override IntrinsicType Type => IntrinsicType.Utility;
 
         /// <summary>
         /// Returns the associated intrinsic kind.
@@ -49,7 +49,7 @@ namespace ILGPU.Frontend.Intrinsic
         private static ValueReference HandleUtilityOperation(
             ref InvocationContext context,
             UtilityIntrinsicAttribute attribute) =>
-            context.Builder.CreatePredicate(
+            context.Builder.CreateIfPredicate(
                 context.Location,
                 context[0],
                 context[1],

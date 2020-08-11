@@ -9,12 +9,12 @@
 
     <PropertyGroup>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Version>0.8.1.1</Version>
+        <VersionPrefix>0.9.0-beta1</VersionPrefix>
         <NeutralLanguage>en-US</NeutralLanguage>
         <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
         <LangVersion>8.0</LangVersion>
-        <AssemblyVersion>0.8.1.1</AssemblyVersion>
-        <FileVersion>0.8.1.1</FileVersion>
+        <AssemblyVersion>0.9.0.0</AssemblyVersion>
+        <FileVersion>0.9.0.0</FileVersion>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(TargetFramework)'!='net47'">
@@ -67,10 +67,20 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
         </None>
+        <None Include="IndexTypes.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>IndexTypes.tt</DependentUpon>
+        </None>
         <None Include="IntrinsicMath.CPUOnly.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
+        </None>
+        <None Include="HalfConversion.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>HalfConversion.tt</DependentUpon>
         </None>
         <None Include="IR\Intrinsics\IntrinsicMatchers.cs">
           <DesignTime>True</DesignTime>
@@ -145,10 +155,20 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>RemappedIntrinsics.Generated.tt</DependentUpon>
         </Compile>
+        <Compile Update="IndexTypes.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>IndexTypes.tt</DependentUpon>
+        </Compile>
         <Compile Update="IntrinsicMath.CPUOnly.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMath.CPUOnly.tt</DependentUpon>
+        </Compile>
+        <Compile Update="HalfConversion.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>HalfConversion.tt</DependentUpon>
         </Compile>
         <Compile Update="IR\Intrinsics\IntrinsicMatchers.cs">
           <DesignTime>True</DesignTime>
@@ -223,9 +243,17 @@
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>RemappedIntrinsics.Generated.cs</LastGenOutput>
         </None>
+        <None Update="IndexTypes.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>IndexTypes.cs</LastGenOutput>
+        </None>
         <None Update="IntrinsicMath.CPUOnly.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>IntrinsicMath.CPUOnly.cs</LastGenOutput>
+        </None>
+        <None Update="HalfConversion.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>HalfConversion.cs</LastGenOutput>
         </None>
         <None Update="IR\Construction\CompareOperations.tt">
             <Generator>TextTemplatingFileGenerator</Generator>

@@ -42,7 +42,7 @@ execute the Cuda test cases.
 
 # References
 
-* Parallel Thread Execution ISA 6.4
+* Parallel Thread Execution ISA 7.0
     - NVIDIA
 * A Graph-Based Higher-Order Intermediate Representation
     - Roland Leissa, Marcel Koester, and Sebastian Hack
@@ -54,6 +54,8 @@ execute the Cuda test cases.
     - Matthias Braun, Sebastian Buchwald, Sebastian Hack, Roland Leissa, Christoph Mallon and Andreas Zwinkau
 * A Simple, Fast Dominance Algorithm
     - Keith D. Cooper, Timothy J. Harvey and Ken Kennedy
+* Fast Half Float Conversions
+    - Jeroen van der Zijp
 
 # License information
 

@@ -73,6 +73,7 @@ namespace ILGPU.Frontend
         private void SetupVariables()
         {
             var builder = EntryBlock.Builder;
+            LambdaArgumentOffset = Method.IsNotCapturingLambda() ? 1 : 0;
 
             // Check for SSA variables
             for (int i = 0, e = DisassembledMethod.Count; i < e; ++i)
@@ -82,17 +83,19 @@ namespace ILGPU.Frontend
                 {
                     case ILInstructionType.Ldarga:
                         variables.Add(new VariableRef(
-                            instruction.GetArgumentAs<int>(), VariableRefType.Argument));
+                            instruction.GetArgumentAs<int>() - LambdaArgumentOffset,
+                            VariableRefType.Argument));
                         break;
                     case ILInstructionType.Ldloca:
                         variables.Add(new VariableRef(
-                            instruction.GetArgumentAs<int>(), VariableRefType.Local));
+                            instruction.GetArgumentAs<int>(),
+                            VariableRefType.Local));
                         break;
                 }
             }
 
             // Initialize params
-            if (!Method.IsStatic)
+            if (!Method.IsStatic && !Method.IsNotCapturingLambda())
             {
                 var declaringType = builder.CreateType(Method.DeclaringType);
                 declaringType = builder.CreatePointerType(
@@ -224,6 +227,12 @@ namespace ILGPU.Frontend
         /// </summary>
         private Location Location { get; set; }
 
+        /// <summary>
+        /// Gets or sets the offset for load/store argument instructions in a lambda.
+        /// This is used to shift arguments because of the unused 'this' argument.
+        /// </summary>
+        private int LambdaArgumentOffset { get; set; }
+
         #endregion
 
         #region Methods
@@ -294,12 +303,27 @@ namespace ILGPU.Frontend
                 Location = instruction.Location;
 
                 // Try to generate code for this instruction
-                if (!TryGenerateCode(instruction))
+                bool generated;
+                try
+                {
+                    generated = TryGenerateCode(instruction);
+                }
+                catch (InternalCompilerException)
+                {
+                    // If we already have an internal compiler exception, re-throw it.
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    // Wrap generic exceptions with location information.
+                    throw Location.GetException(e);
+                }
+                if (!generated)
                 {
                     throw Location.GetNotSupportedException(
                         ErrorMessages.NotSupportedInstruction,
-                        Method.Name,
-                        instruction);
+                        instruction,
+                        Method.Name);
                 }
             }
 

@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Rewriting;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
 
@@ -62,6 +63,22 @@ namespace ILGPU.IR.Transformations
             Specialize(context, value, specializer.WarpSize.Value);
         }
 
+        /// <summary>
+        /// Specializes native pointer casts.
+        /// </summary>
+        private static void Specialize(
+            RewriterContext context,
+            AcceleratorSpecializer specializer,
+            IntAsPointerCast value)
+        {
+            var convert = context.Builder.CreateConvert(
+                value.Location,
+                value.Value,
+                specializer.IntPointerType);
+
+            context.ReplaceAndRemove(value, convert);
+        }
+
         #endregion
 
         #region Rewriter
@@ -79,6 +96,7 @@ namespace ILGPU.IR.Transformations
         {
             Rewriter.Add<AcceleratorTypeValue>(Specialize);
             Rewriter.Add<WarpSizeValue>(Specialize);
+            Rewriter.Add<IntAsPointerCast>(Specialize);
         }
 
         #endregion
@@ -90,10 +108,15 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         /// <param name="acceleratorType">The accelerator type.</param>
         /// <param name="warpSize">The warp size (if any).</param>
-        public AcceleratorSpecializer(AcceleratorType acceleratorType, int? warpSize)
+        /// <param name="intPointerType">The native integer pointer type.</param>
+        public AcceleratorSpecializer(
+            AcceleratorType acceleratorType,
+            int? warpSize,
+            PrimitiveType intPointerType)
         {
             AcceleratorType = acceleratorType;
             WarpSize = warpSize;
+            IntPointerType = intPointerType;
         }
 
         #endregion
@@ -109,6 +132,11 @@ namespace ILGPU.IR.Transformations
         /// Returns the current warp size (if any).
         /// </summary>
         public int? WarpSize { get; }
+
+        /// <summary>
+        /// Returns the target platform.
+        /// </summary>
+        public PrimitiveType IntPointerType { get; }
 
         #endregion
 

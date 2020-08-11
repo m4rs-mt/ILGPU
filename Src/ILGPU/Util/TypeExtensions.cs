@@ -174,6 +174,16 @@ namespace ILGPU.Util
         }
 
         /// <summary>
+        /// Returns true if the given type is an ILGPU intrinsic primitive type.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>
+        /// True, if the given type is an ILGPU intrinsic primitive type.
+        /// </returns>
+        public static bool IsILGPUPrimitiveType(this Type type) =>
+            type.GetBasicValueType() != BasicValueType.None;
+
+        /// <summary>
         /// Resolves the managed type for the given basic-value type.
         /// </summary>
         /// <param name="type">The source type.</param>
@@ -186,6 +196,7 @@ namespace ILGPU.Util
                 BasicValueType.Int16 => typeof(short),
                 BasicValueType.Int32 => typeof(int),
                 BasicValueType.Int64 => typeof(long),
+                BasicValueType.Float16 => typeof(Half),
                 BasicValueType.Float32 => typeof(float),
                 BasicValueType.Float64 => typeof(double),
                 _ => null,
@@ -219,7 +230,9 @@ namespace ILGPU.Util
                 case TypeCode.Double:
                     return BasicValueType.Float64;
                 default:
-                    return BasicValueType.None;
+                    return type == typeof(Half)
+                        ? BasicValueType.Float16
+                        : BasicValueType.None;
             }
         }
 
@@ -243,7 +256,9 @@ namespace ILGPU.Util
                 TypeCode.UInt64 => ArithmeticBasicValueType.UInt64,
                 TypeCode.Single => ArithmeticBasicValueType.Float32,
                 TypeCode.Double => ArithmeticBasicValueType.Float64,
-                _ => ArithmeticBasicValueType.None,
+                _ => type == typeof(Half)
+                    ? ArithmeticBasicValueType.Float16
+                    : ArithmeticBasicValueType.None
             };
 
         /// <summary>
@@ -270,6 +285,8 @@ namespace ILGPU.Util
                 case ArithmeticBasicValueType.Int64:
                 case ArithmeticBasicValueType.UInt64:
                     return BasicValueType.Int64;
+                case ArithmeticBasicValueType.Float16:
+                    return BasicValueType.Float16;
                 case ArithmeticBasicValueType.Float32:
                     return BasicValueType.Float32;
                 case ArithmeticBasicValueType.Float64:
@@ -305,6 +322,7 @@ namespace ILGPU.Util
                 BasicValueType.Int64 => isUnsigned
                     ? ArithmeticBasicValueType.UInt64
                     : ArithmeticBasicValueType.Int64,
+                BasicValueType.Float16 => ArithmeticBasicValueType.Float16,
                 BasicValueType.Float32 => ArithmeticBasicValueType.Float32,
                 BasicValueType.Float64 => ArithmeticBasicValueType.Float64,
                 _ => ArithmeticBasicValueType.None,
@@ -355,6 +373,7 @@ namespace ILGPU.Util
         {
             switch (value)
             {
+                case BasicValueType.Float16:
                 case BasicValueType.Float32:
                 case BasicValueType.Float64:
                     return true;
@@ -374,6 +393,7 @@ namespace ILGPU.Util
         {
             switch (value)
             {
+                case ArithmeticBasicValueType.Float16:
                 case ArithmeticBasicValueType.Float32:
                 case ArithmeticBasicValueType.Float64:
                     return true;

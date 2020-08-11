@@ -38,7 +38,7 @@ namespace ILGPU.Tests
                 var index = new KernelConfig(groupMultiplier, i);
                 Execute(index, buffer.View);
 
-                var expected = Enumerable.Repeat(i, buffer.Length).ToArray();
+                var expected = Enumerable.Repeat(i, (int)buffer.Length).ToArray();
                 Verify(buffer, expected);
             }
         }

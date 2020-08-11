@@ -372,7 +372,7 @@ namespace ILGPU.IR
             where TOtherDirection : struct, IControlFlowDirection
         {
             // Determine the new entry block
-            TDirection direction = default;
+            TOtherDirection direction = default;
             var newEntryBlock = direction.GetEntryBlock<
                 BasicBlockCollection<TOrder, TDirection>,
                 TDirection>(this);

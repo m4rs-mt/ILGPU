@@ -251,9 +251,11 @@ Src/ILGPU/ArrayViews.cs
 Src/ILGPU/AtomicFunctions.cs
 Src/ILGPU/Backends/PTX/PTXIntrinsics.Generated.cs
 Src/ILGPU/Frontend/Intrinsic/RemappedIntrinsics.Generated.cs
+Src/ILGPU/HalfConversion.cs
 Src/ILGPU/IR/Construction/ArithmeticOperations.cs
 Src/ILGPU/IR/Construction/CompareOperations.cs
 Src/ILGPU/IR/Intrinsics/IntrinsicMatchers.cs
+Src/ILGPU/IndexTypes.cs
 Src/ILGPU/IntrinsicMath.CPUOnly.cs
 Src/ILGPU/ReductionOperations.cs
 Src/ILGPU/Runtime/ExchangeBufferExtensions.cs
@@ -275,7 +277,9 @@ Src/ILGPU.Tests/CompareFloatOperations.cs
 Src/ILGPU.Tests/CompareIntOperations.cs
 Src/ILGPU.Tests/ConvertFloatOperations.cs
 Src/ILGPU.Tests/ConvertIntOperations.cs
+Src/ILGPU.Tests/FixedBuffers.cs
 Src/ILGPU.Tests/MemoryBufferOperations.cs
+Src/ILGPU.Tests/ReinterpretCasts.cs
 Src/ILGPU.Tests/UnaryIntOperations.cs
 
 Src/ILGPU.Tests.CPU/Configurations.cs

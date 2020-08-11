@@ -23,7 +23,8 @@ namespace ILGPU
     /// </summary>
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct KernelConfig : IIndex
+    [IndexType(IndexType.KernelConfig)]
+    public readonly struct KernelConfig : IIntrinsicIndex
     {
         #region Static
 
@@ -165,6 +166,11 @@ namespace ILGPU
         #region Properties
 
         /// <summary>
+        /// Returns the current index type.
+        /// </summary>
+        public readonly IndexType IndexType => IndexType.KernelConfig;
+
+        /// <summary>
         /// Returns the global grid dimension.
         /// </summary>
         public Index3 GridDim { get; }
@@ -182,13 +188,13 @@ namespace ILGPU
         /// <summary>
         /// Returns true if the current configuration uses dynamic shared memory.
         /// </summary>
-        public bool UsesDynamicSharedMemory =>
+        public readonly bool UsesDynamicSharedMemory =>
             SharedMemoryConfig.UsesDynamicSharedMemory;
 
         /// <summary>
         /// Returns true if this configuration is a valid launch configuration.
         /// </summary>
-        public bool IsValid
+        public readonly bool IsValid
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get =>
@@ -199,7 +205,7 @@ namespace ILGPU
         /// <summary>
         /// Returns the total launch size.
         /// </summary>
-        public int Size => GridDim.Size * GroupDim.Size;
+        public readonly long Size => GridDim.LongSize * GroupDim.LongSize;
 
         #endregion
 
@@ -209,13 +215,13 @@ namespace ILGPU
         /// Converts the current instance into a dimension tuple.
         /// </summary>
         /// <returns>A dimension tuple representing this kernel configuration.</returns>
-        public (Index3, Index3) ToDimensions() => (GridDim, GroupDim);
+        public readonly (Index3, Index3) ToDimensions() => (GridDim, GroupDim);
 
         /// <summary>
         /// Converts the current instance into a value tuple.
         /// </summary>
         /// <returns>A value tuple representing this kernel configuration.</returns>
-        public (Index3, Index3, SharedMemoryConfig) ToValueTuple() =>
+        public readonly (Index3, Index3, SharedMemoryConfig) ToValueTuple() =>
             (GridDim, GroupDim, SharedMemoryConfig);
 
         /// <summary>
@@ -224,7 +230,7 @@ namespace ILGPU
         /// <param name="gridDim">The grid dimension.</param>
         /// <param name="groupDim">The group dimension.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Deconstruct(out Index3 gridDim, out Index3 groupDim)
+        public readonly void Deconstruct(out Index3 gridDim, out Index3 groupDim)
         {
             gridDim = GridDim;
             groupDim = GroupDim;
@@ -237,7 +243,7 @@ namespace ILGPU
         /// <param name="groupDim">The group dimension.</param>
         /// <param name="sharedMemoryConfig">The shared memory configuration.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Deconstruct(
+        public readonly void Deconstruct(
             out Index3 gridDim,
             out Index3 groupDim,
             out SharedMemoryConfig sharedMemoryConfig)
