@@ -450,7 +450,7 @@ namespace ILGPU.Runtime
         public void CopyTo(
             T[] target,
             <#= indexType #> sourceOffset,
-            int targetOffset,
+            long targetOffset,
             <#= indexType #> extent) =>
             buffer.CopyTo(
                 target,
@@ -471,7 +471,7 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             T[] target,
             <#= indexType #> sourceOffset,
-            int targetOffset,
+            long targetOffset,
             <#= indexType #> extent) =>
             buffer.CopyTo(
                 stream,
