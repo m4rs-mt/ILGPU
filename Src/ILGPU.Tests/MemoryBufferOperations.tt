@@ -128,6 +128,8 @@ namespace ILGPU.Tests
                 dst.<#= copyOperation #>(src, Index1.Zero, Index1.Zero, new Index1(-1)));
             Assert.Throws<ArgumentOutOfRangeException>("extent", () =>
                 dst.<#= copyOperation #>(src, Index1.Zero, Index1.Zero, new Index1(x + 1)));
+            Assert.Throws<ArgumentOutOfRangeException>("extent", () =>
+                dst.<#= copyOperation #>(src, Index1.Zero, new Index1(x - 1), new Index1(2)));
 
             // Partial copy
             var half = new Index1(x / 2);
