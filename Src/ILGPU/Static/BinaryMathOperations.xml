@@ -25,7 +25,7 @@
         <Flags>IntsAndFloats</Flags>
         <Op>{Value0} % {Value1}</Op>
         <Call>IntrinsicMath.CPUOnly.Rem</Call>
-        <Implementation>{MathType}.IEEERemainder({Value0}, {Value1})</Implementation>
+        <Implementation>{Value0} % {Value1}</Implementation>
     </Operation>
 
     <Operation Name="And">
