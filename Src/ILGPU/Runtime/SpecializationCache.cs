@@ -156,10 +156,9 @@ namespace ILGPU.Runtime
                         // Resolve the managed argument -> note that this object cannot
                         // be null
                         var managedArgument = args.GetSpecializedArg(specialParamIdx);
-                        var irValue = blockBuilder.CreateValue(
+                        var irValue = blockBuilder.CreateObjectValue(
                             location,
-                            managedArgument,
-                            managedArgument.GetType());
+                            managedArgument);
 
                         callBuilder.Add(irValue);
                         ++specialParamIdx;

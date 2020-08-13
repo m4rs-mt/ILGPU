@@ -85,11 +85,39 @@ namespace ILGPU.Tests
             Verify(buffer, expected);
         }
 
+        internal static void ArrayViewLongLeaIndexKernel(
+            Index1 index,
+            ArrayView<int> data,
+            ArrayView<int> source)
+        {
+            LongIndex1 longIndex = index;
+            data[longIndex] = source[longIndex];
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(17)]
+        [InlineData(1025)]
+        [InlineData(int.MaxValue >> 8 + 1)]
+        [KernelMethod(nameof(ArrayViewLongLeaIndexKernel))]
+        public void ArrayViewLongLeaIndex(long length)
+        {
+            using var buffer = Accelerator.Allocate<int>(length);
+            var expected = Enumerable.Range(0, (int)length).ToArray();
+            using (var source = Accelerator.Allocate<int>(length))
+            {
+                source.CopyFrom(Accelerator.DefaultStream, expected, 0, 0, length);
+                Execute((int)length, buffer.View, source.View);
+            }
+
+            Verify(buffer, expected);
+        }
+
         internal static void ArrayViewLengthKernel(
             Index1 index,
             ArrayView<int> data)
         {
-            data[index] = data.Length;
+            data[index] = data.IntLength;
         }
 
         [Theory]
@@ -107,11 +135,33 @@ namespace ILGPU.Tests
             Verify(buffer, expected);
         }
 
+        internal static void ArrayViewLongLengthKernel(
+            Index1 index,
+            ArrayView<long> data)
+        {
+            data[index] = data.Length;
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(17)]
+        [InlineData(1025)]
+        [InlineData(int.MaxValue >> 8 + 1)]
+        [KernelMethod(nameof(ArrayViewLongLengthKernel))]
+        public void ArrayViewLongLength(int length)
+        {
+            using var buffer = Accelerator.Allocate<long>(length);
+            Execute(length, buffer.View);
+
+            var expected = Enumerable.Repeat((long)length, length).ToArray();
+            Verify(buffer, expected);
+        }
+
         internal static void ArrayViewExtentKernel(
             Index1 index,
             ArrayView<int> data)
         {
-            data[index] = data.Extent.X;
+            data[index] = data.IntExtent.X;
         }
 
         [Theory]
@@ -129,9 +179,31 @@ namespace ILGPU.Tests
             Verify(buffer, expected);
         }
 
+        internal static void ArrayViewLongExtentKernel(
+            Index1 index,
+            ArrayView<long> data)
+        {
+            data[index] = data.Extent.X;
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(17)]
+        [InlineData(1025)]
+        [InlineData(int.MaxValue >> 8 + 1)]
+        [KernelMethod(nameof(ArrayViewLongExtentKernel))]
+        public void ArrayViewLongExtent(int length)
+        {
+            using var buffer = Accelerator.Allocate<long>(length);
+            Execute(length, buffer.View);
+
+            var expected = Enumerable.Repeat((long)length, length).ToArray();
+            Verify(buffer, expected);
+        }
+
         internal static void ArrayViewLengthInBytesKernel(
             Index1 index,
-            ArrayView<int> data)
+            ArrayView<long> data)
         {
             data[index] = data.LengthInBytes;
         }
@@ -144,10 +216,11 @@ namespace ILGPU.Tests
         [KernelMethod(nameof(ArrayViewLengthInBytesKernel))]
         public void ArrayViewLengthInBytes(int length)
         {
-            using var buffer = Accelerator.Allocate<int>(length);
+            using var buffer = Accelerator.Allocate<long>(length);
             Execute(length, buffer.View);
 
-            var expected = Enumerable.Repeat(length * sizeof(int), length).ToArray();
+            var expected = Enumerable.Repeat((long)length * sizeof(long), length).
+                ToArray();
             Verify(buffer, expected);
         }
 
@@ -161,7 +234,7 @@ namespace ILGPU.Tests
         {
             var subView = source.GetSubView(subViewOffset, subViewLength);
             data[index] = subView[0];
-            length[index] = subView.Length;
+            length[index] = subView.IntLength;
         }
 
         [Theory]
@@ -207,7 +280,7 @@ namespace ILGPU.Tests
             int subViewOffset)
         {
             var subView = source.GetSubView(subViewOffset);
-            length[index] = subView.Length;
+            length[index] = subView.IntLength;
         }
 
         [Theory]
@@ -243,7 +316,7 @@ namespace ILGPU.Tests
         {
             var subView = source.Cast<byte>();
             data[index] = subView[0];
-            length[index] = subView.Length;
+            length[index] = subView.IntLength;
         }
 
         [Theory]
@@ -284,7 +357,7 @@ namespace ILGPU.Tests
         {
             var subView = source.Cast<long>();
             data[index] = subView[0];
-            length[index] = subView.Length;
+            length[index] = subView.IntLength;
         }
 
         [Theory]
@@ -467,6 +540,38 @@ namespace ILGPU.Tests
             }
 
             Verify(buffer, expected);
+        }
+
+        internal static void ArrayViewMultidimensionalAccessKernel(
+            Index1 index,
+            ArrayView<int, LongIndex3> data,
+            ArrayView<int, LongIndex3> source)
+        {
+            var reconstructedIndex = data.Extent.ReconstructIndex(index);
+            data[reconstructedIndex] = source[reconstructedIndex];
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(17)]
+        [InlineData(127)]
+        [KernelMethod(nameof(ArrayViewMultidimensionalAccessKernel))]
+        public void ArrayViewMultidimensionalAccess(long length)
+        {
+            var extent = new LongIndex3(length);
+            using var buffer = Accelerator.Allocate<int, LongIndex3>(extent);
+            var expectedData = Enumerable.Range(0, (int)extent.Size).ToArray();
+            using (var source = Accelerator.Allocate<int, LongIndex3>(extent))
+            {
+                source.CopyFrom(
+                    Accelerator.DefaultStream,
+                    expectedData,
+                    0,
+                    LongIndex3.Zero,
+                    buffer.Length);
+                Execute((int)extent.Size, buffer.View, source.View);
+            }
+            Verify(buffer, expectedData);
         }
     }
 }

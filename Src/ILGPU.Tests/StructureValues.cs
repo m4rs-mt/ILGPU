@@ -57,9 +57,9 @@ namespace ILGPU.Tests
                 }
             } },
             { new DeepStructure<EmptyStruct>() },
-            { new TestStruct<CustomSizeStruct, long>()
+            { new TestStruct<SmallCustomSizeStruct, long>()
             {
-                Val0 = new CustomSizeStruct()
+                Val0 = new SmallCustomSizeStruct()
                 {
                     Data = byte.MaxValue,
                 },

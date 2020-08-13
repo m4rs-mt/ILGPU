@@ -38,6 +38,21 @@ namespace ILGPU.IR.Values
         /// </summary>
         public ValueReference Source => this[0];
 
+        /// <summary>
+        /// Returns the associated element index.
+        /// </summary>
+        public ValueReference Offset => this[1];
+
+        /// <summary>
+        /// Returns true if this is a 32bit element access.
+        /// </summary>
+        public bool Is32BitAccess => Offset.BasicValueType <= BasicValueType.Int32;
+
+        /// <summary>
+        /// Returns true if this is a 64bit element access.
+        /// </summary>
+        public bool Is64bitAccess => Offset.BasicValueType == BasicValueType.Int64;
+
         #endregion
     }
 
@@ -72,11 +87,6 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ValueKind"/>
         public override ValueKind ValueKind => ValueKind.SubView;
-
-        /// <summary>
-        /// Returns the base offset.
-        /// </summary>
-        public ValueReference Offset => this[1];
 
         /// <summary>
         /// Returns the length of the sub view.
@@ -148,11 +158,6 @@ namespace ILGPU.IR.Values
         public override ValueKind ValueKind => ValueKind.LoadElementAddress;
 
         /// <summary>
-        /// Returns the associated element index.
-        /// </summary>
-        public ValueReference ElementIndex => this[1];
-
-        /// <summary>
         /// Returns true if the current access works on an array.
         /// </summary>
         public bool IsArrayAccesss => Source.Type.IsArrayType;
@@ -170,7 +175,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns true if this access targets the first element.
         /// </summary>
-        public bool AccessesFirstElement => ElementIndex.IsPrimitive(0);
+        public bool AccessesFirstElement => Offset.IsPrimitive(0);
 
         #endregion
 
@@ -196,7 +201,7 @@ namespace ILGPU.IR.Values
             builder.CreateLoadElementAddress(
                 Location,
                 rebuilder.Rebuild(Source),
-                rebuilder.Rebuild(ElementIndex));
+                rebuilder.Rebuild(Offset));
 
         /// <summary cref="Value.Accept" />
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -211,8 +216,8 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
             IsPointerAccess
-            ? $"{Source} + {ElementIndex}"
-            : $"{Source}[{ElementIndex}]";
+            ? $"{Source} + {Offset}"
+            : $"{Source}[{Offset}]";
 
         #endregion
     }

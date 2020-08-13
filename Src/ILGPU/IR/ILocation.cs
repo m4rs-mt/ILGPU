@@ -40,21 +40,20 @@ namespace ILGPU.IR
         /// information.
         /// </summary>
         /// <param name="location">The current location.</param>
-        /// <param name="message">The error message.</param>
+        /// <param name="exception">The inner exception.</param>
         /// <returns>
-        /// A new exception of type <typeparamref name="TException"/> with detailed
-        /// origin information about the current source location at which this exception
-        /// has been created.
+        /// A new <see cref="InternalCompilerException"/> with an inner exception of
+        /// <paramref name="exception"/>. Includes detailed origin information about
+        /// the current source location at which this exception has been created.
         /// </returns>
-        public static TException GetException<TException>(
+        public static InternalCompilerException GetException(
             this ILocation location,
-            string message)
-            where TException : Exception
+            Exception exception)
         {
-            message = (location?.FormatErrorMessage(
-                message ?? ErrorMessages.InternalCompilerError))
+            var message = (location?.FormatErrorMessage(
+                ErrorMessages.InternalCompilerError))
                 ?? ErrorMessages.InternalCompilerError;
-            return Activator.CreateInstance(typeof(TException), message) as TException;
+            return new InternalCompilerException(message, exception);
         }
 
         /// <summary>
@@ -63,11 +62,14 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <param name="paramName">The parameter name.</param>
-        /// <returns>A new <see cref="ArgumentOutOfRangeException"/>.</returns>
-        public static ArgumentOutOfRangeException GetArgumentException(
+        /// <returns>
+        /// A new <see cref="InternalCompilerException"/> with an inner exception of
+        /// <see cref="ArgumentOutOfRangeException"/>.
+        /// </returns>
+        public static InternalCompilerException GetArgumentException(
             this ILocation location,
             string paramName) =>
-            location.GetException<ArgumentOutOfRangeException>(paramName);
+            location.GetException(new ArgumentOutOfRangeException(paramName));
 
         /// <summary>
         /// Constructs a new <see cref="ArgumentException"/> based on the given
@@ -75,11 +77,14 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <param name="paramName">The parameter name.</param>
-        /// <returns>A new <see cref="ArgumentException"/>.</returns>
-        public static ArgumentNullException GetArgumentNullException(
+        /// <returns>
+        /// A new <see cref="InternalCompilerException"/> with an inner exception of
+        /// <see cref="ArgumentNullException"/>.
+        /// </returns>
+        public static InternalCompilerException GetArgumentNullException(
             this ILocation location,
             string paramName) =>
-            location.GetException<ArgumentNullException>(paramName);
+            location.GetException(new ArgumentNullException(paramName));
 
         /// <summary>
         /// Constructs a new <see cref="NotSupportedException"/> based on the given
@@ -88,24 +93,30 @@ namespace ILGPU.IR
         /// <param name="location">The current location.</param>
         /// <param name="message">The main contents of the error message.</param>
         /// <param name="args">The formatting arguments.</param>
-        /// <returns>A new <see cref="NotSupportedException"/>.</returns>
-        public static NotSupportedException GetNotSupportedException(
+        /// <returns>
+        /// A new <see cref="InternalCompilerException"/> with an inner exception of
+        /// <see cref="NotSupportedException"/>.
+        /// </returns>
+        public static InternalCompilerException GetNotSupportedException(
             this ILocation location,
             string message,
             params object[] args) =>
-            location.GetException<NotSupportedException>(
-                string.Format(message, args));
+            location.GetException(new NotSupportedException(
+                string.Format(message, args)));
 
         /// <summary>
         /// Constructs a new <see cref="InvalidOperationException"/> that refers to an
         /// invalid compiler state.
         /// </summary>
         /// <param name="location">The current location.</param>
-        /// <returns>A new <see cref="InvalidOperationException"/>.</returns>
-        public static InvalidOperationException GetInvalidOperationException(
+        /// <returns>
+        /// A new <see cref="InternalCompilerException"/> with an inner exception of
+        /// <see cref="InvalidOperationException"/>.
+        /// </returns>
+        public static InternalCompilerException GetInvalidOperationException(
             this ILocation location) =>
-            location.GetException<InvalidOperationException>(
-                ErrorMessages.InternalCompilerError);
+            location.GetException(new InvalidOperationException(
+                ErrorMessages.InternalCompilerError));
 
         /// <summary>
         /// Constructs a new <see cref="InvalidOperationException"/> that refers to an
@@ -113,11 +124,14 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <param name="message">The main content of the error message.</param>
-        /// <returns>A new <see cref="InvalidOperationException"/>.</returns>
-        public static InvalidOperationException GetInvalidOperationException(
+        /// <returns>
+        /// A new <see cref="InternalCompilerException"/> with an inner exception of
+        /// <see cref="InvalidOperationException"/>.
+        /// </returns>
+        public static InternalCompilerException GetInvalidOperationException(
             this ILocation location,
             string message) =>
-            location.GetException<InvalidOperationException>(message);
+            location.GetException(new InvalidOperationException(message));
 
         /// <summary>
         /// Ensures that a certain reference value is not null.
@@ -134,8 +148,8 @@ namespace ILGPU.IR
         {
             if (value == null)
             {
-                throw location.GetException<InvalidOperationException>(
-                    ErrorMessages.InternalCompilerErrorNull);
+                throw location.GetException(new InvalidOperationException(
+                    ErrorMessages.InternalCompilerErrorNull));
             }
         }
 
@@ -155,8 +169,8 @@ namespace ILGPU.IR
         {
             if (!condition)
             {
-                throw location.GetException<InvalidOperationException>(
-                    ErrorMessages.InternalCompilerError);
+                throw location.GetException(new InvalidOperationException(
+                    ErrorMessages.InternalCompilerError));
             }
         }
     }

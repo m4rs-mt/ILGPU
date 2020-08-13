@@ -8,7 +8,6 @@ using Xunit;
 using Xunit.Abstractions;
 
 <#
-var atomicTypes = AtomicNumericTypes;
 var operationConfigurations = new (string, bool)[]
     {
         ("Add",      true),
@@ -33,7 +32,7 @@ namespace ILGPU.Tests
         { }
 
 <# foreach (var (operationName, floatSupport) in operationConfigurations) { #>
-<#      foreach (var type in (floatSupport ? atomicTypes : DefaultIntTypes)) { #>
+<#      foreach (var type in (floatSupport ? AtomicNumericTypes : AtomicIntTypes)) { #>
 <#         var baseName = "_" + operationName + "_" + type.Name; #>
 <#         var testName = "AtomicOperation" + baseName; #>
 <#         var kernelName = "AtomicOperationKernel" + testName; #>

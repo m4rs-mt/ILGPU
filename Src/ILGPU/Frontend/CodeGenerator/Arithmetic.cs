@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
@@ -18,6 +19,27 @@ namespace ILGPU.Frontend
 {
     partial class CodeGenerator
     {
+        /// <summary>
+        /// Tries to map the given IR value representing a raw integer-based value size
+        /// to a corresponding <see cref="BasicValueType"/> entry.
+        /// </summary>
+        /// <param name="value">The IR to map.</param>
+        /// <param name="valueType">The determined basic-value type (if any).</param>
+        /// <returns>
+        /// True, if the given IR node could be mapped to a basic value type.
+        /// </returns>
+        private static bool TryGetBasicValueSize(
+            Value value,
+            out BasicValueType valueType)
+        {
+            valueType =
+                value is PrimitiveValue size &&
+                size.BasicValueType.IsInt()
+                ? PrimitiveType.GetBasicValueTypeBySize(size.Int32Value)
+                : BasicValueType.None;
+            return valueType != BasicValueType.None;
+        }
+
         /// <summary>
         /// Realizes an arithmetic operation.
         /// </summary>
@@ -37,7 +59,7 @@ namespace ILGPU.Frontend
                 arithmeticFlags |= ArithmeticFlags.Unsigned;
             }
 
-            ValueReference result;
+            ValueReference result = default;
             if (Block.PopArithmeticArgs(
                 Location,
                 convertFlags,
@@ -49,18 +71,43 @@ namespace ILGPU.Frontend
                 if (!isLeftPointer)
                     Utilities.Swap(ref left, ref right);
 
-                if (kind != BinaryArithmeticKind.Add || right.Type.IsPointerType)
+                // Check for raw combinations of two pointer values
+                if (
+                    !right.Type.IsPointerType &&
+                    // Check whether this can be safely converted into a LEA value
+                    kind == BinaryArithmeticKind.Add)
                 {
-                    throw Location.GetNotSupportedException(
-                        ErrorMessages.NotSupportedArithmeticArgumentType,
-                        kind);
+                    result = Builder.CreateLoadElementAddress(
+                        Location,
+                        left,
+                        right);
                 }
-                result = Builder.CreateLoadElementAddress(
-                    Location,
-                    left,
-                    right);
+                // Check whether this operation on pointer values can be converted
+                // into a LEA instruction
+                // FIXME: remove this code once we add additional LEA nodes
+                else if (
+                    kind == BinaryArithmeticKind.Add &&
+                    right is BinaryArithmeticValue baseAddress &&
+                    baseAddress.Kind == BinaryArithmeticKind.Mul &&
+                    // Extract the element stride from the multiplication pattern
+                    // (must be the right operand since we have moved all pointer
+                    // values the left hand side by definition)
+                    TryGetBasicValueSize(baseAddress.Right, out var strideType))
+                {
+                    // Cast raw pointer into an appropriate target type
+                    var targetElementType = Builder.GetPrimitiveType(strideType);
+                    left = Builder.CreatePointerCast(
+                        Location,
+                        left,
+                        targetElementType);
+                    result = Builder.CreateLoadElementAddress(
+                        Location,
+                        left,
+                        baseAddress.Left);
+                }
             }
-            else
+
+            if (!result.IsValid)
             {
                 switch (kind)
                 {

@@ -11,6 +11,7 @@
 
 using ILGPU.Frontend.Intrinsic;
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -32,7 +33,7 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static ref byte ComputeEffectiveAddress(
             ref byte nativePtr,
-            Index1 index,
+            long index,
             int elementSize) =>
             ref Unsafe.AddByteOffset(
                 ref nativePtr,
@@ -81,7 +82,7 @@ namespace ILGPU
             "field offset")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Obsolete("Use ComputeRelativeSizeOf<TFirst, TSecond>(int) instead")]
-        public static int ComputeRelativeSizeOf<TFirst, TSecond>()
+        public static long ComputeRelativeSizeOf<TFirst, TSecond>()
             where TFirst : unmanaged
             where TSecond : unmanaged =>
             ComputeRelativeSizeOf<TFirst, TSecond>(1);
@@ -106,7 +107,7 @@ namespace ILGPU
         /// instances of type <typeparamref name="TSecond"/>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ComputeRelativeSizeOf<TFirst, TSecond>(int numSecondElements)
+        public static long ComputeRelativeSizeOf<TFirst, TSecond>(long numSecondElements)
             where TFirst : unmanaged
             where TSecond : unmanaged
         {
@@ -116,7 +117,10 @@ namespace ILGPU
             var firstSize = SizeOf<TFirst>();
             var secondSize = SizeOf<TSecond>();
 
-            return IntrinsicMath.DivRoundUp(secondSize * numSecondElements, firstSize);
+            var relativeSize = IntrinsicMath.DivRoundUp(
+                secondSize * numSecondElements,
+                firstSize);
+            return relativeSize;
         }
 
         /// <summary>
@@ -143,6 +147,17 @@ namespace ILGPU
         [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
+        public static ushort FloatAsInt(Half value) =>
+            value.RawValue;
+
+        /// <summary>
+        /// Casts the given float to an int via a reinterpret cast.
+        /// </summary>
+        /// <param name="value">The value to cast.</param>
+        /// <returns>The int value.</returns>
+        [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
         public static uint FloatAsInt(float value) =>
             Unsafe.As<float, uint>(ref value);
 
@@ -156,6 +171,17 @@ namespace ILGPU
         [InteropIntrinsic(InteropIntrinsicKind.FloatAsInt)]
         public static ulong FloatAsInt(double value) =>
             Unsafe.As<double, ulong>(ref value);
+
+        /// <summary>
+        /// Casts the given int to a float via a reinterpret cast.
+        /// </summary>
+        /// <param name="value">The value to cast.</param>
+        /// <returns>The float value.</returns>
+        [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [InteropIntrinsic(InteropIntrinsicKind.IntAsFloat)]
+        public static Half IntAsFloat(ushort value) =>
+            new Half(value);
 
         /// <summary>
         /// Casts the given int to a float via a reinterpret cast.

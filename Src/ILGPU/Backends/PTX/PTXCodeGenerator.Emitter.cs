@@ -151,6 +151,11 @@ namespace ILGPU.Backends.PTX
                     case BasicValueType.Int64:
                         AppendConstant(value.UInt64Value);
                         break;
+                    case BasicValueType.Float16:
+                        // Use the raw UInt16 value that will be moved into a 16bit
+                        // hardware register to be interpreted as a FP16 value.
+                        AppendConstant(value.UInt16Value);
+                        break;
                     case BasicValueType.Float32:
                         AppendConstant(value.Float32Value);
                         break;
@@ -1031,40 +1036,12 @@ namespace ILGPU.Backends.PTX
             if (register is HardwareRegister hardwareRegister)
                 return hardwareRegister;
 
-            hardwareRegister =
-                AllocateRegister(register.Description) as HardwareRegister;
-            var value = (register as ConstantRegister).Value;
+            hardwareRegister = AllocateRegister(register.Description);
             using (var command = BeginMove())
             {
                 command.AppendRegisterMovementSuffix(register.BasicValueType);
                 command.AppendArgument(hardwareRegister);
-
-                switch (register.BasicValueType)
-                {
-                    case BasicValueType.Int1:
-                        command.AppendConstant(value.Int1Value ? 1 : 0);
-                        break;
-                    case BasicValueType.Int8:
-                        command.AppendConstant(value.UInt8Value);
-                        break;
-                    case BasicValueType.Int16:
-                        command.AppendConstant(value.UInt16Value);
-                        break;
-                    case BasicValueType.Int32:
-                        command.AppendConstant(value.UInt32Value);
-                        break;
-                    case BasicValueType.Int64:
-                        command.AppendConstant(value.UInt64Value);
-                        break;
-                    case BasicValueType.Float32:
-                        command.AppendConstant(value.Float32Value);
-                        break;
-                    case BasicValueType.Float64:
-                        command.AppendConstant(value.Float64Value);
-                        break;
-                    default:
-                        throw new InvalidCodeGenerationException();
-                }
+                command.AppendArgument(register as ConstantRegister);
             }
             return hardwareRegister;
         }

@@ -6,9 +6,6 @@
 using Xunit;
 using Xunit.Abstractions;
 
-<#
-var atomicTypes = AtomicNumericTypes;
-#>
 namespace ILGPU.Tests
 {
     public abstract class AtomicCASOperations : TestBase
@@ -17,7 +14,7 @@ namespace ILGPU.Tests
             : base(output, testContext)
         { }
 
-<# foreach (var type in atomicTypes) { #>
+<# foreach (var type in AtomicNumericTypes) { #>
 <#      var baseName = "_" + type.Name; #>
 <#      var casTestName = "AtomicOperationCAS" + baseName; #>
 <#      var casKernelName = "AtomicOperationKernelCAS" + baseName; #>

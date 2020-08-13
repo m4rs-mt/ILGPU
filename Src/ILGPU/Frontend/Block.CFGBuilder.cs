@@ -24,6 +24,46 @@ namespace ILGPU.Frontend
         /// </summary>
         public sealed class CFGBuilder
         {
+            #region Nested Types
+
+            /// <summary>
+            /// Registers instruction offset mappings.
+            /// </summary>
+            private readonly struct RegisterOffsetMapping :
+                IILInstructionOffsetOperation
+            {
+                /// <summary>
+                /// Constructs a new offset registration mapping.
+                /// </summary>
+                /// <param name="builder">The parent builder instance.</param>
+                /// <param name="instructionIndex">
+                /// The current instruction index to map to.
+                /// </param>
+                public RegisterOffsetMapping(CFGBuilder builder, int instructionIndex)
+                {
+                    Builder = builder;
+                    InstructionIndex = instructionIndex;
+                }
+
+                /// <summary>
+                /// Returns the parent builder.
+                /// </summary>
+                public readonly CFGBuilder Builder { get; }
+
+                /// <summary>
+                /// Returns the parent instruction index.
+                /// </summary>
+                public readonly int InstructionIndex { get; }
+
+                /// <summary>
+                /// Registers the given instruction offset.
+                /// </summary>
+                public readonly void Apply(ILInstruction instruction, int offset) =>
+                    Builder.offsetMapping[offset] = InstructionIndex;
+            }
+
+            #endregion
+
             #region Instance
 
             private readonly Dictionary<int, int> offsetMapping =
@@ -91,7 +131,10 @@ namespace ILGPU.Frontend
                 for (int i = 0, e = disassembledMethod.Count; i < e; ++i)
                 {
                     var instruction = disassembledMethod[i];
-                    offsetMapping[instruction.Offset] = i;
+                    instruction.ForEachOffset(
+                        new RegisterOffsetMapping(
+                            this,
+                            i));
                     if (!instruction.IsTerminator)
                         continue;
                     if (instruction.Argument is ILInstructionBranchTargets targets)

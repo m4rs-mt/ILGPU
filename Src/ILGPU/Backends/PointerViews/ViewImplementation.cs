@@ -49,14 +49,14 @@ namespace ILGPU.Backends.PointerViews
             "Microsoft.Design",
             "CA1051: DoNotDeclareVisibleInstanceFields",
             Justification = "Implementation type that simplifies code generation")]
-        public readonly int Length;
+        public readonly long Length;
 
         /// <summary>
         /// Constructs a new array view implementation.
         /// </summary>
         /// <param name="ptr">The base pointer.</param>
         /// <param name="length">The length information.</param>
-        public ViewImplementation(void* ptr, int length)
+        public ViewImplementation(void* ptr, long length)
         {
             Ptr = ptr;
             Length = length;
@@ -90,6 +90,17 @@ namespace ILGPU.Backends.PointerViews
             get => ref LoadElementAddress(index);
         }
 
+        /// <summary>
+        /// Access the element at the given index.
+        /// </summary>
+        /// <param name="index">The element index.</param>
+        /// <returns>The element at the given index.</returns>
+        public ref T this[LongIndex1 index]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => ref LoadElementAddress(index);
+        }
+
         #endregion
 
         #region Methods
@@ -101,29 +112,16 @@ namespace ILGPU.Backends.PointerViews
         /// <returns>The element at the given index.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T LoadElementAddress(Index1 index) =>
-            ref Unsafe.Add(ref Unsafe.AsRef<T>(Ptr), index);
+            ref LoadElementAddress((LongIndex1)index);
 
         /// <summary>
-        /// Returns a sub view of the current view starting at the given offset.
+        /// Access the element at the given index.
         /// </summary>
-        /// <param name="offset">The starting offset.</param>
-        /// <param name="length">The extent of the new sub view.</param>
-        /// <returns>The new sub view.</returns>
+        /// <param name="index">The element index.</param>
+        /// <returns>The element at the given index.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ViewImplementation<T> GetSubView(Index1 offset, Index1 length) =>
-            new ViewImplementation<T>(
-                Unsafe.AsPointer(ref this[offset]),
-                length);
-
-        /// <summary>
-        /// Casts the view into another view with a different element type.
-        /// </summary>
-        /// <typeparam name="TOther">The other element type.</typeparam>
-        /// <returns>The casted view.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ViewImplementation<TOther> Cast<TOther>()
-            where TOther : unmanaged =>
-            new ViewImplementation<TOther>(Ptr, Length);
+        public ref T LoadElementAddress(LongIndex1 index) =>
+            ref Unsafe.Add(ref Unsafe.AsRef<T>(Ptr), new IntPtr(index));
 
         #endregion
     }

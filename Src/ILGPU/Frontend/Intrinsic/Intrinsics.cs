@@ -28,6 +28,8 @@ namespace ILGPU.Frontend.Intrinsic
     {
         Accelerator,
         Atomic,
+        Compare,
+        Convert,
         Grid,
         Group,
         Interop,
@@ -92,6 +94,12 @@ namespace ILGPU.Frontend.Intrinsic
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleAtomicOperation(
                     ref context, attribute as AtomicIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleCompareOperation(
+                    ref context, attribute as CompareIntriniscAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleConvertOperation(
+                    ref context, attribute as ConvertIntriniscAttribute),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleGridOperation(
                     ref context, attribute as GridIntrinsicAttribute),

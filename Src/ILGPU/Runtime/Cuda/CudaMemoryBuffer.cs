@@ -47,31 +47,32 @@ namespace ILGPU.Runtime.Cuda
         #region Methods
 
         /// <summary cref="MemoryBuffer{T, TIndex}.CopyToView(
-        /// AcceleratorStream, ArrayView{T}, Index1)"/>
+        /// AcceleratorStream, ArrayView{T}, LongIndex1)"/>
         protected internal unsafe override void CopyToView(
             AcceleratorStream stream,
             ArrayView<T> target,
-            Index1 sourceOffset)
+            LongIndex1 sourceOffset)
         {
             var binding = Accelerator.BindScoped();
 
             var targetBuffer = target.Source;
             var sourceAddress = new IntPtr(ComputeEffectiveAddress(sourceOffset));
             var targetAddress = new IntPtr(target.LoadEffectiveAddress());
+            var lengthInBytes = new IntPtr(target.LengthInBytes);
             switch (targetBuffer.AcceleratorType)
             {
                 case AcceleratorType.CPU:
                     CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
                         targetAddress,
                         sourceAddress,
-                        new IntPtr(target.LengthInBytes),
+                        lengthInBytes,
                         stream));
                     break;
                 case AcceleratorType.Cuda:
                     CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
                         targetAddress,
                         sourceAddress,
-                        new IntPtr(target.LengthInBytes),
+                        lengthInBytes,
                         stream));
                     break;
                 default:
@@ -83,30 +84,31 @@ namespace ILGPU.Runtime.Cuda
         }
 
         /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(
-        /// AcceleratorStream, ArrayView{T}, Index1)"/>
+        /// AcceleratorStream, ArrayView{T}, LongIndex1)"/>
         protected internal unsafe override void CopyFromView(
             AcceleratorStream stream,
             ArrayView<T> source,
-            Index1 targetOffset)
+            LongIndex1 targetOffset)
         {
             var binding = Accelerator.BindScoped();
 
             var sourceAddress = new IntPtr(source.LoadEffectiveAddress());
             var targetAddress = new IntPtr(ComputeEffectiveAddress(targetOffset));
+            var lengthInBytes = new IntPtr(source.LengthInBytes);
             switch (source.AcceleratorType)
             {
                 case AcceleratorType.CPU:
                     CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
                         targetAddress,
                         sourceAddress,
-                        new IntPtr(source.LengthInBytes),
+                        lengthInBytes,
                         stream));
                     break;
                 case AcceleratorType.Cuda:
                     CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
                         targetAddress,
                         sourceAddress,
-                        new IntPtr(source.LengthInBytes),
+                        lengthInBytes,
                         stream));
                     break;
                 default:
@@ -122,7 +124,11 @@ namespace ILGPU.Runtime.Cuda
         {
             var binding = Accelerator.BindScoped();
 
-            CudaAPI.Current.Memset(NativePtr, 0, new IntPtr(LengthInBytes), stream);
+            CudaException.ThrowIfFailed(CudaAPI.Current.Memset(
+                NativePtr,
+                0,
+                new IntPtr(LengthInBytes),
+                stream));
 
             binding.Recover();
         }

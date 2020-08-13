@@ -625,6 +625,19 @@ namespace ILGPU.Frontend
     }
 
     /// <summary>
+    /// An abstract operation that can be invoked for any instruction offset.
+    /// </summary>
+    public interface IILInstructionOffsetOperation
+    {
+        /// <summary>
+        /// Applies the current operation with the given instruction offset.
+        /// </summary>
+        /// <param name="instruction">The parent instruction.</param>
+        /// <param name="offset">An instruction offset of the parent operation.</param>
+        void Apply(ILInstruction instruction, int offset);
+    }
+
+    /// <summary>
     /// Represents a single IL instruction.
     /// </summary>
     public sealed class ILInstruction : IEquatable<ILInstruction>
@@ -755,6 +768,41 @@ namespace ILGPU.Frontend
         /// <returns>True, if current instruction has the given flags.</returns>
         public bool HasFlags(ILInstructionFlags flags) =>
             (Flags & flags) == flags;
+
+        /// <summary>
+        /// Performs the given operation for each instruction offset.
+        /// </summary>
+        /// <param name="operation">The operation to execute.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ForEachOffset<TOperation>(TOperation operation)
+            where TOperation : struct, IILInstructionOffsetOperation
+        {
+            int offset = Offset;
+
+            // Early exit for no flags (the most common case)
+            operation.Apply(this, offset);
+            if (Flags == ILInstructionFlags.None)
+                return;
+
+            // Compute detailed offset information for all flags
+            for (
+                int i = (int)ILInstructionFlags.Unchecked;
+                i < (int)ILInstructionFlags.Constrained;
+                i <<= 1)
+            {
+                if (Flags.HasFlags((ILInstructionFlags)i))
+                {
+                    // Subtract two bytes (OpCode)
+                    offset -= 2;
+                    operation.Apply(this, offset);
+                }
+            }
+            if (Flags.HasFlags(ILInstructionFlags.Constrained))
+            {
+                // Subtract two bytes (OpCode) + the size of a metadata token
+                operation.Apply(this, offset - 2 - sizeof(int));
+            }
+        }
 
         #endregion
 

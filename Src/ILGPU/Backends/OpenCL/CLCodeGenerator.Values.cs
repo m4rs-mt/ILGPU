@@ -233,8 +233,8 @@ namespace ILGPU.Backends.OpenCL
             statement.EndArguments();
         }
 
-        /// <summary cref="IBackendCodeGenerator.GenerateCode(Predicate)"/>
-        public void GenerateCode(Predicate predicate)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(IfPredicate)"/>
+        public void GenerateCode(IfPredicate predicate)
         {
             var condition = Load(predicate.Condition);
             var trueValue = Load(predicate.TrueValue);
@@ -248,6 +248,10 @@ namespace ILGPU.Backends.OpenCL
             statement.AppendCommand(CLInstructions.SelectOperation2);
             statement.AppendArgument(falseValue);
         }
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(SwitchPredicate)"/>
+        public void GenerateCode(SwitchPredicate predicate) =>
+            throw new InvalidCodeGenerationException();
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(GenericAtomic)"/>
         public void GenerateCode(GenericAtomic atomic)

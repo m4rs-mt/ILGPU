@@ -64,7 +64,7 @@ namespace ILGPU.Runtime
         /// <summary>
         /// Returns the current cached size in bytes.
         /// </summary>
-        public Index1 CacheSizeInBytes => cache?.LengthInBytes ?? 0;
+        public long CacheSizeInBytes => cache?.LengthInBytes ?? 0;
 
         /// <summary>
         /// Returns the underlying memory buffer.
@@ -85,9 +85,9 @@ namespace ILGPU.Runtime
             "CA1004:GenericMethodsShouldProvideTypeParameter",
             Justification = "The generic parameter is required to compute the number " +
             "of elements of the given type that can be stored")]
-        public Index1 GetCacheSize<T>()
+        public long GetCacheSize<T>()
             where T : unmanaged =>
-            (cache?.Length ?? 0) / Interop.SizeOf<T>();
+            (cache?.Length ?? 0L) / Interop.SizeOf<T>();
 
         /// <summary>
         /// Allocates the given number of elements and returns an array view
@@ -125,7 +125,7 @@ namespace ILGPU.Runtime
         public unsafe void CopyTo<T>(
             AcceleratorStream stream,
             out T target,
-            Index1 targetIndex)
+            LongIndex1 targetIndex)
             where T : unmanaged
         {
             target = default;
@@ -144,7 +144,7 @@ namespace ILGPU.Runtime
         public unsafe void CopyFrom<T>(
             AcceleratorStream stream,
             T source,
-            Index1 sourceIndex)
+            LongIndex1 sourceIndex)
             where T : unmanaged
         {
             using var wrapper = ViewPointerWrapper.Create(ref source);

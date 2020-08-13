@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using ILGPU.Util;
 
 namespace ILGPU.IR.Values
 {
@@ -53,6 +54,69 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <remarks>This is equivalent to asking for the type.</remarks>
         public TypeNode TargetType => Type;
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Casts from an integer to a raw pointer value.
+    /// </summary>
+    [ValueKind(ValueKind.IntAsPointerCast)]
+    public sealed class IntAsPointerCast : CastValue
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new cast value.
+        /// </summary>
+        /// <param name="initializer">The value initializer.</param>
+        /// <param name="source">The view to cast.</param>
+        internal IntAsPointerCast(
+            in ValueInitializer initializer,
+            ValueReference source)
+            : base(initializer, source)
+        {
+            initializer.Assert(
+                source.Type.BasicValueType.IsInt());
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.IntAsPointerCast;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer)
+        {
+            var context = initializer.Context;
+            return context.CreatePointerType(
+                context.VoidType,
+                MemoryAddressSpace.Generic);
+        }
+
+        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
+            builder.CreateIntAsPointerCast(
+                Location,
+                rebuilder.Rebuild(Value));
+
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region Object
+
+        /// <summary cref="Node.ToPrefixString"/>
+        protected override string ToPrefixString() => "intasptr";
 
         #endregion
     }
@@ -424,9 +488,11 @@ namespace ILGPU.IR.Values
         {
             var basicValueType = source.Type.BasicValueType;
             initializer.Assert(
+                basicValueType == BasicValueType.Float16 ||
                 basicValueType == BasicValueType.Float32 ||
                 basicValueType == BasicValueType.Float64);
             initializer.Assert(
+                targetType.BasicValueType == BasicValueType.Int16 ||
                 targetType.BasicValueType == BasicValueType.Int32 ||
                 targetType.BasicValueType == BasicValueType.Int64);
         }
@@ -488,9 +554,11 @@ namespace ILGPU.IR.Values
         {
             var basicValueType = source.Type.BasicValueType;
             initializer.Assert(
+                basicValueType == BasicValueType.Int16 ||
                 basicValueType == BasicValueType.Int32 ||
                 basicValueType == BasicValueType.Int64);
             initializer.Assert(
+                targetType.BasicValueType == BasicValueType.Float16 ||
                 targetType.BasicValueType == BasicValueType.Float32 ||
                 targetType.BasicValueType == BasicValueType.Float64);
         }

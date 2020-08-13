@@ -151,12 +151,12 @@ namespace ILGPU.Tests
                 var extent = new KernelConfig(length, i);
                 Execute(extent, buffer.View, new Index1(i));
 
-                var expected = Enumerable.Repeat(1, buffer.Length).ToArray();
+                var expected = Enumerable.Repeat(1, (int)buffer.Length).ToArray();
                 Verify(buffer, expected);
 
                 Execute(extent, buffer.View, new Index1(i - 1));
 
-                expected = Enumerable.Repeat(0, buffer.Length).ToArray();
+                expected = Enumerable.Repeat(0, (int)buffer.Length).ToArray();
                 Verify(buffer, expected);
             }
         }
@@ -182,12 +182,12 @@ namespace ILGPU.Tests
                 var extent = new KernelConfig(length, i);
                 Execute(extent, buffer.View, new Index1(1));
 
-                var expected = Enumerable.Repeat(1, buffer.Length).ToArray();
+                var expected = Enumerable.Repeat(1, (int)buffer.Length).ToArray();
                 Verify(buffer, expected);
 
                 Execute(extent, buffer.View, new Index1(0));
 
-                expected = Enumerable.Repeat(0, buffer.Length).ToArray();
+                expected = Enumerable.Repeat(0, (int)buffer.Length).ToArray();
                 Verify(buffer, expected);
             }
         }
@@ -216,10 +216,10 @@ namespace ILGPU.Tests
                 var extent = new KernelConfig(length, i);
                 Execute(extent, buffer.View, buffer2.View, new Index1(i));
 
-                var expected = Enumerable.Repeat(i, buffer.Length).ToArray();
+                var expected = Enumerable.Repeat(i, (int)buffer.Length).ToArray();
                 Verify(buffer, expected);
 
-                var expected2 = Enumerable.Repeat(0, buffer.Length).ToArray();
+                var expected2 = Enumerable.Repeat(0, (int)buffer.Length).ToArray();
                 Verify(buffer2, expected2);
             }
         }
@@ -263,7 +263,7 @@ namespace ILGPU.Tests
                 var extent = new KernelConfig(length, i);
                 Execute(extent, buffer.View);
 
-                var expected = Enumerable.Repeat(i - 1, buffer.Length).ToArray();
+                var expected = Enumerable.Repeat(i - 1, (int)buffer.Length).ToArray();
                 Verify(buffer, expected);
             }
         }

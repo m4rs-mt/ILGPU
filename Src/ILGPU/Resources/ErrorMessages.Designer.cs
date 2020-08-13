@@ -187,7 +187,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Only static methods are supported at the moment.
+        ///   Looks up a localized string similar to Only static methods and non-capturing lambdas are supported at the moment.
         /// </summary>
         internal static string InvalidEntryPointInstanceKernelMethod {
             get {
@@ -421,7 +421,7 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Not supported instruction in method &apos;{0}&apos;..
+        ///   Looks up a localized string similar to Not supported instruction &apos;{0}&apos; in method &apos;{1}&apos;..
         /// </summary>
         internal static string NotSupportedInstruction {
             get {

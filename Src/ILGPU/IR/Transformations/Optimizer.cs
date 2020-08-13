@@ -155,10 +155,12 @@ namespace ILGPU.IR.Transformations
             this Transformer.Builder builder,
             ContextFlags contextFlags)
         {
+            var dce = new DeadCodeElimination();
+
             builder.AddBasicOptimizations(contextFlags);
-            builder.Add(new DeadCodeElimination());
+            builder.Add(dce);
             builder.Add(new SSAConstruction());
-            builder.Add(new DeadCodeElimination());
+            builder.Add(dce);
             builder.Add(new InferAddressSpaces());
         }
 
@@ -171,11 +173,16 @@ namespace ILGPU.IR.Transformations
             this Transformer.Builder builder,
             ContextFlags contextFlags)
         {
+            var dce = new DeadCodeElimination();
+
             builder.AddBasicOptimizations(contextFlags);
-            builder.Add(new DeadCodeElimination());
+            builder.Add(dce);
             builder.Add(new SSAConstruction());
             builder.Add(new LowerStructures());
-            builder.Add(new DeadCodeElimination());
+            builder.Add(dce);
+            builder.Add(new IfConversion(IfConversionFlags.Default));
+            builder.Add(dce);
+            builder.Add(new SimplifyControlFlow());
             builder.Add(new InferAddressSpaces());
         }
 

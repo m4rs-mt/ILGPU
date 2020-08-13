@@ -47,9 +47,14 @@ namespace ILGPU.IR
         Convert,
 
         /// <summary>
-        /// A <see cref="Values.Predicate"/> value.
+        /// A <see cref="Values.IfPredicate"/> value.
         /// </summary>
-        Predicate,
+        IfPredicate,
+
+        /// <summary>
+        /// A <see cref="Values.SwitchPredicate"/> value.
+        /// </summary>
+        SwitchPredicate,
 
         // Casts
 
@@ -67,6 +72,11 @@ namespace ILGPU.IR
         /// A <see cref="Values.ViewCast"/> value.
         /// </summary>
         ViewCast,
+
+        /// <summary>
+        /// A <see cref="Values.IntAsPointerCast"/> value.
+        /// </summary>
+        IntAsPointerCast,
 
         /// <summary>
         /// A <see cref="Values.FloatAsIntCast"/> value.

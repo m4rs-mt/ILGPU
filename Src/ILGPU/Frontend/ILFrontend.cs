@@ -16,6 +16,7 @@ using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading;
 
@@ -130,6 +131,16 @@ namespace ILGPU.Frontend
         /// </summary>
         public DebugInformationManager DebugInformationManager { get; }
 
+        /// <summary>
+        /// Returns true if the code generation has failed.
+        /// </summary>
+        public bool IsFaulted => LastException != null;
+
+        /// <summary>
+        /// Returns the exception from code generation failure.
+        /// </summary>
+        public Exception LastException { get; private set; }
+
         #endregion
 
         #region Methods
@@ -137,6 +148,10 @@ namespace ILGPU.Frontend
         /// <summary>
         /// The code-generation thread.
         /// </summary>
+        [SuppressMessage(
+            "Design",
+            "CA1031:Do not catch general exception types",
+            Justification = "Must be caught to propagate errors")]
         private void DoWork()
         {
             var detectedMethods = new HashSet<MethodBase>();
@@ -160,20 +175,38 @@ namespace ILGPU.Frontend
                     "Invalid processing state");
 
                 detectedMethods.Clear();
-                codeGenerationPhase.GenerateCodeInternal(
-                    current.Method,
-                    current.IsExternalRequest,
-                    detectedMethods,
-                    out Method method);
-                current.SetResult(method);
+                try
+                {
+                    codeGenerationPhase.GenerateCodeInternal(
+                        current.Method,
+                        current.IsExternalRequest,
+                        detectedMethods,
+                        out Method method);
+                    current.SetResult(method);
+                }
+                catch (Exception e)
+                {
+                    codeGenerationPhase.RecordException(e);
+                    detectedMethods.Clear();
+                }
 
                 // Check dependencies
                 lock (processingSyncObject)
                 {
                     --activeThreads;
 
-                    foreach (var detectedMethod in detectedMethods)
-                        processing.Push(new ProcessingEntry(detectedMethod, null));
+                    try
+                    {
+                        foreach (var detectedMethod in detectedMethods)
+                            processing.Push(new ProcessingEntry(detectedMethod, null));
+
+                    }
+                    catch (Exception e)
+                    {
+                        codeGenerationPhase.RecordException(e);
+                        detectedMethods.Clear();
+                        processing.Clear();
+                    }
 
                     if (detectedMethods.Count > 0)
                     {
@@ -238,6 +271,7 @@ namespace ILGPU.Frontend
                 "This code generation phase had nothing to do");
             if (phase.HadWorkToDo)
                 driverNotifier.Wait();
+            LastException = codeGenerationPhase.FirstException;
 
             if (Interlocked.CompareExchange(
                 ref codeGenerationPhase,
@@ -304,6 +338,12 @@ namespace ILGPU.Frontend
         /// Returns true if this result has a function value.
         /// </summary>
         public bool HasResult => Result != null;
+
+        /// <summary>
+        /// The first exception during code generation, if any.
+        /// </summary>
+        public Exception FirstException { get; internal set; }
+
     }
 
     /// <summary>
@@ -316,6 +356,7 @@ namespace ILGPU.Frontend
 
         private volatile bool isFinished = false;
         private volatile bool hadWorkToDo = false;
+        private volatile Exception firstException = null;
 
         /// <summary>
         /// Constructs a new generation phase.
@@ -368,6 +409,11 @@ namespace ILGPU.Frontend
         /// </summary>
         public bool HadWorkToDo => hadWorkToDo;
 
+        /// <summary>
+        /// Returns the first exception recorded during code-generation.
+        /// </summary>
+        public Exception FirstException => firstException;
+
         #endregion
 
         #region Methods
@@ -406,32 +452,48 @@ namespace ILGPU.Frontend
             HashSet<MethodBase> detectedMethods,
             out Method generatedMethod)
         {
-            generatedMethod = Context.Declare(method, out bool created);
-            if (!created & isExternalRequest)
-                return;
-
-            SequencePointEnumerator sequencePoints =
-                DebugInformationManager?.LoadSequencePoints(method)
-                ?? SequencePointEnumerator.Empty;
-            var disassembler = new Disassembler(method, sequencePoints);
-            var disassembledMethod = disassembler.Disassemble();
-
-            using (var builder = generatedMethod.CreateBuilder())
+            ILocation location = null;
+            try
             {
-                var codeGenerator = new CodeGenerator(
-                    Frontend,
-                    builder,
-                    disassembledMethod,
-                    detectedMethods);
-                codeGenerator.GenerateCode();
-            }
-            Verifier.Verify(generatedMethod);
+                generatedMethod = Context.Declare(method, out bool created);
+                if (!created & isExternalRequest)
+                    return;
+                location = generatedMethod;
 
-            // Evaluate inlining heuristic to adjust method declaration
-            Inliner.SetupInliningAttributes(
-                Context,
-                generatedMethod,
-                disassembledMethod);
+                SequencePointEnumerator sequencePoints =
+                    DebugInformationManager?.LoadSequencePoints(method)
+                    ?? SequencePointEnumerator.Empty;
+                var disassembler = new Disassembler(method, sequencePoints);
+                var disassembledMethod = disassembler.Disassemble();
+
+                using (var builder = generatedMethod.CreateBuilder())
+                {
+                    var codeGenerator = new CodeGenerator(
+                        Frontend,
+                        builder,
+                        disassembledMethod,
+                        detectedMethods);
+                    codeGenerator.GenerateCode();
+                }
+                Verifier.Verify(generatedMethod);
+
+                // Evaluate inlining heuristic to adjust method declaration
+                Inliner.SetupInliningAttributes(
+                    Context,
+                    generatedMethod,
+                    disassembledMethod);
+            }
+            catch (InternalCompilerException)
+            {
+                // If we already have an internal compiler exception, re-throw it.
+                throw;
+            }
+            catch (Exception e)
+            {
+                // Wrap generic exceptions with location information.
+                location ??= new Method.MethodLocation(method);
+                throw location.GetException(e);
+            }
         }
 
         /// <summary>
@@ -445,6 +507,16 @@ namespace ILGPU.Frontend
                 throw new ArgumentNullException(nameof(method));
             hadWorkToDo = true;
             return Frontend.GenerateCode(method);
+        }
+
+        /// <summary>
+        /// Records an exception during code-generation.
+        /// </summary>
+        /// <param name="exception">The exception to record.</param>
+        internal void RecordException(Exception exception)
+        {
+            Debug.Assert(exception != null);
+            Interlocked.CompareExchange(ref firstException, exception, null);
         }
 
         #endregion

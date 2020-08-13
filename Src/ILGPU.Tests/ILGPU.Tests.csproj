@@ -71,6 +71,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ConvertIntOperations.tt</DependentUpon>
     </None>
+    <None Include="FixedBuffers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FixedBuffers.tt</DependentUpon>
+    </None>
     <None Include="Generic\ConfigurationBase.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -80,6 +85,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>MemoryBufferOperations.tt</DependentUpon>
+    </None>
+    <None Include="ReinterpretCasts.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ReinterpretCasts.tt</DependentUpon>
     </None>
     <None Include="UnaryIntOperations.cs">
       <DesignTime>True</DesignTime>
@@ -124,6 +134,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ConvertIntOperations.tt</DependentUpon>
     </Compile>
+    <Compile Update="FixedBuffers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FixedBuffers.tt</DependentUpon>
+    </Compile>
     <Compile Update="Generic\ConfigurationBase.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -133,6 +148,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>MemoryBufferOperations.tt</DependentUpon>
+    </Compile>
+    <Compile Update="ReinterpretCasts.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ReinterpretCasts.tt</DependentUpon>
     </Compile>
     <Compile Update="UnaryIntOperations.cs">
       <DesignTime>True</DesignTime>
@@ -170,6 +190,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConvertIntOperations.cs</LastGenOutput>
     </None>
+    <None Update="FixedBuffers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>FixedBuffers.cs</LastGenOutput>
+    </None>
     <None Update="Generic\ConfigurationBase.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ConfigurationBase.cs</LastGenOutput>
@@ -177,6 +201,10 @@
     <None Update="MemoryBufferOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>MemoryBufferOperations.cs</LastGenOutput>
+    </None>
+    <None Update="ReinterpretCasts.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ReinterpretCasts.cs</LastGenOutput>
     </None>
     <None Update="UnaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

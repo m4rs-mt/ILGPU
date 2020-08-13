@@ -21,7 +21,7 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IBackendCodeGenerator.GenerateCode(LoadElementAddress)"/>
         public void GenerateCode(LoadElementAddress value)
         {
-            var elementIndex = LoadPrimitive(value.ElementIndex);
+            var elementIndex = LoadPrimitive(value.Offset);
             var targetAddressRegister = AllocatePlatformRegister(
                 value,
                 out RegisterDescription _);
@@ -30,27 +30,44 @@ namespace ILGPU.Backends.PTX
             var address = LoadPrimitive(value.Source);
             var sourceType = value.Source.Type as AddressSpaceType;
             var elementSize = sourceType.ElementType.Size;
-            var offsetRegister = AllocatePlatformRegister(out RegisterDescription _);
-            using (var command = BeginCommand(
-                PTXInstructions.GetLEAMulOperation(Backend.PointerArithmeticType)))
+
+            if (value.Is32BitAccess)
             {
-                command.AppendArgument(offsetRegister);
+                // Perform two efficient operations TODO
+                var offsetRegister = AllocatePlatformRegister(out RegisterDescription _);
+                using (var command = BeginCommand(
+                    PTXInstructions.GetLEAMulOperation(Backend.PointerArithmeticType)))
+                {
+                    command.AppendArgument(offsetRegister);
+                    command.AppendArgument(elementIndex);
+                    command.AppendConstant(elementSize);
+                }
+
+                using (var command = BeginCommand(
+                    PTXInstructions.GetArithmeticOperation(
+                        BinaryArithmeticKind.Add,
+                        Backend.PointerArithmeticType,
+                        false)))
+                {
+                    command.AppendArgument(targetAddressRegister);
+                    command.AppendArgument(address);
+                    command.AppendArgument(offsetRegister);
+                }
+
+                FreeRegister(offsetRegister);
+            }
+            else
+            {
+                // Use an efficient MAD instruction to compute the effective address
+                using var command = BeginCommand(
+                    PTXInstructions.GetArithmeticOperation(
+                        TernaryArithmeticKind.MultiplyAdd,
+                        Backend.PointerArithmeticType));
+                command.AppendArgument(targetAddressRegister);
                 command.AppendArgument(elementIndex);
                 command.AppendConstant(elementSize);
-            }
-
-            using (var command = BeginCommand(
-                PTXInstructions.GetArithmeticOperation(
-                    BinaryArithmeticKind.Add,
-                    Backend.PointerArithmeticType,
-                    false)))
-            {
-                command.AppendArgument(targetAddressRegister);
                 command.AppendArgument(address);
-                command.AppendArgument(offsetRegister);
             }
-
-            FreeRegister(offsetRegister);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(AddressSpaceCast)"/>

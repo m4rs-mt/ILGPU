@@ -466,7 +466,7 @@ namespace ILGPU.Backends.EntryPoints
                 throw new ArgumentOutOfRangeException(nameof(type));
             }
 
-            if (type.IsPrimitive)
+            if (type.IsILGPUPrimitiveType())
                 return RegisterTypeMapping(type, type);
             else if (type.IsPointer)
                 return RegisterTypeMapping(type, typeof(void*));

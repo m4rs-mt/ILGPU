@@ -127,7 +127,7 @@
     <value>An entry point must receive a compatible index type as first parameter</value>
   </data>
   <data name="InvalidEntryPointInstanceKernelMethod" xml:space="preserve">
-    <value>Only static methods are supported at the moment</value>
+    <value>Only static methods and non-capturing lambdas are supported at the moment</value>
   </data>
   <data name="InvalidILCode" xml:space="preserve">
     <value>Invalid IL Code</value>
@@ -157,7 +157,7 @@
     <value>Not supported indirect call to a method with the signature '{0}'</value>
   </data>
   <data name="NotSupportedInstruction" xml:space="preserve">
-    <value>Not supported instruction in method '{0}'.</value>
+    <value>Not supported instruction '{0}' in method '{1}'.</value>
   </data>
   <data name="NotSupportedInterfaceType" xml:space="preserve">
     <value>Interface type '{0}' is not supported</value>

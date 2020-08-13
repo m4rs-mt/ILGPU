@@ -222,11 +222,21 @@ namespace ILGPU.IR.Values
             ArithmeticFlags flags)
             : base(initializer, flags)
         {
-            Debug.Assert(
+            bool isLeftPointer = left.Type.IsPointerType;
+            bool isRightPointer = right.Type.IsPointerType;
+            initializer.Assert(
+                // Check whether the types are the same
                 left.Type == right.Type ||
+
+                // Check whether this is a raw pointer operation
+                isLeftPointer && isRightPointer ||
+                isLeftPointer && right.BasicValueType.IsInt() ||
+                left.BasicValueType.IsInt() && isRightPointer ||
+
+                // Check for shift operations
                 (kind == BinaryArithmeticKind.Shl ||
                     kind == BinaryArithmeticKind.Shr) &&
-                right.BasicValueType == BasicValueType.Int32, "Invalid types");
+                right.BasicValueType == BasicValueType.Int32);
 
             Kind = kind;
             Seal(left, right);

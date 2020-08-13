@@ -10,6 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Util;
+using System;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -76,6 +78,10 @@ namespace ILGPU.Backends.IL
             TEmitter emitter,
             KernelGenerationData kernelData)
         {
+            // Load placeholder 'this' argument to satisfy IL evaluation stack
+            if (entryPoint.MethodInfo.IsNotCapturingLambda())
+                emitter.Emit(OpCodes.Ldnull);
+
             if (entryPoint.IsImplictlyGrouped)
             {
                 // Load index
