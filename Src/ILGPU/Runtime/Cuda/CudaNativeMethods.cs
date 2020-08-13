@@ -18,6 +18,14 @@ namespace ILGPU.Runtime.Cuda
 {
     #region Enums
 
+    /// <summary>
+    /// <para>Used to create <see cref="CudaStream"/> objects.</para>
+    /// <para><see cref="CU_STREAM_DEFAULT"/> specifies a blocking stream</para>
+    /// <para>
+    /// <see cref="CU_STREAM_NON_BLOCKING"/> specifies a non-blocking stream.
+    /// It is used by default
+    /// </para>
+    /// </summary>
     [Flags]
     public enum StreamFlags
     {

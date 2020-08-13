@@ -91,14 +91,11 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (responsibleForHandle)
+            if (responsibleForHandle && streamPtr != IntPtr.Zero)
             {
-                if (streamPtr != IntPtr.Zero)
-                {
-                    CudaException.ThrowIfFailed(
-                        CudaAPI.Current.DestroyStream(streamPtr));
-                    streamPtr = IntPtr.Zero;
-                }
+                CudaException.ThrowIfFailed(
+                    CudaAPI.Current.DestroyStream(streamPtr));
+                streamPtr = IntPtr.Zero;
             }
             base.Dispose(disposing);
         }

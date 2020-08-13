@@ -72,14 +72,11 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (responsibleForHandle)
+            if (responsibleForHandle && queuePtr != IntPtr.Zero)
             {
-                if (queuePtr != IntPtr.Zero)
-                {
-                    CLException.ThrowIfFailed(
-                        CLAPI.ReleaseCommandQueue(queuePtr));
-                    queuePtr = IntPtr.Zero;
-                }
+                CLException.ThrowIfFailed(
+                    CLAPI.ReleaseCommandQueue(queuePtr));
+                queuePtr = IntPtr.Zero;
             }
             base.Dispose(disposing);
         }
