@@ -11,7 +11,9 @@
 
 using ILGPU.Frontend.Intrinsic;
 using ILGPU.IR;
+using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 using System.Reflection;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
@@ -56,7 +58,12 @@ namespace ILGPU.Frontend
 
             // Setup result
             if (result.IsValid && !result.Type.IsVoidType)
-                Block.Push(result);
+            {
+                var flags = method.GetReturnType().IsUnsignedInt()
+                    ? ConvertFlags.SourceUnsigned
+                    : ConvertFlags.None;
+                Block.Push(LoadOntoEvaluationStack(result, flags));
+            }
         }
 
         /// <summary>
