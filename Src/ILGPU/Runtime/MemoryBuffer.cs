@@ -219,7 +219,7 @@ namespace ILGPU.Runtime
             CopyToView(
                 stream,
                 target.AsLinearView(),
-                sourceOffset.ComputeLinearIndex(Extent));
+                sourceOffset.ComputeLongLinearIndex(Extent));
         }
 
         /// <summary>
@@ -257,7 +257,7 @@ namespace ILGPU.Runtime
             CopyFromView(
                 stream,
                 source.AsLinearView(),
-                targetOffset.ComputeLinearIndex(Extent));
+                targetOffset.ComputeLongLinearIndex(Extent));
         }
 
         #endregion
@@ -384,9 +384,10 @@ namespace ILGPU.Runtime
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
             if (!targetOffset.InBounds(target.Extent))
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
-            var linearSourceIndex = sourceOffset.ComputeLinearIndex(Extent);
+            var linearSourceIndex = sourceOffset.ComputeLongLinearIndex(Extent);
+            var linearTargetIndex = targetOffset.ComputeLongLinearIndex(target.Extent);
             if (linearSourceIndex + extent > Length ||
-                targetOffset.ComputeLinearIndex(target.Extent) + extent > Length)
+                linearTargetIndex + extent > target.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));
             }
@@ -428,7 +429,7 @@ namespace ILGPU.Runtime
                 CopyToView(
                     stream,
                     new ArrayView<T>(wrapper, 0, 1),
-                    targetIndex.ComputeLinearIndex(Extent));
+                    targetIndex.ComputeLongLinearIndex(Extent));
             }
             stream.Synchronize();
         }
@@ -478,8 +479,12 @@ namespace ILGPU.Runtime
             var length = target.LongLength;
             if (targetOffset < 0 || targetOffset >= length)
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
-            if (extent.Size < 1 || !sourceOffset.Add(extent).InBoundsInclusive(Extent))
+            if (extent.Size < 1 ||
+                targetOffset + extent.Size > length ||
+                !sourceOffset.Add(extent).InBoundsInclusive(Extent))
+            {
                 throw new ArgumentOutOfRangeException(nameof(extent));
+            }
 
             Debug.Assert(target.Rank == 1);
 
@@ -491,7 +496,7 @@ namespace ILGPU.Runtime
                         stream,
                         new ArrayView<T>(wrapper, 0, length).GetSubView(
                             targetOffset, extent.Size),
-                        sourceOffset.ComputeLinearIndex(Extent));
+                        sourceOffset.ComputeLongLinearIndex(Extent));
                 }
                 stream.Synchronize();
             }
@@ -643,7 +648,7 @@ namespace ILGPU.Runtime
             CopyFromView(
                 stream,
                 new ArrayView<T>(wrapper, 0, 1),
-                sourceIndex.ComputeLinearIndex(Extent));
+                sourceIndex.ComputeLongLinearIndex(Extent));
             stream.Synchronize();
         }
 
@@ -688,12 +693,15 @@ namespace ILGPU.Runtime
             var length = source.LongLength;
             if (sourceOffset < 0 || sourceOffset >= length)
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
-            if (!targetOffset.InBounds(Extent))
+            var linearIndex = targetOffset.ComputeLongLinearIndex(Extent);
+            if (!targetOffset.InBounds(Extent) || linearIndex >= Length)
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
-            if (extent < 1 || extent > source.LongLength)
+            if (extent < 1 || extent > source.LongLength ||
+                extent + sourceOffset > source.LongLength ||
+                linearIndex + extent > Length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(extent));
-            if (sourceOffset + extent < 1 || extent + sourceOffset > source.LongLength)
-                throw new ArgumentOutOfRangeException(nameof(sourceOffset));
+            }
 
             fixed (T* ptr = &source[0])
             {
@@ -703,7 +711,7 @@ namespace ILGPU.Runtime
                     new ArrayView<T>(wrapper, 0, source.Length).GetSubView(
                         sourceOffset,
                         extent),
-                    targetOffset.ComputeLongLinearIndex(Extent));
+                    linearIndex);
                 stream.Synchronize();
             }
         }
