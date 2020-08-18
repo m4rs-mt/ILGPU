@@ -527,12 +527,25 @@ namespace ILGPU.Runtime.OpenCL
             new CLKernel(this, compiledKernel, launcher);
 
         /// <summary cref="Accelerator.CreateStream"/>
-        protected override AcceleratorStream CreateStreamInternal() =>
-            new CLStream(this);
+        protected override AcceleratorStream CreateStreamInternal()
+        {
+            var stream = new CLStream(this);
+            ChildObjects.Add(new WeakReference<AcceleratorObject>(stream));
+            return stream;
+        }
 
         /// <summary cref="Accelerator.Synchronize"/>
-        protected override void SynchronizeInternal() =>
-            DefaultStream.Synchronize();
+        protected override void SynchronizeInternal()
+        {
+            for(int i = 0; i < ChildObjects.Count; i++)
+            {
+                ChildObjects[i].TryGetTarget(out var obj);
+                if (obj is AcceleratorStream stream)
+                {
+                    stream.Synchronize();
+                }
+            }
+        }
 
         /// <summary cref="Accelerator.OnBind"/>
         protected override void OnBind() { }

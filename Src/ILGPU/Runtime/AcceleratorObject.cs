@@ -105,8 +105,8 @@ namespace ILGPU.Runtime
         /// The list of linked child objects.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private List<WeakReference<AcceleratorObject>> childObjects =
-            new List<WeakReference<AcceleratorObject>>();
+        protected List<WeakReference<AcceleratorObject>> ChildObjects
+            { get; private set; } = new List<WeakReference<AcceleratorObject>>();
 
         #endregion
 
@@ -126,7 +126,7 @@ namespace ILGPU.Runtime
             get
             {
                 lock (syncRoot)
-                    return childObjects.Count;
+                    return ChildObjects.Count;
             }
         }
 
@@ -136,7 +136,7 @@ namespace ILGPU.Runtime
         /// <remarks>This method is invoked in the scope of the locked
         /// <see cref="syncRoot"/> object.</remarks>
         private bool RequestChildObjectsGC_SyncRoot =>
-            childObjects.Count % NumberNewChildObjectsUntilGC == 0;
+            ChildObjects.Count % NumberNewChildObjectsUntilGC == 0;
 
         #endregion
 
@@ -160,7 +160,7 @@ namespace ILGPU.Runtime
             var objRef = new WeakReference<AcceleratorObject>(child);
             lock (syncRoot)
             {
-                childObjects.Add(objRef);
+                ChildObjects.Add(objRef);
                 RequestGC_SyncRoot();
             }
         }
@@ -177,12 +177,12 @@ namespace ILGPU.Runtime
         {
             lock (syncRoot)
             {
-                foreach (var childObject in childObjects)
+                foreach (var childObject in ChildObjects)
                 {
                     if (childObject.TryGetTarget(out AcceleratorObject obj))
                         obj.Dispose();
                 }
-                childObjects.Clear();
+                ChildObjects.Clear();
             }
         }
 
@@ -193,15 +193,15 @@ namespace ILGPU.Runtime
         /// <see cref="syncRoot"/> object.</remarks>
         private void ChildObjectsGC_SyncRoot()
         {
-            if (childObjects.Count < MinNumberOfChildObjectsInGC)
+            if (ChildObjects.Count < MinNumberOfChildObjectsInGC)
                 return;
 
-            var oldObjects = childObjects;
-            childObjects = new List<WeakReference<AcceleratorObject>>();
+            var oldObjects = ChildObjects;
+            ChildObjects = new List<WeakReference<AcceleratorObject>>();
             foreach (var childObject in oldObjects)
             {
                 if (childObject.TryGetTarget(out AcceleratorObject _))
-                    childObjects.Add(childObject);
+                    ChildObjects.Add(childObject);
             }
         }
 
