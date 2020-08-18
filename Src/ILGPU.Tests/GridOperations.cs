@@ -12,6 +12,7 @@ namespace ILGPU.Tests
         protected GridOperations(ITestOutputHelper output, TestContext testContext)
             : base(output, testContext)
         { }
+        
         internal static void GridDimensionKernel(ArrayView<int> data)
         {
             data[0] = Grid.DimX;
