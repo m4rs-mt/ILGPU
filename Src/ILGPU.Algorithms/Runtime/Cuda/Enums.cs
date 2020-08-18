@@ -83,7 +83,12 @@ namespace ILGPU.Runtime.Cuda
         /// <summary>
         /// Version 10 of the cuBlas library.
         /// </summary>
-        V10
+        V10,
+
+        /// <summary>
+        /// Version 11 of the cuBlas library.
+        /// </summary>
+        V11,
     }
 }
 

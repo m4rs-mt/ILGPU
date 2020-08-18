@@ -100,6 +100,7 @@ namespace ILGPU.Runtime.Cuda
         /// Constructs a new CuBlas instance to access the Nvidia cublas library.
         /// </summary>
         /// <param name="accelerator">The associated cuda accelerator.</param>
+        [Obsolete("Use CuBlas(CudaAccelerator, CuBlasAPIVersion) instead")]
         public CuBlas(CudaAccelerator accelerator)
             : this(accelerator, CuBlasAPIVersion.V10)
         { }
@@ -275,8 +276,9 @@ namespace ILGPU.Runtime.Cuda
         /// Constructs a new CuBlas instance to access the Nvidia cublas library.
         /// </summary>
         /// <param name="accelerator">The associated cuda accelerator.</param>
+        [Obsolete("Use CuBlas(CudaAccelerator, CuBlasAPIVersion) instead")]
         public CuBlas(CudaAccelerator accelerator)
-            : base(accelerator)
+            : base(accelerator, CuBlasAPIVersion.V10)
         { }
 
         /// <summary>

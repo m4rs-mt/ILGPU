@@ -20,9 +20,14 @@
 var apis = new (string, bool)[]
 {
     ("CuBlasAPI",      false),
+
     ("WindowsAPI_V10", true),
     ("LinuxAPI_V10",   true),
     ("MacOSAPI_V10",   true),
+    
+    ("WindowsAPI_V11", true),
+    ("LinuxAPI_V11",   true),
+    ("MacOSAPI_V11",   true),
 };
 #>
 
@@ -31,6 +36,9 @@ using System.Runtime.InteropServices;
 
 // disable: max_line_length
 #pragma warning disable IDE1006 // Naming Styles
+#pragma warning disable CA1707 // Identifiers should not contain underscores
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning disable CS3001 // Argument type is not CLS-compliant
 
 namespace ILGPU.Runtime.Cuda.API
 {
@@ -1344,4 +1352,7 @@ namespace ILGPU.Runtime.Cuda.API
 <# } #>
 }
 
+#pragma warning restore CS3001 // Argument type is not CLS-compliant
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning restore CA1707 // Identifiers should not contain underscores
 #pragma warning restore IDE1006 // Naming Styles
