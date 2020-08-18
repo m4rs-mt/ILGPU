@@ -1,5 +1,4 @@
-
-using ILGPU.Runtime;
+﻿using ILGPU.Runtime;
 using System;
 using System.Diagnostics;
 using Xunit;
@@ -58,9 +57,9 @@ namespace ILGPU.Tests
             data[0] = Grid.DimX;
         }
 
-        // This test is one-dimensional and uses small sizes for the sake of passing	
-        // tests on the CI machine, but on a machine with more threads it works	
-        // for higher dimensions and higher sizes.	
+        // This test is one-dimensional and uses small sizes for the sake of passing
+        // tests on the CI machine, but on a machine with more threads it works
+        // for higher dimensions and higher sizes.
         [Fact]
         public void GridLaunchDimension()
         {
@@ -68,7 +67,7 @@ namespace ILGPU.Tests
             var kernel = Accelerator.LoadStreamKernel<ArrayView<int>>
                 (GridLaunchDimensionKernel);
 
-            kernel((1, 2), buffer.View);
+            kernel((1, 2), buffer.View); 
             Accelerator.Synchronize();
 
             var data = buffer.GetAsArray();
