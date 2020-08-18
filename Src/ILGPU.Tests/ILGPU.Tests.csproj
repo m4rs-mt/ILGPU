@@ -109,6 +109,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>AtomicOperations.tt</DependentUpon>
     </Compile>
+    <Compile Update="BasicCalls.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>BasicCalls.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="BinaryIntOperations.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -205,6 +210,10 @@
     <None Update="ReinterpretCasts.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ReinterpretCasts.cs</LastGenOutput>
+    </None>
+    <None Update="BasicCalls.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>BasicCalls.Generated.cs</LastGenOutput>
     </None>
     <None Update="UnaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

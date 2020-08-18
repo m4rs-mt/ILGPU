@@ -348,7 +348,7 @@ namespace ILGPU.Backends.OpenCL
                 { (BinaryArithmeticKind.Div, true), ("/", false) },
 
                 { (BinaryArithmeticKind.Rem, false), ("%", false) },
-                { (BinaryArithmeticKind.Rem, true), ("remainder", true) },
+                { (BinaryArithmeticKind.Rem, true), ("fmod", true) },
 
                 { (BinaryArithmeticKind.And, false), ("&", false) },
                 { (BinaryArithmeticKind.Or, false), ("|", false) },
