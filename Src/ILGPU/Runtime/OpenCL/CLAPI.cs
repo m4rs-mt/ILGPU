@@ -1058,12 +1058,10 @@ namespace ILGPU.Runtime.OpenCL
         /// </summary>
         /// <param name="events">The events to wait on.</param>
         /// <returns>The error code.</returns>
-        internal CLError WaitForEvents(IntPtr[] events)
+        internal CLError WaitForEvents(ReadOnlySpan<IntPtr> events)
         {
             fixed (IntPtr* eventsPtr = events)
-            {
-                return clWaitForEvents(events?.Length ?? 0, eventsPtr);
-            }
+                return clWaitForEvents(events.Length, eventsPtr);
         }
 
         #endregion

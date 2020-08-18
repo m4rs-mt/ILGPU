@@ -553,8 +553,53 @@ namespace ILGPU.Runtime.OpenCL
             new CLStream(this, ptr, responsible);
 
         /// <summary cref="Accelerator.Synchronize"/>
-        protected override void SynchronizeInternal() =>
-            DefaultStream.Synchronize();
+        protected unsafe override void SynchronizeInternal()
+        {
+            // All the events to wait on. Each event represents the completion
+            // of all operations queued prior to said event.
+            var streamInstances = InlineList<CLStream>.Create(4);
+            var streamEvents = InlineList<IntPtr>.Create(4);
+            try
+            {
+                ForEachChildObject<CLStream>(stream =>
+                {
+                    // Ignore disposed command queues at this point
+                    if (stream.CommandQueue == IntPtr.Zero)
+                        return;
+
+                    // Low cost IntPtr* (cl_event*) allocation
+                    IntPtr* resultEvent = stackalloc IntPtr[1];
+                    CLException.ThrowIfFailed(
+                        CurrentAPI.EnqueueBarrierWithWaitList(
+                            stream.CommandQueue,
+                            Array.Empty<IntPtr>(),
+                            resultEvent));
+
+                    // Dereference the pointer so we can store it
+                    streamEvents.Add(*resultEvent);
+
+                    // Keep the stream instance alive to avoid automatic disposal
+                    streamInstances.Add(stream);
+                });
+
+                // Wait for all the events to fire, which would mean all operations
+                // queued on an accelerator prior to synchronization have finished
+                if (streamEvents.Count > 0)
+                {
+                    CLException.ThrowIfFailed(
+                        CurrentAPI.WaitForEvents(streamEvents));
+                }
+            }
+            finally
+            {
+                // Clean up the events we made
+                foreach (var streamEvent in streamEvents)
+                {
+                    CLException.ThrowIfFailed(
+                        CurrentAPI.ReleaseEvent(streamEvent));
+                }
+            }
+        }
 
         /// <summary cref="Accelerator.OnBind"/>
         protected override void OnBind() { }

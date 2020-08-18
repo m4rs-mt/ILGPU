@@ -165,6 +165,27 @@ namespace ILGPU.Runtime
             }
         }
 
+        /// <summary>
+        /// Perform an action on each child object.
+        /// </summary>
+        /// <typeparam name="T">The type of child object.</typeparam>
+        /// <param name="callback">The action to perform on the object.</param>
+        protected void ForEachChildObject<T>(Action<T> callback)
+            where T : AcceleratorObject
+        {
+            lock (syncRoot)
+            {
+                foreach(var child in childObjects)
+                {
+                    if (child.TryGetTarget(out var acceleratorObject) &&
+                        acceleratorObject is T t)
+                    {
+                        callback(t);
+                    }
+                }
+            }
+        }
+
         #endregion
 
         #region Dispose Functionality
