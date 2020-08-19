@@ -105,8 +105,8 @@ namespace ILGPU.Runtime
         /// The list of linked child objects.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        protected List<WeakReference<AcceleratorObject>> ChildObjects
-            { get; private set; } = new List<WeakReference<AcceleratorObject>>();
+        private List<WeakReference<AcceleratorObject>> childObjects =
+            new List<WeakReference<AcceleratorObject>>();
 
         #endregion
 
@@ -126,7 +126,7 @@ namespace ILGPU.Runtime
             get
             {
                 lock (syncRoot)
-                    return ChildObjects.Count;
+                    return childObjects.Count;
             }
         }
 
@@ -136,7 +136,7 @@ namespace ILGPU.Runtime
         /// <remarks>This method is invoked in the scope of the locked
         /// <see cref="syncRoot"/> object.</remarks>
         private bool RequestChildObjectsGC_SyncRoot =>
-            ChildObjects.Count % NumberNewChildObjectsUntilGC == 0;
+            childObjects.Count % NumberNewChildObjectsUntilGC == 0;
 
         #endregion
 
@@ -160,8 +160,29 @@ namespace ILGPU.Runtime
             var objRef = new WeakReference<AcceleratorObject>(child);
             lock (syncRoot)
             {
-                ChildObjects.Add(objRef);
+                childObjects.Add(objRef);
                 RequestGC_SyncRoot();
+            }
+        }
+
+        /// <summary>
+        /// Perform an action on each child object
+        /// </summary>
+        /// <typeparam name="T">The type of child object</typeparam>
+        /// <param name="callback">The action to perform on the object</param>
+        protected void ForEachChildObject<T>(Action<T> callback)
+            where T : AcceleratorObject
+        {
+            lock (syncRoot)
+            {
+                foreach(var child in childObjects)
+                {
+                    bool success = child.TryGetTarget(out var acceleratorObject);
+                    if (success && acceleratorObject is T t)
+                    {
+                        callback(t);
+                    }
+                }
             }
         }
 
@@ -177,12 +198,12 @@ namespace ILGPU.Runtime
         {
             lock (syncRoot)
             {
-                foreach (var childObject in ChildObjects)
+                foreach (var childObject in childObjects)
                 {
                     if (childObject.TryGetTarget(out AcceleratorObject obj))
                         obj.Dispose();
                 }
-                ChildObjects.Clear();
+                childObjects.Clear();
             }
         }
 
@@ -193,15 +214,15 @@ namespace ILGPU.Runtime
         /// <see cref="syncRoot"/> object.</remarks>
         private void ChildObjectsGC_SyncRoot()
         {
-            if (ChildObjects.Count < MinNumberOfChildObjectsInGC)
+            if (childObjects.Count < MinNumberOfChildObjectsInGC)
                 return;
 
-            var oldObjects = ChildObjects;
-            ChildObjects = new List<WeakReference<AcceleratorObject>>();
+            var oldObjects = childObjects;
+            childObjects = new List<WeakReference<AcceleratorObject>>();
             foreach (var childObject in oldObjects)
             {
                 if (childObject.TryGetTarget(out AcceleratorObject _))
-                    ChildObjects.Add(childObject);
+                    childObjects.Add(childObject);
             }
         }
 

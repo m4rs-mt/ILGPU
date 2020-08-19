@@ -76,5 +76,19 @@ namespace ILGPU.Tests
 
             Assert.Equal(expected, data[0]);
         }
+
+        [Fact]
+        public void GridLaunchDimension2()
+        {
+            using var buffer = Accelerator.Allocate<int>(1);
+            var kernel = Accelerator.LoadKernel<ArrayView<int>>
+                (GridLaunchDimensionKernel);
+            var stream = Accelerator.CreateStream();
+
+            kernel(stream, (1, 2), buffer.View);
+            Accelerator.Synchronize();
+
+            var data = buffer.GetAsArray();
+        }
     }
 }
