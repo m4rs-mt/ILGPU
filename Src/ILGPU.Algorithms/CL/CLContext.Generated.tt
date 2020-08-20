@@ -27,7 +27,13 @@ var binaryMathFunctions = new ValueTuple<string, Type, string, string>[]
         BinaryMathFunctions[6], // Log
         BinaryMathFunctions[7], // Log
     };
+var xmathCodeGenerators = new ValueTuple<string, string>[]
+    {
+        ( "RoundAwayFromZero",  "round" ),
+    };
 #>
+using ILGPU.Backends.OpenCL;
+using ILGPU.IR;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 
@@ -52,6 +58,14 @@ namespace ILGPU.Algorithms.CL
                 UnaryArithmeticKind.<#= kind #>,
                 BasicValueType.<#= basicType #>,
                 MathCodeGeneratorIntrinsic);
+<# } #>
+
+<# foreach (var (name, functionName) in xmathCodeGenerators) { #>
+            RegisterXMathCodeGenerator(
+                manager,
+                typeof(CLContext),
+                "<#= name #>",
+                "Generate<#= name #>");
 <# } #>
 
             // Register group intrinsics
@@ -81,5 +95,58 @@ namespace ILGPU.Algorithms.CL
                 "Generate<#= name #>");
 <# } #>
         }
+
+        private static void GenerateMethodCall(
+            string functionName,
+            CLCodeGenerator codeGenerator,
+            MethodCall methodCall)
+        {
+            var target = methodCall.Target;
+            var returnType = target.ReturnType;
+
+            CLCodeGenerator.StatementEmitter statementEmitter;
+            if (!returnType.IsVoidType)
+            {
+                var returnValue = codeGenerator.Allocate(methodCall);
+                statementEmitter = codeGenerator.BeginStatement(returnValue);
+                statementEmitter.AppendCommand(functionName);
+            }
+            else
+            {
+                statementEmitter = codeGenerator.BeginStatement(functionName);
+            }
+
+            // Append arguments
+            statementEmitter.BeginArguments();
+            foreach (var argument in methodCall)
+            {
+                var variable = codeGenerator.Load(argument);
+                statementEmitter.AppendArgument(variable);
+            }
+            statementEmitter.EndArguments();
+
+            // End call
+            statementEmitter.Finish();
+        }
+
+<# foreach (var (name, functionName) in xmathCodeGenerators) { #>
+        /// <summary>
+        /// Generates an intrinsic code generator for <#= name #>.
+        /// </summary>
+        /// <param name="backend">The current backend.</param>
+        /// <param name="codeGenerator">The code generator.</param>
+        /// <param name="value">The value to generate code for.</param>
+        private static void Generate<#= name #>(
+            CLBackend backend,
+            CLCodeGenerator codeGenerator,
+            Value value)
+        {
+            GenerateMethodCall(
+                "<#= functionName #>",
+                codeGenerator,
+                value as MethodCall);
+        }
+
+<# } #>
     }
 }

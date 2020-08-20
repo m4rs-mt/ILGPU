@@ -9,7 +9,9 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Intrinsics;
 using ILGPU.Util;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Algorithms
@@ -23,8 +25,9 @@ namespace ILGPU.Algorithms
         /// <param name="value">The value.</param>
         /// <returns>The nearest value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [IntrinsicImplementation]
         public static double RoundAwayFromZero(double value) =>
-            Utilities.Select(value < 0.0, Floor(value), Ceiling(value));
+            Math.Round(value, MidpointRounding.AwayFromZero);
 
         /// <summary>
         /// Rounds the value to the nearest value (halfway cases are rounded away from
@@ -33,8 +36,13 @@ namespace ILGPU.Algorithms
         /// <param name="value">The value.</param>
         /// <returns>The nearest value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [IntrinsicImplementation]
         public static float RoundAwayFromZero(float value) =>
-            Utilities.Select(value < 0.0f, Floor(value), Ceiling(value));
+#if NETCORE
+            MathF.Round(value, MidpointRounding.AwayFromZero);
+#else
+            (float)Math.Round(value, MidpointRounding.AwayFromZero);
+#endif
 
         /// <summary>
         /// Truncates the given value.

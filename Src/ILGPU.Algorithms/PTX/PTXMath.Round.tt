@@ -1,0 +1,195 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: PTXMath.Round.tt/PTXMath.Round.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ILGPU.IR.Intrinsics;
+using ILGPU.Util;
+using System.Runtime.CompilerServices;
+
+<#
+    var roundingFunctions = new []
+    {
+        new RoundingFunction("RoundToNegativeInfinity", "float"),
+        new RoundingFunction("RoundToNegativeInfinity", "double"),
+
+        new RoundingFunction("RoundToPositiveInfinity", "float"),
+        new RoundingFunction("RoundToPositiveInfinity", "double"),
+
+        new RoundingFunction("RoundAwayFromZero", "float"),
+        new RoundingFunction("RoundAwayFromZero", "double"),
+    };
+#>
+
+namespace ILGPU.Algorithms.PTX
+{
+    partial class PTXMath
+    {
+        internal const ulong DoubleSignMask = 0x8000_0000_0000_0000;
+        internal const ulong DoubleExponentMask = 0x7FF0_0000_0000_0000;
+        internal const ulong DoubleMantissaMask = 0x000F_FFFF_FFFF_FFFF;
+        internal const int DoubleExponentBias = 1023;
+        internal const int DoubleNumMantissaBits = 52;
+
+        internal const uint FloatSignMask = 0x8000_0000;
+        internal const uint FloatExponentMask = 0x7F80_0000;
+        internal const uint FloatMantissaMask = 0x007F_FFFF;
+        internal const int FloatExponentBias = 127;
+        internal const int FloatNumMantissaBits = 23;
+
+<# foreach (var function in roundingFunctions) { #>
+        /// <summary>
+<#      if (function.Name == "RoundToNegativeInfinity") { #>
+        /// Rounds the given value towards negative infinity.
+        /// If the value is positive, discard any fractional bits.
+        /// If the value is negative, the fractional bits will round to the next
+        /// smaller integer.
+<#      } else if (function.Name == "RoundToPositiveInfinity") { #>
+        /// Rounds the given value towards positive infinity.
+        /// If the value is negative, discard any fractional bits.
+        /// If the value is positive, the fractional bits will round to the next
+        /// larger integer.
+<#      } else if (function.Name == "RoundAwayFromZero") { #>
+        /// Rounds the given value towards the nearest whole number.
+        /// If the value is halfway, it is rounded away from zero.
+<#      } #>
+        /// </summary>
+        /// <param name="value">The value to round.</param>
+        /// <returns>The rounded value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static <#= function.FloatType #> <#= function.Name #>(
+            <#= function.FloatType #> value)
+        {
+            <#= function.IntType #> bits = Interop.FloatAsInt(value);
+
+            // If the value is +/- zero, return the original value.
+            if ((bits & ~<#= function.FloatTypeName #>SignMask) == 0)
+                return value;
+
+            // If exponent is negative, the result will be fractional.
+            var exponent =
+                (int)((bits & <#= function.FloatTypeName #>ExponentMask)
+                    >> <#= function.FloatTypeName #>NumMantissaBits)
+                - <#= function.FloatTypeName #>ExponentBias;
+            if (exponent < 0)
+            {
+<#      if (function.Name == "RoundToNegativeInfinity") { #>
+                return Utilities.Select(
+                    (bits & <#= function.FloatTypeName #>SignMask) == 0,
+                    0.0<#= function.FloatValueSuffix #>,
+                    -1.0<#= function.FloatValueSuffix #>);
+<#      } else if (function.Name == "RoundToPositiveInfinity") { #>
+                return Utilities.Select(
+                    (bits & <#= function.FloatTypeName #>SignMask) != 0,
+                    0.0<#= function.FloatValueSuffix #>,
+                    1.0<#= function.FloatValueSuffix #>);
+<#      } else if (function.Name == "RoundAwayFromZero") { #>
+                // If the exponent is -1, it rounds to one.
+                // i.e. 2^(-1) = 0.5 (returns 1, round away from zero).
+                // Otherwise, the value is less than 0.5, round to zero.
+                //
+                // NB: Preserve the original +/- sign.
+                <#= function.IntType #> roundedValue = Utilities.Select(
+                    exponent == -1,
+                    Interop.FloatAsInt(1.0<#= function.FloatValueSuffix #>),
+                    Interop.FloatAsInt(0.0<#= function.FloatValueSuffix #>));
+                return Interop.IntAsFloat(
+                    (bits & <#= function.FloatTypeName #>SignMask) | roundedValue);
+<#      } else { #>
+                Debug.Assert(false);
+                return <#= function.FloatType #>.NaN;
+<#      } #>
+            }
+            else if (exponent >= <#= function.FloatTypeName #>NumMantissaBits)
+            {
+                // If the exponent is large enough, there will be no significant bits
+                // to represent fractions. Return the original value because it will
+                // round to itself.
+                return value;
+            }
+            else
+            {
+                // The value has fractional bits, so we need to determine the rounding.
+                var mantissa = bits & <#= function.FloatTypeName #>MantissaMask;
+                var midpoint = 1<#= function.IntValueSuffix #>
+                    << (<#= function.FloatTypeName #>NumMantissaBits - exponent - 1);
+                var fractionalMask = (midpoint << 1) - 1;
+                var fractional = mantissa & fractionalMask;
+                var truncatedValue = bits & ~fractionalMask;
+
+<#      if (function.Name == "RoundToNegativeInfinity") { #>
+                // If the value is positive, discard any fractional bits.
+                // If the value is negative, the fractional bits will round to the next
+                // smaller integer.
+                return Utilities.Select(
+                    (bits & <#= function.FloatTypeName #>SignMask) == 0
+                    || fractional <= 0,
+                    Interop.IntAsFloat(truncatedValue),
+                    Interop.IntAsFloat(truncatedValue + (midpoint << 1)));
+<#      } else if (function.Name == "RoundToPositiveInfinity") { #>
+                // If the value is negative, discard any fractional bits.
+                // If the value is positive, the fractional bits will round to the next
+                // larger integer.
+                return Utilities.Select(
+                    (bits & <#= function.FloatTypeName #>SignMask) != 0
+                    || fractional <= 0,
+                    Interop.IntAsFloat(truncatedValue),
+                    Interop.IntAsFloat(truncatedValue + (midpoint << 1)));
+<#      } else if (function.Name == "RoundAwayFromZero") { #>
+                // If the fraction is < 0.5, round towards zero by discarding the
+                // fractional bits. Otherwise, the fraction is >= 0.5, so it should
+                // be rounded away from zero by adding "one".
+                return Utilities.Select(
+                    fractional < midpoint,
+                    Interop.IntAsFloat(truncatedValue),
+                    Interop.IntAsFloat(truncatedValue + (midpoint << 1)));
+<#      } else { #>
+                Debug.Assert(false);
+                return <#= function.FloatType #>.NaN;
+<#      } #>
+            }
+        }
+
+<# } #>
+    }
+}
+<#+
+    static string ToUpperFirst(string s)
+    {
+        if (string.IsNullOrEmpty(s))
+            return string.Empty;
+
+        char[] a = s.ToCharArray();
+        a[0] = char.ToUpper(a[0]);
+        return new string(a);
+    }
+
+    class RoundingFunction
+    {
+        public RoundingFunction(string name, string floatType)
+        {
+            Name = name;
+            FloatType = floatType;
+        }
+
+        public string Name { get; }
+        public string FloatType { get; }
+        public string IntType => FloatType == "float" ? "uint" : "ulong";
+
+        public string FloatValueSuffix => FloatType == "float" ? "f" : "";
+        public string IntValueSuffix => FloatType == "float" ? "U" : "UL";
+
+        public string FloatTypeName => $"{ToUpperFirst(FloatType)}";
+    }
+#>

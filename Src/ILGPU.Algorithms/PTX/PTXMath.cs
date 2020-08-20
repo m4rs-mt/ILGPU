@@ -23,7 +23,7 @@ namespace ILGPU.Algorithms.PTX
     /// <summary>
     /// Custom PTX-specific implementations.
     /// </summary>
-    static class PTXMath
+    static partial class PTXMath
     {
         #region Code Generator
 
@@ -134,29 +134,23 @@ namespace ILGPU.Algorithms.PTX
 
         /// <summary cref="XMath.Floor(double)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static double Floor(double value)
-        {
-            var intValue = (int)value;
-            return Utilities.Select(value < intValue, intValue - 1.0, intValue);
-        }
+        public static double Floor(double value) =>
+            RoundToNegativeInfinity(value);
 
         /// <summary cref="XMath.Floor(float)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Floor(float value)
-        {
-            var intValue = (int)value;
-            return Utilities.Select(value < intValue, intValue - 1.0f, intValue);
-        }
+        public static float Floor(float value) =>
+            RoundToNegativeInfinity(value);
 
         /// <summary cref="XMath.Ceiling(double)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Ceiling(double value) =>
-            -Floor(-value);
+            RoundToPositiveInfinity(value);
 
         /// <summary cref="XMath.Ceiling(float)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Ceiling(float value) =>
-            -Floor(-value);
+            RoundToPositiveInfinity(value);
 
         #endregion
 

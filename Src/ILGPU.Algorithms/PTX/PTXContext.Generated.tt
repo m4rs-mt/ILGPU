@@ -41,6 +41,10 @@ var unaryMathFunctions = UnaryMathFunctions.Where(t =>
     !hardwareMathFunctions.Any(
         t2 => t.Item1 == t2.Item1 && t.Item2 == t2.Item2));
 var binaryMathFunctions = BinaryMathFunctions;
+var xmathRedirects = new[]
+    {
+        "RoundAwayFromZero",
+    };
 #>
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
@@ -74,6 +78,14 @@ namespace ILGPU.Algorithms.PTX
                 UnaryArithmeticKind.<#= kind #>,
                 BasicValueType.<#= basicType #>,
                 MathCodeGeneratorIntrinsic);
+<# } #>
+
+<# foreach (var functionName in xmathRedirects) { #>
+            RegisterXMathRedirect(
+                manager,
+                PTXMathType,
+                "<#= functionName #>",
+                "<#= functionName #>");
 <# } #>
 
             // Register group intrinsics

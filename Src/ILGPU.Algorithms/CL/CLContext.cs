@@ -127,6 +127,45 @@ namespace ILGPU.Algorithms.CL
         }
 
         /// <summary>
+        /// Registers an XMath replacement mapping using a code generator.
+        /// </summary>
+        /// <param name="manager">The current manager.</param>
+        /// <param name="targetType">The target type.</param>
+        /// <param name="functionName">The method name to register.</param>
+        /// <param name="codeGeneratorName">
+        /// The name of the code generator to register.
+        /// </param>
+        private static void RegisterXMathCodeGenerator(
+            IntrinsicImplementationManager manager,
+            Type targetType,
+            string functionName,
+            string codeGeneratorName)
+        {
+            manager.RegisterMethod(
+                AlgorithmContext.XMathType.GetMethod(
+                    functionName,
+                    AlgorithmContext.IntrinsicBindingFlags,
+                    null,
+                    new[] { typeof(float) },
+                    null),
+                new CLIntrinsic(
+                    targetType,
+                    codeGeneratorName,
+                    IntrinsicImplementationMode.GenerateCode));
+            manager.RegisterMethod(
+                AlgorithmContext.XMathType.GetMethod(
+                    functionName,
+                    AlgorithmContext.IntrinsicBindingFlags,
+                    null,
+                    new[] { typeof(double) },
+                    null),
+                new CLIntrinsic(
+                    targetType,
+                    codeGeneratorName,
+                    IntrinsicImplementationMode.GenerateCode));
+        }
+
+        /// <summary>
         /// Generates an intrinsic reduce.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>

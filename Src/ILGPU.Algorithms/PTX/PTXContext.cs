@@ -92,5 +92,52 @@ namespace ILGPU.Algorithms.PTX
                 sourceMethod,
                 new PTXIntrinsic(targetType, name, IntrinsicImplementationMode.Redirect));
         }
+
+        /// <summary>
+        /// Registers an XMath replacement mapping using a redirect.
+        /// </summary>
+        /// <param name="manager">The current manager.</param>
+        /// <param name="targetType">The target type.</param>
+        /// <param name="functionName">The method name to register.</param>
+        /// <param name="replacementName">
+        /// The name of the replacement method to register.
+        /// </param>
+        private static void RegisterXMathRedirect(
+            IntrinsicImplementationManager manager,
+            Type targetType,
+            string functionName,
+            string replacementName)
+        {
+            manager.RegisterMethod(
+                AlgorithmContext.XMathType.GetMethod(
+                    functionName,
+                    AlgorithmContext.IntrinsicBindingFlags,
+                    null,
+                    new[] { typeof(float) },
+                    null),
+                new PTXIntrinsic(
+                    targetType.GetMethod(
+                        replacementName,
+                        AlgorithmContext.IntrinsicBindingFlags,
+                        null,
+                        new[] { typeof(float) },
+                        null),
+                    IntrinsicImplementationMode.Redirect));
+            manager.RegisterMethod(
+                AlgorithmContext.XMathType.GetMethod(
+                    functionName,
+                    AlgorithmContext.IntrinsicBindingFlags,
+                    null,
+                    new[] { typeof(double) },
+                    null),
+                new PTXIntrinsic(
+                    targetType.GetMethod(
+                        replacementName,
+                        AlgorithmContext.IntrinsicBindingFlags,
+                        null,
+                        new[] { typeof(double) },
+                        null),
+                    IntrinsicImplementationMode.Redirect));
+        }
     }
 }
