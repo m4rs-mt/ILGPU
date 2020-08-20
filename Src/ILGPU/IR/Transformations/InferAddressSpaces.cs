@@ -67,6 +67,7 @@ namespace ILGPU.IR.Transformations
                         if (use.Index != 0)
                             return false;
                         break;
+                    case StructureValue _:
                     case SetArrayElement _:
                     case SetField _:
                         // We are not allowed to remove field or array stores to tuples
