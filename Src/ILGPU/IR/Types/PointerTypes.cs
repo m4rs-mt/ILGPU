@@ -36,6 +36,46 @@ namespace ILGPU.IR.Types
     /// </summary>
     public abstract class AddressSpaceType : TypeNode, IAddressSpaceType
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Converts the address space of <see cref="AddressSpaceType"/> instances.
+        /// </summary>
+        public sealed class AddressSpaceConverter : TypeConverter<AddressSpaceType>
+        {
+            /// <summary>
+            /// Constructs a new address space converter.
+            /// </summary>
+            /// <param name="addressSpace">The target address space.</param>
+            public AddressSpaceConverter(MemoryAddressSpace addressSpace)
+            {
+                AddressSpace = addressSpace;
+            }
+
+            /// <summary>
+            /// Returns the target address space to specialize.
+            /// </summary>
+            public MemoryAddressSpace AddressSpace { get; }
+
+            /// <summary>
+            /// Returns one field per address space type.
+            /// </summary>
+            protected override int GetNumFields(AddressSpaceType type) => 1;
+
+            /// <summary>
+            /// Converts a single <see cref="AddressSpaceType"/> into a specialized
+            /// version using the target <see cref="AddressSpace"/>.
+            /// </summary>
+            protected override TypeNode ConvertType<TTypeContext>(
+                TTypeContext typeContext,
+                AddressSpaceType type) =>
+                typeContext.SpecializeAddressSpaceType(
+                    type,
+                    AddressSpace);
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
