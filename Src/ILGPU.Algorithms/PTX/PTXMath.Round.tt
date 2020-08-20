@@ -29,6 +29,9 @@ using System.Runtime.CompilerServices;
 
         new RoundingFunction("RoundAwayFromZero", "float"),
         new RoundingFunction("RoundAwayFromZero", "double"),
+
+        new RoundingFunction("RoundToEven", "float"),
+        new RoundingFunction("RoundToEven", "double"),
     };
 #>
 
@@ -63,6 +66,9 @@ namespace ILGPU.Algorithms.PTX
 <#      } else if (function.Name == "RoundAwayFromZero") { #>
         /// Rounds the given value towards the nearest whole number.
         /// If the value is halfway, it is rounded away from zero.
+<#      } else if (function.Name == "RoundToEven") { #>
+        /// Rounds the given value towards the nearest whole number.
+        /// If the value is halfway, it is rounded to the even number.
 <#      } #>
         /// </summary>
         /// <param name="value">The value to round.</param>
@@ -102,6 +108,21 @@ namespace ILGPU.Algorithms.PTX
                 // NB: Preserve the original +/- sign.
                 <#= function.IntType #> roundedValue = Utilities.Select(
                     exponent == -1,
+                    Interop.FloatAsInt(1.0<#= function.FloatValueSuffix #>),
+                    Interop.FloatAsInt(0.0<#= function.FloatValueSuffix #>));
+                return Interop.IntAsFloat(
+                    (bits & <#= function.FloatTypeName #>SignMask) | roundedValue);
+<#      } else if (function.Name == "RoundToEven") { #>
+                // If the exponent is -1, with no mantissa, it rounds
+                // to zero. i.e. 2^(-1) = 0.5 (returns 0, round to even).
+                //
+                // If there are mantissa bits, the value is greater than 0.5,
+                // so it rounds to one.
+                //
+                // NB: Preserve the original +/- sign.
+                var mantissa = bits & <#= function.FloatTypeName #>MantissaMask;
+                <#= function.IntType #> roundedValue = Utilities.Select(
+                    exponent == -1 && mantissa != 0,
                     Interop.FloatAsInt(1.0<#= function.FloatValueSuffix #>),
                     Interop.FloatAsInt(0.0<#= function.FloatValueSuffix #>));
                 return Interop.IntAsFloat(
@@ -154,6 +175,30 @@ namespace ILGPU.Algorithms.PTX
                     fractional < midpoint,
                     Interop.IntAsFloat(truncatedValue),
                     Interop.IntAsFloat(truncatedValue + (midpoint << 1)));
+<#      } else if (function.Name == "RoundToEven") { #>
+                // If the fraction is < 0.5, discarding the fractional bits. Otherwise,
+                // the fraction is > 0.5, so it should be rounded up by adding "one".
+                //
+                // If the fraction == 0.5, and the value is already even, discard the
+                // fractional bits. Otherwise, the number is odd, so round it to the
+                // next even number by adding "one".
+                if (fractional < midpoint)
+                {
+                    return Interop.IntAsFloat(truncatedValue);
+                }
+                else if (fractional > midpoint)
+                {
+                    return Interop.IntAsFloat(truncatedValue + (midpoint << 1));
+                }
+                else
+                {
+                    // The fractional part is exactly x.5 - Round To Even.
+                    var evenMask = midpoint << 1;
+                    return Utilities.Select(
+                        (mantissa & evenMask) == 0,
+                        Interop.IntAsFloat(truncatedValue),
+                        Interop.IntAsFloat(truncatedValue + (midpoint << 1)));
+                }
 <#      } else { #>
                 Debug.Assert(false);
                 return <#= function.FloatType #>.NaN;

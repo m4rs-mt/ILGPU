@@ -31,6 +31,15 @@ using Xunit;
             "double",
             "Math.Round({0}, MidpointRounding.AwayFromZero)"),
 
+        new RoundFunction(
+            "RoundToEven",
+            "float",
+            "MathF.Round({0}, MidpointRounding.ToEven)"),
+        new RoundFunction(
+            "RoundToEven",
+            "double",
+            "Math.Round({0}, MidpointRounding.ToEven)"),
+
         new RoundFunction("Truncate",   "float" ,   "MathF.Truncate({0})"),
         new RoundFunction("Truncate",   "double",   "Math.Truncate({0})"),
 

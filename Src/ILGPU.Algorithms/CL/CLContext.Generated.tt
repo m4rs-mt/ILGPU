@@ -30,6 +30,7 @@ var binaryMathFunctions = new ValueTuple<string, Type, string, string>[]
 var xmathCodeGenerators = new ValueTuple<string, string>[]
     {
         ( "RoundAwayFromZero",  "round" ),
+        ( "RoundToEven",        "rint" ),
     };
 #>
 using ILGPU.Backends.OpenCL;

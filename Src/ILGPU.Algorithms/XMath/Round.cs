@@ -45,6 +45,30 @@ namespace ILGPU.Algorithms
 #endif
 
         /// <summary>
+        /// Rounds the value to the nearest value (halfway cases are rounded to even).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [IntrinsicImplementation]
+        public static double RoundToEven(double value) =>
+            Math.Round(value, MidpointRounding.ToEven);
+
+        /// <summary>
+        /// Rounds the value to the nearest value (halfway cases are rounded to even).
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns>The nearest value.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [IntrinsicImplementation]
+        public static float RoundToEven(float value) =>
+#if NETCORE
+            MathF.Round(value, MidpointRounding.ToEven);
+#else
+            (float)Math.Round(value, MidpointRounding.ToEven);
+#endif
+
+        /// <summary>
         /// Truncates the given value.
         /// </summary>
         /// <param name="value">The value to truncate.</param>
