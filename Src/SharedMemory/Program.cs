@@ -69,8 +69,8 @@ namespace SharedMemory
 
             // Declares a shared-memory array with 128 elements of type int = 4 * 128 = 512 bytes
             // of shared memory per group
-            // Note that an allocation of an array view (currently) requires a compile-time known
-            // constant array size.
+            // Note that 'Allocate' requires a compile-time known constant array size.
+            // If the size is unknown at compile-time, consider using `GetDynamic`.
             ArrayView<int> sharedArray = ILGPU.SharedMemory.Allocate<int>(128);
 
             // Load the element into shared memory
