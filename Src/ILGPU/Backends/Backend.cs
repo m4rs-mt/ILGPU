@@ -656,6 +656,8 @@ namespace ILGPU.Backends
 
                 // Import the all kernel functions into our kernel context
                 var method = kernelContext.Import(kernelMethod);
+                // Mark this method as a new entry point
+                method.AddFlags(MethodFlags.EntryPoint);
                 backendHook.InitializedKernelContext(kernelContext, method);
 
                 // Apply backend optimizations
