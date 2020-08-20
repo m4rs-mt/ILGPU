@@ -129,9 +129,9 @@ namespace ILGPU.Algorithms.Tests
                     <#= function.RelativeError.OpenCL #>);
             else
                 VerifyWithinRelativeError(
-                output,
-                expected,
-                <#= function.RelativeError.CPU #>);
+                    output,
+                    expected,
+                    <#= function.RelativeError.CPU #>);
         }
 
 <# } #>

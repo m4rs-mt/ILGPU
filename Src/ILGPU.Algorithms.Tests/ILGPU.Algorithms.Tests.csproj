@@ -77,6 +77,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>TransformerExtensionTests.tt</DependentUpon>
     </None>
+    <None Include="XMathTests.Round.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Round.tt</DependentUpon>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -149,6 +154,10 @@
     <None Update="XMathTests.Rcp.tt">
       <LastGenOutput>XMathTests.Rcp.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMathTests.Round.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>XMathTests.Round.cs</LastGenOutput>
     </None>
     <None Update="XMathTests.Sqrt.tt">
       <LastGenOutput>XMathTests.Sqrt.cs</LastGenOutput>
@@ -244,6 +253,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>XMathTests.Rcp.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMathTests.Round.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Round.tt</DependentUpon>
     </Compile>
     <Compile Update="XMathTests.Sqrt.cs">
       <DependentUpon>XMathTests.Sqrt.tt</DependentUpon>

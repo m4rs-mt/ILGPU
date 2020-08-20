@@ -1,0 +1,117 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: XMathTests.Round.tt/XMathTests.Round.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="XMathTests.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+using ILGPU.Runtime;
+using ILGPU.Tests;
+using System;
+using Xunit;
+
+<#
+    var roundFunctions = new []
+    {
+        new RoundFunction(
+            "RoundAwayFromZero",
+            "float",
+            "MathF.Round({0}, MidpointRounding.AwayFromZero)"),
+        new RoundFunction(
+            "RoundAwayFromZero",
+            "double",
+            "Math.Round({0}, MidpointRounding.AwayFromZero)"),
+
+        new RoundFunction("Truncate",   "float" ,   "MathF.Truncate({0})"),
+        new RoundFunction("Truncate",   "double",   "Math.Truncate({0})"),
+
+        new RoundFunction("Floor",      "float" ,   "MathF.Floor({0})"),
+        new RoundFunction("Floor",      "double",   "Math.Floor({0})"),
+
+        new RoundFunction("Ceiling",    "float" ,   "MathF.Ceiling({0})"),
+        new RoundFunction("Ceiling",    "double",   "Math.Ceiling({0})"),
+    };
+#>
+namespace ILGPU.Algorithms.Tests
+{
+    partial class XMathTests
+    {
+<# foreach (var function in roundFunctions) { #>
+        public static TheoryData<<#= function.DataType #>>
+            <#= function.TestName #>TestData =>
+            new TheoryData<<#= function.DataType #>>
+            {
+                0.0<#= function.ValueSuffix #>,
+                0.4<#= function.ValueSuffix #>,
+                0.5<#= function.ValueSuffix #>,
+                0.6<#= function.ValueSuffix #>,
+                1.0<#= function.ValueSuffix #>,
+                2.1<#= function.ValueSuffix #>,
+                2.8<#= function.ValueSuffix #>,
+                2.5<#= function.ValueSuffix #>,
+                3.5<#= function.ValueSuffix #>,
+                Math<#= function.MathSuffix #>.Pow(2, 53),
+                -0.0<#= function.ValueSuffix #>,
+                -0.4<#= function.ValueSuffix #>,
+                -0.5<#= function.ValueSuffix #>,
+                -0.6<#= function.ValueSuffix #>,
+                -1.0<#= function.ValueSuffix #>,
+                -2.1<#= function.ValueSuffix #>,
+                -2.5<#= function.ValueSuffix #>,
+                -2.8<#= function.ValueSuffix #>,
+                -3.5<#= function.ValueSuffix #>,
+                -Math<#= function.MathSuffix #>.Pow(2, 53),
+                <#= function.DataType #>.NaN,
+                <#= function.DataType #>.PositiveInfinity,
+                <#= function.DataType #>.NegativeInfinity,
+            };
+
+        internal static void <#= function.KernelName #>(
+            Index1 index,
+            ArrayView<<#= function.DataType #>> input,
+            ArrayView<<#= function.DataType #>> output)
+        {
+            output[index] = XMath.<#= function.Name #>(input[index]);
+        }
+
+        [Theory]
+        [MemberData(nameof(<#= function.TestName #>TestData))]
+        [KernelMethod(nameof(<#= function.KernelName #>))]
+        public void <#= function.TestName #>(<#= function.DataType #> value)
+        {
+            var expected = new[]
+            {
+                <#= string.Format(function.ExpectedFormatString, "value") #>
+            };
+            using var input = Accelerator.Allocate<<#= function.DataType #>>(1);
+            using var output = Accelerator.Allocate<<#= function.DataType #>>(1);
+
+            input.CopyFrom(new[] { value }, 0, 0, 1);
+            Execute(input.Length, input.View, output.View);
+            Verify(output, expected);
+        }
+
+<# } #>
+    }
+}
+<#+
+    class RoundFunction : XMathFunctionBase
+    {
+        public RoundFunction(string name, string dataType, string expectedFormatString)
+            : base(name, dataType)
+        {
+            ExpectedFormatString = expectedFormatString;
+        }
+
+        public string ExpectedFormatString { get; }
+    }
+#>
