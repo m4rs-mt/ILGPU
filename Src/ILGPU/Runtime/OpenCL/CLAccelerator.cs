@@ -589,7 +589,7 @@ namespace ILGPU.Runtime.OpenCL
                     ErrorMessages.NotSupportedByRefKernelParameters);
             }
 
-            var launcher = entryPoint.CreateLauncherMethod(Context);
+            var launcher = entryPoint.CreateLauncherMethod();
             var emitter = new ILEmitter(launcher.ILGenerator);
 
             // Load kernel instance

@@ -862,7 +862,7 @@ namespace ILGPU.IR.Types
         /// </summary>
         protected override Type GetManagedType()
         {
-            var typeBuilder = Context.DefineRuntimeStruct();
+            var typeBuilder = RuntimeSystem.Instance.DefineRuntimeStruct();
             int index = 0;
             foreach (var type in DirectFields)
             {

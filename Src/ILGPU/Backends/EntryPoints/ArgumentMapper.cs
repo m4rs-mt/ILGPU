@@ -419,7 +419,7 @@ namespace ILGPU.Backends.EntryPoints
                 return structType;
 
             // We need a custom structure type and map all fields
-            var typeBuilder = Context.DefineRuntimeStruct();
+            var typeBuilder = RuntimeSystem.Instance.DefineRuntimeStruct();
             for (int i = 0, e = sourceFields.Length; i < e; ++i)
             {
                 typeBuilder.DefineField(
