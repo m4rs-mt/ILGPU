@@ -16,7 +16,7 @@ namespace ILGPU
         /// <summary>
         /// The name of the dynamic runtime assembly.
         /// </summary>
-        public const string RuntimeAssemblyName = "ILGPURuntime";
+        public const string RuntimeAssemblyName = RuntimeSystem.AssemblyName;
 
         /// <summary>
         /// Represents the general ILGPU assembly name.
@@ -32,16 +32,6 @@ namespace ILGPU
         /// The ILGPU assembly file extension.
         /// </summary>
         public const string IRFileExtension = ".gpuil";
-
-        /// <summary>
-        /// A custom runtime type name.
-        /// </summary>
-        private const string CustomTypeName = "ILGPURuntimeType";
-
-        /// <summary>
-        /// A default launcher name.
-        /// </summary>
-        private const string LauncherMethodName = "ILGPULauncher";
 
         /// <summary>
         /// Represents the default flags of a new context.

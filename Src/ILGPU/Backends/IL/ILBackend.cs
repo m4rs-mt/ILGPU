@@ -138,7 +138,7 @@ namespace ILGPU.Backends.IL
                 out ConstructorInfo taskConstructor,
                 out ImmutableArray<FieldInfo> taskArgumentMapping);
 
-            var kernel = Context.DefineRuntimeMethod(
+            var kernel = RuntimeSystem.Instance.DefineRuntimeMethod(
                 typeof(void),
                 CPUAcceleratorTask.ExecuteParameterTypes);
             var emitter = new ILEmitter(kernel.ILGenerator);
@@ -204,13 +204,14 @@ namespace ILGPU.Backends.IL
         /// and dynamically-sized shared-memory-variable-length specifications to fields
         /// in the task class.
         /// </param>
-        private Type GenerateAcceleratorTask(
+        private static Type GenerateAcceleratorTask(
             in ParameterCollection parameters,
             out ConstructorInfo taskConstructor,
             out ImmutableArray<FieldInfo> taskArgumentMapping)
         {
             var acceleratorTaskType = typeof(CPUAcceleratorTask);
-            var taskBuilder = Context.DefineRuntimeClass(acceleratorTaskType);
+            var taskBuilder = RuntimeSystem.Instance.DefineRuntimeClass(
+                acceleratorTaskType);
 
             var ctor = taskBuilder.DefineConstructor(
                 MethodAttributes.Public,

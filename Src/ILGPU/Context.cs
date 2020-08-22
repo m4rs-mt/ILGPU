@@ -92,42 +92,6 @@ namespace ILGPU
 
         #endregion
 
-        #region Nested Types
-
-        /// <summary>
-        /// Represents a method builder in the .Net world.
-        /// </summary>
-        internal readonly struct MethodEmitter
-        {
-            /// <summary>
-            /// Constructs a new method emitter.
-            /// </summary>
-            /// <param name="method">The desired internal method.</param>
-            public MethodEmitter(
-                DynamicMethod method)
-            {
-                Method = method;
-                ILGenerator = method.GetILGenerator();
-            }
-
-            /// <summary>
-            /// Returns the associated method builder.
-            /// </summary>
-            private DynamicMethod Method { get; }
-
-            /// <summary>
-            /// Returns the internal IL generator.
-            /// </summary>
-            public ILGenerator ILGenerator { get; }
-
-            /// <summary>
-            /// Finishes the building process.
-            /// </summary>
-            /// <returns>The emitted method.</returns>
-            public MethodInfo Finish() => Method;
-        }
-
-        #endregion
 
         #region Events
 
@@ -143,11 +107,6 @@ namespace ILGPU
         private long methodHandleCounter = 0;
 
         private readonly SemaphoreSlim codeGenerationSemaphore = new SemaphoreSlim(1);
-        private readonly object assemblyLock = new object();
-        private int assemblyVersion = 0;
-        private AssemblyBuilder assemblyBuilder;
-        private ModuleBuilder moduleBuilder;
-        private volatile int typeBuilderIdx = 0;
 
         /// <summary>
         /// Constructs a new ILGPU main context
@@ -225,8 +184,6 @@ namespace ILGPU
             IntrinsicManager = new IntrinsicImplementationManager();
             InitIntrinsics();
 
-            // Initialize assembly builder and context data
-            ReloadAssemblyBuilder();
         }
 
         #endregion
@@ -303,21 +260,6 @@ namespace ILGPU
         }
 
         /// <summary>
-        /// Reloads the assembly builder.
-        /// </summary>
-        private void ReloadAssemblyBuilder()
-        {
-            var assemblyName = new AssemblyName(RuntimeAssemblyName)
-            {
-                Version = new Version(1, assemblyVersion++),
-            };
-            assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(
-                assemblyName,
-                AssemblyBuilderAccess.RunAndCollect);
-            moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
-        }
-
-        /// <summary>
         /// Returns true if the current context has the given flags.
         /// </summary>
         /// <param name="flags">The flags to check.</param>
@@ -369,12 +311,10 @@ namespace ILGPU
         /// </summary>
         /// <returns>The new code generation phase.</returns>
         public Task<ContextCodeGenerationPhase> BeginCodeGenerationAsync(
-            IRContext irContext)
-        {
-            if (irContext == null)
-                throw new ArgumentNullException(nameof(irContext));
-            return Task.Run(() => BeginCodeGeneration(irContext));
-        }
+            IRContext irContext) =>
+            irContext == null
+            ? throw new ArgumentNullException(nameof(irContext))
+            : Task.Run(() => BeginCodeGeneration(irContext));
 
         /// <summary>
         /// Clears internal caches. However, this does not affect individual accelerator
@@ -391,7 +331,7 @@ namespace ILGPU
             DebugInformationManager.ClearCache(mode);
             DefautltILBackend.ClearCache(mode);
 
-            ReloadAssemblyBuilder();
+            RuntimeSystem.Instance.ClearCache(mode);
             base.ClearCache(mode);
         }
 
@@ -401,89 +341,6 @@ namespace ILGPU
         /// <param name="accelerator">The new accelerator.</param>
         internal void OnAcceleratorCreated(Accelerator accelerator) =>
             AcceleratorCreated?.Invoke(this, accelerator);
-
-        #endregion
-
-        #region Runtime Assembly
-
-        /// <summary>
-        /// Defines a new runtime type.
-        /// </summary>
-        /// <param name="attributes">The custom type attributes.</param>
-        /// <param name="baseClass">The base class.</param>
-        /// <returns>A new runtime type builder.</returns>
-        private TypeBuilder DefineRuntimeType(TypeAttributes attributes, Type baseClass)
-        {
-            lock (assemblyLock)
-            {
-                return moduleBuilder.DefineType(
-                    CustomTypeName + typeBuilderIdx++,
-                    attributes,
-                    baseClass);
-            }
-        }
-
-        /// <summary>
-        /// Defines a new runtime class.
-        /// </summary>
-        /// <returns>A new runtime type builder.</returns>
-        internal TypeBuilder DefineRuntimeClass(Type baseClass) =>
-            DefineRuntimeType(
-                TypeAttributes.Public |
-                TypeAttributes.Class |
-                TypeAttributes.AutoClass |
-                TypeAttributes.AnsiClass |
-                TypeAttributes.BeforeFieldInit |
-                TypeAttributes.AutoLayout |
-                TypeAttributes.Sealed,
-                baseClass ?? typeof(object));
-
-        /// <summary>
-        /// Defines a new runtime structure.
-        /// </summary>
-        /// <returns>A new runtime type builder.</returns>
-        internal TypeBuilder DefineRuntimeStruct() => DefineRuntimeStruct(false);
-
-        /// <summary>
-        /// Defines a new runtime structure.
-        /// </summary>
-        /// <param name="explicitLayout">
-        /// True, if the individual fields have an explicit structure layout.
-        /// </param>
-        /// <returns>A new runtime type builder.</returns>
-        internal TypeBuilder DefineRuntimeStruct(bool explicitLayout) =>
-            DefineRuntimeType(
-                TypeAttributes.Public |
-                TypeAttributes.Class |
-                TypeAttributes.AnsiClass |
-                TypeAttributes.BeforeFieldInit |
-                TypeAttributes.Sealed |
-                (explicitLayout
-                    ? TypeAttributes.ExplicitLayout
-                    : TypeAttributes.SequentialLayout),
-                typeof(ValueType));
-
-        /// <summary>
-        /// Defines a new runtime method.
-        /// </summary>
-        /// <param name="returnType">The return type.</param>
-        /// <param name="parameterTypes">All parameter types.</param>
-        /// <returns>The defined method.</returns>
-        internal MethodEmitter DefineRuntimeMethod(
-            Type returnType,
-            Type[] parameterTypes)
-        {
-            var typeBuilder = DefineRuntimeStruct();
-            var type = typeBuilder.CreateType();
-
-            var method = new DynamicMethod(
-                LauncherMethodName,
-                typeof(void),
-                parameterTypes,
-                type,
-                true);
-            return new MethodEmitter(method);
-        }
 
         #endregion
 

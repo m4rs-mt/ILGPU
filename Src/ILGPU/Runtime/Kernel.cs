@@ -121,8 +121,7 @@ namespace ILGPU.Runtime
             Debug.Assert(entry.HasSpecializedParameters);
 
             // Build customized runtime structure
-            var context = accelerator.Context;
-            var keyStruct = context.DefineRuntimeStruct();
+            var keyStruct = RuntimeSystem.Instance.DefineRuntimeStruct();
             var specializedParameters = entry.Parameters.SpecializedParameters;
             var fieldBuilders = new List<FieldInfo>(specializedParameters.Length);
             foreach (var param in specializedParameters)
@@ -146,7 +145,7 @@ namespace ILGPU.Runtime
                 typeof(TLoader),
                 keyStructType,
                 typeof(TDelegate));
-            var method = entry.CreateLauncherMethod(context, cacheType);
+            var method = entry.CreateLauncherMethod(cacheType);
             var emitter = new ILEmitter(method.ILGenerator);
 
             var keyVariable = emitter.DeclareLocal(keyStructType);
