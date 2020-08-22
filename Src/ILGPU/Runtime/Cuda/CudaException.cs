@@ -9,12 +9,12 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Runtime.Cuda.API;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
+using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -42,7 +42,7 @@ namespace ILGPU.Runtime.Cuda
         /// </summary>
         /// <param name="error">The Cuda runtime error.</param>
         private CudaException(CudaError error)
-            : base(CudaAPI.Current.GetErrorString(error))
+            : base(CurrentAPI.GetErrorString(error))
         {
             Error = error.ToString();
         }

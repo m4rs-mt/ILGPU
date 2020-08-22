@@ -10,9 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
-using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
+using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -36,7 +36,7 @@ namespace ILGPU.Runtime.Cuda
             : base(accelerator, extent)
         {
             CudaException.ThrowIfFailed(
-                CudaAPI.Current.AllocateMemory(
+                CurrentAPI.AllocateMemory(
                     out IntPtr resultPtr,
                     new IntPtr(extent.Size * ElementSize)));
             NativePtr = resultPtr;
@@ -62,18 +62,20 @@ namespace ILGPU.Runtime.Cuda
             switch (targetBuffer.AcceleratorType)
             {
                 case AcceleratorType.CPU:
-                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
-                        targetAddress,
-                        sourceAddress,
-                        lengthInBytes,
-                        stream));
+                    CudaException.ThrowIfFailed(
+                        CurrentAPI.MemcpyDeviceToHost(
+                            targetAddress,
+                            sourceAddress,
+                            lengthInBytes,
+                            stream));
                     break;
                 case AcceleratorType.Cuda:
-                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
-                        targetAddress,
-                        sourceAddress,
-                        lengthInBytes,
-                        stream));
+                    CudaException.ThrowIfFailed(
+                        CurrentAPI.MemcpyDeviceToDevice(
+                            targetAddress,
+                            sourceAddress,
+                            lengthInBytes,
+                            stream));
                     break;
                 default:
                     throw new NotSupportedException(
@@ -98,18 +100,20 @@ namespace ILGPU.Runtime.Cuda
             switch (source.AcceleratorType)
             {
                 case AcceleratorType.CPU:
-                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
-                        targetAddress,
-                        sourceAddress,
-                        lengthInBytes,
-                        stream));
+                    CudaException.ThrowIfFailed(
+                        CurrentAPI.MemcpyHostToDevice(
+                            targetAddress,
+                            sourceAddress,
+                            lengthInBytes,
+                            stream));
                     break;
                 case AcceleratorType.Cuda:
-                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToDevice(
-                        targetAddress,
-                        sourceAddress,
-                        lengthInBytes,
-                        stream));
+                    CudaException.ThrowIfFailed(
+                        CurrentAPI.MemcpyDeviceToDevice(
+                            targetAddress,
+                            sourceAddress,
+                            lengthInBytes,
+                            stream));
                     break;
                 default:
                     throw new NotSupportedException(
@@ -124,11 +128,12 @@ namespace ILGPU.Runtime.Cuda
         {
             var binding = Accelerator.BindScoped();
 
-            CudaException.ThrowIfFailed(CudaAPI.Current.Memset(
-                NativePtr,
-                0,
-                new IntPtr(LengthInBytes),
-                stream));
+            CudaException.ThrowIfFailed(
+                CurrentAPI.Memset(
+                    NativePtr,
+                    0,
+                    new IntPtr(LengthInBytes),
+                    stream));
 
             binding.Recover();
         }
@@ -142,7 +147,8 @@ namespace ILGPU.Runtime.Cuda
         {
             if (NativePtr != IntPtr.Zero)
             {
-                CudaException.ThrowIfFailed(CudaAPI.Current.FreeMemory(NativePtr));
+                CudaException.ThrowIfFailed(
+                    CurrentAPI.FreeMemory(NativePtr));
                 NativePtr = IntPtr.Zero;
             }
             base.Dispose(disposing);

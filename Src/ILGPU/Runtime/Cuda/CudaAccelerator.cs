@@ -13,7 +13,6 @@ using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.Backends.PTX;
 using ILGPU.Resources;
-using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
@@ -22,6 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -41,11 +41,11 @@ namespace ILGPU.Runtime.Cuda
                 nameof(IntPtr.Zero), BindingFlags.Static | BindingFlags.Public);
 
         /// <summary>
-        /// Represents the <see cref="CudaAPI.Current"/> property.
+        /// Represents the <see cref="CurrentAPI"/> property.
         /// </summary>
         private static readonly MethodInfo GetCudaAPIMethod =
             typeof(CudaAPI).GetProperty(
-                nameof(CudaAPI.Current),
+                nameof(CurrentAPI),
                 BindingFlags.Public | BindingFlags.Static).GetGetMethod();
 
         /// <summary>
@@ -94,11 +94,6 @@ namespace ILGPU.Runtime.Cuda
             }
             CudaAccelerators = accelerators.ToImmutable();
         }
-
-        /// <summary>
-        /// Returns the current Cuda-driver API.
-        /// </summary>
-        public static CudaAPI CurrentAPI => CudaAPI.Current;
 
         /// <summary>
         /// Represents the list of available Cuda accelerators.
@@ -566,7 +561,7 @@ namespace ILGPU.Runtime.Cuda
                     ErrorMessages.NotSupportedByRefKernelParameters);
             }
 
-            var launcher = entryPoint.CreateLauncherMethod(Context);
+            var launcher = entryPoint.CreateLauncherMethod();
             var emitter = new ILEmitter(launcher.ILGenerator);
 
             // Allocate array of pointers as kernel argument(s)
