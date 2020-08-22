@@ -229,9 +229,11 @@ namespace ILGPU.Tests
             ArrayView<Parent> data,
             Nested value)
         {
-            var dataValue = new Parent();
-            dataValue.First = value;
-            dataValue.Second = value;
+            var dataValue = new Parent
+            {
+                First = value,
+                Second = value
+            };
             data[index] = dataValue;
         }
 

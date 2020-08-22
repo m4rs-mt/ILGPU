@@ -589,9 +589,9 @@ namespace ILGPU.IR
         public Builder CreateBuilder()
         {
             var newBuilder = new Builder(this);
-            if (Interlocked.CompareExchange(ref builder, newBuilder, null) != null)
-                throw new InvalidOperationException();
-            return newBuilder;
+            return Interlocked.CompareExchange(ref builder, newBuilder, null) == null
+                ? newBuilder
+                : throw new InvalidOperationException();
         }
 
         /// <summary>

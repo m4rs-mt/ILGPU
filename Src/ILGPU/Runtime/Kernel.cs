@@ -360,11 +360,9 @@ namespace ILGPU.Runtime
         /// <param name="kernelDelegate">The kernel-delegate instance.</param>
         /// <returns>The resolved kernel object.</returns>
         public static Kernel GetKernel<TDelegate>(this TDelegate kernelDelegate)
-            where TDelegate : Delegate
-        {
-            if (!TryGetKernel(kernelDelegate, out var kernel))
-                throw new InvalidOperationException();
-            return kernel;
-        }
+            where TDelegate : Delegate =>
+            kernelDelegate.TryGetKernel(out var kernel)
+            ? kernel
+            : throw new InvalidOperationException();
     }
 }

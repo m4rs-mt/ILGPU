@@ -293,16 +293,11 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="architecture">The PTX architecture</param>
         /// <returns>The minimum driver version</returns>
         public static CudaDriverVersion GetMinimumDriverVersion(
-            PTXArchitecture architecture)
-        {
-            if (!ArchitectureLookup.TryGetValue(architecture, out var result))
-            {
-                throw new NotSupportedException(
-                    RuntimeErrorMessages.NotSupportedPTXArchitecture);
-            }
-
-            return result;
-        }
+            PTXArchitecture architecture) =>
+            ArchitectureLookup.TryGetValue(architecture, out var result)
+            ? result
+            : throw new NotSupportedException(
+                RuntimeErrorMessages.NotSupportedPTXArchitecture);
 
         /// <summary>
         /// Resolves the minimum CUDA driver version for the PTX instruction set
@@ -310,16 +305,11 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="instructionSet">The PTX instruction set</param>
         /// <returns>The minimum driver version</returns>
         public static CudaDriverVersion GetMinimumDriverVersion(
-            PTXInstructionSet instructionSet)
-        {
-            if (!InstructionSetLookup.TryGetValue(instructionSet, out var result))
-            {
-                throw new NotSupportedException(
-                    RuntimeErrorMessages.NotSupportedPTXInstructionSet);
-            }
-
-            return result;
-        }
+            PTXInstructionSet instructionSet) =>
+            InstructionSetLookup.TryGetValue(instructionSet, out var result)
+            ? result
+            : throw new NotSupportedException(
+                RuntimeErrorMessages.NotSupportedPTXInstructionSet);
 
         #endregion
     }

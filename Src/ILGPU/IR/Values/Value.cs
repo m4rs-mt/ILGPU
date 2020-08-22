@@ -496,9 +496,9 @@ namespace ILGPU.IR
         public Use GetFirstUse()
         {
             var enumerator = uses.GetEnumerator();
-            if (!enumerator.MoveNext())
-                throw new InvalidOperationException(ErrorMessages.NoUses);
-            return enumerator.Current;
+            return enumerator.MoveNext()
+                ? enumerator.Current
+                : throw new InvalidOperationException(ErrorMessages.NoUses);
         }
 
         /// <summary>

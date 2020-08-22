@@ -30,6 +30,8 @@
     }; #>
 using System;
 
+#pragma warning disable IDE0046 // Convert to conditional expression
+
 // disable: max_line_length
 
 namespace ILGPU.Runtime
@@ -473,3 +475,5 @@ namespace ILGPU.Runtime
 <#  } #>
     }
 }
+
+#pragma warning restore IDE0046 // Convert to conditional expression

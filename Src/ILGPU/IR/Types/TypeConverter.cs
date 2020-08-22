@@ -234,8 +234,6 @@ namespace ILGPU.IR.Types
         /// <param name="type">The mapped type.</param>
         /// <returns>True, if the given type is type dependent.</returns>
         public bool TryRegister(Value value, TypeNode type) =>
-            !IsTypeDependent(type)
-            ? false
-            : Register(value, type);
+            IsTypeDependent(type) && Register(value, type);
     }
 }

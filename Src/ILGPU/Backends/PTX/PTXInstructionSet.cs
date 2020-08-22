@@ -221,9 +221,8 @@ namespace ILGPU.Backends
         public static bool operator <(
             PTXInstructionSet first,
             PTXInstructionSet second) =>
-            first.Major < second.Major
-            ? true
-            : first.Major == second.Major && first.Minor < second.Minor;
+            first.Major < second.Major ||
+            first.Major == second.Major && first.Minor < second.Minor;
 
         /// <summary>
         /// Returns true if the first instruction set is less than or equal to the
@@ -238,9 +237,8 @@ namespace ILGPU.Backends
         public static bool operator <=(
             PTXInstructionSet first,
             PTXInstructionSet second) =>
-            first.Major < second.Major
-            ? true
-            : first.Major == second.Major && first.Minor <= second.Minor;
+            first.Major < second.Major ||
+            first.Major == second.Major && first.Minor <= second.Minor;
 
         /// <summary>
         /// Returns true if the first instruction set is greater than the second one.
@@ -253,9 +251,8 @@ namespace ILGPU.Backends
         public static bool operator >(
             PTXInstructionSet first,
             PTXInstructionSet second) =>
-            first.Major > second.Major
-            ? true
-            : first.Major == second.Major && first.Minor > second.Minor;
+            first.Major > second.Major ||
+            first.Major == second.Major && first.Minor > second.Minor;
 
         /// <summary>
         /// Returns true if the first instruction set is greater than or equal to the
@@ -270,9 +267,8 @@ namespace ILGPU.Backends
         public static bool operator >=(
             PTXInstructionSet first,
             PTXInstructionSet second) =>
-            first.Major > second.Major
-            ? true
-            : first.Major == second.Major && first.Minor >= second.Minor;
+            first.Major > second.Major ||
+            first.Major == second.Major && first.Minor >= second.Minor;
 
         #endregion
     }
