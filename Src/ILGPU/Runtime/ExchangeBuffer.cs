@@ -10,11 +10,11 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Runtime.Cuda;
-using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime
 {
@@ -72,7 +72,7 @@ namespace ILGPU.Runtime
             public static CudaViewSource Create(long sizeInBytes)
             {
                 CudaException.ThrowIfFailed(
-                    CudaAPI.Current.AllocateHostMemory(
+                    CurrentAPI.AllocateHostMemory(
                         out IntPtr hostPtr,
                         new IntPtr(sizeInBytes)));
                 return new CudaViewSource(hostPtr);
@@ -100,7 +100,7 @@ namespace ILGPU.Runtime
             {
                 if (NativePtr != IntPtr.Zero)
                 {
-                    CudaAPI.Current.FreeHostMemory(NativePtr);
+                    CurrentAPI.FreeHostMemory(NativePtr);
                     NativePtr = IntPtr.Zero;
                 }
                 base.Dispose(disposing);

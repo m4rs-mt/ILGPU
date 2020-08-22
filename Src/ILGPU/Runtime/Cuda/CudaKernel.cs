@@ -10,12 +10,12 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.PTX;
-using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -56,7 +56,7 @@ namespace ILGPU.Runtime.Cuda
             : base(accelerator, kernel, launcher)
         {
 #if DEBUG
-            var kernelLoaded = CudaAPI.Current.LoadModule(
+            var kernelLoaded = CurrentAPI.LoadModule(
                 out modulePtr,
                 kernel.PTXAssembly,
                 out string errorLog);
@@ -71,12 +71,12 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(kernelLoaded);
 #else
             CudaException.ThrowIfFailed(
-                CudaAPI.Current.LoadModule(
+                CurrentAPI.LoadModule(
                     out modulePtr,
                     kernel.PTXAssembly));
 #endif
             CudaException.ThrowIfFailed(
-                CudaAPI.Current.GetModuleFunction(
+                CurrentAPI.GetModuleFunction(
                     out functionPtr,
                     modulePtr,
                     PTXCompiledKernel.EntryName));
@@ -106,7 +106,7 @@ namespace ILGPU.Runtime.Cuda
             if (modulePtr != IntPtr.Zero)
             {
                 CudaException.ThrowIfFailed(
-                    CudaAPI.Current.DestroyModule(modulePtr));
+                    CurrentAPI.DestroyModule(modulePtr));
                 functionPtr = IntPtr.Zero;
                 modulePtr = IntPtr.Zero;
             }

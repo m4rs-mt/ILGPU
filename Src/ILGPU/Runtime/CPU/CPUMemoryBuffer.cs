@@ -11,11 +11,11 @@
 
 using ILGPU.Resources;
 using ILGPU.Runtime.Cuda;
-using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.CPU
 {
@@ -67,11 +67,12 @@ namespace ILGPU.Runtime.CPU
                         target.LengthInBytes);
                     break;
                 case AcceleratorType.Cuda:
-                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyHostToDevice(
-                        new IntPtr(targetAddress),
-                        new IntPtr(sourceAddress),
-                        new IntPtr(target.LengthInBytes),
-                        stream));
+                    CudaException.ThrowIfFailed(
+                        CurrentAPI.MemcpyHostToDevice(
+                            new IntPtr(targetAddress),
+                            new IntPtr(sourceAddress),
+                            new IntPtr(target.LengthInBytes),
+                            stream));
                     break;
                 default:
                     throw new NotSupportedException(
@@ -102,11 +103,12 @@ namespace ILGPU.Runtime.CPU
                         source.LengthInBytes);
                     break;
                 case AcceleratorType.Cuda:
-                    CudaException.ThrowIfFailed(CudaAPI.Current.MemcpyDeviceToHost(
-                        new IntPtr(targetAddress),
-                        new IntPtr(sourceAddress),
-                        new IntPtr(source.LengthInBytes),
-                        stream));
+                    CudaException.ThrowIfFailed(
+                        CurrentAPI.MemcpyDeviceToHost(
+                            new IntPtr(targetAddress),
+                            new IntPtr(sourceAddress),
+                            new IntPtr(source.LengthInBytes),
+                            stream));
                     break;
                 default:
                     throw new NotSupportedException(
