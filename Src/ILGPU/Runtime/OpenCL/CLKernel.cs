@@ -10,12 +10,12 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.OpenCL;
-using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using static ILGPU.Runtime.OpenCL.CLAPI;
 
 namespace ILGPU.Runtime.OpenCL
 {
@@ -48,7 +48,7 @@ namespace ILGPU.Runtime.OpenCL
         {
             errorLog = null;
             kernelPtr = IntPtr.Zero;
-            var programError = CLAPI.CreateProgram(
+            var programError = CurrentAPI.CreateProgram(
                 accelerator.ContextPtr,
                 source,
                 out programPtr);
@@ -58,7 +58,7 @@ namespace ILGPU.Runtime.OpenCL
             // Specify the OpenCL C version.
             string options = "-cl-std=" + version.ToString();
 
-            var buildError = CLAPI.BuildProgram(
+            var buildError = CurrentAPI.BuildProgram(
                 programPtr,
                 accelerator.DeviceId,
                 options);
@@ -66,17 +66,17 @@ namespace ILGPU.Runtime.OpenCL
             if (buildError != CLError.CL_SUCCESS)
             {
                 CLException.ThrowIfFailed(
-                    CLAPI.GetProgramBuildLog(
+                    CurrentAPI.GetProgramBuildLog(
                         programPtr,
                         accelerator.DeviceId,
                         out errorLog));
                 CLException.ThrowIfFailed(
-                    CLAPI.ReleaseProgram(programPtr));
+                    CurrentAPI.ReleaseProgram(programPtr));
                 programPtr = IntPtr.Zero;
                 return buildError;
             }
 
-            return CLAPI.CreateKernel(
+            return CurrentAPI.CreateKernel(
                 programPtr,
                 CLCompiledKernel.EntryName,
                 out kernelPtr);
@@ -91,7 +91,7 @@ namespace ILGPU.Runtime.OpenCL
         {
             IntPtr kernelSize;
             CLException.ThrowIfFailed(
-                CLAPI.GetProgramInfo(
+                CurrentAPI.GetProgramInfo(
                     program,
                     CLProgramInfo.CL_PROGRAM_BINARY_SIZES,
                     new IntPtr(IntPtr.Size),
@@ -102,7 +102,7 @@ namespace ILGPU.Runtime.OpenCL
             fixed (byte* binPtr = &programBinary[0])
             {
                 CLException.ThrowIfFailed(
-                    CLAPI.GetProgramInfo(
+                    CurrentAPI.GetProgramInfo(
                         program,
                         CLProgramInfo.CL_PROGRAM_BINARIES,
                         new IntPtr(IntPtr.Size),
@@ -208,13 +208,13 @@ namespace ILGPU.Runtime.OpenCL
             if (kernelPtr != IntPtr.Zero)
             {
                 CLException.ThrowIfFailed(
-                    CLAPI.ReleaseKernel(kernelPtr));
+                    CurrentAPI.ReleaseKernel(kernelPtr));
                 kernelPtr = IntPtr.Zero;
             }
             if (programPtr != IntPtr.Zero)
             {
                 CLException.ThrowIfFailed(
-                    CLAPI.ReleaseProgram(programPtr));
+                    CurrentAPI.ReleaseProgram(programPtr));
                 programPtr = IntPtr.Zero;
             }
             base.Dispose(disposing);

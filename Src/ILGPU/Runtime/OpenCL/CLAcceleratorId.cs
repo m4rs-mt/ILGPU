@@ -10,12 +10,12 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.OpenCL;
-using ILGPU.Runtime.OpenCL.API;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using static ILGPU.Runtime.OpenCL.CLAPI;
 
 namespace ILGPU.Runtime.OpenCL
 {
@@ -59,12 +59,12 @@ namespace ILGPU.Runtime.OpenCL
             PlatformId = platformId;
             DeviceId = deviceId;
 
-            DeviceType = (CLDeviceType)CLAPI.GetDeviceInfo<long>(
+            DeviceType = (CLDeviceType)CurrentAPI.GetDeviceInfo<long>(
                 deviceId,
                 CLDeviceInfoType.CL_DEVICE_TYPE);
 
             // Resolve extensions
-            var extensionString = CLAPI.GetDeviceInfo(
+            var extensionString = CurrentAPI.GetDeviceInfo(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_EXTENSIONS);
             extensionSet = new HashSet<string>(
@@ -72,7 +72,7 @@ namespace ILGPU.Runtime.OpenCL
             Extensions = extensionSet.ToImmutableArray();
 
             // Determine the supported OpenCL C version
-            var clVersionString = CLAPI.GetDeviceInfo(
+            var clVersionString = CurrentAPI.GetDeviceInfo(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_OPENCL_C_VERSION);
             if (!CLCVersion.TryParse(clVersionString, out CLCVersion version))
@@ -80,7 +80,7 @@ namespace ILGPU.Runtime.OpenCL
             CVersion = version;
 
             // Resolve extension method
-            getKernelSubGroupInfo = CLAPI.GetExtension<clGetKernelSubGroupInfoKHR>(
+            getKernelSubGroupInfo = CurrentAPI.GetExtension<clGetKernelSubGroupInfoKHR>(
                 platformId);
         }
 
@@ -126,7 +126,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="value">The resolved value.</param>
         /// <returns>The error code.</returns>
         public CLError GetDeviceInfo<T>(CLDeviceInfoType type, out T value)
-            where T : unmanaged => CLAPI.GetDeviceInfo(DeviceId, type, out value);
+            where T : unmanaged => CurrentAPI.GetDeviceInfo(DeviceId, type, out value);
 
         /// <summary>
         /// Resolves device information as typed structure value of type
@@ -136,7 +136,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <param name="type">The information type.</param>
         /// <returns>The resolved value.</returns>
         public T GetDeviceInfo<T>(CLDeviceInfoType type)
-            where T : unmanaged => CLAPI.GetDeviceInfo<T>(DeviceId, type);
+            where T : unmanaged => CurrentAPI.GetDeviceInfo<T>(DeviceId, type);
 
         /// <summary>
         /// Returns true if the given extension is supported.

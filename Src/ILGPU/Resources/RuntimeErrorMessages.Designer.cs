@@ -79,6 +79,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to OpenCL is not supported on this platform.
+        /// </summary>
+        internal static string CLNotSupported {
+            get {
+                return ResourceManager.GetString("CLNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cuda is not supported on this platform.
         /// </summary>
         internal static string CudaNotSupported {

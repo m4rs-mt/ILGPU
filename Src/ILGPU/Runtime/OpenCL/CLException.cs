@@ -9,7 +9,6 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Runtime.OpenCL.API;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;

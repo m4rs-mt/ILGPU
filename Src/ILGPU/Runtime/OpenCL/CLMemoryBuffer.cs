@@ -10,9 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Resources;
-using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
+using static ILGPU.Runtime.OpenCL.CLAPI;
 
 namespace ILGPU.Runtime.OpenCL
 {
@@ -36,7 +36,7 @@ namespace ILGPU.Runtime.OpenCL
             : base(accelerator, extent)
         {
             CLException.ThrowIfFailed(
-                CLAPI.CreateBuffer(
+                CurrentAPI.CreateBuffer(
                     accelerator.ContextPtr,
                     CLBufferFlags.CL_MEM_READ_WRITE,
                     new IntPtr(extent.Size * ElementSize),
@@ -62,7 +62,7 @@ namespace ILGPU.Runtime.OpenCL
             {
                 case AcceleratorType.CPU:
                     CLException.ThrowIfFailed(
-                        CLAPI.ReadBuffer(
+                        CurrentAPI.ReadBuffer(
                             clStream.CommandQueue,
                             NativePtr,
                             false,
@@ -72,7 +72,7 @@ namespace ILGPU.Runtime.OpenCL
                     break;
                 case AcceleratorType.OpenCL:
                     CLException.ThrowIfFailed(
-                        CLAPI.CopyBuffer(
+                        CurrentAPI.CopyBuffer(
                             clStream.CommandQueue,
                             NativePtr,
                             target.Source.NativePtr,
@@ -99,7 +99,7 @@ namespace ILGPU.Runtime.OpenCL
             {
                 case AcceleratorType.CPU:
                     CLException.ThrowIfFailed(
-                        CLAPI.WriteBuffer(
+                        CurrentAPI.WriteBuffer(
                             clStream.CommandQueue,
                             NativePtr,
                             false,
@@ -109,7 +109,7 @@ namespace ILGPU.Runtime.OpenCL
                     break;
                 case AcceleratorType.OpenCL:
                     CLException.ThrowIfFailed(
-                        CLAPI.CopyBuffer(
+                        CurrentAPI.CopyBuffer(
                             clStream.CommandQueue,
                             source.Source.NativePtr,
                             NativePtr,
@@ -126,7 +126,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="MemoryBuffer.MemSetToZero(AcceleratorStream)"/>
         public override void MemSetToZero(AcceleratorStream stream) =>
             CLException.ThrowIfFailed(
-                CLAPI.FillBuffer<byte>(
+                CurrentAPI.FillBuffer<byte>(
                     ((CLStream)stream).CommandQueue,
                     NativePtr,
                     0,
@@ -143,7 +143,7 @@ namespace ILGPU.Runtime.OpenCL
             if (NativePtr != IntPtr.Zero)
             {
                 CLException.ThrowIfFailed(
-                    CLAPI.ReleaseBuffer(NativePtr));
+                    CurrentAPI.ReleaseBuffer(NativePtr));
                 NativePtr = IntPtr.Zero;
             }
             base.Dispose(disposing);
