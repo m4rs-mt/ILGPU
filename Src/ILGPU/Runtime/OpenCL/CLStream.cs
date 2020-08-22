@@ -9,10 +9,10 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using static ILGPU.Runtime.OpenCL.CLAPI;
 
 namespace ILGPU.Runtime.OpenCL
 {
@@ -40,7 +40,7 @@ namespace ILGPU.Runtime.OpenCL
             : base(accelerator)
         {
             CLException.ThrowIfFailed(
-                CLAPI.CreateCommandQueue(
+                CurrentAPI.CreateCommandQueue(
                     accelerator.DeviceId,
                     accelerator.ContextPtr,
                     out queuePtr));
@@ -63,7 +63,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="AcceleratorStream.Synchronize"/>
         public override void Synchronize() =>
             CLException.ThrowIfFailed(
-                CLAPI.FinishCommandQueue(queuePtr));
+                CurrentAPI.FinishCommandQueue(queuePtr));
 
         #endregion
 
@@ -75,7 +75,7 @@ namespace ILGPU.Runtime.OpenCL
             if (responsibleForHandle && queuePtr != IntPtr.Zero)
             {
                 CLException.ThrowIfFailed(
-                    CLAPI.ReleaseCommandQueue(queuePtr));
+                    CurrentAPI.ReleaseCommandQueue(queuePtr));
                 queuePtr = IntPtr.Zero;
             }
             base.Dispose(disposing);

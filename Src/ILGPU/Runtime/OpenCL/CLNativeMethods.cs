@@ -15,7 +15,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace ILGPU.Runtime.OpenCL.API
+namespace ILGPU.Runtime.OpenCL
 {
     public enum CLError : int
     {

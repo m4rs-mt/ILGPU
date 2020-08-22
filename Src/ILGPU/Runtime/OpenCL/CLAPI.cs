@@ -9,17 +9,20 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Resources;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace ILGPU.Runtime.OpenCL.API
+#pragma warning disable IDE1006 // Naming
+
+namespace ILGPU.Runtime.OpenCL
 {
     /// <summary>
     /// Wraps the OpenCL-driver API.
     /// </summary>
-    public static unsafe class CLAPI
+    public abstract unsafe class CLAPI : RuntimeAPI
     {
         #region Nested Types
 
@@ -72,12 +75,285 @@ namespace ILGPU.Runtime.OpenCL.API
                 CLStream stream,
                 CLKernel kernel,
                 RuntimeKernelConfig config) =>
-                SetKernelArgumentUnsafeWithKernel(
+                CLAPI.CurrentAPI.SetKernelArgumentUnsafeWithKernel(
                     kernel,
                     0,
                     config.SharedMemoryConfig.DynamicArraySize,
                     null);
         }
+
+        #endregion
+
+        #region Constants
+
+        /// <summary>
+        /// Represents the driver library name on Windows.
+        /// </summary>
+        public const string LibNameWindows = "opencl";
+
+        /// <summary>
+        /// Represents the driver library name on Linux.
+        /// </summary>
+        public const string LibNameLinux = "opencl";
+
+        /// <summary>
+        /// Represents the driver library name on MacOS.
+        /// </summary>
+        public const string LibNameMacOS = "opencl";
+
+        #endregion
+
+        #region Native Methods
+
+        // Devices
+
+        [DynamicImport]
+        internal abstract CLError clGetPlatformIDs(
+            [In] int maxNumPlatforms,
+            [Out] IntPtr* platforms,
+            [Out] out int numPlatforms);
+
+        [DynamicImport]
+        internal abstract CLError clGetPlatformInfo(
+            [In] IntPtr platform,
+            [In] CLPlatformInfoType platformInfoType,
+            [In] IntPtr maxSize,
+            [Out] void* value,
+            [Out] IntPtr size);
+
+        [DynamicImport]
+        internal abstract CLError clGetDeviceIDs(
+            [In] IntPtr platform,
+            [In] CLDeviceType deviceType,
+            [In] int maxNumDevices,
+            [Out] IntPtr* devices,
+            [Out] out int numDevices);
+
+        [DynamicImport]
+        internal abstract CLError clReleaseDevice(
+            [In] IntPtr deviceId);
+
+        [DynamicImport]
+        internal abstract CLError clGetDeviceInfo(
+            [In] IntPtr deviceId,
+            [In] CLDeviceInfoType deviceInfoType,
+            [In] IntPtr maxSize,
+            [Out] void* value,
+            [Out] IntPtr size);
+
+        [DynamicImport(CharSet = CharSet.Ansi, BestFitMapping = false)]
+        internal abstract IntPtr clGetExtensionFunctionAddressForPlatform(
+            [In] IntPtr platformId,
+            [In] string name);
+
+        // Context
+
+        [DynamicImport]
+        internal abstract IntPtr clCreateContext(
+            [In] IntPtr* properties,
+            [In] int numDevices,
+            [In] IntPtr* devices,
+            [In] IntPtr callback,
+            [In] IntPtr userData,
+            [Out] out CLError errorCode);
+
+        [DynamicImport]
+        internal abstract CLError clReleaseContext(
+            [In] IntPtr context);
+
+        // Command Queues
+
+        [DynamicImport]
+        internal abstract IntPtr clCreateCommandQueue(
+            [In] IntPtr context,
+            [In] IntPtr device,
+            [In] IntPtr properties,
+            [Out] out CLError errorCode);
+
+        [DynamicImport]
+        internal abstract IntPtr clCreateCommandQueueWithProperties(
+            [In] IntPtr context,
+            [In] IntPtr deviceId,
+            [In] IntPtr properties,
+            [Out] out CLError errorCode);
+
+        [DynamicImport]
+        internal abstract CLError clReleaseCommandQueue(
+            [In] IntPtr queue);
+
+        [DynamicImport]
+        internal abstract CLError clFlush(
+            [In] IntPtr queue);
+
+        [DynamicImport]
+        internal abstract CLError clFinish(
+            [In] IntPtr queue);
+
+        // Kernels
+
+        [DynamicImport(CharSet = CharSet.Ansi, BestFitMapping = false)]
+        internal abstract IntPtr clCreateProgramWithSource(
+            [In] IntPtr context,
+            [In] int numPrograms,
+            [In] ref string source,
+            [In] ref IntPtr lengths,
+            [Out] out CLError errorCode);
+
+        [DynamicImport(CharSet = CharSet.Ansi, BestFitMapping = false)]
+        internal abstract CLError clBuildProgram(
+            [In] IntPtr program,
+            [In] int numDevices,
+            [In] IntPtr* devices,
+            [In] string options,
+            [In] IntPtr callback,
+            [In] IntPtr userData);
+
+        [DynamicImport]
+        internal abstract CLError clReleaseProgram(
+            [In] IntPtr program);
+
+        [DynamicImport]
+        internal abstract CLError clGetProgramInfo(
+            [In] IntPtr program,
+            [In] CLProgramInfo param_name,
+            [In] IntPtr paramValueSize,
+            [Out] void* paramValue,
+            [Out] out IntPtr paramValueSizeRet);
+
+        [DynamicImport]
+        internal abstract CLError clGetProgramBuildInfo(
+            [In] IntPtr program,
+            [In] IntPtr device,
+            [In] CLProgramBuildInfo paramName,
+            [In] IntPtr paramValueSize,
+            [Out] void* paramValue,
+            [Out] out IntPtr paramValueSizeRet);
+
+        [DynamicImport(CharSet = CharSet.Ansi, BestFitMapping = false)]
+        internal abstract IntPtr clCreateKernel(
+            [In] IntPtr program,
+            [In] string kernelName,
+            [Out] out CLError errorCode);
+
+        [DynamicImport]
+        internal abstract CLError clReleaseKernel(
+            [In] IntPtr kernel);
+
+        [DynamicImport]
+        internal abstract CLError clSetKernelArg(
+            [In] IntPtr kernel,
+            [In] int index,
+            [In] IntPtr size,
+            [In] void* value);
+
+        [DynamicImport]
+        internal abstract CLError clEnqueueNDRangeKernel(
+            [In] IntPtr queue,
+            [In] IntPtr kernel,
+            [In] int workDimensions,
+            [In] IntPtr* workOffsets,
+            [In] IntPtr* globalWorkSizes,
+            [In] IntPtr* localWorkSizes,
+            [In] int numEvents,
+            [In] IntPtr* events,
+            [In, Out] IntPtr* creatingEvent);
+
+        [DynamicImport]
+        internal abstract CLError clGetKernelWorkGroupInfo(
+            [In] IntPtr kernel,
+            [In] IntPtr device,
+            [In] CLKernelWorkGroupInfoType workGroupInfoType,
+            [In] IntPtr maxSize,
+            [Out] void* paramValue,
+            [Out] IntPtr size);
+
+        // Buffers
+
+        [DynamicImport]
+        internal abstract IntPtr clCreateBuffer(
+            IntPtr context,
+            CLBufferFlags flags,
+            IntPtr size,
+            IntPtr hostPointer,
+            out CLError errorCode);
+
+        [DynamicImport]
+        internal abstract CLError clReleaseMemObject(
+            [In] IntPtr buffer);
+
+        [DynamicImport]
+        internal abstract CLError clEnqueueReadBuffer(
+            [In] IntPtr queue,
+            [In] IntPtr buffer,
+            [In] bool blockingRead,
+            [In] IntPtr offset,
+            [In] IntPtr size,
+            [In] IntPtr ptr,
+            [In] int numEvents,
+            [In] IntPtr* events,
+            [In, Out] IntPtr* resultEvent);
+
+        [DynamicImport]
+        internal abstract CLError clEnqueueWriteBuffer(
+            [In] IntPtr queue,
+            [In] IntPtr buffer,
+            [In] bool blockingWrite,
+            [In] IntPtr offset,
+            [In] IntPtr size,
+            [In] IntPtr ptr,
+            [In] int numEvents,
+            [In] IntPtr* events,
+            [In, Out] IntPtr* resultEvent);
+
+        [DynamicImport]
+        internal abstract CLError clEnqueueFillBuffer(
+            [In] IntPtr queue,
+            [In] IntPtr buffer,
+            [In] void* pattern,
+            [In] IntPtr patternSize,
+            [In] IntPtr offset,
+            [In] IntPtr size,
+            [In] int numEvents,
+            [In] IntPtr* events,
+            [In, Out] IntPtr* resultEvent);
+
+        [DynamicImport]
+        internal abstract CLError clEnqueueCopyBuffer(
+            [In] IntPtr queue,
+            [In] IntPtr sourceBuffer,
+            [In] IntPtr targetBuffer,
+            [In] IntPtr sourceOffset,
+            [In] IntPtr targetOffset,
+            [In] IntPtr size,
+            [In] int numEvents,
+            [In] IntPtr* events,
+            [In, Out] IntPtr* resultEvent);
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Returns the driver API for the current platform.
+        /// </summary>
+        public static CLAPI CurrentAPI { get; } =
+            RuntimeSystem.Instance.CreateDllWrapper<CLAPI>(
+                windows: LibNameWindows,
+                linux: LibNameLinux,
+                macos: LibNameMacOS,
+                RuntimeErrorMessages.CLNotSupported);
+
+        #endregion
+
+        #region Initialization
+
+        /// <summary>
+        /// Initializes the driver API.
+        /// </summary>
+        /// <returns>The error status.</returns>
+        public override bool Init() =>
+            GetNumPlatforms(out int numPlatforms) == CLError.CL_SUCCESS &&
+            numPlatforms > 0;
 
         #endregion
 
@@ -87,11 +363,11 @@ namespace ILGPU.Runtime.OpenCL.API
         /// Resolves the number of available platforms.
         /// </summary>
         /// <returns>The error code.</returns>
-        public static CLError GetNumPlatforms(out int numPlatforms)
+        public CLError GetNumPlatforms(out int numPlatforms)
         {
             if (Backends.Backend.RunningOnNativePlatform)
             {
-                return NativeMethods.GetPlatformIDs(
+                return clGetPlatformIDs(
                     short.MaxValue,
                     null,
                     out numPlatforms);
@@ -109,7 +385,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="platforms">The target platform ids to fill.</param>
         /// <param name="numPlatforms">The resolved number of platforms.</param>
         /// <returns>The error code.</returns>
-        public static CLError GetPlatforms(IntPtr[] platforms, out int numPlatforms)
+        public CLError GetPlatforms(IntPtr[] platforms, out int numPlatforms)
         {
             Debug.Assert(platforms != null, "Invalid platform ids");
             fixed (IntPtr* ptr = &platforms[0])
@@ -126,8 +402,8 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="numPlatforms">The resolved number of platforms.</param>
         /// <returns>The error code.</returns>
         [CLSCompliant(false)]
-        public static CLError GetPlatforms(IntPtr* platforms, ref int numPlatforms) =>
-            NativeMethods.GetPlatformIDs(numPlatforms, platforms, out numPlatforms);
+        public CLError GetPlatforms(IntPtr* platforms, ref int numPlatforms) =>
+            clGetPlatformIDs(numPlatforms, platforms, out numPlatforms);
 
         /// <summary>
         /// Resolves platform information as string value.
@@ -135,13 +411,13 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="platform">The platform.</param>
         /// <param name="type">The information type.</param>
         /// <returns>The resolved string value.</returns>
-        public static string GetPlatformInfo(IntPtr platform, CLPlatformInfoType type)
+        public string GetPlatformInfo(IntPtr platform, CLPlatformInfoType type)
         {
             const int MaxStringLength = 1024;
             var stringValue = stackalloc sbyte[MaxStringLength];
             var size = IntPtr.Zero;
 
-            CLException.ThrowIfFailed(NativeMethods.GetPlatformInfo(
+            CLException.ThrowIfFailed(clGetPlatformInfo(
                 platform,
                 type,
                 new IntPtr(MaxStringLength),
@@ -161,11 +437,11 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="platform">The platform.</param>
         /// <param name="type">The information type.</param>
         /// <returns>The resolved value.</returns>
-        public static T GetPlatformInfo<T>(IntPtr platform, CLPlatformInfoType type)
+        public T GetPlatformInfo<T>(IntPtr platform, CLPlatformInfoType type)
             where T : unmanaged
         {
             T value = default;
-            CLException.ThrowIfFailed(NativeMethods.GetPlatformInfo(
+            CLException.ThrowIfFailed(clGetPlatformInfo(
                 platform,
                 type,
                 new IntPtr(Interop.SizeOf<T>()),
@@ -182,7 +458,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="devices">The device ids to fill.</param>
         /// <param name="numDevices">The number of devices.</param>
         /// <returns>The error code.</returns>
-        public static CLError GetDevices(
+        public CLError GetDevices(
             IntPtr platform,
             CLDeviceType deviceType,
             IntPtr[] devices,
@@ -205,12 +481,12 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="numDevices">The number of devices.</param>
         /// <returns>The error code.</returns>
         [CLSCompliant(false)]
-        public static CLError GetDevices(
+        public CLError GetDevices(
             IntPtr platform,
             CLDeviceType deviceType,
             IntPtr* devices,
             ref int numDevices) =>
-            NativeMethods.GetDeviceIDs(
+            clGetDeviceIDs(
                 platform,
                 deviceType,
                 numDevices,
@@ -222,8 +498,8 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="device">The device</param>
         /// <returns>The error code.</returns>
-        public static CLError ReleaseDevice(IntPtr device) =>
-            NativeMethods.ReleaseDevice(device);
+        public CLError ReleaseDevice(IntPtr device) =>
+            clReleaseDevice(device);
 
         /// <summary>
         /// Resolves device information as string value.
@@ -231,13 +507,13 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="device">The device.</param>
         /// <param name="type">The information type.</param>
         /// <returns>The resolved string value.</returns>
-        public static string GetDeviceInfo(IntPtr device, CLDeviceInfoType type)
+        public string GetDeviceInfo(IntPtr device, CLDeviceInfoType type)
         {
             const int MaxStringLength = 8192;
             var stringValue = stackalloc sbyte[MaxStringLength];
             var size = IntPtr.Zero;
 
-            CLException.ThrowIfFailed(NativeMethods.GetDeviceInfo(
+            CLException.ThrowIfFailed(clGetDeviceInfo(
                 device,
                 type,
                 new IntPtr(MaxStringLength),
@@ -257,7 +533,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="device">The device.</param>
         /// <param name="type">The information type.</param>
         /// <returns>The resolved value.</returns>
-        public static T GetDeviceInfo<T>(IntPtr device, CLDeviceInfoType type)
+        public T GetDeviceInfo<T>(IntPtr device, CLDeviceInfoType type)
             where T : unmanaged
         {
             CLException.ThrowIfFailed(GetDeviceInfo(
@@ -276,14 +552,14 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="type">The information type.</param>
         /// <param name="value">The resolved value.</param>
         /// <returns>The error code.</returns>
-        public static CLError GetDeviceInfo<T>(
+        public CLError GetDeviceInfo<T>(
             IntPtr device,
             CLDeviceInfoType type,
             out T value)
             where T : unmanaged
         {
             value = default;
-            return NativeMethods.GetDeviceInfo(
+            return clGetDeviceInfo(
                 device,
                 type,
                 new IntPtr(Interop.SizeOf<T>()),
@@ -300,7 +576,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="type">The information type.</param>
         /// <param name="elements">The elements to fill.</param>
         /// <returns>The resolved value.</returns>
-        public static void GetDeviceInfo<T>(
+        public void GetDeviceInfo<T>(
             IntPtr device,
             CLDeviceInfoType type,
             T[] elements)
@@ -309,7 +585,7 @@ namespace ILGPU.Runtime.OpenCL.API
             fixed (T* ptr = &elements[0])
             {
 
-                CLException.ThrowIfFailed(NativeMethods.GetDeviceInfo(
+                CLException.ThrowIfFailed(clGetDeviceInfo(
                     device,
                     type,
                     new IntPtr(Interop.SizeOf<T>() * elements.Length),
@@ -324,7 +600,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <typeparam name="T">The delegate type.</typeparam>
         /// <param name="platform">The platform pointer.</param>
         /// <returns>The resolved extension.</returns>
-        public static T GetExtension<T>(IntPtr platform)
+        public T GetExtension<T>(IntPtr platform)
             where T : Delegate =>
             GetExtension<T>(platform, typeof(T).Name);
 
@@ -335,10 +611,10 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="platform">The platform pointer.</param>
         /// <param name="name">The extension name.</param>
         /// <returns>The resolved extension.</returns>
-        public static T GetExtension<T>(IntPtr platform, string name)
+        public T GetExtension<T>(IntPtr platform, string name)
             where T : Delegate
         {
-            var address = NativeMethods.GetExtensionFunctionAddressForPlatform(
+            var address = clGetExtensionFunctionAddressForPlatform(
                 platform,
                 name);
             return address == IntPtr.Zero
@@ -352,9 +628,9 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="device">The device.</param>
         /// <param name="context">The created context.</param>
         /// <returns>The error code.</returns>
-        public static CLError CreateContext(IntPtr device, out IntPtr context)
+        public CLError CreateContext(IntPtr device, out IntPtr context)
         {
-            context = NativeMethods.CreateContext(
+            context = clCreateContext(
                 null,
                 1,
                 &device,
@@ -369,8 +645,8 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="context">The context to release.</param>
         /// <returns>The error code.</returns>
-        public static CLError ReleaseContext(IntPtr context) =>
-            NativeMethods.ReleaseContext(context);
+        public CLError ReleaseContext(IntPtr context) =>
+            clReleaseContext(context);
 
         /// <summary>
         /// Creates a new command queue.
@@ -379,12 +655,12 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="context">The parent context.</param>
         /// <param name="queue">The created queue.</param>
         /// <returns>The error code.</returns>
-        public static CLError CreateCommandQueue(
+        public CLError CreateCommandQueue(
             IntPtr device,
             IntPtr context,
             out IntPtr queue)
         {
-            queue = NativeMethods.CreateCommandQueueWithProperties(
+            queue = clCreateCommandQueueWithProperties(
                 context,
                 device,
                 IntPtr.Zero,
@@ -397,24 +673,24 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="queue">The queue to release.</param>
         /// <returns>The error code.</returns>
-        public static CLError ReleaseCommandQueue(IntPtr queue) =>
-            NativeMethods.ReleaseCommandQueue(queue);
+        public CLError ReleaseCommandQueue(IntPtr queue) =>
+            clReleaseCommandQueue(queue);
 
         /// <summary>
         /// Flushes the given command queue.
         /// </summary>
         /// <param name="queue">The queue to flush.</param>
         /// <returns>The error code.</returns>
-        public static CLError FlushCommandQueue(IntPtr queue) =>
-            NativeMethods.Flush(queue);
+        public CLError FlushCommandQueue(IntPtr queue) =>
+            clFlush(queue);
 
         /// <summary>
         /// Finishes the given command queue.
         /// </summary>
         /// <param name="queue">The queue to finish.</param>
         /// <returns>The error code.</returns>
-        public static CLError FinishCommandQueue(IntPtr queue) =>
-            NativeMethods.Finish(queue);
+        public CLError FinishCommandQueue(IntPtr queue) =>
+            clFinish(queue);
 
         #endregion
 
@@ -427,13 +703,13 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="source">The program source.</param>
         /// <param name="program">The created program.</param>
         /// <returns>The error code.</returns>
-        public static CLError CreateProgram(
+        public CLError CreateProgram(
             IntPtr context,
             string source,
             out IntPtr program)
         {
             var length = new IntPtr(source.Length);
-            program = NativeMethods.CreateProgramWithSource(
+            program = clCreateProgramWithSource(
                 context,
                 1,
                 ref source,
@@ -451,11 +727,11 @@ namespace ILGPU.Runtime.OpenCL.API
         /// The program build options (refer to the OpenCL specification).
         /// </param>
         /// <returns>The error code.</returns>
-        public static CLError BuildProgram(
+        public CLError BuildProgram(
             IntPtr program,
             IntPtr device,
             string options) =>
-            NativeMethods.BuildProgram(
+            clBuildProgram(
                 program,
                 1,
                 &device,
@@ -474,12 +750,12 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </param>
         /// <returns>The error code.</returns>
         [CLSCompliant(false)]
-        public static CLError BuildProgram(
+        public CLError BuildProgram(
             IntPtr program,
             IntPtr* devices,
             int numDevices,
             string options) =>
-            NativeMethods.BuildProgram(
+            clBuildProgram(
                 program,
                 numDevices,
                 devices,
@@ -496,7 +772,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// The program build options (refer to the OpenCL specification).
         /// </param>
         /// <returns>The error code.</returns>
-        public static CLError BuildProgram(
+        public CLError BuildProgram(
             IntPtr program,
             IntPtr[] devices,
             string options)
@@ -521,13 +797,13 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="paramValueSizeRet">The resulting parameter value size.</param>
         /// <returns>The error code.</returns>
         [CLSCompliant(false)]
-        public static CLError GetProgramInfo(
+        public CLError GetProgramInfo(
             IntPtr program,
             CLProgramInfo paramName,
             IntPtr paramValueSize,
             void* paramValue,
             out IntPtr paramValueSizeRet) =>
-            NativeMethods.GetProgramInfo(
+            clGetProgramInfo(
                 program,
                 paramName,
                 paramValueSize,
@@ -545,14 +821,14 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="paramValueSizeRet">The resulting parameter value size.</param>
         /// <returns>The error code.</returns>
         [CLSCompliant(false)]
-        public static CLError GetProgramBuildInfo(
+        public CLError GetProgramBuildInfo(
             IntPtr program,
             IntPtr device,
             CLProgramBuildInfo paramName,
             IntPtr paramValueSize,
             void* paramValue,
             out IntPtr paramValueSizeRet) =>
-            NativeMethods.GetProgramBuildInfo(
+            clGetProgramBuildInfo(
                 program,
                 device,
                 paramName,
@@ -567,7 +843,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="device">The associated device.</param>
         /// <param name="buildLog">The build log (if any).</param>
         /// <returns>The error code.</returns>
-        public static CLError GetProgramBuildLog(
+        public CLError GetProgramBuildLog(
             IntPtr program,
             IntPtr device,
             out string buildLog)
@@ -602,8 +878,8 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="program">The program to release.</param>
         /// <returns>The error code.</returns>
-        public static CLError ReleaseProgram(IntPtr program) =>
-            NativeMethods.ReleaseProgram(program);
+        public CLError ReleaseProgram(IntPtr program) =>
+            clReleaseProgram(program);
 
         /// <summary>
         /// Creates a new kernel.
@@ -612,12 +888,12 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="kernelName">The kernel name in the scope of the program.</param>
         /// <param name="kernel">The created kernel.</param>
         /// <returns>The error code.</returns>
-        public static CLError CreateKernel(
+        public CLError CreateKernel(
             IntPtr program,
             string kernelName,
             out IntPtr kernel)
         {
-            kernel = NativeMethods.CreateKernel(
+            kernel = clCreateKernel(
                 program,
                 kernelName,
                 out CLError errorStatus);
@@ -629,8 +905,8 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="kernel">The kernel to release.</param>
         /// <returns>The error code.</returns>
-        public static CLError ReleaseKernel(IntPtr kernel) =>
-            NativeMethods.ReleaseKernel(kernel);
+        public CLError ReleaseKernel(IntPtr kernel) =>
+            clReleaseKernel(kernel);
 
         /// <summary>
         /// Sets a kernel argument.
@@ -641,7 +917,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="value">The managed value to set.</param>
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static CLError SetKernelArgument<T>(
+        public CLError SetKernelArgument<T>(
             IntPtr kernel,
             int index,
             T value)
@@ -662,12 +938,12 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <returns>The error code.</returns>
         [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static CLError SetKernelArgumentUnsafe(
+        public CLError SetKernelArgumentUnsafe(
             IntPtr kernel,
             int index,
             int size,
             void* value) =>
-            NativeMethods.SetKernelArg(
+            clSetKernelArg(
                 kernel,
                 index,
                 new IntPtr(size),
@@ -683,12 +959,12 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <returns>The error code.</returns>
         [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static CLError SetKernelArgumentUnsafeWithKernel(
+        public CLError SetKernelArgumentUnsafeWithKernel(
             CLKernel kernel,
             int index,
             int size,
             void* value) =>
-            NativeMethods.SetKernelArg(
+            clSetKernelArg(
                 kernel.KernelPtr,
                 index,
                 new IntPtr(size),
@@ -705,7 +981,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="config">The current kernel configuration.</param>
         /// <returns>The error status.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe CLError LaunchKernelWithStreamBinding<THandler>(
+        internal unsafe CLError LaunchKernelWithStreamBinding<THandler>(
             CLStream stream,
             CLKernel kernel,
             RuntimeKernelConfig config)
@@ -753,14 +1029,14 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <returns>The error code.</returns>
         [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static CLError LaunchKernelUnsafe(
+        public CLError LaunchKernelUnsafe(
             IntPtr queue,
             IntPtr kernel,
             int workDimensions,
             IntPtr* workOffsets,
             IntPtr* globalWorkSizes,
             IntPtr* localWorkSizes) =>
-            NativeMethods.EnqueueNDRangeKernel(
+            clEnqueueNDRangeKernel(
                 queue,
                 kernel,
                 workDimensions,
@@ -782,7 +1058,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="localWorkSizes">All local work sizes.</param>
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static CLError LaunchKernel(
+        public CLError LaunchKernel(
             IntPtr queue,
             IntPtr kernel,
             int workDimensions,
@@ -814,14 +1090,14 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="device">The device.</param>
         /// <param name="type">The information type.</param>
         /// <returns>The resolved value.</returns>
-        public static T GetKernelWorkGroupInfo<T>(
+        public T GetKernelWorkGroupInfo<T>(
             IntPtr kernel,
             IntPtr device,
             CLKernelWorkGroupInfoType type)
             where T : unmanaged
         {
             T value = default;
-            CLException.ThrowIfFailed(NativeMethods.GetKernelWorkGroupInfo(
+            CLException.ThrowIfFailed(clGetKernelWorkGroupInfo(
                 kernel,
                 device,
                 type,
@@ -840,7 +1116,7 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="device">The device.</param>
         /// <param name="type">The information type.</param>
         /// <param name="elements">The desired elements.</param>
-        public static void GetKernelWorkGroupInfo<T>(
+        public void GetKernelWorkGroupInfo<T>(
             IntPtr kernel,
             IntPtr device,
             CLKernelWorkGroupInfoType type,
@@ -849,7 +1125,7 @@ namespace ILGPU.Runtime.OpenCL.API
         {
             fixed (T* ptr = &elements[0])
             {
-                CLException.ThrowIfFailed(NativeMethods.GetKernelWorkGroupInfo(
+                CLException.ThrowIfFailed(clGetKernelWorkGroupInfo(
                     kernel,
                     device,
                     type,
@@ -873,14 +1149,14 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="buffer">The created buffer.</param>
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static CLError CreateBuffer(
+        public CLError CreateBuffer(
             IntPtr context,
             CLBufferFlags flags,
             IntPtr size,
             IntPtr hostPointer,
             out IntPtr buffer)
         {
-            buffer = NativeMethods.CreateBuffer(
+            buffer = clCreateBuffer(
                 context,
                 flags,
                 size,
@@ -894,8 +1170,8 @@ namespace ILGPU.Runtime.OpenCL.API
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <returns>The error code.</returns>
-        public static CLError ReleaseBuffer(IntPtr buffer) =>
-            NativeMethods.ReleaseMemObject(buffer);
+        public CLError ReleaseBuffer(IntPtr buffer) =>
+            clReleaseMemObject(buffer);
 
         /// <summary>
         /// Reads from a buffer into host memory.
@@ -910,14 +1186,14 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="ptr">The target pointer in host memory.</param>
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static CLError ReadBuffer(
+        public CLError ReadBuffer(
             IntPtr queue,
             IntPtr buffer,
             bool blockingRead,
             IntPtr offset,
             IntPtr size,
             IntPtr ptr) =>
-            NativeMethods.EnqueueReadBuffer(
+            clEnqueueReadBuffer(
                 queue,
                 buffer,
                 blockingRead,
@@ -941,14 +1217,14 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="ptr">The source pointer in host memory.</param>
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static CLError WriteBuffer(
+        public CLError WriteBuffer(
             IntPtr queue,
             IntPtr buffer,
             bool blockingWrite,
             IntPtr offset,
             IntPtr size,
             IntPtr ptr) =>
-            NativeMethods.EnqueueWriteBuffer(
+            clEnqueueWriteBuffer(
                 queue,
                 buffer,
                 blockingWrite,
@@ -970,14 +1246,14 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="size">The size in bytes to fill.</param>
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static CLError FillBuffer<T>(
+        public CLError FillBuffer<T>(
             IntPtr queue,
             IntPtr buffer,
             T pattern,
             IntPtr offset,
             IntPtr size)
             where T : unmanaged =>
-            NativeMethods.EnqueueFillBuffer(
+            clEnqueueFillBuffer(
                 queue,
                 buffer,
                 Unsafe.AsPointer(ref pattern),
@@ -1003,14 +1279,14 @@ namespace ILGPU.Runtime.OpenCL.API
         /// <param name="size">The size to copy in bytes.</param>
         /// <returns>The error code.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static CLError CopyBuffer(
+        public CLError CopyBuffer(
             IntPtr queue,
             IntPtr sourceBuffer,
             IntPtr targetBuffer,
             IntPtr sourceOffset,
             IntPtr targetOffset,
             IntPtr size) =>
-            NativeMethods.EnqueueCopyBuffer(
+            clEnqueueCopyBuffer(
                 queue,
                 sourceBuffer,
                 targetBuffer,
@@ -1025,3 +1301,4 @@ namespace ILGPU.Runtime.OpenCL.API
     }
 }
 
+#pragma warning restore IDE1006 // Naming

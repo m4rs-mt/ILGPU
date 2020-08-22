@@ -14,7 +14,6 @@ using ILGPU.Backends.IL;
 using ILGPU.Backends.SeparateViews;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
-using ILGPU.Runtime.OpenCL.API;
 using System;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -35,7 +34,7 @@ namespace ILGPU.Backends.OpenCL
         private static readonly MethodInfo SetKernelArgumentMethod =
             typeof(CLAPI).GetMethod(
                 nameof(CLAPI.SetKernelArgumentUnsafeWithKernel),
-                BindingFlags.Public | BindingFlags.Static);
+                BindingFlags.Public | BindingFlags.Instance);
 
         #endregion
 
@@ -307,6 +306,9 @@ namespace ILGPU.Backends.OpenCL
             where TILEmitter : IILEmitter
             where TSource : struct, ISource
         {
+            // Load current driver API
+            emitter.EmitCall(CLAccelerator.GetCLAPIMethod);
+
             // Load kernel reference
             emitter.Emit(LocalOperation.Load, kernelLocal);
 
