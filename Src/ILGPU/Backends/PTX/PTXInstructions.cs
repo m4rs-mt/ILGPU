@@ -74,12 +74,10 @@ namespace ILGPU.Backends.PTX
         /// <returns>The resolved convert operation.</returns>
         public static string GetConvertOperation(
             ArithmeticBasicValueType source,
-            ArithmeticBasicValueType target)
-        {
-            if (ConvertOperations.TryGetValue((source, target), out string operation))
-                return operation;
-            throw new NotSupportedIntrinsicException($"{source} -> {target}");
-        }
+            ArithmeticBasicValueType target) =>
+            ConvertOperations.TryGetValue((source, target), out string operation)
+            ? operation
+            : throw new NotSupportedIntrinsicException($"{source} -> {target}");
 
         /// <summary>
         /// Resolves an unary arithmetic operation.
@@ -94,15 +92,13 @@ namespace ILGPU.Backends.PTX
             bool fastMath)
         {
             var key = (kind, type);
-            if (fastMath &&
+            return fastMath &&
                 UnaryArithmeticOperationsFastMath.TryGetValue(
                     key,
                     out string operation) ||
-                UnaryArithmeticOperations.TryGetValue(key, out operation))
-            {
-                return operation;
-            }
-            throw new NotSupportedIntrinsicException(kind.ToString());
+                UnaryArithmeticOperations.TryGetValue(key, out operation)
+                ? operation
+                : throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
         /// <summary>
@@ -118,15 +114,13 @@ namespace ILGPU.Backends.PTX
             bool fastMath)
         {
             var key = (kind, type);
-            if (fastMath &&
+            return fastMath &&
                 BinaryArithmeticOperationsFastMath.TryGetValue(
                     key,
                     out string operation) ||
-                BinaryArithmeticOperations.TryGetValue(key, out operation))
-            {
-                return operation;
-            }
-            throw new NotSupportedIntrinsicException(kind.ToString());
+                BinaryArithmeticOperations.TryGetValue(key, out operation)
+                ? operation
+                : throw new NotSupportedIntrinsicException(kind.ToString());
         }
 
         /// <summary>
@@ -137,17 +131,10 @@ namespace ILGPU.Backends.PTX
         /// <returns>The resolved arithmetic operation.</returns>
         public static string GetArithmeticOperation(
             TernaryArithmeticKind kind,
-            ArithmeticBasicValueType type)
-        {
-            if (TernaryArithmeticOperations.TryGetValue(
-                (kind, type),
-                out string operation))
-            {
-                return operation;
-            }
-
-            throw new NotSupportedIntrinsicException(kind.ToString());
-        }
+            ArithmeticBasicValueType type) =>
+            TernaryArithmeticOperations.TryGetValue((kind, type), out string operation)
+            ? operation
+            : throw new NotSupportedIntrinsicException(kind.ToString());
 
         /// <summary>
         /// Resolves an atomic operation.
@@ -155,17 +142,10 @@ namespace ILGPU.Backends.PTX
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="requireResult">True, if the return value is required.</param>
         /// <returns>The resolved atomic operation.</returns>
-        public static string GetAtomicOperation(AtomicKind kind, bool requireResult)
-        {
-            if (AtomicOperations.TryGetValue(
-                (kind, requireResult),
-                out string operation))
-            {
-                return operation;
-            }
-
-            throw new NotSupportedIntrinsicException(kind.ToString());
-        }
+        public static string GetAtomicOperation(AtomicKind kind, bool requireResult) =>
+            AtomicOperations.TryGetValue((kind, requireResult), out string operation)
+            ? operation
+            : throw new NotSupportedIntrinsicException(kind.ToString());
 
         /// <summary>
         /// Resolves an atomic-operation suffix.
@@ -175,13 +155,10 @@ namespace ILGPU.Backends.PTX
         /// <returns>The resolved atomic-operation suffix.</returns>
         public static string GetAtomicOperationSuffix(
             AtomicKind kind,
-            ArithmeticBasicValueType type)
-        {
-            if (AtomicOperationsTypes.TryGetValue((kind, type), out string operation))
-                return operation;
-            throw new NotSupportedIntrinsicException(kind.ToString());
-
-        }
+            ArithmeticBasicValueType type) =>
+            AtomicOperationsTypes.TryGetValue((kind, type), out string operation)
+            ? operation
+            : throw new NotSupportedIntrinsicException(kind.ToString());
 
         /// <summary>
         /// Resolves an address-space-cast operation.
@@ -239,11 +216,9 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="numElements">The number of elements.</param>
         /// <returns>The vector operation suffix.</returns>
-        public static string GetVectorOperationSuffix(int numElements)
-        {
-            if (VectorSuffixes.TryGetValue(numElements, out string operation))
-                return operation;
-            throw new NotSupportedIntrinsicException("v" + numElements.ToString());
-        }
+        public static string GetVectorOperationSuffix(int numElements) =>
+            VectorSuffixes.TryGetValue(numElements, out string operation)
+            ? operation
+            : throw new NotSupportedIntrinsicException("v" + numElements.ToString());
     }
 }

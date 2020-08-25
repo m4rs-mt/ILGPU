@@ -104,9 +104,9 @@ namespace ILGPU.Runtime
             // TODO: We might want to verify MinNumGroupsPerMultiprocessor in the future
             // at this point. However, this requires further extensions of the
             // accelerator API.
-            return !MaxNumThreadsPerGroup.HasValue
-                ? true
-                : MaxNumThreadsPerGroup <= accelerator.MaxNumThreadsPerGroup;
+            return
+                !MaxNumThreadsPerGroup.HasValue ||
+                MaxNumThreadsPerGroup <= accelerator.MaxNumThreadsPerGroup;
         }
 
         #endregion
