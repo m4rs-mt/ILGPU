@@ -12,7 +12,6 @@ namespace ILGPU.Tests
         protected GridOperations(ITestOutputHelper output, TestContext testContext)
             : base(output, testContext)
         { }
-        
         internal static void GridDimensionKernel(ArrayView<int> data)
         {
             data[0] = Grid.DimX;
@@ -75,20 +74,6 @@ namespace ILGPU.Tests
             int expected = 1;
 
             Assert.Equal(expected, data[0]);
-        }
-
-        [Fact]
-        public void GridLaunchDimension2()
-        {
-            using var buffer = Accelerator.Allocate<int>(1);
-            var kernel = Accelerator.LoadKernel<ArrayView<int>>
-                (GridLaunchDimensionKernel);
-            var stream = Accelerator.CreateStream();
-
-            kernel(stream, (1, 2), buffer.View);
-            Accelerator.Synchronize();
-
-            var data = buffer.GetAsArray();
         }
     }
 }
