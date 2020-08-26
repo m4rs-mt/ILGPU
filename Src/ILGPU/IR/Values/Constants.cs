@@ -140,7 +140,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Returns the value as i1.
         /// </summary>
-        public bool Int1Value => rawValue == 0 ? false : true;
+        public bool Int1Value => rawValue != 0;
 
         /// <summary>
         /// Returns the value as si8.

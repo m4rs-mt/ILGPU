@@ -36,12 +36,10 @@ namespace ILGPU.IR.Analyses
         /// <param name="scc">The SCC.</param>
         /// <returns>The resolved loop info instance.</returns>
         public static LoopInfo<TOrder, TDirection> Create(
-            SCCs<TOrder, TDirection>.SCC scc)
-        {
-            if (!TryCreate(scc, out var loopInfo))
-                throw new InvalidKernelOperationException();
-            return loopInfo;
-        }
+            SCCs<TOrder, TDirection>.SCC scc) =>
+            TryCreate(scc, out var loopInfo)
+            ? loopInfo
+            : throw new InvalidKernelOperationException();
 
         /// <summary>
         /// Tries to create a new loop info instance from the given SCC while checking

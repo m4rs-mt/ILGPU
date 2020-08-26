@@ -270,17 +270,12 @@ namespace ILGPU.IR
         /// </summary>
         /// <param name="method">The method to resolve.</param>
         /// <returns>The resolved function.</returns>
-        public Method GetMethod(MethodHandle method)
-        {
-            if (!TryGetMethod(method, out Method function))
-            {
-                throw new InvalidOperationException(string.Format(
-                    ErrorMessages.CouldNotFindCorrespondingIRMethod,
-                    method.Name));
-            }
-
-            return function;
-        }
+        public Method GetMethod(MethodHandle method) =>
+            TryGetMethod(method, out Method function)
+            ? function
+            : throw new InvalidOperationException(string.Format(
+                ErrorMessages.CouldNotFindCorrespondingIRMethod,
+                method.Name));
 
         /// <summary>
         /// Declares a method.

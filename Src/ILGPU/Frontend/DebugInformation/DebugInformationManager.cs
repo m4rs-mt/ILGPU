@@ -441,11 +441,10 @@ namespace ILGPU.Frontend.DebugInformation
         {
             Debug.Assert(methodBase != null, "Invalid method");
             methodDebugInformation = null;
-            return !TryLoadSymbols(
+            return TryLoadSymbols(
                 methodBase.Module.Assembly,
-                out var assemblyDebugInformation)
-                ? false
-                : assemblyDebugInformation.TryLoadDebugInformation(
+                out var assemblyDebugInformation) &&
+                assemblyDebugInformation.TryLoadDebugInformation(
                     methodBase,
                     out methodDebugInformation);
         }

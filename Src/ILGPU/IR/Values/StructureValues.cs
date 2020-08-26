@@ -640,9 +640,7 @@ namespace ILGPU.IR.Values
         {
             if (Source != other.Source || IsDirect != other.IsDirect)
                 return false;
-            return IsDirect
-                ? true
-                : FieldSpan.Equals(other.FieldSpan);
+            return IsDirect || FieldSpan.Equals(other.FieldSpan);
         }
 
         #endregion

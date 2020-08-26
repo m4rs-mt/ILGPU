@@ -438,9 +438,9 @@ namespace ILGPU.Backends
             node.AssertNotNull(node);
             if (aliases.TryGetValue(node, out Value alias))
                 node = alias;
-            if (!registerLookup.TryGetValue(node, out RegisterEntry entry))
-                throw new InvalidCodeGenerationException();
-            return entry.Register;
+            return registerLookup.TryGetValue(node, out RegisterEntry entry)
+                ? entry.Register
+                : throw new InvalidCodeGenerationException();
         }
 
         /// <summary>

@@ -20,7 +20,7 @@ jobs:
                 Foreach ($line in Get-Content $file)
                 {
                   If ($line.Length -gt 90) {
-                    Write-Host "${file}:${index}: line too long ($($line.Length) > 90 characters)"
+                    Write-Host "##[error]${file}:${index}: line too long ($($line.Length) > 90 characters)"
                     $found = $true
                   }
                   $index++
@@ -56,7 +56,7 @@ jobs:
       - name: Release Build
         run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
       - name: CPU Tests
-        run: dotnet test --configuration=Release ./Src/ILGPU.Tests.CPU
+        run: dotnet test --logger GitHubActions --configuration=Release ./Src/ILGPU.Tests.CPU
       - name: Set up NuGet
         if: runner.os == 'Windows'
         uses: nuget/setup-nuget@v1

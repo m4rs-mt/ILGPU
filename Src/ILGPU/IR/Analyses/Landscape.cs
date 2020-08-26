@@ -272,15 +272,10 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="method">The source method.</param>
         /// <returns>The resolved landscape entry.</returns>
-        public Entry this[Method method]
-        {
-            get
-            {
-                if (TryGetEntry(method, out Entry entry))
-                    return entry;
-                throw new KeyNotFoundException();
-            }
-        }
+        public Entry this[Method method] =>
+            TryGetEntry(method, out Entry entry)
+            ? entry
+            : throw new KeyNotFoundException();
 
         /// <summary>
         /// Returns the number of function entries.

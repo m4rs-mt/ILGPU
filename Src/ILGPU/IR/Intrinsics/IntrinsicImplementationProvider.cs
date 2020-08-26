@@ -423,10 +423,9 @@ namespace ILGPU.IR.Intrinsics
             out IntrinsicMapping<TDelegate> mapping)
         {
             mapping = default;
-            return (methodInfo = method.Source as MethodInfo) == null ||
-                !method.HasFlags(MethodFlags.Intrinsic)
-                ? false
-                : TryGetMapping(methodInfo, out mapping);
+            return (methodInfo = method.Source as MethodInfo) != null &&
+                method.HasFlags(MethodFlags.Intrinsic) &&
+                TryGetMapping(methodInfo, out mapping);
         }
 
         /// <summary>
