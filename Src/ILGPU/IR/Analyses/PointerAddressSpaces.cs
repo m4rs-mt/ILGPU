@@ -235,7 +235,7 @@ namespace ILGPU.IR.Analyses
                 !addressSpace.HasValue
                 ? new AddressSpaceInfo()
                 : new AddressSpaceInfo(
-                    (AddressSpaceFlags) (1 << (int) addressSpace.Value));
+                    (AddressSpaceFlags)(1 << (int)addressSpace.Value));
 
             /// <summary>
             /// Returns true if the first and second information instances are the same.

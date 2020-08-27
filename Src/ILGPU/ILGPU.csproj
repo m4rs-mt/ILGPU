@@ -306,6 +306,6 @@
         </EmbeddedResource>
     </ItemGroup>
 
-    <Import Project="Properties\ILGPU.nuspec.targets"/>
+    <Import Project="Properties\ILGPU.nuspec.targets" />
     <Import Project="..\TextTransform.targets" />
 </Project>
