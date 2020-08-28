@@ -8,8 +8,6 @@
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
-
-#pragma warning disable IDE1006 // Naming Styles
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 using System;
@@ -19,17 +17,18 @@ namespace ILGPU.Runtime.Cuda
     #region Enums
 
     /// <summary>
-    /// <para>Used to create <see cref="CudaStream"/> objects.</para>
-    /// <para><see cref="CU_STREAM_DEFAULT"/> specifies a blocking stream</para>
-    /// <para>
-    /// <see cref="CU_STREAM_NON_BLOCKING"/> specifies a non-blocking stream.
-    /// It is used by default
-    /// </para>
+    /// Used to create <see cref="CudaStream"/> objects.
     /// </summary>
     [Flags]
     public enum StreamFlags
     {
+        /// <summary>
+        /// Specifies a blocking stream.
+        /// </summary>
         CU_STREAM_DEFAULT = 0,
+        /// <summary>
+        /// Specifies a non-blocking stream. Used if no other flag is specified.
+        /// </summary>
         CU_STREAM_NON_BLOCKING = 1
     }
 
@@ -220,4 +219,3 @@ namespace ILGPU.Runtime.Cuda
 }
 
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
-#pragma warning restore IDE1006 // Naming Styles

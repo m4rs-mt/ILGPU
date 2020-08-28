@@ -45,7 +45,7 @@ namespace ILGPU.Runtime.Cuda
         }
 
         /// <summary>
-        /// Constructs a new cuda stream with given <see cref="StreamFlags"/>
+        /// Constructs a new cuda stream with given <see cref="StreamFlags"/>.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="flag">
@@ -56,7 +56,8 @@ namespace ILGPU.Runtime.Cuda
         {
             CudaException.ThrowIfFailed(
                 CudaAPI.Current.CreateStream(
-                    out streamPtr, flag));
+                    out streamPtr,
+                    flag));
             responsibleForHandle = true;
         }
 
