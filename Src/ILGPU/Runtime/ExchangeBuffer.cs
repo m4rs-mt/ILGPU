@@ -272,6 +272,114 @@ namespace ILGPU.Runtime
         }
 
         /// <summary>
+        /// Copies data from CPU memory to the associated accelerator.
+        /// </summary>
+        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
+        public void CopyToAccelerator(TIndex acceleratorMemoryOffset) =>
+            CopyToAccelerator(
+                Accelerator.DefaultStream,
+                default,
+                acceleratorMemoryOffset,
+                CPUArrayView.Length);
+
+        /// <summary>
+        /// Copies data from CPU memory to the associated accelerator.
+        /// </summary>
+        /// <param name="stream">The stream to use.</param>
+        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
+        public void CopyToAccelerator(
+            AcceleratorStream stream,
+            TIndex acceleratorMemoryOffset) =>
+                CopyToAccelerator(
+                    stream,
+                    default,
+                    acceleratorMemoryOffset,
+                    CPUArrayView.Length);
+
+        /// <summary>
+        /// Copies data from CPU memory to the associated accelerator.
+        /// </summary>
+        /// <param name="cpuMemoryOffset">the source memory offset.</param>
+        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
+        public void CopyToAccelerator(
+            TIndex cpuMemoryOffset,
+            TIndex acceleratorMemoryOffset) =>
+                CopyToAccelerator(
+                    Accelerator.DefaultStream,
+                    cpuMemoryOffset,
+                    acceleratorMemoryOffset,
+                    CPUArrayView.Length);
+
+        /// <summary>
+        /// Copies data from CPU memory to the associated accelerator.
+        /// </summary>
+        /// <param name="stream">The stream to use.</param>
+        /// <param name="cpuMemoryOffset">the source memory offset.</param>
+        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
+        public void CopyToAccelerator(
+            AcceleratorStream stream,
+            TIndex cpuMemoryOffset,
+            TIndex acceleratorMemoryOffset) =>
+                CopyToAccelerator(
+                    stream,
+                    cpuMemoryOffset,
+                    acceleratorMemoryOffset,
+                    CPUArrayView.Length);
+
+        /// <summary>
+        /// Copies data from CPU memory to the associated accelerator.
+        /// </summary>
+        /// <param name="cpuMemoryOffset">the source memory offset.</param>
+        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public void CopyToAccelerator(
+            TIndex cpuMemoryOffset,
+            TIndex acceleratorMemoryOffset,
+            LongIndex1 extent) =>
+                CopyToAccelerator(
+                    Accelerator.DefaultStream,
+                    cpuMemoryOffset,
+                    acceleratorMemoryOffset,
+                    extent);
+
+        /// <summary>
+        /// Copies data from CPU memory to the associated accelerator.
+        /// </summary>
+        /// <param name="stream">The stream to use.</param>
+        /// <param name="cpuMemoryOffset">the source memory offset.</param>
+        /// <param name="acceleratorMemoryOffset">The target memory offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public void CopyToAccelerator(
+            AcceleratorStream stream,
+            TIndex cpuMemoryOffset,
+            TIndex acceleratorMemoryOffset,
+            LongIndex1 extent)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (!cpuMemoryOffset.InBounds(CPUArrayView.Extent))
+                throw new ArgumentOutOfRangeException(nameof(cpuMemoryOffset));
+            if (!acceleratorMemoryOffset.InBounds(Extent))
+                throw new ArgumentOutOfRangeException(nameof(acceleratorMemoryOffset));
+            if (extent < 1 || extent > CPUArrayView.Length)
+                throw new ArgumentOutOfRangeException(nameof(extent));
+            var linearSourceIndex =
+                    cpuMemoryOffset.ComputeLinearIndex(CPUArrayView.Extent);
+            var linearTargetIndex =
+                    acceleratorMemoryOffset.ComputeLinearIndex(Extent);
+            if (linearSourceIndex + extent > CPUArrayView.Length ||
+                    linearTargetIndex + extent > Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
+            }
+
+            Buffer.CopyFromView(
+                stream,
+                CPUArrayView.GetSubView(cpuMemoryOffset, extent),
+                linearTargetIndex);
+        }
+
+        /// <summary>
         /// Copies data from the associated accelerator into CPU memory.
         /// </summary>
         public void CopyFromAccelerator() =>
@@ -286,6 +394,114 @@ namespace ILGPU.Runtime
             if (stream == null)
                 throw new ArgumentNullException(nameof(stream));
             Buffer.CopyToView(stream, CPUArrayView.BaseView, 0);
+        }
+
+        /// <summary>
+        /// Copies data from the associated accelerator into CPU memory.
+        /// </summary>
+        /// <param name="cpuMemoryOffset">The target memory offset.</param>
+        public void CopyFromAccelerator(TIndex cpuMemoryOffset) =>
+            CopyFromAccelerator(
+                Accelerator.DefaultStream,
+                default,
+                cpuMemoryOffset,
+                CPUArrayView.Length);
+
+        /// <summary>
+        /// Copies data from the associated accelerator into CPU memory.
+        /// </summary>
+        /// <param name="stream">The stream to use.</param>
+        /// <param name="cpuMemoryOffset">the target memory offset.</param>
+        public void CopyFromAccelerator(
+            AcceleratorStream stream,
+            TIndex cpuMemoryOffset) =>
+                CopyFromAccelerator(
+                    stream,
+                    default,
+                    cpuMemoryOffset,
+                    Length);
+
+        /// <summary>
+        /// Copies data from the associated accelerator into CPU memory.
+        /// </summary>
+        /// <param name="acceleratorMemoryOffset">The source memory offset.</param>
+        /// <param name="cpuMemoryOffset">the target memory offset.</param>
+        public void CopyFromAccelerator(
+            TIndex cpuMemoryOffset,
+            TIndex acceleratorMemoryOffset) =>
+                CopyFromAccelerator(
+                    Accelerator.DefaultStream,
+                    acceleratorMemoryOffset,
+                    cpuMemoryOffset,
+                    Length);
+
+        /// <summary>
+        /// Copies data from the associated accelerator into CPU memory.
+        /// </summary>
+        /// <param name="stream">The stream to use.</param>
+        /// <param name="acceleratorMemoryOffset">The source memory offset.</param>
+        /// <param name="cpuMemoryOffset">the target memory offset.</param>
+        public void CopyFromAccelerator(
+            AcceleratorStream stream,
+            TIndex cpuMemoryOffset,
+            TIndex acceleratorMemoryOffset) =>
+                CopyFromAccelerator(
+                    stream,
+                    acceleratorMemoryOffset,
+                    cpuMemoryOffset,
+                    Length);
+
+        /// <summary>
+        /// Copies data from the associated accelerator into CPU memory.
+        /// </summary>
+        /// <param name="acceleratorMemoryOffset">The source memory offset.</param>
+        /// <param name="cpuMemoryOffset">the target memory offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public void CopyFromAccelerator(
+            TIndex acceleratorMemoryOffset,
+            TIndex cpuMemoryOffset,
+            LongIndex1 extent) =>
+                CopyFromAccelerator(
+                    Accelerator.DefaultStream,
+                    acceleratorMemoryOffset,
+                    cpuMemoryOffset,
+                    extent);
+
+        /// <summary>
+        /// Copies data from the associated accelerator into CPU memory.
+        /// </summary>
+        /// <param name="stream">The stream to use.</param>
+        /// <param name="acceleratorMemoryOffset">The source memory offset.</param>
+        /// <param name="cpuMemoryOffset">the target memory offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        public void CopyFromAccelerator(
+            AcceleratorStream stream,
+            TIndex acceleratorMemoryOffset,
+            TIndex cpuMemoryOffset,
+            LongIndex1 extent)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+            if (!cpuMemoryOffset.InBounds(CPUArrayView.Extent))
+                throw new ArgumentOutOfRangeException(nameof(cpuMemoryOffset));
+            if (!acceleratorMemoryOffset.InBounds(Extent))
+                throw new ArgumentOutOfRangeException(nameof(acceleratorMemoryOffset));
+            if (extent < 1 || extent > Length)
+                throw new ArgumentOutOfRangeException(nameof(extent));
+            var linearSourceIndex =
+                    acceleratorMemoryOffset.ComputeLinearIndex(Extent);
+            var linearTargetIndex =
+                    cpuMemoryOffset.ComputeLinearIndex(CPUArrayView.Extent);
+            if (linearSourceIndex + extent > Length ||
+                    linearTargetIndex + extent > CPUArrayView.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(extent));
+            }
+
+            Buffer.CopyToView(
+                stream,
+                CPUArrayView.GetSubView(cpuMemoryOffset, extent),
+                linearSourceIndex);
         }
 
         /// <summary>
