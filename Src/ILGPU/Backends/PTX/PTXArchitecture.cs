@@ -131,16 +131,13 @@ namespace ILGPU.Backends
         /// <param name="major">The major version.</param>
         /// <param name="minor">The minor version.</param>
         /// <returns>The resolved PTX version.</returns>
-        public static PTXArchitecture GetArchitecture(int major, int minor)
-        {
-            if (!ArchitectureLookup.TryGetValue(
-                ((long)major << 32) | (uint)minor, out PTXArchitecture result))
-            {
-                throw new NotSupportedException(
-                    RuntimeErrorMessages.NotSupportedPTXArchitecture);
-            }
-            return result;
-        }
+        public static PTXArchitecture GetArchitecture(int major, int minor) =>
+            ArchitectureLookup.TryGetValue(
+                ((long)major << 32) | (uint)minor,
+                out PTXArchitecture result)
+            ? result
+            : throw new NotSupportedException(
+                RuntimeErrorMessages.NotSupportedPTXArchitecture);
 
         #endregion
     }

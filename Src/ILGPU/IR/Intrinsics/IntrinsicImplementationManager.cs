@@ -278,14 +278,12 @@ namespace ILGPU.IR.Intrinsics
         /// <returns>The created implementation provider.</returns>
         public IntrinsicImplementationProvider<TDelegate> CreateProvider<TDelegate>(
             Backend backend)
-            where TDelegate : Delegate
-        {
-            if (backend == null)
-                throw new ArgumentNullException(nameof(backend));
-            return new IntrinsicImplementationProvider<TDelegate>(
+            where TDelegate : Delegate =>
+            backend != null
+            ? new IntrinsicImplementationProvider<TDelegate>(
                 this[backend.BackendType],
-                backend);
-        }
+                backend)
+            : throw new ArgumentNullException(nameof(backend));
 
         #endregion
     }

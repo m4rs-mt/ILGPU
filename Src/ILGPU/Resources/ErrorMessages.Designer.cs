@@ -124,6 +124,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0}. Ensure type is publicly visible, or internally visible and define &apos;[assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute(&quot;{1}&quot;)]&apos;..
+        /// </summary>
+        internal static string CouldNotLoadType {
+            get {
+                return ResourceManager.GetString("CouldNotLoadType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Method &apos;{0}&apos; has custom exception semantics..
         /// </summary>
         internal static string CustomExceptionSemantics {

@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 
 namespace ILGPU.Tests
 {
-    public abstract class BasicCalls : TestBase
+    public abstract partial class BasicCalls : TestBase
     {
         private const int Length = 32;
 

@@ -53,6 +53,11 @@ namespace ILGPU.IR
         /// An intrinsic method that requires a backend-specific implementation.
         /// </summary>
         Intrinsic = 1 << 2,
+
+        /// <summary>
+        /// Marks entry-point methods.
+        /// </summary>
+        EntryPoint = 1 << 3,
     }
 
     /// <summary>
@@ -589,9 +594,9 @@ namespace ILGPU.IR
         public Builder CreateBuilder()
         {
             var newBuilder = new Builder(this);
-            if (Interlocked.CompareExchange(ref builder, newBuilder, null) != null)
-                throw new InvalidOperationException();
-            return newBuilder;
+            return Interlocked.CompareExchange(ref builder, newBuilder, null) == null
+                ? newBuilder
+                : throw new InvalidOperationException();
         }
 
         /// <summary>

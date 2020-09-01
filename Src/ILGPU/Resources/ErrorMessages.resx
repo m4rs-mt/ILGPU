@@ -315,4 +315,7 @@
   <data name="NotSupportedStructureLayout" xml:space="preserve">
     <value>The type '{0}' has an unsupported structure layout</value>
   </data>
+  <data name="CouldNotLoadType" xml:space="preserve">
+    <value>{0}. Ensure type is publicly visible, or internally visible and define '[assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute("{1}")]'.</value>
+  </data>
 </root>

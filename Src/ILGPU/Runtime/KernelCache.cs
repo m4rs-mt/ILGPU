@@ -247,9 +247,8 @@ namespace ILGPU.Runtime
                 where T : class
             {
                 kernel = null;
-                return !kernelReference.TryGetTarget(out var temp)
-                    ? false
-                    : (kernel = temp as T) != null;
+                return kernelReference.TryGetTarget(out var temp) &&
+                    (kernel = temp as T) != null;
             }
 
             /// <summary>

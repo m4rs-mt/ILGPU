@@ -14,8 +14,6 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Analyses
 {
@@ -33,7 +31,7 @@ namespace ILGPU.IR.Analyses
         {
             internal AlignmentInfo(
                 Method method,
-                Dictionary<Value, int> alignments)
+                AnalysisValueMapping<int> alignments)
             {
                 Method = method;
                 Alignments = alignments;
@@ -42,7 +40,7 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Returns the underlying alignments object.
             /// </summary>
-            private Dictionary<Value, int> Alignments { get; }
+            private AnalysisValueMapping<int> Alignments { get; }
 
             /// <summary>
             /// Returns the associated method.
@@ -55,90 +53,16 @@ namespace ILGPU.IR.Analyses
             /// <param name="value">The value to get alignment information for.</param>
             /// <returns>Pointer alignment in bytes (can be 1 byte).</returns>
             public readonly int this[Value value] =>
-                Alignments.TryGetValue(value, out int alignment)
-                ? alignment
+                Alignments.TryGetValue(value, out var alignment)
+                ? alignment.Data
                 : 1;
         }
 
         /// <summary>
-        /// The actual value merger to compute alignment information.
+        /// Models the internal pointer alignment analysis.
         /// </summary>
-        private readonly struct Merger : IAnalysisValueMerger<int>
-        {
-            /// <summary>
-            /// Returns the minimum of the first and the second value.
-            /// </summary>
-            public readonly int Merge(int first, int second) =>
-                Math.Min(first, second);
-
-            /// <summary>
-            /// Returns merged information about <see cref="LoadFieldAddress"/> and
-            /// <see cref="LoadElementAddress"/> IR nodes.
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly AnalysisValue<int>? TryMerge<TContext>(
-                Value value,
-                TContext context)
-                where TContext : IAnalysisValueContext<int> =>
-                value switch
-                {
-                    LoadFieldAddress lfa =>
-                        AnalysisValue.Create(
-                            Math.Min(
-                                context[lfa.Source].Data,
-                                lfa.StructureType[lfa.FieldSpan.Access].Alignment),
-                                lfa.Type),
-                    LoadElementAddress lea =>
-                        AnalysisValue.Create(
-                            Math.Max(
-                                context[lea.Source].Data,
-                                (lea.Type as IAddressSpaceType).ElementType.Alignment),
-                            lea.Type),
-                    _ => null,
-                };
-        }
-
-        /// <summary>
-        /// Provides initial alignment information about pointer arguments.
-        /// </summary>
-        private readonly struct Provider : IAnalysisValueProvider<int>
-        {
-            /// <summary>
-            /// Constructs a new provider with the given alignment.
-            /// </summary>
-            /// <param name="globalAlignment">The global alignment information.</param>
-            public Provider(int globalAlignment)
-            {
-                GlobalAlignment = globalAlignment;
-            }
-
-            /// <summary>
-            /// Returns the global alignment of pointers in memory.
-            /// </summary>
-            public int GlobalAlignment { get; }
-
-            /// <summary>
-            /// Returns 1.
-            /// </summary>
-            public readonly int DefaultValue => 1;
-
-            /// <summary>
-            /// Creates alignment information for global pointer and view types.
-            /// </summary>
-            public readonly AnalysisValue<int>? TryProvide(TypeNode typeNode) =>
-                typeNode is IAddressSpaceType
-                ? AnalysisValue.Create(GlobalAlignment, typeNode)
-                : (AnalysisValue<int>?)null;
-        }
-
-        /// <summary>
-        /// The actual alignment information implementation.
-        /// </summary>
-        private readonly struct AnalysisImplementation :
-            IGlobalFixPointAnalysis<
-                Dictionary<Value, int>,
-                AnalysisValue<int>,
-                Forwards>
+        private sealed class AnalysisImplementation :
+            GlobalFixPointAnalysis<int, Forwards>
         {
             /// <summary>
             /// Returns initial and unconstrained alignment information.
@@ -171,45 +95,58 @@ namespace ILGPU.IR.Analyses
             }
 
             /// <summary>
+            /// Constructs a new analysis implementation.
+            /// </summary>
+            /// <param name="globalAlignment">The global alignment information.</param>
+            public AnalysisImplementation(int globalAlignment)
+                : base(
+                      defaultValue: 1,
+                      initialValue: globalAlignment)
+            { }
+
+            /// <summary>
             /// Creates initial analysis data.
             /// </summary>
-            public AnalysisValue<int> CreateData(Value node) =>
-                AnalysisValue.Create(GetInitialAlignment(node), node.Type);
+            protected override AnalysisValue<int> CreateData(Value node) =>
+                Create(GetInitialAlignment(node), node.Type);
 
             /// <summary>
-            /// Creates a new method value dictionary.
+            /// Returns the minimum of the first and the second value.
             /// </summary>
-            public Dictionary<Value, int> CreateMethodData(Method _) =>
-                new Dictionary<Value, int>();
+            protected override int Merge(int first, int second) =>
+                Math.Min(first, second);
 
             /// <summary>
-            /// Merges updated value information.
+            /// Returns merged information about <see cref="LoadFieldAddress"/> and
+            /// <see cref="LoadElementAddress"/> IR nodes.
             /// </summary>
-            bool IFixPointAnalysis<AnalysisValue<int>, Value, Forwards>.
-                Update<TContext>(
+            protected override AnalysisValue<int>? TryMerge<TContext>(
                 Value value,
                 TContext context) =>
-                AnalysisValue.MergeTo<int, Merger, TContext>(
-                    value,
-                    new Merger(),
-                    context);
+                value switch
+                {
+                    LoadFieldAddress lfa =>
+                        Create(
+                            Math.Min(
+                                context[lfa.Source].Data,
+                                lfa.StructureType[lfa.FieldSpan.Access].Alignment),
+                                lfa.Type),
+                    LoadElementAddress lea =>
+                        Create(
+                            Math.Max(
+                                context[lea.Source].Data,
+                                (lea.Type as IAddressSpaceType).ElementType.Alignment),
+                            lea.Type),
+                    _ => null,
+                };
 
             /// <summary>
-            /// Registers all values in the internal method mapping.
+            /// Creates alignment information for global pointer and view types.
             /// </summary>
-            void IGlobalFixPointAnalysis<
-                Dictionary<Value, int>,
-                AnalysisValue<int>,
-                Forwards>.UpdateMethod<TContext>(
-                Method method,
-                ImmutableArray<AnalysisValue<int>> arguments,
-                Dictionary<Value, AnalysisValue<int>> valueMapping,
-                TContext context)
-            {
-                var data = context[method];
-                foreach (var entry in valueMapping)
-                    data.Merge(entry.Key, entry.Value.Data, new Merger());
-            }
+            protected override AnalysisValue<int>? TryProvide(TypeNode typeNode) =>
+                typeNode is IAddressSpaceType
+                ? Create(InitialValue, typeNode)
+                : (AnalysisValue<int>?)null;
         }
 
         #endregion
@@ -219,8 +156,8 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// An empty value mapping.
         /// </summary>
-        private readonly static Dictionary<Value, int> EmptyMapping =
-            new Dictionary<Value, int>();
+        private readonly static AnalysisValueMapping<int> EmptyMapping =
+            AnalysisValueMapping.Create<int>();
 
         /// <summary>
         /// Represents no pointer alignment information.
@@ -232,29 +169,11 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="rootMethod">The root (entry) method.</param>
         /// <param name="globalAlignment">
-        /// The initial alignment information of all pointers and views of the entry
+        /// The initial alignment information of all pointers and views of the root
         /// method.
         /// </param>
-        /// <returns>The created alignment analysis.</returns>
-        public static PointerAlignments Create(
-            Method rootMethod,
-            int globalAlignment)
-        {
-            var parameters = ImmutableArray.CreateBuilder<AnalysisValue<int>>(
-                rootMethod.NumParameters);
-
-            foreach (var param in rootMethod.Parameters)
-            {
-                parameters.Add(AnalysisValue.Create<int, Merger, Provider>(
-                    param.Type,
-                    new Merger(),
-                    new Provider(globalAlignment)));
-            }
-
-            return new PointerAlignments(
-                rootMethod,
-                parameters.MoveToImmutable());
-        }
+        public static PointerAlignments Create(Method rootMethod, int globalAlignment) =>
+            new PointerAlignments(rootMethod, globalAlignment);
 
         #endregion
 
@@ -263,27 +182,23 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Stores a method value-alignment mapping.
         /// </summary>
-        private readonly Dictionary<Method, Dictionary<Value, int>> alignments;
+        private readonly Dictionary<Method, AnalysisValueMapping<int>> alignments;
 
         /// <summary>
         /// Constructs an empty pointer alignment analysis.
         /// </summary>
         private PointerAlignments()
         {
-            alignments = new Dictionary<Method, Dictionary<Value, int>>();
+            alignments = new Dictionary<Method, AnalysisValueMapping<int>>();
         }
 
         /// <summary>
-        /// Constructs a new pointer alignment analysis.
+        /// Constructs a new alignment analysis.
         /// </summary>
-        /// <param name="rootMethod">The root (entry) method.</param>
-        /// <param name="parameterValues">The initial alignment information.</param>
-        private PointerAlignments(
-            Method rootMethod,
-            ImmutableArray<AnalysisValue<int>> parameterValues)
+        private PointerAlignments(Method rootMethod, int globalAlignment)
         {
-            var impl = new AnalysisImplementation();
-            alignments = impl.AnalyzeGlobal(rootMethod, parameterValues);
+            var impl = new AnalysisImplementation(globalAlignment);
+            alignments = impl.AnalyzeGlobal(rootMethod);
         }
 
         #endregion

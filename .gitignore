@@ -272,6 +272,7 @@ Src/ILGPU/Util/PrimitiveDataBlocks.cs
 Src/ILGPU.Tests/Generic/ConfigurationBase.cs
 Src/ILGPU.Tests/AtomicCASOperations.cs
 Src/ILGPU.Tests/AtomicOperations.cs
+Src/ILGPU.Tests/BasicCalls.Generated.cs
 Src/ILGPU.Tests/BinaryIntOperations.cs
 Src/ILGPU.Tests/CompareFloatOperations.cs
 Src/ILGPU.Tests/CompareIntOperations.cs

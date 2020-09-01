@@ -332,26 +332,6 @@ namespace ILGPU.Runtime
 
         #endregion
 
-        #region Operators
-
-        /// <summary>
-        /// Implicitly converts this buffer into a generic array view.
-        /// </summary>
-        /// <param name="buffer">The source buffer.</param>
-        public static implicit operator ArrayView<T, TIndex>(
-            ExchangeBufferBase<T, TIndex> buffer) =>
-            buffer.View;
-
-        /// <summary>
-        /// Implicitly converts this buffer into a memory buffer.
-        /// </summary>
-        /// <param name="buffer">The source buffer.</param>
-        public static implicit operator MemoryBuffer<T, TIndex>(
-            ExchangeBufferBase<T, TIndex> buffer) =>
-            buffer.Buffer;
-
-        #endregion
-
         #region IDisposable
 
         /// <summary cref="DisposeBase.Dispose(bool)"/>
