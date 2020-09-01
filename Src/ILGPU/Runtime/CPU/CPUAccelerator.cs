@@ -213,7 +213,7 @@ namespace ILGPU.Runtime.CPU
             return result;
         }
 
-        /// <summary cref="Accelerator.CreateStreamInternal"/>
+        /// <summary cref="Accelerator.CreateStreamInternal()"/>
         protected override AcceleratorStream CreateStreamInternal() =>
             new CPUStream(this);
 
