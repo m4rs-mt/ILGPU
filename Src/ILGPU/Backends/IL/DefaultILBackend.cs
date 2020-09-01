@@ -11,7 +11,6 @@
 
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Util;
-using System;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Reflection.Emit;
