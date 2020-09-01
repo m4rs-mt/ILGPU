@@ -14,7 +14,6 @@ using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
