@@ -260,7 +260,7 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetDeviceName(out string name, DeviceId));
             Name = name;
-            DefaultStream = new CudaStream(this, IntPtr.Zero);
+            DefaultStream = new CudaStream(this, IntPtr.Zero, false);
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetTotalDeviceMemory(out long total, DeviceId));
@@ -445,9 +445,28 @@ namespace ILGPU.Runtime.Cuda
             MethodInfo launcher) =>
             new CudaKernel(this, compiledKernel, launcher);
 
-        /// <summary cref="Accelerator.CreateStream"/>
+        /// <summary cref="Accelerator.CreateStream()"/>
         protected override AcceleratorStream CreateStreamInternal() =>
-            new CudaStream(this);
+            new CudaStream(this, StreamFlags.CU_STREAM_NON_BLOCKING);
+
+        /// <summary>
+        /// Creates a <see cref="CudaStream"/> object using
+        /// specified <see cref="StreamFlags"/>.
+        /// </summary>
+        /// <param name="flag">The flag to use.</param>
+        /// <returns>The created stream.</returns>
+        public CudaStream CreateStream(StreamFlags flag) => new CudaStream(this, flag);
+
+        /// <summary>
+        /// Creates a <see cref="CudaStream"/> object using an externally created stream.
+        /// </summary>
+        /// <param name="ptr">A pointer to the externally created stream.</param>
+        /// <param name="responsible">
+        /// Whether ILGPU is responsible of disposing this stream.
+        /// </param>
+        /// <returns>The created stream.</returns>
+        public CudaStream CreateStream(IntPtr ptr, bool responsible) =>
+            new CudaStream(this, ptr, responsible);
 
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() =>
