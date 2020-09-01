@@ -279,6 +279,7 @@ Src/ILGPU.Algorithms.Tests/TransformerExtensionTests.cs
 Src/ILGPU.Algorithms.Tests/WarpExtensionTests.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Log.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Pow.cs
+Src/ILGPU.Algorithms.Tests/XMathTests.Rem.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Rcp.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Round.cs
 Src/ILGPU.Algorithms.Tests/XMathTests.Sqrt.cs

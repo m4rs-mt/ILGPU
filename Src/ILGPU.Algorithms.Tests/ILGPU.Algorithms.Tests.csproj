@@ -77,6 +77,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>TransformerExtensionTests.tt</DependentUpon>
     </None>
+    <None Include="XMathTests.Rem.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Rem.tt</DependentUpon>
+    </None>
     <None Include="XMathTests.Round.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -154,6 +159,10 @@
     <None Update="XMathTests.Rcp.tt">
       <LastGenOutput>XMathTests.Rcp.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="XMathTests.Rem.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>XMathTests.Rem.cs</LastGenOutput>
     </None>
     <None Update="XMathTests.Round.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -253,6 +262,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>XMathTests.Rcp.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMathTests.Rem.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.Rem.tt</DependentUpon>
     </Compile>
     <Compile Update="XMathTests.Round.cs">
       <DesignTime>True</DesignTime>

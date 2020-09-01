@@ -1,0 +1,134 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                   ILGPU.Algorithms
+//                      Copyright (c) 2020 ILGPU Algorithms Project
+//                                    www.ilgpu.net
+//
+// File: XMathTests.Rem.tt/XMathTests.Rem.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="XMathTests.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".cs" #>
+using ILGPU.Runtime;
+using ILGPU.Tests;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Xunit;
+
+<#
+    var remFunctions = new []
+    {
+        new RemFunction(
+            "Rem",
+            "float",
+            "{0} % {1}",
+            new RelativeError(0E-00, 1E-06, 0E-00)),
+        new RemFunction(
+            "Rem",
+            "double",
+            "{0} % {1}",
+            new RelativeError(0E-00, 1E-06, 0E-00)),
+    };
+#>
+namespace ILGPU.Algorithms.Tests
+{
+    partial class XMathTests
+    {
+<# foreach (var function in remFunctions) { #>
+        public static TheoryData<<#= function.DataType #>>
+            <#= function.TestName #>TestData =>
+            new TheoryData<<#= function.DataType #>>
+            {
+                0.0<#= function.ValueSuffix #>,
+                0.5<#= function.ValueSuffix #>,
+                0.6<#= function.ValueSuffix #>,
+                1.0<#= function.ValueSuffix #>,
+                2.1<#= function.ValueSuffix #>,
+                2.8<#= function.ValueSuffix #>,
+                2.5<#= function.ValueSuffix #>,
+                3.5<#= function.ValueSuffix #>,
+                -0.0<#= function.ValueSuffix #>,
+                -0.5<#= function.ValueSuffix #>,
+                -0.6<#= function.ValueSuffix #>,
+                -1.0<#= function.ValueSuffix #>,
+                -2.1<#= function.ValueSuffix #>,
+                -2.5<#= function.ValueSuffix #>,
+                -2.8<#= function.ValueSuffix #>,
+                -3.5<#= function.ValueSuffix #>,
+                <#= function.DataType #>.NaN,
+                <#= function.DataType #>.PositiveInfinity,
+                <#= function.DataType #>.NegativeInfinity,
+            };
+
+        internal static void <#= function.KernelName #>(
+            Index1 index,
+            <#= function.DataType #> divisor,
+            ArrayView<<#= function.DataType #>> input,
+            ArrayView<<#= function.DataType #>> output)
+        {
+            output[index] = XMath.<#= function.Name #>(input[index], divisor);
+        }
+
+        [Theory]
+        [MemberData(nameof(<#= function.TestName #>TestData))]
+        [KernelMethod(nameof(<#= function.KernelName #>))]
+        public void <#= function.TestName #>(<#= function.DataType #> divisor)
+        {
+            var inputArray = <#= function.TestName #>TestData
+                .Select(x => (<#= function.DataType #>)x[0])
+                .ToArray();
+            var expected = inputArray
+                .Select(x =>
+                    <#= string.Format(function.ExpectedFormatString, "x", "divisor") #>)
+                .ToArray();
+            using var input =
+                Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+            using var output =
+                Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);
+
+            input.CopyFrom(inputArray, 0, 0, inputArray.Length);
+            Execute(input.Length, divisor, input.View, output.View);
+            if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
+                VerifyWithinRelativeError(
+                    output,
+                    expected,
+                    <#= function.RelativeError.Cuda #>);
+            else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
+                VerifyWithinRelativeError(
+                    output,
+                    expected,
+                    <#= function.RelativeError.OpenCL #>);
+            else
+                VerifyWithinRelativeError(
+                    output,
+                    expected,
+                    <#= function.RelativeError.CPU #>);
+        }
+
+<# } #>
+    }
+}
+<#+
+    class RemFunction : XMathFunctionBase
+    {
+        public RemFunction(
+            string name,
+            string dataType,
+            string expectedFormatString,
+            RelativeError relativeError)
+            : base(name, dataType)
+        {
+            ExpectedFormatString = expectedFormatString;
+            RelativeError = relativeError;
+        }
+
+        public string ExpectedFormatString { get; }
+        public RelativeError RelativeError { get; }
+    }
+#>

@@ -92,14 +92,33 @@ namespace ILGPU.Algorithms.PTX
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Rem(double x, double y)
         {
+            if (y == 0.0 ||
+                XMath.IsInfinity(x) ||
+                XMath.IsNaN(x) ||
+                XMath.IsNaN(y))
+                return double.NaN;
+
+            if (XMath.IsInfinity(y))
+                return x;
+
             var xDivY = XMath.Abs(x * XMath.Rcp(y));
             var result = (xDivY - Floor(xDivY)) * XMath.Abs(y);
             return Utilities.Select(x < 0.0, -result, result);
         }
 
         /// <summary cref="XMath.Rem(float, float)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Rem(float x, float y)
         {
+            if (y == 0.0f ||
+                XMath.IsInfinity(x) ||
+                XMath.IsNaN(x) ||
+                XMath.IsNaN(y))
+                return float.NaN;
+
+            if (XMath.IsInfinity(y))
+                return x;
+
             var xDivY = XMath.Abs(x * XMath.Rcp(y));
             var result = (xDivY - Floor(xDivY)) * XMath.Abs(y);
             return Utilities.Select(x < 0.0f, -result, result);
