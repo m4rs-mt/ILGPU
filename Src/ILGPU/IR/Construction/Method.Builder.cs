@@ -637,6 +637,7 @@ namespace ILGPU.IR
 
                 // Release builder
                 Method.ReleaseBuilder(this);
+                base.Dispose(disposing);
             }
 
             #endregion
