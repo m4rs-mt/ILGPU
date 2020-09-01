@@ -14,7 +14,6 @@ using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime
@@ -290,11 +289,11 @@ namespace ILGPU.Runtime
         public void CopyToAccelerator(
             AcceleratorStream stream,
             TIndex acceleratorMemoryOffset) =>
-                CopyToAccelerator(
-                    stream,
-                    default,
-                    acceleratorMemoryOffset,
-                    CPUArrayView.Length);
+            CopyToAccelerator(
+                stream,
+                default,
+                acceleratorMemoryOffset,
+                CPUArrayView.Length);
 
         /// <summary>
         /// Copies data from CPU memory to the associated accelerator.
@@ -304,11 +303,11 @@ namespace ILGPU.Runtime
         public void CopyToAccelerator(
             TIndex cpuMemoryOffset,
             TIndex acceleratorMemoryOffset) =>
-                CopyToAccelerator(
-                    Accelerator.DefaultStream,
-                    cpuMemoryOffset,
-                    acceleratorMemoryOffset,
-                    CPUArrayView.Length);
+            CopyToAccelerator(
+                Accelerator.DefaultStream,
+                cpuMemoryOffset,
+                acceleratorMemoryOffset,
+                CPUArrayView.Length);
 
         /// <summary>
         /// Copies data from CPU memory to the associated accelerator.
@@ -320,11 +319,11 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             TIndex cpuMemoryOffset,
             TIndex acceleratorMemoryOffset) =>
-                CopyToAccelerator(
-                    stream,
-                    cpuMemoryOffset,
-                    acceleratorMemoryOffset,
-                    CPUArrayView.Length);
+            CopyToAccelerator(
+                stream,
+                cpuMemoryOffset,
+                acceleratorMemoryOffset,
+                CPUArrayView.Length);
 
         /// <summary>
         /// Copies data from CPU memory to the associated accelerator.
@@ -336,11 +335,11 @@ namespace ILGPU.Runtime
             TIndex cpuMemoryOffset,
             TIndex acceleratorMemoryOffset,
             LongIndex1 extent) =>
-                CopyToAccelerator(
-                    Accelerator.DefaultStream,
-                    cpuMemoryOffset,
-                    acceleratorMemoryOffset,
-                    extent);
+            CopyToAccelerator(
+                Accelerator.DefaultStream,
+                cpuMemoryOffset,
+                acceleratorMemoryOffset,
+                extent);
 
         /// <summary>
         /// Copies data from CPU memory to the associated accelerator.
@@ -368,7 +367,7 @@ namespace ILGPU.Runtime
             var linearTargetIndex =
                     acceleratorMemoryOffset.ComputeLinearIndex(Extent);
             if (linearSourceIndex + extent > CPUArrayView.Length ||
-                    linearTargetIndex + extent > Length)
+                linearTargetIndex + extent > Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));
             }
@@ -415,11 +414,11 @@ namespace ILGPU.Runtime
         public void CopyFromAccelerator(
             AcceleratorStream stream,
             TIndex cpuMemoryOffset) =>
-                CopyFromAccelerator(
-                    stream,
-                    default,
-                    cpuMemoryOffset,
-                    Length);
+            CopyFromAccelerator(
+                stream,
+                default,
+                cpuMemoryOffset,
+                Length);
 
         /// <summary>
         /// Copies data from the associated accelerator into CPU memory.
@@ -429,11 +428,11 @@ namespace ILGPU.Runtime
         public void CopyFromAccelerator(
             TIndex cpuMemoryOffset,
             TIndex acceleratorMemoryOffset) =>
-                CopyFromAccelerator(
-                    Accelerator.DefaultStream,
-                    acceleratorMemoryOffset,
-                    cpuMemoryOffset,
-                    Length);
+            CopyFromAccelerator(
+                Accelerator.DefaultStream,
+                acceleratorMemoryOffset,
+                cpuMemoryOffset,
+                Length);
 
         /// <summary>
         /// Copies data from the associated accelerator into CPU memory.
@@ -445,11 +444,11 @@ namespace ILGPU.Runtime
             AcceleratorStream stream,
             TIndex cpuMemoryOffset,
             TIndex acceleratorMemoryOffset) =>
-                CopyFromAccelerator(
-                    stream,
-                    acceleratorMemoryOffset,
-                    cpuMemoryOffset,
-                    Length);
+            CopyFromAccelerator(
+                stream,
+                acceleratorMemoryOffset,
+                cpuMemoryOffset,
+                Length);
 
         /// <summary>
         /// Copies data from the associated accelerator into CPU memory.
@@ -461,11 +460,11 @@ namespace ILGPU.Runtime
             TIndex acceleratorMemoryOffset,
             TIndex cpuMemoryOffset,
             LongIndex1 extent) =>
-                CopyFromAccelerator(
-                    Accelerator.DefaultStream,
-                    acceleratorMemoryOffset,
-                    cpuMemoryOffset,
-                    extent);
+            CopyFromAccelerator(
+                Accelerator.DefaultStream,
+                acceleratorMemoryOffset,
+                cpuMemoryOffset,
+                extent);
 
         /// <summary>
         /// Copies data from the associated accelerator into CPU memory.
@@ -493,7 +492,7 @@ namespace ILGPU.Runtime
             var linearTargetIndex =
                     cpuMemoryOffset.ComputeLinearIndex(CPUArrayView.Extent);
             if (linearSourceIndex + extent > Length ||
-                    linearTargetIndex + extent > CPUArrayView.Length)
+                linearTargetIndex + extent > CPUArrayView.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));
             }
