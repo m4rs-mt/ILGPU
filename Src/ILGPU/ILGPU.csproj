@@ -36,7 +36,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.6">
+        <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
@@ -306,6 +306,6 @@
         </EmbeddedResource>
     </ItemGroup>
 
-    <Import Project="Properties\ILGPU.nuspec.targets"/>
+    <Import Project="Properties\ILGPU.nuspec.targets" />
     <Import Project="..\TextTransform.targets" />
 </Project>

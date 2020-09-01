@@ -61,7 +61,7 @@ namespace ILGPU.IR.Transformations
                     targetParam,
                     (parameter.Type as IAddressSpaceType).AddressSpace);
             }
-            else 
+            else
             {
                 var structureType = parameter.Type.As<StructureType>(location);
                 var structureBuilder = builder.CreateStructure(
