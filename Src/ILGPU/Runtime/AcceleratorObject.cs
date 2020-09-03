@@ -177,8 +177,8 @@ namespace ILGPU.Runtime
             {
                 foreach(var child in childObjects)
                 {
-                    bool success = child.TryGetTarget(out var acceleratorObject);
-                    if (success && acceleratorObject is T t)
+                    if (child.TryGetTarget(out var acceleratorObject)
+                        && acceleratorObject is T t)
                     {
                         callback(t);
                     }
