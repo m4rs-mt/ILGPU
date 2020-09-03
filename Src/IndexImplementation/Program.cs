@@ -96,7 +96,7 @@ namespace IndexImplementation
         /// <summary>
         /// Returns the size represented by this index (x * y * z * w).
         /// </summary>
-        public int Size => X * Y * Z * w;
+        public long Size => X * Y * Z * w;
 
         #endregion
 
@@ -131,6 +131,14 @@ namespace IndexImplementation
         }
 
         /// <summary>
+        /// Computes the linear index of this 4D index by using the provided 4D dimension.
+        /// </summary>
+        /// <param name="dimension">The dimension for index computation.</param>
+        /// <returns>The computed linear index of this 4D index.</returns>
+        public long ComputeLongLinearIndex(MyIndex4 dimension) =>
+            ComputeLinearIndex(dimension);
+
+        /// <summary>
         /// Reconstructs a 4D index from a linear index.
         /// </summary>
         /// <param name="linearIndex">The lienar index.</param>
@@ -138,6 +146,17 @@ namespace IndexImplementation
         public MyIndex4 ReconstructIndex(int linearIndex)
         {
             return ReconstructIndex(linearIndex, this);
+        }
+
+        /// <summary>
+        /// Reconstructs a 4D index from a linear index.
+        /// </summary>
+        /// <param name="linearIndex">The lienar index.</param>
+        /// <returns>The reconstructed 4D index.</returns>
+        public MyIndex4 ReconstructIndex(long linearIndex)
+        {
+            IndexTypeExtensions.AssertIntIndexRange(linearIndex);
+            return ReconstructIndex((int)linearIndex, this);
         }
 
         /// <summary cref="IGenericIndex{TIndex}.Add(TIndex)"/>

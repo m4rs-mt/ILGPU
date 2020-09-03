@@ -62,7 +62,7 @@ namespace SharedMemory
             var sharedAllocationSize = new TSharedAllocationSize();
             var sharedArray = ILGPU.SharedMemory.Allocate<int>(sharedAllocationSize.ArraySize);
 
-            outputView[globalIndex] = sharedArray.Length;
+            outputView[globalIndex] = sharedArray.IntLength;
         }
 
         static void ExecuteSample<TSharedAllocationSize>(Context context)

@@ -21,6 +21,7 @@ namespace AlgorithmsReduce
         static void Main()
         {
             const int DataSize = 1024;
+            const CuBlasAPIVersion CuBlasVersion = CuBlasAPIVersion.V10;
 
             using (var context = new Context())
             {
@@ -41,7 +42,7 @@ namespace AlgorithmsReduce
 
                         // Initialize the CuBlas library using manual pointer mode handling
                         // (default behavior)
-                        using (var blas = new CuBlas(accelerator))
+                        using (var blas = new CuBlas(accelerator, CuBlasVersion))
                         {
                             // Set pointer mode to Host to enable data transfer to CPU memory
                             blas.PointerMode = CuBlasPointerMode.Host;
@@ -59,7 +60,7 @@ namespace AlgorithmsReduce
                         }
 
                         // Initialize the CuBlas<T> library using custom pointer mode handlers
-                        using (var blas = new CuBlas<CuBlasPointerModeHandlers.AutomaticMode>(accelerator))
+                        using (var blas = new CuBlas<CuBlasPointerModeHandlers.AutomaticMode>(accelerator, CuBlasVersion))
                         {
                             // Automatic transfer to host
                             float output = blas.Nrm2(buf);

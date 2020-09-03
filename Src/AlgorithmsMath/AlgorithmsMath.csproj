@@ -9,7 +9,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="ILGPU" Version="0.8.0" />
-    <PackageReference Include="ILGPU.Algorithms" Version="0.8.0" />
+    <PackageReference Include="ILGPU" Version="0.9.0" />
+    <PackageReference Include="ILGPU.Algorithms" Version="0.9.0" />
   </ItemGroup>
 </Project>

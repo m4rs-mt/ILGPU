@@ -63,7 +63,7 @@ namespace AlgorithmsRadixSort
                         accelerator.Sequence(
                             accelerator.DefaultStream,
                             sourceBuffer.View,
-                            new InverseInt32Sequencer(sourceBuffer.Length));
+                            new InverseInt32Sequencer((int)sourceBuffer.Length));
 
                         // The parallel scan implementation needs temporary storage.
                         // By default, every accelerator hosts a memory-buffer cache
