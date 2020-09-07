@@ -353,7 +353,7 @@ namespace ILGPU
         /// <returns>True, if the given half represents 0.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsZero(Half half) =>
--            (half.RawValue & ExponentMantissaMask) == 0;
+            (half.RawValue & ExponentMantissaMask) == 0;
 
         /// <summary>
         /// Returns true if the given half value represents +infinity.

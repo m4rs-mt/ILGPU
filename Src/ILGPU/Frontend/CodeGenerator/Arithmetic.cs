@@ -12,7 +12,6 @@
 using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using ILGPU.Resources;
 using ILGPU.Util;
 
 namespace ILGPU.Frontend

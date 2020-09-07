@@ -27,29 +27,38 @@ namespace ILGPU.Runtime.Cuda
         #region Instance
 
         private IntPtr streamPtr;
+        private readonly bool responsibleForHandle;
 
         /// <summary>
         /// Constructs a new cuda stream from the given native pointer.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="ptr">The native stream pointer.</param>
-        internal CudaStream(Accelerator accelerator, IntPtr ptr)
+        /// <param name="responsible">
+        /// Whether ILGPU is responsible of disposing this stream.
+        /// </param>
+        internal CudaStream(Accelerator accelerator, IntPtr ptr, bool responsible)
             : base(accelerator)
         {
             streamPtr = ptr;
+            responsibleForHandle = responsible;
         }
 
         /// <summary>
-        /// Constructs a new cuda stream.
+        /// Constructs a new cuda stream with given <see cref="StreamFlags"/>.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
-        internal CudaStream(Accelerator accelerator)
+        /// <param name="flag">
+        /// Stream flag to use. Allows blocking and non-blocking streams.
+        /// </param>
+        internal CudaStream(Accelerator accelerator, StreamFlags flag)
             : base(accelerator)
         {
             CudaException.ThrowIfFailed(
                 CudaAPI.Current.CreateStream(
                     out streamPtr,
-                    StreamFlags.CU_STREAM_NON_BLOCKING));
+                    flag));
+            responsibleForHandle = true;
         }
 
         #endregion
@@ -83,7 +92,7 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (streamPtr != IntPtr.Zero)
+            if (responsibleForHandle && streamPtr != IntPtr.Zero)
             {
                 CudaException.ThrowIfFailed(
                     CudaAPI.Current.DestroyStream(streamPtr));

@@ -68,7 +68,7 @@ namespace ILGPU.Tests
             var kernel = Accelerator.LoadStreamKernel<ArrayView<int>>
                 (GridLaunchDimensionKernel);
 
-            kernel((1, 2), buffer.View); 
+            kernel((1, 2), buffer.View);
             Accelerator.Synchronize();
 
             var data = buffer.GetAsArray();
