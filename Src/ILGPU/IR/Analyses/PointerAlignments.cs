@@ -12,6 +12,7 @@
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 
@@ -64,36 +65,6 @@ namespace ILGPU.IR.Analyses
         private sealed class AnalysisImplementation :
             GlobalFixPointAnalysis<int, Forwards>
         {
-            /// <summary>
-            /// Returns initial and unconstrained alignment information.
-            /// </summary>
-            /// <param name="node">The IR node.</param>
-            /// <returns>The initial alignment information.</returns>
-            private static int GetInitialAlignment(Value node)
-            {
-                switch (node)
-                {
-                    case Alloca alloca:
-                        return alloca.AllocaType.Alignment;
-                    case NewView _:
-                    case BaseAddressSpaceCast _:
-                    case SubViewValue _:
-                    case LoadElementAddress _:
-                    case LoadFieldAddress _:
-                    case GetField _:
-                    case SetField _:
-                    case StructureValue _:
-                    case Load _:
-                    case Store _:
-                    case PhiValue _:
-                    case PrimitiveValue _:
-                    case NullValue _:
-                        return int.MaxValue;
-                    default:
-                        return 1;
-                }
-            }
-
             /// <summary>
             /// Constructs a new analysis implementation.
             /// </summary>
@@ -152,6 +123,41 @@ namespace ILGPU.IR.Analyses
         #endregion
 
         #region Static
+
+        /// <summary>
+        /// Returns initial and unconstrained alignment information.
+        /// </summary>
+        /// <param name="node">The IR node.</param>
+        /// <returns>The initial alignment information.</returns>
+        public static int GetInitialAlignment(Value node)
+        {
+            switch (node)
+            {
+                case Alloca alloca:
+                    // Assume that we can align the type to an appropriate power of
+                    // 2 if the type size is compatible
+                    var allocaType = alloca.AllocaType;
+                    if (Utilities.IsPowerOf2(allocaType.Size))
+                        return Math.Max(allocaType.Alignment, allocaType.Size);
+                    return allocaType.Alignment;
+                case NewView _:
+                case BaseAddressSpaceCast _:
+                case SubViewValue _:
+                case LoadElementAddress _:
+                case LoadFieldAddress _:
+                case GetField _:
+                case SetField _:
+                case StructureValue _:
+                case Load _:
+                case Store _:
+                case PhiValue _:
+                case PrimitiveValue _:
+                case NullValue _:
+                    return int.MaxValue;
+                default:
+                    return 1;
+            }
+        }
 
         /// <summary>
         /// An empty value mapping.
