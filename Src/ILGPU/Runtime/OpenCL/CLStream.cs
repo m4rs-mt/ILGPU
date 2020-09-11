@@ -20,8 +20,8 @@ namespace ILGPU.Runtime.OpenCL
     /// Represents an OpenCL stream.
     /// </summary>
     [SuppressMessage(
-    "Microsoft.Naming",
-    "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
+        "Microsoft.Naming",
+        "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
     public sealed class CLStream : AcceleratorStream
     {
         #region Instance
