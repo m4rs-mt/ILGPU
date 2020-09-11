@@ -266,17 +266,29 @@ namespace ILGPU.Runtime.OpenCL.API
             [In] IntPtr* events,
             [In, Out] IntPtr* resultEvent);
 
+        #endregion
+
+        #region Events
+
+        [DllImport(LibName, EntryPoint = "clReleaseEvent")]
+        public static extern CLError ReleaseEvent(
+            [In] IntPtr @event);
+
+        [DllImport(LibName, EntryPoint = "clWaitForEvents")]
+        public static extern CLError WaitForEvents(
+            [In] int numEvents,
+            [In] IntPtr* events);
+
+        #endregion
+
+        #region Markers
+
         [DllImport(LibName, EntryPoint = "clEnqueueBarrierWithWaitList")]
         public static extern CLError EnqueueBarrierWithWaitList(
             [In] IntPtr queue,
             [In] int numEvents,
             [In] IntPtr* events,
             [In, Out] IntPtr* resultEvent);
-
-        [DllImport(LibName, EntryPoint = "clWaitForEvents")]
-        public static extern CLError WaitForEvents(
-            [In] int numEvents,
-            [In] IntPtr* events);
 
         #endregion
     }

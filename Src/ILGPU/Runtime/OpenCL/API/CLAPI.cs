@@ -759,8 +759,10 @@ namespace ILGPU.Runtime.OpenCL.API
             int workDimensions,
             IntPtr* workOffsets,
             IntPtr* globalWorkSizes,
-            IntPtr* localWorkSizes) =>
-            NativeMethods.EnqueueNDRangeKernel(
+            IntPtr* localWorkSizes)
+        {
+            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            return NativeMethods.EnqueueNDRangeKernel(
                 queue,
                 kernel,
                 workDimensions,
@@ -770,6 +772,7 @@ namespace ILGPU.Runtime.OpenCL.API
                 0,
                 null,
                 null);
+        }
 
         /// <summary>
         /// Launches a kernel.
@@ -916,8 +919,10 @@ namespace ILGPU.Runtime.OpenCL.API
             bool blockingRead,
             IntPtr offset,
             IntPtr size,
-            IntPtr ptr) =>
-            NativeMethods.EnqueueReadBuffer(
+            IntPtr ptr)
+        {
+            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            return NativeMethods.EnqueueReadBuffer(
                 queue,
                 buffer,
                 blockingRead,
@@ -927,6 +932,7 @@ namespace ILGPU.Runtime.OpenCL.API
                 0,
                 null,
                 null);
+        }
 
         /// <summary>
         /// Writes to a buffer from host memory.
@@ -947,8 +953,10 @@ namespace ILGPU.Runtime.OpenCL.API
             bool blockingWrite,
             IntPtr offset,
             IntPtr size,
-            IntPtr ptr) =>
-            NativeMethods.EnqueueWriteBuffer(
+            IntPtr ptr)
+        {
+            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            return NativeMethods.EnqueueWriteBuffer(
                 queue,
                 buffer,
                 blockingWrite,
@@ -958,6 +966,7 @@ namespace ILGPU.Runtime.OpenCL.API
                 0,
                 null,
                 null);
+        }
 
         /// <summary>
         /// Fills the given buffer with the specified pattern.
@@ -976,8 +985,10 @@ namespace ILGPU.Runtime.OpenCL.API
             T pattern,
             IntPtr offset,
             IntPtr size)
-            where T : unmanaged =>
-            NativeMethods.EnqueueFillBuffer(
+            where T : unmanaged
+        {
+            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            return NativeMethods.EnqueueFillBuffer(
                 queue,
                 buffer,
                 Unsafe.AsPointer(ref pattern),
@@ -987,6 +998,7 @@ namespace ILGPU.Runtime.OpenCL.API
                 0,
                 null,
                 null);
+        }
 
         /// <summary>
         /// Copies the contents of the source buffer into the target buffer.
@@ -1009,8 +1021,10 @@ namespace ILGPU.Runtime.OpenCL.API
             IntPtr targetBuffer,
             IntPtr sourceOffset,
             IntPtr targetOffset,
-            IntPtr size) =>
-            NativeMethods.EnqueueCopyBuffer(
+            IntPtr size)
+        {
+            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            return NativeMethods.EnqueueCopyBuffer(
                 queue,
                 sourceBuffer,
                 targetBuffer,
@@ -1020,44 +1034,82 @@ namespace ILGPU.Runtime.OpenCL.API
                 0,
                 null,
                 null);
+        }
+
+        #endregion
+
+        #region Events
 
         /// <summary>
-        /// Waits for a list of given events to finish.
+        /// Releases the given event.
         /// </summary>
-        /// <param name="queue">The queue to enqueue the barrier on.</param>
-        /// <param name="events">The events to wait for.</param>
-        /// <param name="numEvents">The number</param>
-        /// <param name="resultEvent"></param>
+        /// <param name="event">The event.</param>
         /// <returns>The error code.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [CLSCompliant(false)]
-        public static CLError BarrierWithWaitList(
-            IntPtr queue,
-            int numEvents,
-            IntPtr* events,
-            IntPtr* resultEvent) =>
+        internal static CLError ReleaseEvent(IntPtr @event) =>
+            NativeMethods.ReleaseEvent(@event);
+
+        /// <summary>
+        /// Waits on the given events to complete.
+        /// </summary>
+        /// <param name="events">The events to wait on.</param>
+        /// <returns>The error code.</returns>
+        internal static CLError WaitForEvents(IntPtr[] events)
+        {
+            fixed (IntPtr* eventsPtr = events)
+            {
+                return NativeMethods.WaitForEvents(events?.Length ?? 0, eventsPtr);
+            }
+        }
+
+        #endregion
+
+        #region Markers
+
+        /// <summary>
+        /// Enqueues a barrier command on the given command queue which waits for all
+        /// previously enqueued commands to complete before it completes.
+        ///
+        /// This command blocks command execution, that is, any following commands
+        /// enqueued after it do not execute until it completes.
+        /// </summary>
+        /// <param name="queue">The command queue.</param>
+        /// <returns>The error code.</returns>
+        internal static CLError EnqueueBarrier(IntPtr queue) =>
             NativeMethods.EnqueueBarrierWithWaitList(
                 queue,
-                numEvents,
-                events,
-                resultEvent);
+                0,
+                null,
+                null);
 
         /// <summary>
-        /// Waits for a list of given events to finish.
+        /// Enqueues a barrier command on the given command queue which waits for the
+        /// list of events to complete, or if the list is empty, waits for all previously
+        /// enqueued commands to complete before it completes.
+        ///
+        /// This command blocks command execution, that is, any following commands
+        /// enqueued after it do not execute until it completes.
         /// </summary>
-        /// <param name="events">The events to wait for.</param>
-        /// <param name="numEvents">The number</param>
+        /// <param name="queue">The command queue.</param>
+        /// <param name="waitEvents">The events to wait on.</param>
+        /// <param name="resultEvent">The returned event object.</param>
         /// <returns>The error code.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [CLSCompliant(false)]
-        public static CLError WaitForEvents(
-            int numEvents,
-            IntPtr* events) =>
-            NativeMethods.WaitForEvents(
-                numEvents,
-                events);
+        internal static CLError EnqueueBarrierWithWaitList(
+            IntPtr queue,
+            IntPtr[] waitEvents,
+            IntPtr* resultEvent)
+        {
+            fixed (IntPtr* waitEventsPtr = waitEvents)
+            {
+                var errorStatus =
+                    NativeMethods.EnqueueBarrierWithWaitList(
+                        queue,
+                        waitEvents?.Length ?? 0,
+                        waitEventsPtr,
+                        resultEvent);
+                return errorStatus;
+            }
+        }
 
         #endregion
     }
 }
-

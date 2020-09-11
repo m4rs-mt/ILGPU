@@ -548,28 +548,38 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="Accelerator.Synchronize"/>
         protected unsafe override void SynchronizeInternal()
         {
-            // This is a bad way to do this, but the other alternative,
-            // maintaining a count of specifically stream objects is
-            // AcceleratorObject wasn't so clean either. There has to
-            // be a better way, I just don't know what it is.
-            int numOfStreams = 0;
-            ForEachChildObject((CLStream obj) => numOfStreams++);
-
-            // All of the following feels like it should be in a fixed context,
-            // but I can't find a place where the compiler will let me
-            // create one, so I assume it's not needed?
-            IntPtr*[] arr = new IntPtr*[numOfStreams];
-            int index = 0;
-            ForEachChildObject((CLStream obj) =>
+            // All the events to wait on. Each event represents the completion
+            // of all operations queued prior to said event.
+            var streamEvents = new List<IntPtr>();
+            try
             {
-                // Setting the wait list count to 0 and the wait list to null
-                // will wait for all operations enqueued prior to this one
-                CLAPI.BarrierWithWaitList(obj.CommandQueue, 0, null, arr[index]);
-                index++;
-            });
-            // We use all the events we obtained from BarrierWithWaitList to wait for all
-            // queued operations to finish
-            CLAPI.WaitForEvents(arr.Length, arr[0]);
+                ForEachChildObject<CLStream>(stream =>
+                {
+                    // Low cost IntPtr* (cl_event*) allocation.
+                    IntPtr* resultEvent = stackalloc IntPtr[1];
+                    CLException.ThrowIfFailed(
+                        CLAPI.EnqueueBarrierWithWaitList(
+                            stream.CommandQueue,
+                            Array.Empty<IntPtr>(),
+                            resultEvent));
+
+                    // Dereference pointer so we can store it.
+                    streamEvents.Add(*resultEvent);
+                });
+
+                // Wait for all the events to fire, which would mean
+                // all operations queued on an accelerator prior to
+                // synchronization have finished.
+                if (streamEvents.Count > 0)
+                    CLException.ThrowIfFailed(CLAPI.WaitForEvents(
+                        streamEvents.ToArray()));
+            }
+            finally
+            {
+                // Clean up the events we made.
+                foreach (var streamEvent in streamEvents)
+                    CLAPI.ReleaseEvent(streamEvent);
+            }
         }
 
         /// <summary cref="Accelerator.OnBind"/>
