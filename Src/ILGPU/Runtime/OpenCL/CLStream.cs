@@ -12,16 +12,12 @@
 using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ILGPU.Runtime.OpenCL
 {
     /// <summary>
     /// Represents an OpenCL stream.
     /// </summary>
-    [SuppressMessage(
-        "Microsoft.Naming",
-        "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
     public sealed class CLStream : AcceleratorStream
     {
         #region Instance

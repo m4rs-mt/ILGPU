@@ -15,10 +15,13 @@ using ILGPU.Resources;
 using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime.OpenCL
 {
@@ -531,8 +534,31 @@ namespace ILGPU.Runtime.OpenCL
             new CLStream(this);
 
         /// <summary cref="Accelerator.Synchronize"/>
-        protected override void SynchronizeInternal() =>
-            ForEachChildObject((CLStream obj) => obj.Synchronize());
+        protected unsafe override void SynchronizeInternal()
+        {
+            // This is a bad way to do this, but the other alternative,
+            // maintaining a count of specifically stream objects is
+            // AcceleratorObject wasn't so clean either. There has to
+            // be a better way, I just don't know what it is.
+            int numOfStreams = 0;
+            ForEachChildObject((CLStream obj) => numOfStreams++);
+
+            // All of the following feels like it should be in a fixed context,
+            // but I can't find a place where the compiler will let me
+            // create one, so I assume it's not needed?
+            IntPtr*[] arr = new IntPtr*[numOfStreams];
+            int index = 0;
+            ForEachChildObject((CLStream obj) =>
+            {
+                // Setting the wait list count to 0 and the wait list to null
+                // will wait for all operations enqueued prior to this one
+                CLAPI.BarrierWithWaitList(obj.CommandQueue, 0, null, arr[index]);
+                index++;
+            });
+            // We use all the events we obtained from BarrierWithWaitList to wait for all
+            // queued operations to finish
+            CLAPI.WaitForEvents(arr.Length, arr[0]);
+        }
 
         /// <summary cref="Accelerator.OnBind"/>
         protected override void OnBind() { }

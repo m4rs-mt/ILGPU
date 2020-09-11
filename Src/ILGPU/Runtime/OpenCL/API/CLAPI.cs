@@ -1021,6 +1021,42 @@ namespace ILGPU.Runtime.OpenCL.API
                 null,
                 null);
 
+        /// <summary>
+        /// Waits for a list of given events to finish.
+        /// </summary>
+        /// <param name="queue">The queue to enqueue the barrier on.</param>
+        /// <param name="events">The events to wait for.</param>
+        /// <param name="numEvents">The number</param>
+        /// <param name="resultEvent"></param>
+        /// <returns>The error code.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [CLSCompliant(false)]
+        public static CLError BarrierWithWaitList(
+            IntPtr queue,
+            int numEvents,
+            IntPtr* events,
+            IntPtr* resultEvent) =>
+            NativeMethods.EnqueueBarrierWithWaitList(
+                queue,
+                numEvents,
+                events,
+                resultEvent);
+
+        /// <summary>
+        /// Waits for a list of given events to finish.
+        /// </summary>
+        /// <param name="events">The events to wait for.</param>
+        /// <param name="numEvents">The number</param>
+        /// <returns>The error code.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [CLSCompliant(false)]
+        public static CLError WaitForEvents(
+            int numEvents,
+            IntPtr* events) =>
+            NativeMethods.WaitForEvents(
+                numEvents,
+                events);
+
         #endregion
     }
 }
