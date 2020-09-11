@@ -327,5 +327,191 @@ namespace ILGPU.Tests
             for (int i = 0; i < Length; i++)
                 Assert.Equal(expected[i], fromAccelerator[i]);
         }
+
+        [Fact]
+        public void PartiallyCopyExceptionHandling()
+        {
+            int bufferSize = 1024;
+            using var exchangeBuffer =
+                    Accelerator.AllocateExchangeBuffer<long>(bufferSize);
+            using var stream = Accelerator.CreateStream();
+
+            // CopyTo
+            // Check lower bound for accelerator memory offset
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(-1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(stream, -1));
+
+            // Check upper bound for accelerator memory offset
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(bufferSize + 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(stream, bufferSize + 1));
+
+            // Check lower bound for cpu memory offset
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(-1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(stream, -1, 0));
+
+            // Check upper bound for cpu memory offset
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(bufferSize + 1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(stream, bufferSize + 1, 0));
+
+            // Check lower bound for the extent
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(0, 0, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(stream, 0, 0, 0));
+
+            // Check upper bound for the extent
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(0, 0, bufferSize + 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(stream, 0, 0, bufferSize + 1));
+
+            // Check if offset + extent > bufferSize
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(bufferSize, 0, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(bufferSize / 2, 0, bufferSize));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(0, bufferSize, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyToAccelerator(0, bufferSize / 2, bufferSize));
+
+            // CopyFrom checks
+            // Check lower bound for accelerator memory offset
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(-1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(stream, -1));
+
+            // Check upper bound for accelerator memory offset
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(bufferSize + 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(stream, bufferSize + 1));
+
+            // Check lower bound for cpu memory offset
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(-1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(stream, -1, 0));
+
+            // Check upper bound for cpu memory offset
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(bufferSize + 1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(stream, bufferSize + 1, 0));
+
+            // Check lower bound for the extent
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(0, 0, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(stream, 0, 0, 0));
+
+            // Check upper bound for the extent
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(0, 0, bufferSize + 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(stream, 0, 0, bufferSize + 1));
+
+            // Check if offset + extent > bufferSize
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(bufferSize, 0, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(bufferSize / 2, 0, bufferSize));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(0, bufferSize, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                exchangeBuffer.CopyFromAccelerator(0, bufferSize / 2, bufferSize));
+        }
+
+        [Theory]
+        [InlineData(10, 1024, 0, 0, 1024)]
+        [InlineData(10, 1024, 0, 0, 512)]
+        [InlineData(10, 1024, 256, 0, 512)]
+        [InlineData(10, 1024, 512, 0, 512)]
+        [InlineData(10, 1024, 0, 256, 512)]
+        [InlineData(10, 1024, 0, 512, 512)]
+        [InlineData(10, 1024, 256, 256, 512)]
+        [KernelMethod(nameof(CopyKernel))]
+        public void CopyToPartially(
+            long constant,
+            int bufferSize,
+            int cpuOffset,
+            int accelOffset,
+            int extent)
+        {
+            using var stream = Accelerator.CreateStream();
+            using var exchangeBuffer =
+                    Accelerator.AllocateExchangeBuffer<long>(bufferSize);
+            for (int i = 0; i < bufferSize; ++i)
+                exchangeBuffer[i] = constant;
+            exchangeBuffer.Buffer.MemSetToZero();
+
+            // Start copying, create the expected array in the meantime
+            exchangeBuffer.CopyToAccelerator(stream, cpuOffset, accelOffset, extent);
+            var prefix = Enumerable.Repeat(-5L, accelOffset);
+            var infix = Enumerable.Repeat(constant - 5, extent);
+            var suffix = Enumerable.Repeat(-5L, bufferSize - extent - accelOffset);
+            var expected = prefix.Concat(infix.Concat(suffix)).ToArray();
+            stream.Synchronize();
+
+            Execute(exchangeBuffer.Extent.ToIntIndex(), exchangeBuffer.View);
+            stream.Synchronize();
+
+            exchangeBuffer.CopyFromAccelerator(stream);
+            stream.Synchronize();
+
+            Assert.Equal(expected.Length, exchangeBuffer.Length);
+            for (int i = 0; i < bufferSize; i++)
+                Assert.Equal(expected[i], exchangeBuffer[i]);
+        }
+
+        [Theory]
+        [InlineData(10, 1024, 0, 0, 1024)]
+        [InlineData(10, 1024, 0, 0, 512)]
+        [InlineData(10, 1024, 256, 0, 512)]
+        [InlineData(10, 1024, 512, 0, 512)]
+        [InlineData(10, 1024, 0, 256, 512)]
+        [InlineData(10, 1024, 0, 512, 512)]
+        [InlineData(10, 1024, 256, 256, 512)]
+        [KernelMethod(nameof(CopyKernel))]
+        public void CopyFromPartially(
+            long constant,
+            int bufferSize,
+            int cpuOffset,
+            int accelOffset,
+            int extent)
+        {
+            using var stream = Accelerator.CreateStream();
+            using var exchangeBuffer =
+                    Accelerator.AllocateExchangeBuffer<long>(bufferSize);
+            for (int i = 0; i < bufferSize; ++i)
+                exchangeBuffer[i] = constant;
+
+            // Start copying, create the expected array in the meantime
+            exchangeBuffer.CopyToAccelerator(stream);
+            var prefix = Enumerable.Repeat(constant, cpuOffset);
+            var infix = Enumerable.Repeat(constant - 5, extent);
+            var suffix = Enumerable.Repeat(constant, bufferSize - extent - cpuOffset);
+            var expected = prefix.Concat(infix.Concat(suffix)).ToArray();
+            stream.Synchronize();
+
+            Execute(exchangeBuffer.Extent.ToIntIndex(), exchangeBuffer.View);
+            stream.Synchronize();
+
+            exchangeBuffer.CopyFromAccelerator(stream, accelOffset, cpuOffset, extent);
+            stream.Synchronize();
+
+            Assert.Equal(expected.Length, exchangeBuffer.Length);
+            for (int i = 0; i < bufferSize; i++)
+                Assert.Equal(expected[i], exchangeBuffer[i]);
+        }
     }
 }

@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Values
 {

@@ -529,9 +529,21 @@ namespace ILGPU.Runtime.OpenCL
             MethodInfo launcher) =>
             new CLKernel(this, compiledKernel, launcher);
 
-        /// <summary cref="Accelerator.CreateStream"/>
+        /// <summary cref="Accelerator.CreateStream()"/>
         protected override AcceleratorStream CreateStreamInternal() =>
             new CLStream(this);
+
+        /// <summary>
+        /// Creates a <see cref="CLStream"/> object from an externally
+        /// created stream/queue using its pointer.
+        /// </summary>
+        /// <param name="ptr">The pointer to use while creating the new stream.</param>
+        /// <param name="responsible">
+        /// Whether ILGPU is responsible of disposing this stream.
+        /// </param>
+        /// <returns>The created stream.</returns>
+        public CLStream CreateStream(IntPtr ptr, bool responsible) =>
+            new CLStream(this, ptr, responsible);
 
         /// <summary cref="Accelerator.Synchronize"/>
         protected unsafe override void SynchronizeInternal()

@@ -53,6 +53,11 @@ namespace ILGPU.IR
         /// An intrinsic method that requires a backend-specific implementation.
         /// </summary>
         Intrinsic = 1 << 2,
+
+        /// <summary>
+        /// Marks entry-point methods.
+        /// </summary>
+        EntryPoint = 1 << 3,
     }
 
     /// <summary>

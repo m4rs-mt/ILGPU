@@ -291,7 +291,9 @@ namespace ILGPU.IR.Transformations
         /// Creates a new intermediate value.
         /// </summary>
         /// <returns>The resulting intermediate value.</returns>
-        protected abstract TIntermediate CreateIntermediate();
+        protected abstract TIntermediate CreateIntermediate<TPredicate>(
+            in MethodCollection<TPredicate> methods)
+            where TPredicate : IMethodCollectionPredicate;
 
         /// <summary>
         /// Is invoked after all methods have been transformed.
@@ -306,7 +308,7 @@ namespace ILGPU.IR.Transformations
         public override void Transform<TPredicate>(
             MethodCollection<TPredicate> methods)
         {
-            var intermediate = CreateIntermediate();
+            var intermediate = CreateIntermediate(methods);
 
             // Apply transformation to all methods
             foreach (var method in methods)
