@@ -15,13 +15,11 @@ using ILGPU.Resources;
 using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime.OpenCL
 {
