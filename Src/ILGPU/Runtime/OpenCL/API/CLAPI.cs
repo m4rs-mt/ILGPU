@@ -759,10 +759,8 @@ namespace ILGPU.Runtime.OpenCL.API
             int workDimensions,
             IntPtr* workOffsets,
             IntPtr* globalWorkSizes,
-            IntPtr* localWorkSizes)
-        {
-            CLException.ThrowIfFailed(EnqueueBarrier(queue));
-            return NativeMethods.EnqueueNDRangeKernel(
+            IntPtr* localWorkSizes) =>
+            NativeMethods.EnqueueNDRangeKernel(
                 queue,
                 kernel,
                 workDimensions,
@@ -772,7 +770,6 @@ namespace ILGPU.Runtime.OpenCL.API
                 0,
                 null,
                 null);
-        }
 
         /// <summary>
         /// Launches a kernel.
@@ -919,10 +916,8 @@ namespace ILGPU.Runtime.OpenCL.API
             bool blockingRead,
             IntPtr offset,
             IntPtr size,
-            IntPtr ptr)
-        {
-            CLException.ThrowIfFailed(EnqueueBarrier(queue));
-            return NativeMethods.EnqueueReadBuffer(
+            IntPtr ptr) =>
+            NativeMethods.EnqueueReadBuffer(
                 queue,
                 buffer,
                 blockingRead,
@@ -932,7 +927,6 @@ namespace ILGPU.Runtime.OpenCL.API
                 0,
                 null,
                 null);
-        }
 
         /// <summary>
         /// Writes to a buffer from host memory.
@@ -953,10 +947,8 @@ namespace ILGPU.Runtime.OpenCL.API
             bool blockingWrite,
             IntPtr offset,
             IntPtr size,
-            IntPtr ptr)
-        {
-            CLException.ThrowIfFailed(EnqueueBarrier(queue));
-            return NativeMethods.EnqueueWriteBuffer(
+            IntPtr ptr) =>
+            NativeMethods.EnqueueWriteBuffer(
                 queue,
                 buffer,
                 blockingWrite,
@@ -966,7 +958,6 @@ namespace ILGPU.Runtime.OpenCL.API
                 0,
                 null,
                 null);
-        }
 
         /// <summary>
         /// Fills the given buffer with the specified pattern.
@@ -985,10 +976,8 @@ namespace ILGPU.Runtime.OpenCL.API
             T pattern,
             IntPtr offset,
             IntPtr size)
-            where T : unmanaged
-        {
-            CLException.ThrowIfFailed(EnqueueBarrier(queue));
-            return NativeMethods.EnqueueFillBuffer(
+            where T : unmanaged =>
+            NativeMethods.EnqueueFillBuffer(
                 queue,
                 buffer,
                 Unsafe.AsPointer(ref pattern),
@@ -998,7 +987,6 @@ namespace ILGPU.Runtime.OpenCL.API
                 0,
                 null,
                 null);
-        }
 
         /// <summary>
         /// Copies the contents of the source buffer into the target buffer.
@@ -1021,10 +1009,8 @@ namespace ILGPU.Runtime.OpenCL.API
             IntPtr targetBuffer,
             IntPtr sourceOffset,
             IntPtr targetOffset,
-            IntPtr size)
-        {
-            CLException.ThrowIfFailed(EnqueueBarrier(queue));
-            return NativeMethods.EnqueueCopyBuffer(
+            IntPtr size) =>
+            NativeMethods.EnqueueCopyBuffer(
                 queue,
                 sourceBuffer,
                 targetBuffer,
@@ -1034,7 +1020,6 @@ namespace ILGPU.Runtime.OpenCL.API
                 0,
                 null,
                 null);
-        }
 
         #endregion
 
@@ -1113,3 +1098,4 @@ namespace ILGPU.Runtime.OpenCL.API
         #endregion
     }
 }
+
