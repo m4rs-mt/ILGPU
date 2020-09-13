@@ -249,6 +249,9 @@ namespace ILGPU
             }
         }
 
+        /// <summary>
+        /// Implements the <see cref="RuntimeAPI.IsSupported"/> property.
+        /// </summary>
         private static void ImplementIsSupported<T>(
             TypeBuilder typeBuilder,
             bool isSupported)
@@ -544,35 +547,29 @@ namespace ILGPU
             string errorMessage)
             where T : RuntimeAPI
         {
-            T instance;
-            if (Backends.Backend.RunningOnNativePlatform)
+            if (!Backends.Backend.RunningOnNativePlatform)
+                return CreateNotSupportedDllWrapper<T>(errorMessage);
+            try
             {
-                try
-                {
-                    instance =
-                        RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                        ? CreateDllWrapper<T>(linux)
-                        : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                        ? CreateDllWrapper<T>(macos)
-                        : CreateDllWrapper<T>(windows);
-                    // Try to initialize the new interface
-                    if (!instance.Init())
-                        instance = CreateNotSupportedDllWrapper<T>(errorMessage);
-                }
-                catch (Exception ex) when (
-                    ex is DllNotFoundException || ex is EntryPointNotFoundException)
-                {
-                    // In case of a critical initialization exception
-                    // fall back to the not supported API
+                T instance =
+                    RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                    ? CreateDllWrapper<T>(linux)
+                    : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? CreateDllWrapper<T>(macos)
+                    : CreateDllWrapper<T>(windows);
+                // Try to initialize the new interface
+                if (!instance.Init())
                     instance = CreateNotSupportedDllWrapper<T>(errorMessage);
-                }
+                return instance;
             }
-            else
+            catch (Exception ex) when (
+                ex is DllNotFoundException ||
+                ex is EntryPointNotFoundException)
             {
-                // We cannot use a native driver invocation in this case
-                instance = CreateNotSupportedDllWrapper<T>(errorMessage);
+                // In case of a critical initialization exception
+                // fall back to the not supported API
+                return CreateNotSupportedDllWrapper<T>(errorMessage);
             }
-            return instance;
         }
 
         #endregion
@@ -595,6 +592,52 @@ namespace ILGPU
     /// </summary>
     public abstract class RuntimeAPI
     {
+        /// <summary>
+        /// Loads a runtime API that is implemented via compile-time known classes.
+        /// </summary>
+        /// <typeparam name="T">The abstract class type to implement.</typeparam>
+        /// <typeparam name="TWindows">The Windows implementation.</typeparam>
+        /// <typeparam name="TLinux">The Linux implementation.</typeparam>
+        /// <typeparam name="TMacOS">The MacOS implementation.</typeparam>
+        /// <typeparam name="TNotSupported">The not-supported implementation.</typeparam>
+        /// <returns>The loaded runtime API.</returns>
+        internal static T LoadRuntimeAPI<
+            T,
+            TWindows,
+            TLinux,
+            TMacOS,
+            TNotSupported>()
+            where T : RuntimeAPI
+            where TWindows : T, new()
+            where TLinux : T, new()
+            where TMacOS : T, new()
+            where TNotSupported : T, new()
+        {
+            if (!Backends.Backend.RunningOnNativePlatform)
+                return new TNotSupported();
+            try
+            {
+                T instance =
+                    RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                    ? new TLinux()
+                    : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? new TMacOS() as T
+                    : new TWindows();
+                // Try to initialize the new interface
+                if (!instance.Init())
+                    instance = new TNotSupported();
+                return instance;
+            }
+            catch (Exception ex) when (
+                ex is DllNotFoundException ||
+                ex is EntryPointNotFoundException)
+            {
+                // In case of a critical initialization exception fall back to the
+                // not supported API
+                return new TNotSupported();
+            }
+        }
+
         /// <summary>
         /// Returns true if the runtime API instance is supported on this platform.
         /// </summary>
