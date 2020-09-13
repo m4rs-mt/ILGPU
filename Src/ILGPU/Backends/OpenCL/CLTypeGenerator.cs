@@ -263,6 +263,10 @@ namespace ILGPU.Backends.OpenCL
 
                 clName = CLInstructions.StructTypePrefix + " " + GetTypeName(typeNode);
             }
+            else if (typeNode is PaddingType paddingType)
+            {
+                clName = GetOrCreateType(paddingType.PrimitiveType);
+            }
             else
             {
                 // Must be a not supported view type

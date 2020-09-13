@@ -396,6 +396,10 @@ namespace ILGPU.Backends
                 case PointerType _:
                 case StringType _:
                     return AllocateType(Backend.PointerType);
+                case PaddingType paddingType:
+                    var paddingRegisterKind =
+                        ResolveRegisterDescription(paddingType.PrimitiveType);
+                    return AllocateRegister(paddingRegisterKind);
                 default:
                     throw new NotSupportedException();
             }

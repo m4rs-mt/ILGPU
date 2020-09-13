@@ -182,6 +182,11 @@ namespace ILGPU.IR.Types
         public bool IsArrayType => this is ArrayType;
 
         /// <summary>
+        /// Returns true if the current type is a <see cref="PaddingType"/>.
+        /// </summary>
+        public bool IsPaddingType => this is PaddingType;
+
+        /// <summary>
         /// Returns true if this type is a root object type.
         /// </summary>
         public bool IsRootType =>

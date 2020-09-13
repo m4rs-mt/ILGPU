@@ -264,6 +264,8 @@ namespace ILGPU.Backends
                     primitiveType.BasicValueType),
                 PointerType pointerType => AllocatePointerType(pointerType),
                 ObjectType objectType => new ObjectVariable(idCounter++, objectType),
+                PaddingType paddingType => AllocateType(
+                    paddingType.PrimitiveType.BasicValueType),
                 _ => throw new NotSupportedException(),
             };
 

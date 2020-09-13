@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
 using System.Reflection;
@@ -77,6 +78,13 @@ namespace ILGPU.Frontend
             var typeInfo = Context.TypeContext.GetTypeInfo(field.FieldType);
             var parentInfo = Context.TypeContext.GetTypeInfo(parentType);
             int absoluteIndex = parentInfo.GetAbsoluteIndex(field);
+
+            if (targetPointerType.ElementType.IsStructureType)
+            {
+                var structureType =
+                    targetPointerType.ElementType.As<StructureType>(Location);
+                absoluteIndex = structureType.RemapFieldIndex(absoluteIndex);
+            }
 
             var fieldAddress = Builder.CreateLoadFieldAddress(
                 Location,
