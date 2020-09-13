@@ -122,6 +122,11 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
         </None>
+        <None Include="Static\DllImports.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>DllImports.tt</DependentUpon>
+        </None>
         <None Include="Util\DataBlocks.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -215,6 +220,11 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
         </Compile>
+        <Compile Update="Static\DllImports.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>DllImports.tt</DependentUpon>
+        </Compile>
         <Compile Update="Util\DataBlocks.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -282,6 +292,10 @@
         <None Update="Runtime\MemoryBuffers.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
+        </None>
+        <None Update="Static\DllImports.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>DllImports.cs</LastGenOutput>
         </None>
         <None Update="Util\PrimitiveDataBlocks.tt">
           <LastGenOutput>PrimitiveDataBlocks.cs</LastGenOutput>

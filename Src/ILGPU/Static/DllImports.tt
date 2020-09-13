@@ -1,0 +1,168 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
+//
+// File: DllImports.tt/DllImports.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ include file="TypeInformation.ttinclude" #>
+<#@ include file="DllImporter.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+string rootPath = Host.ResolvePath(".");
+var importFiles = ImportFiles.Load(rootPath, "DllImports.xml");
+#>
+using ILGPU.Resources;
+using System;
+using System.Runtime.InteropServices;
+
+#pragma warning disable IDE1006 // Naming
+#pragma warning disable CA1060 // Move pinvokes to native methods class
+
+<# foreach (var importFile in importFiles) { #>
+<#      var imports = Imports.Load(rootPath, importFile); #>
+<#      var libNames = imports.LibraryNames; #>
+<#      var platformMapping = libNames.ToMapping(); #>
+<#      var className = imports.ClassName; #>
+namespace <#= imports.Namespace #>
+{
+    public unsafe abstract partial class <#= className #> : RuntimeAPI
+    {
+        #region Constants
+
+<#      foreach (var (platformName, libName) in libNames.Platforms) { #>
+        /// <summary>
+        /// Represents the driver library name on <#= platformName #>.
+        /// </summary>
+        public const string LibName<#= platformName #> = "<#= libName #>";
+
+<#      } #>
+        #endregion
+
+        #region Native Methods
+
+<#      foreach (var entryPoint in imports.EntryPoints) { #>
+        internal abstract <#= imports.GetReturnType(entryPoint) #> <#= entryPoint.Name #>(
+<#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
+            <#= param #><#= suffix #>
+<#          } #>
+        
+<#      } #>
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Returns the driver API for the current platform.
+        /// </summary>
+        public static <#= className #> CurrentAPI { get; } =
+            LoadRuntimeAPI<
+            <#= className #>,
+<#      foreach (var (id, _) in platformMapping) { #>
+            <#= className #>_<#= id #>,
+<#      } #>
+            <#= className #>_NotSupported>();
+
+        #endregion
+    }
+
+    // Platform implementations
+
+<#      foreach (var (id, platformName) in platformMapping.Distinct()) { #>
+    sealed unsafe class <#= className #>_<#= id #> : <#= className #>
+    {
+        #region Native Methods
+
+<#      foreach (var entryPoint in imports.EntryPoints) { #>
+        [DllImport(LibName<#= platformName #>,
+            EntryPoint = "<#= entryPoint.Name #>"
+<#          if (!entryPoint.BestFitMapping) { #>
+            , BestFitMapping = false
+<#          } if (entryPoint.CharSet != CharSet.Auto) { #>
+            , CharSet = CharSet.<#= entryPoint.CharSet #>
+<#          } if (entryPoint.ThrowOnUnmappableChar) { #>
+            , ThrowOnUnmappableChar = true
+<#          } #>
+        )]
+        internal static extern <#= imports.GetReturnType(entryPoint) #>
+            <#= entryPoint.Name #>_Import(
+<#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
+            <#= param #><#= suffix #>
+<#          } #>
+        
+<#      } #>
+
+        #endregion
+
+        #region RuntimeAPI
+
+        /// <summary>
+        /// Returns true.
+        /// </summary>
+        public override bool IsSupported => true;
+
+        #endregion
+
+        #region Implementations
+
+<#      foreach (var entryPoint in imports.EntryPoints) { #>
+        internal sealed override <#= imports.GetReturnType(entryPoint) #>
+            <#= entryPoint.Name #>(
+<#          foreach (var (param, suffix) in entryPoint.ParamBodyExpressions) { #>
+            <#= param #><#= suffix #>
+<#          } #>
+            <#= entryPoint.Name #>_Import(
+<#          foreach (var (param, suffix) in entryPoint.ParamExpressions) { #>
+            <#= param.ToExprString() #><#= suffix #>
+<#          } #>
+        
+<#      } #>
+
+        #endregion
+    }
+
+<#      } #>
+    /// <summary>
+    /// The NotSupported implementation of the <#= className #> wrapper.
+    /// </summary>
+    sealed unsafe class <#= className #>_NotSupported : <#= className #>
+    {
+        #region RuntimeAPI
+
+        /// <summary>
+        /// Returns false.
+        /// </summary>
+        public override bool IsSupported => false;
+
+        #endregion
+
+        #region Implementations
+
+<#      foreach (var entryPoint in imports.EntryPoints) { #>
+        internal sealed override <#= imports.GetReturnType(entryPoint) #>
+            <#= entryPoint.Name #>(
+<#          foreach (var (param, suffix) in entryPoint.ParamBodyExpressions) { #>
+            <#= param #><#= suffix #>
+<#          } #>
+            throw new NotSupportedException(<#= imports.NotSupportedException #>);
+        
+<#      } #>
+
+        #endregion
+    }
+}
+
+<# } #>
+
+#pragma warning restore CA1060 // Move pinvokes to native methods class
+#pragma warning restore IDE1006 // Naming
