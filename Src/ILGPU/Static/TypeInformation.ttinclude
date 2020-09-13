@@ -334,15 +334,8 @@ public class MathOp
 [XmlRoot("Operations")]
 public class MathOperations
 {
-    internal static MathOp[] Load(string rootPath, string fileName)
-    {
-        var serializer = new XmlSerializer(typeof(MathOperations));
-        using (var stream = new FileStream(
-            Path.Combine(rootPath, fileName),
-            FileMode.Open,
-            FileAccess.Read))
-            return (serializer.Deserialize(stream) as MathOperations).Operations;
-    }
+    internal static MathOp[] Load(string rootPath, string fileName) =>
+        XmlHelper.Load<MathOperations>(rootPath, fileName).Operations;
 
     [XmlElement("Operation")]
     public MathOp[] Operations { get; set; }
@@ -376,5 +369,21 @@ public static readonly (string, string)[] ShuffleOperations =
         ("ShuffleUp", "Up"),
         ("ShuffleXor", "Xor"),
     };
+
+// Xml Helper
+
+public static class XmlHelper
+{
+    public static T Load<T>(string rootPath, string fileName)
+        where T : class
+    {
+        var serializer = new XmlSerializer(typeof(T));
+        using (var stream = new FileStream(
+            Path.Combine(rootPath, fileName),
+            FileMode.Open,
+            FileAccess.Read))
+            return serializer.Deserialize(stream) as T;
+    }
+}
 
 #>
