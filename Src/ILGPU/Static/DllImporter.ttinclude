@@ -1,0 +1,198 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
+//
+// File: DllImporter.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Runtime.InteropServices" #>
+<#@ import namespace="System.Xml.Serialization" #>
+<#+
+[XmlRoot("ImportFiles")]
+public class ImportFiles
+{
+    internal static string[] Load(string rootPath, string fileName) =>
+        XmlHelper.Load<ImportFiles>(rootPath, fileName).Files;
+
+    [XmlElement("File")]
+    public string[] Files { get; set; }
+}
+
+[XmlRoot("Imports")]
+public class Imports
+{
+    internal static Imports Load(string rootPath, string fileName) =>
+        XmlHelper.Load<Imports>(rootPath, fileName);
+
+    [XmlAttribute]
+    public string Namespace { get; set; }
+
+    [XmlAttribute]
+    public string ClassName { get; set; }
+
+    [XmlAttribute]
+    public string DefaultReturnType { get; set; }
+
+    [XmlAttribute]
+    public string NotSupportedException { get; set;}
+
+    [XmlElement("LibraryNames")]
+    public LibraryNames LibraryNames { get; set; }
+
+    [XmlElement("Import")]
+    public EntryPoint[] EntryPoints { get; set; }
+
+    public string GetReturnType(EntryPoint entryPoint) =>
+        entryPoint.ReturnType ?? DefaultReturnType;
+}
+
+public class LibraryNames
+{
+    [XmlElement]
+    public string Windows { get; set; }
+
+    [XmlElement]
+    public string Linux { get; set; }
+
+    [XmlElement]
+    public string MacOS { get; set; }
+
+    [XmlIgnore]
+    public IEnumerable<(string, string)> Platforms
+    {
+        get
+        {
+            yield return (nameof(Windows), Windows);
+            yield return (nameof(Linux), Linux);
+            yield return (nameof(MacOS), MacOS);
+        }
+    }
+
+    public IEnumerable<(int, string)> ToMapping()
+    {
+        var mapping = new Dictionary<string, (int, string)>();
+        foreach (var (name, libName) in Platforms)
+        {
+            if (!mapping.TryGetValue(libName, out var entry))
+            {
+                entry = (mapping.Count, name);
+                mapping.Add(libName, entry);
+            }
+            yield return entry;
+        }
+    }
+}
+
+public class EntryPoint
+{
+    [XmlAttribute]
+    public string Name { get; set; }
+
+    [XmlAttribute]
+    public string ReturnType { get; set; }
+
+    [XmlAttribute]
+    public CharSet CharSet { get; set; } = CharSet.Auto;
+
+    [XmlAttribute]
+    public bool BestFitMapping { get; set; } = true;
+
+    [XmlAttribute]
+    public bool ThrowOnUnmappableChar { get; set; } = false;
+
+    [XmlElement("Parameter")]
+    public Parameter[] Parameters { get; set; }
+
+    [XmlIgnore]
+    public IEnumerable<(Parameter, string)> ParamExpressions =>
+        GetParamExpr(");");
+
+    [XmlIgnore]
+    public IEnumerable<(Parameter, string)> ParamBodyExpressions =>
+        GetParamExpr(") =>");
+
+    private IEnumerable<(Parameter, string)> GetParamExpr(string endOfLine)
+    {
+        if ((Parameters?.Length ?? 0) < 1)
+        {
+            yield return (
+                new Parameter() { DllFlags = ParameterDllFlags.None },
+                endOfLine);
+        }
+        else
+        {
+            for (int i = 0, e = Parameters?.Length ?? 0; i < e; ++i)
+                yield return (Parameters[i], i + 1 < e ? "," : endOfLine);
+        }
+    }
+}
+
+public enum ParameterDllFlags
+{
+    None = -1,
+
+    In = 0,
+    Out,
+    InOut,
+}
+
+public enum ParameterFlags
+{
+    None = 0,
+    Out,
+    Ref
+}
+
+public class Parameter
+{
+    [XmlAttribute]
+    public string Name { get; set; }
+
+    [XmlAttribute]
+    public ParameterDllFlags DllFlags { get; set; }
+
+    [XmlAttribute]
+    public ParameterFlags Flags { get; set; }
+
+    [XmlAttribute]
+    public string Type { get; set; }
+
+    [XmlIgnore]
+    public string FlagsExpression =>
+        Flags switch
+        {
+            ParameterFlags.Out => "out ",
+            ParameterFlags.Ref => "ref ",
+            _ => string.Empty
+        };
+
+    [XmlIgnore]
+    public string DllFlagsExpression =>
+        DllFlags switch
+        {
+            ParameterDllFlags.None => string.Empty,
+            ParameterDllFlags.Out => "[Out]",
+            ParameterDllFlags.InOut => "[In, Out]",
+            _ => Flags == ParameterFlags.Out
+                ? "[Out]"
+                : "[In]"
+        };
+
+    public override string ToString() =>
+        $"{DllFlagsExpression} {FlagsExpression}{Type} {Name}";
+
+    public string ToExprString() =>
+        $"{FlagsExpression}{Name}";
+}
+
+#>
