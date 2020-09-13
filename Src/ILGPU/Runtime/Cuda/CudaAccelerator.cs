@@ -211,41 +211,6 @@ namespace ILGPU.Runtime.Cuda
         }
 
         /// <summary>
-        /// Constructs a new Cuda accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="d3d11Device">A pointer to a valid D3D11 device.</param>
-        public CudaAccelerator(Context context, IntPtr d3d11Device)
-            : this(context, d3d11Device, CudaAcceleratorFlags.ScheduleAuto)
-        { }
-
-        /// <summary>
-        /// Constructs a new Cuda accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="d3d11Device">A pointer to a valid D3D11 device.</param>
-        /// <param name="acceleratorFlags">The accelerator flags.</param>
-        public CudaAccelerator(
-            Context context,
-            IntPtr d3d11Device,
-            CudaAcceleratorFlags acceleratorFlags)
-            : base(context, AcceleratorType.Cuda)
-        {
-            if (d3d11Device == IntPtr.Zero)
-                throw new ArgumentNullException(nameof(d3d11Device));
-
-            CudaException.ThrowIfFailed(
-                CurrentAPI.CreateContextD3D11(
-                    out contextPtr,
-                    out int deviceId,
-                    acceleratorFlags,
-                    d3d11Device));
-            DeviceId = deviceId;
-
-            SetupAccelerator();
-        }
-
-        /// <summary>
         /// Setups all required settings.
         /// </summary>
         private void SetupAccelerator()
