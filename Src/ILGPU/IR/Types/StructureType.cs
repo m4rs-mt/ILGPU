@@ -201,11 +201,24 @@ namespace ILGPU.IR.Types
             /// <param name="types">Direct field types.</param>
             /// <param name="allTypes">All field types.</param>
             /// <param name="offsets">All field offsets.</param>
+            /// <param name="remappedFields">Renumbered field indices.</param>
             internal void Seal(
                 out ImmutableArray<TypeNode> types,
                 out ImmutableArray<TypeNode> allTypes,
-                out ImmutableArray<int> offsets)
+                out ImmutableArray<int> offsets,
+                out ImmutableArray<int> remappedFields)
             {
+                // Calculate a mapping from the original field indices to new
+                // field indices, taking into account any padding fields.
+                var remapBuilder =
+                    ImmutableArray.CreateBuilder<int>(allFieldsBuilder.Capacity);
+                for (var i = 0; i < allFieldsBuilder.Count; i++)
+                {
+                    if (!allFieldsBuilder[i].IsPaddingType)
+                        remapBuilder.Add(i);
+                }
+
+                // Finalize the structure type.
                 types = fieldsBuilder.Count == fieldsBuilder.Capacity
                     ? fieldsBuilder.MoveToImmutable()
                     : fieldsBuilder.ToImmutable();
@@ -215,9 +228,13 @@ namespace ILGPU.IR.Types
                 offsets = offsetsBuilder.Count == offsetsBuilder.Capacity
                     ? offsetsBuilder.MoveToImmutable()
                     : offsetsBuilder.ToImmutable();
+                remappedFields = remapBuilder.Count == remapBuilder.Capacity
+                    ? remapBuilder.MoveToImmutable()
+                    : remapBuilder.ToImmutable();
                 Debug.Assert(
                     types.Length <= allTypes.Length &&
-                    offsets.Length == allTypes.Length,
+                    offsets.Length == allTypes.Length &&
+                    remappedFields.Length <= allTypes.Length,
                     "Broken builder");
             }
 
@@ -643,6 +660,11 @@ namespace ILGPU.IR.Types
         private readonly ImmutableArray<int> offsets;
 
         /// <summary>
+        /// Maps the original field index to the index of the rebuilt field.
+        /// </summary>
+        private readonly ImmutableArray<int> remappedFields;
+
+        /// <summary>
         /// Constructs a new object type.
         /// </summary>
         /// <param name="typeContext">The parent type context.</param>
@@ -653,7 +675,11 @@ namespace ILGPU.IR.Types
             Alignment = builder.Alignment;
             Size = builder.Size;
 
-            builder.Seal(out var fields, out var allFields, out offsets);
+            builder.Seal(
+                out var fields,
+                out var allFields,
+                out offsets,
+                out remappedFields);
             DirectFields = fields;
             Fields = allFields;
 
@@ -713,6 +739,13 @@ namespace ILGPU.IR.Types
         /// <param name="fieldAccess">The field reference.</param>
         /// <returns>The field offset in bytes.</returns>
         public int GetOffset(FieldAccess fieldAccess) => offsets[fieldAccess.Index];
+
+        /// <summary>
+        /// Gets the remapped field index corresponding to the original structure.
+        /// </summary>
+        /// <param name="fieldIndex">The field index.</param>
+        /// <returns>The adjusted field index.</returns>
+        public int RemapFieldIndex(int fieldIndex) => remappedFields[fieldIndex];
 
         /// <summary>
         /// Gets a nested type that corresponds to the given span.

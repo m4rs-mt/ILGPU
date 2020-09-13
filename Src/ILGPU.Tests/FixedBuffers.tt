@@ -3,6 +3,7 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
 <#@ output extension=".cs" #>
+using ILGPU.Runtime;
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -57,6 +58,63 @@ namespace ILGPU.Tests
             Equals(fixedStruct);
     }
 
+    public unsafe struct MultiFixedBufferStruct<#= type.Name #> :
+        IXunitSerializable,
+        IEquatable<MultiFixedBufferStruct<#= type.Name #>>
+    {
+        public fixed <#= type.Type #> A[FixedBuffers.Length];
+        public fixed <#= type.Type #> B[FixedBuffers.Length];
+        public fixed <#= type.Type #> C[FixedBuffers.Length];
+
+        public MultiFixedBufferStruct<#= type.Name #>(<#= type.Type #> data)
+        {
+            for (int i = 0; i < FixedBuffers.Length; ++i)
+            {
+                A[i] = data++;
+                B[i] = data++;
+                C[i] = data++;
+            }
+        }
+
+        public void Deserialize(IXunitSerializationInfo info)
+        {
+            for (int i = 0; i < FixedBuffers.Length; ++i)
+            {
+                A[i] = info.GetValue<<#= type.Type #>>(nameof(A) + i);
+                B[i] = info.GetValue<<#= type.Type #>>(nameof(B) + i);
+                C[i] = info.GetValue<<#= type.Type #>>(nameof(C) + i);
+            }
+        }
+
+        public void Serialize(IXunitSerializationInfo info)
+        {
+            for (int i = 0; i < FixedBuffers.Length; ++i)
+            {
+                info.AddValue(nameof(A) + i, A[i]);
+                info.AddValue(nameof(B) + i, B[i]);
+                info.AddValue(nameof(C) + i, C[i]);
+            }
+        }
+
+        public bool Equals(MultiFixedBufferStruct<#= type.Name #> buffer)
+        {
+            for (int i = 0; i < FixedBuffers.Length; ++i)
+            {
+                if (A[i] != buffer.A[i])
+                    return false;
+                if (B[i] != buffer.B[i])
+                    return false;
+                if (C[i] != buffer.C[i])
+                    return false;
+            }
+            return true;
+        }
+
+        public override bool Equals(object obj) =>
+            obj is MultiFixedBufferStruct<#= type.Name #> fixedStruct &&
+            Equals(fixedStruct);
+    }
+
 <# } #>
 
     public unsafe abstract class FixedBuffers : TestBase
@@ -106,6 +164,81 @@ namespace ILGPU.Tests
                 Length).ToArray();
             Verify(buffer1, expected1);
             Verify(buffer2, expected2);
+        }
+
+        internal static void GetMultiFixedBuffer<#= type.Name #>Kernel(
+            Index1 index,
+            ArrayView<<#= type.Type #>> data,
+            ArrayView<<#= type.Type #>> data2,
+            ArrayView<<#= type.Type #>> data3,
+            MultiFixedBufferStruct<#= type.Name #> value,
+            <#= type.Type #> scalarValue)
+        {
+            data[index] = value.A[index];
+            data2[index] = value.B[index];
+            data3[index] = value.C[index];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(GetMultiFixedBuffer<#= type.Name #>Kernel))]
+        public void GetMultiFixedBuffer<#= type.Name #>()
+        {
+            using var buffer1 = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var buffer2 = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var buffer3 = Accelerator.Allocate<<#= type.Type #>>(Length);
+
+            <#= type.Type #> scalarValue = 2;
+            var fixedBufferData = new MultiFixedBufferStruct<#= type.Name #>(scalarValue);
+            Execute(
+                Length,
+                buffer1.View,
+                buffer2.View,
+                buffer3.View,
+                fixedBufferData,
+                scalarValue);
+
+            var expected1 = new <#= type.Type #>[] { 2, 5, 8, 11, 14, 17, 20, 23, 26 };
+            var expected2 = new <#= type.Type #>[] { 3, 6, 9, 12, 15, 18, 21, 24, 27 };
+            var expected3 = new <#= type.Type #>[] { 4, 7, 10, 13, 16, 19, 22, 25, 28 };
+            Verify(buffer1, expected1);
+            Verify(buffer2, expected2);
+            Verify(buffer3, expected3);
+        }
+
+        internal static void SetMultiFixedBuffer<#= type.Name #>Kernel(
+            Index1 index,
+            ArrayView<<#= type.Type #>> data,
+            ArrayView<<#= type.Type #>> data2,
+            ArrayView<<#= type.Type #>> data3,
+            ArrayView<MultiFixedBufferStruct<#= type.Name #>> values)
+        {
+            values[0].A[index] = data[index];
+            values[0].B[index] = data2[index];
+            values[0].C[index] = data3[index];
+        }
+
+        [Fact]
+        [KernelMethod(nameof(SetMultiFixedBuffer<#= type.Name #>Kernel))]
+        public void SetMultiFixedBuffer<#= type.Name #>()
+        {
+            var expected1 = new <#= type.Type #>[] { 2, 5, 8, 11, 14, 17, 20, 23, 26 };
+            var expected2 = new <#= type.Type #>[] { 3, 6, 9, 12, 15, 18, 21, 24, 27 };
+            var expected3 = new <#= type.Type #>[] { 4, 7, 10, 13, 16, 19, 22, 25, 28 };
+            using var buffer1 = Accelerator.Allocate(expected1);
+            using var buffer2 = Accelerator.Allocate(expected2);
+            using var buffer3 = Accelerator.Allocate(expected3);
+            using var fixedBuffers =
+                Accelerator.Allocate<MultiFixedBufferStruct<#= type.Name #>>(1);
+
+            Execute(Length, buffer1.View, buffer2.View, buffer3.View, fixedBuffers.View);
+                
+            <#= type.Type #> scalarValue = 2;
+            var expected =
+                new[]
+                {
+                    new MultiFixedBufferStruct<#= type.Name #>(scalarValue)
+                };
+            Verify(fixedBuffers, expected);
         }
 <# } #>
     }
