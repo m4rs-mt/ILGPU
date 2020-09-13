@@ -1,0 +1,208 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Imports Namespace="ILGPU.Runtime.Cuda"
+         ClassName="CudaAPI"
+         DefaultReturnType="CudaError"
+         NotSupportedException="RuntimeErrorMessages.CudaNotSupported">
+    <LibraryNames>
+        <Windows>nvcuda</Windows>
+        <Linux>cuda</Linux>
+        <MacOS>cuda</MacOS>
+    </LibraryNames>
+
+    <Import Name="cuInit">
+        <Parameter Name="flags" Type="int" />
+    </Import>
+    <Import Name="cuDriverGetVersion">
+        <Parameter Name="driverVersion" Type="int" Flags="Out" />
+    </Import>
+    <Import Name="cuDeviceGet">
+        <Parameter Name="device" Type="int" Flags="Out" />
+        <Parameter Name="ordinal" Type="int" />
+    </Import>
+    <Import Name="cuDeviceGetCount">
+        <Parameter Name="count" Type="int" Flags="Out" />
+    </Import>
+    <Import Name="cuDeviceGetName">
+        <Parameter Name="name" Type="byte[]" DllFlags="InOut" />
+        <Parameter Name="length" Type="int" />
+        <Parameter Name="device" Type="int" />
+    </Import>
+    <Import Name="cuDeviceTotalMem_v2">
+        <Parameter Name="bytes" Type="IntPtr" Flags="Out" />
+        <Parameter Name="device" Type="int" />
+    </Import>
+    <Import Name="cuDeviceGetAttribute">
+        <Parameter Name="value" Type="int" Flags="Out" />
+        <Parameter Name="attribute" Type="DeviceAttribute" />
+        <Parameter Name="device" Type="int" />
+    </Import>
+    <Import Name="cuCtxCreate_v2">
+        <Parameter Name="context" Type="IntPtr" Flags="Out" />
+        <Parameter Name="flags" Type="CudaAcceleratorFlags" />
+        <Parameter Name="device" Type="int" />
+    </Import>
+    <Import Name="cuCtxDestroy_v2">
+        <Parameter Name="context" Type="IntPtr" />
+    </Import>
+    <Import Name="cuCtxSetCurrent">
+        <Parameter Name="context" Type="IntPtr" />
+    </Import>
+    <Import Name="cuCtxSynchronize" />
+    <Import Name="cuCtxGetCacheConfig">
+        <Parameter Name="pconfig" Type="CudaCacheConfiguration" Flags="Out" />
+    </Import>
+    <Import Name="cuCtxSetCacheConfig">
+        <Parameter Name="config" Type="CudaCacheConfiguration" />
+    </Import>
+    <Import Name="cuCtxGetSharedMemConfig">
+        <Parameter Name="pConfig" Type="CudaSharedMemoryConfiguration" Flags="Out" />
+    </Import>
+    <Import Name="cuCtxSetSharedMemConfig">
+        <Parameter Name="config" Type="CudaSharedMemoryConfiguration" />
+    </Import>
+    <Import Name="cuDeviceCanAccessPeer">
+        <Parameter Name="canAccess" Type="int" Flags="Out" />
+        <Parameter Name="device" Type="int" />
+        <Parameter Name="peerDev" Type="int" />
+    </Import>
+    <Import Name="cuCtxEnablePeerAccess">
+        <Parameter Name="peerContext" Type="IntPtr" />
+        <Parameter Name="flags" Type="int" />
+    </Import>
+    <Import Name="cuCtxDisablePeerAccess">
+        <Parameter Name="peerContext" Type="IntPtr" />
+    </Import>
+    <Import Name="cuDeviceGetP2PAttribute">
+        <Parameter Name="value" Type="int" Flags="Out" />
+        <Parameter Name="attrib" Type="Peer2PeerAttribute" />
+        <Parameter Name="sourceDevice" Type="int" />
+        <Parameter Name="destinationDevice" Type="int" />
+    </Import>
+    <Import Name="cuPointerGetAttribute">
+        <Parameter Name="targetPtr" Type="IntPtr" />
+        <Parameter Name="attribute" Type="PointerAttribute" />
+        <Parameter Name="devicePtr" Type="IntPtr" />
+    </Import>
+    <Import Name="cuMemGetInfo_v2">
+        <Parameter Name="free" Type="IntPtr" Flags="Out" />
+        <Parameter Name="total" Type="IntPtr" Flags="Out" />
+    </Import>
+    <Import Name="cuMemAlloc_v2">
+        <Parameter Name="devicePtr" Type="IntPtr" Flags="Out" />
+        <Parameter Name="bytesize" Type="IntPtr" />
+    </Import>
+    <Import Name="cuMemFree_v2">
+        <Parameter Name="devicePtr" Type="IntPtr" />
+    </Import>
+    <Import Name="cuMemAllocHost_v2">
+        <Parameter Name="devicePtr" Type="IntPtr" Flags="Out" />
+        <Parameter Name="bytesize" Type="IntPtr" />
+    </Import>
+    <Import Name="cuMemFreeHost">
+        <Parameter Name="devicePtr" Type="IntPtr" />
+    </Import>
+    <Import Name="cuMemcpy">
+        <Parameter Name="destination" Type="IntPtr" />
+        <Parameter Name="source" Type="IntPtr" />
+        <Parameter Name="length" Type="IntPtr" />
+    </Import>
+    <Import Name="cuMemcpyHtoDAsync_v2">
+        <Parameter Name="destinationDevice" Type="IntPtr" />
+        <Parameter Name="sourceHost" Type="IntPtr" />
+        <Parameter Name="length" Type="IntPtr" />
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="cuMemcpyDtoHAsync_v2">
+        <Parameter Name="destinationHost" Type="IntPtr" />
+        <Parameter Name="sourceDevice" Type="IntPtr" />
+        <Parameter Name="length" Type="IntPtr" />
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="cuMemcpyDtoDAsync_v2">
+        <Parameter Name="destinationDevice" Type="IntPtr" />
+        <Parameter Name="sourceDevice" Type="IntPtr" />
+        <Parameter Name="length" Type="IntPtr" />
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="cuMemsetD8Async">
+        <Parameter Name="destinationDevice" Type="IntPtr" />
+        <Parameter Name="value" Type="byte" />
+        <Parameter Name="length" Type="IntPtr" />
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="cuStreamCreate">
+        <Parameter Name="stream" Type="IntPtr" Flags="Out" />
+        <Parameter Name="flags" Type="StreamFlags" />
+    </Import>
+    <Import Name="cuStreamCreateWithPriority">
+        <Parameter Name="stream" Type="IntPtr" Flags="Out" />
+        <Parameter Name="flags" Type="StreamFlags" />
+        <Parameter Name="priority" Type="int" />
+    </Import>
+    <Import Name="cuStreamDestroy_v2">
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="cuStreamSynchronize">
+        <Parameter Name="stream" Type="IntPtr" />
+    </Import>
+    <Import Name="cuGetErrorString">
+        <Parameter Name="error" Type="CudaError" />
+        <Parameter Name="pStr" Type="IntPtr" Flags="Out" />
+    </Import>
+    <Import Name="cuModuleLoadData"
+            CharSet="Ansi"
+            BestFitMapping="false"
+            ThrowOnUnmappableChar="true">
+        <Parameter Name="module" Type="IntPtr" Flags="Out" />
+        <Parameter Name="moduleData" Type="string" />
+    </Import>
+    <Import Name="cuModuleLoadDataEx"
+            CharSet="Ansi"
+            BestFitMapping="false"
+            ThrowOnUnmappableChar="true">
+        <Parameter Name="module" Type="IntPtr" Flags="Out" />
+        <Parameter Name="moduleData" Type="string" />
+        <Parameter Name="numOptions" Type="int" />
+        <Parameter Name="jitOptions" Type="IntPtr" />
+        <Parameter Name="jitOptionValues" Type="IntPtr" />
+    </Import>
+    <Import Name="cuModuleUnload">
+        <Parameter Name="module" Type="IntPtr" />
+    </Import>
+    <Import Name="cuModuleGetFunction"
+            CharSet="Ansi"
+            BestFitMapping="false"
+            ThrowOnUnmappableChar="true">
+        <Parameter Name="function" Type="IntPtr" Flags="Out" />
+        <Parameter Name="module" Type="IntPtr" />
+        <Parameter Name="functionName" Type="string" />
+    </Import>
+    <Import Name="cuLaunchKernel">
+        <Parameter Name="function" Type="IntPtr" />
+        <Parameter Name="gridDimX" Type="int" />
+        <Parameter Name="gridDimY" Type="int" />
+        <Parameter Name="gridDimZ" Type="int" />
+        <Parameter Name="blockDimX" Type="int" />
+        <Parameter Name="blockDimY" Type="int" />
+        <Parameter Name="blockDimZ" Type="int" />
+        <Parameter Name="sharedMemSizeInBytes" Type="int" />
+        <Parameter Name="stream" Type="IntPtr" />
+        <Parameter Name="args" Type="IntPtr" />
+        <Parameter Name="kernelArgs" Type="IntPtr" />
+    </Import>
+    <Import Name="cuOccupancyMaxActiveBlocksPerMultiprocessor">
+        <Parameter Name="numBlocks" Type="int" Flags="Out" />
+        <Parameter Name="func" Type="IntPtr" />
+        <Parameter Name="blockSize" Type="int" />
+        <Parameter Name="dynamicSMemSize" Type="IntPtr" />
+    </Import>
+    <Import Name="cuOccupancyMaxPotentialBlockSize">
+        <Parameter Name="minGridSize" Type="int" Flags="Out" />
+        <Parameter Name="blockSize" Type="int" Flags="Out" />
+        <Parameter Name="func" Type="IntPtr" />
+        <Parameter Name="blockSizeToDynamicSMemSize"
+                   Type="ComputeDynamicMemorySizeForBlockSize" />
+        <Parameter Name="dynamicSMemSize" Type="IntPtr" />
+        <Parameter Name="blockSizeLimit" Type="int" />
+    </Import>
+</Imports>
