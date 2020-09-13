@@ -139,8 +139,10 @@ namespace ILGPU.Runtime.OpenCL
             try
             {
                 // Resolve all platforms
-                if (CurrentAPI.GetNumPlatforms(out int numPlatforms) !=
-                    CLError.CL_SUCCESS || numPlatforms < 1)
+                if (!CurrentAPI.IsSupported ||
+                    CurrentAPI.GetNumPlatforms(out int numPlatforms) !=
+                    CLError.CL_SUCCESS ||
+                    numPlatforms < 1)
                 {
                     return;
                 }

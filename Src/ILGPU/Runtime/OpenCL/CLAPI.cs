@@ -9,20 +9,17 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Resources;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-#pragma warning disable IDE1006 // Naming
 
 namespace ILGPU.Runtime.OpenCL
 {
     /// <summary>
     /// Wraps the OpenCL-driver API.
     /// </summary>
-    public abstract unsafe class CLAPI : RuntimeAPI
+    unsafe partial class CLAPI
     {
         #region Nested Types
 
@@ -75,273 +72,12 @@ namespace ILGPU.Runtime.OpenCL
                 CLStream stream,
                 CLKernel kernel,
                 RuntimeKernelConfig config) =>
-                CLAPI.CurrentAPI.SetKernelArgumentUnsafeWithKernel(
+                CurrentAPI.SetKernelArgumentUnsafeWithKernel(
                     kernel,
                     0,
                     config.SharedMemoryConfig.DynamicArraySize,
                     null);
         }
-
-        #endregion
-
-        #region Constants
-
-        /// <summary>
-        /// Represents the driver library name on Windows.
-        /// </summary>
-        public const string LibNameWindows = "opencl";
-
-        /// <summary>
-        /// Represents the driver library name on Linux.
-        /// </summary>
-        public const string LibNameLinux = "opencl";
-
-        /// <summary>
-        /// Represents the driver library name on MacOS.
-        /// </summary>
-        public const string LibNameMacOS = "opencl";
-
-        #endregion
-
-        #region Native Methods
-
-        // Devices
-
-        [DynamicImport]
-        internal abstract CLError clGetPlatformIDs(
-            [In] int maxNumPlatforms,
-            [Out] IntPtr* platforms,
-            [Out] out int numPlatforms);
-
-        [DynamicImport]
-        internal abstract CLError clGetPlatformInfo(
-            [In] IntPtr platform,
-            [In] CLPlatformInfoType platformInfoType,
-            [In] IntPtr maxSize,
-            [Out] void* value,
-            [Out] IntPtr size);
-
-        [DynamicImport]
-        internal abstract CLError clGetDeviceIDs(
-            [In] IntPtr platform,
-            [In] CLDeviceType deviceType,
-            [In] int maxNumDevices,
-            [Out] IntPtr* devices,
-            [Out] out int numDevices);
-
-        [DynamicImport]
-        internal abstract CLError clReleaseDevice(
-            [In] IntPtr deviceId);
-
-        [DynamicImport]
-        internal abstract CLError clGetDeviceInfo(
-            [In] IntPtr deviceId,
-            [In] CLDeviceInfoType deviceInfoType,
-            [In] IntPtr maxSize,
-            [Out] void* value,
-            [Out] IntPtr size);
-
-        [DynamicImport(CharSet = CharSet.Ansi, BestFitMapping = false)]
-        internal abstract IntPtr clGetExtensionFunctionAddressForPlatform(
-            [In] IntPtr platformId,
-            [In] string name);
-
-        // Context
-
-        [DynamicImport]
-        internal abstract IntPtr clCreateContext(
-            [In] IntPtr* properties,
-            [In] int numDevices,
-            [In] IntPtr* devices,
-            [In] IntPtr callback,
-            [In] IntPtr userData,
-            [Out] out CLError errorCode);
-
-        [DynamicImport]
-        internal abstract CLError clReleaseContext(
-            [In] IntPtr context);
-
-        // Command Queues
-
-        [DynamicImport]
-        internal abstract IntPtr clCreateCommandQueue(
-            [In] IntPtr context,
-            [In] IntPtr device,
-            [In] IntPtr properties,
-            [Out] out CLError errorCode);
-
-        [DynamicImport]
-        internal abstract IntPtr clCreateCommandQueueWithProperties(
-            [In] IntPtr context,
-            [In] IntPtr deviceId,
-            [In] IntPtr properties,
-            [Out] out CLError errorCode);
-
-        [DynamicImport]
-        internal abstract CLError clReleaseCommandQueue(
-            [In] IntPtr queue);
-
-        [DynamicImport]
-        internal abstract CLError clFlush(
-            [In] IntPtr queue);
-
-        [DynamicImport]
-        internal abstract CLError clFinish(
-            [In] IntPtr queue);
-
-        // Kernels
-
-        [DynamicImport(CharSet = CharSet.Ansi, BestFitMapping = false)]
-        internal abstract IntPtr clCreateProgramWithSource(
-            [In] IntPtr context,
-            [In] int numPrograms,
-            [In] ref string source,
-            [In] ref IntPtr lengths,
-            [Out] out CLError errorCode);
-
-        [DynamicImport(CharSet = CharSet.Ansi, BestFitMapping = false)]
-        internal abstract CLError clBuildProgram(
-            [In] IntPtr program,
-            [In] int numDevices,
-            [In] IntPtr* devices,
-            [In] string options,
-            [In] IntPtr callback,
-            [In] IntPtr userData);
-
-        [DynamicImport]
-        internal abstract CLError clReleaseProgram(
-            [In] IntPtr program);
-
-        [DynamicImport]
-        internal abstract CLError clGetProgramInfo(
-            [In] IntPtr program,
-            [In] CLProgramInfo param_name,
-            [In] IntPtr paramValueSize,
-            [Out] void* paramValue,
-            [Out] out IntPtr paramValueSizeRet);
-
-        [DynamicImport]
-        internal abstract CLError clGetProgramBuildInfo(
-            [In] IntPtr program,
-            [In] IntPtr device,
-            [In] CLProgramBuildInfo paramName,
-            [In] IntPtr paramValueSize,
-            [Out] void* paramValue,
-            [Out] out IntPtr paramValueSizeRet);
-
-        [DynamicImport(CharSet = CharSet.Ansi, BestFitMapping = false)]
-        internal abstract IntPtr clCreateKernel(
-            [In] IntPtr program,
-            [In] string kernelName,
-            [Out] out CLError errorCode);
-
-        [DynamicImport]
-        internal abstract CLError clReleaseKernel(
-            [In] IntPtr kernel);
-
-        [DynamicImport]
-        internal abstract CLError clSetKernelArg(
-            [In] IntPtr kernel,
-            [In] int index,
-            [In] IntPtr size,
-            [In] void* value);
-
-        [DynamicImport]
-        internal abstract CLError clEnqueueNDRangeKernel(
-            [In] IntPtr queue,
-            [In] IntPtr kernel,
-            [In] int workDimensions,
-            [In] IntPtr* workOffsets,
-            [In] IntPtr* globalWorkSizes,
-            [In] IntPtr* localWorkSizes,
-            [In] int numEvents,
-            [In] IntPtr* events,
-            [In, Out] IntPtr* creatingEvent);
-
-        [DynamicImport]
-        internal abstract CLError clGetKernelWorkGroupInfo(
-            [In] IntPtr kernel,
-            [In] IntPtr device,
-            [In] CLKernelWorkGroupInfoType workGroupInfoType,
-            [In] IntPtr maxSize,
-            [Out] void* paramValue,
-            [Out] IntPtr size);
-
-        // Buffers
-
-        [DynamicImport]
-        internal abstract IntPtr clCreateBuffer(
-            IntPtr context,
-            CLBufferFlags flags,
-            IntPtr size,
-            IntPtr hostPointer,
-            out CLError errorCode);
-
-        [DynamicImport]
-        internal abstract CLError clReleaseMemObject(
-            [In] IntPtr buffer);
-
-        [DynamicImport]
-        internal abstract CLError clEnqueueReadBuffer(
-            [In] IntPtr queue,
-            [In] IntPtr buffer,
-            [In] bool blockingRead,
-            [In] IntPtr offset,
-            [In] IntPtr size,
-            [In] IntPtr ptr,
-            [In] int numEvents,
-            [In] IntPtr* events,
-            [In, Out] IntPtr* resultEvent);
-
-        [DynamicImport]
-        internal abstract CLError clEnqueueWriteBuffer(
-            [In] IntPtr queue,
-            [In] IntPtr buffer,
-            [In] bool blockingWrite,
-            [In] IntPtr offset,
-            [In] IntPtr size,
-            [In] IntPtr ptr,
-            [In] int numEvents,
-            [In] IntPtr* events,
-            [In, Out] IntPtr* resultEvent);
-
-        [DynamicImport]
-        internal abstract CLError clEnqueueFillBuffer(
-            [In] IntPtr queue,
-            [In] IntPtr buffer,
-            [In] void* pattern,
-            [In] IntPtr patternSize,
-            [In] IntPtr offset,
-            [In] IntPtr size,
-            [In] int numEvents,
-            [In] IntPtr* events,
-            [In, Out] IntPtr* resultEvent);
-
-        [DynamicImport]
-        internal abstract CLError clEnqueueCopyBuffer(
-            [In] IntPtr queue,
-            [In] IntPtr sourceBuffer,
-            [In] IntPtr targetBuffer,
-            [In] IntPtr sourceOffset,
-            [In] IntPtr targetOffset,
-            [In] IntPtr size,
-            [In] int numEvents,
-            [In] IntPtr* events,
-            [In, Out] IntPtr* resultEvent);
-
-        #endregion
-
-        #region Static
-
-        /// <summary>
-        /// Returns the driver API for the current platform.
-        /// </summary>
-        public static CLAPI CurrentAPI { get; } =
-            RuntimeSystem.Instance.CreateDllWrapper<CLAPI>(
-                windows: LibNameWindows,
-                linux: LibNameLinux,
-                macos: LibNameMacOS,
-                RuntimeErrorMessages.CLNotSupported);
 
         #endregion
 
@@ -365,18 +101,11 @@ namespace ILGPU.Runtime.OpenCL
         /// <returns>The error code.</returns>
         public CLError GetNumPlatforms(out int numPlatforms)
         {
-            if (Backends.Backend.RunningOnNativePlatform)
-            {
-                return clGetPlatformIDs(
-                    short.MaxValue,
-                    null,
-                    out numPlatforms);
-            }
-            else
-            {
-                numPlatforms = 0;
-                return CLError.CL_DEVICE_NOT_AVAILABLE;
-            }
+            Debug.Assert(Backends.Backend.RunningOnNativePlatform);
+            return clGetPlatformIDs(
+                short.MaxValue,
+                null,
+                out numPlatforms);
         }
 
         /// <summary>
@@ -1300,5 +1029,3 @@ namespace ILGPU.Runtime.OpenCL
         #endregion
     }
 }
-
-#pragma warning restore IDE1006 // Naming
