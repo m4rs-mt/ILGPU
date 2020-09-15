@@ -140,7 +140,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns a custom padding type that is used to pad structure values.
         /// </summary>
-        public TypeNode PaddingType { get; }
+        public PaddingType PaddingType { get; }
 
         #endregion
 

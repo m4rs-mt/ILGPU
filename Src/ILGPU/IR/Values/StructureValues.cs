@@ -813,7 +813,9 @@ namespace ILGPU.IR.Values
                     Count + 1 <= Parent.NumFields);
                 Location.Assert(
                     value.Type == Parent[Count] ||
-                    value is UndefinedValue);
+                    value is UndefinedValue ||
+                    Parent[Count].IsPaddingType &&
+                    value.BasicValueType == IRBuilder.Context.PaddingType.BasicValueType);
 
                 builder.Add(value);
             }
