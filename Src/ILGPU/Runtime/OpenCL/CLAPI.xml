@@ -214,4 +214,21 @@
         <Parameter Name="events" Type="IntPtr*" />
         <Parameter Name="resultEvent" Type="IntPtr*" DllFlags="InOut" />
     </Import>
+
+    <!-- Events -->
+    <Import Name="clReleaseEvent">
+        <Parameter Name="buffer" Type="IntPtr" />
+    </Import>
+    <Import Name="clWaitForEvents">
+        <Parameter Name="numEvents" Type="int" />
+        <Parameter Name="events" Type="IntPtr*" />
+    </Import>
+
+    <!-- Markers -->
+    <Import Name="clEnqueueBarrierWithWaitList">
+        <Parameter Name="queue" Type="IntPtr" />
+        <Parameter Name="numEvents" Type="int" />
+        <Parameter Name="events" Type="IntPtr*" />
+        <Parameter Name="resultEvent" Type="IntPtr*" DllFlags="InOut" />
+    </Import>
 </Imports>

@@ -764,8 +764,10 @@ namespace ILGPU.Runtime.OpenCL
             int workDimensions,
             IntPtr* workOffsets,
             IntPtr* globalWorkSizes,
-            IntPtr* localWorkSizes) =>
-            clEnqueueNDRangeKernel(
+            IntPtr* localWorkSizes)
+        {
+            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            return clEnqueueNDRangeKernel(
                 queue,
                 kernel,
                 workDimensions,
@@ -775,6 +777,7 @@ namespace ILGPU.Runtime.OpenCL
                 0,
                 null,
                 null);
+        }
 
         /// <summary>
         /// Launches a kernel.
@@ -921,8 +924,10 @@ namespace ILGPU.Runtime.OpenCL
             bool blockingRead,
             IntPtr offset,
             IntPtr size,
-            IntPtr ptr) =>
-            clEnqueueReadBuffer(
+            IntPtr ptr)
+        {
+            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            return clEnqueueReadBuffer(
                 queue,
                 buffer,
                 blockingRead,
@@ -932,6 +937,7 @@ namespace ILGPU.Runtime.OpenCL
                 0,
                 null,
                 null);
+        }
 
         /// <summary>
         /// Writes to a buffer from host memory.
@@ -952,8 +958,10 @@ namespace ILGPU.Runtime.OpenCL
             bool blockingWrite,
             IntPtr offset,
             IntPtr size,
-            IntPtr ptr) =>
-            clEnqueueWriteBuffer(
+            IntPtr ptr)
+        {
+            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            return clEnqueueWriteBuffer(
                 queue,
                 buffer,
                 blockingWrite,
@@ -963,6 +971,7 @@ namespace ILGPU.Runtime.OpenCL
                 0,
                 null,
                 null);
+        }
 
         /// <summary>
         /// Fills the given buffer with the specified pattern.
@@ -981,8 +990,10 @@ namespace ILGPU.Runtime.OpenCL
             T pattern,
             IntPtr offset,
             IntPtr size)
-            where T : unmanaged =>
-            clEnqueueFillBuffer(
+            where T : unmanaged
+        {
+            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            return clEnqueueFillBuffer(
                 queue,
                 buffer,
                 Unsafe.AsPointer(ref pattern),
@@ -992,6 +1003,7 @@ namespace ILGPU.Runtime.OpenCL
                 0,
                 null,
                 null);
+        }
 
         /// <summary>
         /// Copies the contents of the source buffer into the target buffer.
@@ -1014,8 +1026,10 @@ namespace ILGPU.Runtime.OpenCL
             IntPtr targetBuffer,
             IntPtr sourceOffset,
             IntPtr targetOffset,
-            IntPtr size) =>
-            clEnqueueCopyBuffer(
+            IntPtr size)
+        {
+            CLException.ThrowIfFailed(EnqueueBarrier(queue));
+            return clEnqueueCopyBuffer(
                 queue,
                 sourceBuffer,
                 targetBuffer,
@@ -1025,6 +1039,81 @@ namespace ILGPU.Runtime.OpenCL
                 0,
                 null,
                 null);
+        }
+
+        #endregion
+
+        #region Events
+
+        /// <summary>
+        /// Releases the given event.
+        /// </summary>
+        /// <param name="event">The event.</param>
+        /// <returns>The error code.</returns>
+        internal CLError ReleaseEvent(IntPtr @event) =>
+            clReleaseEvent(@event);
+
+        /// <summary>
+        /// Waits on the given events to complete.
+        /// </summary>
+        /// <param name="events">The events to wait on.</param>
+        /// <returns>The error code.</returns>
+        internal CLError WaitForEvents(IntPtr[] events)
+        {
+            fixed (IntPtr* eventsPtr = events)
+            {
+                return clWaitForEvents(events?.Length ?? 0, eventsPtr);
+            }
+        }
+
+        #endregion
+
+        #region Markers
+
+        /// <summary>
+        /// Enqueues a barrier command on the given command queue which waits for all
+        /// previously enqueued commands to complete before it completes.
+        ///
+        /// This command blocks command execution, that is, any following commands
+        /// enqueued after it do not execute until it completes. 
+        /// </summary>
+        /// <param name="queue">The command queue.</param>
+        /// <returns>The error code.</returns>
+        internal CLError EnqueueBarrier(IntPtr queue) =>
+            clEnqueueBarrierWithWaitList(
+                queue,
+                0,
+                null,
+                null);
+
+        /// <summary>
+        /// Enqueues a barrier command on the given command queue which waits for the
+        /// list of events to complete, or if the list is empty, waits for all previously
+        /// enqueued commands to complete before it completes.
+        /// 
+        /// This command blocks command execution, that is, any following commands
+        /// enqueued after it do not execute until it completes. 
+        /// </summary>
+        /// <param name="queue">The command queue.</param>
+        /// <param name="waitEvents">The events to wait on.</param>
+        /// <param name="resultEvent">The returned event object.</param>
+        /// <returns>The error code.</returns>
+        internal CLError EnqueueBarrierWithWaitList(
+            IntPtr queue,
+            IntPtr[] waitEvents,
+            IntPtr* resultEvent)
+        {
+            fixed (IntPtr* waitEventsPtr = waitEvents)
+            {
+                var errorStatus =
+                    clEnqueueBarrierWithWaitList(
+                        queue,
+                        waitEvents?.Length ?? 0,
+                        waitEventsPtr,
+                        resultEvent);
+                return errorStatus;
+            }
+        }
 
         #endregion
     }
