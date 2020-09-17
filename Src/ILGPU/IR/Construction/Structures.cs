@@ -14,7 +14,9 @@ using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Construction
@@ -61,7 +63,8 @@ namespace ILGPU.IR.Construction
             var instanceBuilder = CreateStructure(location, structureType);
             for (int i = 0, e = typeInfo.NumFields; i < e; ++i)
             {
-                var rawFieldValue = typeInfo.Fields[i].GetValue(instance);
+                var field = typeInfo.Fields[i];
+                var rawFieldValue = field.GetValue(instance);
                 Value fieldValue = CreateObjectValue(
                     location,
                     rawFieldValue);
@@ -80,6 +83,38 @@ namespace ILGPU.IR.Construction
                 else
                 {
                     instanceBuilder.Add(fieldValue);
+
+                    // If the field value we just added is not the full size of the field,
+                    // (e.g. it was the start of a fixed buffer) copy the remaining
+                    // elements, byte by byte.
+                    var fieldTypeInfo = typeInfo.GetFieldTypeInfo(i);
+                    var initialBytes = fieldValue.Type.Size;
+                    var numBytes = fieldTypeInfo.Size;
+                    if (initialBytes < numBytes)
+                    {
+                        Debug.Assert(
+                            Context.PaddingType.BasicValueType == BasicValueType.Int8);
+
+                        var handle = GCHandle.Alloc(rawFieldValue, GCHandleType.Pinned);
+                        try
+                        {
+                            unsafe
+                            {
+                                byte* ptr = (byte*)handle.AddrOfPinnedObject();
+                                for (int j = initialBytes; j < numBytes; j++)
+                                {
+                                    var paddingByte = ptr[j];
+                                    instanceBuilder.Add(CreatePrimitiveValue(
+                                        location,
+                                        paddingByte));
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            handle.Free();
+                        }
+                    }
                 }
             }
             return instanceBuilder.Seal();

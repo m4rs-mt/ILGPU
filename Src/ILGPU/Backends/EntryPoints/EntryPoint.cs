@@ -141,13 +141,11 @@ namespace ILGPU.Backends.EntryPoints
         /// <summary>
         /// Creates a new launcher method.
         /// </summary>
-        /// <param name="context">The current context.</param>
         /// <param name="instanceType">The instance type (if any).</param>
         /// <returns>The method emitter that represents the launcher method.</returns>
-        internal Context.MethodEmitter CreateLauncherMethod(
-            Context context,
+        internal RuntimeSystem.MethodEmitter CreateLauncherMethod(
             Type instanceType = null) =>
-            Description.CreateLauncherMethod(context, instanceType);
+            Description.CreateLauncherMethod(instanceType);
 
         #endregion
     }

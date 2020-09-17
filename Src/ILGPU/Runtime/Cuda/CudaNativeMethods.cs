@@ -8,17 +8,27 @@
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
-
-#pragma warning disable IDE1006 // Naming Styles
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+using System;
 
 namespace ILGPU.Runtime.Cuda
 {
     #region Enums
 
-    enum StreamFlags
+    /// <summary>
+    /// Used to create <see cref="CudaStream"/> objects.
+    /// </summary>
+    [Flags]
+    public enum StreamFlags
     {
+        /// <summary>
+        /// Specifies a blocking stream.
+        /// </summary>
         CU_STREAM_DEFAULT = 0,
+        /// <summary>
+        /// Specifies a non-blocking stream. Used if no other flag is specified.
+        /// </summary>
         CU_STREAM_NON_BLOCKING = 1
     }
 
@@ -32,12 +42,16 @@ namespace ILGPU.Runtime.Cuda
         CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y = 6,
         CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z = 7,
         CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK = 8,
-        CU_DEVICE_ATTRIBUTE_SHARED_MEMORY_PER_BLOCK = 8,
+        [Obsolete("Replaced by CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK")]
+        CU_DEVICE_ATTRIBUTE_SHARED_MEMORY_PER_BLOCK =
+            CU_DEVICE_ATTRIBUTE_MAX_SHARED_MEMORY_PER_BLOCK,
         CU_DEVICE_ATTRIBUTE_TOTAL_CONSTANT_MEMORY = 9,
         CU_DEVICE_ATTRIBUTE_WARP_SIZE = 10,
         CU_DEVICE_ATTRIBUTE_MAX_PITCH = 11,
         CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK = 12,
-        CU_DEVICE_ATTRIBUTE_REGISTERS_PER_BLOCK = 12,
+        [Obsolete("Replaced by CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK")]
+        CU_DEVICE_ATTRIBUTE_REGISTERS_PER_BLOCK =
+            CU_DEVICE_ATTRIBUTE_MAX_REGISTERS_PER_BLOCK,
         CU_DEVICE_ATTRIBUTE_CLOCK_RATE = 13,
         CU_DEVICE_ATTRIBUTE_TEXTURE_ALIGNMENT = 14,
         CU_DEVICE_ATTRIBUTE_GPU_OVERLAP = 15,
@@ -55,9 +69,15 @@ namespace ILGPU.Runtime.Cuda
         CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_LAYERED_WIDTH = 27,
         CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_LAYERED_HEIGHT = 28,
         CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_LAYERED_LAYERS = 29,
-        CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_ARRAY_WIDTH = 27,
-        CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_ARRAY_HEIGHT = 28,
-        CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_ARRAY_NUMSLICES = 29,
+        [Obsolete("Replaced by CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_LAYERED_WIDTH")]
+        CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_ARRAY_WIDTH =
+            CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_LAYERED_WIDTH,
+        [Obsolete("Replaced by CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_LAYERED_HEIGHT")]
+        CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_ARRAY_HEIGHT =
+            CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_LAYERED_HEIGHT,
+        [Obsolete("Replaced by CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_LAYERED_LAYERS")]
+        CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_ARRAY_NUMSLICES =
+            CU_DEVICE_ATTRIBUTE_MAXIMUM_TEXTURE2D_LAYERED_LAYERS,
         CU_DEVICE_ATTRIBUTE_SURFACE_ALIGNMENT = 30,
         CU_DEVICE_ATTRIBUTE_CONCURRENT_KERNELS = 31,
         CU_DEVICE_ATTRIBUTE_ECC_ENABLED = 32,
@@ -209,4 +229,3 @@ namespace ILGPU.Runtime.Cuda
 }
 
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
-#pragma warning restore IDE1006 // Naming Styles

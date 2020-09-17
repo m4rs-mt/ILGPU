@@ -396,6 +396,10 @@ namespace ILGPU.Backends
                 case PointerType _:
                 case StringType _:
                     return AllocateType(Backend.PointerType);
+                case PaddingType paddingType:
+                    var paddingRegisterKind =
+                        ResolveRegisterDescription(paddingType.PrimitiveType);
+                    return AllocateRegister(paddingRegisterKind);
                 default:
                     throw new NotSupportedException();
             }
@@ -438,9 +442,9 @@ namespace ILGPU.Backends
             node.AssertNotNull(node);
             if (aliases.TryGetValue(node, out Value alias))
                 node = alias;
-            if (!registerLookup.TryGetValue(node, out RegisterEntry entry))
-                throw new InvalidCodeGenerationException();
-            return entry.Register;
+            return registerLookup.TryGetValue(node, out RegisterEntry entry)
+                ? entry.Register
+                : throw new InvalidCodeGenerationException();
         }
 
         /// <summary>

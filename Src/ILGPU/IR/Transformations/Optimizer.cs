@@ -117,6 +117,10 @@ namespace ILGPU.IR.Transformations
             builder.Add(new LowerPointerViews());
             builder.Add(acceleratorSpecializer);
 
+            // Specialize all parameter address spaces
+            if (level > OptimizationLevel.O1)
+                builder.Add(new AddressSpaceSpecializer(MemoryAddressSpace.Global));
+
             // Lower structures
             if (level > OptimizationLevel.O1)
                 builder.Add(new LowerStructures());
@@ -124,6 +128,10 @@ namespace ILGPU.IR.Transformations
             // Apply final DCE phase in release mode
             if (level > OptimizationLevel.O0)
                 builder.Add(new DeadCodeElimination());
+
+            // Infer all specialized address spaces
+            if (level > OptimizationLevel.O1)
+                builder.Add(new InferAddressSpaces());
 
             // Append further backend specific transformations in release mode
             builder.Add(new Inliner());

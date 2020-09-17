@@ -601,9 +601,9 @@ namespace ILGPU.Frontend
             {
                 return false;
             }
-            return first.Argument == null && second.Argument == null
-                ? true
-                : first.Argument.Equals(second.Argument);
+            return
+                first.Argument == null && second.Argument == null ||
+                first.Argument.Equals(second.Argument);
         }
 
         /// <summary>
@@ -829,9 +829,9 @@ namespace ILGPU.Frontend
                 return false;
             }
 
-            return Argument == null && other.Argument == null
-                ? true
-                : Argument.Equals(other.Argument);
+            return
+                Argument == null && other.Argument == null ||
+                Argument.Equals(other.Argument);
         }
 
         #endregion

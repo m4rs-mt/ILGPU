@@ -1,0 +1,217 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Imports Namespace="ILGPU.Runtime.OpenCL"
+         ClassName="CLAPI"
+         DefaultReturnType="CLError"
+         NotSupportedException="RuntimeErrorMessages.CLNotSupported">
+    <LibraryNames>
+        <Windows>opencl</Windows>
+        <Linux>opencl</Linux>
+        <MacOS>opencl</MacOS>
+    </LibraryNames>
+
+    <!-- Devices -->
+    <Import Name="clGetPlatformIDs">
+        <Parameter Name="maxNumPlatforms" Type="int" />
+        <Parameter Name="platforms" Type="IntPtr*" DllFlags="Out" />
+        <Parameter Name="numPlatforms" Type="int" Flags="Out" />
+    </Import>
+    <Import Name="clGetPlatformInfo">
+        <Parameter Name="platform" Type="IntPtr" />
+        <Parameter Name="platformInfoType" Type="CLPlatformInfoType" />
+        <Parameter Name="maxSize" Type="IntPtr" />
+        <Parameter Name="value" Type="void*" DllFlags="Out" />
+        <Parameter Name="size" Type="IntPtr" DllFlags="Out" />
+    </Import>
+    <Import Name="clGetDeviceIDs">
+        <Parameter Name="platform" Type="IntPtr" />
+        <Parameter Name="deviceType" Type="CLDeviceType" />
+        <Parameter Name="maxNumDevices" Type="int" />
+        <Parameter Name="devices" Type="IntPtr*" DllFlags="Out" />
+        <Parameter Name="numDevice" Type="int" Flags="Out" />
+    </Import>
+    <Import Name="clReleaseDevice">
+        <Parameter Name="deviceId" Type="IntPtr" />
+    </Import>
+    <Import Name="clGetDeviceInfo">
+        <Parameter Name="deviceId" Type="IntPtr" />
+        <Parameter Name="deviceInfoType" Type="CLDeviceInfoType" />
+        <Parameter Name="maxSize" Type="IntPtr" />
+        <Parameter Name="value" Type="void*" DllFlags="Out" />
+        <Parameter Name="size" Type="IntPtr" DllFlags="Out" />
+    </Import>
+    <Import Name="clGetExtensionFunctionAddressForPlatform"
+            ReturnType="IntPtr"
+            CharSet="Ansi" BestFitMapping="false">
+        <Parameter Name="platformId" Type="IntPtr" />
+        <Parameter Name="name" Type="string" />
+    </Import>
+
+    <!-- Context -->
+    <Import Name="clCreateContext"
+            ReturnType="IntPtr">
+        <Parameter Name="properties" Type="IntPtr*" />
+        <Parameter Name="numDevices" Type="int" />
+        <Parameter Name="devices" Type="IntPtr*" />
+        <Parameter Name="callback" Type="IntPtr" />
+        <Parameter Name="userData" Type="IntPtr" />
+        <Parameter Name="errorCode" Type="CLError" Flags="Out" />
+    </Import>
+    <Import Name="clReleaseContext">
+        <Parameter Name="context" Type="IntPtr" />
+    </Import>
+
+    <!-- Command Queue -->
+    <Import Name="clCreateCommandQueue"
+            ReturnType="IntPtr">
+        <Parameter Name="context" Type="IntPtr" />
+        <Parameter Name="device" Type="IntPtr" />
+        <Parameter Name="properties" Type="IntPtr" />
+        <Parameter Name="errorCode" Type="CLError" Flags="Out" />
+    </Import>
+    <Import Name="clCreateCommandQueueWithProperties"
+            ReturnType="IntPtr">
+        <Parameter Name="context" Type="IntPtr" />
+        <Parameter Name="deviceId" Type="IntPtr" />
+        <Parameter Name="properties" Type="IntPtr" />
+        <Parameter Name="errorCode" Type="CLError" Flags="Out" />
+    </Import>
+    <Import Name="clReleaseCommandQueue">
+        <Parameter Name="queue" Type="IntPtr" />
+    </Import>
+    <Import Name="clFlush">
+        <Parameter Name="queue" Type="IntPtr" />
+    </Import>
+    <Import Name="clFinish">
+        <Parameter Name="queue" Type="IntPtr" />
+    </Import>
+
+    <!-- Kernels -->
+    <Import Name="clCreateProgramWithSource"
+            ReturnType="IntPtr"
+            CharSet="Ansi" BestFitMapping="false">
+        <Parameter Name="context" Type="IntPtr" />
+        <Parameter Name="numPrograms" Type="int" />
+        <Parameter Name="source" Type="string" Flags="Ref" />
+        <Parameter Name="lengths" Type="IntPtr" Flags="Ref" />
+        <Parameter Name="errorCode" Type="CLError" Flags="Out" />
+    </Import>
+    <Import Name="clBuildProgram"
+            CharSet="Ansi" BestFitMapping="false">
+        <Parameter Name="program" Type="IntPtr" />
+        <Parameter Name="numDevices" Type="int" />
+        <Parameter Name="devices" Type="IntPtr*" />
+        <Parameter Name="options" Type="string" />
+        <Parameter Name="callback" Type="IntPtr" />
+        <Parameter Name="userData" Type="IntPtr" />
+    </Import>
+    <Import Name="clReleaseProgram">
+        <Parameter Name="program" Type="IntPtr" />
+    </Import>
+    <Import Name="clGetProgramInfo">
+        <Parameter Name="program" Type="IntPtr" />
+        <Parameter Name="param_name" Type="CLProgramInfo" />
+        <Parameter Name="paramValueSize" Type="IntPtr" />
+        <Parameter Name="paramValue" Type="void*" DllFlags="Out" />
+        <Parameter Name="paramValueSizeRet" Type="IntPtr" Flags="Out" />
+    </Import>
+    <Import Name="clGetProgramBuildInfo">
+        <Parameter Name="program" Type="IntPtr" />
+        <Parameter Name="device" Type="IntPtr" />
+        <Parameter Name="paramName" Type="CLProgramBuildInfo" />
+        <Parameter Name="paramValueSize" Type="IntPtr" />
+        <Parameter Name="paramValue" Type="void*" DllFlags="Out" />
+        <Parameter Name="paramValueSizeRet" Type="IntPtr" Flags="Out" />
+    </Import>
+    <Import Name="clCreateKernel"
+            ReturnType="IntPtr"
+            CharSet="Ansi" BestFitMapping="false">
+        <Parameter Name="program" Type="IntPtr" />
+        <Parameter Name="kernelName" Type="string" />
+        <Parameter Name="errorCode" Type="CLError" Flags="Out" />
+    </Import>
+    <Import Name="clReleaseKernel">
+        <Parameter Name="kernel" Type="IntPtr" />
+    </Import>
+    <Import Name="clSetKernelArg">
+        <Parameter Name="kernel" Type="IntPtr" />
+        <Parameter Name="index" Type="int" />
+        <Parameter Name="size" Type="IntPtr" />
+        <Parameter Name="value" Type="void*" />
+    </Import>
+    <Import Name="clEnqueueNDRangeKernel">
+        <Parameter Name="queue" Type="IntPtr" />
+        <Parameter Name="kernel" Type="IntPtr" />
+        <Parameter Name="workDimensions" Type="int" />
+        <Parameter Name="workOffsets" Type="IntPtr*" />
+        <Parameter Name="globalWorkSizes" Type="IntPtr*" />
+        <Parameter Name="localWorkSizes" Type="IntPtr*" />
+        <Parameter Name="numEvents" Type="int" />
+        <Parameter Name="events" Type="IntPtr*" />
+        <Parameter Name="creatingEvent" Type="IntPtr*" DllFlags="InOut" />
+    </Import>
+    <Import Name="clGetKernelWorkGroupInfo">
+        <Parameter Name="kernel" Type="IntPtr" />
+        <Parameter Name="device" Type="IntPtr" />
+        <Parameter Name="workGroupInfoType" Type="CLKernelWorkGroupInfoType" />
+        <Parameter Name="maxSize" Type="IntPtr" />
+        <Parameter Name="paramValue" Type="void*" DllFlags="Out" />
+        <Parameter Name="size" Type="IntPtr" DllFlags="Out" />
+    </Import>
+
+    <!-- Buffers -->
+    <Import Name="clCreateBuffer"
+            ReturnType="IntPtr">
+        <Parameter Name="context" Type="IntPtr" />
+        <Parameter Name="flags" Type="CLBufferFlags" />
+        <Parameter Name="size" Type="IntPtr" />
+        <Parameter Name="hostPointer" Type="IntPtr" />
+        <Parameter Name="errorCode" Type="CLError" Flags="Out" />
+    </Import>
+    <Import Name="clReleaseMemObject">
+        <Parameter Name="buffer" Type="IntPtr" />
+    </Import>
+    <Import Name="clEnqueueReadBuffer">
+        <Parameter Name="queue" Type="IntPtr" />
+        <Parameter Name="buffer" Type="IntPtr" />
+        <Parameter Name="blockingRead" Type="bool" />
+        <Parameter Name="offset" Type="IntPtr" />
+        <Parameter Name="size" Type="IntPtr" />
+        <Parameter Name="ptr" Type="IntPtr" />
+        <Parameter Name="numEvents" Type="int" />
+        <Parameter Name="events" Type="IntPtr*" />
+        <Parameter Name="resultEvent" Type="IntPtr*" DllFlags="InOut" />
+    </Import>
+    <Import Name="clEnqueueWriteBuffer">
+        <Parameter Name="queue" Type="IntPtr" />
+        <Parameter Name="buffer" Type="IntPtr" />
+        <Parameter Name="blockingWrite" Type="bool" />
+        <Parameter Name="offset" Type="IntPtr" />
+        <Parameter Name="size" Type="IntPtr" />
+        <Parameter Name="ptr" Type="IntPtr" />
+        <Parameter Name="numEvents" Type="int" />
+        <Parameter Name="events" Type="IntPtr*" />
+        <Parameter Name="resultEvent" Type="IntPtr*" DllFlags="InOut" />
+    </Import>
+    <Import Name="clEnqueueFillBuffer">
+        <Parameter Name="queue" Type="IntPtr" />
+        <Parameter Name="buffer" Type="IntPtr" />
+        <Parameter Name="pattern" Type="void*" />
+        <Parameter Name="patternSize" Type="IntPtr" />
+        <Parameter Name="offset" Type="IntPtr" />
+        <Parameter Name="size" Type="IntPtr" />
+        <Parameter Name="numEvents" Type="int" />
+        <Parameter Name="events" Type="IntPtr*" />
+        <Parameter Name="resultEvent" Type="IntPtr*" DllFlags="InOut" />
+    </Import>
+    <Import Name="clEnqueueCopyBuffer">
+        <Parameter Name="queue" Type="IntPtr" />
+        <Parameter Name="sourceBuffer" Type="IntPtr" />
+        <Parameter Name="targetBuffer" Type="IntPtr" />
+        <Parameter Name="sourceOffset" Type="IntPtr" />
+        <Parameter Name="targetOffset" Type="IntPtr" />
+        <Parameter Name="size" Type="IntPtr" />
+        <Parameter Name="numEvents" Type="int" />
+        <Parameter Name="events" Type="IntPtr*" />
+        <Parameter Name="resultEvent" Type="IntPtr*" DllFlags="InOut" />
+    </Import>
+</Imports>

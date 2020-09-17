@@ -138,6 +138,12 @@ namespace ILGPU.IR
                 InsertPosition = valueEntry.Index + 1;
 
             /// <summary>
+            /// Sets the insert position to the start of the current value list.
+            /// </summary>
+            public void SetupInsertPositionToStart() =>
+                InsertPosition = 0;
+
+            /// <summary>
             /// Sets the insert position to the end of the current value list.
             /// </summary>
             public void SetupInsertPositionToEnd() =>

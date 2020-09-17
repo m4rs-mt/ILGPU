@@ -9,10 +9,10 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -27,29 +27,38 @@ namespace ILGPU.Runtime.Cuda
         #region Instance
 
         private IntPtr streamPtr;
+        private readonly bool responsibleForHandle;
 
         /// <summary>
         /// Constructs a new cuda stream from the given native pointer.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="ptr">The native stream pointer.</param>
-        internal CudaStream(Accelerator accelerator, IntPtr ptr)
+        /// <param name="responsible">
+        /// Whether ILGPU is responsible of disposing this stream.
+        /// </param>
+        internal CudaStream(Accelerator accelerator, IntPtr ptr, bool responsible)
             : base(accelerator)
         {
             streamPtr = ptr;
+            responsibleForHandle = responsible;
         }
 
         /// <summary>
-        /// Constructs a new cuda stream.
+        /// Constructs a new cuda stream with given <see cref="StreamFlags"/>.
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
-        internal CudaStream(Accelerator accelerator)
+        /// <param name="flag">
+        /// Stream flag to use. Allows blocking and non-blocking streams.
+        /// </param>
+        internal CudaStream(Accelerator accelerator, StreamFlags flag)
             : base(accelerator)
         {
             CudaException.ThrowIfFailed(
-                CudaAPI.Current.CreateStream(
+                CurrentAPI.CreateStream(
                     out streamPtr,
-                    StreamFlags.CU_STREAM_NON_BLOCKING));
+                    flag));
+            responsibleForHandle = true;
         }
 
         #endregion
@@ -71,7 +80,7 @@ namespace ILGPU.Runtime.Cuda
             var binding = Accelerator.BindScoped();
 
             CudaException.ThrowIfFailed(
-                CudaAPI.Current.SynchronizeStream(streamPtr));
+                CurrentAPI.SynchronizeStream(streamPtr));
 
             binding.Recover();
         }
@@ -83,10 +92,10 @@ namespace ILGPU.Runtime.Cuda
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (streamPtr != IntPtr.Zero)
+            if (responsibleForHandle && streamPtr != IntPtr.Zero)
             {
                 CudaException.ThrowIfFailed(
-                    CudaAPI.Current.DestroyStream(streamPtr));
+                    CurrentAPI.DestroyStream(streamPtr));
                 streamPtr = IntPtr.Zero;
             }
             base.Dispose(disposing);

@@ -28,7 +28,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.6">
+        <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
@@ -113,6 +113,11 @@
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
             <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
+        </None>
+        <None Include="Static\DllImports.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>DllImports.tt</DependentUpon>
         </None>
         <None Include="Util\DataBlocks.cs">
           <DesignTime>True</DesignTime>
@@ -207,6 +212,11 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
         </Compile>
+        <Compile Update="Static\DllImports.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>DllImports.tt</DependentUpon>
+        </Compile>
         <Compile Update="Util\DataBlocks.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -275,6 +285,10 @@
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
         </None>
+        <None Update="Static\DllImports.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>DllImports.cs</LastGenOutput>
+        </None>
         <None Update="Util\PrimitiveDataBlocks.tt">
           <LastGenOutput>PrimitiveDataBlocks.cs</LastGenOutput>
           <Generator>TextTemplatingFileGenerator</Generator>
@@ -298,6 +312,6 @@
         </EmbeddedResource>
     </ItemGroup>
 
-    <Import Project="Properties\ILGPU.nuspec.targets"/>
+    <Import Project="Properties\ILGPU.nuspec.targets" />
     <Import Project="..\TextTransform.targets" />
 </Project>

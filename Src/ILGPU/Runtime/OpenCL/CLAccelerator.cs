@@ -12,13 +12,13 @@
 using ILGPU.Backends.IL;
 using ILGPU.Backends.OpenCL;
 using ILGPU.Resources;
-using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
+using static ILGPU.Runtime.OpenCL.CLAPI;
 
 namespace ILGPU.Runtime.OpenCL
 {
@@ -65,13 +65,21 @@ namespace ILGPU.Runtime.OpenCL
         #region Static
 
         /// <summary>
+        /// Represents the <see cref="CurrentAPI"/> property.
+        /// </summary>
+        internal static readonly MethodInfo GetCLAPIMethod =
+            typeof(CLAPI).GetProperty(
+                nameof(CurrentAPI),
+                BindingFlags.Public | BindingFlags.Static).GetGetMethod();
+
+        /// <summary>
         /// Represents the <see cref="CLAPI.LaunchKernelWithStreamBinding(
         /// CLStream, CLKernel, RuntimeKernelConfig)"/> method.
         /// </summary>
         private static readonly MethodInfo GenericLaunchKernelMethod =
             typeof(CLAPI).GetMethod(
                 nameof(CLAPI.LaunchKernelWithStreamBinding),
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.NonPublic | BindingFlags.Instance);
 
         /// <summary>
         /// Represents the <see cref="CLException.ThrowIfFailed(CLError)" /> method.
@@ -131,14 +139,16 @@ namespace ILGPU.Runtime.OpenCL
             try
             {
                 // Resolve all platforms
-                if (CLAPI.GetNumPlatforms(out int numPlatforms) != CLError.CL_SUCCESS ||
+                if (!CurrentAPI.IsSupported ||
+                    CurrentAPI.GetNumPlatforms(out int numPlatforms) !=
+                    CLError.CL_SUCCESS ||
                     numPlatforms < 1)
                 {
                     return;
                 }
 
                 var platforms = new IntPtr[numPlatforms];
-                if (CLAPI.GetPlatforms(platforms, out numPlatforms) !=
+                if (CurrentAPI.GetPlatforms(platforms, out numPlatforms) !=
                     CLError.CL_SUCCESS)
                 {
                     return;
@@ -150,7 +160,7 @@ namespace ILGPU.Runtime.OpenCL
                     int numDevices = devices.Length;
                     Array.Clear(devices, 0, numDevices);
 
-                    if (CLAPI.GetDevices(
+                    if (CurrentAPI.GetDevices(
                         platform,
                         CLDeviceType.CL_DEVICE_TYPE_ALL,
                         devices,
@@ -167,7 +177,7 @@ namespace ILGPU.Runtime.OpenCL
                             continue;
 
                         // Check for available device
-                        if (CLAPI.GetDeviceInfo<int>(
+                        if (CurrentAPI.GetDeviceInfo<int>(
                             device,
                             CLDeviceInfoType.CL_DEVICE_AVAILABLE) == 0)
                         {
@@ -223,37 +233,37 @@ namespace ILGPU.Runtime.OpenCL
             DeviceId = acceleratorId.DeviceId;
             CVersion = acceleratorId.CVersion;
 
-            PlatformName = CLAPI.GetPlatformInfo(
+            PlatformName = CurrentAPI.GetPlatformInfo(
                 PlatformId,
                 CLPlatformInfoType.CL_PLATFORM_NAME);
 
-            VendorName = CLAPI.GetPlatformInfo(
+            VendorName = CurrentAPI.GetPlatformInfo(
                 PlatformId,
                 CLPlatformInfoType.CL_PLATFORM_VENDOR);
 
             // Create new context
             CLException.ThrowIfFailed(
-                CLAPI.CreateContext(DeviceId, out contextPtr));
+                CurrentAPI.CreateContext(DeviceId, out contextPtr));
 
             // Resolve device info
-            Name = CLAPI.GetDeviceInfo(
+            Name = CurrentAPI.GetDeviceInfo(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_NAME);
 
-            MemorySize = CLAPI.GetDeviceInfo<long>(
+            MemorySize = CurrentAPI.GetDeviceInfo<long>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_GLOBAL_MEM_SIZE);
 
-            DeviceType = (CLDeviceType)CLAPI.GetDeviceInfo<long>(
+            DeviceType = (CLDeviceType)CurrentAPI.GetDeviceInfo<long>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_TYPE);
 
             // Max grid size
-            int workItemDimensions = IntrinsicMath.Max(CLAPI.GetDeviceInfo<int>(
+            int workItemDimensions = IntrinsicMath.Max(CurrentAPI.GetDeviceInfo<int>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS), 3);
             var workItemSizes = new IntPtr[workItemDimensions];
-            CLAPI.GetDeviceInfo(
+            CurrentAPI.GetDeviceInfo(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_MAX_WORK_ITEM_SIZES,
                 workItemSizes);
@@ -263,29 +273,29 @@ namespace ILGPU.Runtime.OpenCL
                 workItemSizes[2].ToInt32());
 
             // Resolve max threads per group
-            MaxNumThreadsPerGroup = CLAPI.GetDeviceInfo<IntPtr>(
+            MaxNumThreadsPerGroup = CurrentAPI.GetDeviceInfo<IntPtr>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_MAX_WORK_GROUP_SIZE).ToInt32();
 
             // Resolve max shared memory per block
             MaxSharedMemoryPerGroup = (int)IntrinsicMath.Min(
-                CLAPI.GetDeviceInfo<long>(
+                CurrentAPI.GetDeviceInfo<long>(
                     DeviceId,
                     CLDeviceInfoType.CL_DEVICE_LOCAL_MEM_SIZE),
                 int.MaxValue);
 
             // Resolve total constant memory
-            MaxConstantMemory = (int)CLAPI.GetDeviceInfo<long>(
+            MaxConstantMemory = (int)CurrentAPI.GetDeviceInfo<long>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_MAX_PARAMETER_SIZE);
 
             // Resolve clock rate
-            ClockRate = CLAPI.GetDeviceInfo<int>(
+            ClockRate = CurrentAPI.GetDeviceInfo<int>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_MAX_CLOCK_FREQUENCY);
 
             // Resolve number of multiprocessors
-            NumMultiprocessors = CLAPI.GetDeviceInfo<int>(
+            NumMultiprocessors = CurrentAPI.GetDeviceInfo<int>(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_MAX_COMPUTE_UNITS);
 
@@ -311,7 +321,7 @@ namespace ILGPU.Runtime.OpenCL
         private void InitVendorFeatures()
         {
             // Check major vendor features
-            if (CLAPI.GetDeviceInfo(
+            if (CurrentAPI.GetDeviceInfo(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_WARP_SIZE_NV,
                 out int warpSize) == CLError.CL_SUCCESS)
@@ -320,16 +330,16 @@ namespace ILGPU.Runtime.OpenCL
                 WarpSize = warpSize;
                 Vendor = CLAcceleratorVendor.Nvidia;
 
-                int major = CLAPI.GetDeviceInfo<int>(
+                int major = CurrentAPI.GetDeviceInfo<int>(
                     DeviceId,
                     CLDeviceInfoType.CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV);
-                int minor = CLAPI.GetDeviceInfo<int>(
+                int minor = CurrentAPI.GetDeviceInfo<int>(
                     DeviceId,
                     CLDeviceInfoType.CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV);
                 if (major < 7 || major == 7 && minor < 5)
                     MaxNumThreadsPerMultiprocessor *= 2;
             }
-            else if (CLAPI.GetDeviceInfo(
+            else if (CurrentAPI.GetDeviceInfo(
                 DeviceId,
                 CLDeviceInfoType.CL_DEVICE_WAVEFRONT_WIDTH_AMD,
                 out int wavefrontSize) == CLError.CL_SUCCESS)
@@ -355,7 +365,7 @@ namespace ILGPU.Runtime.OpenCL
                 try
                 {
                     // Resolve information
-                    WarpSize = CLAPI.GetKernelWorkGroupInfo<IntPtr>(
+                    WarpSize = CurrentAPI.GetKernelWorkGroupInfo<IntPtr>(
                         kernelPtr,
                         DeviceId,
                         CLKernelWorkGroupInfoType
@@ -364,9 +374,9 @@ namespace ILGPU.Runtime.OpenCL
                 finally
                 {
                     CLException.ThrowIfFailed(
-                        CLAPI.ReleaseKernel(kernelPtr));
+                        CurrentAPI.ReleaseKernel(kernelPtr));
                     CLException.ThrowIfFailed(
-                        CLAPI.ReleaseProgram(programPtr));
+                        CurrentAPI.ReleaseProgram(programPtr));
                 }
             }
         }
@@ -422,9 +432,9 @@ namespace ILGPU.Runtime.OpenCL
                 finally
                 {
                     CLException.ThrowIfFailed(
-                        CLAPI.ReleaseKernel(kernelPtr));
+                        CurrentAPI.ReleaseKernel(kernelPtr));
                     CLException.ThrowIfFailed(
-                        CLAPI.ReleaseProgram(programPtr));
+                        CurrentAPI.ReleaseProgram(programPtr));
                 }
             }
         }
@@ -526,9 +536,21 @@ namespace ILGPU.Runtime.OpenCL
             MethodInfo launcher) =>
             new CLKernel(this, compiledKernel, launcher);
 
-        /// <summary cref="Accelerator.CreateStream"/>
+        /// <summary cref="Accelerator.CreateStream()"/>
         protected override AcceleratorStream CreateStreamInternal() =>
             new CLStream(this);
+
+        /// <summary>
+        /// Creates a <see cref="CLStream"/> object from an externally
+        /// created stream/queue using its pointer.
+        /// </summary>
+        /// <param name="ptr">The pointer to use while creating the new stream.</param>
+        /// <param name="responsible">
+        /// Whether ILGPU is responsible of disposing this stream.
+        /// </param>
+        /// <returns>The created stream.</returns>
+        public CLStream CreateStream(IntPtr ptr, bool responsible) =>
+            new CLStream(this, ptr, responsible);
 
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() =>
@@ -577,7 +599,7 @@ namespace ILGPU.Runtime.OpenCL
                     ErrorMessages.NotSupportedByRefKernelParameters);
             }
 
-            var launcher = entryPoint.CreateLauncherMethod(Context);
+            var launcher = entryPoint.CreateLauncherMethod();
             var emitter = new ILEmitter(launcher.ILGenerator);
 
             // Load kernel instance
@@ -590,6 +612,9 @@ namespace ILGPU.Runtime.OpenCL
             // Map all kernel arguments
             var argumentMapper = Backend.ArgumentMapper;
             argumentMapper.Map(emitter, kernelLocal, entryPoint);
+
+            // Load current driver API
+            emitter.EmitCall(GetCLAPIMethod);
 
             // Load stream
             KernelLauncherBuilder.EmitLoadAcceleratorStream<CLStream, ILEmitter>(
@@ -609,8 +634,8 @@ namespace ILGPU.Runtime.OpenCL
             // Dispatch kernel
             var launchMethod = GenericLaunchKernelMethod.MakeGenericMethod(
                 entryPoint.SharedMemory.HasDynamicMemory
-                ? typeof(CLAPI.DynamicSharedMemoryHandler)
-                : typeof(CLAPI.DefaultLaunchHandler));
+                ? typeof(DynamicSharedMemoryHandler)
+                : typeof(DefaultLaunchHandler));
             emitter.EmitCall(launchMethod);
 
             // Emit ThrowIfFailed
@@ -670,7 +695,7 @@ namespace ILGPU.Runtime.OpenCL
                 maxGroupSize = MaxNumThreadsPerGroup;
 
             var clKernel = kernel as CLKernel;
-            var workGroupSizeNative = CLAPI.GetKernelWorkGroupInfo<IntPtr>(
+            var workGroupSizeNative = CurrentAPI.GetKernelWorkGroupInfo<IntPtr>(
                 clKernel.KernelPtr,
                 DeviceId,
                 CLKernelWorkGroupInfoType.CL_KERNEL_WORK_GROUP_SIZE);
@@ -692,7 +717,7 @@ namespace ILGPU.Runtime.OpenCL
             if (contextPtr != IntPtr.Zero)
             {
                 CLException.ThrowIfFailed(
-                    CLAPI.ReleaseContext(contextPtr));
+                    CurrentAPI.ReleaseContext(contextPtr));
                 contextPtr = IntPtr.Zero;
             }
         }

@@ -164,11 +164,9 @@ namespace ILGPU.Backends.EntryPoints
         /// <summary>
         /// Creates a new launcher method.
         /// </summary>
-        /// <param name="context">The current context.</param>
         /// <param name="instanceType">The instance type (if any).</param>
         /// <returns>The method emitter that represents the launcher method.</returns>
-        internal Context.MethodEmitter CreateLauncherMethod(
-            Context context,
+        internal RuntimeSystem.MethodEmitter CreateLauncherMethod(
             Type instanceType = null)
         {
             var parameterTypes = new Type[
@@ -183,7 +181,9 @@ namespace ILGPU.Backends.EntryPoints
                 IndexType.GetManagedIndexType();
             Parameters.CopyTo(parameterTypes, Kernel.KernelParameterOffset);
 
-            var result = context.DefineRuntimeMethod(typeof(void), parameterTypes);
+            var result = RuntimeSystem.Instance.DefineRuntimeMethod(
+                typeof(void),
+                parameterTypes);
             // TODO: we have to port the following snippet to .Net Core
             // in order to support "in" parameters
             //if (Parameters.IsByRef(i))

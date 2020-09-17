@@ -149,12 +149,10 @@ namespace ILGPU.Frontend
         /// </summary>
         /// <param name="methodBase">The method to declare.</param>
         /// <returns>The declared top-level function.</returns>
-        public Method DeclareFunction(MethodBase methodBase)
-        {
-            if (methodBase == null)
-                throw Location.GetArgumentNullException(nameof(methodBase));
-            return CodeGenerator.DeclareMethod(methodBase);
-        }
+        public Method DeclareFunction(MethodBase methodBase) =>
+            methodBase != null
+            ? CodeGenerator.DeclareMethod(methodBase)
+            : throw Location.GetArgumentNullException(nameof(methodBase));
 
         #endregion
 

@@ -213,7 +213,7 @@ namespace ILGPU.Runtime.CPU
             return result;
         }
 
-        /// <summary cref="Accelerator.CreateStreamInternal"/>
+        /// <summary cref="Accelerator.CreateStreamInternal()"/>
         protected override AcceleratorStream CreateStreamInternal() =>
             new CPUStream(this);
 
@@ -263,14 +263,11 @@ namespace ILGPU.Runtime.CPU
         private int ComputeNumGroupThreads(int groupSize)
         {
             var numThreads = groupSize + (groupSize % WarpSize);
-            if (numThreads > NumThreads)
-            {
-                throw new NotSupportedException(string.Format(
+            return numThreads > NumThreads
+                ? throw new NotSupportedException(string.Format(
                     RuntimeErrorMessages.NotSupportedTotalGroupSize,
-                    NumThreads));
-            }
-
-            return numThreads;
+                    NumThreads))
+                : numThreads;
         }
 
         /// <summary>
@@ -394,7 +391,7 @@ namespace ILGPU.Runtime.CPU
             var entryPoint = kernel.EntryPoint;
             AdjustAndVerifyKernelGroupSize(ref customGroupSize, entryPoint);
 
-            var launcher = entryPoint.CreateLauncherMethod(Context);
+            var launcher = entryPoint.CreateLauncherMethod();
             var emitter = new ILEmitter(launcher.ILGenerator);
 
             var cpuKernel = emitter.DeclareLocal(typeof(CPUKernel));
@@ -466,13 +463,10 @@ namespace ILGPU.Runtime.CPU
         protected override int EstimateMaxActiveGroupsPerMultiprocessorInternal(
             Kernel kernel,
             int groupSize,
-            int dynamicSharedMemorySizeInBytes)
-        {
-            if (!(kernel is CPUKernel))
-                throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
-
-            return NumThreads / groupSize;
-        }
+            int dynamicSharedMemorySizeInBytes) =>
+            kernel is CPUKernel
+            ? NumThreads / groupSize
+            : throw new NotSupportedException(RuntimeErrorMessages.NotSupportedKernel);
 
         /// <summary cref="Accelerator.EstimateGroupSizeInternal(
         /// Kernel, Func{int, int}, int, out int)"/>

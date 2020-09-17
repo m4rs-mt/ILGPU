@@ -103,6 +103,8 @@ namespace ILGPU.IR.Types
                         (int)BasicValueType.Float32];
             }
 
+            PaddingType = new PaddingType(this, GetPrimitiveType(BasicValueType.Int8));
+
             PopulateTypeMapping();
         }
 
@@ -138,7 +140,7 @@ namespace ILGPU.IR.Types
         /// <summary>
         /// Returns a custom padding type that is used to pad structure values.
         /// </summary>
-        public TypeNode PaddingType => GetPrimitiveType(BasicValueType.Int8);
+        public PaddingType PaddingType { get; }
 
         #endregion
 

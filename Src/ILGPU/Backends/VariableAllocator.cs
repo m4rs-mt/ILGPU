@@ -264,6 +264,8 @@ namespace ILGPU.Backends
                     primitiveType.BasicValueType),
                 PointerType pointerType => AllocatePointerType(pointerType),
                 ObjectType objectType => new ObjectVariable(idCounter++, objectType),
+                PaddingType paddingType => AllocateType(
+                    paddingType.PrimitiveType.BasicValueType),
                 _ => throw new NotSupportedException(),
             };
 
@@ -285,9 +287,9 @@ namespace ILGPU.Backends
             where T : Variable
         {
             var variable = Load(value);
-            if (variable is T result)
-                return result;
-            throw new InvalidCodeGenerationException();
+            return variable is T result
+                ? result
+                : throw new InvalidCodeGenerationException();
         }
 
         /// <summary>

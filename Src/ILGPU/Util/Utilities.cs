@@ -74,9 +74,8 @@ namespace ILGPU.Util
         /// <param name="value">The integer value.</param>
         /// <returns>True, if the given integer is a power of two.</returns>
         public static bool IsPowerOf2(long value) =>
-            value == long.MinValue
-            ? false
-            : IsPowerOf2((ulong)IntrinsicMath.Abs(value));
+            value != long.MinValue &&
+            IsPowerOf2((ulong)IntrinsicMath.Abs(value));
 
         /// <summary>
         /// Returns true if the given integer is a power of two.

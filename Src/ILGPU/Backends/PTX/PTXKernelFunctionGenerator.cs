@@ -14,6 +14,7 @@ using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Values;
 using ILGPU.Runtime;
+using System;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -116,12 +117,27 @@ namespace ILGPU.Backends.PTX
         public override void GenerateHeader(StringBuilder builder)
         {
             // Generate global dynamic shared memory allocation information
-            if (EntryPoint.SharedMemory.HasDynamicMemory)
+            if (!EntryPoint.SharedMemory.HasDynamicMemory)
+                return;
+
+            // Get global alignment information
+            int sharedAlignmentInBytes = 1;
+            foreach (var alloca in Allocas.DynamicSharedAllocations)
             {
-                builder.Append(".extern .shared .align 1 .b8 ");
-                builder.Append(DynamicSharedMemoryAllocationName);
-                builder.AppendLine("[];");
+                sharedAlignmentInBytes = Math.Max(
+                    sharedAlignmentInBytes,
+                    PointerAlignments.GetInitialAlignment(alloca.Alloca));
             }
+            sharedAlignmentInBytes = Math.Min(
+                sharedAlignmentInBytes,
+                PTXBackend.DefaultGlobalMemoryAlignment);
+
+            // Use the proper alignment that is compatible with all types
+            builder.Append(".extern .shared .align ");
+            builder.Append(sharedAlignmentInBytes);
+            builder.Append(" .b8 ");
+            builder.Append(DynamicSharedMemoryAllocationName);
+            builder.AppendLine("[];");
         }
 
         /// <summary>

@@ -13,7 +13,6 @@ using ILGPU.Backends;
 using ILGPU.Backends.IL;
 using ILGPU.Backends.PTX;
 using ILGPU.Resources;
-using ILGPU.Runtime.Cuda.API;
 using ILGPU.Util;
 using System;
 using System.Collections.Immutable;
@@ -22,6 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -41,11 +41,11 @@ namespace ILGPU.Runtime.Cuda
                 nameof(IntPtr.Zero), BindingFlags.Static | BindingFlags.Public);
 
         /// <summary>
-        /// Represents the <see cref="CudaAPI.Current"/> property.
+        /// Represents the <see cref="CurrentAPI"/> property.
         /// </summary>
         private static readonly MethodInfo GetCudaAPIMethod =
             typeof(CudaAPI).GetProperty(
-                nameof(CudaAPI.Current),
+                nameof(CurrentAPI),
                 BindingFlags.Public | BindingFlags.Static).GetGetMethod();
 
         /// <summary>
@@ -94,11 +94,6 @@ namespace ILGPU.Runtime.Cuda
             }
             CudaAccelerators = accelerators.ToImmutable();
         }
-
-        /// <summary>
-        /// Returns the current Cuda-driver API.
-        /// </summary>
-        public static CudaAPI CurrentAPI => CudaAPI.Current;
 
         /// <summary>
         /// Represents the list of available Cuda accelerators.
@@ -216,41 +211,6 @@ namespace ILGPU.Runtime.Cuda
         }
 
         /// <summary>
-        /// Constructs a new Cuda accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="d3d11Device">A pointer to a valid D3D11 device.</param>
-        public CudaAccelerator(Context context, IntPtr d3d11Device)
-            : this(context, d3d11Device, CudaAcceleratorFlags.ScheduleAuto)
-        { }
-
-        /// <summary>
-        /// Constructs a new Cuda accelerator.
-        /// </summary>
-        /// <param name="context">The ILGPU context.</param>
-        /// <param name="d3d11Device">A pointer to a valid D3D11 device.</param>
-        /// <param name="acceleratorFlags">The accelerator flags.</param>
-        public CudaAccelerator(
-            Context context,
-            IntPtr d3d11Device,
-            CudaAcceleratorFlags acceleratorFlags)
-            : base(context, AcceleratorType.Cuda)
-        {
-            if (d3d11Device == IntPtr.Zero)
-                throw new ArgumentNullException(nameof(d3d11Device));
-
-            CudaException.ThrowIfFailed(
-                CurrentAPI.CreateContextD3D11(
-                    out contextPtr,
-                    out int deviceId,
-                    acceleratorFlags,
-                    d3d11Device));
-            DeviceId = deviceId;
-
-            SetupAccelerator();
-        }
-
-        /// <summary>
         /// Setups all required settings.
         /// </summary>
         private void SetupAccelerator()
@@ -260,7 +220,7 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetDeviceName(out string name, DeviceId));
             Name = name;
-            DefaultStream = new CudaStream(this, IntPtr.Zero);
+            DefaultStream = new CudaStream(this, IntPtr.Zero, false);
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetTotalDeviceMemory(out long total, DeviceId));
@@ -445,9 +405,28 @@ namespace ILGPU.Runtime.Cuda
             MethodInfo launcher) =>
             new CudaKernel(this, compiledKernel, launcher);
 
-        /// <summary cref="Accelerator.CreateStream"/>
+        /// <summary cref="Accelerator.CreateStream()"/>
         protected override AcceleratorStream CreateStreamInternal() =>
-            new CudaStream(this);
+            new CudaStream(this, StreamFlags.CU_STREAM_NON_BLOCKING);
+
+        /// <summary>
+        /// Creates a <see cref="CudaStream"/> object using
+        /// specified <see cref="StreamFlags"/>.
+        /// </summary>
+        /// <param name="flag">The flag to use.</param>
+        /// <returns>The created stream.</returns>
+        public CudaStream CreateStream(StreamFlags flag) => new CudaStream(this, flag);
+
+        /// <summary>
+        /// Creates a <see cref="CudaStream"/> object using an externally created stream.
+        /// </summary>
+        /// <param name="ptr">A pointer to the externally created stream.</param>
+        /// <param name="responsible">
+        /// Whether ILGPU is responsible of disposing this stream.
+        /// </param>
+        /// <returns>The created stream.</returns>
+        public CudaStream CreateStream(IntPtr ptr, bool responsible) =>
+            new CudaStream(this, ptr, responsible);
 
         /// <summary cref="Accelerator.Synchronize"/>
         protected override void SynchronizeInternal() =>
@@ -547,7 +526,7 @@ namespace ILGPU.Runtime.Cuda
                     ErrorMessages.NotSupportedByRefKernelParameters);
             }
 
-            var launcher = entryPoint.CreateLauncherMethod(Context);
+            var launcher = entryPoint.CreateLauncherMethod();
             var emitter = new ILEmitter(launcher.ILGenerator);
 
             // Allocate array of pointers as kernel argument(s)

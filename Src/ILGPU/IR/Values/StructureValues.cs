@@ -640,9 +640,7 @@ namespace ILGPU.IR.Values
         {
             if (Source != other.Source || IsDirect != other.IsDirect)
                 return false;
-            return IsDirect
-                ? true
-                : FieldSpan.Equals(other.FieldSpan);
+            return IsDirect || FieldSpan.Equals(other.FieldSpan);
         }
 
         #endregion
@@ -815,7 +813,9 @@ namespace ILGPU.IR.Values
                     Count + 1 <= Parent.NumFields);
                 Location.Assert(
                     value.Type == Parent[Count] ||
-                    value is UndefinedValue);
+                    value is UndefinedValue ||
+                    Parent[Count].IsPaddingType &&
+                    value.BasicValueType == IRBuilder.Context.PaddingType.BasicValueType);
 
                 builder.Add(value);
             }

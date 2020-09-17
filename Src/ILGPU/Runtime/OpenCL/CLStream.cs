@@ -9,10 +9,10 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.Runtime.OpenCL.API;
 using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using static ILGPU.Runtime.OpenCL.CLAPI;
 
 namespace ILGPU.Runtime.OpenCL
 {
@@ -27,15 +27,24 @@ namespace ILGPU.Runtime.OpenCL
         #region Instance
 
         private IntPtr queuePtr;
+        private readonly bool responsibleForHandle;
+
+        internal CLStream(Accelerator accelerator, IntPtr ptr, bool responsible)
+            : base(accelerator)
+        {
+            queuePtr = ptr;
+            responsibleForHandle = responsible;
+        }
 
         internal CLStream(CLAccelerator accelerator)
             : base(accelerator)
         {
             CLException.ThrowIfFailed(
-                CLAPI.CreateCommandQueue(
+                CurrentAPI.CreateCommandQueue(
                     accelerator.DeviceId,
                     accelerator.ContextPtr,
                     out queuePtr));
+            responsibleForHandle = true;
         }
 
         #endregion
@@ -54,7 +63,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="AcceleratorStream.Synchronize"/>
         public override void Synchronize() =>
             CLException.ThrowIfFailed(
-                CLAPI.FinishCommandQueue(queuePtr));
+                CurrentAPI.FinishCommandQueue(queuePtr));
 
         #endregion
 
@@ -63,10 +72,10 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary cref="DisposeBase.Dispose(bool)"/>
         protected override void Dispose(bool disposing)
         {
-            if (queuePtr != IntPtr.Zero)
+            if (responsibleForHandle && queuePtr != IntPtr.Zero)
             {
                 CLException.ThrowIfFailed(
-                    CLAPI.ReleaseCommandQueue(queuePtr));
+                    CurrentAPI.ReleaseCommandQueue(queuePtr));
                 queuePtr = IntPtr.Zero;
             }
             base.Dispose(disposing);
