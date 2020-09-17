@@ -93,7 +93,7 @@ namespace ILGPU.Frontend.Intrinsic
                 typeof(<#= type.Type #>),
                 typeof(<#= type.Type #>));
 <# } #>
-#if NETCORE
+#if !NETFRAMEWORK
             var systemMathFType = typeof(MathF);
 
 <# foreach (var (method, type, _, className) in unaryMathFunctions

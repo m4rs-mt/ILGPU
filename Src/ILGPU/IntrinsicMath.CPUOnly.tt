@@ -63,7 +63,7 @@ namespace ILGPU
 
             #region Single Precision
 
-#if NETCORE
+#if !NETFRAMEWORK
 <# foreach (var op in unaryOps) { #>
             /// <summary>
             /// <#= op.Summary #>
