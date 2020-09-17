@@ -190,6 +190,10 @@ namespace ILGPU.IR.Types
             public TypeNode Seal()
             {
                 // Check for a special case in which we require custom padding elements
+                // NB: Prevent empty structures by ensuring we have at least one field
+                // that is not padding.
+                if (Count == 0 && AlignedSize < Size)
+                    Add(TypeContext.PaddingType.PrimitiveType);
                 for (int i = AlignedSize, e = Size; i < e; ++i)
                     Add(TypeContext.PaddingType);
                 return TypeContext.FinishStructureType(this);
