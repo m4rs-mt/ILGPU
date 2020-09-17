@@ -17,14 +17,6 @@
         <FileVersion>0.9.0.0</FileVersion>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(TargetFramework)'!='net47'">
-        <DefineConstants>NETCORE</DefineConstants>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-        <DefineConstants>DEBUG</DefineConstants>
-    </PropertyGroup>
-
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net47|AnyCPU'">
         <DebugType>full</DebugType>
         <DebugSymbols>true</DebugSymbols>
