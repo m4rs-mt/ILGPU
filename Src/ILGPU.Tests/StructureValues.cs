@@ -3,6 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using Xunit;
 using Xunit.Abstractions;
 
+#pragma warning disable xUnit1026 // Theory methods should use all of their parameters
+
 namespace ILGPU.Tests
 {
     public abstract class StructureValues : TestBase
@@ -256,5 +258,72 @@ namespace ILGPU.Tests
             Execute(buffer.Length, buffer.View, nested);
             Verify(buffer, new Parent[] { value });
         }
+
+        public static TheoryData<object> StructureEmptyTypeData => new TheoryData<object>
+        {
+            { default(sbyte) },
+            { default(byte) },
+            { default(short) },
+            { default(ushort) },
+            { default(int) },
+            { default(uint) },
+            { default(long) },
+            { default(ulong) },
+            { default(float) },
+            { default(double) },
+        };
+
+        internal static void StructureEmptyKernel<T1, T2>(
+            Index1 index,
+            ArrayView<TestStruct<T1, T2>> output,
+            TestStruct<T1, T2> input)
+            where T1 : unmanaged
+            where T2 : unmanaged
+        {
+            output[index].Val0 = input.Val0;
+            output[index].Val1 = input.Val1;
+            output[index].Val2 = input.Val2;
+        }
+
+        [Theory]
+        [MemberData(nameof(StructureEmptyTypeData))]
+        [KernelMethod(nameof(StructureEmptyKernel))]
+        public void StructureGetEmptyLeft<T>(T _)
+            where T : unmanaged
+        {
+            var expected = new TestStruct<EmptyStruct, T>()
+            {
+                Val0 = default,
+                Val1 = ushort.MaxValue,
+                Val2 = default,
+            };
+
+            using var buffer = Accelerator.Allocate<TestStruct<EmptyStruct, T>>(1);
+            Execute<Index1, EmptyStruct, T>(buffer.Length, buffer.View, expected);
+            Verify(buffer, new[] { expected });
+        }
+
+        [Theory]
+        [MemberData(nameof(StructureEmptyTypeData))]
+        [KernelMethod(nameof(StructureEmptyKernel))]
+        public void StructureGetEmptyRight<T>(T _)
+            where T : unmanaged
+        {
+            var expected = new TestStruct<T, EmptyStruct>()
+            {
+                Val0 = default,
+                Val1 = ushort.MaxValue,
+                Val2 = default,
+            };
+
+            using var buffer = Accelerator.Allocate<TestStruct<T, EmptyStruct>>(1);
+            Execute<Index1, T, EmptyStruct>(
+                buffer.Length,
+                buffer.View,
+                expected);
+            Verify(buffer, new[] { expected });
+        }
     }
 }
+
+#pragma warning restore xUnit1026 // Theory methods should use all of their parameters
