@@ -53,7 +53,7 @@ namespace ILGPU.Runtime.Cuda
         NonTranspose = 0,
         Transpose = 1,
         ConjugateTranspose = 2,
-        Hermitan = 2,
+        Hermitan = ConjugateTranspose,
         Conjugate = 3
     }
 

@@ -203,7 +203,7 @@ namespace ILGPU.Algorithms.Tests
 
         #region Helper Methods
 
-        private T CalcValue<T>(T[] values, Func<T, T, T> func)
+        private static T CalcValue<T>(T[] values, Func<T, T, T> func)
             where T : unmanaged
         {
             T result = values[0];

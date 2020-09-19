@@ -268,7 +268,7 @@ namespace ILGPU.Algorithms.Tests
 
         #region Helper Method
 
-        private TTarget[] CalcValues<TSource, TTarget, TTransform>(
+        private static TTarget[] CalcValues<TSource, TTarget, TTransform>(
             TSource[] input,
             Index1[] order,
             TTransform transform)

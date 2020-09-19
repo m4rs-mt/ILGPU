@@ -42,7 +42,7 @@ namespace ILGPU.Algorithms.Tests
         #region Initialize Helpers
 
 <# foreach (var inputType in inputTypes) { #>
-        <#= inputType.Type #>[] InitializeInput1D_<#= inputType.Name #>(int length)
+        private static <#= inputType.Type #>[] InitializeInput1D_<#= inputType.Name #>(int length)
         {
             return Enumerable.Range(1, length).Select(x => (<#= inputType.Type #>)x).ToArray();
         }
@@ -50,7 +50,7 @@ namespace ILGPU.Algorithms.Tests
         [SuppressMessage(
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional")]
-        <#= inputType.Type #>[,] InitializeInput2D_<#= inputType.Name #>(int length)
+        private static <#= inputType.Type #>[,] InitializeInput2D_<#= inputType.Name #>(int length)
         {
             var inputArray = new <#= inputType.Type #>[length, length];
             var values = Enumerable.Range(1, length * length).GetEnumerator();
@@ -70,7 +70,7 @@ namespace ILGPU.Algorithms.Tests
         [SuppressMessage(
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional")]
-        <#= inputType.Type #>[,,] InitializeInput3D_<#= inputType.Name #>(int length)
+        private static <#= inputType.Type #>[,,] InitializeInput3D_<#= inputType.Name #>(int length)
         {
             var inputArray = new <#= inputType.Type #>[length, length, length];
             var values = Enumerable.Range(1, length * length * length).GetEnumerator();
@@ -91,7 +91,7 @@ namespace ILGPU.Algorithms.Tests
         }
 
 <# } #>
-        void ApplyHistogram1D<
+        private static void ApplyHistogram1D<
             T,
             TBinType,
             TLocator,
@@ -122,7 +122,7 @@ namespace ILGPU.Algorithms.Tests
         [SuppressMessage(
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional")]
-        void ApplyHistogram2D<
+        private static void ApplyHistogram2D<
             T,
             TBinType,
             TLocator,
@@ -153,7 +153,7 @@ namespace ILGPU.Algorithms.Tests
         [SuppressMessage(
             "Performance",
             "CA1814:Prefer jagged arrays over multidimensional")]
-        void ApplyHistogram3D<
+        private static void ApplyHistogram3D<
             T,
             TBinType,
             TLocator,
