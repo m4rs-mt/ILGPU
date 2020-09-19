@@ -38,7 +38,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static float RoundAwayFromZero(float value) =>
-#if NETCORE
+#if !NETFRAMEWORK
             MathF.Round(value, MidpointRounding.AwayFromZero);
 #else
             (float)Math.Round(value, MidpointRounding.AwayFromZero);
@@ -62,7 +62,7 @@ namespace ILGPU.Algorithms
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [IntrinsicImplementation]
         public static float RoundToEven(float value) =>
-#if NETCORE
+#if !NETFRAMEWORK
             MathF.Round(value, MidpointRounding.ToEven);
 #else
             (float)Math.Round(value, MidpointRounding.ToEven);
