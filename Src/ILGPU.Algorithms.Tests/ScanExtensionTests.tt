@@ -259,7 +259,10 @@ namespace ILGPU.Algorithms.Tests
 
         #region Helper Methods
 
-        private static T[] CalcValues<T, TFunction>(T[] values, TFunction func, ScanKind kind)
+        private static T[] CalcValues<T, TFunction>(
+            T[] values,
+            TFunction func,
+            ScanKind kind)
             where T : unmanaged
             where TFunction : struct, IScanReduceOperation<T>
         {
