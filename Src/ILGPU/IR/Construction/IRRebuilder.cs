@@ -12,6 +12,7 @@
 using ILGPU.IR.Values;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using static ILGPU.IR.Values.TerminatorValue;
 using BlockCollection = ILGPU.IR.BasicBlockCollection<
     ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
     ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
@@ -33,13 +34,17 @@ namespace ILGPU.IR.Construction
             /// <summary>
             /// Initializes a new block mapping.
             /// </summary>
+            /// <typeparam name="TRemapper">The custom remapper type.</typeparam>
             /// <param name="builder">The parent builder.</param>
             /// <param name="blocks">The block collection.</param>
+            /// <param name="remapper">The custom block remapper.</param>
             /// <param name="mapping">The mapping to initialize.</param>
-            void InitMapping(
+            void InitMapping<TRemapper>(
                 Method.Builder builder,
                 in BlockCollection blocks,
-                ref BasicBlockMap<BasicBlock.Builder> mapping);
+                in TRemapper remapper,
+                ref BasicBlockMap<BasicBlock.Builder> mapping)
+                where TRemapper : struct, IDirectTargetRemapper;
         }
 
         /// <summary>
@@ -52,10 +57,12 @@ namespace ILGPU.IR.Construction
             /// the init block which will be rewired.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void InitMapping(
+            public void InitMapping<TRemapper>(
                 Method.Builder builder,
                 in BlockCollection blocks,
+                in TRemapper remapper,
                 ref BasicBlockMap<BasicBlock.Builder> mapping)
+                where TRemapper : struct, IDirectTargetRemapper
             {
                 // Handle entry block
                 mapping.Add(blocks.EntryBlock, builder.EntryBlockBuilder);
@@ -65,11 +72,7 @@ namespace ILGPU.IR.Construction
                 {
                     if (mapping.Contains(block))
                         continue;
-                    mapping.Add(
-                        block,
-                        builder.CreateBasicBlock(
-                            block.Location,
-                            block.Name));
+                    InlineMode.Register(builder, block, remapper, ref mapping);
                 }
             }
         }
@@ -80,16 +83,27 @@ namespace ILGPU.IR.Construction
         public readonly struct InlineMode : IMode
         {
             /// <summary>
-            /// Initializes a new mapping that maps each block to a new block.
+            /// Registers an internal block.
             /// </summary>
+            /// <typeparam name="TRemapper">The user-defined remapper type.</typeparam>
+            /// <param name="builder">The parent builder.</param>
+            /// <param name="block">The current block to register.</param>
+            /// <param name="remapper">The custom block remapper.</param>
+            /// <param name="mapping">The mapping to initialize.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void InitMapping(
+            internal static void Register<TRemapper>(
                 Method.Builder builder,
-                in BlockCollection blocks,
+                BasicBlock block,
+                in TRemapper remapper,
                 ref BasicBlockMap<BasicBlock.Builder> mapping)
+                where TRemapper : struct, IDirectTargetRemapper
             {
-                // Create new blocks
-                foreach (var block in blocks)
+                var remapped = remapper.Remap(block);
+                if (remapped != block)
+                {
+                    mapping.Add(block, builder[remapped]);
+                }
+                else
                 {
                     mapping.Add(
                         block,
@@ -97,6 +111,22 @@ namespace ILGPU.IR.Construction
                             block.Location,
                             block.Name));
                 }
+            }
+
+            /// <summary>
+            /// Initializes a new mapping that maps each block to a new block.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void InitMapping<TRemapper>(
+                Method.Builder builder,
+                in BlockCollection blocks,
+                in TRemapper remapper,
+                ref BasicBlockMap<BasicBlock.Builder> mapping)
+                where TRemapper : struct, IDirectTargetRemapper
+            {
+                // Create new blocks
+                foreach (var block in blocks)
+                    Register(builder, block, remapper, ref mapping);
             }
         }
 
@@ -118,19 +148,91 @@ namespace ILGPU.IR.Construction
             Method.ParameterMapping parameterMapping,
             Method.MethodMapping methodRemapping,
             in BlockCollection blocks)
+            where TMode : IMode =>
+            Create<TMode, IdentityRemapper>(
+                builder,
+                parameterMapping,
+                methodRemapping,
+                blocks,
+                new IdentityRemapper());
+
+        /// <summary>
+        /// Creates a new rebuilder.
+        /// </summary>
+        /// <typeparam name="TMode">The rebuilder mode.</typeparam>
+        /// <typeparam name="TRemapper">The custom remapper type.</typeparam>
+        /// <param name="builder">The parent builder.</param>
+        /// <param name="parameterMapping">The used parameter remapping.</param>
+        /// <param name="methodRemapping">The used method remapping.</param>
+        /// <param name="blocks">The block collection.</param>
+        /// <param name="remapper">The custom block remapper.</param>
+        /// <returns>The created rebuilder.</returns>
+        public static IRRebuilder Create<TMode, TRemapper>(
+            Method.Builder builder,
+            Method.ParameterMapping parameterMapping,
+            Method.MethodMapping methodRemapping,
+            in BlockCollection blocks,
+            in TRemapper remapper)
             where TMode : IMode
+            where TRemapper : struct, IDirectTargetRemapper
         {
             // Init mapping
-            var blockMapping = blocks.CreateMap<BasicBlock.Builder>();
+            var blockMap = blocks.CreateMap<BasicBlock.Builder>();
             TMode mode = default;
-            mode.InitMapping(builder, blocks, ref blockMapping);
+            mode.InitMapping(builder, blocks, remapper, ref blockMap);
 
             return new IRRebuilder(
                 builder,
                 parameterMapping,
                 methodRemapping,
                 blocks,
-                blockMapping);
+                blockMap);
+        }
+
+        /// <summary>
+        /// Creates a new rebuilder.
+        /// </summary>
+        /// <param name="builder">The parent builder.</param>
+        /// <param name="valueRemapping">The value remapping to use.</param>
+        /// <param name="blocks">The block collection.</param>
+        /// <returns>The created rebuilder.</returns>
+        public static IRRebuilder Create(
+            Method.Builder builder,
+            Dictionary<Value, Value> valueRemapping,
+            in BlockCollection blocks) =>
+            Create(
+                builder,
+                valueRemapping,
+                blocks,
+                new IdentityRemapper());
+
+        /// <summary>
+        /// Creates a new rebuilder.
+        /// </summary>
+        /// <typeparam name="TRemapper">The custom remapper type.</typeparam>
+        /// <param name="builder">The parent builder.</param>
+        /// <param name="valueRemapping">The value remapping to use.</param>
+        /// <param name="blocks">The block collection.</param>
+        /// <param name="remapper">The custom block remapper.</param>
+        /// <returns>The created rebuilder.</returns>
+        public static IRRebuilder Create<TRemapper>(
+            Method.Builder builder,
+            Dictionary<Value, Value> valueRemapping,
+            in BlockCollection blocks,
+            in TRemapper remapper)
+            where TRemapper : struct, IDirectTargetRemapper
+        {
+            // Init mapping
+            var blockMap = blocks.CreateMap<BasicBlock.Builder>();
+
+            InlineMode mode = default;
+            mode.InitMapping(builder, blocks, remapper, ref blockMap);
+
+            return new IRRebuilder(
+                builder,
+                valueRemapping,
+                blocks,
+                blockMap);
         }
 
         #endregion
@@ -185,6 +287,53 @@ namespace ILGPU.IR.Construction
             foreach (var param in blocks.Method.Parameters)
                 valueMapping.Add(param, parameterMapping[param]);
 
+            InitPhiValues(blocks);
+#if DEBUG
+            PartialRebuilding = false;
+#endif
+        }
+
+        /// <summary>
+        /// Constructs a new IR rebuilder.
+        /// </summary>
+        /// <param name="builder">The parent builder.</param>
+        /// <param name="valueRemapping">The values to remap.</param>
+        /// <param name="blocks">The block collection.</param>
+        /// <param name="blockRemapping">The internal block remapping.</param>
+        private IRRebuilder(
+            Method.Builder builder,
+            Dictionary<Value, Value> valueRemapping,
+            in BlockCollection blocks,
+            in BasicBlockMap<BasicBlock.Builder> blockRemapping)
+        {
+            methodMapping = default;
+            blockMapping = blockRemapping;
+            Builder = builder;
+            Blocks = blocks;
+
+            // Map all parameters via the identity mapping
+            foreach (var param in blocks.Method.Parameters)
+                valueMapping.Add(param, param);
+
+            // Insert parameters into local mapping
+            if (valueRemapping != null)
+            {
+                foreach (var entry in valueRemapping)
+                    valueMapping.Add(entry.Key, entry.Value);
+            }
+
+            InitPhiValues(blocks);
+#if DEBUG
+            PartialRebuilding = true;
+#endif
+        }
+
+        /// <summary>
+        /// Initializes all phi values.
+        /// </summary>
+        /// <param name="blocks">The source block collection.</param>
+        private void InitPhiValues(in BlockCollection blocks)
+        {
             // Prepare all phi nodes
             foreach (var block in blocks)
             {
@@ -212,6 +361,13 @@ namespace ILGPU.IR.Construction
 
         #region Properties
 
+#if DEBUG
+        /// <summary>
+        /// Returns true if this rebuilder partially rebuilds subsets of methods.
+        /// </summary>
+        public bool PartialRebuilding { get; }
+
+#endif
         /// <summary>
         /// Returns the associated method builder.
         /// </summary>
@@ -231,6 +387,26 @@ namespace ILGPU.IR.Construction
         /// Gets or sets the current block builder.
         /// </summary>
         private BasicBlock.Builder CurrentBlock { get; set; }
+
+        /// <summary>
+        /// Lookups the given block in the internal rebuilder remapping.
+        /// </summary>
+        /// <param name="block">The block to lookup.</param>
+        /// <returns>The mapped block builder representing the new block.</returns>
+        public BasicBlock.Builder this[BasicBlock block] =>
+            blockMapping.TryGetValue(block, out var builder)
+            ? builder
+            : Builder[block];
+
+        /// <summary>
+        /// Lookups the given value in the internal rebuilder remapping.
+        /// </summary>
+        /// <param name="value">The value to lookup.</param>
+        /// <returns>The mapped block builder representing the new block.</returns>
+        public Value this[Value value] =>
+            valueMapping.TryGetValue(value, out var newValue)
+            ? newValue
+            : value;
 
         #endregion
 
@@ -261,6 +437,10 @@ namespace ILGPU.IR.Construction
                     block.Assert(exitBlock.Item1 is null);
                     exitBlock = (newBlock, newReturnValue);
                 }
+                else if (terminator is null)
+                {
+                    // Ignore the current terminator
+                }
                 else
                 {
                     Rebuild(terminator);
@@ -274,8 +454,8 @@ namespace ILGPU.IR.Construction
                 for (int i = 0, e = sourcePhi.Count; i < e; ++i)
                 {
                     var argument = sourcePhi.Nodes[i];
-                    var newBlock = blockMapping[sourcePhi.Sources[i]];
-                    targetPhiBuilder.AddArgument(newBlock, valueMapping[argument]);
+                    var newBlock = this[sourcePhi.Sources[i]];
+                    targetPhiBuilder.AddArgument(newBlock, this[argument]);
                 }
                 targetPhiBuilder.Seal();
             }
@@ -326,7 +506,7 @@ namespace ILGPU.IR.Construction
         /// <param name="oldTarget">The old basic block.</param>
         /// <returns>The resolved block builder.</returns>
         public BasicBlock LookupTarget(BasicBlock oldTarget) =>
-            blockMapping[oldTarget].BasicBlock;
+            this[oldTarget].BasicBlock;
 
         /// <summary>
         /// Rebuilds to given source node using lookup tables.
@@ -341,6 +521,15 @@ namespace ILGPU.IR.Construction
 
             if (TryGetNewNode(source, out Value node))
                 return node;
+
+            // Preserve values from to already defined parts of the program
+            if (!(source is UndefinedValue) && !blockMapping.Contains(source.BasicBlock))
+            {
+#if DEBUG
+                source.Assert(PartialRebuilding);
+#endif
+                return source;
+            }
 
             // Verify that we are not rebuilding a parameter
             source.Assert(!(source is Parameter));
