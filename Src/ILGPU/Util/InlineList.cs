@@ -293,6 +293,23 @@ namespace ILGPU.Util
         }
 
         /// <summary>
+        /// Removes all items that match from the list.
+        /// </summary>
+        /// <param name="item">The item to remove.</param>
+        /// <param name="comparer">The comparer to use.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void RemoveAll<TComparer>(T item, TComparer comparer)
+            where TComparer : IEqualityComparer<T>
+        {
+            int index = IndexOf(item, comparer);
+            while (index >= 0)
+            {
+                RemoveAt(index);
+                index = IndexOf(item, comparer);
+            }
+        }
+
+        /// <summary>
         /// Removes the item with the specified index.
         /// </summary>
         /// <param name="index">The item index.</param>
@@ -494,6 +511,50 @@ namespace ILGPU.Util
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns a new span that does not contain the given element.
+        /// </summary>
+        /// <param name="span">The span that might contain the given item.</param>
+        /// <param name="element">The item to exclude for.</param>
+        /// <param name="comparer">The comparer to use.</param>
+        /// <returns>A span that does not contain the given element.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ReadOnlySpan<T> ExceptAll<T, TComparer>(
+            this ReadOnlySpan<T> span,
+            T element,
+            TComparer comparer)
+            where TComparer : IEqualityComparer<T>
+        {
+            if (!span.Contains(element, comparer))
+                return span;
+
+            var newSuccessors = span.ToInlineList();
+            newSuccessors.RemoveAll(element, comparer);
+            return newSuccessors;
+        }
+
+        /// <summary>
+        /// Returns true if the given item is contained in this span.
+        /// </summary>
+        /// <param name="span">The span that might contain the given item.</param>
+        /// <param name="element">The item to look for.</param>
+        /// <param name="comparer">The comparer to use.</param>
+        /// <returns>True, if the given item contained in this list.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Contains<T, TComparer>(
+            this ReadOnlySpan<T> span,
+            T element,
+            TComparer comparer)
+            where TComparer : IEqualityComparer<T>
+        {
+            foreach (var item in span)
+            {
+                if (comparer.Equals(item, element))
+                    return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// Creates a new inline list from the given span.
