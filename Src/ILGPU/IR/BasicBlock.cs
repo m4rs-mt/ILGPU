@@ -38,6 +38,25 @@ namespace ILGPU.IR
         #region Nested Types
 
         /// <summary>
+        /// An equality comparer for basic blocks.
+        /// </summary>
+        public readonly struct Comparer : IEqualityComparer<BasicBlock>
+        {
+            /// <summary>
+            /// Returns true if both blocks represent the same block.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly bool Equals(BasicBlock x, BasicBlock y) =>
+                x == y;
+
+            /// <summary>
+            /// Returns true if both blocks represent the same block.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int GetHashCode(BasicBlock obj) => obj.GetHashCode();
+        }
+
+        /// <summary>
         /// Represents a visitor for values.
         /// </summary>
         /// <typeparam name="TValue">The value type.</typeparam>
