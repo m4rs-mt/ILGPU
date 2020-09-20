@@ -205,12 +205,11 @@ namespace ILGPU.IR.Construction
             }
 
             // TODO: remove the following hard-coded rules
-            if (right is PrimitiveValue rightValue &&
-                left.BasicValueType.IsInt() &&
-                Utilities.IsPowerOf2(rightValue.RawValue))
+            if (right is PrimitiveValue rightValue && left.BasicValueType.IsInt())
             {
-                if (kind == BinaryArithmeticKind.Div ||
-                    kind == BinaryArithmeticKind.Mul)
+                if (Utilities.IsPowerOf2(rightValue.RawValue) &&
+                    (kind == BinaryArithmeticKind.Div ||
+                    kind == BinaryArithmeticKind.Mul))
                 {
                     var shiftAmount = CreatePrimitiveValue(
                         location,
@@ -233,6 +232,13 @@ namespace ILGPU.IR.Construction
                             rightValue.RawValue > 0,
                             leftKind,
                             rightKind));
+                }
+                else if (
+                    rightValue.RawValue == 0 &&
+                    (kind == BinaryArithmeticKind.Add ||
+                    kind == BinaryArithmeticKind.Sub))
+                {
+                    return left;
                 }
             }
 
