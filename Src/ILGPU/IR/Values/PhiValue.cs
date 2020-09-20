@@ -15,6 +15,7 @@ using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime;
 using System.Runtime.CompilerServices;
 using BlockList = ILGPU.Util.InlineList<ILGPU.IR.BasicBlock>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
@@ -41,6 +42,14 @@ namespace ILGPU.IR.Values
             /// <param name="newBlock">The (possible) remapped new block.</param>
             /// <returns>True, if the block could be remapped.</returns>
             bool TryRemap(BasicBlock block, out BasicBlock newBlock);
+
+            /// <summary>
+            /// Remaps the given value.
+            /// </summary>
+            /// <param name="updatedBlock">The updated source information.</param>
+            /// <param name="value">The original source value passed to the phi.</param>
+            /// <returns>The new value to use instead.</returns>
+            Value RemapValue(BasicBlock updatedBlock, Value value);
         }
 
         /// <summary>
@@ -74,26 +83,26 @@ namespace ILGPU.IR.Values
             /// </summary>
             /// <param name="blocks">The blocks to check.</param>
             /// <returns>True, if the given blocks contain the old block.</returns>
-            public bool CanRemap(in ReadOnlySpan<BasicBlock> blocks)
-            {
-                foreach (var block in blocks)
-                {
-                    if (OldBlock == block)
-                        return true;
-                }
-
-                return false;
-            }
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly bool CanRemap(in ReadOnlySpan<BasicBlock> blocks) =>
+                blocks.Contains(OldBlock, new BasicBlock.Comparer());
 
             /// <summary>
             /// Tries to remap the old block to the new block.
             /// </summary>
             /// <returns>Returns always true.</returns>
-            public bool TryRemap(BasicBlock block, out BasicBlock newBlock)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly bool TryRemap(BasicBlock block, out BasicBlock newBlock)
             {
                 newBlock = block == OldBlock ? NewBlock : block;
                 return true;
             }
+
+            /// <summary>
+            /// Returns the value of <paramref name="value"/>.
+            /// </summary>
+            public readonly Value RemapValue(BasicBlock updatedBlock, Value value) =>
+                value;
         }
 
         /// <summary>
@@ -292,6 +301,17 @@ namespace ILGPU.IR.Values
         #region Methods
 
         /// <summary>
+        /// Gets the value for the given source block.
+        /// </summary>
+        /// <param name="source">The source block.</param>
+        /// <returns>The value for the given source block (if any).</returns>
+        public Value GetValue(BasicBlock source)
+        {
+            var index = sourceBlocks.IndexOf(source, new BasicBlock.Comparer());
+            return index >= 0 ? this[index].Resolve() : null;
+        }
+
+        /// <summary>
         /// Updates the current phi type.
         /// </summary>
         /// <typeparam name="TTypeContext">The type context.</typeparam>
@@ -318,7 +338,7 @@ namespace ILGPU.IR.Values
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public PhiValue RemapArguments<TArgumentRemaper>(
             BasicBlock.Builder blockBuilder,
-            TArgumentRemaper remapper)
+            in TArgumentRemaper remapper)
             where TArgumentRemaper : IArgumentRemapper
         {
             // Check for a valid block association
@@ -332,7 +352,9 @@ namespace ILGPU.IR.Values
                 if (!remapper.TryRemap(Sources[i], out var newSource))
                     continue;
 
-                phiBuilder.AddArgument(newSource, Nodes[i]);
+                phiBuilder.AddArgument(
+                    newSource,
+                    remapper.RemapValue(newSource, Nodes[i]));
             }
 
             var newPhi = phiBuilder.Seal();
