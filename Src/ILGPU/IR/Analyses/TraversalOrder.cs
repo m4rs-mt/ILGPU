@@ -165,7 +165,11 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         /// Initializes a forwards enumeration state.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static TraversalEnumerationState ForwardsInit() => default;
+        public static TraversalEnumerationState ForwardsInit() =>
+            new TraversalEnumerationState()
+            {
+                Index = -1,
+            };
 
         /// <summary>
         /// Tries to move a forwards state to the next block.
