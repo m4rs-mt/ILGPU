@@ -43,7 +43,7 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// An abstract target remapper.
         /// </summary>
-        public interface ITargetRemapper : IBlockRemapper
+        public interface IDirectTargetRemapper
         {
             /// <summary>
             /// Remaps the given block to a new one.
@@ -51,6 +51,31 @@ namespace ILGPU.IR.Values
             /// <param name="block">The old block to remap.</param>
             /// <returns>The remapped block.</returns>
             BasicBlock Remap(BasicBlock block);
+        }
+
+        /// <summary>
+        /// An abstract target remapper.
+        /// </summary>
+        public interface ITargetRemapper : IBlockRemapper, IDirectTargetRemapper { }
+
+        /// <summary>
+        /// An identity remapper that does not remap any targets.
+        /// </summary>
+        public readonly struct IdentityRemapper : ITargetRemapper
+        {
+            #region Methods
+
+            /// <summary>
+            /// Returns false.
+            /// </summary>
+            public readonly bool CanRemap(in ReadOnlySpan<BasicBlock> blocks) => false;
+
+            /// <summary>
+            /// Returns the same block.
+            /// </summary>
+            public readonly BasicBlock Remap(BasicBlock block) => block;
+
+            #endregion
         }
 
         #endregion
@@ -361,6 +386,32 @@ namespace ILGPU.IR.Values
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns true if this branch offers two branch targets and one of the
+        /// targets is the one provided.
+        /// </summary>
+        /// <param name="block">The branch target to exclude.</param>
+        /// <param name="otherBlock">The other branch target (if any).</param>
+        public bool TryGetOtherBranchTarget(BasicBlock block, out BasicBlock otherBlock)
+        {
+            otherBlock = null;
+            if (NumTargets != 2)
+                return false;
+
+            // Check both branch targets
+            if (Targets[0] == block)
+            {
+                otherBlock = Targets[1];
+                return true;
+            }
+            else if (Targets[1] == block)
+            {
+                otherBlock = Targets[0];
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// Folds this branch into another branch that might be unconditional.
