@@ -182,15 +182,21 @@ namespace ILGPU.IR.Transformations
             ContextFlags contextFlags)
         {
             var dce = new DeadCodeElimination();
+            var scf = new SimplifyControlFlow();
 
             builder.AddBasicOptimizations(contextFlags);
             builder.Add(dce);
             builder.Add(new SSAConstruction());
             builder.Add(new LowerStructures());
             builder.Add(dce);
+
+            builder.Add(new LoopUnrolling());
+            builder.Add(dce);
+            builder.Add(scf);
+
             builder.Add(new IfConversion(IfConversionFlags.Default));
             builder.Add(dce);
-            builder.Add(new SimplifyControlFlow());
+            builder.Add(scf);
             builder.Add(new InferAddressSpaces());
         }
 
