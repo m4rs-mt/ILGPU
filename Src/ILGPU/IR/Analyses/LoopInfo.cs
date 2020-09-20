@@ -13,6 +13,7 @@ using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using ILGPU.Util;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -27,17 +28,121 @@ namespace ILGPU.IR.Analyses
         where TOrder : struct, ITraversalOrder
         where TDirection : struct, IControlFlowDirection
     {
+        #region Nested Types
+
+        /// <summary>
+        /// A specialized successor provider for loop regions that exclude the exit
+        /// block of a particular loop. This emulates a return exit block without any
+        /// successors.
+        /// </summary>
+        private readonly struct ExitSuccessorProvider :
+            ITraversalSuccessorsProvider<TDirection>
+        {
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new successor provider.
+            /// </summary>
+            /// <param name="exitBlock">The exit block.</param>
+            public ExitSuccessorProvider(BasicBlock exitBlock)
+            {
+                ExitBlock = exitBlock;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the unique exit block (the first block that does not belong to
+            /// the loop).
+            /// </summary>
+            public BasicBlock ExitBlock { get; }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns the successors of the given basic block that do not contain the
+            /// loop's exit block.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
+                BasicBlock basicBlock) =>
+                basicBlock.CurrentSuccessors.ExceptAll(
+                    ExitBlock,
+                    new BasicBlock.Comparer());
+
+            #endregion
+        }
+
+        /// <summary>
+        /// A specialized successor provider for loop regions that exclude the exit and
+        /// the header blocks of a particular loop. This emulates a return exit block
+        /// without any successors.
+        /// </summary>
+        private readonly struct ExitAndHeaderSuccessorProvider :
+            ITraversalSuccessorsProvider<TDirection>
+        {
+            #region Instance
+
+            private readonly ExitSuccessorProvider exitProvider;
+
+            /// <summary>
+            /// Constructs a new successor provider.
+            /// </summary>
+            /// <param name="exitBlock">The exit block.</param>
+            /// <param name="headerBlock">The header block.</param>
+            public ExitAndHeaderSuccessorProvider(
+                BasicBlock exitBlock,
+                BasicBlock headerBlock)
+            {
+                exitProvider = new ExitSuccessorProvider(exitBlock);
+                HeaderBlock = headerBlock;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the unique header block (the first block that belongs to the
+            /// loop).
+            /// </summary>
+            public BasicBlock HeaderBlock { get; }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns the successors of the given basic block that do not contain the
+            /// loop's exit block.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
+                BasicBlock basicBlock) =>
+                exitProvider.GetSuccessors(basicBlock).ExceptAll(
+                    HeaderBlock,
+                    new BasicBlock.Comparer());
+
+            #endregion
+        }
+
+        #endregion
+
         #region Static
 
         /// <summary>
         /// Creates a new loop info instance from the given SCC while checking for
         /// unique entry and exit blocks.
         /// </summary>
-        /// <param name="scc">The SCC.</param>
+        /// <param name="loop">The SCC.</param>
         /// <returns>The resolved loop info instance.</returns>
         public static LoopInfo<TOrder, TDirection> Create(
-            SCCs<TOrder, TDirection>.SCC scc) =>
-            TryCreate(scc, out var loopInfo)
+            Loops<TOrder, TDirection>.Node loop) =>
+            TryCreate(loop, out var loopInfo)
             ? loopInfo
             : throw new InvalidKernelOperationException();
 
@@ -45,221 +150,189 @@ namespace ILGPU.IR.Analyses
         /// Tries to create a new loop info instance from the given SCC while checking
         /// for unique entry and exit blocks.
         /// </summary>
-        /// <param name="scc">The SCC.</param>
+        /// <param name="loop">The SCC.</param>
         /// <param name="loopInfo">The resolved loop info object (if any).</param>
         /// <returns>True, if the resulting loop info object could be resolved.</returns>
         public static bool TryCreate(
-            in SCCs<TOrder, TDirection>.SCC scc,
+            Loops<TOrder, TDirection>.Node loop,
             out LoopInfo<TOrder, TDirection> loopInfo)
         {
             loopInfo = default;
 
-            if (!TryGetEntryBlock(scc, out var entryBlock) ||
-                !TryGetExitBlock(scc, out var exitBlock))
+            // Check for simple loops with manageable induction variables
+            if (loop.Entries.Length > 1 || loop.Exits.Length > 1 ||
+                loop.Headers.Length > 1 || loop.Breakers.Length > 1 ||
+                loop.BackEdges.Length > 1 ||
+                !TryGetLoopBody(loop, out var body) ||
+                !TryGetPhis(loop, out var inductionVariables, out var phiValues))
             {
                 return false;
             }
-            loopInfo = new LoopInfo<TOrder, TDirection>(scc, entryBlock, exitBlock);
+
+            loopInfo = new LoopInfo<TOrder, TDirection>(
+                loop,
+                body,
+                ref inductionVariables,
+                ref phiValues);
             return true;
         }
 
         /// <summary>
-        /// Checks whether the given node is a loop entry point.
+        /// Tries to determine a unique body start block.
         /// </summary>
-        /// <param name="scc">All SCCS.</param>
-        /// <param name="entryPoint">The resolved entry point (if any).</param>
-        /// <returns>True, if the given node is a loop entry point.</returns>
-        private static bool TryGetEntryBlock(
-            in SCCs<TOrder, TDirection>.SCC scc,
-            out BasicBlock entryPoint)
+        /// <param name="loop">The parent loop.</param>
+        /// <param name="body">The loop body (if any).</param>
+        /// <returns>True, if the given loop body could be resolved.</returns>
+        private static bool TryGetLoopBody(
+            Loops<TOrder, TDirection>.Node loop,
+            out BasicBlock body)
         {
-            entryPoint = null;
-            foreach (var node in scc)
-            {
-                foreach (var pred in node.Predecessors)
-                {
-                    if (scc.Contains(pred))
-                        continue;
+            var header = loop.Headers[0];
+            var successors = header.GetSuccessors<TDirection>();
+            body = null;
+            if (successors.Length != 2)
+                return false;
 
-                    // Multiple loop entry points
-                    if (entryPoint != null & entryPoint != pred)
-                        return false;
-                    entryPoint = pred;
-                }
-            }
+            body = loop.Exits.Contains(successors[0]) ? successors[1] : successors[0];
             return true;
         }
 
         /// <summary>
-        /// Tries to resolve a unique exit block.
+        /// Tries to get all induction variables and supported phi values of the given
+        /// loop object.
         /// </summary>
-        /// <param name="scc">The current SCC.</param>
-        /// <param name="exitBlock">The resolved exit block (if any).</param>
-        /// <returns>True, if an unique break node could be resolved.</returns>
-        private static bool TryGetExitBlock(
-            in SCCs<TOrder, TDirection>.SCC scc,
-            out BasicBlock exitBlock)
+        /// <param name="loop">The parent loop.</param>
+        /// <param name="inductionVariables">The list of induction variables.</param>
+        /// <param name="phiValues">The list of phi values.</param>
+        /// <returns>True, if the given loop has supported phi values.</returns>
+        private static bool TryGetPhis(
+            Loops<TOrder, TDirection>.Node loop,
+            out InlineList<InductionVariable> inductionVariables,
+            out InlineList<(PhiValue, Value)> phiValues)
         {
-            exitBlock = null;
-            foreach (var node in scc)
+            var phis = loop.ResolvePhis();
+            var phiInductionsVariables = new HashSet<PhiValue>();
+
+            inductionVariables = InlineList<InductionVariable>.Create(phis.Count);
+            phiValues = InlineList<(PhiValue, Value)>.Create(phis.Count);
+
+            // Analyze all breakers
+            foreach (var breaker in loop.Breakers)
             {
-                foreach (var succ in node.Successors)
+                if (!(breaker.Terminator is ConditionalBranch branch) ||
+                    !IsInductionVariable(branch.Condition, out var phiValue) ||
+                    !loop.Contains(phiValue.BasicBlock) ||
+                    !TryGetPhiOperands(loop, phiValue, out var inside, out var outside))
                 {
-                    if (!scc.Contains(succ))
-                    {
-                        if (exitBlock != null && exitBlock != succ)
-                            return false;
-                        exitBlock = succ;
-                    }
+                    return false;
                 }
+
+                inductionVariables.Add(new InductionVariable(
+                    inductionVariables.Count,
+                    phiValue,
+                    outside,
+                    inside,
+                    branch));
+                phiInductionsVariables.Add(phiValue);
             }
-            return exitBlock != null;
+
+            // Check all
+            foreach (var phi in phis)
+            {
+                // Check whether this phi is an induction variable
+                if (!phiInductionsVariables.Add(phi))
+                    continue;
+
+                // Try to get the phi operands
+                if (!TryGetPhiOperands(loop, phi, out var _, out var outside))
+                    return false;
+
+                phiValues.Add((phi, outside));
+            }
+
+            return true;
         }
 
         /// <summary>
-        /// Checks whether the given phi value can be resolved
-        /// to an induction variable.
+        /// Tries to determine the inside and outside operands of the given phi value.
         /// </summary>
-        /// <param name="scc">The related SCC.</param>
-        /// <param name="variableIndex">The variable index.</param>
-        /// <param name="visitedNodes">The set of already visited nodes.</param>
-        /// <param name="phiValue">
-        /// The current phi value.
-        /// </param>
-        /// <param name="inductionVariable">
-        /// The resolved induction variable (if any).
-        /// </param>
-        /// <returns>
-        /// True, if the given phi node could be resolved to an induction variable.
-        /// </returns>
-        private static bool TryResolveInductionVariable(
-            in SCCs<TOrder, TDirection>.SCC scc,
-            int variableIndex,
-            HashSet<Node> visitedNodes,
+        /// <param name="loop">The parent loop.</param>
+        /// <param name="phiValue">The phi value.</param>
+        /// <param name="insideOperand">The inside operand (if any).</param>
+        /// <param name="outsideOperand">The outside operand (if any).</param>
+        /// <returns>True, if both operands could be resolved.</returns>
+        private static bool TryGetPhiOperands(
+            Loops<TOrder, TDirection>.Node loop,
             PhiValue phiValue,
-            out InductionVariable inductionVariable)
+            out Value insideOperand,
+            out Value outsideOperand)
         {
+            insideOperand = null;
+            outsideOperand = null;
+
             // Search for two operands of which one is defined
             // outside the current SCC and one is from the
             // inside of the current SCC
-            inductionVariable = default;
             int numOperands = phiValue.Count;
             if (numOperands != 2)
                 return false;
 
-            Value outsideOperand = null;
-            Value insideOperand = null;
             for (int i = 0; i < numOperands; ++i)
             {
                 Value operand = phiValue.Nodes[i];
-                if (!scc.Contains(operand.BasicBlock))
+                if (!loop.Contains(operand.BasicBlock))
                     outsideOperand = operand;
                 else
                     insideOperand = operand;
             }
 
-            if (insideOperand == null | outsideOperand == null)
-                return false;
-
-            // Check the influence of the inside operand on the overall break behavior
-            bool foundBranch = false;
-            foreach (var use in phiValue.Uses)
-            {
-                var node = use.Resolve();
-                visitedNodes.Clear();
-                if (IsInductionVariableBranch(scc, visitedNodes, node))
-                {
-                    // Check for a trivial induction branch
-                    if (foundBranch)
-                        return false;
-
-                    inductionVariable = new InductionVariable(
-                        variableIndex,
-                        phiValue,
-                        outsideOperand,
-                        insideOperand,
-                        node);
-                    foundBranch = true;
-                }
-            }
-
-            return foundBranch;
+            return insideOperand != null && outsideOperand != null;
         }
 
         /// <summary>
-        /// Tries to trace an induction-variable branch.
+        /// Returns true if the given value is an induction variable.
         /// </summary>
-        /// <param name="scc">The current SCC.</param>
-        /// <param name="visitedNodes">The set of already visited nodes.</param>
-        /// <param name="node">The node to trace.</param>
+        /// <param name="value">The value to test.</param>
+        /// <param name="phiValue">The resolved induction-variable phi (if any)..</param>
         /// <returns>True, if the given node is an induction-variable branch.</returns>
-        private static bool IsInductionVariableBranch(
-            in SCCs<TOrder, TDirection>.SCC scc,
-            HashSet<Node> visitedNodes,
-            Value node)
+        private static bool IsInductionVariable(Value value, out PhiValue phiValue)
         {
-            if (!visitedNodes.Add(node))
+            phiValue = null;
+            if (!(value is CompareValue compareValue))
                 return false;
 
-            // Try to find a conditional branch that leaves the current SCC
-            if (node is Branch branch && branch.NumTargets > 1)
-            {
-                foreach (var target in branch.Targets)
-                {
-                    if (!scc.Contains(target))
-                        return true;
-                }
-            }
-
-            // Iterate over all uses to find a recursive trace
-            foreach (var use in node.Uses)
-            {
-                if (IsInductionVariableBranch(scc, visitedNodes, use.Resolve()))
-                    return true;
-            }
-
-            return false;
+            Value left = compareValue.Left;
+            Value right = compareValue.Right;
+            phiValue = left as PhiValue;
+            return phiValue != null
+                ? !(right is PhiValue)
+                : (phiValue = right as PhiValue) != null;
         }
 
         #endregion
 
         #region Instance
 
+        private InlineList<InductionVariable> inductionVariables;
+        private InlineList<(PhiValue, Value)> phiValues;
+
         /// <summary>
         /// Constructs a new loop info instance.
         /// </summary>
-        /// <param name="scc">The parent SCC.</param>
-        /// <param name="entryBlock">The unique entry block.</param>
-        /// <param name="exitBlock">The unique exit block.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        /// <param name="loop">The parent loop.</param>
+        /// <param name="body">The start loop-body block.</param>
+        /// <param name="variables">All induction variables.</param>
+        /// <param name="values">All affected phi values.</param>
         private LoopInfo(
-            in SCCs<TOrder, TDirection>.SCC scc,
-            BasicBlock entryBlock,
-            BasicBlock exitBlock)
+            in Loops<TOrder, TDirection>.Node loop,
+            BasicBlock body,
+            ref InlineList<InductionVariable> variables,
+            ref InlineList<(PhiValue, Value)> values)
         {
-            SCC = scc;
-            EntryBlock = entryBlock;
-            ExitBlock = exitBlock;
-
-            var phis = scc.ResolvePhis();
-
-            var inductionVariables = ImmutableArray.CreateBuilder<
-                InductionVariable>(phis.Count);
-            var visitedNodes = new HashSet<Node>();
-            foreach (var phi in phis)
-            {
-                // Check whether this phi is an induction variable
-                if (TryResolveInductionVariable(
-                    scc,
-                    inductionVariables.Count,
-                    visitedNodes,
-                    phi,
-                    out var variable))
-                {
-                    inductionVariables.Add(variable);
-                }
-            }
-            InductionVariables = inductionVariables.ToImmutable();
+            Loop = loop;
+            Body = body;
+            variables.MoveTo(ref inductionVariables);
+            values.MoveTo(ref phiValues);
         }
 
         #endregion
@@ -267,24 +340,44 @@ namespace ILGPU.IR.Analyses
         #region Properties
 
         /// <summary>
-        /// Returns the associated SCC.
+        /// Returns the associated loop.
         /// </summary>
-        public SCCs<TOrder, TDirection>.SCC SCC { get; }
+        public Loops<TOrder, TDirection>.Node Loop { get; }
 
         /// <summary>
-        /// Returns the entry block.
+        /// Returns the unique predecessor that does not belong to the loop.
         /// </summary>
-        public BasicBlock EntryBlock { get; }
+        public BasicBlock Entry => Loop.Entries[0];
 
         /// <summary>
-        /// Returns the exit block.
+        /// Returns the unique loop header that belongs to the loop.
         /// </summary>
-        public BasicBlock ExitBlock { get; }
+        public BasicBlock Header => Loop.Headers[0];
+
+        /// <summary>
+        /// Returns the body entry block.
+        /// </summary>
+        public BasicBlock Body { get; }
+
+        /// <summary>
+        /// Returns the unique exit block that does not belong to the loop.
+        /// </summary>
+        public BasicBlock Exit => Loop.Exits[0];
+
+        /// <summary>
+        /// Returns the unique back-edge block that jumps to the loop header.
+        /// </summary>
+        public BasicBlock BackEdge => Loop.BackEdges[0];
 
         /// <summary>
         /// Returns all underlying induction variables.
         /// </summary>
-        public ImmutableArray<InductionVariable> InductionVariables { get; }
+        public ReadOnlySpan<InductionVariable> InductionVariables => inductionVariables;
+
+        /// <summary>
+        /// Returns all phi values that are referenced outside of this loop.
+        /// </summary>
+        public ReadOnlySpan<(PhiValue phi, Value outsideOperand)> PhiValues => phiValues;
 
         #endregion
 
@@ -295,9 +388,67 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="block">The block to map to an SCC.</param>
         /// <returns>True, if the node belongs to the associated SCC.</returns>
-        public bool Contains(BasicBlock block) => SCC.Contains(block);
+        public bool Contains(BasicBlock block) => Loop.Contains(block);
+
+        private BasicBlockCollection<TOrder, TDirection> ComputeOrderedBlocks<TProvider>(
+            BasicBlock entryPoint,
+            in TProvider provider)
+            where TProvider : struct, ITraversalSuccessorsProvider<TDirection>
+        {
+            var newBlocks = ImmutableArray.CreateBuilder<BasicBlock>(Loop.Count);
+            TOrder order = default;
+            var visitor = new TraversalCollectionVisitor<
+                ImmutableArray<BasicBlock>.Builder>(newBlocks);
+            order.Traverse<
+                TraversalCollectionVisitor<ImmutableArray<BasicBlock>.Builder>,
+                TProvider,
+                TDirection>(
+                entryPoint,
+                ref visitor,
+                provider);
+
+            // Return new block collection
+            return new BasicBlockCollection<TOrder, TDirection>(
+                entryPoint,
+                newBlocks.ToImmutable());
+        }
+
+        /// <summary>
+        /// Computes a block ordering of all blocks in this loop.
+        /// </summary>
+        /// <returns>The computed block ordering.</returns>
+        public BasicBlockCollection<TOrder, TDirection> ComputeOrderedBlocks() =>
+            ComputeOrderedBlocks(Header, new ExitSuccessorProvider(Exit));
+
+        /// <summary>
+        /// Computes a block ordering of all blocks in this loop.
+        /// </summary>
+        /// <returns>The computed block ordering.</returns>
+        public BasicBlockCollection<TOrder, TDirection> ComputeOrderedBodyBlocks() =>
+            ComputeOrderedBlocks(Body, new ExitAndHeaderSuccessorProvider(Exit, Header));
 
         #endregion
+    }
+
+    /// <summary>
+    /// Helper utility for the class <see cref="LoopInfo{TOrder, TDirection}"/>.
+    /// </summary>
+    public static class LoopInfo
+    {
+        /// <summary>
+        /// Creates a new SCCs analysis instance based on the given CFG.
+        /// </summary>
+        /// <typeparam name="TOrder">The underlying block order.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <param name="loop">The underlying SCC entry.</param>
+        /// <param name="loopInfo">The resolved loop information (if any).</param>
+        /// <returns>The created SCCs analysis.</returns>
+        public static bool TryGetLoopInfo<TOrder, TDirection>(
+            this Loops<TOrder, TDirection>.Node loop,
+            out LoopInfo<TOrder, TDirection> loopInfo)
+            where TOrder : struct, ITraversalOrder
+            where TDirection : struct, IControlFlowDirection =>
+            LoopInfo<TOrder, TDirection>.TryCreate(loop, out loopInfo);
     }
 
     /// <summary>
@@ -342,6 +493,22 @@ namespace ILGPU.IR.Analyses
     /// </summary>
     public readonly struct InductionVariableBounds
     {
+        #region Static
+
+        /// <summary>
+        /// Tries to map a loop variable to an integer constant.
+        /// </summary>
+        /// <param name="value">The value to map to an integer bound.</param>
+        /// <returns>The mapped integer (if any).</returns>
+        private static int? TryGetIntegerBound(Value value) =>
+            value is PrimitiveValue primitive && value.BasicValueType.IsInt()
+            ? primitive.Int32Value
+            : default(int?);
+
+        #endregion
+
+        #region Instance
+
         /// <summary>
         /// Constructs a new induction-variable bounds.
         /// </summary>
@@ -357,6 +524,10 @@ namespace ILGPU.IR.Analyses
             UpdateOperation = updateOperation;
             BreakOperation = breakOperation;
         }
+
+        #endregion
+
+        #region Properties
 
         /// <summary>
         /// The initialization value.
@@ -382,12 +553,70 @@ namespace ILGPU.IR.Analyses
         /// The break kind.
         /// </summary>
         public InductionVariableOperation<CompareKind> BreakOperation { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Tries to get integer bounds for all loop variables.
+        /// </summary>
+        /// <returns>The determined integer-based loop bounds.</returns>
+        public readonly (int? init, int? update, int? @break) GetIntegerBounds() =>
+            (
+                TryGetIntegerBound(Init),
+                TryGetIntegerBound(UpdateValue),
+                TryGetIntegerBound(BreakValue)
+            );
+
+        /// <summary>
+        /// Tries to compute the trip count of the loop.
+        /// </summary>
+        /// <param name="intBounds"></param>
+        /// <returns></returns>
+        public readonly int? TryGetTripCount(
+            out (int? init, int? update, int? @break) intBounds)
+        {
+            intBounds = GetIntegerBounds();
+
+            // If there are some unknown bounds we cannot determine a simple trip count
+            if (!intBounds.init.HasValue ||
+                !intBounds.update.HasValue ||
+                !intBounds.@break.HasValue)
+            {
+                return null;
+            }
+
+            // Check for simple loops
+            if (
+                UpdateOperation.Kind != BinaryArithmeticKind.Add ||
+                intBounds.update < 1 ||
+                BreakOperation.Kind != CompareKind.Equal &&
+                BreakOperation.Kind != CompareKind.LessEqual &&
+                BreakOperation.Kind != CompareKind.LessThan)
+            {
+                return null;
+            }
+
+            // Compute the actual trip count
+            int baseExtent = (int)intBounds.@break - (int)intBounds.init;
+            int tripCount = baseExtent / (int)intBounds.update;
+            if (BreakOperation.Kind == CompareKind.LessEqual &&
+                tripCount + intBounds.update <= baseExtent)
+            {
+                ++tripCount;
+            }
+
+            return tripCount;
+        }
+
+        #endregion
     }
 
     /// <summary>
     /// A single induction variable.
     /// </summary>
-    public readonly struct InductionVariable
+    public sealed class InductionVariable
     {
         #region Instance
 
@@ -398,19 +627,19 @@ namespace ILGPU.IR.Analyses
         /// <param name="phi">The phi node.</param>
         /// <param name="init">The init value.</param>
         /// <param name="update">The update value.</param>
-        /// <param name="breakCondition">The break condition.</param>
+        /// <param name="breakBranch">The branch that breaks the loop.</param>
         internal InductionVariable(
             int index,
             PhiValue phi,
-            ValueReference init,
-            ValueReference update,
-            ValueReference breakCondition)
+            Value init,
+            Value update,
+            ConditionalBranch breakBranch)
         {
             Index = index;
             Phi = phi;
             Init = init;
             Update = update;
-            BreakCondition = breakCondition;
+            BreakBranch = breakBranch;
         }
 
         #endregion
@@ -440,7 +669,12 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Returns a link to the break-condition expression.
         /// </summary>
-        public Value BreakCondition { get; }
+        public Value BreakCondition => BreakBranch.Condition;
+
+        /// <summary>
+        /// Returns the branch that actually breaks the loop.
+        /// </summary>
+        public ConditionalBranch BreakBranch { get; }
 
         #endregion
 
@@ -451,7 +685,7 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="updateOperation">The resolved update operation.</param>
         /// <returns>True, if a known operation could be resolved.</returns>
-        public readonly bool TryResolveUpdateOperation(
+        public bool TryResolveUpdateOperation(
             out InductionVariableOperation<BinaryArithmeticKind> updateOperation)
         {
             updateOperation = default;
@@ -480,7 +714,7 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="breakOperation">The resolved break operation.</param>
         /// <returns>True, if a known operation could be resolved.</returns>
-        public readonly bool TryResolveBreakOperation(
+        public bool TryResolveBreakOperation(
             out InductionVariableOperation<CompareKind> breakOperation)
         {
             breakOperation = default;
@@ -509,7 +743,7 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="bounds">The resolved loop bounds (if any).</param>
         /// <returns>True, if the bounds could be resoled.</returns>
-        public readonly bool TryResolveBounds(out InductionVariableBounds bounds)
+        public bool TryResolveBounds(out InductionVariableBounds bounds)
         {
             bounds = default;
 
