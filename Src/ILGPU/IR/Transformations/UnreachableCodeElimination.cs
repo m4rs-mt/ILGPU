@@ -76,6 +76,12 @@ namespace ILGPU.IR.Transformations
                 newBlock = block;
                 return IsReachable(block);
             }
+
+            /// <summary>
+            /// Returns the value of <paramref name="value"/>.
+            /// </summary>
+            public readonly Value RemapValue(BasicBlock updatedBlock, Value value) =>
+                value;
         }
 
         #endregion
