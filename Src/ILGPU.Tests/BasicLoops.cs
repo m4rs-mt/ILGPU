@@ -90,6 +90,33 @@ namespace ILGPU.Tests
             Verify(buffer, expected);
         }
 
+        internal static void ForCounterDataConstantKernel(
+            Index1 index,
+            ArrayView<int> data)
+        {
+            int value = 42;
+            int value2 = 23;
+            int value3 = 0;
+            for (int i = 0; i < 32; ++i)
+            {
+                ++value;
+                --value2;
+                value3 += 2;
+            }
+            data[index] = value + value2 + value3;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(ForCounterDataConstantKernel))]
+        public void ForCounterDataConstant()
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(129, Length).ToArray();
+            Verify(buffer, expected);
+        }
+
         internal static void NestedForCounterKernel(
             Index1 index,
             ArrayView<int> data,
@@ -121,6 +148,30 @@ namespace ILGPU.Tests
             Verify(buffer, expected);
         }
 
+        internal static void NestedForCounterConstantKernel(
+            Index1 index,
+            ArrayView<int> data)
+        {
+            int value = 0;
+            for (int i = 0; i < 10; ++i)
+            {
+                for (int j = 0; j < 20; ++j)
+                    value += 2;
+            }
+            data[index] = value;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(NestedForCounterConstantKernel))]
+        public void NestedForCounterConstant()
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(2 * 10 * 20, Length).ToArray();
+            Verify(buffer, expected);
+        }
+
         internal static void DoWhileKernel(
             Index1 index,
             ArrayView<int> data,
@@ -141,6 +192,31 @@ namespace ILGPU.Tests
         {
             using var buffer = Accelerator.Allocate<int>(Length);
             Execute(buffer.Length, buffer.View, 38);
+
+            var expected = Enumerable.Repeat(42, Length).ToArray();
+            Verify(buffer, expected);
+        }
+
+        internal static void DoWhileConstantKernel(
+            Index1 index,
+            ArrayView<int> data)
+        {
+            int counter = 38;
+            int value = 3;
+            do
+            {
+                ++value;
+            }
+            while (counter-- > 0);
+            data[index] = value;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(DoWhileConstantKernel))]
+        public void DoWhileConstant()
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View);
 
             var expected = Enumerable.Repeat(42, Length).ToArray();
             Verify(buffer, expected);
@@ -261,6 +337,41 @@ namespace ILGPU.Tests
             Execute(buffer.Length, buffer.View, counter, counter2, counter3);
 
             var expected = Enumerable.Repeat(result, Length).ToArray();
+            Verify(buffer, expected);
+        }
+
+        internal static void NestedBreakContinueConstantKernel(
+            Index1 index,
+            ArrayView<int> data)
+        {
+            int accumulate = 0;
+            int k = 0;
+            for (int i = 0; i < 32; ++i)
+            {
+                for (int j = 0; j < 13; ++j)
+                {
+                    if (j == i)
+                        continue;
+
+                    if (++k == 9)
+                        break;
+                }
+
+                if (i == 13)
+                    continue;
+                ++accumulate;
+            }
+            data[index] = accumulate;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(NestedBreakContinueConstantKernel))]
+        public void NestedBreakContinueLoopConstant()
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(31, Length).ToArray();
             Verify(buffer, expected);
         }
     }
