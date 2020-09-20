@@ -3,7 +3,7 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: SCCs.cs
+// File: Loops.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
@@ -12,6 +12,7 @@
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -20,8 +21,13 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
+//
+// Based on an adapted version of the paper: Identifying Loops In Almost Linear Time
+//
+
 namespace ILGPU.IR.Analyses
 {
+
     /// <summary>
     /// An analysis to detect strongly-connected components.
     /// </summary>
@@ -29,8 +35,8 @@ namespace ILGPU.IR.Analyses
         "Microsoft.Naming",
         "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of this program analysis")]
-    public sealed class SCCs<TOrder, TDirection> :
-        IReadOnlyList<SCCs<TOrder, TDirection>.SCC>
+    public sealed class Loops<TOrder, TDirection> :
+        IReadOnlyList<Loops<TOrder, TDirection>.Node>
         where TOrder : struct, ITraversalOrder
         where TDirection : struct, IControlFlowDirection
     {
@@ -44,7 +50,7 @@ namespace ILGPU.IR.Analyses
             "CA1710: IdentifiersShouldHaveCorrectSuffix",
             Justification = "This is a single SCC object; adding a collection suffix " +
             "would be misleading")]
-        public readonly struct SCC : IReadOnlyList<BasicBlock>, IEquatable<SCC>
+        public sealed class Node : IReadOnlyCollection<BasicBlock>
         {
             #region Nested Types
 
@@ -53,14 +59,14 @@ namespace ILGPU.IR.Analyses
             /// </summary>
             public struct Enumerator : IEnumerator<BasicBlock>
             {
-                private List<BasicBlock>.Enumerator enumerator;
+                private HashSet<BasicBlock>.Enumerator enumerator;
 
                 /// <summary>
                 /// Constructs a new node enumerator.
                 /// </summary>
                 /// <param name="nodes">The nodes to iterate over.</param>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                internal Enumerator(List<BasicBlock> nodes)
+                internal Enumerator(HashSet<BasicBlock> nodes)
                 {
                     enumerator = nodes.GetEnumerator();
                 }
@@ -150,16 +156,16 @@ namespace ILGPU.IR.Analyses
                 /// </summary>
                 /// <param name="parent">The parent SCC.</param>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                internal PhiValueEnumerator(SCC parent)
+                internal PhiValueEnumerator(Node parent)
                 {
                     Parent = parent;
                     enumerator = parent.GetValueEnumerator();
                 }
 
                 /// <summary>
-                /// The parent SCCs.
+                /// The parent loop.
                 /// </summary>
-                public SCC Parent { get; }
+                public Node Parent { get; }
 
                 /// <summary>
                 /// Returns the current value.
@@ -198,25 +204,45 @@ namespace ILGPU.IR.Analyses
 
             #region Instance
 
-            private readonly List<BasicBlock> nodes;
+            private InlineList<BasicBlock> headers;
+            private InlineList<BasicBlock> breakers;
+            private InlineList<BasicBlock> backEdges;
+            private readonly HashSet<BasicBlock> nodes;
 
             /// <summary>
-            /// Constructs a new SCC.
+            /// All child nodes (if any).
             /// </summary>
-            /// <param name="parent">The parent SCC.</param>
-            /// <param name="index">The SCC index.</param>
-            /// <param name="sccMembers">All SCC members.</param>
-            internal SCC(
-                SCCs<TOrder, TDirection> parent,
-                int index,
-                List<BasicBlock> sccMembers)
-            {
-                Debug.Assert(index >= 0, "Invalid SCC index");
-                Debug.Assert(sccMembers != null, "Invalid SCC members");
+            private InlineList<Node> children;
 
+            /// <summary>
+            /// Constructs a new loop node.
+            /// </summary>
+            /// <param name="parent">The parent loop.</param>
+            /// <param name="headerBlocks">All loop headers.</param>
+            /// <param name="breakerBlocks">All blocks that can break the loop.</param>
+            /// <param name="backEdgeBlocks">All blocks with back edges.</param>
+            /// <param name="members">All blocks in the scope of this loop.</param>
+            /// <param name="entries">All entry block that jump into this loop.</param>
+            /// <param name="exits">All exit block that this loop can jump to.</param>
+            internal Node(
+                Node parent,
+                ref InlineList<BasicBlock> headerBlocks,
+                ref InlineList<BasicBlock> breakerBlocks,
+                ref InlineList<BasicBlock> backEdgeBlocks,
+                HashSet<BasicBlock> members,
+                HashSet<BasicBlock> entries,
+                HashSet<BasicBlock> exits)
+            {
                 Parent = parent;
-                Index = index;
-                nodes = sccMembers;
+                parent?.AddChild(this);
+
+                headerBlocks.MoveTo(ref headers);
+                breakerBlocks.MoveTo(ref breakers);
+                backEdgeBlocks.MoveTo(ref backEdges);
+                nodes = members;
+                children = InlineList<Node>.Create(1);
+                Entries = entries.ToImmutableArray();
+                Exits = exits.ToImmutableArray();
             }
 
             #endregion
@@ -224,26 +250,54 @@ namespace ILGPU.IR.Analyses
             #region Properties
 
             /// <summary>
-            /// Returns the parent SCCs.
-            /// </summary>
-            public SCCs<TOrder, TDirection> Parent { get; }
-
-            /// <summary>
-            /// Returns the SCC index.
-            /// </summary>
-            public int Index { get; }
-
-            /// <summary>
             /// Returns the number of members.
             /// </summary>
             public int Count => nodes.Count;
 
             /// <summary>
-            /// Returns the i-th SCC member.
+            /// Returns the block containing the associated back edge.
             /// </summary>
-            /// <param name="index">The index of the i-th SCC member.</param>
-            /// <returns>The resolved SCC member.</returns>
-            public BasicBlock this[int index] => nodes[index];
+            public ReadOnlySpan<BasicBlock> BackEdges => backEdges;
+
+            /// <summary>
+            /// Returns all loop headers.
+            /// </summary>
+            public ReadOnlySpan<BasicBlock> Headers => headers;
+
+            /// <summary>
+            /// Returns all loop breakers that contain branches to exit the loop.
+            /// </summary>
+            public ReadOnlySpan<BasicBlock> Breakers => breakers;
+
+            /// <summary>
+            /// All entry blocks that jump into the loop.
+            /// </summary>
+            public ImmutableArray<BasicBlock> Entries { get; }
+
+            /// <summary>
+            /// All exit blocks that are reachable by all breakers from the loop.
+            /// </summary>
+            public ImmutableArray<BasicBlock> Exits { get; }
+
+            /// <summary>
+            /// Returns the parent loop.
+            /// </summary>
+            public Node Parent { get; }
+
+            /// <summary>
+            /// Returns all child loops.
+            /// </summary>
+            public ReadOnlySpan<Node> Children => children;
+
+            /// <summary>
+            /// Returns true if this is a nested loop
+            /// </summary>
+            public bool IsNestedLoop => Parent != null;
+
+            /// <summary>
+            /// Returns true if this is an innermost loop.
+            /// </summary>
+            public bool IsInnermostLoop => children.Count < 1;
 
             #endregion
 
@@ -255,7 +309,7 @@ namespace ILGPU.IR.Analyses
             /// <param name="block">The block to map to an SCC.</param>
             /// <returns>True, if the node belongs to this SCC.</returns>
             public bool Contains(BasicBlock block) =>
-                Parent.TryGetSCC(block, out SCC scc) && scc == this;
+                nodes.Contains(block);
 
             /// <summary>
             /// Resolves all <see cref="PhiValue"/>s that are contained
@@ -266,26 +320,13 @@ namespace ILGPU.IR.Analyses
             public Phis ResolvePhis() => Phis.Create(new PhiValueEnumerator(this));
 
             /// <summary>
-            /// Resolves all blocks that can leave this SCC.
+            /// Adds the given child node.
             /// </summary>
-            /// <returns>An array of all blocks that can leave this SCC.</returns>
-            public ImmutableArray<BasicBlock> ResolveBreakingBlocks()
+            /// <param name="child">The child node to add.</param>
+            private void AddChild(Node child)
             {
-                var result = ImmutableArray.CreateBuilder<BasicBlock>(nodes.Count);
-                var visited = new HashSet<BasicBlock>();
-                foreach (var node in nodes)
-                {
-                    if (node.GetSuccessors<TDirection>().Length < 2)
-                        continue;
-
-                    // Check for exit targets
-                    foreach (var succ in node.Successors)
-                    {
-                        if (!Contains(succ) && !visited.Add(succ))
-                            result.Add(succ);
-                    }
-                }
-                return result.ToImmutable();
+                Debug.Assert(child.Parent == this, "Invalid child");
+                children.Add(child);
             }
 
             #endregion
@@ -314,80 +355,21 @@ namespace ILGPU.IR.Analyses
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
             #endregion
-
-            #region IEquatable
-
-            /// <summary>
-            /// Returns true if the other SCC refers to the same SCC.
-            /// </summary>
-            /// <param name="other">The other SCC.</param>
-            /// <returns>True, if the other SCC refers to the same SCC.</returns>
-            public bool Equals(SCC other) =>
-                other.Parent == Parent && other.Index == Index;
-
-            #endregion
-
-            #region Object
-
-            /// <summary>
-            /// Returns true if the other object refers to the same SCC.
-            /// </summary>
-            /// <param name="obj">The other object.</param>
-            /// <returns>True, if the other object refers to the same SCC.</returns>
-            public override bool Equals(object obj) =>
-                obj is SCC scc && Equals(scc);
-
-            /// <summary>
-            /// Returns the hash code of this SCC.
-            /// </summary>
-            /// <returns>The hash code of this SCC.</returns>
-            public override int GetHashCode() => Index;
-
-            /// <summary>
-            /// Returns the light-weight string representation of this SCC.
-            /// </summary>
-            /// <returns>The light-weight string representation of this SCC.</returns>
-            public override string ToString() => Index.ToString();
-
-            #endregion
-
-            #region Operators
-
-            /// <summary>
-            /// Returns true if the first and the second SCCs refer to the same SCC.
-            /// </summary>
-            /// <param name="first">The first SCC.</param>
-            /// <param name="second">The second SCC.</param>
-            /// <returns>True, if both SCCs refer to the same SCC.</returns>
-            public static bool operator ==(SCC first, SCC second) =>
-                first.Equals(second);
-
-            /// <summary>
-            /// Returns true if the first and the second SCCs do not refer to the same
-            /// SCC.
-            /// </summary>
-            /// <param name="first">The first SCC.</param>
-            /// <param name="second">The second SCC.</param>
-            /// <returns>True, if both SCCs do not refer to the same SCC.</returns>
-            public static bool operator !=(SCC first, SCC second) =>
-                !(first == second);
-
-            #endregion
         }
 
         /// <summary>
         /// An enumerator to iterate over all SCCs.
         /// </summary>
-        public struct Enumerator : IEnumerator<SCC>
+        public struct Enumerator : IEnumerator<Node>
         {
-            private List<SCC>.Enumerator enumerator;
+            private List<Node>.Enumerator enumerator;
 
             /// <summary>
             /// Constructs a new node enumerator.
             /// </summary>
             /// <param name="nodes">The nodes to iterate over.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal Enumerator(List<SCC> nodes)
+            internal Enumerator(List<Node> nodes)
             {
                 enumerator = nodes.GetEnumerator();
             }
@@ -395,7 +377,7 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Returns the current node.
             /// </summary>
-            public SCC Current => enumerator.Current;
+            public Node Current => enumerator.Current;
 
             /// <summary cref="IEnumerator.Current"/>
             object IEnumerator.Current => Current;
@@ -422,10 +404,11 @@ namespace ILGPU.IR.Analyses
             /// <param name="stack">The source stack to pop from.</param>
             /// <returns>The popped node data.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static NodeData Pop(Stack<NodeData> stack)
+            public static NodeData Pop(List<NodeData> stack)
             {
                 Debug.Assert(stack.Count > 0, "Cannot pop stack");
-                var result = stack.Pop();
+                var result = stack[stack.Count - 1];
+                stack.RemoveAt(stack.Count - 1);
                 result.OnStack = false;
                 return result;
             }
@@ -437,9 +420,7 @@ namespace ILGPU.IR.Analyses
             public NodeData(in CFG<TOrder, TDirection>.Node node)
             {
                 Node = node;
-                Index = -1;
-                LowLink = -1;
-                OnStack = false;
+                Clear();
             }
 
             /// <summary>
@@ -463,27 +444,65 @@ namespace ILGPU.IR.Analyses
             public bool OnStack { get; private set; }
 
             /// <summary>
+            /// Returns true if the current block is a header.
+            /// </summary>
+            public bool IsInSCC { get; set; }
+
+            /// <summary>
+            /// Returns true if the current block is a header.
+            /// </summary>
+            public bool IsHeader { get; set; }
+
+            /// <summary>
             /// Returns true if the index has been initialized.
             /// </summary>
             public bool HasIndex => Index >= 0;
 
             /// <summary>
+            /// Clears all internal links.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Clear()
+            {
+                Index = -1;
+                LowLink = -1;
+                OnStack = false;
+            }
+
+            /// <summary>
             /// Pushes the current node onto the processing stack.
             /// </summary>
             /// <param name="stack">The processing stack.</param>
+            /// <param name="index">The current traversal index.</param>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void Push(Stack<NodeData> stack)
+            public void Push(List<NodeData> stack, ref int index)
             {
+                Index = index;
+                LowLink = index;
                 OnStack = true;
-                stack.Push(this);
+                stack.Add(this);
+
+                ++index;
             }
+        }
+
+        /// <summary>
+        /// Provides new intermediate <see cref="NodeData"/> list instances.
+        /// </summary>
+        private readonly struct NodeListProvider : IBasicBlockMapValueProvider<List<Node>>
+        {
+            /// <summary>
+            /// Creates a new <see cref="NodeData"/> instance.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly List<Node> GetValue(BasicBlock block, int _) =>
+                new List<Node>(2);
         }
 
         /// <summary>
         /// Provides new intermediate <see cref="NodeData"/> instances.
         /// </summary>
-        private readonly struct NodeDataProvider :
-            IBasicBlockMapValueProvider<NodeData>
+        private readonly struct NodeDataProvider : IBasicBlockMapValueProvider<NodeData>
         {
             /// <summary>
             /// Constructs a new data provider.
@@ -503,9 +522,7 @@ namespace ILGPU.IR.Analyses
             /// Creates a new <see cref="NodeData"/> instance.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly NodeData GetValue(
-                BasicBlock block,
-                int traversalIndex) =>
+            public readonly NodeData GetValue(BasicBlock block, int traversalIndex) =>
                 new NodeData(CFG[block]);
         }
 
@@ -514,41 +531,95 @@ namespace ILGPU.IR.Analyses
         #region Static
 
         /// <summary>
+        /// Returns true if this is a loop.
+        /// </summary>
+        private static bool IsLoop(
+            List<NodeData> stack,
+            BasicBlockMap<NodeData> nodeMapping,
+            NodeData v,
+            out int baseIndex)
+        {
+            // Determine all nodes that belong to the SCC
+            int lastIndex = stack.Count - 1;
+            baseIndex = lastIndex;
+            for (; baseIndex >= 0; --baseIndex)
+            {
+                var w = stack[baseIndex];
+                w.IsInSCC = true;
+                if (w == v)
+                    break;
+            }
+
+            // Check for a real loop
+            foreach (var predecessor in stack[lastIndex].Node.Predecessors)
+            {
+                var data = nodeMapping[predecessor];
+                if (data.IsInSCC && !data.IsHeader)
+                    return true;
+            }
+
+            // Remove from current SCC
+            for (int index = baseIndex; index <= lastIndex; ++index)
+            {
+                var data = NodeData.Pop(stack);
+                data.IsInSCC = false;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Creates a new SCC analysis.
         /// </summary>
         /// <param name="cfg">The underlying source CFG.</param>
         /// <returns>The created SCC analysis.</returns>
-        public static SCCs<TOrder, TDirection> Create(CFG<TOrder, TDirection> cfg) =>
-            new SCCs<TOrder, TDirection>(cfg);
+        public static Loops<TOrder, TDirection> Create(CFG<TOrder, TDirection> cfg) =>
+            new Loops<TOrder, TDirection>(cfg);
 
         #endregion
 
         #region Instance
 
-        private readonly List<SCC> sccs = new List<SCC>();
-        private readonly BasicBlockMap<SCC> sccMapping;
+        private readonly List<Node> loops = new List<Node>();
+        private BasicBlockMap<Node> loopMapping;
 
         /// <summary>
         /// Constructs a new collection of SCCs.
         /// </summary>
         /// <param name="cfg">The source CFG.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private SCCs(CFG<TOrder, TDirection> cfg)
+        private Loops(CFG<TOrder, TDirection> cfg)
         {
             CFG = cfg;
+            loopMapping = cfg.Blocks.CreateMap<Node>();
+
             var mapping = cfg.Blocks.CreateMap(new NodeDataProvider(cfg));
             int index = 0;
-            var stack = new Stack<NodeData>();
+            var stack = new List<NodeData>(cfg.Count);
 
-            foreach (var node in cfg)
+            // Start with the entry point
+            StrongConnect(
+                stack,
+                null,
+                ref mapping,
+                mapping[cfg.Root],
+                ref index);
+
+            // Continue the search for each nested SCC
+            for (int loopIndex = 0; loopIndex < loops.Count; ++loopIndex)
             {
-                var nodeData = mapping[node];
-                if (!nodeData.HasIndex)
+                var loop = loops[loopIndex];
+
+                foreach (var member in loop)
+                    mapping[member].Clear();
+
+                foreach (var header in loops[loopIndex].Headers)
                 {
                     StrongConnect(
                         stack,
+                        loop,
                         ref mapping,
-                        nodeData,
+                        mapping[header],
                         ref index);
                 }
             }
@@ -566,45 +637,48 @@ namespace ILGPU.IR.Analyses
         /// <summary>
         /// Returns the number of SCCs.
         /// </summary>
-        public int Count => sccs.Count;
+        public int Count => loops.Count;
 
         /// <summary>
         /// Returns the i-th SCC.
         /// </summary>
         /// <param name="index">The index of the i-th SCC.</param>
         /// <returns>The resolved SCC.</returns>
-        public SCC this[int index] => sccs[index];
+        public Node this[int index] => loops[index];
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// The heart of Tarjan's SCC algorithm.
+        /// The modified heart of Tarjan's SCC algorithm.
         /// </summary>
         /// <param name="stack">The current processing stack.</param>
+        /// <param name="parent">The parent loop.</param>
         /// <param name="nodeMapping">The current node mapping.</param>
         /// <param name="v">The current node.</param>
         /// <param name="index">The current index value.</param>
         private void StrongConnect(
-            Stack<NodeData> stack,
+            List<NodeData> stack,
+            Node parent,
             ref BasicBlockMap<NodeData> nodeMapping,
             NodeData v,
             ref int index)
         {
-            Debug.Assert(!v.HasIndex, "Index already defined");
-            v.Index = index;
-            v.LowLink = index;
-            ++index;
+            Debug.Assert(!v.HasIndex);
+            v.Push(stack, ref index);
 
-            v.Push(stack);
             foreach (var wNode in v.Node.Successors)
             {
                 var w = nodeMapping[wNode];
+                if (w.IsHeader)
+                    continue;
+
                 if (!w.HasIndex)
                 {
                     StrongConnect(
                         stack,
+                        parent,
                         ref nodeMapping,
                         w,
                         ref index);
@@ -616,37 +690,113 @@ namespace ILGPU.IR.Analyses
                 }
             }
 
+            // We have found a new SCC root node (Tarjan's SCC algorithm)
             if (v.LowLink == v.Index)
             {
-                // Optimize for the trivial case
-                var w = NodeData.Pop(stack);
-                if (w != v)
-                {
-                    var members = new List<BasicBlock>(stack.Count + 1);
-                    for (; ; w = NodeData.Pop(stack))
-                    {
-                        members.Add(w.Node);
-                        if (w == v)
-                            break;
-                    }
-
-                    var scc = new SCC(this, sccs.Count, members);
-                    sccs.Add(scc);
-
-                    foreach (var member in members)
-                        sccMapping.Add(member, scc);
-                }
+                RegisterLoop(
+                    stack,
+                    parent,
+                    ref nodeMapping,
+                    v);
             }
         }
 
         /// <summary>
-        /// Tries to resolve the given block to an associated SCC.
+        /// Registers a new loop entry (if possible).
         /// </summary>
-        /// <param name="block">The block to map to an SCC.</param>
-        /// <param name="scc">The resulting SCC.</param>
-        /// <returns>True, if the node could be resolved to an SCC.</returns>
-        public bool TryGetSCC(BasicBlock block, out SCC scc) =>
-            sccMapping.TryGetValue(block, out scc);
+        /// <param name="stack">The current processing stack.</param>
+        /// <param name="parent">The parent loop.</param>
+        /// <param name="nodeMapping">The current node mapping.</param>
+        /// <param name="v">The current node.</param>
+        private void RegisterLoop(
+            List<NodeData> stack,
+            Node parent,
+            ref BasicBlockMap<NodeData> nodeMapping,
+            NodeData v)
+        {
+            // Check for a real loop
+            if (!IsLoop(stack, nodeMapping, v, out int baseIndex))
+                return;
+
+            // Gather all nodes contained in this SCC
+            var memberList = InlineList<BasicBlock>.Create(stack.Count - baseIndex);
+            var memberSet = new HashSet<BasicBlock>();
+
+            for (int i = baseIndex, e = stack.Count; i < e; ++i)
+            {
+                var w = NodeData.Pop(stack);
+                memberList.Add(w.Node);
+                memberSet.Add(w.Node);
+            }
+
+            // Initialize all lists and sets
+            var headers = InlineList<BasicBlock>.Create(2);
+            var breakers = InlineList<BasicBlock>.Create(2);
+            var entryBlocks = new HashSet<BasicBlock>();
+            var exitBlocks = new HashSet<BasicBlock>();
+
+            // Gather all loop entries and exists
+            foreach (var member in memberList)
+            {
+                foreach (var predecessor in member.GetPredecessors<TDirection>())
+                {
+                    if (!nodeMapping[predecessor].IsInSCC && 
+                        entryBlocks.Add(predecessor))
+                    {
+                        headers.Add(member);
+                        nodeMapping[member].IsHeader = true;
+                    }
+                }
+                foreach (var successor in member.GetSuccessors<TDirection>())
+                {
+                    if (!nodeMapping[successor].IsInSCC && exitBlocks.Add(successor))
+                        breakers.Add(member);
+                }
+            }
+            v.Node.Assert(headers.Count > 0);
+
+            // Compute all back edges
+            var backEdges = InlineList<BasicBlock>.Create(2);
+            foreach (var member in memberList)
+            {
+                foreach (var successor in member.GetSuccessors<TDirection>())
+                {
+                    if (headers.Contains(successor, new BasicBlock.Comparer()))
+                    {
+                        backEdges.Add(member);
+                        break;
+                    }
+                }
+            }
+            v.Node.Assert(backEdges.Count > 0);
+
+            // Create a new loop
+            var loop = new Node(
+                parent,
+                ref headers,
+                ref breakers,
+                ref backEdges,
+                memberSet,
+                entryBlocks,
+                exitBlocks);
+            loops.Add(loop);
+
+            // Map members to their associated inner-most loop
+            foreach (var member in memberList)
+            {
+                nodeMapping[member].IsInSCC = false;
+                loopMapping[member] = loop;
+            }
+        }
+
+        /// <summary>
+        /// Tries to resolve the given block to an associated innermost loop.
+        /// </summary>
+        /// <param name="block">The block to map to a loop.</param>
+        /// <param name="loop">The resulting loop.</param>
+        /// <returns>True, if the node could be resolved to a loop.</returns>
+        public bool TryGetLoops(BasicBlock block, out Node loop) =>
+            loopMapping.TryGetValue(block, out loop);
 
         #endregion
 
@@ -656,14 +806,33 @@ namespace ILGPU.IR.Analyses
         /// Returns an enumerator that iterates over all SCCs.
         /// </summary>
         /// <returns>The resolved enumerator.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(sccs);
+        public Enumerator GetEnumerator() => new Enumerator(loops);
 
         /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-        IEnumerator<SCC> IEnumerable<SCC>.GetEnumerator() => GetEnumerator();
+        IEnumerator<Node> IEnumerable<Node>.GetEnumerator() => GetEnumerator();
 
         /// <summary cref="IEnumerable.GetEnumerator"/>
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         #endregion
+    }
+
+    /// <summary>
+    /// Utility methods for the <see cref="Loops{TOrder, TDirection}"/> analysis.
+    /// </summary>
+    public static class Loops
+    {
+        /// <summary>
+        /// Creates a new loops analysis instance based on the given CFG.
+        /// </summary>
+        /// <typeparam name="TOrder">The underlying block order.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <param name="cfg">The underlying CFG.</param>
+        /// <returns>The created loops analysis.</returns>
+        public static Loops<TOrder, TDirection> CreateLoops<TOrder, TDirection>(
+            this CFG<TOrder, TDirection> cfg)
+            where TOrder : struct, ITraversalOrder
+            where TDirection : struct, IControlFlowDirection =>
+            Loops<TOrder, TDirection>.Create(cfg);
     }
 }
