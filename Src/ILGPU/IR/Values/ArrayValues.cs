@@ -206,6 +206,9 @@ namespace ILGPU.IR.Values
 
         #region Object
 
+        /// <summary cref="Value.ToArgString"/>
+        protected override string ToArgString() => ObjectValue.ToString();
+
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "getext";
 

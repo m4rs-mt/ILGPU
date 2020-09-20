@@ -90,6 +90,9 @@ namespace ILGPU.IR.Construction
             var arrayType = arrayValue.Type.As<ArrayType>(location);
             VerifyLinearArray(location, arrayType.Dimensions);
 
+            if (UseConstantPropagation && arrayValue is ArrayValue constantArray)
+                return constantArray.Extent;
+
             return Append(new GetArrayExtent(
                 GetInitializer(location),
                 arrayValue));
