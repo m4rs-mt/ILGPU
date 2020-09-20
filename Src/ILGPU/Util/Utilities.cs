@@ -74,8 +74,7 @@ namespace ILGPU.Util
         /// <param name="value">The integer value.</param>
         /// <returns>True, if the given integer is a power of two.</returns>
         public static bool IsPowerOf2(long value) =>
-            value != long.MinValue &&
-            IsPowerOf2((ulong)IntrinsicMath.Abs(value));
+            value != long.MinValue && IsPowerOf2((ulong)IntrinsicMath.Abs(value));
 
         /// <summary>
         /// Returns true if the given integer is a power of two.
@@ -86,5 +85,33 @@ namespace ILGPU.Util
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsPowerOf2(ulong value) =>
             value > 0 & ((value & (value - 1)) == 0);
+
+        /// <summary>
+        /// Computes the greatest common divisor using the Euclidean algorithm.
+        /// </summary>
+        /// <param name="a">The first number.</param>
+        /// <param name="b">The second number.</param>
+        /// <returns>The GCD of both numbers.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long GCD(long a, long b)
+        {
+            while (b > 0)
+            {
+                long remainder = a % b;
+                a = b;
+                b = remainder;
+            }
+            return a;
+        }
+
+        /// <summary>
+        /// Computes the least common multiple.
+        /// </summary>
+        /// <param name="a">The first number.</param>
+        /// <param name="b">The second number.</param>
+        /// <returns>The LCM of both numbers.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long LCM(long a, long b) =>
+            a * b / GCD(a, b);
     }
 }
