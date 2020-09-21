@@ -585,7 +585,8 @@ namespace ILGPU.Backends.PTX
                 Builder.Append(addressSpacePrefix);
 
                 Builder.Append(".align ");
-                Builder.Append(allocaInfo.ElementAlignment);
+                Builder.Append(
+                    PointerAlignments.GetInitialAlignment(allocaInfo.Alloca));
                 Builder.Append(" .b8 ");
 
                 var name = namePrefix + offset++;
