@@ -60,29 +60,47 @@ namespace ILGPU.IR.Construction
                 switch (kind)
                 {
                     case UnaryArithmeticKind.Not:
-                        if (node is UnaryArithmeticValue otherValue &&
-                            otherValue.Kind == UnaryArithmeticKind.Not)
+                        switch (node)
                         {
-                            return otherValue.Value;
-                        }
+                            // Check nested not operations
+                            case UnaryArithmeticValue otherValue when
+                                otherValue.Kind == UnaryArithmeticKind.Not:
+                                return otherValue.Value;
+                            // Check whether we can invert compare values
+                            case CompareValue compareValue:
+                                // When the comparison is inverted, and we are comparing
+                                // floats, toggle between ordered/unordered float
+                                // comparison
+                                var compareFlags = compareValue.Flags;
+                                if (compareValue.Left.BasicValueType.IsFloat() &&
+                                    compareValue.Right.BasicValueType.IsFloat())
+                                {
+                                    compareFlags ^= CompareFlags.UnsignedOrUnordered;
+                                }
 
-                        if (node is CompareValue compareValue)
-                        {
-                            // When the comparison is inverted, and we are comparing
-                            // floats, toggle between ordered/unordered float comparison.
-                            var compareFlags = compareValue.Flags;
-                            if (compareValue.Left.BasicValueType.IsFloat() &&
-                                compareValue.Right.BasicValueType.IsFloat())
-                            {
-                                compareFlags ^= CompareFlags.UnsignedOrUnordered;
-                            }
-
-                            return CreateCompare(
-                                location,
-                                compareValue.Left,
-                                compareValue.Right,
-                                CompareValue.Invert(compareValue.Kind),
-                                compareFlags);
+                                return CreateCompare(
+                                    location,
+                                    compareValue.Left,
+                                    compareValue.Right,
+                                    CompareValue.Invert(compareValue.Kind),
+                                    compareFlags);
+                            // Propagate the not operator through binary operations
+                            case BinaryArithmeticValue otherBinary when
+                                BinaryArithmeticValue.TryInvertLogical(
+                                    otherBinary.Kind,
+                                    out var invertedBinary):
+                                return CreateArithmetic(
+                                    otherBinary.Location,
+                                    CreateArithmetic(
+                                        location,
+                                        otherBinary.Left,
+                                        UnaryArithmeticKind.Not),
+                                    CreateArithmetic(
+                                        location,
+                                        otherBinary.Right,
+                                        UnaryArithmeticKind.Not),
+                                    invertedBinary,
+                                    otherBinary.Flags);
                         }
                         break;
                     case UnaryArithmeticKind.Neg:

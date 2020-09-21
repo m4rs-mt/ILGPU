@@ -204,6 +204,37 @@ namespace ILGPU.IR.Values
     [ValueKind(ValueKind.BinaryArithmetic)]
     public sealed class BinaryArithmeticValue : ArithmeticValue
     {
+        #region Static
+
+        /// <summary>
+        /// Inverts the given binary arithmetic kind.
+        /// </summary>
+        /// <param name="kind">The kind to invert.</param>
+        /// <returns>The inverted operation (if inverted).</returns>
+        public static BinaryArithmeticKind InvertLogical(BinaryArithmeticKind kind) =>
+            kind switch
+            {
+                BinaryArithmeticKind.And => BinaryArithmeticKind.Or,
+                BinaryArithmeticKind.Or => BinaryArithmeticKind.And,
+                _ => kind
+            };
+
+        /// <summary>
+        /// Tries to invert the given binary arithmetic kind.
+        /// </summary>
+        /// <param name="kind">The kind to invert.</param>
+        /// <param name="inverted">The inverted operation (if any).</param>
+        /// <returns>True, if the given kind could be inverted.</returns>
+        public static bool TryInvertLogical(
+            BinaryArithmeticKind kind,
+            out BinaryArithmeticKind inverted)
+        {
+            inverted = InvertLogical(kind);
+            return kind != inverted;
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
