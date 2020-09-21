@@ -84,6 +84,15 @@ namespace ILGPU.IR.Transformations
             return true;
         }
 
+        /// <summary>
+        /// Invalidates the type of an affected value.
+        /// </summary>
+        private static void InvalidateType<TValue>(
+            RewriterContext context,
+            TValue value)
+            where TValue : Value =>
+            value.InvalidateType();
+
         #endregion
 
         #region Rewriter
@@ -102,6 +111,11 @@ namespace ILGPU.IR.Transformations
             Rewriter.Add<AddressSpaceCast>(
                 IsRedundant,
                 (context, cast) => context.ReplaceAndRemove(cast, cast.Value));
+
+            // Invalidate types of affected values
+            Rewriter.Add<PointerCast>(InvalidateType);
+            Rewriter.Add<LoadFieldAddress>(InvalidateType);
+            Rewriter.Add<LoadElementAddress>(InvalidateType);
         }
 
         #endregion

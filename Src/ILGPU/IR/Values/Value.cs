@@ -524,7 +524,7 @@ namespace ILGPU.IR
         /// type.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void InvalidateType()
+        public void InvalidateType()
         {
             if (!HasStaticType)
                 type = null;
