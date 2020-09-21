@@ -9,6 +9,8 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Analyses.ControlFlowDirection;
+using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System;
 using System.Collections;
@@ -66,6 +68,33 @@ namespace ILGPU.IR.Analyses
         #endregion
 
         #region Static
+
+        /// <summary>
+        /// Gathers all phi source blocks.
+        /// </summary>
+        /// <typeparam name="TOrder">The current order.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <param name="blocks">The blocks to use.</param>
+        /// <returns>All phi value source blocks.</returns>
+        public static BasicBlockSet GaterhPhiSources<TOrder, TDirection>(
+            in BasicBlockCollection<TOrder, TDirection> blocks)
+            where TOrder : struct, ITraversalOrder
+            where TDirection : struct, IControlFlowDirection
+        {
+            var result = blocks.CreateSet();
+            foreach (var block in blocks)
+            {
+                foreach (Value value in block)
+                {
+                    if (value is PhiValue phiValue)
+                    {
+                        foreach (var source in phiValue.Sources)
+                            result.Add(source);
+                    }
+                }
+            }
+            return result;
+        }
 
         /// <summary>
         /// Resolves all phi values in the given block.

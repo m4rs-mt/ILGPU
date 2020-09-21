@@ -125,7 +125,7 @@ namespace ILGPU.IR.Transformations
             if (level > OptimizationLevel.O1)
                 builder.Add(new LowerStructures());
 
-            // Apply final DCE phase in release mode
+            // Apply DCE phase in release mode
             if (level > OptimizationLevel.O0)
                 builder.Add(new DeadCodeElimination());
 
@@ -133,10 +133,18 @@ namespace ILGPU.IR.Transformations
             if (level > OptimizationLevel.O1)
                 builder.Add(new InferAddressSpaces());
 
-            // Append further backend specific transformations in release mode
+            // Append further backend specific transformations in O2 and O1 mode
             builder.Add(new Inliner());
-            if (level > OptimizationLevel.O0)
+            if (level > OptimizationLevel.O1)
+            {
+                builder.Add(new CleanupBlocks());
                 builder.Add(new SimplifyControlFlow());
+                builder.Add(new DeadCodeElimination());
+            }
+            else if (level > OptimizationLevel.O0)
+            {
+                builder.Add(new SimplifyControlFlow());
+            }
         }
 
         /// <summary>
