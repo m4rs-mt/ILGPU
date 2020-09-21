@@ -80,8 +80,54 @@ namespace ILGPU.IR.Construction
                     trueValue.Type as PrimitiveType);
             }
 
-            if (UseConstantPropagation && condition is PrimitiveValue constant)
-                return constant.Int1Value ? trueValue : falseValue;
+            // Match simple constant predicates
+            if (UseConstantPropagation)
+            {
+                if (condition is PrimitiveValue constant)
+                    return constant.Int1Value ? trueValue : falseValue;
+
+                // Match bool predicates that can be represented via simple expressions
+                if (trueValue.BasicValueType == BasicValueType.Int1)
+                {
+                    // Check for two cases: condition ? True : falseValue
+                    //                       --> condition | falseValue
+                    //                      condition ? False : falseValue
+                    //                       --> !condition & falseValue
+                    if (trueValue is PrimitiveValue truePrimitive)
+                    {
+                        var kind = BinaryArithmeticKind.Or;
+                        // Check for: condition ? False ...
+                        if (!truePrimitive.Int1Value)
+                        {
+                            kind = BinaryArithmeticKind.And;
+                            condition = CreateArithmetic(
+                                location,
+                                condition,
+                                UnaryArithmeticKind.Not);
+                        }
+                        return CreateArithmetic(
+                            location,
+                            condition,
+                            falseValue,
+                            kind,
+                            ArithmeticFlags.Unsigned);
+                    }
+                    // Move constants to the left
+                    else if (falseValue is PrimitiveValue falsePrimitive)
+                    {
+                        return CreateIfPredicate(
+                            location,
+                            CreateArithmetic(
+                                location,
+                                condition,
+                                UnaryArithmeticKind.Not),
+                            falseValue,
+                            trueValue);
+                    }
+
+                    // If we arrive here we cannot merge any constants
+                }
+            }
 
             // Match negated predicates
             return condition is UnaryArithmeticValue unary &&
