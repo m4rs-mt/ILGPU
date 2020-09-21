@@ -21,6 +21,7 @@
         new { TypeName = "Short", Info = SignedIntTypes[1] },
         new { TypeName = "Int", Info = SignedIntTypes[2] },
         new { TypeName = "Long", Info = SignedIntTypes[3] },
+        new { TypeName = "Half", Info = FloatTypes[0] },
         new { TypeName = "Float", Info = FloatTypes[1] },
         new { TypeName = "Double", Info = FloatTypes[2] },
     };
