@@ -135,29 +135,20 @@ namespace ILGPU.Algorithms.CL
         /// <param name="codeGeneratorName">
         /// The name of the code generator to register.
         /// </param>
+        /// <param name="types">The argument types for the target method.</param>
         private static void RegisterXMathCodeGenerator(
             IntrinsicImplementationManager manager,
             Type targetType,
             string functionName,
-            string codeGeneratorName)
+            string codeGeneratorName,
+            params Type[] types)
         {
             manager.RegisterMethod(
                 AlgorithmContext.XMathType.GetMethod(
                     functionName,
                     AlgorithmContext.IntrinsicBindingFlags,
                     null,
-                    new[] { typeof(float) },
-                    null),
-                new CLIntrinsic(
-                    targetType,
-                    codeGeneratorName,
-                    IntrinsicImplementationMode.GenerateCode));
-            manager.RegisterMethod(
-                AlgorithmContext.XMathType.GetMethod(
-                    functionName,
-                    AlgorithmContext.IntrinsicBindingFlags,
-                    null,
-                    new[] { typeof(double) },
+                    types,
                     null),
                 new CLIntrinsic(
                     targetType,

@@ -27,10 +27,14 @@ var binaryMathFunctions = new ValueTuple<string, Type, string, string>[]
         BinaryMathFunctions[6], // Log
         BinaryMathFunctions[7], // Log
     };
-var xmathCodeGenerators = new ValueTuple<string, string>[]
+var xmathUnaryCodeGenerators = new ValueTuple<string, string>[]
     {
         ( "RoundAwayFromZero",  "round" ),
         ( "RoundToEven",        "rint" ),
+    };
+var xmathBinaryCodeGenerators = new ValueTuple<string, string>[]
+    {
+        ( "IEEERemainder", "remainder" ),
     };
 #>
 using ILGPU.Backends.OpenCL;
@@ -61,12 +65,35 @@ namespace ILGPU.Algorithms.CL
                 MathCodeGeneratorIntrinsic);
 <# } #>
 
-<# foreach (var (name, functionName) in xmathCodeGenerators) { #>
+<# foreach (var (name, functionName) in xmathUnaryCodeGenerators) { #>
             RegisterXMathCodeGenerator(
                 manager,
                 typeof(CLContext),
                 "<#= name #>",
-                "Generate<#= name #>");
+                "Generate<#= name #>",
+                typeof(float));
+            RegisterXMathCodeGenerator(
+                manager,
+                typeof(CLContext),
+                "<#= name #>",
+                "Generate<#= name #>",
+                typeof(double));
+<# } #>
+<# foreach (var (name, functionName) in xmathBinaryCodeGenerators) { #>
+            RegisterXMathCodeGenerator(
+                manager,
+                typeof(CLContext),
+                "<#= name #>",
+                "Generate<#= name #>",
+                typeof(float),
+                typeof(float));
+            RegisterXMathCodeGenerator(
+                manager,
+                typeof(CLContext),
+                "<#= name #>",
+                "Generate<#= name #>",
+                typeof(double),
+                typeof(double));
 <# } #>
 
             // Register group intrinsics
@@ -130,7 +157,10 @@ namespace ILGPU.Algorithms.CL
             statementEmitter.Finish();
         }
 
-<# foreach (var (name, functionName) in xmathCodeGenerators) { #>
+<#
+   var xmathCodeGenerators = xmathUnaryCodeGenerators.Concat(xmathBinaryCodeGenerators);
+   foreach (var (name, functionName) in xmathCodeGenerators) {
+#>
         /// <summary>
         /// Generates an intrinsic code generator for <#= name #>.
         /// </summary>

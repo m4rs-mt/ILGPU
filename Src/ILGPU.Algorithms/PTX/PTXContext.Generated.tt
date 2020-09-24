@@ -41,10 +41,14 @@ var unaryMathFunctions = UnaryMathFunctions.Where(t =>
     !hardwareMathFunctions.Any(
         t2 => t.Item1 == t2.Item1 && t.Item2 == t2.Item2));
 var binaryMathFunctions = BinaryMathFunctions;
-var xmathRedirects = new[]
+var xmathUnaryRedirects = new[]
     {
         "RoundAwayFromZero",
         "RoundToEven",
+    };
+var xmathBinaryRedirects = new[]
+    {
+        "IEEERemainder",
     };
 #>
 using ILGPU.IR.Intrinsics;
@@ -81,12 +85,35 @@ namespace ILGPU.Algorithms.PTX
                 MathCodeGeneratorIntrinsic);
 <# } #>
 
-<# foreach (var functionName in xmathRedirects) { #>
+<# foreach (var functionName in xmathUnaryRedirects) { #>
             RegisterXMathRedirect(
                 manager,
                 PTXMathType,
                 "<#= functionName #>",
-                "<#= functionName #>");
+                "<#= functionName #>",
+                typeof(float));
+            RegisterXMathRedirect(
+                manager,
+                PTXMathType,
+                "<#= functionName #>",
+                "<#= functionName #>",
+                typeof(double));
+<# } #>
+<# foreach (var functionName in xmathBinaryRedirects) { #>
+            RegisterXMathRedirect(
+                manager,
+                PTXMathType,
+                "<#= functionName #>",
+                "<#= functionName #>",
+                typeof(float),
+                typeof(float));
+            RegisterXMathRedirect(
+                manager,
+                PTXMathType,
+                "<#= functionName #>",
+                "<#= functionName #>",
+                typeof(double),
+                typeof(double));
 <# } #>
 
             // Register group intrinsics

@@ -124,6 +124,37 @@ namespace ILGPU.Algorithms.PTX
             return Utilities.Select(x < 0.0f, -result, result);
         }
 
+        /// <summary cref="XMath.IEEERemainder(double, double)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static double IEEERemainder(double x, double y)
+        {
+            if (y == 0.0 ||
+                XMath.IsInfinity(x) ||
+                XMath.IsNaN(x) ||
+                XMath.IsNaN(y))
+                return double.NaN;
+
+            if (XMath.IsInfinity(y))
+                return x;
+
+            return x - (y * XMath.RoundToEven(x * XMath.Rcp(y)));
+        }
+
+        /// <summary cref="XMath.IEEERemainder(float, float)"/>
+        public static float IEEERemainder(float x, float y)
+        {
+            if (y == 0.0f ||
+                XMath.IsInfinity(x) ||
+                XMath.IsNaN(x) ||
+                XMath.IsNaN(y))
+                return float.NaN;
+
+            if (XMath.IsInfinity(y))
+                return x;
+
+            return x - (y * XMath.RoundToEven(x * XMath.Rcp(y)));
+        }
+
         #endregion
 
         #region Sqrt

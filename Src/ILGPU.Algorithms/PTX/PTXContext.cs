@@ -102,40 +102,27 @@ namespace ILGPU.Algorithms.PTX
         /// <param name="replacementName">
         /// The name of the replacement method to register.
         /// </param>
+        /// <param name="types">The argument types for the target method.</param>
         private static void RegisterXMathRedirect(
             IntrinsicImplementationManager manager,
             Type targetType,
             string functionName,
-            string replacementName)
+            string replacementName,
+            params Type[] types)
         {
             manager.RegisterMethod(
                 AlgorithmContext.XMathType.GetMethod(
                     functionName,
                     AlgorithmContext.IntrinsicBindingFlags,
                     null,
-                    new[] { typeof(float) },
+                    types,
                     null),
                 new PTXIntrinsic(
                     targetType.GetMethod(
                         replacementName,
                         AlgorithmContext.IntrinsicBindingFlags,
                         null,
-                        new[] { typeof(float) },
-                        null),
-                    IntrinsicImplementationMode.Redirect));
-            manager.RegisterMethod(
-                AlgorithmContext.XMathType.GetMethod(
-                    functionName,
-                    AlgorithmContext.IntrinsicBindingFlags,
-                    null,
-                    new[] { typeof(double) },
-                    null),
-                new PTXIntrinsic(
-                    targetType.GetMethod(
-                        replacementName,
-                        AlgorithmContext.IntrinsicBindingFlags,
-                        null,
-                        new[] { typeof(double) },
+                        types,
                         null),
                     IntrinsicImplementationMode.Redirect));
         }

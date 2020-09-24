@@ -34,6 +34,17 @@ using Xunit;
             "double",
             "{0} % {1}",
             new RelativeError(0E-00, 1E-06, 0E-00)),
+
+        new RemFunction(
+            "IEEERemainder",
+            "float",
+            "MathF.IEEERemainder({0}, {1})",
+            new RelativeError(0E-00, 1E-06, 0E-00)),
+        new RemFunction(
+            "IEEERemainder",
+            "double",
+            "Math.IEEERemainder({0}, {1})",
+            new RelativeError(0E-00, 1E-06, 0E-00)),
     };
 #>
 namespace ILGPU.Algorithms.Tests
