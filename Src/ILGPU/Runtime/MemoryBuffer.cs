@@ -444,7 +444,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyTo(
-            T[] target,
+            Span<T> target,
             TIndex sourceOffset,
             long targetOffset,
             TIndex extent) =>
@@ -465,7 +465,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         public unsafe void CopyTo(
             AcceleratorStream stream,
-            T[] target,
+            Span<T> target,
             TIndex sourceOffset,
             long targetOffset,
             TIndex extent)
@@ -476,7 +476,7 @@ namespace ILGPU.Runtime
                 throw new ArgumentNullException(nameof(stream));
             if (!sourceOffset.InBounds(Extent))
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
-            var length = target.LongLength;
+            var length = target.Length;
             if (targetOffset < 0 || targetOffset >= length)
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
             if (extent.Size < 1 ||
@@ -485,8 +485,6 @@ namespace ILGPU.Runtime
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));
             }
-
-            Debug.Assert(target.Rank == 1);
 
             fixed (T* ptr = &target[0])
             {
@@ -662,7 +660,7 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyFrom(
-            T[] source,
+            ReadOnlySpan<T> source,
             long sourceOffset,
             TIndex targetOffset,
             long extent) =>
@@ -683,21 +681,21 @@ namespace ILGPU.Runtime
         /// <param name="extent">The extent (number of elements).</param>
         public unsafe void CopyFrom(
             AcceleratorStream stream,
-            T[] source,
+            ReadOnlySpan<T> source,
             long sourceOffset,
             TIndex targetOffset,
             long extent)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
-            var length = source.LongLength;
+            var length = source.Length;
             if (sourceOffset < 0 || sourceOffset >= length)
                 throw new ArgumentOutOfRangeException(nameof(sourceOffset));
             var linearIndex = targetOffset.ComputeLongLinearIndex(Extent);
             if (!targetOffset.InBounds(Extent) || linearIndex >= Length)
                 throw new ArgumentOutOfRangeException(nameof(targetOffset));
-            if (extent < 1 || extent > source.LongLength ||
-                extent + sourceOffset > source.LongLength ||
+            if (extent < 1 || extent > source.Length ||
+                extent + sourceOffset > source.Length ||
                 linearIndex + extent > Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(extent));

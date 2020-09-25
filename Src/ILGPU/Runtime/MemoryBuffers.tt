@@ -481,6 +481,48 @@ namespace ILGPU.Runtime
                 extent);
 
         /// <summary>
+        /// Copies the contents of this buffer into the given array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="target">The target array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(
+            Span<T> target,
+            <#= indexType #> sourceOffset,
+            long targetOffset,
+            <#= indexType #> extent) =>
+            buffer.CopyTo(
+                target,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+        /// <summary>
+        /// Copies the contents of this buffer into the given array.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="target">The target array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(
+            AcceleratorStream stream,
+            Span<T> target,
+            <#= indexType #> sourceOffset,
+            long targetOffset,
+            <#= indexType #> extent) =>
+            buffer.CopyTo(
+                stream,
+                target,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+        /// <summary>
         /// Copies elements to the current buffer from the source buffer using
         /// the default accelerator stream.
         /// </summary>
@@ -667,6 +709,48 @@ namespace ILGPU.Runtime
                 targetOffset,
                 extent);
 
+        /// <summary>
+        /// Copies the contents to this buffer from the given array using
+        /// the default accelerator stream.
+        /// </summary>
+        /// <param name="source">The source array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(
+            ReadOnlySpan<T> source,
+            long sourceOffset,
+            <#= indexType #> targetOffset,
+            long extent) =>
+            buffer.CopyFrom(
+                source,
+                sourceOffset,
+                targetOffset,
+                extent);
+
+        /// <summary>
+        /// Copies the contents to this buffer from the given array.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="source">The source array.</param>
+        /// <param name="sourceOffset">The source offset.</param>
+        /// <param name="targetOffset">The target offset.</param>
+        /// <param name="extent">The extent (number of elements).</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyFrom(
+            AcceleratorStream stream,
+            ReadOnlySpan<T> source,
+            long sourceOffset,
+            <#= indexType #> targetOffset,
+            long extent) =>
+            buffer.CopyFrom(
+                stream,
+                source,
+                sourceOffset,
+                targetOffset,
+                extent);
+
         #endregion
 
         #region Operators
@@ -729,6 +813,26 @@ namespace ILGPU.Runtime
             buffer.CopyFrom(data, <#= indexType #>.Zero, <#= indexType #>.Zero, buffer.Extent);
             return buffer;
         }
+
+<#      if (dimension == 1) { #>
+        /// <summary>
+        /// Allocates a <#= dimension #>D memory buffer with the given content on the
+        /// associated accelerator.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="accelerator">The current accelerator.</param>
+        /// <param name="data">The initial data array.</param>
+        /// <returns>The allocated memory buffer.</returns>
+        public static <#= typeName #><T> Allocate<T>(
+            this Accelerator accelerator,
+            ReadOnlySpan<T> data)
+            where T : unmanaged
+        {
+            var buffer = accelerator.Allocate<T>(data.Length);
+            buffer.CopyFrom(data, <#= indexType #>.Zero, <#= indexType #>.Zero, buffer.Extent);
+            return buffer;
+        }
+<#      } #>
 
         /// <summary>
         /// Allocates a <#= dimension #>D memory buffer on the associated accelerator that
