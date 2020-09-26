@@ -67,6 +67,40 @@ namespace ILGPU.IR.Values
 
 <# } #>
     }
+
+    /// <summary>
+    /// Contains several extensions for arithmetic kinds.
+    /// </summary>
+    public static class ArithmeticKindExtensions
+    {
+        /// <summary>
+        /// Returns true if the given kind is commutative.
+        /// </summary>
+        /// <param name="kind">The kind to test.</param>
+        /// <returns>True, if the given kind is commutative.</returns>
+        public static bool IsCommutative(this BinaryArithmeticKind kind) =>
+            kind switch
+            {
+<# foreach (var op in binaryOps.Where(t => t.IsCommutative)) { #>
+                BinaryArithmeticKind.<#= op.Name #> => true,
+<# } #>
+                _ => false
+            };
+
+        /// <summary>
+        /// Returns true if the given kind is commutative.
+        /// </summary>
+        /// <param name="kind">The kind to test.</param>
+        /// <returns>True, if the given kind is commutative.</returns>
+        public static bool IsCommutative(this TernaryArithmeticKind kind) =>
+            kind switch
+            {
+<# foreach (var op in ternaryOps.Where(t => t.IsCommutative)) { #>
+                TernaryArithmeticKind.<#= op.Name #> => true,
+<# } #>
+                _ => false
+            };
+    }
 }
 
 namespace ILGPU.Frontend.Intrinsic
