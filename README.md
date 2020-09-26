@@ -56,6 +56,8 @@ execute the Cuda test cases.
     - Keith D. Cooper, Timothy J. Harvey and Ken Kennedy
 * Fast Half Float Conversions
     - Jeroen van der Zijp
+* Identifying Loops In Almost Linear Time
+    - G. Ramalingam
 
 # License information
 
