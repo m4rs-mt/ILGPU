@@ -225,9 +225,58 @@ public enum MathOpFlags
     Bools = 1 << 0,
     Ints = 1 << 1,
     Floats = 1 << 2,
+    Pointers = 1 << 3,
 
     BoolsAndInts = Bools | Ints,
-    IntsAndFloats = Ints | Floats
+    IntsAndFloats = Ints | Floats,
+    IntsAndPointers = Ints | Pointers,
+    IntsAndFloatsAndPointers = IntsAndFloats | Pointers
+}
+
+public enum MathOpRewriterMode
+{
+    Default,
+    CombineOperation,
+
+    CombineNestedLeftConstant,
+    CombineNestedRightConstant
+}
+
+[XmlType("Rewriter")]
+public class MathOpRewriter
+{
+    private static string MakeExpr(string expr, string[] values)
+    {
+        var result = new StringBuilder(expr);
+        result.Replace("{Location}", "location");
+        result.Replace("{Flags}", "flags");
+        for (int i = 0; i < values.Length; ++i)
+            result.Replace($"{{Value{i}}}", values[i]);
+        var lines = result.ToString().Split('\n');
+        return string.Join(string.Empty, lines.Select(t => t.Trim()));
+    }
+
+    [XmlAttribute]
+    public MathOpRewriterMode Mode { get; set; }
+
+    [XmlAttribute]
+    public string Type { get; set; }
+
+    [XmlElement]
+    public string Source { get; set; }
+
+    [XmlElement]
+    public string Target { get; set; }
+
+    public bool HasDependency(int valueIndex) =>
+        !string.IsNullOrWhiteSpace(Source) &&
+        Source.Contains($"{{Value{valueIndex}}}");
+
+    public string MakeSourceExpr(params string[] values) =>
+        MakeExpr(Source, values);
+
+    public string MakeTargetExpr(params string[] values) =>
+        MakeExpr(Target, values);
 }
 
 public class MathOp
@@ -272,6 +321,9 @@ public class MathOp
     public bool HasFloats => Flags.HasFlag(MathOpFlags.Floats);
 
     [XmlIgnore]
+    public bool HasPointers => Flags.HasFlag(MathOpFlags.Pointers);
+
+    [XmlIgnore]
     public bool HasOp => Op != null || BoolOp != null;
 
     [XmlIgnore]
@@ -279,6 +331,9 @@ public class MathOp
 
     [XmlIgnore]
     public bool HasCall => Call != null;
+
+    [XmlAttribute]
+    public bool IsCommutative { get; set; }
 
     [XmlIgnore]
     public string MethodName
@@ -291,9 +346,28 @@ public class MathOp
         }
     }
 
+    [XmlElement("Rewriter")]
+    public MathOpRewriter[] Rewriters { get; set; } = Array.Empty<MathOpRewriter>();
+
+    public bool HasRewriters => (Rewriters?.Length ?? 0) > 0;
+
     #endregion
 
     #region Methods
+
+    public IEnumerable<MathOpRewriter> GetRewriters(int valueDependency)
+    {
+        if (Rewriters == null)
+            return Enumerable.Empty<MathOpRewriter>();
+        return Rewriters.Where(t => t.HasDependency(valueDependency));
+    }
+
+    public IEnumerable<MathOpRewriter> GetRewriters(MathOpRewriterMode mode)
+    {
+        if (Rewriters == null)
+            return Enumerable.Empty<MathOpRewriter>();
+        return Rewriters.Where(t => t.Mode == mode);
+    }
 
     private string GetRealOp(bool isBool) => isBool && BoolOp != null ? BoolOp : Op;
 
@@ -326,6 +400,18 @@ public class MathOp
         for (int i = 0; i < variables.Length; ++i)
             result.Replace($"{{Value{i}}}", variables[i]);
         return result.ToString();
+    }
+
+    public IEnumerable<string> EnumerateFlags(Func<MathOpFlags, string> selector)
+    {
+        if (HasBools)
+            yield return selector(MathOpFlags.Bools);
+        if (HasInts)
+            yield return selector(MathOpFlags.Ints);
+        if (HasFloats)
+            yield return selector(MathOpFlags.Floats);
+        if (HasPointers)
+            yield return selector(MathOpFlags.Pointers);
     }
 
     #endregion
