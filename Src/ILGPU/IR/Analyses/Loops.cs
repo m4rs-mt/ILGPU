@@ -27,16 +27,16 @@ using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Analyses
 {
-
     /// <summary>
     /// An analysis to detect strongly-connected components.
     /// </summary>
+    /// <typeparam name="TOrder">The current order.</typeparam>
+    /// <typeparam name="TDirection">The control-flow direction.</typeparam>
     [SuppressMessage(
         "Microsoft.Naming",
         "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of this program analysis")]
-    public sealed class Loops<TOrder, TDirection> :
-        IReadOnlyList<Loops<TOrder, TDirection>.Node>
+    public sealed class Loops<TOrder, TDirection>
         where TOrder : struct, ITraversalOrder
         where TDirection : struct, IControlFlowDirection
     {
@@ -48,14 +48,14 @@ namespace ILGPU.IR.Analyses
         [SuppressMessage(
             "Microsoft.Naming",
             "CA1710: IdentifiersShouldHaveCorrectSuffix",
-            Justification = "This is a single SCC object; adding a collection suffix " +
+            Justification = "This is a single Loop object; adding a collection suffix " +
             "would be misleading")]
         public sealed class Node : IReadOnlyCollection<BasicBlock>
         {
             #region Nested Types
 
             /// <summary>
-            /// An enumerator to iterate over all nodes in the current SCC.
+            /// An enumerator to iterate over all nodes in the current loop.
             /// </summary>
             public struct Enumerator : IEnumerator<BasicBlock>
             {
@@ -91,7 +91,7 @@ namespace ILGPU.IR.Analyses
             }
 
             /// <summary>
-            /// A value enumerator to iterate over all values in the current SCC.
+            /// A value enumerator to iterate over all values in the current loop.
             /// </summary>
             public struct ValueEnumerator : IEnumerator<Value>
             {
@@ -101,7 +101,7 @@ namespace ILGPU.IR.Analyses
                 /// <summary>
                 /// Constructs a new value enumerator.
                 /// </summary>
-                /// <param name="iterator">The SCC enumerator.</param>
+                /// <param name="iterator">The loop enumerator.</param>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 internal ValueEnumerator(Enumerator iterator)
                 {
@@ -145,7 +145,7 @@ namespace ILGPU.IR.Analyses
 
             /// <summary>
             /// A value enumerator to iterate over all phi values
-            /// that have a dependency on outer and inner values of this SCC.
+            /// that have a dependency on outer and inner values of this loop.
             /// </summary>
             private struct PhiValueEnumerator : IEnumerator<Value>
             {
@@ -154,7 +154,7 @@ namespace ILGPU.IR.Analyses
                 /// <summary>
                 /// Constructs a new value enumerator.
                 /// </summary>
-                /// <param name="parent">The parent SCC.</param>
+                /// <param name="parent">The parent loop.</param>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 internal PhiValueEnumerator(Node parent)
                 {
@@ -304,17 +304,17 @@ namespace ILGPU.IR.Analyses
             #region Methods
 
             /// <summary>
-            /// Checks whether the given block belongs to this SCC.
+            /// Checks whether the given block belongs to this loop.
             /// </summary>
-            /// <param name="block">The block to map to an SCC.</param>
-            /// <returns>True, if the node belongs to this SCC.</returns>
+            /// <param name="block">The block to map to an loop.</param>
+            /// <returns>True, if the node belongs to this loop.</returns>
             public bool Contains(BasicBlock block) =>
                 nodes.Contains(block);
 
             /// <summary>
             /// Resolves all <see cref="PhiValue"/>s that are contained
-            /// in this SCC which reference at least one operand that is not
-            /// defined in this SCC.
+            /// in this loop which reference at least one operand that is not
+            /// defined in this loop.
             /// </summary>
             /// <returns>The list of resolved phi values.</returns>
             public Phis ResolvePhis() => Phis.Create(new PhiValueEnumerator(this));
@@ -342,7 +342,7 @@ namespace ILGPU.IR.Analyses
 
             /// <summary>
             /// Returns an enumerator that iterates over all members
-            /// of this SCC.
+            /// of this loop.
             /// </summary>
             /// <returns>The resolved enumerator.</returns>
             public Enumerator GetEnumerator() => new Enumerator(nodes);
@@ -358,7 +358,7 @@ namespace ILGPU.IR.Analyses
         }
 
         /// <summary>
-        /// An enumerator to iterate over all SCCs.
+        /// An enumerator to iterate over all loops.
         /// </summary>
         public struct Enumerator : IEnumerator<Node>
         {
@@ -429,12 +429,12 @@ namespace ILGPU.IR.Analyses
             public CFG<TOrder, TDirection>.Node Node { get; }
 
             /// <summary>
-            /// The associated SCC index.
+            /// The associated loop index.
             /// </summary>
             public int Index { get; set; }
 
             /// <summary>
-            /// The associated SCC low link.
+            /// The associated loop low link.
             /// </summary>
             public int LowLink { get; set; }
 
@@ -569,10 +569,10 @@ namespace ILGPU.IR.Analyses
         }
 
         /// <summary>
-        /// Creates a new SCC analysis.
+        /// Creates a new loop analysis.
         /// </summary>
         /// <param name="cfg">The underlying source CFG.</param>
-        /// <returns>The created SCC analysis.</returns>
+        /// <returns>The created loop analysis.</returns>
         public static Loops<TOrder, TDirection> Create(CFG<TOrder, TDirection> cfg) =>
             new Loops<TOrder, TDirection>(cfg);
 
@@ -580,18 +580,21 @@ namespace ILGPU.IR.Analyses
 
         #region Instance
 
-        private readonly List<Node> loops = new List<Node>();
+        private InlineList<Node> loops;
+        private InlineList<Node> headers;
         private BasicBlockMap<Node> loopMapping;
 
         /// <summary>
-        /// Constructs a new collection of SCCs.
+        /// Constructs a new collection of loops.
         /// </summary>
         /// <param name="cfg">The source CFG.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private Loops(CFG<TOrder, TDirection> cfg)
         {
-            CFG = cfg;
+            loops = InlineList<Node>.Create(4);
             loopMapping = cfg.Blocks.CreateMap<Node>();
+
+            CFG = cfg;
 
             var mapping = cfg.Blocks.CreateMap(new NodeDataProvider(cfg));
             int index = 0;
@@ -605,7 +608,7 @@ namespace ILGPU.IR.Analyses
                 mapping[cfg.Root],
                 ref index);
 
-            // Continue the search for each nested SCC
+            // Continue the search for each nested loop
             for (int loopIndex = 0; loopIndex < loops.Count; ++loopIndex)
             {
                 var loop = loops[loopIndex];
@@ -623,6 +626,14 @@ namespace ILGPU.IR.Analyses
                         ref index);
                 }
             }
+
+            // Search for all headers
+            headers = InlineList<Node>.Create(loops.Count);
+            foreach (var loop in loops)
+            {
+                if (!loop.IsNestedLoop)
+                    headers.Add(loop);
+            }
         }
 
         #endregion
@@ -635,16 +646,26 @@ namespace ILGPU.IR.Analyses
         public CFG<TOrder, TDirection> CFG { get; }
 
         /// <summary>
-        /// Returns the number of SCCs.
+        /// Returns all underlying blocks.
+        /// </summary>
+        public BasicBlockCollection<TOrder, TDirection> Blocks => CFG.Blocks;
+
+        /// <summary>
+        /// Returns the number of loops.
         /// </summary>
         public int Count => loops.Count;
 
         /// <summary>
-        /// Returns the i-th SCC.
+        /// Returns the i-th loop.
         /// </summary>
-        /// <param name="index">The index of the i-th SCC.</param>
-        /// <returns>The resolved SCC.</returns>
+        /// <param name="index">The index of the i-th loop.</param>
+        /// <returns>The resolved loop.</returns>
         public Node this[int index] => loops[index];
+
+        /// <summary>
+        /// Returns all loop headers.
+        /// </summary>
+        public ReadOnlySpan<Node> Headers => headers;
 
         #endregion
 
@@ -740,7 +761,7 @@ namespace ILGPU.IR.Analyses
             {
                 foreach (var predecessor in member.GetPredecessors<TDirection>())
                 {
-                    if (!nodeMapping[predecessor].IsInSCC && 
+                    if (!nodeMapping[predecessor].IsInSCC &&
                         entryBlocks.Add(predecessor))
                     {
                         headers.Add(member);
@@ -803,16 +824,10 @@ namespace ILGPU.IR.Analyses
         #region IEnumerable
 
         /// <summary>
-        /// Returns an enumerator that iterates over all SCCs.
+        /// Returns an enumerator that iterates over all loops.
         /// </summary>
         /// <returns>The resolved enumerator.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(loops);
-
-        /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-        IEnumerator<Node> IEnumerable<Node>.GetEnumerator() => GetEnumerator();
-
-        /// <summary cref="IEnumerable.GetEnumerator"/>
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public ReadOnlySpan<Node>.Enumerator GetEnumerator() => loops.GetEnumerator();
 
         #endregion
     }
