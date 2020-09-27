@@ -217,9 +217,52 @@ namespace ILGPU.IR.Values
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public long RawValue => rawValue;
 
+        /// <summary>
+        /// Returns true if this value represents the constant 0.
+        /// </summary>
+        public bool IsZero => HasValue(0, 0.0f, 0.0);
+
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns true if this constant represents the given raw integer value.
+        /// </summary>
+        /// <param name="value">The value to test.</param>
+        /// <returns>
+        /// True, if this constant represents the given raw integer value.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasIntValue(long value) =>
+            IsInt && RawValue == value;
+
+        /// <summary>
+        /// Returns true if this constant represents the given float values.
+        /// </summary>
+        /// <param name="f32Value">The 32-bit float value.</param>
+        /// <param name="f64Value">The 64-bit float value.</param>
+        /// <returns>True, if this constant the given float values.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasFloatValue(float f32Value, double f64Value) =>
+            BasicValueType switch
+            {
+                BasicValueType.Float16 => Float16Value == f32Value,
+                BasicValueType.Float32 => Float32Value == f32Value,
+                BasicValueType.Float64 => Float64Value == f64Value,
+                _ => false
+            };
+
+        /// <summary>
+        /// Returns true if this constant represents one of the given values.
+        /// </summary>
+        /// <param name="value">The integer value.</param>
+        /// <param name="f32Value">The 32-bit float value.</param>
+        /// <param name="f64Value">The 64-bit float value.</param>
+        /// <returns>True, if this constant represents on the given values.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool HasValue(long value, float f32Value, double f64Value) =>
+            HasIntValue(value) || HasFloatValue(f32Value, f64Value);
 
         /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
         protected internal override Value Rebuild(
