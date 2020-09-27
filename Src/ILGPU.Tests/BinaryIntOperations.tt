@@ -4,35 +4,39 @@
 <#@ import namespace="System.IO" #>
 <#@ output extension=".cs" #>
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
 
 #pragma warning disable xUnit1025 // InlineData should be unique within the Theory it
                                   // belongs to
+#pragma warning disable CS0675 // Bitwise-or operator used on a sign-extended operand
 
 <#
 var operationConfigurations = new (string, string, string, string)[]
-    {
-        ("Add", "", "+", ""),
-        ("Sub", "", "-", ""),
-        ("Mul", "", "*", ""),
-        ("Div", "", "/", ""),
-        ("Rem", "", "%", ""),
+{
+    ("Add", "", "+", ""),
+    ("Sub", "", "-", ""),
+    ("Mul", "", "*", ""),
+    ("Div", "", "/", ""),
+    ("Rem", "", "%", ""),
 
-        ("And", "", "&", ""),
-        ( "Or", "", "|", ""),
-        ("Xor", "", "^", ""),
-        ("Shl", "", "<< (int)", ""),
-        ("Shr", "", ">> (int)", ""),
+    ("And", "", "&", ""),
+    ( "Or", "", "|", ""),
+    ("Xor", "", "^", ""),
+    ("Shl", "", "<< (int)", ""),
+    ("Shr", "", ">> (int)", ""),
 
-        ("Min", "IntrinsicMath.Min(", ", ", ")"),
-        ("Max", "IntrinsicMath.Max(", ", ", ")"),
-    };
+    ("Min", "IntrinsicMath.Min(", ", ", ")"),
+    ("Max", "IntrinsicMath.Max(", ", ", ")"),
+};
 #>
 namespace ILGPU.Tests
 {
     public abstract class BinaryIntOperations : TestBase
     {
+        private const int Length = 32;
+
         protected BinaryIntOperations(ITestOutputHelper output, TestContext testContext)
             : base(output, testContext)
         { }
@@ -42,6 +46,23 @@ namespace ILGPU.Tests
 <#         var baseName = "_" + operationName + "_" + type.Name; #>
 <#         var testName = "BinaryOperation" + baseName; #>
 <#         var kernelName = "BinaryOperationKernel" + testName; #>
+<#         var data = new (string, string)[]
+           {
+               ($"{type.Type}.MaxValue", $"({type.Type})1"),
+               ($"{type.Type}.MinValue", $"{type.Type}.MaxValue"),
+               ($"{type.Type}.MinValue + 1", $"{type.Type}.MaxValue"),
+               ($"({type.Type})0", $"{type.Type}.MaxValue"),
+               ($"({type.Type})0", $"{type.Type}.MaxValue - 1"),
+               ($"({type.Type})1", $"({type.Type})1"),
+               ($"({type.Type})6", $"({type.Type})2"),
+               ($"({type.Type})5", $"({type.Type})19"),
+           }; #>
+<#         var dataChained = new (string, string)[]
+           {
+               ($"{type.Type}.MaxValue - 1", $"({type.Type})1"),
+               ($"{type.Type}.MinValue + 1", $"({type.Type})-1"),
+               ($"({type.Type})64", $"({type.Type})2"),
+           }; #>
         internal static void <#= kernelName #>(
             Index1 index,
             ArrayView<<#= type.Type #>> a,
@@ -53,32 +74,97 @@ namespace ILGPU.Tests
         }
 
         [Theory]
-        [InlineData(<#= type.Type #>.MaxValue, (<#= type.Type #>)1)]
-        [InlineData(<#= type.Type #>.MinValue, <#= type.Type #>.MaxValue)]
-        [InlineData(<#= type.Type #>.MinValue + 1, <#= type.Type #>.MaxValue)]
-        [InlineData((<#= type.Type #>)0, <#= type.Type #>.MaxValue)]
-        [InlineData((<#= type.Type #>)0, <#= type.Type #>.MaxValue - 1)]
-        [InlineData((<#= type.Type #>)1, (<#= type.Type #>)1)]
-        [InlineData((<#= type.Type #>)6, (<#= type.Type #>)2)]
-        [InlineData((<#= type.Type #>)5, (<#= type.Type #>)19)]
+<#          foreach (var (first, second) in data) { #>
+        [InlineData(<#= first #>, <#= second #>)]
+<#          } #>
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>(
             <#= type.Type #> first,
             <#= type.Type #> second)
         {
-            const int length = 32;
-            using var a = Accelerator.Allocate<<#= type.Type #>>(length);
-            using var b = Accelerator.Allocate<<#= type.Type #>>(length);
-            using var c = Accelerator.Allocate<<#= type.Type #>>(length);
+            using var a = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var b = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var c = Accelerator.Allocate<<#= type.Type #>>(Length);
             Initialize(a, first);
             Initialize(b, second);
-            Execute(length, a.View, b.View, c.View);
+            Execute(Length, a.View, b.View, c.View);
 
             var result = <#= prefix #>first <#= infix #> second<#= postfix #>;
-            var reference = Enumerable.Repeat((<#= type.Type #>)result, length).ToArray();
+            var reference = Enumerable.Repeat((<#= type.Type #>)result, Length).ToArray();
             Verify(c, reference);
         }
 
+<#          // Skip all Rem tests for now; not required (see BinaryMathOperations.tt) #>
+<#          if (operationName == "Rem") continue; #>
+<#          int kernelIndex = 0; #>
+<#          foreach (var (first, second) in dataChained) { #>
+<#              var firstGetter = $"Get0_{operationName}_{type.Name}_{kernelIndex}"; #>
+<#              var secondGetter = $"Get1_{operationName}_{type.Name}_{kernelIndex}"; #>
+
+        // These functions are required to avoid the C# compiler from optimizing
+        // constants at compile time
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static <#= type.Type #> <#= firstGetter #>() =>
+            <#= first #>;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static <#= type.Type #> <#= secondGetter #>()
+        {
+            unchecked
+            {
+                return <#= second #>;
+            }
+        }
+
+        internal static void <#= kernelName #>_Chained<#= kernelIndex #>(
+            Index1 index,
+            ArrayView<<#= type.Type #>> a,
+            ArrayView<<#= type.Type #>> b,
+            ArrayView<<#= type.Type #>> c)
+        {
+            var first = <#= firstGetter #>();
+            var second = <#= secondGetter #>();
+            var rhs = <#= prefix #>
+                (<#= prefix #>a[index]<#= infix #>first
+                <#= postfix #>)<#= infix #>second<#= postfix #>;
+            b[index] = (<#= type.Type #>)rhs;
+
+            var lhs = <#= prefix #>first<#= infix #>
+                (<#= prefix #>second<#= infix #>a[index]
+                <#= postfix #>)<#= postfix #>;
+            c[index] = (<#= type.Type #>)lhs;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(<#= kernelName #>_Chained<#= kernelIndex #>))]
+        public void <#= testName #>_Chained<#= kernelIndex #>()
+        {
+            <#= type.Type #> value = 1;
+            using var a = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var b = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var c = Accelerator.Allocate<<#= type.Type #>>(Length);
+            Initialize(a, value);
+            Execute(Length, a.View, b.View, c.View);
+
+            var rhs = <#= prefix #>
+                (<#= prefix #>value<#= infix #>
+                <#= firstGetter #>()
+                <#= postfix #>)<#= infix #>
+                <#= secondGetter #>()<#= postfix #>;
+            var referenceB = Enumerable.Repeat((<#= type.Type #>)rhs, Length).ToArray();
+            Verify(b, referenceB);
+
+            var lhs = <#= prefix #>
+                <#= firstGetter #>()<#= infix #>
+                (<#= prefix #> <#= secondGetter #>()
+                <#= infix #>value
+                <#= postfix #>)<#= postfix #>;
+            var referenceC = Enumerable.Repeat((<#= type.Type #>)lhs, Length).ToArray();
+            Verify(c, referenceC);
+        }
+
+<#          ++kernelIndex; #>
+<#          } #>
 <#      } #>
 <# } #>
     }
@@ -86,3 +172,4 @@ namespace ILGPU.Tests
 
 #pragma warning restore xUnit1025 // InlineData should be unique within the Theory it
                                   // belongs to
+#pragma warning restore CS0675 // Bitwise-or operator used on a sign-extended operand
