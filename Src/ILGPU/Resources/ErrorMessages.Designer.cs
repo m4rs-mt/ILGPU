@@ -295,15 +295,6 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The type &apos;{0}&apos; is not supported in the scope of this arithmetic operation.
-        /// </summary>
-        internal static string NotSupportedArithmeticArgumentType {
-            get {
-                return ResourceManager.GetString("NotSupportedArithmeticArgumentType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Not supported arithmetic operands &apos;{0}&apos; &amp; &apos;{1}&apos;.
         /// </summary>
         internal static string NotSupportedArithmeticOperandTypes {

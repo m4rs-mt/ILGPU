@@ -264,9 +264,6 @@
   <data name="InvalidKernelOperation" xml:space="preserve">
     <value>This operation can only be called from an ILGPU kernel</value>
   </data>
-  <data name="NotSupportedArithmeticArgumentType" xml:space="preserve">
-    <value>The type '{0}' is not supported in the scope of this arithmetic operation</value>
-  </data>
   <data name="NotSupportedCompareArgumentType" xml:space="preserve">
     <value>The type '{0}' is not supported in the scope of this compare operation</value>
   </data>
