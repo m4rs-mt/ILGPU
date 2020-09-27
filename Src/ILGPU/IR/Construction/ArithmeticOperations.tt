@@ -20,11 +20,36 @@ string rootPath = Host.ResolvePath("../../Static");
 var unaryOps = GetUnaryMathOps(rootPath);
 var binaryOps = GetBinaryMathOps(rootPath);
 var ternaryOps = GetTernaryMathOps(rootPath);
+
+// Rewriter settings
+var binaryOpRewriterSettings = new[]
+{
+    new { Name = "LHS", Left = "PrimitiveValue", Right = "Value", Value = 0 },
+    new { Name = "RHS", Left = "Value", Right = "PrimitiveValue", Value = 1 },
+};
+var binaryOpNestedRewriterSettings = new[]
+{
+    new
+    {
+        Name = "LHS",
+        Left = "BinaryArithmeticValue",
+        Right = "Value",
+        Mode = MathOpRewriterMode.CombineNestedLeftConstant
+    },
+    new
+    {
+        Name = "RHS",
+        Left = "Value",
+        Right = "BinaryArithmeticValue",
+        Mode = MathOpRewriterMode.CombineNestedRightConstant
+    },
+};
 #>
 
 using ILGPU.IR.Values;
-using ILGPU.Resources;
-using System;
+using ILGPU.Util;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 // disable: max_line_length
 #pragma warning disable IDE0046 // Convert to conditional expression
@@ -95,14 +120,43 @@ namespace ILGPU.IR.Construction
                         <#= op.GetOpOrCall(false, "value.Int64Value") #>);
 <#          } #>
             }
-            throw location.GetNotSupportedException(
-                ErrorMessages.NotSupportedArithmeticArgumentType,
-                value.BasicValueType);
+            throw location.GetInvalidOperationException();
         }
 
 <#    } #>
 
-         private ValueReference BinaryArithmeticFoldConstants(
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Value UnaryArithmeticSimplify(
+            Location location,
+            Value value,
+            UnaryArithmeticKind kind,
+            ArithmeticFlags flags)
+        {
+            switch (kind)
+            {
+<#    foreach (var op in unaryOps.Where(t => t.HasRewriters)) { #>
+                case UnaryArithmeticKind.<#= op.Name #>:
+<#          foreach (var rewriter in op.Rewriters) { #>
+<#              if (rewriter.Mode == MathOpRewriterMode.CombineOperation) { #>
+                    {
+                        if (value is <#= rewriter.Type #> nested &&
+                            <#= rewriter.MakeSourceExpr("value", "nested") #>)
+                        {
+                            return <#= rewriter.MakeTargetExpr("value", "nested") #>;
+                        }
+                    }
+<#              } else { #>
+                    if (<#= rewriter.MakeSourceExpr("value", "nested") #>)
+                        return <#= rewriter.MakeTargetExpr("value", "nested") #>;
+<#              } #>
+<#          } #>
+                    break;
+<#    } #>
+            }
+            return null;
+        }
+
+        private ValueReference BinaryArithmeticFoldConstants(
             Location location,
             PrimitiveValue left,
             PrimitiveValue right,
@@ -122,6 +176,114 @@ namespace ILGPU.IR.Construction
 <#    } #>
                 default:
                     throw location.GetArgumentException(nameof(kind));
+            }
+        }
+
+<#    foreach (var settings in binaryOpRewriterSettings) { #>
+<#          var entries = binaryOps.
+                SelectMany(t => t.GetRewriters(settings.Value).
+                    Select(t2 => (t, t2))).
+                ToLookup(t => t.Item2.Mode); #>
+        /// <summary>
+        /// Simplifies the <#= settings.Name #> of a binary expression.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Value BinaryArithmeticSimplify_<#= settings.Name #>(
+            Location location,
+            <#= settings.Left #> left,
+            <#= settings.Right #> right,
+            BinaryArithmeticKind kind,
+            ArithmeticFlags flags)
+        {
+            switch (kind)
+            {
+<#          foreach (var entry in entries[MathOpRewriterMode.Default].
+                GroupBy(t => t.Item1, t => t.Item2)) { #>
+                case BinaryArithmeticKind.<#= entry.Key.Name #>:
+<#              foreach (var rewriter in entry) { #>
+                    if (<#= rewriter.MakeSourceExpr("left", "right") #>)
+                        return <#= rewriter.MakeTargetExpr("left", "right") #>;
+<#              } #>
+                    break;
+<#          } #>
+            }
+            return null;
+        }
+
+<#    } #>
+<#    foreach (var settings in binaryOpNestedRewriterSettings) { #>
+<#          var entries = binaryOps.
+                Select(t => (t, t.GetRewriters(settings.Mode).FirstOrDefault())).
+                Where(t => t.Item2 != null); #>
+        /// <summary>
+        /// Simplifies the <#= settings.Name #> of a binary expression.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private Value BinaryArithmeticSimplify_<#= settings.Name #>(
+            Location location,
+            BinaryArithmeticValue arithmeticValue,
+            PrimitiveValue firstValue,
+            PrimitiveValue secondValue,
+            BinaryArithmeticKind kind,
+            ArithmeticFlags flags)
+        {
+            switch (kind)
+            {
+<#          foreach (var (op, rewriter) in entries) { #>
+                case BinaryArithmeticKind.<#= op.Name #>:
+                    return CreateArithmetic(
+                        location,
+<#              if (settings.Mode == MathOpRewriterMode.CombineNestedLeftConstant) { #>
+                        BinaryArithmeticFoldConstants(
+                            location,
+                            secondValue,
+                            firstValue,
+                            BinaryArithmeticKind.<#= rewriter.Target #>,
+                            flags),
+                        arithmeticValue.Right,
+<#              } else { #>
+                        arithmeticValue.Left,
+                        BinaryArithmeticFoldConstants(
+                            location,
+                            firstValue,
+                            secondValue,
+                            BinaryArithmeticKind.<#= rewriter.Target #>,
+                            flags),
+<#              } #>
+                        <#= rewriter.Source != null
+                        ? "BinaryArithmeticKind." + rewriter.Source
+                        : "kind" #>,
+                        flags);
+<#          } #>
+            }
+            return null;
+        }
+
+<#    } #>
+        [Conditional("DEBUG")]
+        private static void VerifyBinaryArithmeticOperands(
+            Location location,
+            Value left,
+            Value right,
+            BinaryArithmeticKind kind)
+        {
+            switch (kind)
+            {
+<#    foreach (var op in binaryOps) { #>
+                case BinaryArithmeticKind.<#= op.Name #>:
+                    location.Assert(
+                        <#= string.Join(" || ", op.EnumerateFlags(f =>
+                            f switch
+                            {
+                                MathOpFlags.Bools => "left.BasicValueType == BasicValueType.Int1",
+                                MathOpFlags.Ints => "left.BasicValueType.IsInt()",
+                                MathOpFlags.Floats => "left.BasicValueType.IsFloat()",
+                                MathOpFlags.Pointers => "left.Type.IsPointerType",
+                                _ => throw new NotSupportedException()
+                            })) #>
+                    );
+                    break;
+<#    } #>
             }
         }
 
@@ -211,9 +373,7 @@ namespace ILGPU.IR.Construction
                     }
 <#          } #>
             }
-            throw location.GetNotSupportedException(
-                ErrorMessages.NotSupportedArithmeticArgumentType,
-                left.BasicValueType);
+            throw location.GetInvalidOperationException();
         }
 
 <#    } #>
