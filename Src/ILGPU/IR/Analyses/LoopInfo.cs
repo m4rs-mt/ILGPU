@@ -24,6 +24,8 @@ namespace ILGPU.IR.Analyses
     /// <summary>
     /// A simple loop info object.
     /// </summary>
+    /// <typeparam name="TOrder">The current order.</typeparam>
+    /// <typeparam name="TDirection">The control-flow direction.</typeparam>
     public sealed class LoopInfo<TOrder, TDirection>
         where TOrder : struct, ITraversalOrder
         where TDirection : struct, IControlFlowDirection
@@ -271,8 +273,8 @@ namespace ILGPU.IR.Analyses
             outsideOperand = null;
 
             // Search for two operands of which one is defined
-            // outside the current SCC and one is from the
-            // inside of the current SCC
+            // outside the current loop and one is from the
+            // inside of the current loop
             int numOperands = phiValue.Count;
             if (numOperands != 2)
                 return false;
@@ -390,6 +392,14 @@ namespace ILGPU.IR.Analyses
         /// <returns>True, if the node belongs to the associated SCC.</returns>
         public bool Contains(BasicBlock block) => Loop.Contains(block);
 
+        /// <summary>
+        /// Computes an ordered collection of all blocks in this loop starting with the
+        /// entry point.
+        /// </summary>
+        /// <typeparam name="TProvider">The provider implementation.</typeparam>
+        /// <param name="entryPoint">The current entry point.</param>
+        /// <param name="provider">The provider instance.</param>
+        /// <returns>The computed block collection.</returns>
         private BasicBlockCollection<TOrder, TDirection> ComputeOrderedBlocks<TProvider>(
             BasicBlock entryPoint,
             in TProvider provider)
@@ -431,24 +441,101 @@ namespace ILGPU.IR.Analyses
     }
 
     /// <summary>
-    /// Helper utility for the class <see cref="LoopInfo{TOrder, TDirection}"/>.
+    /// Encapsulates <see cref="LoopInfo{TOrder, TDirection}"/> instances.
     /// </summary>
-    public static class LoopInfo
+    /// <typeparam name="TOrder">The current order.</typeparam>
+    /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+    public readonly struct LoopInfos<TOrder, TDirection>
+        where TOrder : struct, ITraversalOrder
+        where TDirection : struct, IControlFlowDirection
+    {
+        #region Static
+
+        /// <summary>
+        /// Creates a new loop information container.
+        /// </summary>
+        /// <param name="loops">The source loops to use.</param>
+        /// <returns>The created loop information container.</returns>
+        public static LoopInfos<TOrder, TDirection> Create(
+            Loops<TOrder, TDirection> loops) =>
+            new LoopInfos<TOrder, TDirection>(loops);
+
+        #endregion
+
+        #region Instance
+
+        private readonly Dictionary<
+            Loops<TOrder, TDirection>.Node,
+            LoopInfo<TOrder, TDirection>> mapping;
+
+        /// <summary>
+        /// Constructs a new information instance.
+        /// </summary>
+        /// <param name="loops">The source loops.</param>
+        private LoopInfos(Loops<TOrder, TDirection> loops)
+        {
+            mapping = new Dictionary<
+                Loops<TOrder, TDirection>.Node,
+                LoopInfo<TOrder, TDirection>>(loops.Count);
+            foreach (var loop in loops)
+            {
+                if (loop.TryGetLoopInfo(out var loopInfo))
+                    mapping.Add(loop, loopInfo);
+            }
+        }
+
+        /// <summary>
+        /// Returns the number of loop information objects.
+        /// </summary>
+        public readonly int Count => mapping.Count;
+
+        /// <summary>
+        /// Tries to get previously computed loop information for the given loop.
+        /// </summary>
+        /// <param name="loop">The loop to get the loop information for.</param>
+        /// <param name="value">The resolved loop information (if any).</param>
+        /// <returns>True, if a loop information instance could be found.</returns>
+        public readonly bool TryGetInfo(
+            Loops<TOrder, TDirection>.Node loop,
+            out LoopInfo<TOrder, TDirection> value) =>
+            mapping.TryGetValue(loop, out value);
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Helper utility for the class <see cref="LoopInfo{TOrder, TDirection}"/> and the
+    /// structure <see cref="LoopInfos{TOrder, TDirection}"/>.
+    /// </summary>
+    public static class LoopInfos
     {
         /// <summary>
-        /// Creates a new SCCs analysis instance based on the given CFG.
+        /// Creates a new loop analysis instance based on the given CFG.
         /// </summary>
         /// <typeparam name="TOrder">The underlying block order.</typeparam>
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
-        /// <param name="loop">The underlying SCC entry.</param>
+        /// <param name="loop">The underlying loop entry.</param>
         /// <param name="loopInfo">The resolved loop information (if any).</param>
-        /// <returns>The created SCCs analysis.</returns>
+        /// <returns>The created loop analysis.</returns>
         public static bool TryGetLoopInfo<TOrder, TDirection>(
             this Loops<TOrder, TDirection>.Node loop,
             out LoopInfo<TOrder, TDirection> loopInfo)
             where TOrder : struct, ITraversalOrder
             where TDirection : struct, IControlFlowDirection =>
             LoopInfo<TOrder, TDirection>.TryCreate(loop, out loopInfo);
+
+        /// <summary>
+        /// Creates a new aggregated structure containing precomputed loop information.
+        /// </summary>
+        /// <typeparam name="TOrder">The underlying block order.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <param name="loops">The source loops to use.</param>
+        /// <returns>The created loop information object.</returns>
+        public static LoopInfos<TOrder, TDirection> CreateLoopInfos<TOrder, TDirection>(
+            this Loops<TOrder, TDirection> loops)
+            where TOrder : struct, ITraversalOrder
+            where TDirection : struct, IControlFlowDirection =>
+            LoopInfos<TOrder, TDirection>.Create(loops);
     }
 
     /// <summary>
