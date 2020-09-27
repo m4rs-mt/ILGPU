@@ -13,6 +13,7 @@ using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Util;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Frontend
 {
@@ -23,20 +24,69 @@ namespace ILGPU.Frontend
         /// to a corresponding <see cref="BasicValueType"/> entry.
         /// </summary>
         /// <param name="value">The IR to map.</param>
+        /// <param name="shiftValue">The base value for shift operations.</param>
         /// <param name="valueType">The determined basic-value type (if any).</param>
         /// <returns>
         /// True, if the given IR node could be mapped to a basic value type.
         /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool TryGetBasicValueSize(
             Value value,
+            int? shiftValue,
             out BasicValueType valueType)
         {
             valueType =
                 value is PrimitiveValue size &&
                 size.BasicValueType.IsInt()
-                ? PrimitiveType.GetBasicValueTypeBySize(size.Int32Value)
+                ? PrimitiveType.GetBasicValueTypeBySize(
+                    shiftValue is null
+                    ? size.Int32Value
+                    : shiftValue.Value << size.Int32Value)
                 : BasicValueType.None;
             return valueType != BasicValueType.None;
+        }
+
+        /// <summary>
+        /// Tries to convert the base address into a valid LEA operation.
+        /// </summary>
+        /// <param name="left">The left operand (the pointer to use).</param>
+        /// <param name="baseAddress">The base address offset.</param>
+        /// <param name="result">The result value (if any).</param>
+        /// <returns>
+        /// True, if the given pattern could be converted into a LEA node.
+        /// </returns>
+        private bool TryConvertIntoLoadElementAddress(
+            Value left,
+            BinaryArithmeticValue baseAddress,
+            out Value result)
+        {
+            if (
+                // Check multiplications
+                baseAddress.Kind == BinaryArithmeticKind.Mul &&
+                // Extract the element stride from the multiplication pattern
+                // (must be the right operand since we have moved all pointer
+                // values the left hand side by definition)
+                TryGetBasicValueSize(baseAddress.Right, null, out var strideType) ||
+
+                // Check shift-based address computations
+                baseAddress.Kind == BinaryArithmeticKind.Shl &&
+                // Extract the element stride from the shift pattern
+                TryGetBasicValueSize(baseAddress.Right, 1, out strideType))
+            {
+                // Cast raw pointer into an appropriate target type
+                var targetElementType = Builder.GetPrimitiveType(strideType);
+                left = Builder.CreatePointerCast(
+                    Location,
+                    left,
+                    targetElementType);
+                result = Builder.CreateLoadElementAddress(
+                    Location,
+                    left,
+                    baseAddress.Left);
+                return true;
+            }
+            result = null;
+            return false;
         }
 
         /// <summary>
@@ -87,22 +137,9 @@ namespace ILGPU.Frontend
                 else if (
                     kind == BinaryArithmeticKind.Add &&
                     right is BinaryArithmeticValue baseAddress &&
-                    baseAddress.Kind == BinaryArithmeticKind.Mul &&
-                    // Extract the element stride from the multiplication pattern
-                    // (must be the right operand since we have moved all pointer
-                    // values the left hand side by definition)
-                    TryGetBasicValueSize(baseAddress.Right, out var strideType))
+                    TryConvertIntoLoadElementAddress(left, baseAddress, out var lea))
                 {
-                    // Cast raw pointer into an appropriate target type
-                    var targetElementType = Builder.GetPrimitiveType(strideType);
-                    left = Builder.CreatePointerCast(
-                        Location,
-                        left,
-                        targetElementType);
-                    result = Builder.CreateLoadElementAddress(
-                        Location,
-                        left,
-                        baseAddress.Left);
+                    result = lea;
                 }
             }
 

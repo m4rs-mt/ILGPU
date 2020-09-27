@@ -10,9 +10,9 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
-using ILGPU.Resources;
 using ILGPU.Util;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Construction
 {
@@ -49,81 +49,71 @@ namespace ILGPU.IR.Construction
             UnaryArithmeticKind kind,
             ArithmeticFlags flags)
         {
-            if (UseConstantPropagation)
+            // Check for constants
+            if (UseConstantPropagation && node is PrimitiveValue value)
+                return UnaryArithmeticFoldConstants(location, value, kind);
+
+            return
+                UnaryArithmeticSimplify(
+                    location,
+                    node,
+                    kind,
+                    flags)
+                ?? Append(new UnaryArithmeticValue(
+                    GetInitializer(location),
+                    node,
+                    kind,
+                    flags));
+        }
+
+        /// <summary>
+        /// Inverts a binary arithmetic value.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="binary">The binary operation to invert.</param>
+        /// <returns>The inverted binary operation.</returns>
+        private ValueReference InvertBinaryArithmetic(
+            Location location,
+            BinaryArithmeticValue binary) =>
+            CreateArithmetic(
+                binary.Location,
+                CreateArithmetic(
+                    location,
+                    binary.Left,
+                    UnaryArithmeticKind.Not),
+                CreateArithmetic(
+                    location,
+                    binary.Right,
+                    UnaryArithmeticKind.Not),
+                BinaryArithmeticValue.InvertLogical(binary.Kind),
+                binary.Flags);
+
+        /// <summary>
+        /// Inverts a compare value.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="compareValue">The compare operation to invert.</param>
+        /// <returns>The inverted compare value.</returns>
+        private ValueReference InvertCompareValue(
+            Location location,
+            CompareValue compareValue)
+        {
+            // When the comparison is inverted, and we are comparing
+            // floats, toggle between ordered/unordered float
+            // comparison
+            var compareFlags = compareValue.Flags;
+            if (compareValue.Left.BasicValueType.IsFloat() &&
+                compareValue.Right.BasicValueType.IsFloat())
             {
-                // Check for constants
-                if (node is PrimitiveValue value)
-                    return UnaryArithmeticFoldConstants(location, value, kind);
-
-                var isUnsigned = (flags & ArithmeticFlags.Unsigned) ==
-                    ArithmeticFlags.Unsigned;
-                switch (kind)
-                {
-                    case UnaryArithmeticKind.Not:
-                        switch (node)
-                        {
-                            // Check nested not operations
-                            case UnaryArithmeticValue otherValue when
-                                otherValue.Kind == UnaryArithmeticKind.Not:
-                                return otherValue.Value;
-                            // Check whether we can invert compare values
-                            case CompareValue compareValue:
-                                // When the comparison is inverted, and we are comparing
-                                // floats, toggle between ordered/unordered float
-                                // comparison
-                                var compareFlags = compareValue.Flags;
-                                if (compareValue.Left.BasicValueType.IsFloat() &&
-                                    compareValue.Right.BasicValueType.IsFloat())
-                                {
-                                    compareFlags ^= CompareFlags.UnsignedOrUnordered;
-                                }
-
-                                return CreateCompare(
-                                    location,
-                                    compareValue.Left,
-                                    compareValue.Right,
-                                    CompareValue.Invert(compareValue.Kind),
-                                    compareFlags);
-                            // Propagate the not operator through binary operations
-                            case BinaryArithmeticValue otherBinary when
-                                BinaryArithmeticValue.TryInvertLogical(
-                                    otherBinary.Kind,
-                                    out var invertedBinary):
-                                return CreateArithmetic(
-                                    otherBinary.Location,
-                                    CreateArithmetic(
-                                        location,
-                                        otherBinary.Left,
-                                        UnaryArithmeticKind.Not),
-                                    CreateArithmetic(
-                                        location,
-                                        otherBinary.Right,
-                                        UnaryArithmeticKind.Not),
-                                    invertedBinary,
-                                    otherBinary.Flags);
-                        }
-                        break;
-                    case UnaryArithmeticKind.Neg:
-                        if (node.BasicValueType == BasicValueType.Int1)
-                        {
-                            return CreateArithmetic(
-                                location,
-                                node,
-                                UnaryArithmeticKind.Not);
-                        }
-                        break;
-                    case UnaryArithmeticKind.Abs:
-                        if (isUnsigned)
-                            return node;
-                        break;
-                }
+                compareFlags ^= CompareFlags.UnsignedOrUnordered;
             }
 
-            return Append(new UnaryArithmeticValue(
-                GetInitializer(location),
-                node,
-                kind,
-                flags));
+            return CreateCompare(
+                location,
+                compareValue.Left,
+                compareValue.Right,
+                CompareValue.Invert(compareValue.Kind),
+                compareFlags);
         }
 
         /// <summary>
@@ -162,110 +152,83 @@ namespace ILGPU.IR.Construction
             BinaryArithmeticKind kind,
             ArithmeticFlags flags)
         {
-            // TODO: add additional partial arithmetic simplifications in a generic way
-            if (UseConstantPropagation && left is PrimitiveValue leftValue)
+            VerifyBinaryArithmeticOperands(location, left, right, kind);
+
+            Value simplified;
+            if (UseConstantPropagation && right is PrimitiveValue rightValue)
             {
                 // Check for constants
-                if (right is PrimitiveValue rightConstant)
+                if (left is PrimitiveValue leftPrimitive)
                 {
                     return BinaryArithmeticFoldConstants(
                         location,
-                        leftValue,
-                        rightConstant,
+                        leftPrimitive,
+                        rightValue,
                         kind,
                         flags);
                 }
 
-                if (kind == BinaryArithmeticKind.Div)
+                // Check for simplifications of the RHS
+                if ((simplified = BinaryArithmeticSimplify_RHS(
+                    location,
+                    left,
+                    rightValue,
+                    kind,
+                    flags)) != null)
                 {
-                    switch (left.BasicValueType)
-                    {
-                        case BasicValueType.Float32:
-                            if (leftValue.Float32Value == 1.0f)
-                            {
-                                return CreateArithmetic(
-                                    location,
-                                    right,
-                                    UnaryArithmeticKind.RcpF);
-                            }
-                            break;
-                        case BasicValueType.Float64:
-                            if (leftValue.Float64Value == 1.0)
-                            {
-                                return CreateArithmetic(
-                                    location,
-                                    right,
-                                    UnaryArithmeticKind.RcpF);
-                            }
-                            break;
-                        default:
-                            break;
-                    }
+                    return simplified;
+                }
+
+                if (left is BinaryArithmeticValue leftBinary &&
+                    leftBinary.Right.Resolve() is PrimitiveValue nestedRightValue &&
+                    (simplified = BinaryArithmeticSimplify_RHS(
+                    location,
+                    leftBinary,
+                    nestedRightValue,
+                    rightValue,
+                    kind,
+                    flags)) != null)
+                {
+                    return simplified;
                 }
             }
 
-            // TODO: remove the following hard-coded rules
-            if (right is PrimitiveValue rightValue && left.BasicValueType.IsInt())
+            if (left is PrimitiveValue leftValue)
             {
-                if (Utilities.IsPowerOf2(rightValue.RawValue) &&
-                    (kind == BinaryArithmeticKind.Div ||
-                    kind == BinaryArithmeticKind.Mul))
+                // Move constants to the right
+                if (kind.IsCommutative())
                 {
-                    var shiftAmount = CreatePrimitiveValue(
-                        location,
-                        (int)Math.Log(
-                            Math.Abs((double)rightValue.RawValue),
-                            2.0));
-                    var leftKind = Utilities.Select(
-                        kind == BinaryArithmeticKind.Div,
-                        BinaryArithmeticKind.Shr,
-                        BinaryArithmeticKind.Shl);
-                    var rightKind = Utilities.Select(
-                        leftKind == BinaryArithmeticKind.Shr,
-                        BinaryArithmeticKind.Shl,
-                        BinaryArithmeticKind.Shr);
                     return CreateArithmetic(
                         location,
+                        right,
                         left,
-                        shiftAmount,
-                        Utilities.Select(
-                            rightValue.RawValue > 0,
-                            leftKind,
-                            rightKind));
+                        kind,
+                        flags);
                 }
-                else if (
-                    rightValue.RawValue == 0 &&
-                    (kind == BinaryArithmeticKind.Add ||
-                    kind == BinaryArithmeticKind.Sub))
+
+                // Check for simplifications of the LHS
+                if ((simplified = BinaryArithmeticSimplify_LHS(
+                    location,
+                    leftValue,
+                    right,
+                    kind,
+                    flags)) != null)
                 {
-                    return left;
+                    return simplified;
                 }
-            }
 
-            switch (kind)
-            {
-                case BinaryArithmeticKind.And:
-                case BinaryArithmeticKind.Or:
-                case BinaryArithmeticKind.Xor:
-                    if (left.BasicValueType.IsFloat())
-                    {
-                        throw location.GetNotSupportedException(
-                            ErrorMessages.NotSupportedArithmeticArgumentType,
-                            left.BasicValueType);
-                    }
-
-                    break;
-
-                case BinaryArithmeticKind.Atan2F:
-                case BinaryArithmeticKind.PowF:
-                    if (!left.BasicValueType.IsFloat())
-                    {
-                        throw location.GetNotSupportedException(
-                            ErrorMessages.NotSupportedArithmeticArgumentType,
-                            left.BasicValueType);
-                    }
-
-                    break;
+                if (right is BinaryArithmeticValue rightBinary &&
+                    rightBinary.Left.Resolve() is PrimitiveValue nestedLeftValue &&
+                    (simplified = BinaryArithmeticSimplify_LHS(
+                    location,
+                    rightBinary,
+                    nestedLeftValue,
+                    leftValue,
+                    kind,
+                    flags)) != null)
+                {
+                    return simplified;
+                }
             }
 
             return Append(new BinaryArithmeticValue(
@@ -275,6 +238,23 @@ namespace ILGPU.IR.Construction
                 kind,
                 flags));
         }
+
+        /// <summary>
+        /// Determines a div/mul shift amount to convert div and mul operations into
+        /// logical shift operations to improve performance.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="primitiveValue">The primitive value.</param>
+        /// <returns>The converted shift amount.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private ValueReference GetDivMulShiftAmount(
+            Location location,
+            PrimitiveValue primitiveValue) =>
+            CreatePrimitiveValue(
+                location,
+                (int)Math.Log(
+                    Math.Abs((double)primitiveValue.RawValue),
+                    2.0));
 
         /// <summary>
         /// Creates a ternary arithmetic operation.
