@@ -1,24 +1,109 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Operations>
-    <Operation Name="Add">
+    <Operation Name="Add" IsCommutative="true">
         <Summary>The + operation.</Summary>
-        <Flags>IntsAndFloats</Flags>
+        <Flags>IntsAndFloatsAndPointers</Flags>
         <Op>{Value0} + {Value1}</Op>
+        <Rewriter>
+            <Source>{Value1}.IsZero</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
+        <Rewriter Mode="CombineNestedRightConstant">
+            <Target>Add</Target>
+        </Rewriter>
+        <!-- CombineNestedLeftConstant not required (commutative) -->
     </Operation>
     <Operation Name="Sub">
         <Summary>The - operation.</Summary>
         <Flags>IntsAndFloats</Flags>
         <Op>{Value0} - {Value1}</Op>
+        <Rewriter>
+            <Source>{Value0}.IsZero</Source>
+            <Target>
+                CreateArithmetic(
+                    {Location},
+                    {Value1},
+                    UnaryArithmeticKind.Neg,
+                    {Flags})
+            </Target>
+        </Rewriter>
+        <Rewriter>
+            <Source>{Value1}.IsZero</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
+        <Rewriter Mode="CombineNestedLeftConstant">
+            <Source>Add</Source>
+            <Target>Sub</Target>
+        </Rewriter>
+        <Rewriter Mode="CombineNestedRightConstant">
+            <Target>Add</Target>
+        </Rewriter>
     </Operation>
-    <Operation Name="Mul">
+    <Operation Name="Mul" IsCommutative="true">
         <Summary>The * operation.</Summary>
-        <Flags>IntsAndFloats</Flags>
+        <Flags>IntsAndFloatsAndPointers</Flags>
         <Op>{Value0} * {Value1}</Op>
+        <Rewriter>
+            <Source>{Value1}.HasIntValue(0)</Source>
+            <Target>{Value1}</Target>
+        </Rewriter>
+        <Rewriter>
+            <Source>{Value1}.HasIntValue(1)</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
+        <Rewriter>
+            <Source>
+                {Value1}.IsInt &amp;&amp; {Value1}.RawValue > 0 &amp;&amp;
+                Utilities.IsPowerOf2({Value1}.RawValue)
+            </Source>
+            <Target>
+                CreateArithmetic(
+                    {Location},
+                    {Value0},
+                    GetDivMulShiftAmount({Location}, {Value1}),
+                    BinaryArithmeticKind.Shl)
+            </Target>
+        </Rewriter>
+        <Rewriter Mode="CombineNestedRightConstant">
+            <Target>Mul</Target>
+        </Rewriter>
+        <!-- CombineNestedLeftConstant not required (commutative) -->
     </Operation>
     <Operation Name="Div">
         <Summary>The / operation.</Summary>
-        <Flags>IntsAndFloats</Flags>
+        <Flags>IntsAndFloatsAndPointers</Flags>
         <Op>{Value0} / {Value1}</Op>
+        <Rewriter>
+            <Source>{Value0}.HasIntValue(0)</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
+        <Rewriter>
+            <Source>{Value0}.HasFloatValue(1.0f, 1.0)</Source>
+            <Target>
+                CreateArithmetic(
+                    {Location},
+                    {Value1},
+                    UnaryArithmeticKind.RcpF,
+                    {Flags})
+            </Target>
+        </Rewriter>
+        <Rewriter>
+            <Source>{Value1}.HasIntValue(1)</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
+        <Rewriter>
+            <Source>
+                {Value1}.IsInt &amp;&amp; {Value1}.RawValue > 0 &amp;&amp;
+                Utilities.IsPowerOf2({Value1}.RawValue)
+            </Source>
+            <Target>
+                CreateArithmetic(
+                    {Location},
+                    {Value0},
+                    GetDivMulShiftAmount({Location}, {Value1}),
+                    BinaryArithmeticKind.Shr)
+            </Target>
+        </Rewriter>
     </Operation>
     <Operation Name="Rem">
         <Summary>The % operation.</Summary>
@@ -26,45 +111,81 @@
         <Op>{Value0} % {Value1}</Op>
         <Call>IntrinsicMath.CPUOnly.Rem</Call>
         <Implementation>{Value0} % {Value1}</Implementation>
+        <!-- If we add some rules here we have to enable specific test cases
+             in BinaryIntOperations.tt -->
     </Operation>
 
-    <Operation Name="And">
+    <Operation Name="And" IsCommutative="true">
         <Summary>The logical and operation.</Summary>
         <Flags>BoolsAndInts</Flags>
         <Op>{Value0} &amp; {Value1}</Op>
+        <Rewriter>
+            <Source>{Value1}.IsZero</Source>
+            <Target>{Value1}</Target>
+        </Rewriter>
+        <!-- {Value0}.IsZero not required (commutative) -->
     </Operation>
-    <Operation Name="Or">
+    <Operation Name="Or" IsCommutative="true">
         <Summary>The logical or operation.</Summary>
         <Flags>BoolsAndInts</Flags>
         <Op>{Value0} | {Value1}</Op>
+        <Rewriter>
+            <Source>{Value1}.IsZero</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
+        <!-- {Value0}.IsZero not required (commutative) -->
     </Operation>
-    <Operation Name="Xor">
+    <Operation Name="Xor" IsCommutative="true">
         <Summary>The logical xor operation.</Summary>
         <Flags>BoolsAndInts</Flags>
         <Op>{Value0} ^ {Value1}</Op>
     </Operation>
     <Operation Name="Shl">
         <Summary>The shift left operation.</Summary>
-        <Flags>Ints</Flags>
+        <Flags>IntsAndPointers</Flags>
         <Op>{Value0} &lt;&lt; (int){Value1}</Op>
+        <Rewriter>
+            <Source>{Value0}.IsZero</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
+        <Rewriter>
+            <Source>{Value1}.IsZero</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
     </Operation>
     <Operation Name="Shr">
         <Summary>The shift right operation.</Summary>
-        <Flags>Ints</Flags>
+        <Flags>IntsAndPointers</Flags>
         <Op>{Value0} &gt;&gt; (int){Value1}</Op>
+        <Rewriter>
+            <Source>{Value0}.IsZero</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
+        <Rewriter>
+            <Source>{Value1}.IsZero</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
     </Operation>
 
-    <Operation Name="Min">
+    <Operation Name="Min" IsCommutative="true">
         <Summary>The min operation.</Summary>
         <Flags>IntsAndFloats</Flags>
         <Call>IntrinsicMath.Min</Call>
         <Implementation>{MathType}.Min({Value0}, {Value1})</Implementation>
+        <!-- CombineNestedLeftConstant not required (commutative) -->
+        <Rewriter Mode="CombineNestedRightConstant">
+            <Target>Min</Target>
+        </Rewriter>
     </Operation>
-    <Operation Name="Max">
+    <Operation Name="Max" IsCommutative="true">
         <Summary>The max operation.</Summary>
         <Flags>IntsAndFloats</Flags>
         <Call>IntrinsicMath.Max</Call>
         <Implementation>{MathType}.Max({Value0}, {Value1})</Implementation>
+        <!-- CombineNestedLeftConstant not required (commutative) -->
+        <Rewriter Mode="CombineNestedRightConstant">
+            <Target>Max</Target>
+        </Rewriter>
     </Operation>
 
     <Operation Name="Atan2F">
