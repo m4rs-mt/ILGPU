@@ -17,6 +17,15 @@ using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
+using Loop = ILGPU.IR.Analyses.Loops<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>.Node;
+using LoopInfo = ILGPU.IR.Analyses.LoopInfo<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
+using LoopInfos = ILGPU.IR.Analyses.LoopInfos<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 
 namespace ILGPU.IR.Transformations
 {
@@ -311,7 +320,7 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         private static void UnrollLoop(
             Method.Builder builder,
-            LoopInfo<ReversePostOrder, Forwards> loopInfo,
+            LoopInfo loopInfo,
             InductionVariable inductionVariable,
             in InductionVariableBounds bounds,
             int unrolls,
@@ -389,6 +398,56 @@ namespace ILGPU.IR.Transformations
         }
 
         /// <summary>
+        /// Tries to unroll the given loop.
+        /// </summary>
+        private static bool TryUnroll(
+            Method.Builder builder,
+            Loop loop,
+            LoopInfos loopInfos,
+            int maxUnrollFactor)
+        {
+            // Try to find a loop information entry and ensure a simple loop for now
+            if (!loopInfos.TryGetInfo(loop, out var loopInfo) ||
+                loopInfo.InductionVariables.Length != 1)
+            {
+                return false;
+            }
+
+            // Check and verify the loop bounds of the induction variable
+            var inductionVariable = loopInfo.InductionVariables[0];
+            if (!inductionVariable.TryResolveBounds(out var bounds) ||
+                inductionVariable.BreakBranch.NumTargets != 2)
+            {
+                return false;
+            }
+
+            // Try to compute a constant (compile-time known) trip count
+            var tripCount = bounds.TryGetTripCount(out var _);
+            if (!tripCount.HasValue ||
+                bounds.UpdateOperation.Kind != BinaryArithmeticKind.Add)
+            {
+                return false;
+            }
+
+            // Compute the unroll factor and the number of iterations to use
+            var (unrolls, iterations) = ComputeUnrollFactor(
+                tripCount.Value,
+                maxUnrollFactor);
+            // Skip loops that cannot be properly unrolled
+            if (unrolls < 2 && iterations > 1)
+                return false;
+
+            UnrollLoop(
+                builder,
+                loopInfo,
+                inductionVariable,
+                bounds,
+                unrolls,
+                iterations);
+            return true;
+        }
+
+        /// <summary>
         /// Computes the unroll factor and the number of iterations.
         /// </summary>
         private static (int unrolls, int iterations) ComputeUnrollFactor(
@@ -448,6 +507,8 @@ namespace ILGPU.IR.Transformations
 
         #endregion
 
+        #region Methods
+
         /// <summary>
         /// Applies the loop unrolling transformation.
         /// </summary>
@@ -455,62 +516,50 @@ namespace ILGPU.IR.Transformations
         {
             var cfg = builder.SourceBlocks.CreateCFG();
             var loops = cfg.CreateLoops();
+            var loopInfos = loops.CreateLoopInfos();
 
             // We change the control-flow structure during the transformation but
             // need to get information about previous predecessors and successors
             builder.AcceptControlFlowUpdates(accept: true);
 
             bool applied = false;
-            foreach (var loop in loops)
+            foreach (var loop in loops.Headers)
             {
-                // Unroll innermost loops for now
-                // TODO: relax this condition by implementing support for nested loop
-                // unrolling that requires additional remapping steps
-                if (!loop.IsInnermostLoop)
-                    continue;
-
-                // Try to find a loop information entry and ensure a simple loop for now
-                if (!loop.TryGetLoopInfo(out var loopInfo) ||
-                    loopInfo.InductionVariables.Length != 1)
-                {
-                    continue;
-                }
-
-                // Check and verify the loop bounds of the induction variable
-                var inductionVariable = loopInfo.InductionVariables[0];
-                if (!inductionVariable.TryResolveBounds(out var bounds) ||
-                    inductionVariable.BreakBranch.NumTargets != 2)
-                {
-                    continue;
-                }
-
-                // Try to compute a constant (compile-time known) trip count
-                var tripCount = bounds.TryGetTripCount(out var _);
-                if (!tripCount.HasValue ||
-                    bounds.UpdateOperation.Kind != BinaryArithmeticKind.Add)
-                {
-                    continue;
-                }
-
-                // Compute the unroll factor and the number of iterations to use
-                var (unrolls, iterations) = ComputeUnrollFactor(
-                    tripCount.Value,
-                    MaxUnrollFactor);
-                // Skip loops that cannot be properly unrolled
-                if (unrolls < 2 && iterations > 1)
-                    continue;
-
-                UnrollLoop(
+                UnrollRecursive(
                     builder,
-                    loopInfo,
-                    inductionVariable,
-                    bounds,
-                    unrolls,
-                    iterations);
-                applied = true;
+                    loop,
+                    loopInfos,
+                    ref applied);
             }
 
             return applied;
         }
+
+        /// <summary>
+        /// Unrolls loops in a recursive way by unrolling the innermost loops first.
+        /// </summary>
+        private void UnrollRecursive(
+            Method.Builder builder,
+            Loop loop,
+            LoopInfos loopInfos,
+            ref bool applied)
+        {
+            foreach (var child in loop.Children)
+            {
+                UnrollRecursive(
+                    builder,
+                    child,
+                    loopInfos,
+                    ref applied);
+            }
+
+            applied |= TryUnroll(
+                builder,
+                loop,
+                loopInfos,
+                MaxUnrollFactor);
+        }
+
+        #endregion
     }
 }
