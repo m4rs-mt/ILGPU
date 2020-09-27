@@ -4,17 +4,49 @@
         <Summary>The neg operation.</Summary>
         <Flags>IntsAndFloats</Flags>
         <Op>-{Value0}</Op>
+        <Rewriter>
+            <Source>{Value0}.BasicValueType == BasicValueType.Int1</Source>
+            <Target>
+                CreateArithmetic(
+                    location,
+                    {Value0},
+                    UnaryArithmeticKind.Not)
+            </Target>
+        </Rewriter>
     </Operation>
     <Operation Name="Not">
         <Summary>The logical not operation.</Summary>
         <Flags>BoolsAndInts</Flags>
         <BoolOp>!{Value0}</BoolOp>
         <Op>~{Value0}</Op>
+        <!-- Check nested not operations -->
+        <Rewriter Mode="CombineOperation" Type="UnaryArithmeticValue">
+            <Source>{Value1}.Kind == UnaryArithmeticKind.Not</Source>
+            <Target>{Value1}.Value</Target>
+        </Rewriter>
+        <!-- Propagate the not operator through binary operations -->
+        <Rewriter Mode="CombineOperation" Type="BinaryArithmeticValue">
+            <Source>
+                BinaryArithmeticValue.TryInvertLogical({Value1}.Kind, out var _)
+            </Source>
+            <Target>InvertBinaryArithmetic({Location}, {Value1})</Target>
+        </Rewriter>
+        <!-- Check whether we can invert compare values -->
+        <Rewriter Mode="CombineOperation" Type="CompareValue">
+            <Source>true</Source>
+            <Target>InvertCompareValue({Location}, {Value1})</Target>
+        </Rewriter>
     </Operation>
     <Operation Name="Abs">
         <Summary>The abs operation.</Summary>
         <Flags>IntsAndFloats</Flags>
         <Call>IntrinsicMath.Abs</Call>
+        <Rewriter>
+            <Source>
+                ({Flags} &amp; ArithmeticFlags.Unsigned) == ArithmeticFlags.Unsigned
+            </Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
     </Operation>
     <Operation Name="RcpF">
         <Summary>The reciprocal operation.</Summary>
