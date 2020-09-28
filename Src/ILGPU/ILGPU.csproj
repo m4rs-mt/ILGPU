@@ -172,6 +172,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>IntrinsicMatchers.tt</DependentUpon>
         </Compile>
+        <Compile Update="IR\Types\ValueTuples.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>ValueTuples.tt</DependentUpon>
+        </Compile>
         <Compile Update="Runtime\ExchangeBufferExtensions.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -268,6 +273,10 @@
         <None Update="IR\Intrinsics\IntrinsicMatchers.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>IntrinsicMatchers.cs</LastGenOutput>
+        </None>
+        <None Update="IR\Types\ValueTuples.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>ValueTuples.cs</LastGenOutput>
         </None>
         <None Update="Runtime\ExchangeBufferExtensions.tt">
           <Generator>TextTemplatingFileGenerator</Generator>

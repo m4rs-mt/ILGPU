@@ -12,6 +12,7 @@
 using ILGPU.Frontend.Intrinsic;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -58,6 +59,21 @@ namespace ILGPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int SizeOf<T>(T structure)
             where T : unmanaged => SizeOf<T>();
+
+        /// <summary>
+        /// Computes the size of the given type.
+        /// </summary>
+        /// <param name="type">The target type</param>
+        /// <remarks>Only supports unmanaged types.</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SizeOf(Type type) =>
+            (int)InteropSizeOfMethod.MakeGenericMethod(type).Invoke(null, null);
+
+        private static readonly MethodInfo InteropSizeOfMethod =
+            typeof(Interop).GetMethod(
+                nameof(SizeOf),
+                Type.EmptyTypes,
+                null);
 
         /// <summary>
         /// Computes number of elements of type <typeparamref name="TFirst"/>
