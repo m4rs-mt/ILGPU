@@ -572,9 +572,7 @@ namespace ILGPU.IR
                     textWriter.Write(", ");
             }
             textWriter.WriteLine(')');
-            // Dump blocks
-            foreach (var block in Blocks)
-                block.Dump(textWriter);
+            Blocks.Dump(textWriter);
         }
 
         /// <summary>
