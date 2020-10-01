@@ -1,5 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Capabilities>
+    <Capability Name="Float16">
+        <Summary>Supports Float16 (Half) data type.</Summary>
+        <FeatureName>Float16 (Half) type</FeatureName>
+        <OpenCL>
+            <Extension>cl_khr_fp16</Extension>
+        </OpenCL>
+    </Capability>
+
     <Capability Name="Int64_Atomics">
         <Summary>Supports 64-bit Atomics.</Summary>
         <FeatureName>64-bit atomics extension</FeatureName>

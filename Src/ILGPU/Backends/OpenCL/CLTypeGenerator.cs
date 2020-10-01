@@ -118,24 +118,30 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         /// <param name="basicValueType">The basic-value type to resolve.</param>
         /// <returns>The resolved OpenCL type name.</returns>
-        public static string GetBasicValueType(BasicValueType basicValueType) =>
-            BasicTypeMapping[(int)basicValueType];
+        public string GetBasicValueType(BasicValueType basicValueType) =>
+            basicValueType == BasicValueType.Float16 && !Capabilities.Float16
+            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
+            : BasicTypeMapping[(int)basicValueType];
 
         /// <summary>
         /// Resolves the given basic-value type to an OpenCL type name.
         /// </summary>
         /// <param name="basicValueType">The basic-value type to resolve.</param>
         /// <returns>The resolved OpenCL type name.</returns>
-        public static string GetBasicValueType(ArithmeticBasicValueType basicValueType) =>
-            ArtihmeticTypeMapping[(int)basicValueType];
+        public string GetBasicValueType(ArithmeticBasicValueType basicValueType) =>
+            basicValueType == ArithmeticBasicValueType.Float16 && !Capabilities.Float16
+            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
+            : ArtihmeticTypeMapping[(int)basicValueType];
 
         /// <summary>
         /// Resolves the given basic-value type to an atomic OpenCL type name.
         /// </summary>
         /// <param name="basicValueType">The basic-value type to resolve.</param>
         /// <returns>The resolved atomic OpenCL type name.</returns>
-        public static string GetAtomicType(ArithmeticBasicValueType basicValueType) =>
-            AtomicTypeMapping[(int)basicValueType];
+        public string GetAtomicType(ArithmeticBasicValueType basicValueType) =>
+            basicValueType == ArithmeticBasicValueType.Float16 && !Capabilities.Float16
+            ? throw CLCapabilityContext.GetNotSupportedFloat16Exception()
+            : AtomicTypeMapping[(int)basicValueType];
 
         /// <summary>
         /// Resolves a unique type name for the given node.

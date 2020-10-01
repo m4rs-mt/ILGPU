@@ -206,7 +206,7 @@ namespace ILGPU.Backends.OpenCL
                 // We need a single pointer to local memory of byte elements
                 Builder.Append("\tlocal ");
                 Builder.Append(
-                    CLTypeGenerator.GetBasicValueType(
+                    TypeGenerator.GetBasicValueType(
                         ArithmeticBasicValueType.Int8));
                 Builder.Append(CLInstructions.DereferenceOperation);
                 Builder.Append(' ');

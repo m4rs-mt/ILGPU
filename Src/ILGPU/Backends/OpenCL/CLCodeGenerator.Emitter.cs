@@ -182,7 +182,7 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="type">The arithmetic type to use.</param>
             public void AppendAtomicCast(ArithmeticBasicValueType type)
             {
-                var typeExpression = CLTypeGenerator.GetAtomicType(type);
+                var typeExpression = CodeGenerator.TypeGenerator.GetAtomicType(type);
                 if (typeExpression == null)
                     return;
                 AppendCast(typeExpression + CLInstructions.DereferenceOperation);
@@ -194,7 +194,7 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="type">The target type.</param>
             public void AppendCast(BasicValueType type)
             {
-                var typeExpression = CLTypeGenerator.GetBasicValueType(type);
+                var typeExpression = CodeGenerator.TypeGenerator.GetBasicValueType(type);
                 AppendCast(typeExpression);
             }
 
@@ -204,7 +204,7 @@ namespace ILGPU.Backends.OpenCL
             /// <param name="type">The target type.</param>
             public void AppendCast(ArithmeticBasicValueType type)
             {
-                var typeExpression = CLTypeGenerator.GetBasicValueType(type);
+                var typeExpression = CodeGenerator.TypeGenerator.GetBasicValueType(type);
                 AppendCast(typeExpression);
             }
 
@@ -424,7 +424,7 @@ namespace ILGPU.Backends.OpenCL
                 AppendArgument();
                 stringBuilder.Append('(');
                 stringBuilder.Append(
-                    CLTypeGenerator.GetBasicValueType(valueType));
+                    CodeGenerator.TypeGenerator.GetBasicValueType(valueType));
                 stringBuilder.Append(CLInstructions.DereferenceOperation);
                 stringBuilder.Append(')');
                 AppendCommand(CLInstructions.AddressOfOperation);
