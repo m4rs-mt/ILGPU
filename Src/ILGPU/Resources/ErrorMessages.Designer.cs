@@ -88,6 +88,24 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} is not supported on this device..
+        /// </summary>
+        internal static string CapabilityNotSupported {
+            get {
+                return ResourceManager.GetString("CapabilityNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} is not supported on this device. Requires {1} or higher..
+        /// </summary>
+        internal static string CapabilityNotSupportedCuda {
+            get {
+                return ResourceManager.GetString("CapabilityNotSupportedCuda", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The context flags &apos;{0}&apos; of the deserialized context are not compatible with the current flags &apos;{1}&apos;.
         /// </summary>
         internal static string ContextFlagsAreNotCompatible {

@@ -175,7 +175,7 @@ namespace ILGPU.Runtime
         {
             lock (syncRoot)
             {
-                foreach(var child in childObjects)
+                foreach (var child in childObjects)
                 {
                     if (child.TryGetTarget(out var acceleratorObject) &&
                         acceleratorObject is T t)

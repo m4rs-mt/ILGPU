@@ -249,6 +249,11 @@ namespace ILGPU.Runtime
         public Backend Backend { get; private set; }
 
         /// <summary>
+        /// Returns the supported capabilities of this accelerator.
+        /// </summary>
+        public CapabilityContext Capabilities { get; protected set; }
+
+        /// <summary>
         /// Returns the default memory-buffer cache that can be used by several
         /// operations.
         /// </summary>
@@ -279,6 +284,7 @@ namespace ILGPU.Runtime
         protected void Init(Backend backend)
         {
             Backend = backend;
+            Capabilities = backend.Capabilities;
             OnAcceleratorCreated();
         }
 

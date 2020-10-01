@@ -291,8 +291,11 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetDriverVersion(out var driverVersion));
             InstructionSet = GetInstructionSet(Architecture, driverVersion);
+            base.Capabilities = new CudaCapabilityContext(Architecture);
+
             Init(new PTXBackend(
                 Context,
+                Capabilities,
                 Architecture,
                 InstructionSet));
         }
@@ -377,6 +380,12 @@ namespace ILGPU.Runtime.Cuda
         /// Returns the PTX backend of this accelerator.
         /// </summary>
         public new PTXBackend Backend => base.Backend as PTXBackend;
+
+        /// <summary>
+        /// Returns the capabilities of this accelerator.
+        /// </summary>
+        public new CudaCapabilityContext Capabilities =>
+            base.Capabilities as CudaCapabilityContext;
 
         #endregion
 

@@ -11,7 +11,6 @@
 
 using ILGPU.AtomicOperations;
 using ILGPU.Frontend;
-using ILGPU.IR;
 using ILGPU.IR.Intrinsics;
 using ILGPU.IR.Values;
 using System;

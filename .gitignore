@@ -265,6 +265,7 @@ Src/ILGPU/Runtime/MemoryBuffers.cs
 Src/ILGPU/Runtime/SharedMemoryKernelLoaders.cs
 Src/ILGPU/ShuffleOperations.cs
 Src/ILGPU/Static/ArithmeticEnums.cs
+Src/ILGPU/Static/CapabilityContext.cs
 Src/ILGPU/Static/DllImports.cs
 Src/ILGPU/TypeInformation.cs
 Src/ILGPU/Util/DataBlocks.cs

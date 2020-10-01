@@ -447,16 +447,19 @@ namespace ILGPU.Backends
         /// Constructs a new generic backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
+        /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="backendType">The backend type.</param>
         /// <param name="backendFlags">The backend flags.</param>
         /// <param name="argumentMapper">The argument mapper to use.</param>
         protected Backend(
             Context context,
+            CapabilityContext capabilities,
             BackendType backendType,
             BackendFlags backendFlags,
             ArgumentMapper argumentMapper)
         {
             Context = context ?? throw new ArgumentNullException(nameof(context));
+            Capabilities = capabilities;
             BackendType = backendType;
             BackendFlags = backendFlags;
             ArgumentMapper = argumentMapper;
@@ -478,6 +481,11 @@ namespace ILGPU.Backends
         /// Returns the assigned context.
         /// </summary>
         public Context Context { get; }
+
+        /// <summary>
+        /// Returns the supported capabilities.
+        /// </summary>
+        public CapabilityContext Capabilities { get; }
 
         /// <summary>
         /// Returns the associated backend type.
@@ -760,15 +768,17 @@ namespace ILGPU.Backends
         /// Constructs a new generic backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
+        /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="backendType">The backend type.</param>
         /// <param name="backendFlags">The backend flags.</param>
         /// <param name="argumentMapper">The argument mapper to use.</param>
         protected Backend(
             Context context,
+            CapabilityContext capabilities,
             BackendType backendType,
             BackendFlags backendFlags,
             ArgumentMapper argumentMapper)
-            : base(context, backendType, backendFlags, argumentMapper)
+            : base(context, capabilities, backendType, backendFlags, argumentMapper)
         { }
 
         #endregion

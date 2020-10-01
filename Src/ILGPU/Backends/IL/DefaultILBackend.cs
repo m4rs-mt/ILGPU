@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Runtime.CPU;
 using ILGPU.Util;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -29,7 +30,7 @@ namespace ILGPU.Backends.IL
         /// </summary>
         /// <param name="context">The context to use.</param>
         protected internal DefaultILBackend(Context context)
-            : base(context, BackendFlags.None, 1, null)
+            : base(context, new CPUCapabilityContext(), BackendFlags.None, 1, null)
         { }
 
         #endregion

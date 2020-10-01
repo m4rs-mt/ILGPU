@@ -114,7 +114,7 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// All subgroup extensions.
         /// </summary>
-        private readonly ImmutableArray<string> SubGroupExtensions =
+        private static readonly ImmutableArray<string> SubGroupExtensions =
             ImmutableArray.Create(
                 "cl_khr_subgroups",
                 "cl_intel_subgroups");
@@ -302,12 +302,13 @@ namespace ILGPU.Runtime.OpenCL
             // Result max number of threads per multiprocessor
             MaxNumThreadsPerMultiprocessor = MaxNumThreadsPerGroup;
 
+            base.Capabilities = new CLCapabilityContext(acceleratorId);
             InitVendorFeatures();
             InitSubGroupSupport(acceleratorId);
 
             Bind();
             DefaultStream = CreateStreamInternal();
-            Init(new CLBackend(Context, Vendor));
+            Init(new CLBackend(Context, Capabilities, Vendor));
         }
 
         /// <summary>
@@ -392,7 +393,8 @@ namespace ILGPU.Runtime.OpenCL
         private void InitSubGroupSupport(CLAcceleratorId acceleratorId)
         {
             // Check sub group support
-            if (!(SubGroupSupport = acceleratorId.HasAnyExtension(SubGroupExtensions)))
+            Capabilities.SubGroups = acceleratorId.HasAnyExtension(SubGroupExtensions);
+            if (!Capabilities.SubGroups)
                 return;
 
             // Verify support using a simple kernel
@@ -413,7 +415,7 @@ namespace ILGPU.Runtime.OpenCL
                     {
                         new IntPtr(MaxNumThreadsPerGroup)
                     };
-                    SubGroupSupport = acceleratorId.TryGetKernelSubGroupInfo(
+                    Capabilities.SubGroups = acceleratorId.TryGetKernelSubGroupInfo(
                         kernelPtr,
                         DeviceId,
                         CLKernelSubGroupInfoType
@@ -427,7 +429,7 @@ namespace ILGPU.Runtime.OpenCL
                     // This exception can be raised due to driver issues
                     // on several platforms -> we will just disable sub-group
                     // support for these platforms
-                    SubGroupSupport = false;
+                    Capabilities.SubGroups = false;
                 }
                 finally
                 {
@@ -491,12 +493,19 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Returns true if this accelerator has sub-group support.
         /// </summary>
-        public bool SubGroupSupport { get; private set; }
+        [Obsolete("Use Capabilities instead")]
+        public bool SubGroupSupport => Capabilities.SubGroups;
 
         /// <summary>
         /// Returns the OpenCL backend of this accelerator.
         /// </summary>
         public new CLBackend Backend => base.Backend as CLBackend;
+
+        /// <summary>
+        /// Returns the capabilities of this accelerator.
+        /// </summary>
+        public new CLCapabilityContext Capabilities =>
+            base.Capabilities as CLCapabilityContext;
 
         #endregion
 

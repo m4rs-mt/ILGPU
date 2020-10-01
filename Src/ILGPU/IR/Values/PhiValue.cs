@@ -15,7 +15,6 @@ using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime;
 using System.Runtime.CompilerServices;
 using BlockList = ILGPU.Util.InlineList<ILGPU.IR.BasicBlock>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;

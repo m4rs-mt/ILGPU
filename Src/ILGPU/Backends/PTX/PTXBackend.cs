@@ -15,6 +15,7 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
 using ILGPU.IR.Types;
 using ILGPU.Runtime;
+using ILGPU.Runtime.Cuda;
 using System.Text;
 
 namespace ILGPU.Backends.PTX
@@ -69,14 +70,17 @@ namespace ILGPU.Backends.PTX
         /// Constructs a new Cuda backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
+        /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="architecture">The target GPU architecture.</param>
         /// <param name="instructionSet">The target GPU instruction set.</param>
         public PTXBackend(
             Context context,
+            CudaCapabilityContext capabilities,
             PTXArchitecture architecture,
             PTXInstructionSet instructionSet)
             : base(
                   context,
+                  capabilities,
                   BackendType.PTX,
                   BackendFlags.None,
                   new PTXArgumentMapper(context))
@@ -119,6 +123,12 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         public new PTXArgumentMapper ArgumentMapper =>
             base.ArgumentMapper as PTXArgumentMapper;
+
+        /// <summary>
+        /// Returns the supported capabilities.
+        /// </summary>
+        public new CudaCapabilityContext Capabilities =>
+            base.Capabilities as CudaCapabilityContext;
 
         #endregion
 
