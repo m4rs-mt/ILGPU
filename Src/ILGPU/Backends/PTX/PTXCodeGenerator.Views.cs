@@ -47,6 +47,7 @@ namespace ILGPU.Backends.PTX
                     PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Add,
                         Backend.PointerArithmeticType,
+                        Backend.Capabilities,
                         false)))
                 {
                     command.AppendArgument(targetAddressRegister);
