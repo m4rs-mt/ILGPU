@@ -62,10 +62,15 @@ namespace ILGPU.Backends.OpenCL
         /// Constructs a new OpenCL source backend.
         /// </summary>
         /// <param name="context">The context to use.</param>
+        /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="vendor">The associated major vendor.</param>
-        public CLBackend(Context context, CLAcceleratorVendor vendor)
+        public CLBackend(
+            Context context,
+            CLCapabilityContext capabilities,
+            CLAcceleratorVendor vendor)
             : base(
                   context,
+                  capabilities,
                   BackendType.OpenCL,
                   BackendFlags.None,
                   new CLArgumentMapper(context))
@@ -100,6 +105,12 @@ namespace ILGPU.Backends.OpenCL
         /// </summary>
         public new CLArgumentMapper ArgumentMapper =>
             base.ArgumentMapper as CLArgumentMapper;
+
+        /// <summary>
+        /// Returns the capabilities of this accelerator.
+        /// </summary>
+        public new CLCapabilityContext Capabilities =>
+            base.Capabilities as CLCapabilityContext;
 
         #endregion
 
@@ -140,7 +151,7 @@ namespace ILGPU.Backends.OpenCL
             builder.AppendLine("//");
             builder.AppendLine();
 
-            var typeGenerator = new CLTypeGenerator(Context.TypeContext);
+            var typeGenerator = new CLTypeGenerator(Context.TypeContext, Capabilities);
 
             data = new CLCodeGenerator.GeneratorArgs(
                 this,

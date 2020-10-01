@@ -1,0 +1,69 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
+//
+// File: CapabilitiesImporter.ttinclude
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details.
+// ---------------------------------------------------------------------------------------
+
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Xml" #>
+<#@ import namespace="Microsoft.VisualStudio.TextTemplating" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.ComponentModel" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Runtime.InteropServices" #>
+<#@ import namespace="System.Xml.Serialization" #>
+<#+
+[XmlRoot("Capabilities")]
+public class Capabilities
+{
+    internal static Capability[] Load(string rootPath, string fileName) =>
+        XmlHelper.Load<Capabilities>(rootPath, fileName).CapabilityList;
+
+    [XmlElement("Capability")]
+    public Capability[] CapabilityList { get; set; }
+}
+
+[XmlRoot("Capability")]
+public class Capability
+{
+    [XmlAttribute]
+    public string Name { get; set; }
+
+    [XmlElement]
+    public string Summary { get; set; }
+
+    [XmlElement]
+    public string FeatureName { get; set; }
+
+    [XmlElement]
+    public CudaEntry Cuda { get; set; }
+
+    [XmlElement]
+    public CLEntry OpenCL { get; set; }
+
+    public bool IsCudaOnly => Cuda != null && OpenCL == null;
+    public bool IsOpenCLOnly => Cuda == null && OpenCL != null;
+}
+
+public class CudaEntry
+{
+    [XmlAttribute("minPTX")]
+    public string MinPTX { get; set; }
+}
+
+public class CLEntry
+{
+    [XmlAttribute("manual")]
+    public bool Manual { get; set; }
+
+    [XmlElement("Extension")]
+    public string[] Extensions { get; set; }
+}
+
+#>

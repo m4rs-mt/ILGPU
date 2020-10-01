@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Types;
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.Runtime

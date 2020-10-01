@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Types;
+using ILGPU.Runtime.OpenCL;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
@@ -166,9 +167,13 @@ namespace ILGPU.Backends.OpenCL
         /// in OpenCL during construction.
         /// </summary>
         /// <param name="typeContext">The associated type context.</param>
-        internal CLTypeGenerator(IRTypeContext typeContext)
+        /// <param name="capabilities">The supported capabilities.</param>
+        internal CLTypeGenerator(
+            IRTypeContext typeContext,
+            CLCapabilityContext capabilities)
         {
             TypeContext = typeContext;
+            Capabilities = capabilities;
 
             // Declare primitive types
             mapping[typeContext.VoidType] = "void";
@@ -195,6 +200,11 @@ namespace ILGPU.Backends.OpenCL
         /// Returns the underlying type context.
         /// </summary>
         public IRTypeContext TypeContext { get; }
+
+        /// <summary>
+        /// Returns the supported capabilities.
+        /// </summary>
+        public CLCapabilityContext Capabilities { get; }
 
         /// <summary>
         /// Returns the associated OpenCL type name.

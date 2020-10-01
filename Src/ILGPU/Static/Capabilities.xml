@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Capabilities>
+    <Capability Name="SubGroups">
+        <Summary>Supports SubGroups.</Summary>
+        <FeatureName>SubGroups extension</FeatureName>
+        <OpenCL manual="true" />
+    </Capability>
+</Capabilities>

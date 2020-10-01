@@ -217,6 +217,11 @@
             <AutoGen>True</AutoGen>
             <DependentUpon>RuntimeErrorMessages.resx</DependentUpon>
         </Compile>
+        <Compile Update="Static\CapabilityContext.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>CapabilityContext.tt</DependentUpon>
+        </Compile>
         <Compile Update="Static\DllImports.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -294,9 +299,16 @@
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>MemoryBuffers.cs</LastGenOutput>
         </None>
+        <None Update="Static\CapabilitiesImporter.ttinclude">
+          <Generator></Generator>
+        </None>
         <None Update="Static\DllImports.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>DllImports.cs</LastGenOutput>
+        </None>
+        <None Update="Static\CapabilityContext.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>CapabilityContext.cs</LastGenOutput>
         </None>
         <None Update="Util\PrimitiveDataBlocks.tt">
           <LastGenOutput>PrimitiveDataBlocks.cs</LastGenOutput>
