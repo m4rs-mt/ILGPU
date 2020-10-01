@@ -112,7 +112,7 @@ namespace ILGPU.Backends.OpenCL
             variable switch
             {
                 PrimitiveVariable primitiveVariable =>
-                    CLTypeGenerator.GetBasicValueType(
+                    TypeGenerator.GetBasicValueType(
                         primitiveVariable.BasicValueType),
                 TypedVariable typedVariable => TypeGenerator[typedVariable.Type],
                 _ => throw new NotSupportedException(),
