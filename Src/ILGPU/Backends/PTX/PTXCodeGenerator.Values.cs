@@ -108,6 +108,7 @@ namespace ILGPU.Backends.PTX
                 PTXInstructions.GetArithmeticOperation(
                     value.Kind,
                     value.ArithmeticBasicValueType,
+                    Backend.Capabilities,
                     FastMath));
             command.AppendArgument(targetRegister);
             command.AppendArgument(argument);
@@ -176,6 +177,7 @@ namespace ILGPU.Backends.PTX
                         PTXInstructions.GetArithmeticOperation(
                             UnaryArithmeticKind.Not,
                             ArithmeticBasicValueType.UInt1,
+                            Backend.Capabilities,
                             false));
                     command.AppendArgument(targetRegister);
                     command.AppendArgument(targetRegister);
