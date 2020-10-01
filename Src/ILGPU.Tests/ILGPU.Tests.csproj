@@ -165,6 +165,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>UnaryIntOperations.tt</DependentUpon>
     </Compile>
+    <Compile Update="ValueTuples.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ValueTuples.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -219,6 +224,10 @@
     <None Update="UnaryIntOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>UnaryIntOperations.cs</LastGenOutput>
+    </None>
+    <None Update="ValueTuples.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ValueTuples.cs</LastGenOutput>
     </None>
   </ItemGroup>
 

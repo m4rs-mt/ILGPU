@@ -45,6 +45,32 @@ namespace ILGPU.Util
         }
 
         /// <summary>
+        /// Checks whether the given type is a value tuple type.
+        /// </summary>
+        /// <param name="type">The source type.</param>
+        /// <returns>True, in case of a value tuple.</returns>
+        public static bool IsValueTuple(this Type type)
+        {
+            if (type.IsGenericType)
+            {
+                // NB: System.ValueTuple with 9 or more generic arguments are
+                // currently not provided by any of the .NET frameworks. If that
+                // ever changes, we will need to update this list.
+                var genericType = type.GetGenericTypeDefinition();
+                return
+                    genericType == typeof(ValueTuple<>) ||
+                    genericType == typeof(ValueTuple<,>) ||
+                    genericType == typeof(ValueTuple<,,>) ||
+                    genericType == typeof(ValueTuple<,,,>) ||
+                    genericType == typeof(ValueTuple<,,,,>) ||
+                    genericType == typeof(ValueTuple<,,,,,>) ||
+                    genericType == typeof(ValueTuple<,,,,,,>) ||
+                    genericType == typeof(ValueTuple<,,,,,,,>);
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Checks whether the given type is a specialized type.
         /// </summary>
         /// <param name="type">The source type.</param>

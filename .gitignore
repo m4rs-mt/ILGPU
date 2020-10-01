@@ -255,6 +255,7 @@ Src/ILGPU/HalfConversion.cs
 Src/ILGPU/IR/Construction/ArithmeticOperations.cs
 Src/ILGPU/IR/Construction/CompareOperations.cs
 Src/ILGPU/IR/Intrinsics/IntrinsicMatchers.cs
+Src/ILGPU/IR/Types/ValueTuples.cs
 Src/ILGPU/IndexTypes.cs
 Src/ILGPU/IntrinsicMath.CPUOnly.cs
 Src/ILGPU/ReductionOperations.cs
@@ -283,6 +284,7 @@ Src/ILGPU.Tests/FixedBuffers.cs
 Src/ILGPU.Tests/MemoryBufferOperations.cs
 Src/ILGPU.Tests/ReinterpretCasts.cs
 Src/ILGPU.Tests/UnaryIntOperations.cs
+Src/ILGPU.Tests/ValueTuples.cs
 
 Src/ILGPU.Tests.CPU/Configurations.cs
 Src/ILGPU.Tests.CPU/TestContexts.cs

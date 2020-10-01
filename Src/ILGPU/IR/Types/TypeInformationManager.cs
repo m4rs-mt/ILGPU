@@ -336,15 +336,30 @@ namespace ILGPU.IR.Types
             int size = 0;
             if (type.IsValueType && type.StructLayoutAttribute != null)
             {
-                if (type.StructLayoutAttribute.Value != LayoutKind.Sequential)
+                // NB: In C# 8, System.ValueTuple is considered 'unmanaged' if all of its
+                // fields are unmanaged types.
+                if (type.IsValueTuple())
                 {
-                    throw new NotSupportedException(
-                        string.Format(
-                            ErrorMessages.NotSupportedStructureLayout,
-                            type));
-                }
+                    // System.ValueTuple uses LayoutKind.Auto, so the fields may not be
+                    // strictly in sequential order. Therefore, we reorder the fields
+                    // according to the field offsets.
+                    var genericArgs = type.GetGenericArguments();
+                    var offsets = ValueTuples.GetOffsets(genericArgs);
+                    Array.Sort(offsets, fieldArray);
 
-                size = type.StructLayoutAttribute.Size;
+                    // Retrieve the size of the ValueTuple, which may include trailing
+                    // padding bytes.
+                    size = Interop.SizeOf(type);
+                }
+                else
+                {
+                    size = type.StructLayoutAttribute.Value == LayoutKind.Sequential
+                        ? type.StructLayoutAttribute.Size
+                        : throw new NotSupportedException(
+                            string.Format(
+                                ErrorMessages.NotSupportedStructureLayout,
+                                type));
+                }
             }
 
             var fields = ImmutableArray.Create(fieldArray);
