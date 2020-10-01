@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Runtime.Cuda;
 using ILGPU.Util;
 
 namespace ILGPU.Backends.PTX
@@ -84,13 +85,22 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="type">The operation type.</param>
+        /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="fastMath">True, to use a fast-math operation.</param>
         /// <returns>The resolved arithmetic operation.</returns>
         public static string GetArithmeticOperation(
             UnaryArithmeticKind kind,
             ArithmeticBasicValueType type,
+            CudaCapabilityContext capabilities,
             bool fastMath)
         {
+            if (kind == UnaryArithmeticKind.TanhF &&
+                type == ArithmeticBasicValueType.Float32 &&
+                !capabilities.Float32_TanH)
+            {
+                throw CudaCapabilityContext.GetNotSupportedFloat32_TanHException();
+            }
+
             var key = (kind, type);
             return fastMath &&
                 UnaryArithmeticOperationsFastMath.TryGetValue(

@@ -8,6 +8,12 @@
         </OpenCL>
     </Capability>
 
+    <Capability Name="Float32_TanH">
+        <Summary>Supports Float32 intrinsic TanH.</Summary>
+        <FeatureName>Intrinsic 'TanH' for Float32</FeatureName>
+        <Cuda minPTX="SM_75" />
+    </Capability>
+
     <Capability Name="Int64_Atomics">
         <Summary>Supports 64-bit Atomics.</Summary>
         <FeatureName>64-bit atomics extension</FeatureName>

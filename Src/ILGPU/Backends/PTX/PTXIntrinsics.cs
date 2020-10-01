@@ -112,16 +112,6 @@ namespace ILGPU.Backends.PTX
                 CreateIntrinsic(
                     nameof(AssertFailed),
                     IntrinsicImplementationMode.Redirect));
-
-            // Register math
-            manager.RegisterUnaryArithmetic(
-                UnaryArithmeticKind.TanhF,
-                BasicValueType.Float32,
-                CreateIntrinsic(
-                    nameof(Tanh),
-                    IntrinsicImplementationMode.GenerateCode,
-                    null,
-                    PTXArchitecture.SM_80));
         }
 
         #endregion
@@ -208,20 +198,6 @@ namespace ILGPU.Backends.PTX
         private static T WarpBroadcast<T>(T value, int laneIndex)
             where T : unmanaged =>
             Warp.Shuffle(value, laneIndex);
-
-        #endregion
-
-        #region Math
-
-        /// <summary>
-        /// Computes tanh(x).
-        /// </summary>
-        public static void Tanh(
-            PTXBackend backend,
-            PTXCodeGenerator codeGenerator,
-            Value value) =>
-            throw new NotSupportedIntrinsicException(
-                UnaryArithmeticKind.TanhF.ToString());
 
         #endregion
     }
