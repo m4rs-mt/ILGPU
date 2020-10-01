@@ -8,6 +8,22 @@
         </OpenCL>
     </Capability>
 
+    <Capability Name="Float16_Min">
+        <Summary>Supports Float16 intrinsic Min.</Summary>
+        <FeatureName>Intrinsic 'Min' for Float16</FeatureName>
+        <Cuda minPTX="SM_75" />
+    </Capability>
+    <Capability Name="Float16_Max">
+        <Summary>Supports Float16 intrinsic Max.</Summary>
+        <FeatureName>Intrinsic 'Max' for Float16</FeatureName>
+        <Cuda minPTX="SM_80" />
+    </Capability>
+    <Capability Name="Float16_TanH">
+        <Summary>Supports Float16 intrinsic TanH.</Summary>
+        <FeatureName>Intrinsic 'TanH' for Float16</FeatureName>
+        <Cuda minPTX="SM_80" />
+    </Capability>
+
     <Capability Name="Float32_TanH">
         <Summary>Supports Float32 intrinsic TanH.</Summary>
         <FeatureName>Intrinsic 'TanH' for Float32</FeatureName>

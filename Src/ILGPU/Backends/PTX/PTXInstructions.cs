@@ -100,6 +100,12 @@ namespace ILGPU.Backends.PTX
             {
                 throw CudaCapabilityContext.GetNotSupportedFloat32_TanHException();
             }
+            else if (kind == UnaryArithmeticKind.TanhF &&
+                type == ArithmeticBasicValueType.Float16 &&
+                !capabilities.Float16_TanH)
+            {
+                throw CudaCapabilityContext.GetNotSupportedFloat16_TanHException();
+            }
 
             var key = (kind, type);
             return fastMath &&
@@ -116,13 +122,28 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         /// <param name="kind">The arithmetic kind.</param>
         /// <param name="type">The operation type.</param>
+        /// <param name="capabilities">The supported capabilities.</param>
         /// <param name="fastMath">True, to use a fast-math operation.</param>
         /// <returns>The resolved arithmetic operation.</returns>
         public static string GetArithmeticOperation(
             BinaryArithmeticKind kind,
             ArithmeticBasicValueType type,
+            CudaCapabilityContext capabilities,
             bool fastMath)
         {
+            if (kind == BinaryArithmeticKind.Min &&
+               type == ArithmeticBasicValueType.Float16 &&
+               !capabilities.Float16_Min)
+            {
+                throw CudaCapabilityContext.GetNotSupportedFloat16_MinException();
+            }
+            else if (kind == BinaryArithmeticKind.Max &&
+                type == ArithmeticBasicValueType.Float16 &&
+                !capabilities.Float16_Max)
+            {
+                throw CudaCapabilityContext.GetNotSupportedFloat16_MaxException();
+            }
+
             var key = (kind, type);
             return fastMath &&
                 BinaryArithmeticOperationsFastMath.TryGetValue(

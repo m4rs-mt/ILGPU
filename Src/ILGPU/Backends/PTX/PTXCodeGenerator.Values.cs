@@ -125,6 +125,7 @@ namespace ILGPU.Backends.PTX
                 PTXInstructions.GetArithmeticOperation(
                     value.Kind,
                     value.ArithmeticBasicValueType,
+                    Backend.Capabilities,
                     FastMath));
             command.AppendArgument(targetRegister);
             command.AppendArgument(left);
@@ -164,6 +165,7 @@ namespace ILGPU.Backends.PTX
                     PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Xor,
                         ArithmeticBasicValueType.UInt1,
+                        Backend.Capabilities,
                         false)))
                 {
                     command.AppendArgument(targetRegister);
@@ -607,6 +609,7 @@ namespace ILGPU.Backends.PTX
                     PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Add,
                         Backend.PointerArithmeticType,
+                        Backend.Capabilities,
                         false));
                 command.AppendArgument(targetRegister);
                 command.AppendArgument(source);
@@ -972,6 +975,7 @@ namespace ILGPU.Backends.PTX
                 PTXInstructions.GetArithmeticOperation(
                     BinaryArithmeticKind.Sub,
                     ArithmeticBasicValueType.UInt32,
+                    Backend.Capabilities,
                     false)))
             {
                 command.AppendArgument(baseRegister);
@@ -985,6 +989,7 @@ namespace ILGPU.Backends.PTX
                 PTXInstructions.GetArithmeticOperation(
                     BinaryArithmeticKind.Shl,
                     ArithmeticBasicValueType.UInt32,
+                    Backend.Capabilities,
                     false)))
             {
                 command.AppendArgument(maskRegister);
@@ -1001,6 +1006,7 @@ namespace ILGPU.Backends.PTX
                     PTXInstructions.GetArithmeticOperation(
                         BinaryArithmeticKind.Or,
                         ArithmeticBasicValueType.UInt32,
+                        Backend.Capabilities,
                         false)))
                 {
                     command.AppendArgument(adjustedMaskRegister);
