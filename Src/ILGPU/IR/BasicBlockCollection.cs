@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR
@@ -44,7 +45,8 @@ namespace ILGPU.IR
     public readonly struct BasicBlockCollection<TOrder, TDirection> :
         IBasicBlockCollection<TDirection>,
         IReadOnlyCollection<BasicBlock>,
-        IControlFlowAnalysisSource<TDirection>
+        IControlFlowAnalysisSource<TDirection>,
+        IDumpable
         where TOrder : struct, ITraversalOrder
         where TDirection : struct, IControlFlowDirection
     {
@@ -331,7 +333,6 @@ namespace ILGPU.IR
             return result;
         }
 
-
         /// <summary>
         /// Changes the order of this collection.
         /// </summary>
@@ -440,6 +441,20 @@ namespace ILGPU.IR
             }
 
             return mapping;
+        }
+
+        #endregion
+
+        #region IDumpable
+
+        /// <summary>
+        /// Dumps all blocks in this collection to the given text writer.
+        /// </summary>
+        /// <param name="textWriter">The text writer.</param>
+        public void Dump(TextWriter textWriter)
+        {
+            foreach (var block in this)
+                block.Dump(textWriter);
         }
 
         #endregion

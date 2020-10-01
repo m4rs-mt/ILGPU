@@ -45,7 +45,7 @@ namespace ILGPU.IR.Types
             /// <param name="fields">All managed fields.</param>
             /// <param name="fieldOffsets">All field offsets.</param>
             /// <param name="fieldTypes">All managed field types.</param>
-            /// <param name="numFlattenedFiels">The number of flattened fields.</param>
+            /// <param name="numFlattenedFields">The number of flattened fields.</param>
             /// <param name="isBlittable">True, if this type is blittable.</param>
             internal TypeInformation(
                 TypeInformationManager parent,
@@ -54,7 +54,7 @@ namespace ILGPU.IR.Types
                 ImmutableArray<FieldInfo> fields,
                 ImmutableArray<int> fieldOffsets,
                 ImmutableArray<Type> fieldTypes,
-                int numFlattenedFiels,
+                int numFlattenedFields,
                 bool isBlittable)
             {
                 Debug.Assert(parent != null, "Invalid parent");
@@ -67,7 +67,7 @@ namespace ILGPU.IR.Types
                 FieldOffsets = fieldOffsets;
                 FieldTypes = fieldTypes;
                 IsBlittable = isBlittable;
-                NumFlattendedFields = numFlattenedFiels;
+                NumFlattendedFields = numFlattenedFields;
             }
 
             #endregion
@@ -359,7 +359,11 @@ namespace ILGPU.IR.Types
 
                 var nestedTypeInfo = GetTypeInfoInternal(field.FieldType);
                 isBlittable &= nestedTypeInfo.IsBlittable;
-                flattenedFields += nestedTypeInfo.NumFlattendedFields;
+
+                // Empty structures are treated as having a single field.
+                flattenedFields += nestedTypeInfo.NumFlattendedFields > 0
+                    ? nestedTypeInfo.NumFlattendedFields
+                    : 1;
             }
 
             return new TypeInformation(
