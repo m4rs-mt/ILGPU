@@ -12,7 +12,9 @@
 using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Runtime.OpenCL;
 using ILGPU.Util;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.OpenCL
 {
@@ -253,9 +255,28 @@ namespace ILGPU.Backends.OpenCL
         public void GenerateCode(SwitchPredicate predicate) =>
             throw new InvalidCodeGenerationException();
 
+        /// <summary>
+        /// Throws an exception if the supplied atomic operation is not supported
+        /// by the capabilities of the accelerator.
+        /// </summary>
+        /// <param name="atomic">The atomic operation.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ThrowIfUnsupportedAtomicOperation(AtomicValue atomic)
+        {
+            if ((atomic.ArithmeticBasicValueType == ArithmeticBasicValueType.Int64 ||
+                atomic.ArithmeticBasicValueType == ArithmeticBasicValueType.UInt64 ||
+                atomic.ArithmeticBasicValueType == ArithmeticBasicValueType.Float64) &&
+                !TypeGenerator.Capabilities.Int64_Atomics)
+            {
+                throw CLCapabilityContext.GetNotSupportedInt64_AtomicsException();
+            }
+        }
+
         /// <summary cref="IBackendCodeGenerator.GenerateCode(GenericAtomic)"/>
         public void GenerateCode(GenericAtomic atomic)
         {
+            ThrowIfUnsupportedAtomicOperation(atomic);
+
             var target = Load(atomic.Target);
             var value = Load(atomic.Value);
             var result = Allocate(atomic);
@@ -272,6 +293,8 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IBackendCodeGenerator.GenerateCode(AtomicCAS)"/>
         public void GenerateCode(AtomicCAS atomicCAS)
         {
+            ThrowIfUnsupportedAtomicOperation(atomicCAS);
+
             var target = Load(atomicCAS.Target);
             var value = Load(atomicCAS.Value);
             var compare = Load(atomicCAS.CompareValue);

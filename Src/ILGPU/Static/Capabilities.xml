@@ -1,5 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Capabilities>
+    <Capability Name="Int64_Atomics">
+        <Summary>Supports 64-bit Atomics.</Summary>
+        <FeatureName>64-bit atomics extension</FeatureName>
+        <OpenCL>
+            <Extension>cl_khr_int64_base_atomics</Extension>
+            <Extension>cl_khr_int64_extended_atomics</Extension>
+        </OpenCL>
+    </Capability>
+
     <Capability Name="SubGroups">
         <Summary>Supports SubGroups.</Summary>
         <FeatureName>SubGroups extension</FeatureName>
