@@ -374,6 +374,56 @@ namespace ILGPU.Tests
             var expected = Enumerable.Repeat(31, Length).ToArray();
             Verify(buffer, expected);
         }
+
+        internal static void LoopUnrollingBreakKernel(
+            Index1 index,
+            ArrayView<int> data)
+        {
+            int j = 0;
+            for (int i = 0; i < 4; ++i)
+            {
+                ++j;
+                if (i == 2) break;
+                ++j;
+            }
+            data[index] = j;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrollingBreakKernel))]
+        public void LoopUnrollingBreak()
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(5, Length).ToArray();
+            Verify(buffer, expected);
+        }
+
+        internal static void LoopUnrollingContinueKernel(
+            Index1 index,
+            ArrayView<int> data)
+        {
+            int j = 0;
+            for (int i = 0; i < 4; ++i)
+            {
+                ++j;
+                if (i == 2) continue;
+                ++j;
+            }
+            data[index] = j;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(LoopUnrollingContinueKernel))]
+        public void LoopUnrollingContinue()
+        {
+            using var buffer = Accelerator.Allocate<int>(Length);
+            Execute(buffer.Length, buffer.View);
+
+            var expected = Enumerable.Repeat(7, Length).ToArray();
+            Verify(buffer, expected);
+        }
     }
 }
 
