@@ -761,17 +761,25 @@ namespace ILGPU.IR.Analyses
             {
                 foreach (var predecessor in member.GetPredecessors<TDirection>())
                 {
-                    if (!nodeMapping[predecessor].IsInSCC &&
-                        entryBlocks.Add(predecessor))
-                    {
-                        headers.Add(member);
-                        nodeMapping[member].IsHeader = true;
-                    }
+                    if (nodeMapping[predecessor].IsInSCC)
+                        continue;
+                    entryBlocks.Add(predecessor);
+
+                    if (headers.Contains(member, new BasicBlock.Comparer()))
+                        continue;
+                    headers.Add(member);
+                    nodeMapping[member].IsHeader = true;
                 }
+
                 foreach (var successor in member.GetSuccessors<TDirection>())
                 {
-                    if (!nodeMapping[successor].IsInSCC && exitBlocks.Add(successor))
-                        breakers.Add(member);
+                    if (nodeMapping[successor].IsInSCC)
+                        continue;
+                    exitBlocks.Add(successor);
+
+                    if (breakers.Contains(member, new BasicBlock.Comparer()))
+                        continue;
+                    breakers.Add(member);
                 }
             }
             v.Node.Assert(headers.Count > 0);
