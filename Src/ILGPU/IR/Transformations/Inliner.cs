@@ -64,7 +64,7 @@ namespace ILGPU.IR.Transformations
             }
 
             // Evaluate a simple inlining heuristic
-            if (context.HasFlags(ContextFlags.AggressiveInlining) ||
+            if (!context.HasFlags(ContextFlags.ConservativeInlining) ||
                 disassembledMethod.Instructions.Length <= MaxNumILInstructionsToInline)
             {
                 method.AddFlags(MethodFlags.Inline);

@@ -124,6 +124,9 @@ namespace ILGPU
         /// Represents an aggressive inlining policy.
         /// (all functions will be inlined).
         /// </summary>
+        [Obsolete("AggressiveInlining is now enabled by default. To enable " +
+            "conservative inlining behavior specify the flag " +
+            "ContextFlags.ConservativeInlining.")]
         AggressiveInlining = 1 << 18,
 
         /// <summary>
@@ -136,6 +139,12 @@ namespace ILGPU
         /// (e.g. for debugging purposes).
         /// </summary>
         DisableConstantPropagation = 1 << 20,
+
+        /// <summary>
+        /// Enables basic inlining heuristics and disables aggressive inlining behavior
+        /// to reduce the overall code size.
+        /// </summary>
+        ConservativeInlining = 1 << 21,
 
         // Accelerator settings
 
@@ -221,9 +230,9 @@ namespace ILGPU
                 flags |= ContextFlags.EnableDebugSymbols;
 
             if (flags.HasFlags(ContextFlags.NoInlining))
-                flags &= ~ContextFlags.AggressiveInlining;
+                flags &= ~ContextFlags.ConservativeInlining;
 
-            if (flags.HasFlags(ContextFlags.AggressiveInlining))
+            if (flags.HasFlags(ContextFlags.ConservativeInlining))
                 flags &= ~ContextFlags.NoInlining;
 
             return flags;
