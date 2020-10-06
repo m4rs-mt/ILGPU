@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.Backends;
 using ILGPU.Backends.PTX;
 using ILGPU.IR.Intrinsics;
 using System;
@@ -54,6 +55,19 @@ namespace ILGPU.Algorithms.PTX
         /// The <see cref="PTXWarpExtensions"/> type.
         /// </summary>
         internal static readonly Type PTXWarpExtensionsType = typeof(PTXWarpExtensions);
+
+        /// <summary>
+        /// Resolves a PTX code generator for the given math-function configuration.
+        /// </summary>
+        /// <param name="minArchitecture">The target/minimum architecture.</param>
+        /// <returns>The resolved intrinsic representation.</returns>
+        private static PTXIntrinsic GetMathCodeGeneratorIntrinsic(
+            PTXArchitecture minArchitecture) =>
+            new PTXIntrinsic(
+                PTXMathType,
+                nameof(PTXMath.GenerateMathIntrinsic),
+                IntrinsicImplementationMode.GenerateCode,
+                minArchitecture);
 
         /// <summary>
         /// Resolves a PTX intrinsic for the given math-function configuration.
