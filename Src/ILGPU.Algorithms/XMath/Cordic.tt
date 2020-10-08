@@ -107,6 +107,7 @@ namespace ILGPU.Algorithms
             /// <summary>
             /// Calculates the inaccuracy gained by calculating the baseline of Cosh(0).
             /// </summary>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static <#= operation.DataType #> HyperbolicGainFromCoshZero<#= operation.XMathSuffix #>()
             {
                 // Cosh(0) should return 1. Any differences reflects inaccuracies in the CORDIC algorithm.
@@ -129,6 +130,7 @@ namespace ILGPU.Algorithms
             /// <param name="cos">The current cosine value. Filled in with the result cosine value</param>
             /// <param name="sin">The current sine value. Filled in with the result sine value</param>
             /// <param name="factor">The multiplication factor</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static void MatrixMultiply(ref <#= operation.DataType #> cos, ref <#= operation.DataType #> sin, <#= operation.DataType #> factor)
             {
                 // Matrix multiplication
@@ -151,6 +153,7 @@ namespace ILGPU.Algorithms
             /// <param name="cosh">The current hyperbolic cosine value. Filled in with the result hyperbolic cosine value</param>
             /// <param name="sinh">The current hyperbolic sine value. Filled in with the result hyperbolic sine value</param>
             /// <param name="factor">The multiplication factor</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static void MatrixMultiplyHyperbolic(ref <#= operation.DataType #> cosh, ref <#= operation.DataType #> sinh, <#= operation.DataType #> factor)
             {
                 // Matrix multiplication
@@ -176,6 +179,7 @@ namespace ILGPU.Algorithms
             /// </summary>
             /// <param name="radians">The angle in radians</param>
             /// <returns>The angle, in radians</returns>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static <#= operation.DataType #> RangeLimit(<#= operation.DataType #> radians)
             {
                 while (radians < -PI<#= operation.XMathSuffix #>)
@@ -195,6 +199,7 @@ namespace ILGPU.Algorithms
             /// <param name="sin">The current sine value</param>
             /// <param name="radians">The current radians value</param>
             /// <param name="powerOfTwo">The current multiplier</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static void NextRotateIteration(<#= operation.DataType #> angle, ref <#= operation.DataType #> cos, ref <#= operation.DataType #> sin, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> powerOfTwo)
             {
                 var sigma = Utilities.Select(radians < 0, -1, 1);
@@ -215,6 +220,7 @@ namespace ILGPU.Algorithms
             /// <param name="radians">The radians value</param>
             /// <param name="cos">Filled in with result cosine value</param>
             /// <param name="sin">Filled in with result sine value</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static void RotateIterations(<#= operation.DataType #> radians, out <#= operation.DataType #> cos, out <#= operation.DataType #> sin)
             {
                 // Apply <#= operation.Iterations #> iterations.
@@ -245,6 +251,7 @@ namespace ILGPU.Algorithms
             /// <param name="sin">The current sine value</param>
             /// <param name="radians">The current radians value</param>
             /// <param name="powerOfTwo">The current multiplier</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static void NextVectorIteration(<#= operation.DataType #> angle, ref <#= operation.DataType #> cos, ref <#= operation.DataType #> sin, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> powerOfTwo)
             {
                 var sigma = Utilities.Select(sin >= 0, -1, 1);
@@ -263,6 +270,7 @@ namespace ILGPU.Algorithms
             /// </summary>
             /// <param name="target">The target sine value</param>
             /// <returns>The angle in radians</returns>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static <#= operation.DataType #> VectorIterations(<#= operation.DataType #> target)
             {
                 // Apply <#= operation.Iterations #> iterations.
@@ -292,6 +300,7 @@ namespace ILGPU.Algorithms
             /// <param name="radians">The current radians value</param>
             /// <param name="powerOfTwo">The current multiplier</param>
             /// <param name="numMultiplications">The number of multiplications in this loop</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static void NextRotateHyperbolicIteration(<#= operation.DataType #> angle, ref <#= operation.DataType #> cosh, ref <#= operation.DataType #> sinh, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> powerOfTwo, int numMultiplications)
             {
                 // Apply second multiplication every 3k + 1 multiplcations
@@ -315,6 +324,7 @@ namespace ILGPU.Algorithms
             /// <param name="radians">The current radians value</param>
             /// <param name="cosh">The current cosh value</param>
             /// <param name="sinh">The current sinh value</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static void RotateHyperbolicIterations(<#= operation.DataType #> radians, out <#= operation.DataType #> cosh, out <#= operation.DataType #> sinh)
             {
                 // Apply <#= operation.Iterations #> iterations.
@@ -346,6 +356,7 @@ namespace ILGPU.Algorithms
             /// <param name="radians">The current radians value</param>
             /// <param name="powerOfTwo">The current multiplier</param>
             /// <param name="numMultiplications">The number of multiplications in this loop</param>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static void NextVectorHyperbolicIteration(<#= operation.DataType #> angle, ref <#= operation.DataType #> cosh, ref <#= operation.DataType #> sinh, ref <#= operation.DataType #> radians, ref <#= operation.DataType #> powerOfTwo, int numMultiplications)
             {
                 // Apply second multiplication every 3k + 1 multiplcations
@@ -369,6 +380,7 @@ namespace ILGPU.Algorithms
             /// <param name="cosh">The current cosh value</param>
             /// <param name="sinh">The current sinh value</param>
             /// <returns>The angle in radians</returns>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             private static <#= operation.DataType #> VectorHyperbolicIterations(<#= operation.DataType #> cosh, <#= operation.DataType #> sinh)
             {
                 // Apply <#= operation.Iterations #> iterations.
