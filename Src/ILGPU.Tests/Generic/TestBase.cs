@@ -227,8 +227,10 @@ namespace ILGPU.Tests
             where TIndex : unmanaged, IGenericIndex<TIndex>
         {
             var data = buffer.GetAsArray(Accelerator.DefaultStream);
-            Assert.Equal(data.Length, expected.Length);
-            for (int i = offset ?? 0, e = length ?? data.Length; i < e; ++i)
+            var dataLength = length ?? data.Length;
+            Assert.True(dataLength <= data.Length);
+            Assert.Equal(dataLength, expected.Length);
+            for (int i = offset ?? 0, e = dataLength; i < e; ++i)
                 Assert.Equal(expected[i], data[i]);
         }
 
