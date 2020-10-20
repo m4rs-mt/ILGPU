@@ -407,9 +407,14 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
-            Count < 1
-            ? string.Empty
-            : Nodes.ToString(new ValueReference.ToReferenceFormatter());
+            Count < 1 ? string.Empty : ToFullArgString();
+
+        /// <summary>
+        /// Returns a full argument string representation.
+        /// </summary>
+        private string ToFullArgString() =>
+            Nodes.ToString(new ValueReference.ToReferenceFormatter()) +
+            $" [{Sources.ToString(new BasicBlock.ToReferenceFormatter())}]";
 
         #endregion
     }

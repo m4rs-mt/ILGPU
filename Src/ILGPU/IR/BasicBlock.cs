@@ -38,6 +38,18 @@ namespace ILGPU.IR
         #region Nested Types
 
         /// <summary>
+        /// A block reference formatter.
+        /// </summary>
+        public readonly struct ToReferenceFormatter : InlineList.IFormatter<BasicBlock>
+        {
+            /// <summary>
+            /// Formats a block by returning reference string.
+            /// </summary>
+            readonly string InlineList.IFormatter<BasicBlock>.Format(BasicBlock item) =>
+                item.ToReferenceString();
+        }
+
+        /// <summary>
         /// An equality comparer for basic blocks.
         /// </summary>
         public readonly struct Comparer : IEqualityComparer<BasicBlock>
