@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.PTX.Transformations;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
@@ -100,6 +101,14 @@ namespace ILGPU.Backends.PTX
                 transformerBuilder.AddBackendOptimizations(
                     new PTXAcceleratorSpecializer(PointerType),
                     context.OptimizationLevel);
+
+                if (Context.HasFlags(ContextFlags.EnhancedPTXBackendFeatures))
+                {
+                    // Create an optimized PTX assembler block schedule
+                    transformerBuilder.Add(new PTXBlockScheduling());
+                    transformerBuilder.Add(new DeadCodeElimination());
+                }
+
                 builder.Add(transformerBuilder.ToTransformer());
             });
         }
