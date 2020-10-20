@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.IR.Values;
+using ILGPU.Util;
 
 namespace ILGPU.Backends.PTX
 {
@@ -29,6 +30,9 @@ namespace ILGPU.Backends.PTX
         /// <summary cref="IBackendCodeGenerator.GenerateCode(UnconditionalBranch)"/>
         public void GenerateCode(UnconditionalBranch branch)
         {
+            if (Schedule.IsImplicitSuccessor(branch.BasicBlock, branch.Target))
+                return;
+
             using var command = BeginCommand(PTXInstructions.BranchOperation);
             var targetLabel = blockLookup[branch.Target];
             command.AppendLabel(targetLabel);
@@ -39,19 +43,41 @@ namespace ILGPU.Backends.PTX
         {
             var primitiveCondition = LoadPrimitive(branch.Condition);
             var condition = EnsureHardwareRegister(primitiveCondition);
-            using (var command = BeginCommand(
-                PTXInstructions.BranchOperation,
-                new PredicateConfiguration(condition, true)))
-            {
-                var trueLabel = blockLookup[branch.TrueTarget];
-                command.AppendLabel(trueLabel);
-            }
 
-            // Jump to false target in the else case
-            using (var command = BeginCommand(PTXInstructions.BranchOperation))
+            // Use the actual branch targets from the schedule
+            var (trueTarget, falseTarget) = branch.GetNotInvertedBranchTargets();
+
+            // The current schedule has inverted all if conditions with implicit branch
+            // targets to simplify the work of the PTX assembler
+            if (Schedule.IsImplicitSuccessor(branch.BasicBlock, trueTarget))
             {
-                var targetLabel = blockLookup[branch.FalseTarget];
+                // Jump to false target in the else case
+                using var command = BeginCommand(
+                    PTXInstructions.BranchOperation,
+                    new PredicateConfiguration(
+                        condition,
+                        isTrue: branch.IsInverted));
+                var targetLabel = blockLookup[falseTarget];
                 command.AppendLabel(targetLabel);
+            }
+            else
+            {
+                if (branch.IsInverted)
+                    Utilities.Swap(ref trueTarget, ref falseTarget);
+                using (var command = BeginCommand(
+                    PTXInstructions.BranchOperation,
+                    new PredicateConfiguration(condition, isTrue: true)))
+                {
+                    var targetLabel = blockLookup[trueTarget];
+                    command.AppendLabel(targetLabel);
+                }
+
+                // Jump to false target in the else case
+                using (var command = BeginCommand(PTXInstructions.BranchOperation))
+                {
+                    var targetLabel = blockLookup[falseTarget];
+                    command.AppendLabel(targetLabel);
+                }
             }
         }
 

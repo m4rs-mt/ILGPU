@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.PTX.Analyses;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Intrinsics;
@@ -346,6 +347,12 @@ namespace ILGPU.Backends.PTX
 
             Builder = new StringBuilder();
             PointerAlignments = args.PointerAlignments;
+
+            // Use the defined PTX backend block schedule to avoid unnecessary branches
+            Schedule =
+                args.ContextFlags.HasFlags(ContextFlags.EnhancedPTXBackendFeatures)
+                ? Method.Blocks.CreateOptimizedPTXSchedule()
+                : Method.Blocks.CreateDefaultPTXSchedule();
         }
 
         #endregion
@@ -408,6 +415,11 @@ namespace ILGPU.Backends.PTX
         /// Returns detailed information about all pointer alignments.
         /// </summary>
         public PointerAlignments PointerAlignments { get; }
+
+        /// <summary>
+        /// Returns all blocks in an appropriate schedule.
+        /// </summary>
+        public PTXBlockSchedule Schedule { get; }
 
         #endregion
 
@@ -492,26 +504,28 @@ namespace ILGPU.Backends.PTX
         /// <param name="registerOffset">The internal register offset.</param>
         protected void GenerateCodeInternal(int registerOffset)
         {
-            var blocks = Method.Blocks;
-
             // Build branch targets
-            foreach (var block in blocks)
-                blockLookup.Add(block, DeclareLabel());
+            foreach (var block in Schedule)
+            {
+                // Detect whether we should emit an explicit label
+                if (Schedule.NeedBranchTarget(block))
+                    blockLookup.Add(block, DeclareLabel());
+            }
 
             // Find all phi nodes, allocate target registers and setup internal mapping
-            var phiBindings = PhiBindings.Create(
-                blocks,
+            var phiBindings = Schedule.ComputePhiBindings(
                 new PhiBindingAllocator(this));
             Builder.AppendLine();
 
             // Generate code
-            foreach (var block in blocks)
+            foreach (var block in Schedule)
             {
                 // Emit debug information
                 DebugInfoGenerator.GenerateDebugInfo(Builder, block);
 
                 // Mark block label
-                MarkLabel(blockLookup[block]);
+                if (blockLookup.TryGetValue(block, out var blockLabel))
+                    MarkLabel(blockLabel);
 
                 foreach (var value in block)
                 {
