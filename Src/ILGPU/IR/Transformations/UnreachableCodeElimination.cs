@@ -9,9 +9,9 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
-using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Rewriting;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -52,15 +52,37 @@ namespace ILGPU.IR.Transformations
                 Blocks.Contains(block);
 
             /// <summary>
+            /// Returns true if the given block is reachable and the block is one of the
+            /// predecessors of the specified parent source value block.
+            /// </summary>
+            /// <param name="sourceBlock">
+            /// The parent source block to query the predecessors.
+            /// </param>
+            /// <param name="block">The block to test.</param>
+            /// <returns>
+            /// True, if the given block is reachable and the block is one the
+            /// predecessors of the source block.
+            /// </returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private readonly bool IsReachableAndPredecessor(
+                BasicBlock sourceBlock,
+                BasicBlock block) =>
+                    IsReachable(block) &&
+                    sourceBlock.Predecessors.Contains(
+                        block,
+                        new BasicBlock.Comparer());
+
+            /// <summary>
             /// Returns true if any of the given blocks is no longer in the current
             /// scope.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly bool CanRemap(in ReadOnlySpan<BasicBlock> blocks)
+            public readonly bool CanRemap(PhiValue phiValue)
             {
-                foreach (var block in blocks)
+                var sourceBlock = phiValue.BasicBlock;
+                foreach (var block in phiValue.Sources)
                 {
-                    if (!IsReachable(block))
+                    if (!IsReachableAndPredecessor(sourceBlock, block))
                         return true;
                 }
                 return false;
@@ -71,16 +93,22 @@ namespace ILGPU.IR.Transformations
             /// unreachable.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly bool TryRemap(BasicBlock block, out BasicBlock newBlock)
+            public readonly bool TryRemap(
+                PhiValue phiValue,
+                BasicBlock block,
+                out BasicBlock newBlock)
             {
                 newBlock = block;
-                return IsReachable(block);
+                return IsReachableAndPredecessor(phiValue.BasicBlock, block);
             }
 
             /// <summary>
             /// Returns the value of <paramref name="value"/>.
             /// </summary>
-            public readonly Value RemapValue(BasicBlock updatedBlock, Value value) =>
+            public readonly Value RemapValue(
+                PhiValue phiValue,
+                BasicBlock updatedBlock,
+                Value value) =>
                 value;
         }
 
@@ -98,7 +126,7 @@ namespace ILGPU.IR.Transformations
         {
             if (!remapper.IsReachable(phiValue.BasicBlock))
                 return;
-            phiValue.RemapArguments(context.Builder, remapper);
+            phiValue.RemapArguments(context.GetMethodBuilder(), remapper);
         }
 
         #endregion
@@ -121,10 +149,16 @@ namespace ILGPU.IR.Transformations
 
         #endregion
 
+        #region Instance
+
         /// <summary>
         /// Constructs a new UCE transformation.
         /// </summary>
         public UnreachableCodeElimination() { }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Applies the UCE transformation.
@@ -137,25 +171,32 @@ namespace ILGPU.IR.Transformations
             foreach (var block in blocks)
             {
                 // Get the conditional terminator
-                var terminator = block.GetTerminatorAs<ConditionalBranch>();
-                if (terminator == null || !terminator.CanFold)
+                if (!(block.Terminator is ConditionalBranch branch) || !branch.CanFold)
                     continue;
 
                 // Fold branch
                 var blockBuilder = builder[block];
-                terminator.Fold(blockBuilder);
+                branch.Fold(blockBuilder);
 
                 updated = true;
             }
 
-            // Check for changes
+            // Check for changes and update blocks (if required)
             if (!updated)
                 return false;
 
-            // Find all unreachable blocks
-            var updatedBlocks = builder.ComputeBlockCollection<PreOrder>()
-                .ToSet();
-            foreach (var block in builder.SourceBlocks)
+            // Update the internal control-flow structure and compute the set of all
+            // remaining reachable basic blocks
+            var updatedBlocks = builder.UpdateControlFlow().ToSet();
+
+            // Update all phi values
+            Rewriter.Rewrite(
+                blocks,
+                builder,
+                new PhiArgumentRemapper(updatedBlocks));
+
+            // Find all unreachable blocks and remove them
+            foreach (var block in blocks)
             {
                 if (!updatedBlocks.Contains(block))
                 {
@@ -165,13 +206,9 @@ namespace ILGPU.IR.Transformations
                 }
             }
 
-            // Update all phi values
-            Rewriter.Rewrite(
-                blocks,
-                builder,
-                new PhiArgumentRemapper(updatedBlocks));
-
             return true;
         }
+
+        #endregion
     }
 }
