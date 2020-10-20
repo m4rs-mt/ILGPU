@@ -54,7 +54,7 @@ namespace ILGPU.IR.Construction
                 target));
 
         /// <summary>
-        /// Creates a new conditional branch.
+        /// Creates a new conditional branch using no specific flags.
         /// </summary>
         /// <param name="location">The current location.</param>
         /// <param name="condition">The branch condition.</param>
@@ -66,11 +66,34 @@ namespace ILGPU.IR.Construction
             Value condition,
             BasicBlock trueTarget,
             BasicBlock falseTarget) =>
+            CreateIfBranch(
+                location,
+                condition,
+                trueTarget,
+                falseTarget,
+                IfBranchFlags.None);
+
+        /// <summary>
+        /// Creates a new conditional branch using the given flags.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="condition">The branch condition.</param>
+        /// <param name="trueTarget">The true target block.</param>
+        /// <param name="falseTarget">The false target block.</param>
+        /// <param name="flags">The branch flags.</param>
+        /// <returns>The created terminator.</returns>
+        public Branch CreateIfBranch(
+            Location location,
+            Value condition,
+            BasicBlock trueTarget,
+            BasicBlock falseTarget,
+            IfBranchFlags flags) =>
             CreateTerminator(new IfBranch(
                 GetInitializer(location),
                 condition,
                 trueTarget,
-                falseTarget));
+                falseTarget,
+                flags));
 
         /// <summary>
         /// Creates a switch terminator builder.

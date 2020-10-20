@@ -440,6 +440,23 @@ namespace ILGPU.IR.Values
     }
 
     /// <summary>
+    /// Specific flags for the <see cref="IfBranch"/> class.
+    /// </summary>
+    [Flags]
+    public enum IfBranchFlags : int
+    {
+        /// <summary>
+        /// No specific branch flags.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// Represents an inverted if branch.
+        /// </summary>
+        IsInverted = 1 << 0,
+    }
+
+    /// <summary>
     /// Represents an if branch terminator.
     /// </summary>
     [ValueKind(ValueKind.IfBranch)]
@@ -454,11 +471,13 @@ namespace ILGPU.IR.Values
         /// <param name="condition">The jump condition.</param>
         /// <param name="falseTarget">The false jump target.</param>
         /// <param name="trueTarget">The true jump target.</param>
+        /// <param name="flags">The branch flags.</param>
         internal IfBranch(
             in ValueInitializer initializer,
             ValueReference condition,
             BasicBlock trueTarget,
-            BasicBlock falseTarget)
+            BasicBlock falseTarget,
+            IfBranchFlags flags)
             : base(initializer)
         {
             Location.Assert(
@@ -474,6 +493,11 @@ namespace ILGPU.IR.Values
 
         #region Properties
 
+        /// <summary>
+        /// Returns the associated branch flags.
+        /// </summary>
+        public IfBranchFlags Flags { get; }
+
         /// <summary cref="Value.ValueKind"/>
         public override ValueKind ValueKind => ValueKind.IfBranch;
 
@@ -487,9 +511,45 @@ namespace ILGPU.IR.Values
         /// </summary>
         public BasicBlock FalseTarget => Targets[1];
 
+        /// <summary>
+        /// Returns true if this branch has been inverted.
+        /// </summary>
+        public bool IsInverted =>
+            (Flags & IfBranchFlags.IsInverted) != IfBranchFlags.None;
+
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns the original branch targets of the given if branch taking the
+        /// current <see cref="IfBranchFlags.IsInverted"/> flag into account.
+        /// </summary>
+        /// <returns>The actual source branch targets.</returns>
+        public (BasicBlock TrueTarget, BasicBlock FalseTarget)
+            GetNotInvertedBranchTargets() =>
+            IsInverted
+            ? (FalseTarget, TrueTarget)
+            : (TrueTarget, FalseTarget);
+
+        /// <summary>
+        /// Inverts this if branch by negating the condition and swapping both cases.
+        /// </summary>
+        /// <param name="builder">The parent builder.</param>
+        /// <returns>The inverted branch.</returns>
+        public Branch Invert(IRBuilder builder)
+        {
+            this.Assert(builder.BasicBlock == BasicBlock);
+            return builder.CreateIfBranch(
+                Location,
+                builder.CreateArithmetic(
+                    Location,
+                    Condition,
+                    UnaryArithmeticKind.Not),
+                FalseTarget,
+                TrueTarget,
+                Flags ^ IfBranchFlags.IsInverted);
+        }
 
         /// <summary cref="ConditionalBranch.FoldBranch(IRBuilder, PrimitiveValue)"/>
         protected override Branch FoldBranch(
@@ -510,7 +570,8 @@ namespace ILGPU.IR.Values
                 Location,
                 rebuilder.Rebuild(Condition),
                 rebuilder.LookupTarget(TrueTarget),
-                rebuilder.LookupTarget(FalseTarget));
+                rebuilder.LookupTarget(FalseTarget),
+                Flags);
 
         /// <summary>
         /// Creates a new if branch using the given targets.
@@ -522,7 +583,8 @@ namespace ILGPU.IR.Values
                 Location,
                 Condition,
                 targets[0],
-                targets[1]);
+                targets[1],
+                Flags);
 
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
@@ -535,9 +597,14 @@ namespace ILGPU.IR.Values
         protected override string ToPrefixString() => "branch";
 
         /// <summary cref="Value.ToArgString"/>
-        protected override string ToArgString() =>
-            $"{Condition} ? {TrueTarget.ToReferenceString()} : " +
-            FalseTarget.ToReferenceString();
+        protected override string ToArgString()
+        {
+            var result = $"{Condition} ? {TrueTarget.ToReferenceString()} : " +
+                FalseTarget.ToReferenceString();
+            if (IsInverted)
+                result += " [Inverted]";
+            return result;
+        }
 
         #endregion
     }
