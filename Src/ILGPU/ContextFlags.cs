@@ -197,7 +197,18 @@ namespace ILGPU
         DisableAcceleratorGC =
             DisableKernelCaching |
             DisableAutomaticBufferDisposal |
-            DisableAutomaticKernelDisposal
+            DisableAutomaticKernelDisposal,
+
+        /// <summary>
+        /// Enforces the use of the default PTX backend features.
+        /// </summary>
+        DefaultPTXBackendFeatures = 1 << 27,
+
+        /// <summary>
+        /// Enables the use of enhanced PTX backend features to improve performance of
+        /// the kernel programs being generated.
+        /// </summary>
+        EnhancedPTXBackendFeatures = 1 << 28,
     }
 
     /// <summary>

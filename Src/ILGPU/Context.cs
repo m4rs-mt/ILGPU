@@ -92,7 +92,6 @@ namespace ILGPU
 
         #endregion
 
-
         #region Events
 
         /// <summary>
@@ -149,6 +148,13 @@ namespace ILGPU
             OptimizationLevel = optimizationLevel;
             Flags = flags.Prepare();
             TargetPlatform = Backend.RuntimePlatform;
+
+            // Initialize enhanced PTX backend feature flags
+            if (optimizationLevel > OptimizationLevel.O1 &&
+                !Flags.HasFlags(ContextFlags.DefaultPTXBackendFeatures))
+            {
+                Flags |= ContextFlags.EnhancedPTXBackendFeatures;
+            }
 
             // Initialize verifier
             Verifier = flags.HasFlags(ContextFlags.EnableVerifier)
