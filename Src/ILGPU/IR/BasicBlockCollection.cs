@@ -351,6 +351,7 @@ namespace ILGPU.IR
         /// </summary>
         /// <typeparam name="TOtherDirection">The other direction.</typeparam>
         /// <returns>The newly ordered collection.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly BasicBlockCollection<TOrder, TOtherDirection>
             ChangeDirection<TOtherDirection>()
             where TOtherDirection : struct, IControlFlowDirection =>
@@ -365,12 +366,36 @@ namespace ILGPU.IR
         /// Note that this function uses successor/predecessor links on all basic blocks.
         /// </remarks>
         /// <returns>The newly ordered collection.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly BasicBlockCollection<TOtherOrder, TOtherDirection>
             ChangeOrder<
             TOtherOrder,
             TOtherDirection>()
             where TOtherOrder : struct, ITraversalOrder
+            where TOtherDirection : struct, IControlFlowDirection =>
+            Traverse<
+                TOtherOrder,
+                TOtherDirection,
+                BasicBlock.SuccessorsProvider<TOtherDirection>>(default);
+
+        /// <summary>
+        /// Traverses this collection using the new order and direction.
+        /// </summary>
+        /// <typeparam name="TOtherOrder">The collection order.</typeparam>
+        /// <typeparam name="TOtherDirection">The control-flow direction.</typeparam>
+        /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
+        /// <remarks>
+        /// Note that this function uses successor/predecessor links on all basic blocks.
+        /// </remarks>
+        /// <returns>The newly ordered collection.</returns>
+        public readonly BasicBlockCollection<TOtherOrder, TOtherDirection>
+            Traverse<
+            TOtherOrder,
+            TOtherDirection,
+            TSuccessorProvider>(TSuccessorProvider successorProvider)
+            where TOtherOrder : struct, ITraversalOrder
             where TOtherDirection : struct, IControlFlowDirection
+            where TSuccessorProvider : ITraversalSuccessorsProvider<TOtherDirection>
         {
             // Determine the new entry block
             TOtherDirection direction = default;
@@ -385,11 +410,11 @@ namespace ILGPU.IR
                 ImmutableArray<BasicBlock>.Builder>(newBlocks);
             otherOrder.Traverse<
                 TraversalCollectionVisitor<ImmutableArray<BasicBlock>.Builder>,
-                BasicBlock.SuccessorsProvider<TOtherDirection>,
+                TSuccessorProvider,
                 TOtherDirection>(
                 newEntryBlock,
                 ref visitor,
-                new BasicBlock.SuccessorsProvider<TOtherDirection>());
+                successorProvider);
 
             // Return updated block collection
             return new BasicBlockCollection<TOtherOrder, TOtherDirection>(

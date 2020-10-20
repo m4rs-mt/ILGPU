@@ -379,6 +379,19 @@ namespace ILGPU.IR
     }
 
     /// <summary>
+    /// A map provider that returns the traversal index of each block.
+    /// </summary>
+    public readonly struct BasicBlockMapTraversalIndexProvider :
+        IBasicBlockMapValueProvider<int>
+    {
+        /// <summary>
+        /// Returns the value of <paramref name="traversalIndex"/>.
+        /// </summary>
+        public readonly int GetValue(BasicBlock block, int traversalIndex) =>
+            traversalIndex;
+    }
+
+    /// <summary>
     /// A mapping of basic block to values.
     /// </summary>
     /// <typeparam name="T">The value type.</typeparam>
