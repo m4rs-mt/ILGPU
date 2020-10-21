@@ -15,7 +15,6 @@ using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -403,25 +402,11 @@ namespace ILGPU.IR.Analyses
         private BasicBlockCollection<TOrder, TDirection> ComputeOrderedBlocks<TProvider>(
             BasicBlock entryPoint,
             in TProvider provider)
-            where TProvider : struct, ITraversalSuccessorsProvider<TDirection>
-        {
-            var newBlocks = ImmutableArray.CreateBuilder<BasicBlock>(Loop.Count);
-            TOrder order = default;
-            var visitor = new TraversalCollectionVisitor<
-                ImmutableArray<BasicBlock>.Builder>(newBlocks);
-            order.Traverse<
-                TraversalCollectionVisitor<ImmutableArray<BasicBlock>.Builder>,
-                TProvider,
-                TDirection>(
+            where TProvider : struct, ITraversalSuccessorsProvider<TDirection> =>
+            new TOrder().TraverseToCollection<TOrder, TProvider, TDirection>(
+                Loop.Count,
                 entryPoint,
-                ref visitor,
                 provider);
-
-            // Return new block collection
-            return new BasicBlockCollection<TOrder, TDirection>(
-                entryPoint,
-                newBlocks.ToImmutable());
-        }
 
         /// <summary>
         /// Computes a block ordering of all blocks in this loop.
