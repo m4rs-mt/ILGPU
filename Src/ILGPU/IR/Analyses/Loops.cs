@@ -43,6 +43,86 @@ namespace ILGPU.IR.Analyses
         #region Nested Types
 
         /// <summary>
+        /// Represents an abstract loop processor.
+        /// </summary>
+        public interface ILoopProcessor
+        {
+            /// <summary>
+            /// Processes the given loop.
+            /// </summary>
+            /// <param name="node">The current loop node.</param>
+            void Process(Node node);
+        }
+
+        /// <summary>
+        /// A specialized successor provider for loop members that exclude all exit
+        /// blocks of an associated loop.
+        /// </summary>
+        /// <typeparam name="TOtherDirection">The target direction.</typeparam>
+        public readonly struct MembersSuccessorProvider<TOtherDirection> :
+            ITraversalSuccessorsProvider<TOtherDirection>
+            where TOtherDirection : struct, IControlFlowDirection
+        {
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new successor provider.
+            /// </summary>
+            /// <param name="node">The loop node.</param>
+            public MembersSuccessorProvider(Node node)
+            {
+                Node = node;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the associated loop node.
+            /// </summary>
+            public Node Node { get; }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns the successors of the given basic block that do not contain any
+            /// of the associated loop exit blocks.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
+                BasicBlock basicBlock)
+            {
+                var successors = basicBlock.CurrentSuccessors;
+                foreach (var exit in Node.Exits)
+                {
+                    if (successors.Contains(exit, new BasicBlock.Comparer()))
+                        return AdjustSuccessors(successors);
+                }
+                return successors;
+            }
+
+            /// <summary>
+            /// Helper function to adjust the span of the current successors.
+            /// </summary>
+            /// <param name="currentSuccessors">The current successors.</param>
+            /// <returns>The adjusted span without any exit block.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private readonly ReadOnlySpan<BasicBlock> AdjustSuccessors(
+                ReadOnlySpan<BasicBlock> currentSuccessors)
+            {
+                var successors = currentSuccessors.ToInlineList();
+                foreach (var exit in Node.Exits)
+                    successors.RemoveAll(exit, new BasicBlock.Comparer());
+                return successors;
+            }
+
+            #endregion
+        }
+
+        /// <summary>
         /// Represents a single strongly-connected component.
         /// </summary>
         [SuppressMessage(
@@ -55,47 +135,11 @@ namespace ILGPU.IR.Analyses
             #region Nested Types
 
             /// <summary>
-            /// An enumerator to iterate over all nodes in the current loop.
-            /// </summary>
-            public struct Enumerator : IEnumerator<BasicBlock>
-            {
-                private HashSet<BasicBlock>.Enumerator enumerator;
-
-                /// <summary>
-                /// Constructs a new node enumerator.
-                /// </summary>
-                /// <param name="nodes">The nodes to iterate over.</param>
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                internal Enumerator(HashSet<BasicBlock> nodes)
-                {
-                    enumerator = nodes.GetEnumerator();
-                }
-
-                /// <summary>
-                /// Returns the current node.
-                /// </summary>
-                public BasicBlock Current => enumerator.Current;
-
-                /// <summary cref="IEnumerator.Current"/>
-                object IEnumerator.Current => Current;
-
-                /// <summary cref="IDisposable.Dispose"/>
-                public void Dispose() => enumerator.Dispose();
-
-                /// <summary cref="IEnumerator.MoveNext"/>
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public bool MoveNext() => enumerator.MoveNext();
-
-                /// <summary cref="IEnumerator.Reset"/>
-                void IEnumerator.Reset() => throw new InvalidOperationException();
-            }
-
-            /// <summary>
             /// A value enumerator to iterate over all values in the current loop.
             /// </summary>
             public struct ValueEnumerator : IEnumerator<Value>
             {
-                private Enumerator enumerator;
+                private List<BasicBlock>.Enumerator enumerator;
                 private BasicBlock.Enumerator valueEnumerator;
 
                 /// <summary>
@@ -103,7 +147,7 @@ namespace ILGPU.IR.Analyses
                 /// </summary>
                 /// <param name="iterator">The loop enumerator.</param>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                internal ValueEnumerator(Enumerator iterator)
+                internal ValueEnumerator(List<BasicBlock>.Enumerator iterator)
                 {
                     enumerator = iterator;
                     // There must be at least a single node
@@ -207,7 +251,7 @@ namespace ILGPU.IR.Analyses
             private InlineList<BasicBlock> headers;
             private InlineList<BasicBlock> breakers;
             private InlineList<BasicBlock> backEdges;
-            private readonly HashSet<BasicBlock> nodes;
+            private BasicBlockSetList nodes;
 
             /// <summary>
             /// All child nodes (if any).
@@ -229,7 +273,7 @@ namespace ILGPU.IR.Analyses
                 ref InlineList<BasicBlock> headerBlocks,
                 ref InlineList<BasicBlock> breakerBlocks,
                 ref InlineList<BasicBlock> backEdgeBlocks,
-                HashSet<BasicBlock> members,
+                in BasicBlockSetList members,
                 HashSet<BasicBlock> entries,
                 HashSet<BasicBlock> exits)
             {
@@ -329,6 +373,34 @@ namespace ILGPU.IR.Analyses
                 children.Add(child);
             }
 
+            /// <summary>
+            /// Computes a block ordering of all blocks in this loop using the current
+            /// order and control-flow direction.
+            /// </summary>
+            /// <returns>The computed block ordering.</returns>
+            public BasicBlockCollection<TOrder, TDirection> ComputeOrderedBlocks(
+                int entryIndex) =>
+                ComputeOrderedBlocks<TOrder, TDirection>(entryIndex);
+
+            /// <summary>
+            /// Computes a block ordering of all blocks in this loop.
+            /// </summary>
+            /// <typeparam name="TOtherOrder">The other order.</typeparam>
+            /// <typeparam name="TOtherDirection">The target direction.</typeparam>
+            /// <returns>The computed block ordering.</returns>
+            public BasicBlockCollection<TOtherOrder, TOtherDirection>
+                ComputeOrderedBlocks<TOtherOrder, TOtherDirection>(
+                int entryIndex)
+                where TOtherOrder : struct, ITraversalOrder
+                where TOtherDirection : struct, IControlFlowDirection =>
+                new TOtherOrder().TraverseToCollection<
+                    TOtherOrder,
+                    MembersSuccessorProvider<TOtherDirection>,
+                    TOtherDirection>(
+                    Count,
+                    Entries[entryIndex],
+                    new MembersSuccessorProvider<TOtherDirection>(this));
+
             #endregion
 
             #region IEnumerable
@@ -345,7 +417,7 @@ namespace ILGPU.IR.Analyses
             /// of this loop.
             /// </summary>
             /// <returns>The resolved enumerator.</returns>
-            public Enumerator GetEnumerator() => new Enumerator(nodes);
+            public List<BasicBlock>.Enumerator GetEnumerator() => nodes.GetEnumerator();
 
             /// <summary cref="IEnumerable{T}.GetEnumerator"/>
             IEnumerator<BasicBlock> IEnumerable<BasicBlock>.GetEnumerator() =>
@@ -740,14 +812,12 @@ namespace ILGPU.IR.Analyses
                 return;
 
             // Gather all nodes contained in this SCC
-            var memberList = InlineList<BasicBlock>.Create(stack.Count - baseIndex);
-            var memberSet = new HashSet<BasicBlock>();
+            var members = BasicBlockSetList.Create(CFG.Blocks);
 
             for (int i = baseIndex, e = stack.Count; i < e; ++i)
             {
                 var w = NodeData.Pop(stack);
-                memberList.Add(w.Node);
-                memberSet.Add(w.Node);
+                members.Add(w.Node);
             }
 
             // Initialize all lists and sets
@@ -757,7 +827,7 @@ namespace ILGPU.IR.Analyses
             var exitBlocks = new HashSet<BasicBlock>();
 
             // Gather all loop entries and exists
-            foreach (var member in memberList)
+            foreach (var member in members)
             {
                 foreach (var predecessor in member.GetPredecessors<TDirection>())
                 {
@@ -786,7 +856,7 @@ namespace ILGPU.IR.Analyses
 
             // Compute all back edges
             var backEdges = InlineList<BasicBlock>.Create(2);
-            foreach (var member in memberList)
+            foreach (var member in members)
             {
                 foreach (var successor in member.GetSuccessors<TDirection>())
                 {
@@ -805,13 +875,13 @@ namespace ILGPU.IR.Analyses
                 ref headers,
                 ref breakers,
                 ref backEdges,
-                memberSet,
+                members,
                 entryBlocks,
                 exitBlocks);
             loops.Add(loop);
 
             // Map members to their associated inner-most loop
-            foreach (var member in memberList)
+            foreach (var member in members)
             {
                 nodeMapping[member].IsInSCC = false;
                 loopMapping[member] = loop;
@@ -826,6 +896,38 @@ namespace ILGPU.IR.Analyses
         /// <returns>True, if the node could be resolved to a loop.</returns>
         public bool TryGetLoops(BasicBlock block, out Node loop) =>
             loopMapping.TryGetValue(block, out loop);
+
+        /// <summary>
+        /// Processes all loops starting with the innermost loops.
+        /// </summary>
+        /// <typeparam name="TProcessor">The processor type.</typeparam>
+        /// <param name="processor">The processor instance.</param>
+        /// <returns>The resulting processor instance.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TProcessor ProcessLoops<TProcessor>(TProcessor processor)
+            where TProcessor : struct, ILoopProcessor
+        {
+            foreach (var header in Headers)
+                ProcessLoopsRecursive(header, ref processor);
+            return processor;
+        }
+
+        /// <summary>
+        /// Unrolls loops in a recursive way by unrolling the innermost loops first.
+        /// </summary>
+        /// <typeparam name="TProcessor">The processor type.</typeparam>
+        /// <param name="loop">The current loop node.</param>
+        /// <param name="processor">The processor instance.</param>
+        private static void ProcessLoopsRecursive<TProcessor>(
+            Node loop,
+            ref TProcessor processor)
+            where TProcessor : struct, ILoopProcessor
+        {
+            foreach (var child in loop.Children)
+                ProcessLoopsRecursive(child, ref processor);
+
+            processor.Process(loop);
+        }
 
         #endregion
 
