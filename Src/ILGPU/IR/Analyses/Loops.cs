@@ -130,128 +130,13 @@ namespace ILGPU.IR.Analyses
             "CA1710: IdentifiersShouldHaveCorrectSuffix",
             Justification = "This is a single Loop object; adding a collection suffix " +
             "would be misleading")]
-        public sealed class Node : IReadOnlyCollection<BasicBlock>
+        public sealed class Node
         {
-            #region Nested Types
-
-            /// <summary>
-            /// A value enumerator to iterate over all values in the current loop.
-            /// </summary>
-            public struct ValueEnumerator : IEnumerator<Value>
-            {
-                private List<BasicBlock>.Enumerator enumerator;
-                private BasicBlock.Enumerator valueEnumerator;
-
-                /// <summary>
-                /// Constructs a new value enumerator.
-                /// </summary>
-                /// <param name="iterator">The loop enumerator.</param>
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                internal ValueEnumerator(List<BasicBlock>.Enumerator iterator)
-                {
-                    enumerator = iterator;
-                    // There must be at least a single node
-                    enumerator.MoveNext();
-                    valueEnumerator = enumerator.Current.GetEnumerator();
-                }
-
-                /// <summary>
-                /// Returns the current value.
-                /// </summary>
-                public Value Current => valueEnumerator.Current;
-
-                /// <summary cref="IEnumerator.Current"/>
-                object IEnumerator.Current => Current;
-
-                /// <summary cref="IDisposable.Dispose"/>
-                public void Dispose() => enumerator.Dispose();
-
-                /// <summary cref="IEnumerator.MoveNext"/>
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public bool MoveNext()
-                {
-                    while (true)
-                    {
-                        if (valueEnumerator.MoveNext())
-                            return true;
-
-                        // Try to move to the next node
-                        if (!enumerator.MoveNext())
-                            return false;
-
-                        valueEnumerator = enumerator.Current.GetEnumerator();
-                    }
-                }
-
-                /// <summary cref="IEnumerator.Reset"/>
-                void IEnumerator.Reset() => throw new InvalidOperationException();
-            }
-
-            /// <summary>
-            /// A value enumerator to iterate over all phi values
-            /// that have a dependency on outer and inner values of this loop.
-            /// </summary>
-            private struct PhiValueEnumerator : IEnumerator<Value>
-            {
-                private ValueEnumerator enumerator;
-
-                /// <summary>
-                /// Constructs a new value enumerator.
-                /// </summary>
-                /// <param name="parent">The parent loop.</param>
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                internal PhiValueEnumerator(Node parent)
-                {
-                    Parent = parent;
-                    enumerator = parent.GetValueEnumerator();
-                }
-
-                /// <summary>
-                /// The parent loop.
-                /// </summary>
-                public Node Parent { get; }
-
-                /// <summary>
-                /// Returns the current value.
-                /// </summary>
-                public Value Current => enumerator.Current;
-
-                /// <summary cref="IEnumerator.Current"/>
-                object IEnumerator.Current => Current;
-
-                /// <summary cref="IDisposable.Dispose"/>
-                public void Dispose() => enumerator.Dispose();
-
-                /// <summary cref="IEnumerator.MoveNext"/>
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                public bool MoveNext()
-                {
-                    while (enumerator.MoveNext())
-                    {
-                        if (enumerator.Current is PhiValue phiValue)
-                        {
-                            foreach (Value operand in phiValue.Nodes)
-                            {
-                                if (!Parent.Contains(operand.BasicBlock))
-                                    return true;
-                            }
-                        }
-                    }
-                    return false;
-                }
-
-                /// <summary cref="IEnumerator.Reset"/>
-                void IEnumerator.Reset() => throw new InvalidOperationException();
-            }
-
-            #endregion
-
             #region Instance
 
             private InlineList<BasicBlock> headers;
             private InlineList<BasicBlock> breakers;
             private InlineList<BasicBlock> backEdges;
-            private BasicBlockSetList nodes;
 
             /// <summary>
             /// All child nodes (if any).
@@ -283,7 +168,7 @@ namespace ILGPU.IR.Analyses
                 headerBlocks.MoveTo(ref headers);
                 breakerBlocks.MoveTo(ref breakers);
                 backEdgeBlocks.MoveTo(ref backEdges);
-                nodes = members;
+                AllMembers = members;
                 children = InlineList<Node>.Create(1);
                 Entries = entries.ToImmutableArray();
                 Exits = exits.ToImmutableArray();
@@ -296,7 +181,7 @@ namespace ILGPU.IR.Analyses
             /// <summary>
             /// Returns the number of members.
             /// </summary>
-            public int Count => nodes.Count;
+            public int Count => AllMembers.Count;
 
             /// <summary>
             /// Returns the block containing the associated back edge.
@@ -343,6 +228,11 @@ namespace ILGPU.IR.Analyses
             /// </summary>
             public bool IsInnermostLoop => children.Count < 1;
 
+            /// <summary>
+            /// Returns the set list of all members.
+            /// </summary>
+            public BasicBlockSetList AllMembers { get; }
+
             #endregion
 
             #region Methods
@@ -353,15 +243,49 @@ namespace ILGPU.IR.Analyses
             /// <param name="block">The block to map to an loop.</param>
             /// <returns>True, if the node belongs to this loop.</returns>
             public bool Contains(BasicBlock block) =>
-                nodes.Contains(block);
+                block != null && AllMembers.Contains(block);
 
             /// <summary>
-            /// Resolves all <see cref="PhiValue"/>s that are contained
-            /// in this loop which reference at least one operand that is not
-            /// defined in this loop.
+            /// Checks whether the given block belongs to this loop and not to a
+            /// (potentially) nested child loop.
+            /// </summary>
+            /// <param name="block">The block to map to an loop.</param>
+            /// <returns>
+            /// True, if the node belongs to this loop and not a potentially nested child
+            /// node.
+            /// </returns>
+            public bool ContainsExclusively(BasicBlock block)
+            {
+                // The given block can be null when querying the block of a parameter
+                if (!Contains(block))
+                    return false;
+
+                // Exclude nested blocks of nested loops
+                if (IsInnermostLoop)
+                    return true;
+                foreach (var child in Children)
+                {
+                    if (child.Contains(block))
+                        return false;
+                }
+                return true;
+            }
+
+            /// <summary>
+            /// Resolves all <see cref="PhiValue"/>s that are contained in this loop and
+            /// in no other potentially nested child loop.
             /// </summary>
             /// <returns>The list of resolved phi values.</returns>
-            public Phis ResolvePhis() => Phis.Create(new PhiValueEnumerator(this));
+            public Phis ComputePhis()
+            {
+                var builder = Phis.CreateBuilder(AllMembers[0].Method);
+                foreach (var block in AllMembers)
+                {
+                    if (ContainsExclusively(block))
+                        builder.Add(block);
+                }
+                return builder.Seal();
+            }
 
             /// <summary>
             /// Adds the given child node.
@@ -400,31 +324,6 @@ namespace ILGPU.IR.Analyses
                     Count,
                     Entries[entryIndex],
                     new MembersSuccessorProvider<TOtherDirection>(this));
-
-            #endregion
-
-            #region IEnumerable
-
-            /// <summary>
-            /// Returns a new value enumerator.
-            /// </summary>
-            /// <returns>The resolved value enumerator.</returns>
-            public ValueEnumerator GetValueEnumerator() =>
-                new ValueEnumerator(GetEnumerator());
-
-            /// <summary>
-            /// Returns an enumerator that iterates over all members
-            /// of this loop.
-            /// </summary>
-            /// <returns>The resolved enumerator.</returns>
-            public List<BasicBlock>.Enumerator GetEnumerator() => nodes.GetEnumerator();
-
-            /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-            IEnumerator<BasicBlock> IEnumerable<BasicBlock>.GetEnumerator() =>
-                GetEnumerator();
-
-            /// <summary cref="IEnumerable.GetEnumerator"/>
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
             #endregion
         }
@@ -685,7 +584,7 @@ namespace ILGPU.IR.Analyses
             {
                 var loop = loops[loopIndex];
 
-                foreach (var member in loop)
+                foreach (var member in loop.AllMembers)
                     mapping[member].Clear();
 
                 foreach (var header in loops[loopIndex].Headers)
