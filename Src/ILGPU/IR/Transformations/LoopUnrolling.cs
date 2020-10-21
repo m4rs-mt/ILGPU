@@ -17,6 +17,7 @@ using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Loop = ILGPU.IR.Analyses.Loops<
     ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
     ILGPU.IR.Analyses.ControlFlowDirection.Forwards>.Node;
@@ -24,6 +25,9 @@ using LoopInfo = ILGPU.IR.Analyses.LoopInfo<
     ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
     ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 using LoopInfos = ILGPU.IR.Analyses.LoopInfos<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
+using Loops = ILGPU.IR.Analyses.Loops<
     ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
     ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 
@@ -323,6 +327,51 @@ namespace ILGPU.IR.Transformations
             #endregion
         }
 
+        /// <summary>
+        /// Applies the unrolling transformation to all loops.
+        /// </summary>
+        private struct LoopProcessor : Loops.ILoopProcessor
+        {
+            private readonly LoopInfos loopInfos;
+
+            public LoopProcessor(
+                in LoopInfos<ReversePostOrder, Forwards> infos,
+                Method.Builder builder,
+                int maxUnrollFactor)
+            {
+                loopInfos = infos;
+                Builder = builder;
+                MaxUnrollFactor = maxUnrollFactor;
+                Applied = false;
+            }
+
+            /// <summary>
+            /// Returns the parent method builder.
+            /// </summary>
+            public Method.Builder Builder { get; }
+
+            /// <summary>
+            /// Returns the maximum unrolling factor.
+            /// </summary>
+            public int MaxUnrollFactor { get; }
+
+            /// <summary>
+            /// Returns true if the loop processor could be applied.
+            /// </summary>
+            public bool Applied { get; private set; }
+
+            /// <summary>
+            /// Applies the unrolling transformation.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Process(Loop loop) =>
+                Applied |= TryUnroll(
+                    Builder,
+                    loop,
+                    loopInfos,
+                    MaxUnrollFactor);
+        }
+
         #endregion
 
         #region Static
@@ -534,42 +583,10 @@ namespace ILGPU.IR.Transformations
             // need to get information about previous predecessors and successors
             builder.AcceptControlFlowUpdates(accept: true);
 
-            bool applied = false;
-            foreach (var loop in loops.Headers)
-            {
-                UnrollRecursive(
-                    builder,
-                    loop,
-                    loopInfos,
-                    ref applied);
-            }
-
-            return applied;
-        }
-
-        /// <summary>
-        /// Unrolls loops in a recursive way by unrolling the innermost loops first.
-        /// </summary>
-        private void UnrollRecursive(
-            Method.Builder builder,
-            Loop loop,
-            LoopInfos loopInfos,
-            ref bool applied)
-        {
-            foreach (var child in loop.Children)
-            {
-                UnrollRecursive(
-                    builder,
-                    child,
-                    loopInfos,
-                    ref applied);
-            }
-
-            applied |= TryUnroll(
-                builder,
-                loop,
+            return loops.ProcessLoops(new LoopProcessor(
                 loopInfos,
-                MaxUnrollFactor);
+                builder,
+                MaxUnrollFactor)).Applied;
         }
 
         #endregion
