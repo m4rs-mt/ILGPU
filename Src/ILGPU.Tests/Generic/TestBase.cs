@@ -228,8 +228,7 @@ namespace ILGPU.Tests
         {
             var data = buffer.GetAsArray(Accelerator.DefaultStream);
             var dataLength = length ?? data.Length;
-            Assert.True(dataLength <= data.Length);
-            Assert.Equal(dataLength, expected.Length);
+            Assert.True(dataLength <= data.Length && dataLength <= expected.Length);
             for (int i = offset ?? 0, e = dataLength; i < e; ++i)
                 Assert.Equal(expected[i], data[i]);
         }
