@@ -13,10 +13,10 @@ using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using PhiValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.PhiValue>;
 
 namespace ILGPU.IR.Analyses
 {
@@ -27,42 +27,86 @@ namespace ILGPU.IR.Analyses
         "Microsoft.Naming",
         "CA1710: IdentifiersShouldHaveCorrectSuffix",
         Justification = "This is the correct name of the current entity")]
-    public readonly struct Phis : IEnumerable<PhiValue>
+    public readonly ref struct Phis
     {
         #region Nested Types
 
         /// <summary>
-        /// Represents a phi-value enumerator.
+        /// The builder class for the <see cref="Phis"/> analysis.
         /// </summary>
-        public struct Enumerator : IEnumerator<PhiValue>
+        public struct Builder
         {
-            private List<PhiValue>.Enumerator enumerator;
+            #region Instance
+
+            private PhiValueList phiValues;
+            private readonly HashSet<PhiValue> phiValueSet;
 
             /// <summary>
-            /// Constructs a new enumerator.
+            /// Constructs a new internal builder.
             /// </summary>
-            /// <param name="phiValues">All phi values.</param>
-            internal Enumerator(List<PhiValue> phiValues)
+            /// <param name="method">The parent method.</param>
+            internal Builder(Method method)
             {
-                enumerator = phiValues.GetEnumerator();
+                method.AssertNotNull(method);
+
+                phiValues = PhiValueList.Create(
+                    Math.Max(method.Blocks.Count >> 2, 4));
+                phiValueSet = new HashSet<PhiValue>();
+
+                Method = method;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the parent method.
+            /// </summary>
+            public Method Method { get; }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Adds the given phi value to the list.
+            /// </summary>
+            /// <param name="phiValue">The phi value to add.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Add(PhiValue phiValue)
+            {
+                Method.AssertNotNull(phiValue);
+                Method.Assert(Method == phiValue.BasicBlock.Method);
+
+                if (phiValueSet.Add(phiValue))
+                    phiValues.Add(phiValue);
             }
 
             /// <summary>
-            /// Returns the current basic block.
+            /// Adds all phi values in the given block.
             /// </summary>
-            public PhiValue Current => enumerator.Current;
+            /// <param name="block">The block to analyze.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Add(BasicBlock block)
+            {
+                Method.AssertNotNull(block);
+                Method.Assert(Method == block.Method);
 
-            /// <summary cref="IEnumerator.Current"/>
-            object IEnumerator.Current => Current;
+                foreach (Value value in block)
+                {
+                    if (value is PhiValue phiValue)
+                        Add(phiValue);
+                }
+            }
 
-            /// <summary cref="IDisposable.Dispose"/>
-            public void Dispose() => enumerator.Dispose();
+            /// <summary>
+            /// Seals the current builder and creates a <see cref="Phis"/> instance.
+            /// </summary>
+            /// <returns>The created <see cref="Phis"/> instance.</returns>
+            public Phis Seal() => new Phis(Method, ref phiValues);
 
-            /// <summary cref="IEnumerator.MoveNext"/>
-            public bool MoveNext() => enumerator.MoveNext();
-
-            /// <summary cref="IEnumerator.Reset"/>
-            void IEnumerator.Reset() => throw new InvalidOperationException();
+            #endregion
         }
 
         #endregion
@@ -70,14 +114,105 @@ namespace ILGPU.IR.Analyses
         #region Static
 
         /// <summary>
+        /// Creates a new builder.
+        /// </summary>
+        /// <param name="method">The parent method to use.</param>
+        /// <returns>The created analysis builder.</returns>
+        public static Builder CreateBuilder(Method method) => new Builder(method);
+
+        /// <summary>
+        /// Resolves all phi values in the given block.
+        /// </summary>
+        /// <param name="block">The source block.</param>
+        /// <returns>The resolved phis.</returns>
+        public static Phis Create(BasicBlock block)
+        {
+            block.AssertNotNull(block);
+
+            var builder = CreateBuilder(block.Method);
+            builder.Add(block);
+            return builder.Seal();
+        }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new Phis instance.
+        /// </summary>
+        /// <param name="method">The parent method.</param>
+        /// <param name="phis">All detected phi values.</param>
+        private Phis(Method method, ref PhiValueList phis)
+        {
+            Method = method;
+            Values = phis.AsReadOnlySpan();
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the parent method.
+        /// </summary>
+        public Method Method { get; }
+
+        /// <summary>
+        /// Returns all phi values.
+        /// </summary>
+        public ReadOnlySpan<PhiValue> Values { get; }
+
+        /// <summary>
+        /// Returns the number of phi values.
+        /// </summary>
+        public readonly int Count => Values.Length;
+
+        /// <summary>
+        /// Returns the i-th phi value.
+        /// </summary>
+        /// <param name="index">The phi value index.</param>
+        /// <returns>The resolved phi value.</returns>
+        public readonly PhiValue this[int index] => Values[index];
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Returns a phi-value enumerator.
+        /// </summary>
+        /// <returns>The resolved enumerator.</returns>
+        public readonly ReadOnlySpan<PhiValue>.Enumerator GetEnumerator() =>
+            Values.GetEnumerator();
+
+        #endregion
+
+        #region Operators
+
+        /// <summary>
+        /// Implicitly converts the given instance into a span.
+        /// </summary>
+        /// <param name="phis">The phi anlysis instance to convert.</param>
+        public static implicit operator ReadOnlySpan<PhiValue>(Phis phis) => phis.Values;
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Analysis extensions for <see cref="PhiValue"/> instances.
+    /// </summary>
+    public static class PhiValueExtensions
+    {
+        /// <summary>
         /// Gathers all phi source blocks.
         /// </summary>
         /// <typeparam name="TOrder">The current order.</typeparam>
         /// <typeparam name="TDirection">The control-flow direction.</typeparam>
         /// <param name="blocks">The blocks to use.</param>
         /// <returns>All phi value source blocks.</returns>
-        public static BasicBlockSet GaterhPhiSources<TOrder, TDirection>(
-            in BasicBlockCollection<TOrder, TDirection> blocks)
+        public static BasicBlockSet ComputePhiSources<TOrder, TDirection>(
+            this BasicBlockCollection<TOrder, TDirection> blocks)
             where TOrder : struct, ITraversalOrder
             where TDirection : struct, IControlFlowDirection
         {
@@ -95,95 +230,5 @@ namespace ILGPU.IR.Analyses
             }
             return result;
         }
-
-        /// <summary>
-        /// Resolves all phi values in the given block.
-        /// </summary>
-        /// <param name="block">The source block.</param>
-        /// <returns>The resolved phis.</returns>
-        public static Phis Create(BasicBlock block)
-        {
-            Debug.Assert(block != null, "Invalid block");
-
-            var phiValues = new List<PhiValue>();
-            foreach (Value value in block)
-            {
-                if (value is PhiValue phiValue)
-                    phiValues.Add(phiValue);
-            }
-            return new Phis(phiValues);
-        }
-
-        /// <summary>
-        /// Resolves all phi values using the given enumerator.
-        /// </summary>
-        /// <param name="enumerator">The enumerator.</param>
-        /// <returns>The resolved phis.</returns>
-        public static Phis Create<TEnumerator>(TEnumerator enumerator)
-            where TEnumerator : IEnumerator<Value>
-        {
-            var result = new List<PhiValue>();
-            var collected = new HashSet<PhiValue>();
-
-            while (enumerator.MoveNext())
-            {
-                if (enumerator.Current is PhiValue phiValue &&
-                    collected.Add(phiValue))
-                {
-                    result.Add(phiValue);
-                }
-            }
-
-            return new Phis(result);
-        }
-
-        #endregion
-
-        #region Instance
-
-        private readonly List<PhiValue> phiValues;
-
-        /// <summary>
-        /// Constructs a new Phis instance.
-        /// </summary>
-        /// <param name="phis">All detected phi values.</param>
-        private Phis(List<PhiValue> phis)
-        {
-            phiValues = phis;
-        }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Returns the number of phi values.
-        /// </summary>
-        public int Count => phiValues.Count;
-
-        /// <summary>
-        /// Returns the i-th phi value.
-        /// </summary>
-        /// <param name="index">The phi value index.</param>
-        /// <returns>The resolved phi value.</returns>
-        public PhiValue this[int index] => phiValues[index];
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Returns a phi-value enumerator.
-        /// </summary>
-        /// <returns>The resolved enumerator.</returns>
-        public Enumerator GetEnumerator() => new Enumerator(phiValues);
-
-        /// <summary cref="IEnumerable{T}.GetEnumerator"/>
-        IEnumerator<PhiValue> IEnumerable<PhiValue>.GetEnumerator() => GetEnumerator();
-
-        /// <summary cref="IEnumerable.GetEnumerator"/>
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        #endregion
     }
 }

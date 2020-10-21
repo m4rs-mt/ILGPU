@@ -105,7 +105,7 @@ namespace ILGPU.IR.Transformations
             builder.AcceptControlFlowUpdates(accept: true);
 
             var blocks = builder.SourceBlocks;
-            var phiSources = Phis.GaterhPhiSources(blocks);
+            var phiSources = blocks.ComputePhiSources();
 
             // Merge all empty blocks into their associated predecessors
             bool updated = false;
