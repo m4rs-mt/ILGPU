@@ -3,6 +3,7 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.IO" #>
 <#@ output extension=".cs" #>
+using ILGPU.Runtime;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Xunit;
@@ -40,6 +41,23 @@ namespace ILGPU.Tests
         protected BinaryIntOperations(ITestOutputHelper output, TestContext testContext)
             : base(output, testContext)
         { }
+
+        internal static void NestedBinaryKernel(Index1 index, ArrayView<int> data)
+        {
+           data[index] = (index / 32) - 1;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(NestedBinaryKernel))]
+        public void NestedBinary()
+        {
+            var inputArray = new[] { 1, 2, 3, 4, 5 };
+            using var buffer = Accelerator.Allocate(inputArray);
+            var expected = inputArray.Select(x => (x / 32) - 1).ToArray();
+
+            Execute(buffer.Length, buffer.View);
+            Verify(buffer, expected);
+        }
 
 <# foreach (var (operationName, prefix, infix, postfix) in operationConfigurations) { #>
 <#      foreach (var type in IntTypes) { #>
