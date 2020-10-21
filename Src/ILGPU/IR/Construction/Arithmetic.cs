@@ -180,6 +180,7 @@ namespace ILGPU.IR.Construction
                 }
 
                 if (left is BinaryArithmeticValue leftBinary &&
+                    leftBinary.Kind == kind &&
                     leftBinary.Right.Resolve() is PrimitiveValue nestedRightValue &&
                     (simplified = BinaryArithmeticSimplify_RHS(
                     location,
@@ -218,6 +219,7 @@ namespace ILGPU.IR.Construction
                 }
 
                 if (right is BinaryArithmeticValue rightBinary &&
+                    rightBinary.Kind == kind &&
                     rightBinary.Left.Resolve() is PrimitiveValue nestedLeftValue &&
                     (simplified = BinaryArithmeticSimplify_LHS(
                     location,
