@@ -192,6 +192,25 @@ namespace ILGPU.IR
             }
 
             /// <summary>
+            /// Adds the given value from another block to this block.
+            /// </summary>
+            /// <param name="value">The value to add</param>
+            public void AddFromOtherBlock(Value value)
+            {
+                this.AssertNotNull(value);
+                this.AssertNotNull(value.BasicBlock);
+                this.Assert(value.BasicBlock.Method == Method);
+                this.Assert(value.BasicBlock != BasicBlock);
+
+                var otherBuilder = MethodBuilder[value.BasicBlock];
+                otherBuilder.PerformRemoval();
+                otherBuilder.values.Remove(value);
+
+                value.BasicBlock = this;
+                Add(value);
+            }
+
+            /// <summary>
             /// Removes all operations of this block (including the terminator).
             /// </summary>
             public void Clear()
@@ -281,7 +300,7 @@ namespace ILGPU.IR
                     if (!(value.Value is PhiValue phiValue))
                         continue;
                     SetupInsertPosition(value);
-                    phiValue.RemapArguments(this, remapper);
+                    phiValue.RemapArguments(MethodBuilder, remapper);
                 }
             }
 

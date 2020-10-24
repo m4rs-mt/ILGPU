@@ -15,7 +15,6 @@ using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -212,7 +211,7 @@ namespace ILGPU.IR.Analyses
             out InlineList<InductionVariable> inductionVariables,
             out InlineList<(PhiValue, Value)> phiValues)
         {
-            var phis = loop.ResolvePhis();
+            var phis = loop.ComputePhis();
             var phiInductionsVariables = new HashSet<PhiValue>();
 
             inductionVariables = InlineList<InductionVariable>.Create(phis.Count);
@@ -279,16 +278,16 @@ namespace ILGPU.IR.Analyses
             if (numOperands != 2)
                 return false;
 
-            for (int i = 0; i < numOperands; ++i)
-            {
-                Value operand = phiValue.Nodes[i];
-                if (!loop.Contains(operand.BasicBlock))
-                    outsideOperand = operand;
-                else
-                    insideOperand = operand;
-            }
+            // Try to get inside and outside operands
+            Value firstOperand = phiValue[0];
+            Value secondOperand = phiValue[1];
+            bool firstContained = loop.Contains(firstOperand.BasicBlock);
+            insideOperand = firstContained ? firstOperand : secondOperand;
+            outsideOperand = firstContained ? secondOperand : firstOperand;
 
-            return insideOperand != null && outsideOperand != null;
+            return loop.Contains(insideOperand.BasicBlock) &&
+                (outsideOperand is PrimitiveValue ||
+                !loop.Contains(outsideOperand.BasicBlock));
         }
 
         /// <summary>
@@ -403,25 +402,11 @@ namespace ILGPU.IR.Analyses
         private BasicBlockCollection<TOrder, TDirection> ComputeOrderedBlocks<TProvider>(
             BasicBlock entryPoint,
             in TProvider provider)
-            where TProvider : struct, ITraversalSuccessorsProvider<TDirection>
-        {
-            var newBlocks = ImmutableArray.CreateBuilder<BasicBlock>(Loop.Count);
-            TOrder order = default;
-            var visitor = new TraversalCollectionVisitor<
-                ImmutableArray<BasicBlock>.Builder>(newBlocks);
-            order.Traverse<
-                TraversalCollectionVisitor<ImmutableArray<BasicBlock>.Builder>,
-                TProvider,
-                TDirection>(
+            where TProvider : struct, ITraversalSuccessorsProvider<TDirection> =>
+            new TOrder().TraverseToCollection<TOrder, TProvider, TDirection>(
+                Loop.Count,
                 entryPoint,
-                ref visitor,
                 provider);
-
-            // Return new block collection
-            return new BasicBlockCollection<TOrder, TDirection>(
-                entryPoint,
-                newBlocks.ToImmutable());
-        }
 
         /// <summary>
         /// Computes a block ordering of all blocks in this loop.

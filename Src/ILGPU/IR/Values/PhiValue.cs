@@ -32,23 +32,32 @@ namespace ILGPU.IR.Values
         /// <summary>
         /// Remaps phi argument blocks.
         /// </summary>
-        public interface IArgumentRemapper : TerminatorValue.IBlockRemapper
+        public interface IArgumentRemapper
         {
+            /// <summary>
+            /// Returns true if the given phi contains a block to remap.
+            /// </summary>
+            /// <param name="phiValue">The source phi.</param>
+            /// <returns>True, if the given phi contains the old block.</returns>
+            bool CanRemap(PhiValue phiValue);
+
             /// <summary>
             /// Tries to remap the given block to a new one.
             /// </summary>
+            /// <param name="phiValue">The source phi.</param>
             /// <param name="block">The old block to remap.</param>
             /// <param name="newBlock">The (possible) remapped new block.</param>
             /// <returns>True, if the block could be remapped.</returns>
-            bool TryRemap(BasicBlock block, out BasicBlock newBlock);
+            bool TryRemap(PhiValue phiValue, BasicBlock block, out BasicBlock newBlock);
 
             /// <summary>
             /// Remaps the given value.
             /// </summary>
+            /// <param name="phiValue">The source phi.</param>
             /// <param name="updatedBlock">The updated source information.</param>
             /// <param name="value">The original source value passed to the phi.</param>
             /// <returns>The new value to use instead.</returns>
-            Value RemapValue(BasicBlock updatedBlock, Value value);
+            Value RemapValue(PhiValue phiValue, BasicBlock updatedBlock, Value value);
         }
 
         /// <summary>
@@ -80,18 +89,20 @@ namespace ILGPU.IR.Values
             /// <summary>
             /// Returns true if the given blocks contain the old block.
             /// </summary>
-            /// <param name="blocks">The blocks to check.</param>
             /// <returns>True, if the given blocks contain the old block.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly bool CanRemap(in ReadOnlySpan<BasicBlock> blocks) =>
-                blocks.Contains(OldBlock, new BasicBlock.Comparer());
+            public readonly bool CanRemap(PhiValue phiValue) =>
+                phiValue.Sources.Contains(OldBlock, new BasicBlock.Comparer());
 
             /// <summary>
             /// Tries to remap the old block to the new block.
             /// </summary>
             /// <returns>Returns always true.</returns>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public readonly bool TryRemap(BasicBlock block, out BasicBlock newBlock)
+            public readonly bool TryRemap(
+                PhiValue phiValue,
+                BasicBlock block,
+                out BasicBlock newBlock)
             {
                 newBlock = block == OldBlock ? NewBlock : block;
                 return true;
@@ -100,7 +111,10 @@ namespace ILGPU.IR.Values
             /// <summary>
             /// Returns the value of <paramref name="value"/>.
             /// </summary>
-            public readonly Value RemapValue(BasicBlock updatedBlock, Value value) =>
+            public readonly Value RemapValue(
+                PhiValue phiValue,
+                BasicBlock updatedBlock,
+                Value value) =>
                 value;
         }
 
@@ -331,35 +345,36 @@ namespace ILGPU.IR.Values
         /// Remaps the current phi arguments.
         /// </summary>
         /// <typeparam name="TArgumentRemaper">The argument remapper type.</typeparam>
-        /// <param name="blockBuilder">The current block builder.</param>
+        /// <param name="methodBuilder">The parent method builder.</param>
         /// <param name="remapper">The remapper instance.</param>
         /// <returns>The remapped phi value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public PhiValue RemapArguments<TArgumentRemaper>(
-            BasicBlock.Builder blockBuilder,
+        public Value RemapArguments<TArgumentRemaper>(
+            Method.Builder methodBuilder,
             in TArgumentRemaper remapper)
             where TArgumentRemaper : IArgumentRemapper
         {
             // Check for a valid block association
-            this.Assert(blockBuilder.BasicBlock == BasicBlock);
-            if (!remapper.CanRemap(Sources))
+            this.Assert(methodBuilder.Method == BasicBlock.Method);
+            if (!remapper.CanRemap(this))
                 return this;
 
+            var blockBuilder = methodBuilder[BasicBlock];
             var phiBuilder = blockBuilder.CreatePhi(Location, Type);
             for (int i = 0, e = Nodes.Length; i < e; ++i)
             {
-                if (!remapper.TryRemap(Sources[i], out var newSource))
+                if (!remapper.TryRemap(this, Sources[i], out var newSource))
                     continue;
 
                 phiBuilder.AddArgument(
                     newSource,
-                    remapper.RemapValue(newSource, Nodes[i]));
+                    remapper.RemapValue(this, newSource, Nodes[i]));
             }
 
             var newPhi = phiBuilder.Seal();
             Replace(newPhi);
             blockBuilder.Remove(this);
-            return newPhi;
+            return newPhi.TryRemoveTrivialPhi(methodBuilder);
         }
 
         /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
@@ -407,9 +422,14 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() =>
-            Count < 1
-            ? string.Empty
-            : Nodes.ToString(new ValueReference.ToReferenceFormatter());
+            Count < 1 ? string.Empty : ToFullArgString();
+
+        /// <summary>
+        /// Returns a full argument string representation.
+        /// </summary>
+        private string ToFullArgString() =>
+            Nodes.ToString(new ValueReference.ToReferenceFormatter()) +
+            $" [{Sources.ToString(new BasicBlock.ToReferenceFormatter())}]";
 
         #endregion
     }

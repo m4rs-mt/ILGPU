@@ -17,6 +17,7 @@ using ILGPU.IR.Values;
 using ILGPU.Util;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Loop = ILGPU.IR.Analyses.Loops<
     ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
     ILGPU.IR.Analyses.ControlFlowDirection.Forwards>.Node;
@@ -24,6 +25,9 @@ using LoopInfo = ILGPU.IR.Analyses.LoopInfo<
     ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
     ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 using LoopInfos = ILGPU.IR.Analyses.LoopInfos<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
+using Loops = ILGPU.IR.Analyses.Loops<
     ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
     ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 
@@ -84,6 +88,12 @@ namespace ILGPU.IR.Transformations
                 blocks.Contains(Source, new BasicBlock.Comparer());
 
             /// <summary>
+            /// Returns true if the given phi value references the loop entry.
+            /// </summary>
+            public readonly bool CanRemap(PhiValue phiValue) =>
+                CanRemap(phiValue.Sources);
+
+            /// <summary>
             /// Remaps the given block to the target block in the case of the source
             /// block. It returns the given block otherwise.
             /// </summary>
@@ -94,7 +104,10 @@ namespace ILGPU.IR.Transformations
             /// Returns always true and remaps the new block using
             /// <see cref="Remap(BasicBlock)"/>.
             /// </summary>
-            public readonly bool TryRemap(BasicBlock block, out BasicBlock newBlock)
+            public readonly bool TryRemap(
+                PhiValue phiValue,
+                BasicBlock block,
+                out BasicBlock newBlock)
             {
                 newBlock = Remap(block);
                 return true;
@@ -103,7 +116,10 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Remaps the given value to the target value (if defined).
             /// </summary>
-            public readonly Value RemapValue(BasicBlock updatedBlock, Value value) =>
+            public readonly Value RemapValue(
+                PhiValue phiValue,
+                BasicBlock updatedBlock,
+                Value value) =>
                 updatedBlock == Target ? TargetValue : value;
         }
 
@@ -291,7 +307,7 @@ namespace ILGPU.IR.Transformations
                 foreach (var entry in phiMapping)
                 {
                     entry.Key.RemapArguments(
-                        Builder[entry.Key.BasicBlock],
+                        Builder,
                         new LoopRemapper(
                             BackEdge,
                             backEdgeBlock,
@@ -309,6 +325,51 @@ namespace ILGPU.IR.Transformations
             }
 
             #endregion
+        }
+
+        /// <summary>
+        /// Applies the unrolling transformation to all loops.
+        /// </summary>
+        private struct LoopProcessor : Loops.ILoopProcessor
+        {
+            private readonly LoopInfos loopInfos;
+
+            public LoopProcessor(
+                in LoopInfos<ReversePostOrder, Forwards> infos,
+                Method.Builder builder,
+                int maxUnrollFactor)
+            {
+                loopInfos = infos;
+                Builder = builder;
+                MaxUnrollFactor = maxUnrollFactor;
+                Applied = false;
+            }
+
+            /// <summary>
+            /// Returns the parent method builder.
+            /// </summary>
+            public Method.Builder Builder { get; }
+
+            /// <summary>
+            /// Returns the maximum unrolling factor.
+            /// </summary>
+            public int MaxUnrollFactor { get; }
+
+            /// <summary>
+            /// Returns true if the loop processor could be applied.
+            /// </summary>
+            public bool Applied { get; private set; }
+
+            /// <summary>
+            /// Applies the unrolling transformation.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void Process(Loop loop) =>
+                Applied |= TryUnroll(
+                    Builder,
+                    loop,
+                    loopInfos,
+                    MaxUnrollFactor);
         }
 
         #endregion
@@ -522,42 +583,10 @@ namespace ILGPU.IR.Transformations
             // need to get information about previous predecessors and successors
             builder.AcceptControlFlowUpdates(accept: true);
 
-            bool applied = false;
-            foreach (var loop in loops.Headers)
-            {
-                UnrollRecursive(
-                    builder,
-                    loop,
-                    loopInfos,
-                    ref applied);
-            }
-
-            return applied;
-        }
-
-        /// <summary>
-        /// Unrolls loops in a recursive way by unrolling the innermost loops first.
-        /// </summary>
-        private void UnrollRecursive(
-            Method.Builder builder,
-            Loop loop,
-            LoopInfos loopInfos,
-            ref bool applied)
-        {
-            foreach (var child in loop.Children)
-            {
-                UnrollRecursive(
-                    builder,
-                    child,
-                    loopInfos,
-                    ref applied);
-            }
-
-            applied |= TryUnroll(
-                builder,
-                loop,
+            return loops.ProcessLoops(new LoopProcessor(
                 loopInfos,
-                MaxUnrollFactor);
+                builder,
+                MaxUnrollFactor)).Applied;
         }
 
         #endregion

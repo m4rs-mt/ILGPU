@@ -12,6 +12,7 @@
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -58,7 +59,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
     /// <summary>
     /// A generic collection visitor.
     /// </summary>
-    /// <typeparam name="TCollection"></typeparam>
+    /// <typeparam name="TCollection">The collection type.</typeparam>
     public readonly struct TraversalCollectionVisitor<TCollection> :
         ITraversalVisitor
         where TCollection : ICollection<BasicBlock>
@@ -132,7 +133,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         void Traverse<TVisitor, TSuccessorProvider, TDirection>(
             BasicBlock entryBlock,
             ref TVisitor visitor,
-            TSuccessorProvider successorProvider)
+            in TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
             where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection;
@@ -154,7 +155,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
     /// <summary>
     /// A helper class for traversal.
     /// </summary>
-    static class TraversalOrder
+    public static class TraversalOrder
     {
         /// <summary>
         /// Specifies the default initial stack size.
@@ -205,6 +206,46 @@ namespace ILGPU.IR.Analyses.TraversalOrders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool BackwardsMoveNext(ref TraversalEnumerationState state) =>
             --state.Index >= 0;
+
+        /// <summary>
+        /// Computes a traversal using the current order.
+        /// </summary>
+        /// <typeparam name="TOrder">The current order type.</typeparam>
+        /// <typeparam name="TSuccessorProvider">The successor provider.</typeparam>
+        /// <typeparam name="TDirection">The control-flow direction.</typeparam>
+        /// <param name="order">The current order instance.</param>
+        /// <param name="entryBlock">The entry block.</param>
+        /// <param name="count">The number of elements.</param>
+        /// <param name="successorProvider">The successor provider.</param>
+        /// <returns>The created traversal.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static BasicBlockCollection<TOrder, TDirection>
+            TraverseToCollection<TOrder, TSuccessorProvider, TDirection>(
+            this TOrder order,
+            int count,
+            BasicBlock entryBlock,
+            in TSuccessorProvider successorProvider)
+            where TOrder : struct, ITraversalOrder
+            where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
+            where TDirection : struct, IControlFlowDirection
+        {
+            var newBlocks = ImmutableArray.CreateBuilder<BasicBlock>(count);
+            var visitor = new TraversalCollectionVisitor<
+                ImmutableArray<BasicBlock>.Builder>(newBlocks);
+
+            order.Traverse<
+                TraversalCollectionVisitor<ImmutableArray<BasicBlock>.Builder>,
+                TSuccessorProvider,
+                TDirection>(
+                entryBlock,
+                ref visitor,
+                successorProvider);
+
+            // Return new block collection
+            return new BasicBlockCollection<TOrder, TDirection>(
+                entryBlock,
+                newBlocks.ToImmutable());
+        }
     }
 
     /// <summary>
@@ -252,7 +293,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             TDirection>(
             BasicBlock entryBlock,
             ref TVisitor visitor,
-            TSuccessorProvider successorProvider)
+            in TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
             where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
@@ -329,7 +370,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             TDirection>(
             BasicBlock entryBlock,
             ref TVisitor visitor,
-            TSuccessorProvider successorProvider)
+            in TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
             where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
@@ -387,7 +428,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             TDirection>(
             BasicBlock entryBlock,
             ref TVisitor visitor,
-            TSuccessorProvider successorProvider)
+            in TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
             where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
@@ -473,7 +514,7 @@ namespace ILGPU.IR.Analyses.TraversalOrders
             TDirection>(
             BasicBlock entryBlock,
             ref TVisitor visitor,
-            TSuccessorProvider successorProvider)
+            in TSuccessorProvider successorProvider)
             where TVisitor : struct, ITraversalVisitor
             where TSuccessorProvider : ITraversalSuccessorsProvider<TDirection>
             where TDirection : struct, IControlFlowDirection
