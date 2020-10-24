@@ -596,7 +596,7 @@ namespace ILGPU.IR
             /// CAUTION: Applying a control-flow update to all blocks will cause all
             /// block instances to be modified.
             /// </remarks>
-            internal BasicBlockCollection<ReversePostOrder, Forwards> UpdateControlFlow()
+            public BasicBlockCollection<ReversePostOrder, Forwards> UpdateControlFlow()
             {
                 if (!updateControlFlow)
                     return SourceBlocks;

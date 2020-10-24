@@ -300,7 +300,7 @@ namespace ILGPU.IR
                     if (!(value.Value is PhiValue phiValue))
                         continue;
                     SetupInsertPosition(value);
-                    phiValue.RemapArguments(this, remapper);
+                    phiValue.RemapArguments(MethodBuilder, remapper);
                 }
             }
 

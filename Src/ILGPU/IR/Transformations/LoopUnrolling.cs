@@ -88,6 +88,12 @@ namespace ILGPU.IR.Transformations
                 blocks.Contains(Source, new BasicBlock.Comparer());
 
             /// <summary>
+            /// Returns true if the given phi value references the loop entry.
+            /// </summary>
+            public readonly bool CanRemap(PhiValue phiValue) =>
+                CanRemap(phiValue.Sources);
+
+            /// <summary>
             /// Remaps the given block to the target block in the case of the source
             /// block. It returns the given block otherwise.
             /// </summary>
@@ -98,7 +104,10 @@ namespace ILGPU.IR.Transformations
             /// Returns always true and remaps the new block using
             /// <see cref="Remap(BasicBlock)"/>.
             /// </summary>
-            public readonly bool TryRemap(BasicBlock block, out BasicBlock newBlock)
+            public readonly bool TryRemap(
+                PhiValue phiValue,
+                BasicBlock block,
+                out BasicBlock newBlock)
             {
                 newBlock = Remap(block);
                 return true;
@@ -107,7 +116,10 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Remaps the given value to the target value (if defined).
             /// </summary>
-            public readonly Value RemapValue(BasicBlock updatedBlock, Value value) =>
+            public readonly Value RemapValue(
+                PhiValue phiValue,
+                BasicBlock updatedBlock,
+                Value value) =>
                 updatedBlock == Target ? TargetValue : value;
         }
 
@@ -295,7 +307,7 @@ namespace ILGPU.IR.Transformations
                 foreach (var entry in phiMapping)
                 {
                     entry.Key.RemapArguments(
-                        Builder[entry.Key.BasicBlock],
+                        Builder,
                         new LoopRemapper(
                             BackEdge,
                             backEdgeBlock,

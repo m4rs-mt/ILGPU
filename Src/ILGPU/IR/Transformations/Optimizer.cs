@@ -200,6 +200,7 @@ namespace ILGPU.IR.Transformations
 
             builder.Add(new LoopInvariantCodeMotion());
             builder.Add(new LoopUnrolling());
+            builder.Add(new UnreachableCodeElimination());
             builder.Add(dce);
             builder.Add(scf);
 
