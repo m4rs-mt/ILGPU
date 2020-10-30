@@ -11,7 +11,6 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
-using System.Diagnostics;
 
 namespace ILGPU.IR.Values
 {
@@ -55,10 +54,9 @@ namespace ILGPU.IR.Values
             MemoryAddressSpace addressSpace)
             : base(initializer)
         {
-            Debug.Assert(
+            this.Assert(
                 addressSpace == MemoryAddressSpace.Local ||
-                addressSpace == MemoryAddressSpace.Shared,
-                "Invalid alloca address space");
+                addressSpace == MemoryAddressSpace.Shared);
 
             AllocaType = allocaType;
             AddressSpace = addressSpace;
