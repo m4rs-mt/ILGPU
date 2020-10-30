@@ -14,6 +14,7 @@ using ILGPU.Resources;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace ILGPU.Runtime.Cuda
 {
@@ -295,11 +296,16 @@ namespace ILGPU.Runtime.Cuda
         /// <param name="architecture">The PTX architecture</param>
         /// <returns>The minimum driver version</returns>
         public static CudaDriverVersion GetMinimumDriverVersion(
-            PTXArchitecture architecture) =>
-            ArchitectureLookup.TryGetValue(architecture, out var result)
-            ? result
-            : throw new NotSupportedException(
-                RuntimeErrorMessages.NotSupportedPTXArchitecture);
+            PTXArchitecture architecture)
+        {
+            if (ArchitectureLookup.TryGetValue(architecture, out var result))
+                return result;
+
+            // If the architecture is unknown, return the highest driver version that
+            // we support. The user should already have a driver version higher than
+            // this, because they are most likely using a brand new graphics card.
+            return ArchitectureLookup.OrderByDescending(x => x.Key).First().Value;
+        }
 
         /// <summary>
         /// Resolves the minimum CUDA driver version for the PTX instruction set
