@@ -121,12 +121,12 @@ namespace ILGPU.Backends.PTX
                 return;
 
             // Get global alignment information
-            int sharedAlignmentInBytes = 1;
+            int sharedAlignmentInBytes = PTXBackend.DefaultSharedMemoryAlignment;
             foreach (var alloca in Allocas.DynamicSharedAllocations)
             {
                 sharedAlignmentInBytes = Math.Max(
                     sharedAlignmentInBytes,
-                    PointerAlignments.GetInitialAlignment(alloca.Alloca));
+                    GetAllocaAlignment(alloca.Alloca));
             }
             sharedAlignmentInBytes = Math.Min(
                 sharedAlignmentInBytes,

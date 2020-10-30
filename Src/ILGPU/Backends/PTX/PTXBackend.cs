@@ -46,6 +46,12 @@ namespace ILGPU.Backends.PTX
         /// </remarks>
         public const int DefaultGlobalMemoryAlignment = 256;
 
+        /// <summary>
+        /// Returns the default shared memory alignment in bytes to benefit from
+        /// vectorized IO operations in most cases.
+        /// </summary>
+        public const int DefaultSharedMemoryAlignment = 4;
+
         #endregion
 
         #region Nested Types
