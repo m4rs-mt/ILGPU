@@ -284,7 +284,7 @@ namespace ILGPU.Runtime.Cuda
             CudaException.ThrowIfFailed(
                 CurrentAPI.GetDeviceComputeCapability(
                     out int major,
-                out int minor,
+                    out int minor,
                 DeviceId));
             Architecture = PTXArchitectureUtils.GetArchitecture(major, minor);
 
