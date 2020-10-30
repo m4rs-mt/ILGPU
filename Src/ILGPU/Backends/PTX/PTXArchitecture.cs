@@ -183,7 +183,7 @@ namespace ILGPU.Backends
         /// Returns the string representation of the architecture.
         /// </summary>
         /// <returns>The string representation of the architecture.</returns>
-        public override string ToString() => $"SM {Major}.{Minor}";
+        public override string ToString() => $"SM_{Major}{Minor}";
 
         #endregion
 
