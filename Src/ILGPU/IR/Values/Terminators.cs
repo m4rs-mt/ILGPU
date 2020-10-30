@@ -483,6 +483,7 @@ namespace ILGPU.IR.Values
             Location.Assert(
                 condition.Type.IsPrimitiveType &&
                 condition.Type.BasicValueType == BasicValueType.Int1);
+            Flags = flags;
 
             var targets = BlockList.Create(trueTarget, falseTarget);
             SealTargets(ref targets);
