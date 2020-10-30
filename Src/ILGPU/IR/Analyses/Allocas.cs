@@ -14,9 +14,12 @@ using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.IR.Analyses
 {
@@ -25,6 +28,8 @@ namespace ILGPU.IR.Analyses
     /// </summary>
     public readonly struct AllocaInformation
     {
+        #region Instance
+
         /// <summary>
         /// Constructs new alloca information.
         /// </summary>
@@ -42,6 +47,10 @@ namespace ILGPU.IR.Analyses
                     : throw new NotSupportedException(
                         ErrorMessages.NotSupportedDynamicAllocation);
         }
+
+        #endregion
+
+        #region Properties
 
         /// <summary>
         /// Returns the allocation index.
@@ -87,6 +96,8 @@ namespace ILGPU.IR.Analyses
         /// Returns the element type.
         /// </summary>
         public TypeNode ElementType => Alloca.AllocaType;
+
+        #endregion
     }
 
     /// <summary>
@@ -292,6 +303,139 @@ namespace ILGPU.IR.Analyses
         /// Returns the total shared memory size in bytes.
         /// </summary>
         public int SharedMemorySize => SharedAllocations.TotalSize;
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Represents a lightweight analysis to determine alignment
+    /// </summary>
+    public readonly struct AllocaAlignments
+    {
+        #region Static
+
+        /// <summary>
+        /// Determines the initial alloca alignment based on the type of the allocation.
+        /// </summary>
+        /// <param name="alloca">
+        /// The alloca to determine to alignment information for.
+        /// </param>
+        /// <returns>The initial alignment in bytes.</returns>
+        public static int GetInitialAlignment(Alloca alloca) =>
+            GetAllocaTypeAlignment(alloca.AllocaType);
+
+        /// <summary>
+        /// Determines the allocation alignment information based on the given type.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns>The compatible allocation alignment in bytes.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetAllocaTypeAlignment(TypeNode type) =>
+            // Assume that we can align the type to an appropriate power of
+            // 2 if the type size is compatible
+            Utilities.IsPowerOf2(type.Size)
+            ? Math.Max(type.Alignment, type.Size)
+            : type.Alignment;
+
+        /// <summary>
+        /// Tries to determine type information that can be used to compute a compatible
+        /// allocation type alignment using
+        /// <see cref="GetAllocaTypeAlignment(TypeNode)"/>.
+        /// </summary>
+        /// <param name="value">The value to get the type information for.</param>
+        /// <returns>The type, if the value is supported, null otherwise.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TypeNode TryGetAnalysisType(Value value) =>
+            value switch
+            {
+                PhiValue phiValue => phiValue.Type,
+                PointerCast cast => cast.TargetElementType,
+                AddressSpaceCast cast =>
+                    (cast.TargetType as IAddressSpaceType).ElementType,
+                NewView newView => newView.ViewElementType,
+                ViewCast cast => cast.TargetElementType,
+                SubViewValue subView => subView.ElementType,
+                LoadElementAddress lea when lea.IsPointerAccess || lea.IsViewAccess =>
+                    lea.ElementType,
+                _ => null
+            };
+
+        /// <summary>
+        /// Creates a new allocation alignments analysis using a default stack processing
+        /// capacity of 16 elements.
+        /// </summary>
+        public static AllocaAlignments Create() => Create(16);
+
+        /// <summary>
+        /// Creates a new allocation alignments analysis.
+        /// </summary>
+        /// <param name="capacity">The initial stack processing capacity.</param>
+        public static AllocaAlignments Create(int capacity) =>
+            new AllocaAlignments(capacity);
+
+        #endregion
+
+        #region Instance
+
+        private readonly HashSet<Value> visited;
+        private readonly Stack<Value> toProcess;
+
+        /// <summary>
+        /// Constructs a new alloca allignment analysis.
+        /// </summary>
+        /// <param name="capacity">The initial stack capacity.</param>
+        private AllocaAlignments(int capacity)
+        {
+            visited = new HashSet<Value>();
+            toProcess = new Stack<Value>(capacity);
+        }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Computes detailed allocation alignment information using all aliases.
+        /// </summary>
+        /// <returns>The maximium alignment of the allocation.</returns>
+        public readonly int ComputeAllocaAlignment(Alloca alloca)
+        {
+            alloca.AssertNotNull(alloca);
+
+            // Determine the initial alloca alignment and push all uses
+            int alignment = GetInitialAlignment(alloca);
+            foreach (Value use in alloca.Uses)
+                toProcess.Push(use);
+
+            // Continue our search until we have seen all transitively reachable uses
+            while (toProcess.Count > 0)
+            {
+                var current = toProcess.Pop();
+                TypeNode type;
+
+                // Check whether we have already seen this value or whether we can skip
+                // this value since it will not contribute to the alloca alignment info
+                if (!visited.Add(current) ||
+                    (type = TryGetAnalysisType(current)) is null)
+                {
+                    continue;
+                }
+
+                // Determine the maximal alignment based on the current alignment and
+                // the allocation-specific alignment of analysis type
+                alignment = Math.Max(alignment, GetAllocaTypeAlignment(type));
+
+                // Continue the search by pushing all uses onto the stack
+                foreach (Value use in current.Uses)
+                    toProcess.Push(use);
+            }
+
+            // Clear all temporary data structures
+            visited.Clear();
+            alloca.Assert(toProcess.Count == 0 && visited.Count == 0);
+
+            return alignment;
+        }
 
         #endregion
     }
