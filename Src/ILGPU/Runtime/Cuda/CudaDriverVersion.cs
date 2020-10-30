@@ -256,6 +256,7 @@ namespace ILGPU.Runtime.Cuda
             { PTXArchitecture.SM_75, CudaDriverVersion.FromMajorMinor(10, 0) },
 
             { PTXArchitecture.SM_80, CudaDriverVersion.FromMajorMinor(11, 0) },
+            { PTXArchitecture.SM_86, CudaDriverVersion.FromMajorMinor(11, 1) },
         };
 
         /// <summary>
@@ -285,6 +286,7 @@ namespace ILGPU.Runtime.Cuda
             { PTXInstructionSet.ISA_65, CudaDriverVersion.FromMajorMinor(10, 2) },
 
             { PTXInstructionSet.ISA_70, CudaDriverVersion.FromMajorMinor(11, 0) },
+            { PTXInstructionSet.ISA_71, CudaDriverVersion.FromMajorMinor(11, 1) },
         };
 
         /// <summary>

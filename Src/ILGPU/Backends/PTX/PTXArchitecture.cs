@@ -94,6 +94,11 @@ namespace ILGPU.Backends
         /// </summary>
         public static readonly PTXArchitecture SM_80 = new PTXArchitecture(8, 0);
 
+        /// <summary>
+        /// The 8.6 architecture.
+        /// </summary>
+        public static readonly PTXArchitecture SM_86 = new PTXArchitecture(8, 6);
+
         #endregion
 
         #region Instance
