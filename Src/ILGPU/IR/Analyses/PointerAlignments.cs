@@ -12,7 +12,6 @@
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 
@@ -65,6 +64,9 @@ namespace ILGPU.IR.Analyses
         private sealed class AnalysisImplementation :
             GlobalFixPointAnalysis<int, Forwards>
         {
+            private readonly AllocaAlignments allocaAlignments =
+                AllocaAlignments.Create();
+
             /// <summary>
             /// Constructs a new analysis implementation.
             /// </summary>
@@ -79,7 +81,11 @@ namespace ILGPU.IR.Analyses
             /// Creates initial analysis data.
             /// </summary>
             protected override AnalysisValue<int> CreateData(Value node) =>
-                Create(GetInitialAlignment(node), node.Type);
+                Create(
+                    node is Alloca alloca
+                        ? allocaAlignments.ComputeAllocaAlignment(alloca)
+                        : GetInitialAlignment(node),
+                    node.Type);
 
             /// <summary>
             /// Returns the minimum of the first and the second value.
@@ -129,17 +135,12 @@ namespace ILGPU.IR.Analyses
         /// </summary>
         /// <param name="node">The IR node.</param>
         /// <returns>The initial alignment information.</returns>
-        public static int GetInitialAlignment(Value node)
+        private static int GetInitialAlignment(Value node)
         {
             switch (node)
             {
                 case Alloca alloca:
-                    // Assume that we can align the type to an appropriate power of
-                    // 2 if the type size is compatible
-                    var allocaType = alloca.AllocaType;
-                    if (Utilities.IsPowerOf2(allocaType.Size))
-                        return Math.Max(allocaType.Alignment, allocaType.Size);
-                    return allocaType.Alignment;
+                    return AllocaAlignments.GetInitialAlignment(alloca);
                 case NewView _:
                 case BaseAddressSpaceCast _:
                 case SubViewValue _:
@@ -231,6 +232,13 @@ namespace ILGPU.IR.Analyses
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns the alignment information determined and used for the given alloca.
+        /// </summary>
+        /// <param name="alloca">The alloca to get the alignment information for.</param>
+        /// <returns>The determined and used alignment in bytes.</returns>
+        public int GetAllocaAlignment(Alloca alloca) => this[alloca];
 
         /// <summary>
         /// Returns safe alignment information.

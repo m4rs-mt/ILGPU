@@ -451,6 +451,15 @@ namespace ILGPU.Backends.PTX
         #region General Code Generation
 
         /// <summary>
+        /// Returns the alignment in bytes for the given alloca.
+        /// </summary>
+        /// <param name="alloca">The alloca to get the alignment information for.</param>
+        /// <returns>The determined and used alignment in bytes.</returns>
+        protected int GetAllocaAlignment(Alloca alloca) =>
+            PointerAlignments?.GetAllocaAlignment(alloca) ??
+            AllocaAlignments.GetInitialAlignment(alloca);
+
+        /// <summary>
         /// Declares a new label.
         /// </summary>
         /// <returns>The declared label.</returns>
@@ -599,8 +608,7 @@ namespace ILGPU.Backends.PTX
                 Builder.Append(addressSpacePrefix);
 
                 Builder.Append(".align ");
-                Builder.Append(
-                    PointerAlignments.GetInitialAlignment(allocaInfo.Alloca));
+                Builder.Append(GetAllocaAlignment(allocaInfo.Alloca));
                 Builder.Append(" .b8 ");
 
                 var name = namePrefix + offset++;

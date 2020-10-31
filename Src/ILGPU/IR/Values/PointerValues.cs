@@ -53,6 +53,21 @@ namespace ILGPU.IR.Values
         /// </summary>
         public bool Is64bitAccess => Offset.BasicValueType == BasicValueType.Int64;
 
+        /// <summary>
+        /// Returns the view element type.
+        /// </summary>
+        public IAddressSpaceType AddressSpaceType => Type as IAddressSpaceType;
+
+        /// <summary>
+        /// Returns the pointer address space.
+        /// </summary>
+        public MemoryAddressSpace AddressSpace => AddressSpaceType.AddressSpace;
+
+        /// <summary>
+        /// Returns the element type.
+        /// </summary>
+        public TypeNode ElementType => AddressSpaceType.ElementType;
+
         #endregion
     }
 
