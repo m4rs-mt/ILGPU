@@ -448,11 +448,14 @@ namespace ILGPU.Tests
             int extent)
         {
             using var stream = Accelerator.CreateStream();
-            using var exchangeBuffer =
-                    Accelerator.AllocateExchangeBuffer<long>(bufferSize);
+            using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
+                bufferSize);
+            exchangeBuffer.Buffer.MemSetToZero(stream);
+            stream.Synchronize();
+
+            // Fill data on the CPU side
             for (int i = 0; i < bufferSize; ++i)
                 exchangeBuffer[i] = constant;
-            exchangeBuffer.Buffer.MemSetToZero();
 
             // Start copying, create the expected array in the meantime
             exchangeBuffer.CopyToAccelerator(stream, cpuOffset, accelOffset, extent);
@@ -490,8 +493,12 @@ namespace ILGPU.Tests
             int extent)
         {
             using var stream = Accelerator.CreateStream();
-            using var exchangeBuffer =
-                    Accelerator.AllocateExchangeBuffer<long>(bufferSize);
+            using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(
+                bufferSize);
+            exchangeBuffer.Buffer.MemSetToZero(stream);
+            stream.Synchronize();
+
+            // Fill data on the CPU side
             for (int i = 0; i < bufferSize; ++i)
                 exchangeBuffer[i] = constant;
 
