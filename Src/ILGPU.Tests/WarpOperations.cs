@@ -123,11 +123,11 @@ namespace ILGPU.Tests
             data[index] = Warp.ShuffleDown(Warp.LaneIdx, shiftAmount);
         }
 
-        [Theory]
-        [InlineData(1)]
+        [Fact]
         [KernelMethod(nameof(WarpShuffleDownKernel))]
-        public void WarpShuffleDown(int warpMultiplier)
+        public void WarpShuffleDown()
         {
+            int warpMultiplier = 1;
             for (
                 int shiftAmount = 0;
                 shiftAmount < Math.Min(4, Accelerator.WarpSize);
@@ -137,7 +137,7 @@ namespace ILGPU.Tests
                 using var dataBuffer = Accelerator.Allocate<int>(length);
                 Execute(length, dataBuffer.View, shiftAmount);
 
-                var expected = new int[length];
+                var expected = new int[Accelerator.WarpSize - shiftAmount];
                 for (int i = 0; i < warpMultiplier; ++i)
                 {
                     var baseIdx = i * Accelerator.WarpSize;
