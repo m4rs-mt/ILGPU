@@ -145,6 +145,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>TransformerExtensionTests.cs</LastGenOutput>
     </None>
+    <None Update="UniqueExtensionTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>UniqueExtensionTests.cs</LastGenOutput>
+    </None>
     <None Update="WarpExtensionTests.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>WarpExtensionTests.cs</LastGenOutput>
@@ -243,6 +247,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>TransformerExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="UniqueExtensionTests.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>UniqueExtensionTests.tt</DependentUpon>
     </Compile>
     <Compile Update="WarpExtensionTests.cs">
       <DesignTime>True</DesignTime>

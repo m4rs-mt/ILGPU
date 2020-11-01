@@ -67,6 +67,10 @@
       <LastGenOutput>CLContext.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
+    <None Update="ComparisonOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ComparisonOperations.cs</LastGenOutput>
+    </None>
     <None Update="HistogramLaunchers.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>HistogramLaunchers.cs</LastGenOutput>
@@ -115,6 +119,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Sequencers.cs</LastGenOutput>
     </None>
+    <None Update="UniqueLaunchers.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>UniqueLaunchers.cs</LastGenOutput>
+    </None>
     <None Update="XMath\Cordic.ttinclude">
       <Generator></Generator>
     </None>
@@ -146,6 +154,11 @@
       <DependentUpon>CLContext.Generated.tt</DependentUpon>
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="ComparisonOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ComparisonOperations.tt</DependentUpon>
     </Compile>
     <Compile Update="HistogramLaunchers.cs">
       <DesignTime>True</DesignTime>
@@ -211,6 +224,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Sequencers.tt</DependentUpon>
+    </Compile>
+    <Compile Update="UniqueLaunchers.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>UniqueLaunchers.tt</DependentUpon>
     </Compile>
     <Compile Update="XMath\Cordic.cs">
       <DesignTime>True</DesignTime>

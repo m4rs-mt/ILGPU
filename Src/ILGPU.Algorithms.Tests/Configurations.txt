@@ -9,6 +9,7 @@ ScanExtensionTests: Debug, Release, O2
 SequencerTests: Debug, Release, O2
 TempViewManagerTests: Debug, Release, O2
 TransformExtensionTests: Debug, Release, O2
+UniqueExtensionTests: Debug, Release, O2
 VectorTests: Debug, Release, O2
 WarpExtensionTests: Debug, Release, O2
 XMathTests: Debug, Release, O2

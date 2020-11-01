@@ -1,0 +1,72 @@
+﻿// -----------------------------------------------------------------------------
+//                             ILGPU.Algorithms
+//                  Copyright (c) 2020 ILGPU Algorithms Project
+//                                www.ilgpu.net
+//
+// File: UniqueExtensionTests.tt/UniqueExtensionTests.cs
+//
+// This file is part of ILGPU and is distributed under the University of
+// Illinois Open Source License. See LICENSE.txt for details
+// -----------------------------------------------------------------------------
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="../../ILGPU/Src/ILGPU/Static/TypeInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ILGPU.Runtime;
+using ILGPU.Tests;
+using System.Collections.Generic;
+using System.Linq;
+using Xunit;
+using Xunit.Abstractions;
+
+<#
+var comparisonTypes = NumericTypes;
+#>
+namespace ILGPU.Algorithms.Tests
+{
+    public abstract partial class UniqueExtensionTests : TestBase
+    {
+        protected UniqueExtensionTests(ITestOutputHelper output, TestContext testContext)
+            : base(output, testContext)
+        { }
+
+<#      foreach (var type in comparisonTypes) { #>
+        private static <#= type.Type #>[] RemoveConsecutiveDuplicates(
+            <#= type.Type #>[] input)
+        {
+            var results = new List<<#= type.Type #>>();
+            foreach (var element in input)
+            {
+                if (results.Count == 0 || results.Last() != element)
+                    results.Add(element);
+            }
+            return results.ToArray();
+        }
+
+        [Theory]
+        [InlineData(1, 1025)]
+        [InlineData(317, 1025)]
+        [InlineData(1025, 1025)]
+        public void Unique<#= type.Name #>(int repeat, int length)
+        {
+            var inputArray = Enumerable.Range(1, length)
+                .Select(x => Enumerable.Repeat((<#= type.Type #>)x, repeat))
+                .SelectMany(x => x)
+                .Take(length)
+                .ToArray();
+            var expected = RemoveConsecutiveDuplicates(inputArray);
+
+            using var input = Accelerator.Allocate(inputArray);
+            var result = Accelerator.Unique(Accelerator.DefaultStream, input.View);
+            Assert.True(result < int.MaxValue);
+            var resultLength = (int)result;
+
+            Verify(input, expected, length: resultLength);
+        }
+
+<# } #>
+    }
+}
