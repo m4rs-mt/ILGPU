@@ -695,6 +695,12 @@ namespace ILGPU.Backends
                 // If we already have an internal compiler exception, re-throw it.
                 throw;
             }
+            catch (CapabilityNotSupportedException)
+            {
+                // Re-throw capability exceptions directly to the caller instead
+                // of wrapping inside InternalCompilerException.
+                throw;
+            }
             catch (Exception e)
             {
                 // Wrap generic exceptions.
