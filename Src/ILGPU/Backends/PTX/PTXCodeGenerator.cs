@@ -44,6 +44,7 @@ namespace ILGPU.Backends.PTX
             ImmutableSortedSet.Create(
                 Comparer<PTXInstructionSet>.Create((first, second) =>
                     second.CompareTo(first)),
+                PTXInstructionSet.ISA_71,
                 PTXInstructionSet.ISA_70,
                 PTXInstructionSet.ISA_65,
                 PTXInstructionSet.ISA_64,
