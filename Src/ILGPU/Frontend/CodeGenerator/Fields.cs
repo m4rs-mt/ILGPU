@@ -55,7 +55,16 @@ namespace ILGPU.Frontend
                     new FieldSpan(
                         absoluteIndex,
                         typeInfo.NumFlattendedFields));
-                Block.Push(getField);
+                if (typeInfo.NumFlattendedFields == 1)
+                {
+                    Block.Push(LoadOntoEvaluationStack(
+                        getField,
+                        field.FieldType.ToTargetUnsignedFlags()));
+                }
+                else
+                {
+                    Block.Push(getField);
+                }
             }
         }
 

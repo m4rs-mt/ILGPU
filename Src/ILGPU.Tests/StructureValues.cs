@@ -323,6 +323,44 @@ namespace ILGPU.Tests
                 expected);
             Verify(buffer, new[] { expected });
         }
+
+        internal struct UnsignedFieldStruct
+        {
+            public byte x;
+            public ushort y;
+            public uint z;
+        }
+
+        internal static void StructureUnsignedFieldKernel(
+            Index1 index,
+            ArrayView<long> output,
+            UnsignedFieldStruct input)
+        {
+            output[index] = input.x;
+            output[index + 1] = input.y;
+            output[index + 2] = input.z;
+        }
+
+        [Fact]
+        [KernelMethod(nameof(StructureUnsignedFieldKernel))]
+        public void StructureUnsignedField()
+        {
+            var maxUInt8 = byte.MaxValue;
+            var maxUInt16 = ushort.MaxValue;
+            var maxUInt32= uint.MaxValue;
+            var expected = new long[] { maxUInt8, maxUInt16, maxUInt32 };
+
+            var input = new UnsignedFieldStruct
+            {
+                x = maxUInt8,
+                y = maxUInt16,
+                z = maxUInt32
+            };
+
+            using var output = Accelerator.Allocate<long>(3);
+            Execute(1, output.View, input);
+            Verify(output, expected);
+        }
     }
 }
 
