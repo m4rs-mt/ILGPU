@@ -18,6 +18,8 @@
 
 // disable: max_line_length
 
+using System.Runtime.CompilerServices;
+
 namespace ILGPU.Algorithms
 {
     partial class XMath
@@ -35,6 +37,7 @@ namespace ILGPU.Algorithms
             /// </summary>
             /// <param name="value">Specifies the power</param>
             /// <returns>The number e raised to the specified power</returns>
+            [MethodImpl(MethodImplOptions.NoInlining)]
             public static <#= operation.DataType #> Exp(<#= operation.DataType #> value)
             {
                 // Deal with edge cases

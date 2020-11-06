@@ -43,6 +43,7 @@ namespace ILGPU.Algorithms.PTX
             var instruction = PTXInstructions.GetArithmeticOperation(
                 arithmeticValue.Kind,
                 arithmeticValue.ArithmeticBasicValueType,
+                backend.Capabilities,
                 codeGenerator.FastMath);
 
             var argument = codeGenerator.LoadPrimitive(arithmeticValue.Value);

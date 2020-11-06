@@ -192,7 +192,7 @@ namespace ILGPU.Algorithms.Tests
             Accelerator.Reduce<T, TReduceFunc>(stream, input, output);
             stream.Synchronize();
 
-            T[] expected = new T[length];
+            T[] expected = new T[1];
             expected[0] = CalcValue(sequence, func.Apply);
 
             Verify(output, expected, 0, 1);
