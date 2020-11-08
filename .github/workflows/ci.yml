@@ -53,7 +53,7 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.id != github.event.pull_request.base.repo.id
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest, cuda]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -72,7 +72,11 @@ jobs:
       - name: Release Build
         run: dotnet build --configuration=Release -p:TreatWarningsAsErrors=true Src
       - name: CPU Tests
+        if: matrix.os != 'cuda'
         run: dotnet test --logger GitHubActions --configuration=Release ./Src/ILGPU.Tests.CPU
+      - name: CUDA Tests
+        if: matrix.os == 'cuda'
+        run: dotnet test --logger GitHubActions --configuration=Release ./Src/ILGPU.Tests.Cuda
       - name: Set up NuGet
         if: runner.os == 'Windows'
         uses: nuget/setup-nuget@v1
