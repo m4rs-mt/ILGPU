@@ -192,6 +192,11 @@ namespace ILGPU.Backends.OpenCL
                 {
                     continue;
                 }
+                else if (basicValueType == BasicValueType.Float16
+                    && !capabilities.Float16)
+                {
+                    continue;
+                }
 
                 var primitiveType = typeContext.GetPrimitiveType(basicValueType);
                 mapping[primitiveType] = GetBasicValueType(basicValueType);
@@ -282,6 +287,12 @@ namespace ILGPU.Backends.OpenCL
             else if (typeNode is PaddingType paddingType)
             {
                 clName = GetOrCreateType(paddingType.PrimitiveType);
+            }
+            else if (typeNode is PrimitiveType primitiveType
+                && primitiveType.BasicValueType == BasicValueType.Float16
+                && !Capabilities.Float16)
+            {
+                throw CLCapabilityContext.GetNotSupportedFloat16Exception();
             }
             else
             {
