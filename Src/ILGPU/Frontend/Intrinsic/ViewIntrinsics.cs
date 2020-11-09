@@ -166,7 +166,7 @@ namespace ILGPU.Frontend.Intrinsic
             var linearMethod = IndexTypeExtensions.GetViewLinearIndexMethod(
                 methodGenerics[0],
                 typeGenerics[0]);
-            var targetMethod = context.DeclareFunction(linearMethod);
+            var targetMethod = context.DeclareMethod(linearMethod);
 
             // Build a call to the specific access function
             var viewInstance = builder.CreateLoad(

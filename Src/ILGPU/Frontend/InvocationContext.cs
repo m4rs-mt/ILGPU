@@ -145,11 +145,11 @@ namespace ILGPU.Frontend
             Method.DeclaringType.GetGenericArguments();
 
         /// <summary>
-        /// Declares a new top-level function.
+        /// Declares a (potentially new) method.
         /// </summary>
         /// <param name="methodBase">The method to declare.</param>
-        /// <returns>The declared top-level function.</returns>
-        public Method DeclareFunction(MethodBase methodBase) =>
+        /// <returns>The declared method reference.</returns>
+        public Method DeclareMethod(MethodBase methodBase) =>
             methodBase != null
             ? CodeGenerator.DeclareMethod(methodBase)
             : throw Location.GetArgumentNullException(nameof(methodBase));
