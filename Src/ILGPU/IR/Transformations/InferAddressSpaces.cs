@@ -68,7 +68,6 @@ namespace ILGPU.IR.Transformations
                             return false;
                         break;
                     case StructureValue _:
-                    case SetArrayElement _:
                     case SetField _:
                         // We are not allowed to remove field or array stores to tuples
                         // with different field types
