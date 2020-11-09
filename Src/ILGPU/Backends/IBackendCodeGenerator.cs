@@ -484,22 +484,6 @@ namespace ILGPU.Backends
             public void Visit(SetField value) =>
                 CodeGenerator.GenerateCode(value);
 
-            /// <summary cref="IValueVisitor.Visit(ArrayValue)"/>
-            public void Visit(ArrayValue value) =>
-                throw new InvalidCodeGenerationException();
-
-            /// <summary cref="IValueVisitor.Visit(GetArrayExtent)"/>
-            public void Visit(GetArrayExtent value) =>
-                throw new InvalidCodeGenerationException();
-
-            /// <summary cref="IValueVisitor.Visit(GetArrayElement)"/>
-            public void Visit(GetArrayElement value) =>
-                throw new InvalidCodeGenerationException();
-
-            /// <summary cref="IValueVisitor.Visit(SetArrayElement)"/>
-            public void Visit(SetArrayElement value) =>
-                throw new InvalidCodeGenerationException();
-
             /// <summary cref="IValueVisitor.Visit(AcceleratorTypeValue)"/>
             public void Visit(AcceleratorTypeValue value) =>
                 throw new InvalidCodeGenerationException();
