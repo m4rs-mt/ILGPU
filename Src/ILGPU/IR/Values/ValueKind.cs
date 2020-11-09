@@ -198,28 +198,6 @@ namespace ILGPU.IR
         /// </summary>
         SetField,
 
-        // Arrays
-
-        /// <summary>
-        /// A <see cref="Values.ArrayValue"/> value.
-        /// </summary>
-        Array,
-
-        /// <summary>
-        /// A <see cref="Values.GetArrayExtent"/> value.
-        /// </summary>
-        GetArrayExtent,
-
-        /// <summary>
-        /// A <see cref="Values.GetArrayElement"/> value.
-        /// </summary>
-        GetArrayElement,
-
-        /// <summary>
-        /// A <see cref="Values.SetArrayElement"/> value.
-        /// </summary>
-        SetArrayElement,
-
         // Views
 
         /// <summary>

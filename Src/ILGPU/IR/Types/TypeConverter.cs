@@ -87,9 +87,6 @@ namespace ILGPU.IR.Types
                 StructureType structureType => structureType.ConvertFieldTypes(
                     typeContext,
                     this),
-                ArrayType arrayType => typeContext.CreateArrayType(
-                    ConvertType(typeContext, arrayType.ElementType),
-                    arrayType.Dimensions),
                 PointerType pointerType => typeContext.CreatePointerType(
                     ConvertType(typeContext, pointerType.ElementType),
                     pointerType.AddressSpace),
