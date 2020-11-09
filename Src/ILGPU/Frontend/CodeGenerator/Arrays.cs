@@ -9,7 +9,10 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR;
+using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 
 namespace ILGPU.Frontend
@@ -22,53 +25,53 @@ namespace ILGPU.Frontend
         /// <param name="elementType">The element type.</param>
         private void MakeNewArray(Type elementType)
         {
-            // Resolve length and type
-            var type = Builder.CreateType(elementType);
-            var extent = Block.PopInt(Location, ConvertFlags.None);
-            var value = Builder.CreateArray(
-                Location,
-                type,
-                1,
-                extent);
-            Block.Push(value);
+            // Redirect call to the LocalMemory class to allocate an intialized array
+            var allocateZeroMethod = LocalMemory.GetAllocateZeroMethod(elementType);
+
+            // Setup length argument
+            var arguments = InlineList<ValueReference>.Create(
+                Builder.CreateConvertToInt64(
+                    Location,
+                    Block.PopInt(Location, ConvertFlags.None)));
+            CreateCall(allocateZeroMethod, ref arguments);
         }
 
         /// <summary>
-        /// Realizes an array load-element operation.
+        /// Creates an array element address load.
         /// </summary>
-        /// <param name="_">The element type to load.</param>
-        private void MakeLoadElementAddress(Type _)
+        /// <param name="elementType">The element type to load.</param>
+        /// <param name="type">The IR element type to load.</param>
+        /// <returns>The loaded array element address.</returns>
+        private Value CreateLoadArrayElementAddress(Type elementType, out TypeNode type)
         {
-            // TODO: make sure that element loads are converted properly in all cases
             var index = Block.PopInt(Location, ConvertFlags.None);
-            var array = Block.Pop();
-            var linearAddress = Builder.ComputeArrayAddress(
-                Location,
-                index,
-                array,
-                0);
-            var value = Builder.CreateLoadElementAddress(
-                Location,
-                array,
-                linearAddress);
-            Block.Push(value);
-        }
+            var arrayView = Block.Pop();
 
-        /// <summary>
-        /// Realizes an array load-element operation.
-        /// </summary>
-        /// <param name="_">The element type to load.</param>
-        private void MakeLoadElement(Type _)
-        {
-            // TODO: make sure that element loads are converted properly in all cases
-            var index = Block.PopInt(Location, ConvertFlags.None);
-            var array = Block.Pop();
-            var value = Builder.CreateGetArrayElement(
+            type = Builder.CreateType(elementType);
+            var castedView = Builder.CreateViewCast(Location, arrayView, type);
+            return Builder.CreateLoadElementAddress(
                 Location,
-                array,
+                castedView,
                 index);
-            Block.Push(value);
         }
+
+        /// <summary>
+        /// Realizes an array load-element operation.
+        /// </summary>
+        /// <param name="elementType">The element type to load.</param>
+        private void MakeLoadElementAddress(Type elementType) =>
+            Block.Push(
+                CreateLoadArrayElementAddress(elementType, out var _));
+
+        /// <summary>
+        /// Realizes an array load-element operation.
+        /// </summary>
+        /// <param name="elementType">The element type to load.</param>
+        private void MakeLoadElement(Type elementType) =>
+            Block.Push(CreateLoad(
+                CreateLoadArrayElementAddress(elementType, out var type),
+                type,
+                elementType.ToTargetUnsignedFlags()));
 
         /// <summary>
         /// Realizes an array store-element operation.
@@ -76,15 +79,14 @@ namespace ILGPU.Frontend
         /// <param name="elementType">The element type to store.</param>
         private void MakeStoreElement(Type elementType)
         {
-            var typeNode = Builder.CreateType(elementType);
-            var value = Block.Pop(typeNode, ConvertFlags.None);
-            var index = Block.PopInt(Location, ConvertFlags.None);
-            var array = Block.Pop();
-            Builder.CreateSetArrayElement(
-                Location,
-                array,
-                index,
-                value);
+            var value = Block.Pop();
+
+            CreateStore(
+                CreateLoadArrayElementAddress(elementType, out var type),
+                CreateConversion(
+                    value,
+                    type,
+                    elementType.ToTargetUnsignedFlags()));
         }
 
         /// <summary>
@@ -92,8 +94,10 @@ namespace ILGPU.Frontend
         /// </summary>
         private void MakeLoadArrayLength()
         {
-            var array = Block.Pop();
-            var length = Builder.CreateGetArrayLength(Location, array);
+            var view = Block.Pop();
+            var length = Builder.CreateGetViewLength(
+                Location,
+                view);
             Block.Push(length);
         }
     }
