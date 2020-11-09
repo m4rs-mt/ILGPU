@@ -177,11 +177,6 @@ namespace ILGPU.IR.Types
         public bool IsStructureType => this is StructureType;
 
         /// <summary>
-        /// Returns true if the current type is a <see cref="ArrayType"/>.
-        /// </summary>
-        public bool IsArrayType => this is ArrayType;
-
-        /// <summary>
         /// Returns true if the current type is a <see cref="PaddingType"/>.
         /// </summary>
         public bool IsPaddingType => this is PaddingType;

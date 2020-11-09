@@ -74,10 +74,10 @@ namespace ILGPU.IR
         /// Creates a new array type.
         /// </summary>
         /// <param name="elementType">The element type.</param>
-        /// <param name="dimension">The array dimension.</param>
+        /// <param name="dimensions">The number of array dimensions.</param>
         /// <returns>The created array type.</returns>
-        public ArrayType CreateArrayType(TypeNode elementType, int dimension) =>
-            TypeContext.CreateArrayType(elementType, dimension);
+        public TypeNode CreateArrayType(TypeNode elementType, int dimensions) =>
+            TypeContext.CreateArrayType(elementType, dimensions);
 
         /// <summary>
         /// Creates a new structure type builder with the given capacity.
