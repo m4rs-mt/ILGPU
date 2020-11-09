@@ -13,6 +13,7 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using ILGPU.Util;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -86,38 +87,85 @@ namespace ILGPU.IR.Construction
 
                     // If the field value we just added is not the full size of the field,
                     // (e.g. it was the start of a fixed buffer) copy the remaining
-                    // elements, byte by byte.
+                    // elements.
                     var fieldTypeInfo = typeInfo.GetFieldTypeInfo(i);
                     var initialBytes = fieldValue.Type.Size;
                     var numBytes = fieldTypeInfo.Size;
                     if (initialBytes < numBytes)
                     {
-                        Debug.Assert(
-                            Context.PaddingType.BasicValueType == BasicValueType.Int8);
-
-                        var handle = GCHandle.Alloc(rawFieldValue, GCHandleType.Pinned);
-                        try
-                        {
-                            unsafe
-                            {
-                                byte* ptr = (byte*)handle.AddrOfPinnedObject();
-                                for (int j = initialBytes; j < numBytes; j++)
-                                {
-                                    var paddingByte = ptr[j];
-                                    instanceBuilder.Add(CreatePrimitiveValue(
-                                        location,
-                                        paddingByte));
-                                }
-                            }
-                        }
-                        finally
-                        {
-                            handle.Free();
-                        }
+                        AddPaddingFields(
+                            ref instanceBuilder,
+                            location,
+                            rawFieldValue,
+                            initialBytes,
+                            numBytes);
                     }
                 }
             }
             return instanceBuilder.Seal();
+        }
+
+        /// <summary>
+        /// Copies the remaining bytes to fill the structure fields.
+        /// </summary>
+        /// <param name="instanceBuilder">The current structure builder.</param>
+        /// <param name="location">The current location.</param>
+        /// <param name="rawFieldValue">The field of the structure to copy.</param>
+        /// <param name="initialBytes">The starting offset in bytes.</param>
+        /// <param name="numBytes">The size of the structure in bytes.</param>
+        private unsafe void AddPaddingFields(
+            ref StructureValue.Builder instanceBuilder,
+            Location location,
+            object rawFieldValue,
+            int initialBytes,
+            int numBytes)
+        {
+            var handle = GCHandle.Alloc(rawFieldValue, GCHandleType.Pinned);
+            try
+            {
+                byte* ptr = (byte*)handle.AddrOfPinnedObject();
+                int i = initialBytes;
+                while (i < numBytes)
+                {
+                    if (!(instanceBuilder.NextExpectedType is PaddingType paddingType))
+                        throw new NotImplementedException();
+
+                    PrimitiveValue paddingValue;
+                    switch (paddingType.BasicValueType)
+                    {
+                        case BasicValueType.Int8:
+                            byte padding8 = ptr[i];
+                            paddingValue = CreatePrimitiveValue(location, padding8);
+                            break;
+
+                        case BasicValueType.Int16:
+                            short padding16 = *(short*)&ptr[i];
+                            paddingValue = CreatePrimitiveValue(location, padding16);
+                            break;
+
+                        case BasicValueType.Int32:
+                            int padding32 = *(int*)&ptr[i];
+                            paddingValue = CreatePrimitiveValue(location, padding32);
+                            break;
+
+                        case BasicValueType.Int64:
+                            long padding64 = *(long*)&ptr[i];
+                            paddingValue = CreatePrimitiveValue(location, padding64);
+                            break;
+
+                        default:
+                            throw new NotImplementedException();
+                    };
+
+                    instanceBuilder.Add(paddingValue);
+                    i += paddingValue.PrimitiveType.Size;
+                }
+                Debug.Assert(i == numBytes);
+            }
+            finally
+            {
+                handle.Free();
+            }
         }
 
         /// <summary>

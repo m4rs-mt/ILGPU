@@ -103,7 +103,10 @@ namespace ILGPU.IR.Types
                         (int)BasicValueType.Float32];
             }
 
-            PaddingType = new PaddingType(this, GetPrimitiveType(BasicValueType.Int8));
+            Padding8Type = new PaddingType(this, GetPrimitiveType(BasicValueType.Int8));
+            Padding16Type = new PaddingType(this, GetPrimitiveType(BasicValueType.Int16));
+            Padding32Type = new PaddingType(this, GetPrimitiveType(BasicValueType.Int32));
+            Padding64Type = new PaddingType(this, GetPrimitiveType(BasicValueType.Int64));
 
             PopulateTypeMapping();
         }
@@ -138,9 +141,24 @@ namespace ILGPU.IR.Types
         public StructureType RootType { get; }
 
         /// <summary>
-        /// Returns a custom padding type that is used to pad structure values.
+        /// Returns a custom padding type that is used to pad structure values (8-bits).
         /// </summary>
-        public PaddingType PaddingType { get; }
+        public PaddingType Padding8Type { get; }
+
+        /// <summary>
+        /// Returns a custom padding type that is used to pad structure values (16-bits).
+        /// </summary>
+        public PaddingType Padding16Type { get; }
+
+        /// <summary>
+        /// Returns a custom padding type that is used to pad structure values (32-bits).
+        /// </summary>
+        public PaddingType Padding32Type { get; }
+
+        /// <summary>
+        /// Returns a custom padding type that is used to pad structure values (64-bits).
+        /// </summary>
+        public PaddingType Padding64Type { get; }
 
         #endregion
 
@@ -154,6 +172,37 @@ namespace ILGPU.IR.Types
         /// <returns>The created primitive type.</returns>
         public PrimitiveType GetPrimitiveType(BasicValueType basicValueType) =>
             basicValueTypes[(int)basicValueType];
+
+
+        /// <summary>
+        /// Resolves the padding type that corresponds to the given
+        /// <see cref="BasicValueType"/>.
+        /// </summary>
+        /// <param name="basicValueType">The basic value type.</param>
+        /// <returns>The padding type.</returns>
+        public PaddingType GetPaddingType(BasicValueType basicValueType)
+        {
+            switch (basicValueType)
+            {
+                case BasicValueType.Int8:
+                    return Padding8Type;
+
+                case BasicValueType.Int16:
+                case BasicValueType.Float16:
+                    return Padding16Type;
+
+                case BasicValueType.Int32:
+                case BasicValueType.Float32:
+                    return Padding32Type;
+
+                case BasicValueType.Int64:
+                case BasicValueType.Float64:
+                    return Padding64Type;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(basicValueType));
+            }
+        }
 
         /// <summary>
         /// Creates an intrinsic index type.

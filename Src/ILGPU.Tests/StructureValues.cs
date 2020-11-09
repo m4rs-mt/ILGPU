@@ -347,7 +347,7 @@ namespace ILGPU.Tests
         {
             var maxUInt8 = byte.MaxValue;
             var maxUInt16 = ushort.MaxValue;
-            var maxUInt32= uint.MaxValue;
+            var maxUInt32 = uint.MaxValue;
             var expected = new long[] { maxUInt8, maxUInt16, maxUInt32 };
 
             var input = new UnsignedFieldStruct
