@@ -797,6 +797,12 @@ namespace ILGPU.IR.Values
                 }
             }
 
+            /// <summary>
+            /// Returns the next expected type to be added.
+            /// </summary>
+            public TypeNode NextExpectedType =>
+                Count < Parent.NumFields ? Parent[Count] : null;
+
             #endregion
 
             #region Methods
@@ -814,8 +820,7 @@ namespace ILGPU.IR.Values
                 Location.Assert(
                     value.Type == Parent[Count] ||
                     value is UndefinedValue ||
-                    Parent[Count].IsPaddingType &&
-                    value.BasicValueType == IRBuilder.Context.PaddingType.BasicValueType);
+                    Parent[Count].IsPaddingType);
 
                 builder.Add(value);
             }

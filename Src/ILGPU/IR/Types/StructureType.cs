@@ -193,9 +193,23 @@ namespace ILGPU.IR.Types
                 // NB: Prevent empty structures by ensuring we have at least one field
                 // that is not padding.
                 if (Count == 0 && AlignedSize < Size)
-                    Add(TypeContext.PaddingType.PrimitiveType);
+                    Add(TypeContext.Padding8Type.PrimitiveType);
+
+                // If the structure has a single field, apply padding using the size
+                // of the initial field. This allows us to fill a fixed buffer with
+                // the correct/aligned type.
+                if (Count == 1 && AlignedSize < Size)
+                {
+                    var basicValueType = allFieldsBuilder[0].BasicValueType;
+                    var paddingType = TypeContext.GetPaddingType(basicValueType);
+                    for (int i = AlignedSize, e = Size; i < e; i += paddingType.Size)
+                        Add(paddingType);
+                }
+
+                // Ensure that the structure is populated to its required size before
+                // we finalize.
                 for (int i = AlignedSize, e = Size; i < e; ++i)
-                    Add(TypeContext.PaddingType);
+                    Add(TypeContext.Padding8Type);
                 return TypeContext.FinishStructureType(this);
             }
 
