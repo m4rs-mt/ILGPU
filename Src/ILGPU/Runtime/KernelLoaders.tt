@@ -24,11 +24,16 @@
         TypeParams = string.Join(", ", from rangeIdx in range select $"T{rangeIdx}"),
         DefaultStreamLambdaParams = string.Join(", ", from rangeIdx in range select $"T{rangeIdx} param{rangeIdx}"),
         DefaultStreamArgs = string.Join(", ", from rangeIdx in range select $"param{rangeIdx}"),
+        KernelLaunchArgs = string.Join(", ", from rangeIdx in range select $"arg{rangeIdx}"),
+        KernelLaunchParams = string.Join(", ", from rangeIdx in range select $"T{rangeIdx} arg{rangeIdx}"),
+        KernelLaunchParamsDocumentation = string.Join("        /// ", from rangeIdx in range select
+            $"<param name=\"arg{rangeIdx}\">Argument {rangeIdx} of the underlying kernel.</param>{Environment.NewLine}"),
         TypeRestrictions = string.Join(" ", from rangeIdx in range select $"where T{rangeIdx} : struct"),
         TypeParamDocumentation = string.Join("        /// ", from rangeIdx in range select
-            $"<typeparam name=\"T{rangeIdx}\">Parameter type of parameter {rangeIdx}.</typeparam>{Environment.NewLine}"), 
+            $"<typeparam name=\"T{rangeIdx}\">Parameter type of parameter {rangeIdx}.</typeparam>{Environment.NewLine}"),
     }; #>
 using System;
+using System.Runtime.CompilerServices;
 
 #pragma warning disable IDE0046 // Convert to conditional expression
 
@@ -471,6 +476,112 @@ namespace ILGPU.Runtime
             return (TIndex index, <#= delegateParams.DefaultStreamLambdaParams #>) =>
                 baseKernel(accelerator.DefaultStream, index, <#= delegateParams.DefaultStreamArgs #>);
         }
+
+<#  } #>
+    }
+
+    // Additional accelerator launch methods
+
+    partial class Accelerator
+    {
+        #region Nested Types
+
+<# foreach (var delegateParams in delegateRange) { #>
+        /// <summary>
+        /// Wraps an explicit kernel loader.
+        /// </summary>
+        private readonly struct KernelLaunchLoader<<#= delegateParams.TypeParams #>> : IKernelLaunchLoader<
+            Action<<#= delegateParams.TypeParams #>>,
+            Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>>>
+            <#= delegateParams.TypeRestrictions #>
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>> Load(
+                Accelerator accelerator,
+                Action<<#= delegateParams.TypeParams #>> source) =>
+                KernelLoaders.LoadKernel(accelerator, source);
+        }
+
+        /// <summary>
+        /// Wraps an automatically grouped kernel loader.
+        /// </summary>
+        private readonly struct KernelLaunchAutoGroupedLoader<TIndex, <#= delegateParams.TypeParams #>> : IKernelLaunchLoader<
+            Action<TIndex, <#= delegateParams.TypeParams #>>,
+            Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>>
+            where TIndex : struct, IIndex
+            <#= delegateParams.TypeRestrictions #>
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>> Load(
+                Accelerator accelerator,
+                Action<TIndex, <#= delegateParams.TypeParams #>> source) =>
+                KernelLoaders.LoadAutoGroupedKernel(accelerator, source);
+        }
+
+<# } #>
+
+        #endregion
+
+<# foreach (var delegateParams in delegateRange) { #>
+<#      // Launch #>
+        /// <summary>
+        /// Loads the given kernel and launches it immediately using the given arguments.
+        /// </summary>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="stream">The stream to use.</param>
+        /// <param name="kernelConfig">The launch configuration.</param>
+        /// <#= delegateParams.KernelLaunchParamsDocumentation #>
+        /// <remarks>
+        /// Uses the internal launcher cache that explicitly caches all launched kernels
+        /// using strong references. To avoid caching use the context flag
+        /// <see cref="ContextFlags.DisableKernelLaunchCaching" />.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Launch<<#= delegateParams.TypeParams #>>(
+            Action<<#= delegateParams.TypeParams #>> action,
+            AcceleratorStream stream,
+            in KernelConfig kernelConfig,
+            <#= delegateParams.KernelLaunchParams #>)
+            <#= delegateParams.TypeRestrictions #> =>
+            GetOrLoadLauncher<
+                Action<<#= delegateParams.TypeParams #>>,
+                Action<AcceleratorStream, KernelConfig, <#= delegateParams.TypeParams #>>,
+                KernelLaunchLoader<<#= delegateParams.TypeParams #>>>(action)(
+                stream,
+                kernelConfig,
+                <#= delegateParams.KernelLaunchArgs #>);
+
+<#      // LaunchAutoGrouped #>
+        /// <summary>
+        /// Loads the given kernel and launches it immediately using the given arguments.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="stream">The stream to use.</param>
+        /// <param name="extent">The launch extent.</param>
+        /// <#= delegateParams.KernelLaunchParamsDocumentation #>
+        /// <remarks>
+        /// Uses the internal launcher cache that explicitly caches all launched kernels
+        /// using strong references. To avoid caching use the context flag
+        /// <see cref="ContextFlags.DisableKernelLaunchCaching" />.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void LaunchAutoGrouped<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            AcceleratorStream stream,
+            TIndex extent,
+            <#= delegateParams.KernelLaunchParams #>)
+            where TIndex : struct, IGenericIndex<TIndex>
+            <#= delegateParams.TypeRestrictions #> =>
+            GetOrLoadLauncher<
+                Action<TIndex, <#= delegateParams.TypeParams #>>,
+                Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>,
+                KernelLaunchAutoGroupedLoader<TIndex, <#= delegateParams.TypeParams #>>>(action)(
+                stream,
+                extent,
+                <#= delegateParams.KernelLaunchArgs #>);
 
 <#  } #>
     }
