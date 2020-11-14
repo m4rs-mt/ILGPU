@@ -153,6 +153,7 @@ namespace ILGPU.Runtime
             AutomaticKernelDisposalEnabled = !context.HasFlags(
                 ContextFlags.DisableAutomaticKernelDisposal);
             InitKernelCache();
+            InitLaunchCache();
             InitGC();
 
             memoryCache = new MemoryBufferCache(this);
@@ -442,6 +443,7 @@ namespace ILGPU.Runtime
             {
                 Backend.ClearCache(mode);
                 ClearKernelCache_SyncRoot();
+                ClearLaunchCache_SyncRoot();
                 base.ClearCache(mode);
             }
         }
