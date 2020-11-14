@@ -197,7 +197,8 @@ namespace ILGPU
         DisableAcceleratorGC =
             DisableKernelCaching |
             DisableAutomaticBufferDisposal |
-            DisableAutomaticKernelDisposal,
+            DisableAutomaticKernelDisposal |
+            DisableKernelLaunchCaching,
 
         /// <summary>
         /// Enforces the use of the default PTX backend features.
@@ -209,6 +210,17 @@ namespace ILGPU
         /// the kernel programs being generated.
         /// </summary>
         EnhancedPTXBackendFeatures = 1 << 28,
+
+        /// <summary>
+        /// Disables the implicit kernel launch cache.
+        /// </summary>
+        /// <remarks>
+        /// However, IR nodes, type information and debug information will still
+        /// be cached, since they are used for different kernel compilation operations.
+        /// If you want to clear those caches as well, you will have to clear them
+        /// manually using <see cref="Context.ClearCache(ClearCacheMode)"/>.
+        /// </remarks>
+        DisableKernelLaunchCaching = 1 << 29,
     }
 
     /// <summary>
