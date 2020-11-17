@@ -286,7 +286,9 @@ namespace ILGPU.Backends.OpenCL
             statement.BeginArguments();
             statement.AppendAtomicCast(atomic.ArithmeticBasicValueType);
             statement.AppendArgument(target);
-            statement.AppendArgument(value);
+            statement.AppendArgument();
+            statement.AppendCast(atomic.ArithmeticBasicValueType);
+            statement.Append(value);
             statement.EndArguments();
         }
 
