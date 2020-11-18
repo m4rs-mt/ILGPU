@@ -168,6 +168,12 @@ namespace ILGPU.IR.Values
                     type = initializer.Context.GetPrimitiveType(
                         BasicValueType.Int1);
                     break;
+                case UnaryArithmeticKind.PopC:
+                case UnaryArithmeticKind.CLZ:
+                case UnaryArithmeticKind.CTZ:
+                    type = initializer.Context.GetPrimitiveType(
+                        BasicValueType.Int32);
+                    break;
             }
             return type;
         }
