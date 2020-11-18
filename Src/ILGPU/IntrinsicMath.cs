@@ -402,6 +402,128 @@ namespace ILGPU
 
         #endregion
 
+        #region PopCount
+
+        /// <summary>
+        /// Computes the number of one bits in the given 32-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of one bits.</returns>
+        [MathIntrinsic(MathIntrinsicKind.PopC)]
+        public static int PopCount(int value) => BitOperations.PopCount(value);
+
+        /// <summary>
+        /// Computes the number of one bits in the given 32-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of one bits.</returns>
+        [CLSCompliant(false)]
+        [MathIntrinsic(MathIntrinsicKind.PopC)]
+        public static int PopCount(uint value) => BitOperations.PopCount(value);
+
+        /// <summary>
+        /// Computes the number of one bits in the given 64-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of one bits.</returns>
+        [MathIntrinsic(MathIntrinsicKind.PopC)]
+        public static int PopCount(long value) => BitOperations.PopCount(value);
+
+        /// <summary>
+        /// Computes the number of one bits in the given 64-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of one bits.</returns>
+        [CLSCompliant(false)]
+        [MathIntrinsic(MathIntrinsicKind.PopC)]
+        public static int PopCount(ulong value) => BitOperations.PopCount(value);
+
+        #endregion
+
+        #region LeadingZeroCount
+
+        /// <summary>
+        /// Returns the number of leading zeros in the given 32-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of leading zeros.</returns>
+        [MathIntrinsic(MathIntrinsicKind.CLZ)]
+        public static int LeadingZeroCount(int value) =>
+            BitOperations.LeadingZeroCount(value);
+
+        /// <summary>
+        /// Returns the number of leading zeros in the given 32-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of leading zeros.</returns>
+        [CLSCompliant(false)]
+        [MathIntrinsic(MathIntrinsicKind.CLZ)]
+        public static int LeadingZeroCount(uint value) =>
+            BitOperations.LeadingZeroCount(value);
+
+        /// <summary>
+        /// Returns the number of leading zeros in the given 64-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of leading zeros.</returns>
+        [MathIntrinsic(MathIntrinsicKind.CLZ)]
+        public static int LeadingZeroCount(long value) =>
+            BitOperations.LeadingZeroCount(value);
+
+        /// <summary>
+        /// Returns the number of leading zeros in the given 64-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of leading zeros.</returns>
+        [CLSCompliant(false)]
+        [MathIntrinsic(MathIntrinsicKind.CLZ)]
+        public static int LeadingZeroCount(ulong value) =>
+            BitOperations.LeadingZeroCount(value);
+
+        #endregion
+
+        #region TrailingZeroCount
+
+        /// <summary>
+        /// Returns the number of trailing zeros in the given 32-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of trailing zeros.</returns>
+        [MathIntrinsic(MathIntrinsicKind.CTZ)]
+        public static int TrailingZeroCount(int value) =>
+            BitOperations.TrailingZeroCount(value);
+
+        /// <summary>
+        /// Returns the number of trailing zeros in the given 32-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of trailing zeros.</returns>
+        [CLSCompliant(false)]
+        [MathIntrinsic(MathIntrinsicKind.CTZ)]
+        public static int TrailingZeroCount(uint value) =>
+            BitOperations.TrailingZeroCount(value);
+
+        /// <summary>
+        /// Returns the number of trailing zeros in the given 64-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of trailing zeros.</returns>
+        [MathIntrinsic(MathIntrinsicKind.CTZ)]
+        public static int TrailingZeroCount(long value) =>
+            BitOperations.TrailingZeroCount(value);
+
+        /// <summary>
+        /// Returns the number of trailing zeros in the given 64-bit integer value.
+        /// </summary>
+        /// <param name="value">The value to use.</param>
+        /// <returns>The number of trailing zeros.</returns>
+        [CLSCompliant(false)]
+        [MathIntrinsic(MathIntrinsicKind.CTZ)]
+        public static int TrailingZeroCount(ulong value) =>
+            BitOperations.TrailingZeroCount(value);
+
+        #endregion
+
         #region Int Divisions
 
         /// <summary>
