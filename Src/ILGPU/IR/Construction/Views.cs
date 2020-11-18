@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 
 namespace ILGPU.IR.Construction
 {
@@ -77,6 +78,26 @@ namespace ILGPU.IR.Construction
                 GetInitializer(location),
                 view,
                 lengthType));
+        }
+
+        /// <summary>
+        /// Creates a node that aligns the given view to a given number of bytes.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="view">The source view.</param>
+        /// <param name="alignmentInBytes">The alignment in bytes.</param>
+        /// <returns>The created node.</returns>
+        public ValueReference CreateAlignViewTo(
+            Location location,
+            Value view,
+            Value alignmentInBytes)
+        {
+            location.Assert(alignmentInBytes.Type.BasicValueType.IsInt());
+
+            return Append(new AlignViewTo(
+                GetInitializer(location),
+                view,
+                alignmentInBytes));
         }
     }
 }

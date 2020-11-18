@@ -452,6 +452,10 @@ namespace ILGPU.Backends
             public void Visit(NewView value) =>
                 throw new InvalidCodeGenerationException();
 
+            /// <summary cref="IValueVisitor.Visit(AlignViewTo)"/>
+            public void Visit(AlignViewTo value) =>
+                throw new InvalidCodeGenerationException();
+
             /// <summary cref="IValueVisitor.Visit(GetViewLength)"/>
             public void Visit(GetViewLength value) =>
                 throw new InvalidCodeGenerationException();
