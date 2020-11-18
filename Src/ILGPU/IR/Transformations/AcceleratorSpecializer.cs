@@ -64,17 +64,68 @@ namespace ILGPU.IR.Transformations
         }
 
         /// <summary>
-        /// Specializes native pointer casts.
+        /// Returns true if we have to adjust the source cast operation.
+        /// </summary>
+        private static bool CanSpecialize(
+            AcceleratorSpecializer specializer,
+            IntAsPointerCast value) =>
+            value.SourceType != specializer.IntPointerType;
+
+        /// <summary>
+        /// Specializes int to native pointer casts.
         /// </summary>
         private static void Specialize(
             RewriterContext context,
             AcceleratorSpecializer specializer,
             IntAsPointerCast value)
         {
-            var convert = context.Builder.CreateConvert(
+            // Convert from int -> native int type -> pointer
+            var builder = context.Builder;
+
+            // int -> native int type
+            var convertToNativeInt = builder.CreateConvert(
                 value.Location,
                 value.Value,
                 specializer.IntPointerType);
+
+            // native int type -> pointer
+            var convert = builder.CreateIntAsPointerCast(
+                value.Location,
+                convertToNativeInt);
+
+            context.ReplaceAndRemove(value, convert);
+        }
+
+        /// <summary>
+        /// Returns true if we have to adjust the source cast operation.
+        /// </summary>
+        private static bool CanSpecialize(
+            AcceleratorSpecializer specializer,
+            PointerAsIntCast value) =>
+            value.TargetType != specializer.IntPointerType;
+
+        /// <summary>
+        /// Specializes native pointer to int casts.
+        /// </summary>
+        private static void Specialize(
+            RewriterContext context,
+            AcceleratorSpecializer specializer,
+            PointerAsIntCast value)
+        {
+            // Convert from ptr -> native int type -> desired int type
+            var builder = context.Builder;
+
+            // ptr -> native int type
+            var convertToNativeType = builder.CreatePointerAsIntCast(
+                value.Location,
+                value.Value,
+                specializer.IntPointerType.BasicValueType);
+
+            // native int type -> desired int type
+            var convert = builder.CreateConvert(
+                value.Location,
+                convertToNativeType,
+                value.TargetType);
 
             context.ReplaceAndRemove(value, convert);
         }
@@ -96,7 +147,8 @@ namespace ILGPU.IR.Transformations
         {
             Rewriter.Add<AcceleratorTypeValue>(Specialize);
             Rewriter.Add<WarpSizeValue>(Specialize);
-            Rewriter.Add<IntAsPointerCast>(Specialize);
+            Rewriter.Add<IntAsPointerCast>(CanSpecialize, Specialize);
+            Rewriter.Add<PointerAsIntCast>(CanSpecialize, Specialize);
         }
 
         #endregion
@@ -134,7 +186,7 @@ namespace ILGPU.IR.Transformations
         public int? WarpSize { get; }
 
         /// <summary>
-        /// Returns the target platform.
+        /// Returns the target-platform specific integer pointer type.
         /// </summary>
         public PrimitiveType IntPointerType { get; }
 
