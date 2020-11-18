@@ -83,6 +83,12 @@ namespace ILGPU.Backends.PTX
             IntrinsicImplementationMode mode) =>
             new PTXIntrinsic(PTXIntrinsicsType, name, mode);
 
+        /// <summary>
+        /// Creates a new FP16 intrinsic.
+        /// </summary>
+        /// <param name="name">The name of the intrinsic.</param>
+        /// <param name="maxArchitecture">The maximum PTX architecture.</param>
+        /// <returns>The created intrinsic.</returns>
         private static PTXIntrinsic CreateFP16Intrinsic(
             string name,
             PTXArchitecture? maxArchitecture) =>
@@ -105,6 +111,7 @@ namespace ILGPU.Backends.PTX
             RegisterBroadcasts(manager);
             RegisterWarpShuffles(manager);
             RegisterFP16(manager);
+            RegisterBitFunctions(manager);
 
             // Register assert support
             manager.RegisterDebug(
@@ -198,6 +205,45 @@ namespace ILGPU.Backends.PTX
         private static T WarpBroadcast<T>(T value, int laneIndex)
             where T : unmanaged =>
             Warp.Shuffle(value, laneIndex);
+
+        #endregion
+
+        #region Bit Functions
+
+        /// <summary>
+        /// Registers all unary bit intrinsics with the given manager.
+        /// </summary>
+        /// <param name="manager">The target implementation manager.</param>
+        private static void RegisterBitFunctions(
+            IntrinsicImplementationManager manager)
+        {
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.CTZ,
+                BasicValueType.Int32,
+                CreateIntrinsic(
+                    nameof(TrailingZeroCountI32),
+                    IntrinsicImplementationMode.Redirect));
+            manager.RegisterUnaryArithmetic(
+                UnaryArithmeticKind.CTZ,
+                BasicValueType.Int64,
+                CreateIntrinsic(
+                    nameof(TrailingZeroCountI64),
+                    IntrinsicImplementationMode.Redirect));
+        }
+
+        /// <summary>
+        /// Wraps a CTZ operations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int TrailingZeroCountI32(int value) =>
+            IntrinsicMath.BitOperations.TrailingZeroCount(value);
+
+        /// <summary>
+        /// Wraps a CTZ operations.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int TrailingZeroCountI64(long value) =>
+            IntrinsicMath.BitOperations.TrailingZeroCount(value);
 
         #endregion
     }
