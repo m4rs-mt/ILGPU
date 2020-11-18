@@ -48,6 +48,21 @@
             <Target>{Value0}</Target>
         </Rewriter>
     </Operation>
+    <Operation Name="PopC">
+        <Summary>The popcount operation.</Summary>
+        <Flags>Ints</Flags>
+        <Call>IntrinsicMath.BitOperations.PopCount</Call>
+    </Operation>
+    <Operation Name="CLZ">
+        <Summary>The CLZ operation.</Summary>
+        <Flags>Ints</Flags>
+        <Call>IntrinsicMath.BitOperations.LeadingZeroCount</Call>
+    </Operation>
+    <Operation Name="CTZ">
+        <Summary>The CTZ operation.</Summary>
+        <Flags>Ints</Flags>
+        <Call>IntrinsicMath.BitOperations.TrailingZeroCount</Call>
+    </Operation>
     <Operation Name="RcpF">
         <Summary>The reciprocal operation.</Summary>
         <Flags>Floats</Flags>
