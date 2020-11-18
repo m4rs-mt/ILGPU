@@ -408,6 +408,12 @@ namespace ILGPU.Backends.PTX
                 { (UnaryArithmeticKind.Abs, ArithmeticBasicValueType.Float32), "abs.f32" },
                 { (UnaryArithmeticKind.Abs, ArithmeticBasicValueType.Float64), "abs.f64" },
 
+                { (UnaryArithmeticKind.PopC, ArithmeticBasicValueType.Int32), "popc.b32" },
+                { (UnaryArithmeticKind.PopC, ArithmeticBasicValueType.Int64), "popc.b64" },
+
+                { (UnaryArithmeticKind.CLZ, ArithmeticBasicValueType.Int32), "clz.b32" },
+                { (UnaryArithmeticKind.CLZ, ArithmeticBasicValueType.Int64), "clz.b64" },
+
                 { (UnaryArithmeticKind.RcpF, ArithmeticBasicValueType.Float32), "rcp.rn.f32" },
                 { (UnaryArithmeticKind.RcpF, ArithmeticBasicValueType.Float64), "rcp.rn.f64" },
 
