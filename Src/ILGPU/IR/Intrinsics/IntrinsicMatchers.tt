@@ -231,7 +231,12 @@ namespace ILGPU.IR.Intrinsics
             Debug.Assert(targetValue != null, "Invalid target value");
             return TryGetImplementation(
                 targetValue.Kind,
+<#      // Unary operations have to be matched based on their operand type #>
+<#      if (name == "UnaryArithmetic") { #>
+                targetValue.Value.BasicValueType,
+<#      } else { #>
                 targetValue.BasicValueType,
+<#      } #>
                 out implementation);
         }
     }
