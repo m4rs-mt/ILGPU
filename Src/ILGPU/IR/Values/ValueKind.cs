@@ -74,6 +74,11 @@ namespace ILGPU.IR
         IntAsPointerCast,
 
         /// <summary>
+        /// A <see cref="Values.PointerAsIntCast"/> value.
+        /// </summary>
+        PointerAsIntCast,
+
+        /// <summary>
         /// A <see cref="Values.FloatAsIntCast"/> value.
         /// </summary>
         FloatAsIntCast,
