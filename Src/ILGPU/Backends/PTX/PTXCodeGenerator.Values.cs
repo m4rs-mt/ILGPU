@@ -213,8 +213,14 @@ namespace ILGPU.Backends.PTX
             command.AppendArgument(sourceValue);
         }
 
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(IntAsPointerCast)"/>
+        public void GenerateCode(IntAsPointerCast cast) => Alias(cast, cast.Value);
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(PointerAsIntCast)"/>
+        public void GenerateCode(PointerAsIntCast cast) => Alias(cast, cast.Value);
+
         /// <summary cref="IBackendCodeGenerator.GenerateCode(PointerCast)"/>
-        public void GenerateCode(PointerCast value) => Alias(value, value.Value);
+        public void GenerateCode(PointerCast cast) => Alias(cast, cast.Value);
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(FloatAsIntCast)"/>
         public void GenerateCode(FloatAsIntCast value)
