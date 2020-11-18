@@ -192,16 +192,28 @@ namespace ILGPU.Backends.OpenCL
             statement.AppendArgument(sourceValue);
         }
 
-        /// <summary cref="IBackendCodeGenerator.GenerateCode(PointerCast)"/>
-        public void GenerateCode(PointerCast value)
+        /// <summary>
+        /// Generates code for the given cast value.
+        /// </summary>
+        /// <param name="cast">The cast value to generte code for.</param>
+        private void GenerateCodeForCast(CastValue cast)
         {
-            var sourceValue = Load(value.Value);
+            var sourceValue = Load(cast.Value);
 
-            var target = Allocate(value);
+            var target = Allocate(cast);
             using var statement = BeginStatement(target);
-            statement.AppendCast(value.TargetType);
+            statement.AppendCast(cast.TargetType);
             statement.AppendArgument(sourceValue);
         }
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(IntAsPointerCast)"/>
+        public void GenerateCode(IntAsPointerCast cast) => GenerateCodeForCast(cast);
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(IntAsPointerCast)"/>
+        public void GenerateCode(PointerAsIntCast cast) => GenerateCodeForCast(cast);
+
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(PointerCast)"/>
+        public void GenerateCode(PointerCast value) => GenerateCodeForCast(value);
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(FloatAsIntCast)"/>
         public void GenerateCode(FloatAsIntCast value)
