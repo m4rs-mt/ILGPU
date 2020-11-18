@@ -132,7 +132,7 @@ namespace ILGPU
         {
             Trace.Assert(source != null, "Invalid source buffer");
             Trace.Assert(index >= 0L, "Index out of range");
-            Trace.Assert(length > 0L, "Length out of range");
+            Trace.Assert(length >= 0L, "Length out of range");
             Source = source;
             Index = index;
             Length = length;
