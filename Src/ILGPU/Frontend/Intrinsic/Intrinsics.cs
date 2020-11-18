@@ -36,6 +36,7 @@ namespace ILGPU.Frontend.Intrinsic
         Math,
         MemoryFence,
         SharedMemory,
+        LocalMemory,
         View,
         Warp,
         Utility,
@@ -118,6 +119,9 @@ namespace ILGPU.Frontend.Intrinsic
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleSharedMemoryOperation(
                     ref context, attribute as SharedMemoryIntrinsicAttribute),
+            (ref InvocationContext context, IntrinsicAttribute attribute) =>
+                HandleLocalMemoryOperation(
+                    ref context, attribute as LocalMemoryIntrinsicAttribute),
             (ref InvocationContext context, IntrinsicAttribute attribute) =>
                 HandleViewOperation(
                     ref context, attribute as ViewIntrinsicAttribute),
