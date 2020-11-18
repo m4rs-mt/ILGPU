@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ILGPU.Util;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Xunit;
 using Xunit.Abstractions;
@@ -359,6 +360,30 @@ namespace ILGPU.Tests
 
             using var output = Accelerator.Allocate<long>(3);
             Execute(1, output.View, input);
+            Verify(output, expected);
+        }
+
+        internal static void StructureLoweringKernel<T>(
+            Index1 index,
+            ArrayView<T> output,
+            T value0,
+            T value1,
+            int c)
+            where T : unmanaged
+        {
+            output[index] = Utilities.Select(c > 0, value0, value1);
+        }
+
+        [Theory]
+        [KernelMethod(nameof(StructureLoweringKernel))]
+        [MemberData(nameof(StructureInteropData))]
+        public void StructureLowering<T>(T value)
+            where T : unmanaged
+        {
+            using var output = Accelerator.Allocate<T>(1);
+            Execute<Index1, T>(1, output.View, value, value, 42);
+
+            var expected = new T[] { value };
             Verify(output, expected);
         }
     }
