@@ -3,7 +3,7 @@
 //                        Copyright (c) 2016-2020 Marcel Koester
 //                                    www.ilgpu.net
 //
-// File: Conditional.cs
+// File: Predicate.cs
 //
 // This file is part of ILGPU and is distributed under the University of Illinois Open
 // Source License. See LICENSE.txt for details
@@ -11,51 +11,11 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
-using ILGPU.Util;
-using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Construction
 {
     partial class IRBuilder
     {
-        /// <summary>
-        /// Creates a conditional predicate.
-        /// </summary>
-        /// <param name="location">The current location.</param>
-        /// <param name="conditionOrValue">The condition or select value.</param>
-        /// <param name="values">The list of condition/select values.</param>
-        /// <returns>A node that represents the conditional predicate.</returns>
-        public ValueReference CreatePredicate(
-            Location location,
-            Value conditionOrValue,
-            ref ValueList values)
-        {
-            if (conditionOrValue.BasicValueType == BasicValueType.Int1)
-            {
-                location.Assert(values.Count == 2);
-                return CreateIfPredicate(
-                    location,
-                    conditionOrValue,
-                    values[0],
-                    values[1]);
-            }
-            else if (conditionOrValue.BasicValueType.IsInt())
-            {
-                var switchBuilder = CreateSwitchPredicate(
-                    location,
-                    conditionOrValue,
-                    values.Count);
-                foreach (var value in values)
-                    switchBuilder.Add(value);
-                return switchBuilder.Seal();
-            }
-            else
-            {
-                // Unreachable
-                throw location.GetInvalidOperationException();
-            }
-        }
-
         /// <summary>
         /// Creates a conditional if predicate.
         /// </summary>
@@ -64,7 +24,7 @@ namespace ILGPU.IR.Construction
         /// <param name="trueValue">The true value.</param>
         /// <param name="falseValue">The false value.</param>
         /// <returns>A node that represents the predicate operation.</returns>
-        public ValueReference CreateIfPredicate(
+        public ValueReference CreatePredicate(
             Location location,
             Value condition,
             Value trueValue,
@@ -115,7 +75,7 @@ namespace ILGPU.IR.Construction
                     // Move constants to the left
                     else if (falseValue is PrimitiveValue falsePrimitive)
                     {
-                        return CreateIfPredicate(
+                        return CreatePredicate(
                             location,
                             CreateArithmetic(
                                 location,
@@ -132,70 +92,16 @@ namespace ILGPU.IR.Construction
             // Match negated predicates
             return condition is UnaryArithmeticValue unary &&
                 unary.Kind == UnaryArithmeticKind.Not
-                ? CreateIfPredicate(
+                ? CreatePredicate(
                     location,
                     unary.Value,
                     falseValue,
                     trueValue)
-                : Append(new IfPredicate(
+                : Append(new Predicate(
                     GetInitializer(location),
                     condition,
                     trueValue,
                     falseValue));
         }
-
-        /// <summary>
-        /// Creates a conditional switch predicate.
-        /// </summary>
-        /// <param name="location">The current location.</param>
-        /// <param name="condition">The condition.</param>
-        /// <returns>A node that represents the predicate operation.</returns>
-        public SwitchPredicate.Builder CreateSwitchPredicate(
-            Location location,
-            Value condition) =>
-            CreateSwitchPredicate(location, condition, 4);
-
-        /// <summary>
-        /// Creates a conditional switch predicate.
-        /// </summary>
-        /// <param name="location">The current location.</param>
-        /// <param name="condition">The condition.</param>
-        /// <param name="capacity">The initial case capacity.</param>
-        /// <returns>A node that represents the predicate operation.</returns>
-        public SwitchPredicate.Builder CreateSwitchPredicate(
-            Location location,
-            Value condition,
-            int capacity)
-        {
-            location.Assert(condition.Type.BasicValueType.IsInt());
-            condition = CreateConvert(
-                location,
-                condition,
-                GetPrimitiveType(BasicValueType.Int32));
-            return new SwitchPredicate.Builder(
-                this,
-                location,
-                condition,
-                capacity);
-        }
-
-        /// <summary>
-        /// Creates a conditional switch predicate.
-        /// </summary>
-        /// <param name="location">The current location.</param>
-        /// <param name="values">The switch predicate values.</param>
-        /// <returns>A node that represents the predicate operation.</returns>
-        internal ValueReference CreateSwitchPredicate(
-            Location location,
-            ref ValueList values) =>
-            values.Count == 3
-            ? CreateIfPredicate(
-                location,
-                values[0],
-                values[1],
-                values[2])
-            : new SwitchPredicate(
-                GetInitializer(location),
-                ref values);
     }
 }
