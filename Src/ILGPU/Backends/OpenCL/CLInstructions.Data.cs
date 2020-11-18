@@ -300,6 +300,10 @@ namespace ILGPU.Backends.OpenCL
                 { (UnaryArithmeticKind.Abs, CLUnaryCategory.Int), ("abs", true) },
                 { (UnaryArithmeticKind.Abs, CLUnaryCategory.Float), ("fabs", true) },
 
+                { (UnaryArithmeticKind.PopC, CLUnaryCategory.Int), ("popcount", true) },
+                { (UnaryArithmeticKind.CLZ, CLUnaryCategory.Int), ("clz", true) },
+                { (UnaryArithmeticKind.CTZ, CLUnaryCategory.Int), ("ctz", true) },
+
                 { (UnaryArithmeticKind.IsNaNF, CLUnaryCategory.Float), ("isnan", true) },
                 { (UnaryArithmeticKind.IsInfF, CLUnaryCategory.Float), ("isinf", true) },
 
