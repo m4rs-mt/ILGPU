@@ -35,6 +35,25 @@ namespace ILGPU.IR.Construction
         }
 
         /// <summary>
+        /// Creates a cast operation that casts a pointer into an integer.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="node">The operand.</param>
+        /// <param name="targetType">The target integer type.</param>
+        /// <returns>A node that represents the cast operation.</returns>
+        public ValueReference CreatePointerAsIntCast(
+            Location location,
+            Value node,
+            BasicValueType targetType)
+        {
+            location.Assert(node.Type.IsPointerType && targetType.IsInt());
+            return Append(new PointerAsIntCast(
+                GetInitializer(location),
+                node,
+                GetPrimitiveType(targetType)));
+        }
+
+        /// <summary>
         /// Creates a cast operation that casts the element type of a pointer
         /// but does not change its address space.
         /// </summary>

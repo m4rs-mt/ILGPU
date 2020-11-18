@@ -74,6 +74,12 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="value">The node.</param>
+        void Visit(PointerAsIntCast value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
         void Visit(PointerCast value);
 
         /// <summary>
