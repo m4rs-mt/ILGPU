@@ -100,10 +100,22 @@ namespace ILGPU.Backends
         void GenerateCode(ConvertValue value);
 
         /// <summary>
+        /// Generates code for the given int to pointer cast.
+        /// </summary>
+        /// <param name="cast">The cast node.</param>
+        void GenerateCode(IntAsPointerCast cast);
+
+        /// <summary>
+        /// Generates code for the given pointer to int cast.
+        /// </summary>
+        /// <param name="cast">The cast node.</param>
+        void GenerateCode(PointerAsIntCast cast);
+
+        /// <summary>
         /// Generates code for the given value.
         /// </summary>
-        /// <param name="value">The node.</param>
-        void GenerateCode(PointerCast value);
+        /// <param name="cast">The cast node.</param>
+        void GenerateCode(PointerCast cast);
 
         /// <summary>
         /// Generates code for the given value.
@@ -370,7 +382,11 @@ namespace ILGPU.Backends
 
             /// <summary cref="IValueVisitor.Visit(IntAsPointerCast)"/>
             public void Visit(IntAsPointerCast value) =>
-                throw new InvalidCodeGenerationException();
+                CodeGenerator.GenerateCode(value);
+
+            /// <summary cref="IValueVisitor.Visit(PointerAsIntCast)"/>
+            public void Visit(PointerAsIntCast value) =>
+                CodeGenerator.GenerateCode(value);
 
             /// <summary cref="IValueVisitor.Visit(PointerCast)"/>
             public void Visit(PointerCast value) =>
