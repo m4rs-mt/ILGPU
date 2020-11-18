@@ -19,7 +19,7 @@ namespace ILGPU
     /// <summary>
     /// Array view extension methods
     /// </summary>
-    public static class ArrayViewExtensions
+    public static partial class ArrayViewExtensions
     {
         #region ArrayView
 
@@ -37,6 +37,31 @@ namespace ILGPU
         public static unsafe void* LoadEffectiveAddress<T>(this ArrayView<T> view)
             where T : unmanaged =>
             view.LoadEffectiveAddress();
+
+        /// <summary>
+        /// Aligns the given array view to the specified alignment in bytes and returns a
+        /// view spanning the initial unaligned parts of the given view and another
+        /// view (main) spanning the remaining aligned elements of the given view.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <param name="alignmentInBytes">The basic alignment in bytes.</param>
+        /// <returns>
+        /// The prefix and main views pointing to non-aligned and aligned sub-views of
+        /// the given view.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static (ArrayView<T> prefix, ArrayView<T> main) AlignTo<T>(
+            this ArrayView<T> view,
+            int alignmentInBytes)
+            where T : unmanaged
+        {
+            Trace.Assert(
+                alignmentInBytes > 0 &
+                (alignmentInBytes % Interop.SizeOf<T>() == 0),
+                "Invalid alignment in bytes");
+
+            return view.AlignToInternal(alignmentInBytes);
+        }
 
         /// <summary>
         /// Converts this view into a new 2D view.

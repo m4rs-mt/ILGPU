@@ -293,6 +293,32 @@ namespace ILGPU
         #region Methods
 
         /// <summary>
+        /// Aligns the current array view to the given alignment in bytes and returns a
+        /// view spanning the initial unaligned parts of the current view and another
+        /// view (main) spanning the remaining aligned elements of the current view.
+        /// </summary>
+        /// <param name="alignmentInBytes">The basic alignment in bytes.</param>
+        /// <returns>
+        /// The prefix and main views pointing to non-aligned and aligned sub-views of
+        /// this view.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [ViewIntrinsic(ViewIntrinsicKind.AlignTo)]
+        internal unsafe (ArrayView<T> prefix, ArrayView<T> main) AlignToInternal(
+            int alignmentInBytes)
+        {
+            long elementsToSkip = IntrinsicMath.Min(
+                Interop.ComputeAlignmentOffset(
+                    (long)LoadEffectiveAddress(),
+                    alignmentInBytes) / Interop.SizeOf<T>(),
+                Length);
+
+            return (
+                new ArrayView<T>(Source, 0, elementsToSkip),
+                new ArrayView<T>(Source, elementsToSkip, Length - elementsToSkip));
+        }
+
+        /// <summary>
         /// Loads a linear element address using the given multi-dimensional indices.
         /// </summary>
         /// <typeparam name="TIndex">The index type.</typeparam>

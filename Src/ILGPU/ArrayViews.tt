@@ -16,6 +16,7 @@
 <#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ output extension=".cs" #>
+<# var alignmentValues = new int[] { 32, 64, 128, 256, 512 }; #>
 
 using ILGPU.Runtime;
 using System.Diagnostics;
@@ -24,6 +25,27 @@ using System.Runtime.InteropServices;
 
 namespace ILGPU
 {
+    partial class ArrayViewExtensions
+    {
+<#  foreach (var alignment in alignmentValues) { #>
+        /// <summary>
+        /// Aligns the given array view to the alignment of <#= alignment #> bytes and
+        /// returns a view spanning the initial unaligned parts of the given view and
+        /// another view (main) spanning the remaining aligned elements of the given view.
+        /// </summary>
+        /// <param name="view">The source view.</param>
+        /// <returns>
+        /// The prefix and main views pointing to non-aligned and aligned sub-views of
+        /// the given view.
+        /// </returns>
+        public static (ArrayView<T> prefix, ArrayView<T> main) AlignTo<#= alignment #><T>(
+            this ArrayView<T> view)
+            where T : unmanaged =>
+            AlignTo(view, <#= alignment #>);
+
+<#  } #>
+    }
+
 <#  foreach (var dim in IndexDimensions.Skip(1)) { #>
 <#      var dimension = dim.Dimension; #>
 <#      var typeName = $"ArrayView{dimension}D"; #>
