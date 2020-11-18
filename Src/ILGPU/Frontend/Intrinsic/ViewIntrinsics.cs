@@ -14,6 +14,7 @@ using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
 using System;
+using System.Diagnostics;
 
 namespace ILGPU.Frontend.Intrinsic
 {
@@ -33,6 +34,7 @@ namespace ILGPU.Frontend.Intrinsic
         GetViewElementAddressByIndex,
         GetViewLinearElementAddress,
         AsLinearView,
+        AlignTo
     }
 
     /// <summary>
@@ -134,6 +136,11 @@ namespace ILGPU.Frontend.Intrinsic
                 ViewIntrinsicKind.GetViewLinearElementAddress =>
                     RemapToLinearElementAddress(ref context),
                 ViewIntrinsicKind.AsLinearView => instanceValue,
+                ViewIntrinsicKind.AlignTo =>
+                    builder.CreateAlignViewTo(
+                        location,
+                        instanceValue,
+                        context[paramOffset++]),
                 _ => throw context.Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedViewIntrinsic,
                     attribute.IntrinsicKind.ToString()),
