@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Diagnostics;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -572,6 +574,134 @@ namespace ILGPU.Tests
                 Execute((int)extent.Size, buffer.View, source.View);
             }
             Verify(buffer, expectedData);
+        }
+
+        internal static void ArrayViewAlignmentKernel<T>(
+            Index1 index,
+            ArrayView<T> data,
+            ArrayView<long> prefixLength,
+            ArrayView<long> mainLength,
+            int alignmentInBytes,
+            T element)
+            where T : unmanaged
+        {
+            var (prefix, main) = data.AlignTo(alignmentInBytes);
+
+            prefixLength[index] = prefix.Length;
+            mainLength[index] = main.Length;
+
+            if (index < prefix.Length)
+                prefix[index] = element;
+
+            Trace.Assert(main.Length > 0);
+            main[index] = element;
+        }
+
+        public static TheoryData<object, object> AlignToData =>
+            new TheoryData<object, object>
+            {
+                { 8, int.MaxValue },
+                { 16, int.MaxValue },
+                { 32, int.MaxValue },
+                { 64, int.MaxValue },
+                { 128, int.MaxValue },
+                { 256, int.MaxValue },
+                { 512, int.MaxValue },
+
+                { 16, long.MaxValue },
+                { 32, long.MaxValue },
+                { 64, long.MaxValue },
+                { 128, long.MaxValue },
+                { 256, long.MaxValue },
+                { 512, long.MaxValue },
+
+                { 16, PairStruct.MaxFloats },
+                { 32, PairStruct.MaxFloats },
+                { 64, PairStruct.MaxFloats },
+                { 128, PairStruct.MaxFloats },
+                { 256, PairStruct.MaxFloats },
+                { 512, PairStruct.MaxFloats },
+
+                { 32, PairStruct.MaxDoubles },
+                { 64, PairStruct.MaxDoubles },
+                { 128, PairStruct.MaxDoubles },
+                { 256, PairStruct.MaxDoubles },
+                { 512, PairStruct.MaxDoubles },
+            };
+
+        [Theory]
+        [MemberData(nameof(AlignToData))]
+        [KernelMethod(nameof(ArrayViewAlignmentKernel))]
+        public unsafe void ArrayViewAlignment<T>(int alignmentInBytes, T value)
+            where T : unmanaged
+        {
+            const int Length = 8192;
+            const int NumThreads = 1024;
+
+            using var data = Accelerator.Allocate<T>(Length);
+
+            using var prefixLengthData = Accelerator.Allocate<long>(NumThreads);
+            using var mainLengthData = Accelerator.Allocate<long>(NumThreads);
+
+            data.MemSetToZero();
+            prefixLengthData.MemSetToZero();
+            mainLengthData.MemSetToZero();
+            Accelerator.Synchronize();
+
+            Execute<Index1, T>(
+                NumThreads,
+                data.View,
+                prefixLengthData.View,
+                mainLengthData.View,
+                alignmentInBytes,
+                value);
+
+            var prefixLengths = prefixLengthData.GetAsArray();
+            var mainLengths = mainLengthData.GetAsArray();
+
+            // Check whether the prefix and main lengths are the same for all threads
+            long prefixLength = prefixLengths[0];
+            Verify(
+                prefixLengthData,
+                Enumerable.Repeat(prefixLength, NumThreads).ToArray());
+            long mainLength = mainLengths[0];
+            Verify(
+                mainLengthData,
+                Enumerable.Repeat(mainLength, NumThreads).ToArray());
+
+            // Verify the alignment information on CPU and Cuda platforms
+            if (Accelerator.AcceleratorType == Runtime.AcceleratorType.CPU ||
+                Accelerator.AcceleratorType == Runtime.AcceleratorType.Cuda)
+            {
+                var (prefixView, mainView) = data.View.AlignTo(alignmentInBytes);
+
+                // The prefix view address should be the same (CPU-code test)
+                Assert.Equal(
+                    new IntPtr(prefixView.LoadEffectiveAddress()),
+                    data.NativePtr);
+
+                // Determine the main view length using the raw pointers
+                var mainViewPtr = mainView.LoadEffectiveAddress();
+                long prefixViewLength = ((long)mainViewPtr - data.NativePtr.ToInt64()) /
+                    Interop.SizeOf<T>();
+                Assert.Equal(prefixLength, prefixViewLength);
+                Assert.Equal(prefixLength, prefixView.Length);
+                Assert.Equal(mainLength, mainView.Length);
+
+                // Align the pointers explicitly and compare them
+                Assert.Equal(0, (long)mainViewPtr & (alignmentInBytes - 1));
+            }
+
+            // Check the actual data content
+            var expected = new T[Length];
+            for (int i = 0; i < NumThreads; ++i)
+            {
+                if (i < prefixLength)
+                    expected[i] = value;
+                expected[prefixLength + i] = value;
+            }
+
+            Verify(data, expected);
         }
     }
 }
