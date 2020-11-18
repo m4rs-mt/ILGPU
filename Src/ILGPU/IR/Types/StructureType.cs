@@ -37,6 +37,7 @@ namespace ILGPU.IR.Types
         {
             #region Instance
 
+            private TypeFlags typeFlags;
             private readonly ImmutableArray<TypeNode>.Builder fieldsBuilder;
             private readonly ImmutableArray<TypeNode>.Builder allFieldsBuilder;
             private readonly ImmutableArray<int>.Builder offsetsBuilder;
@@ -54,6 +55,8 @@ namespace ILGPU.IR.Types
             {
                 Debug.Assert(capacity >= 0, "Invalid capacity");
                 Debug.Assert(size >= 0, "Invalid size");
+
+                typeFlags = TypeFlags.None;
 
                 fieldsBuilder = ImmutableArray.CreateBuilder<TypeNode>(capacity);
                 allFieldsBuilder = ImmutableArray.CreateBuilder<TypeNode>(capacity);
@@ -176,6 +179,7 @@ namespace ILGPU.IR.Types
                     offset >= 0);
 
                 allFieldsBuilder.Add(type);
+                typeFlags |= type.Flags;
 
                 // Align the next field properly
                 Offset = Align(Offset + offset, alignment);
@@ -207,9 +211,13 @@ namespace ILGPU.IR.Types
                 }
 
                 // Ensure that the structure is populated to its required size before
-                // we finalize.
-                for (int i = AlignedSize, e = Size; i < e; ++i)
-                    Add(TypeContext.Padding8Type);
+                // we finalize. CAUTION: we have to ignore cases in which this type
+                // contains types that will be lowered in future stages.
+                if ((typeFlags & TypeFlags.ViewDependent) == TypeFlags.None)
+                {
+                    for (int i = AlignedSize, e = Size; i < e; ++i)
+                        Add(TypeContext.Padding8Type);
+                }
                 return TypeContext.FinishStructureType(this);
             }
 
