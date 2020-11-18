@@ -49,7 +49,7 @@ namespace ILGPU.Frontend.Intrinsic
         private static ValueReference HandleUtilityOperation(
             ref InvocationContext context,
             UtilityIntrinsicAttribute attribute) =>
-            context.Builder.CreateIfPredicate(
+            context.Builder.CreatePredicate(
                 context.Location,
                 context[0],
                 context[1],
