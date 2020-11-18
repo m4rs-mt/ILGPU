@@ -606,6 +606,7 @@ namespace ILGPU.IR.Transformations
                 (_, value) => value.Type.IsStructureType, Keep);
             rewriter.Add<SetArrayElement>(
                 (_, value) => value.Type.IsStructureType, Keep);
+            rewriter.Add<AlignViewTo>(Keep);
 
             // Rewrite known values
             rewriter.Add<NullValue>((_, value) => value.Type.IsStructureType, Lower);
