@@ -483,6 +483,12 @@ namespace ILGPU.Backends.PTX
         private readonly struct PhiMoveEmitter : IComplexCommandEmitter
         {
             /// <summary>
+            /// Returns the same command.
+            /// </summary>
+            public string AdjustCommand(string command, PrimitiveRegister[] registers) =>
+                command;
+
+            /// <summary>
             /// Emits phi-based move instructions.
             /// </summary>
             public void Emit(
