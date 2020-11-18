@@ -233,6 +233,11 @@ namespace ILGPU.IR
         GetViewLength,
 
         /// <summary>
+        /// A <see cref="Values.AlignViewTo"/> value.
+        /// </summary>
+        AlignViewTo,
+
+        /// <summary>
         /// A <see cref="Values.SubViewValue"/> value.
         /// </summary>
         SubView,

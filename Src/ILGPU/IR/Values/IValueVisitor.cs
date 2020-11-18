@@ -182,6 +182,12 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="value">The node.</param>
+        void Visit(AlignViewTo value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
         void Visit(PrimitiveValue value);
 
         /// <summary>
