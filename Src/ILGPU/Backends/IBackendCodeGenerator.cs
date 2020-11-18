@@ -126,14 +126,8 @@ namespace ILGPU.Backends
         /// <summary>
         /// Generates code for the given value.
         /// </summary>
-        /// <param name="predicate">The node.</param>
-        void GenerateCode(IfPredicate predicate);
-
-        /// <summary>
-        /// Generates code for the given value.
-        /// </summary>
-        /// <param name="predicate">The node.</param>
-        void GenerateCode(SwitchPredicate predicate);
+        /// <param name="predicate">The predicate node.</param>
+        void GenerateCode(Predicate predicate);
 
         /// <summary>
         /// Generates code for the given value.
@@ -398,12 +392,8 @@ namespace ILGPU.Backends
             public void Visit(IntAsFloatCast value) =>
                 CodeGenerator.GenerateCode(value);
 
-            /// <summary cref="IValueVisitor.Visit(IfPredicate)"/>
-            public void Visit(IfPredicate predicate) =>
-                CodeGenerator.GenerateCode(predicate);
-
-            /// <summary cref="IValueVisitor.Visit(SwitchPredicate)"/>
-            public void Visit(SwitchPredicate predicate) =>
+            /// <summary cref="IValueVisitor.Visit(Predicate)"/>
+            public void Visit(Predicate predicate) =>
                 CodeGenerator.GenerateCode(predicate);
 
             /// <summary cref="IValueVisitor.Visit(GenericAtomic)"/>
