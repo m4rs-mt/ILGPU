@@ -321,4 +321,7 @@
   <data name="CapabilityNotSupportedCuda" xml:space="preserve">
     <value>{0} is not supported on this device. Requires {1} or higher.</value>
   </data>
+  <data name="NotSupportedLocalMemoryIntrinsic" xml:space="preserve">
+    <value>The local memory intrinsic '{0}' is not supported</value>
+  </data>
 </root>

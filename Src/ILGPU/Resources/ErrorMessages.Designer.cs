@@ -529,6 +529,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The local memory intrinsic &apos;{0}&apos; is not supported.
+        /// </summary>
+        internal static string NotSupportedLocalMemoryIntrinsic {
+            get {
+                return ResourceManager.GetString("NotSupportedLocalMemoryIntrinsic", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The math intrinsic with {0} arguments is not supported.
         /// </summary>
         internal static string NotSupportedMathIntrinsic {
