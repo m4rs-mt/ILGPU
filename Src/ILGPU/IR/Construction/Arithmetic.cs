@@ -98,22 +98,21 @@ namespace ILGPU.IR.Construction
             Location location,
             CompareValue compareValue)
         {
-            // When the comparison is inverted, and we are comparing
-            // floats, toggle between ordered/unordered float
-            // comparison
-            var compareFlags = compareValue.Flags;
-            if (compareValue.Left.BasicValueType.IsFloat() &&
-                compareValue.Right.BasicValueType.IsFloat())
-            {
-                compareFlags ^= CompareFlags.UnsignedOrUnordered;
-            }
+            // Invert the operation kind and adjust the flags
+            var flags = compareValue.Flags;
+            var kind = CompareValue.Invert(
+                compareValue.Kind,
+                compareValue.Left.BasicValueType,
+                compareValue.Right.BasicValueType,
+                ref flags);
 
+            // Create a new compare value using the updated kind and flags
             return CreateCompare(
                 location,
                 compareValue.Left,
                 compareValue.Right,
-                CompareValue.Invert(compareValue.Kind),
-                compareFlags);
+                kind,
+                flags);
         }
 
         /// <summary>
