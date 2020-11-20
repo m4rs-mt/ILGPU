@@ -92,6 +92,18 @@ namespace ILGPU.IR.Values
                 CompareKind.LessThan);
 
         /// <summary>
+        /// A mapping to swapped compare kinds to swap the operands.
+        /// </summary>
+        private static readonly ImmutableArray<CompareKind> Swapped =
+            ImmutableArray.Create(
+                CompareKind.Equal,
+                CompareKind.NotEqual,
+                CompareKind.GreaterThan,
+                CompareKind.GreaterEqual,
+                CompareKind.LessThan,
+                CompareKind.LessEqual);
+
+        /// <summary>
         /// A mapping to string representations.
         /// </summary>
         private static readonly ImmutableArray<string> StringOperations =
@@ -104,11 +116,69 @@ namespace ILGPU.IR.Values
                 ">=");
 
         /// <summary>
+        /// Updates the compare flags according to the potentially updated operation
+        /// kind.
+        /// </summary>
+        /// <param name="kind">The current operation kind.</param>
+        /// <param name="newKind">The new (potentially updated) operation kind.</param>
+        /// <param name="leftType">The left basic value type.</param>
+        /// <param name="rightType">The right basic value type.</param>
+        /// <param name="flags">The current flags to be updated.</param>
+        /// <returns>The value of <paramref name="newKind"/>.</returns>
+        private static CompareKind UpdateFlags(
+            CompareKind kind,
+            CompareKind newKind,
+            BasicValueType leftType,
+            BasicValueType rightType,
+            ref CompareFlags flags)
+        {
+            // If the comparison was swapped or inverted, and we are comparing floats,
+            // toggle between ordered/unordered float comparisons
+            if (kind != newKind && leftType.IsFloat() && rightType.IsFloat())
+                flags ^= CompareFlags.UnsignedOrUnordered;
+            return newKind;
+        }
+
+        /// <summary>
         /// Inverts the given compare kind.
         /// </summary>
         /// <param name="kind">The compare kind to invert.</param>
+        /// <param name="leftType">The basic value type of the left operand..</param>
+        /// <param name="rightType">The basic value type of the right operand.</param>
+        /// <param name="flags">The compare flags that might be adjusted.</param>
         /// <returns>The inverted compare kind.</returns>
-        public static CompareKind Invert(CompareKind kind) => Inverted[(int)kind];
+        public static CompareKind Invert(
+            CompareKind kind,
+            BasicValueType leftType,
+            BasicValueType rightType,
+            ref CompareFlags flags) =>
+            UpdateFlags(
+                kind,
+                Inverted[(int)kind],
+                leftType,
+                rightType,
+                ref flags);
+
+        /// <summary>
+        /// Adjusts the given compare kind and the associated flags for swapping the
+        /// operands of a compare operation.
+        /// </summary>
+        /// <param name="kind">The compare kind to invert.</param>
+        /// <param name="leftType">The basic value type of the left operand..</param>
+        /// <param name="rightType">The basic value type of the right operand.</param>
+        /// <param name="flags">The compare flags that might be adjusted.</param>
+        /// <returns>The adjusted compare kind.</returns>
+        public static CompareKind SwapOperands(
+            CompareKind kind,
+            BasicValueType leftType,
+            BasicValueType rightType,
+            ref CompareFlags flags) =>
+            UpdateFlags(
+                kind,
+                Swapped[(int)kind],
+                leftType,
+                rightType,
+                ref flags);
 
         /// <summary>
         /// Returns true if the given kind is commutative.
@@ -117,16 +187,6 @@ namespace ILGPU.IR.Values
         /// <returns>True, if the given kind is commutative.</returns>
         public static bool IsCommutative(CompareKind kind) =>
             kind <= CompareKind.NotEqual;
-
-        /// <summary>
-        /// Inverts the given compare kind if it is not commutative.
-        /// </summary>
-        /// <param name="kind">The compare kind to invert.</param>
-        /// <returns>The inverted compare kind.</returns>
-        public static CompareKind InvertIfNonCommutative(CompareKind kind) =>
-            IsCommutative(kind)
-            ? kind
-            : Invert(kind);
 
         #endregion
 

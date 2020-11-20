@@ -2,6 +2,7 @@
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
@@ -232,6 +233,26 @@ namespace ILGPU.Tests
             Assert.Equal(dataLength, expected.Length);
             for (int i = offset ?? 0, e = dataLength; i < e; ++i)
                 Assert.Equal(expected[i], data[i]);
+        }
+
+        /// <summary>
+        /// Verifies the contents of the given 2D memory buffer.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="buffer">The target buffer.</param>
+        /// <param name="expected">The expected values.</param>
+        [SuppressMessage(
+            "Performance",
+            "CA1814:Prefer jagged arrays over multidimensional",
+            Justification = "Used for testing purposes")]
+        public void Verify2D<T>(MemoryBuffer2D<T> buffer, T[,] expected)
+            where T : unmanaged
+        {
+            var data = buffer.GetAs2DArray(Accelerator.DefaultStream);
+            Assert.Equal(data.Length, expected.Length);
+            for (int i = 0; i < data.GetLength(0); ++i)
+                for (int j = 0; j < data.GetLength(1); ++j)
+                Assert.Equal(expected[i, j], data[i, j]);
         }
 
         /// <summary>
