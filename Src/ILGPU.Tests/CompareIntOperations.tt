@@ -9,6 +9,7 @@ using Xunit.Abstractions;
 
 #pragma warning disable xUnit1025 // InlineData should be unique within the Theory it
                                   // belongs to
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
 <#
 var operationConfigurations = new (string, string)[]
@@ -20,11 +21,24 @@ var operationConfigurations = new (string, string)[]
         ("Equal", "=="),
         ("NotEqual", "!="),
     };
+var testValueFormats = new (int, string, string)[]
+    {
+        (0, "{0}.MaxValue", "({0})1"),
+        (1, "{0}.MinValue", "{0}.MaxValue"),
+        (2, "{0}.MinValue + 1", "{0}.MaxValue"),
+        (3, "({0})0", "{0}.MaxValue"),
+        (4, "({0})0", "{0}.MaxValue - 1"),
+        (5, "({0})1", "({0})1"),
+        (6, "({0})6", "({0})2"),
+        (7, "({0})5", "({0})19")
+    };
 #>
 namespace ILGPU.Tests
 {
     public abstract class CompareIntOperations : TestBase
     {
+        private const int Length = 32;
+
         protected CompareIntOperations(ITestOutputHelper output, TestContext testContext)
             : base(output, testContext)
         { }
@@ -45,30 +59,75 @@ namespace ILGPU.Tests
         }
 
         [Theory]
-        [InlineData(<#= type.Type #>.MaxValue, (<#= type.Type #>)1)]
-        [InlineData(<#= type.Type #>.MinValue, <#= type.Type #>.MaxValue)]
-        [InlineData(<#= type.Type #>.MinValue + 1, <#= type.Type #>.MaxValue)]
-        [InlineData((<#= type.Type #>)0, <#= type.Type #>.MaxValue)]
-        [InlineData((<#= type.Type #>)0, <#= type.Type #>.MaxValue - 1)]
-        [InlineData((<#= type.Type #>)1, (<#= type.Type #>)1)]
-        [InlineData((<#= type.Type #>)6, (<#= type.Type #>)2)]
-        [InlineData((<#= type.Type #>)5, (<#= type.Type #>)19)]
+<#          foreach (var (_, lhs, rhs) in testValueFormats) { #>
+        [InlineData(
+            <#= string.Format(lhs, type.Type) #>,
+            <#= string.Format(rhs, type.Type) #>)]
+<#          } #>
         [KernelMethod(nameof(<#= kernelName #>))]
         public void <#= testName #>(
             <#= type.Type #> left,
             <#= type.Type #> right)
         {
-            const int length = 32;
-            using var a = Accelerator.Allocate<<#= type.Type #>>(length);
-            using var b = Accelerator.Allocate<<#= type.Type #>>(length);
-            using var c = Accelerator.Allocate<int>(length);
+            using var a = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var b = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var c = Accelerator.Allocate<int>(Length);
             Initialize(a, left);
             Initialize(b, right);
-            Execute(length, a.View, b.View, c.View);
+            Execute(Length, a.View, b.View, c.View);
 
             var result = left <#= infix #> right ? 1 : 0;
-            var reference = Enumerable.Repeat(result, length).ToArray();
+            var reference = Enumerable.Repeat(result, Length).ToArray();
             Verify(c, reference);
+        }
+
+        internal static void <#= kernelName #>_Const(
+            Index1 index,
+            ArrayView<<#= type.Type #>> a,
+            ArrayView2D<int> b,
+            ArrayView2D<int> c)
+        {
+<#          foreach (var (index, lhs, rhs) in testValueFormats) { #>
+            b[index, <#= index #>] = (<#= string.Format(lhs, type.Type) #> <#= infix #>
+                a[index]) ? 1 : 0;
+            c[index, <#= index #>] = (a[index] <#= infix #>
+                <#= string.Format(rhs, type.Type) #>) ? 1 : 0;
+<#          } #>
+        }
+
+        [Theory]
+<#          foreach (var (_, lhs, rhs) in testValueFormats) { #>
+        [InlineData(<#= string.Format(lhs, type.Type) #>)]
+        [InlineData(<#= string.Format(rhs, type.Type) #>)]
+<#          } #>
+        [KernelMethod(nameof(<#= kernelName #>_Const))]
+        public void <#= testName #>_Const(<#= type.Type #> value)
+        {
+            using var a = Accelerator.Allocate<<#= type.Type #>>(Length);
+            using var b = Accelerator.Allocate<int>(
+                Length,
+                <#= testValueFormats.Length #>);
+            using var c = Accelerator.Allocate<int>(
+                Length,
+                <#= testValueFormats.Length #>);
+            Initialize(a, value);
+            Execute(Length, a.View, b.View, c.View);
+
+            // Generate reference data
+            var expectedB = new int[Length, <#= testValueFormats.Length #>];
+            var expectedC = new int[Length, <#= testValueFormats.Length #>];
+            for (int index = 0; index < Length; ++index)
+            {
+<#          foreach (var (index, lhs, rhs) in testValueFormats) { #>
+                expectedB[index, <#= index #>] = (<#= string.Format(lhs, type.Type) #>
+                    <#= infix #> value) ? 1 : 0;
+                expectedC[index, <#= index #>] = (value <#= infix #>
+                    <#= string.Format(rhs, type.Type) #>) ? 1 : 0;
+<#          } #>
+            }
+
+            Verify2D(b, expectedB);
+            Verify2D(c, expectedC);
         }
 
 <#      } #>
@@ -76,5 +135,6 @@ namespace ILGPU.Tests
     }
 }
 
+#pragma warning restore CA1814 // Prefer jagged arrays over multidimensional
 #pragma warning restore xUnit1025 // InlineData should be unique within the Theory it
                                   // belongs to
