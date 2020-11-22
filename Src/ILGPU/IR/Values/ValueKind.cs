@@ -74,6 +74,11 @@ namespace ILGPU.IR
         IntAsPointerCast,
 
         /// <summary>
+        /// A <see cref="Values.PointerAsIntCast"/> value.
+        /// </summary>
+        PointerAsIntCast,
+
+        /// <summary>
         /// A <see cref="Values.FloatAsIntCast"/> value.
         /// </summary>
         FloatAsIntCast,
@@ -193,28 +198,6 @@ namespace ILGPU.IR
         /// </summary>
         SetField,
 
-        // Arrays
-
-        /// <summary>
-        /// A <see cref="Values.ArrayValue"/> value.
-        /// </summary>
-        Array,
-
-        /// <summary>
-        /// A <see cref="Values.GetArrayExtent"/> value.
-        /// </summary>
-        GetArrayExtent,
-
-        /// <summary>
-        /// A <see cref="Values.GetArrayElement"/> value.
-        /// </summary>
-        GetArrayElement,
-
-        /// <summary>
-        /// A <see cref="Values.SetArrayElement"/> value.
-        /// </summary>
-        SetArrayElement,
-
         // Views
 
         /// <summary>
@@ -226,6 +209,11 @@ namespace ILGPU.IR
         /// A <see cref="Values.GetViewLength"/> value.
         /// </summary>
         GetViewLength,
+
+        /// <summary>
+        /// A <see cref="Values.AlignViewTo"/> value.
+        /// </summary>
+        AlignViewTo,
 
         /// <summary>
         /// A <see cref="Values.SubViewValue"/> value.

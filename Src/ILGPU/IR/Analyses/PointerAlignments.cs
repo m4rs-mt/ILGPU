@@ -141,6 +141,10 @@ namespace ILGPU.IR.Analyses
             {
                 case Alloca alloca:
                     return AllocaAlignments.GetInitialAlignment(alloca);
+                case AlignViewTo alignTo:
+                    // Use a compile-time known alignment constant for the alignment
+                    // information instead of type-based alignment reasoning
+                    return alignTo.GetAlignmentConstant();
                 case NewView _:
                 case BaseAddressSpaceCast _:
                 case SubViewValue _:

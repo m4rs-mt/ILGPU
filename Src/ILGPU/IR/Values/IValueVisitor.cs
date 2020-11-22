@@ -74,6 +74,12 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="value">The node.</param>
+        void Visit(PointerAsIntCast value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
         void Visit(PointerCast value);
 
         /// <summary>
@@ -176,6 +182,12 @@ namespace ILGPU.IR.Values
         /// Visits the node.
         /// </summary>
         /// <param name="value">The node.</param>
+        void Visit(AlignViewTo value);
+
+        /// <summary>
+        /// Visits the node.
+        /// </summary>
+        /// <param name="value">The node.</param>
         void Visit(PrimitiveValue value);
 
         /// <summary>
@@ -209,32 +221,6 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="value">The node.</param>
         void Visit(SetField value);
-
-        // Arrays
-
-        /// <summary>
-        /// Visits the node.
-        /// </summary>
-        /// <param name="value">The node.</param>
-        void Visit(ArrayValue value);
-
-        /// <summary>
-        /// Visits the node.
-        /// </summary>
-        /// <param name="value">The node.</param>
-        void Visit(GetArrayExtent value);
-
-        /// <summary>
-        /// Visits the node.
-        /// </summary>
-        /// <param name="value">The node.</param>
-        void Visit(GetArrayElement value);
-
-        /// <summary>
-        /// Visits the node.
-        /// </summary>
-        /// <param name="value">The node.</param>
-        void Visit(SetArrayElement value);
 
         /// <summary>
         /// Visits the node.

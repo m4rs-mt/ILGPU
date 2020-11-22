@@ -173,11 +173,6 @@ namespace ILGPU.IR.Values
         public override ValueKind ValueKind => ValueKind.LoadElementAddress;
 
         /// <summary>
-        /// Returns true if the current access works on an array.
-        /// </summary>
-        public bool IsArrayAccesss => Source.Type.IsArrayType;
-
-        /// <summary>
         /// Returns true if the current access works on a view.
         /// </summary>
         public bool IsViewAccess => Source.Type.IsViewType;

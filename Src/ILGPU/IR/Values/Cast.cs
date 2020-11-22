@@ -56,13 +56,41 @@ namespace ILGPU.IR.Values
         public TypeNode TargetType => Type;
 
         #endregion
+
+        #region Object
+
+        /// <summary cref="Value.ToArgString"/>
+        protected override string ToArgString() => Value.ToString();
+
+        #endregion
+    }
+
+    /// <summary>
+    /// An abstract base class for converting pointers to integers and vice versa.
+    /// </summary>
+    public abstract class PointerIntCast : CastValue
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new cast value.
+        /// </summary>
+        /// <param name="initializer">The value initializer.</param>
+        /// <param name="source">The value to cast.</param>
+        protected PointerIntCast(
+            in ValueInitializer initializer,
+            ValueReference source)
+            : base(initializer, source)
+        { }
+
+        #endregion
     }
 
     /// <summary>
     /// Casts from an integer to a raw pointer value.
     /// </summary>
     [ValueKind(ValueKind.IntAsPointerCast)]
-    public sealed class IntAsPointerCast : CastValue
+    public sealed class IntAsPointerCast : PointerIntCast
     {
         #region Instance
 
@@ -117,6 +145,80 @@ namespace ILGPU.IR.Values
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "intasptr";
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Casts from a pointer value to an integer.
+    /// </summary>
+    [ValueKind(ValueKind.PointerAsIntCast)]
+    public sealed class PointerAsIntCast : PointerIntCast
+    {
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new cast value.
+        /// </summary>
+        /// <param name="initializer">The value initializer.</param>
+        /// <param name="source">The pointer to cast.</param>
+        /// <param name="targetType">The target int type to cast to.</param>
+        internal PointerAsIntCast(
+            in ValueInitializer initializer,
+            ValueReference source,
+            PrimitiveType targetType)
+            : base(initializer, source)
+        {
+            initializer.Assert(
+                source.Type.IsPointerType &&
+                targetType.BasicValueType.IsInt());
+
+            TargetType = targetType;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary cref="Value.ValueKind"/>
+        public override ValueKind ValueKind => ValueKind.PointerAsIntCast;
+
+        /// <summary>
+        /// Returns the target type to convert the value to.
+        /// </summary>
+        public new PrimitiveType TargetType { get; }
+
+        /// <summary>
+        /// Returns the target basic value type.
+        /// </summary>
+        public BasicValueType TargetBasicValueType => TargetType.BasicValueType;
+
+        #endregion
+
+        #region Methods
+
+        /// <summary cref="Value.ComputeType(in ValueInitializer)"/>
+        protected override TypeNode ComputeType(in ValueInitializer initializer) =>
+            TargetType;
+
+        /// <summary cref="Value.Rebuild(IRBuilder, IRRebuilder)"/>
+        protected internal override Value Rebuild(
+            IRBuilder builder,
+            IRRebuilder rebuilder) =>
+            builder.CreatePointerAsIntCast(
+                Location,
+                rebuilder.Rebuild(Value),
+                TargetBasicValueType);
+
+        /// <summary cref="Value.Accept"/>
+        public override void Accept<T>(T visitor) => visitor.Visit(this);
+
+        #endregion
+
+        #region Object
+
+        /// <summary cref="Node.ToPrefixString"/>
+        protected override string ToPrefixString() => $"ptras<{TargetType}>";
 
         #endregion
     }

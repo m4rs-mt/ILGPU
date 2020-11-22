@@ -357,6 +357,9 @@ namespace ILGPU.IR.Analyses
                 SubViewValue subView => subView.ElementType,
                 LoadElementAddress lea when lea.IsPointerAccess || lea.IsViewAccess =>
                     lea.ElementType,
+                // AlignViewTo values cannot be mapped to a supported analysis type since
+                // this value specifies the alignment in bytes explicitly
+                AlignViewTo _ => null,
                 _ => null
             };
 
@@ -413,17 +416,29 @@ namespace ILGPU.IR.Analyses
                 var current = toProcess.Pop();
                 TypeNode type;
 
-                // Check whether we have already seen this value or whether we can skip
-                // this value since it will not contribute to the alloca alignment info
-                if (!visited.Add(current) ||
-                    (type = TryGetAnalysisType(current)) is null)
+                // Check whether we have already seen this value
+                if (!visited.Add(current))
+                    continue;
+
+                if (current is AlignViewTo alignTo)
                 {
+                    // If this is a view alignment value that explicitly specifies
+                    // an alignment, you this alignment value instead of an automatically
+                    // determined alignment based on type information
+                    alignment = Math.Max(alignment, alignTo.GetAlignmentConstant());
+                }
+                else if ((type = TryGetAnalysisType(current)) != null)
+                {
+                    // Determine the maximal alignment based on the current alignment and
+                    // the allocation-specific alignment of analysis type
+                    alignment = Math.Max(alignment, GetAllocaTypeAlignment(type));
+                }
+                else
+                {
+                    // Check whether we can skip this value since it will not contribute
+                    // to the alloca alignment info
                     continue;
                 }
-
-                // Determine the maximal alignment based on the current alignment and
-                // the allocation-specific alignment of analysis type
-                alignment = Math.Max(alignment, GetAllocaTypeAlignment(type));
 
                 // Continue the search by pushing all uses onto the stack
                 foreach (Value use in current.Uses)

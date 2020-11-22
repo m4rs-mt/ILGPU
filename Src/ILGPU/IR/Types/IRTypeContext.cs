@@ -288,17 +288,22 @@ namespace ILGPU.IR.Types
         /// Creates a new array type.
         /// </summary>
         /// <param name="elementType">The element type.</param>
-        /// <param name="dimension">The array dimension.</param>
+        /// <param name="dimensions">The number of array dimensions.</param>
         /// <returns>The created array type.</returns>
-        public ArrayType CreateArrayType(TypeNode elementType, int dimension)
+        public TypeNode CreateArrayType(TypeNode elementType, int dimensions)
         {
-            Debug.Assert(dimension > 0, "Invalid array length");
+            // Check for not supported array dimensions
+            if (dimensions != 1)
+            {
+                throw new NotSupportedException(
+                    string.Format(
+                        ErrorMessages.NotSupportedArrayDimension,
+                        dimensions.ToString()));
+            }
 
-            // Create the actual type
-            return UnifyType(new ArrayType(
-                this,
-                elementType,
-                dimension));
+            // Create a 1D view type for now
+            elementType.Assert(dimensions == 1);
+            return CreateViewType(elementType, MemoryAddressSpace.Local);
         }
 
         /// <summary>

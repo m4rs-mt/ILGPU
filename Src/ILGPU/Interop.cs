@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Frontend.Intrinsic;
+using ILGPU.Util;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -23,6 +24,39 @@ namespace ILGPU
     /// </summary>
     public static class Interop
     {
+        /// <summary>
+        /// Returns an aligned offset that has to be added to the given pointer in order
+        /// to compute a new pointer value that is aligned according to the given
+        /// alignment specification in bytes.
+        /// </summary>
+        /// <param name="ptr">The raw integer pointer value.</param>
+        /// <param name="alignmentInBytes">The alignment in bytes.</param>
+        /// <returns>The pointer offset in bytes to add to the given pointer.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ComputeAlignmentOffset(long ptr, int alignmentInBytes)
+        {
+            // We can safely cast the pointer value to a 32-bit integer here since the
+            // alignment information refers to the lower-most bits only
+            int baseOffset = (int)ptr & (alignmentInBytes - 1);
+            return Utilities.Select(baseOffset == 0, 0, alignmentInBytes - baseOffset);
+        }
+
+        /// <summary>
+        /// Returns a properly aligned pointer for the given alignment in bytes.
+        /// </summary>
+        /// <param name="ptr">The raw integer pointer value.</param>
+        /// <param name="length">The maximum buffer length in bytes.</param>
+        /// <param name="alignmentInBytes">The alignment in bytes.</param>
+        /// <returns>The aligned pointer.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long Align(long ptr, long length, int alignmentInBytes)
+        {
+            long offset =
+                IntrinsicMath.Min(length,
+                ComputeAlignmentOffset(ptr, alignmentInBytes));
+            return ptr + offset;
+        }
+
         /// <summary>
         /// Computes the effective address for the given pointer/index combination.
         /// </summary>

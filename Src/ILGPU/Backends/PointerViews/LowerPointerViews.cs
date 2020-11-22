@@ -60,7 +60,7 @@ namespace ILGPU.Backends.PointerViews
         #region Rewriter Methods
 
         /// <summary>
-        /// Lowers set field operations into separate SSA values.
+        /// Lowers a new view.
         /// </summary>
         private static void Lower(
             RewriterContext context,
@@ -79,7 +79,7 @@ namespace ILGPU.Backends.PointerViews
         }
 
         /// <summary>
-        /// Lowers set field operations into separate SSA values.
+        /// Lowers get-view-length property.
         /// </summary>
         private static void Lower(
             RewriterContext context,
@@ -103,7 +103,7 @@ namespace ILGPU.Backends.PointerViews
         }
 
         /// <summary>
-        /// Lowers set field operations into separate SSA values.
+        /// Lowers a sub-view value.
         /// </summary>
         private static void Lower(
             RewriterContext context,
@@ -136,7 +136,7 @@ namespace ILGPU.Backends.PointerViews
         }
 
         /// <summary>
-        /// Lowers set field operations into separate SSA values.
+        /// Lowers an address-space cast.
         /// </summary>
         private static void Lower(
             RewriterContext context,
@@ -166,7 +166,7 @@ namespace ILGPU.Backends.PointerViews
         }
 
         /// <summary>
-        /// Lowers set field operations into separate SSA values.
+        /// Lowers a view cast.
         /// </summary>
         private static void Lower(
             RewriterContext context,
@@ -216,7 +216,7 @@ namespace ILGPU.Backends.PointerViews
         }
 
         /// <summary>
-        /// Lowers set field operations into separate SSA values.
+        /// Lowers a lea operation.
         /// </summary>
         private static void Lower(
             RewriterContext context,
@@ -236,6 +236,83 @@ namespace ILGPU.Backends.PointerViews
             context.ReplaceAndRemove(value, newLea);
         }
 
+        /// <summary>
+        /// Lowers an align-view-to operation.
+        /// </summary>
+        private static void Lower(
+            RewriterContext context,
+            TypeLowering<ViewType> typeLowering,
+            AlignViewTo value)
+        {
+            var builder = context.Builder;
+            var location = value.Location;
+
+            // Extract basic view information from the converted structure
+            var pointer = builder.CreateGetField(
+                location,
+                value.View,
+                new FieldSpan(0));
+            var length = builder.CreateGetField(
+                location,
+                value.View,
+                new FieldSpan(1));
+
+            // Create IR code that represents the required operations to create aligned
+            // views (see ArrayView.AlignToInternal for more information).
+            var viewType = typeLowering[value].As<ViewType>(value);
+
+            // long elementsToSkip = Min(
+            //      AlignmentOffset(ptr, alignmentInBytes) / elementSize,
+            //      Length);
+
+            var elementsToSkip = builder.CreateArithmetic(
+                location,
+                builder.CreateAlignmentOffset(
+                    location,
+                    builder.CreatePointerAsIntCast(
+                        location,
+                        pointer,
+                        BasicValueType.Int64),
+                    value.AlignmentInBytes),
+                builder.CreateSizeOf(location, viewType.ElementType),
+                BinaryArithmeticKind.Div);
+
+            elementsToSkip = builder.CreateArithmetic(
+                location,
+                elementsToSkip,
+                length,
+                BinaryArithmeticKind.Min);
+
+            // Build the final result structure instance
+            var resultBuilder = builder.CreateDynamicStructure(location);
+
+            // Create the prefix view that starts at the original pointer offset and
+            // includes elementsToSkip many elements.
+            {
+                resultBuilder.Add(pointer);
+                resultBuilder.Add(elementsToSkip);
+            }
+
+            // Create the main view that starts at the original pointer offset +
+            // elementsToSkip and has a length of remainingLength
+            {
+                var mainPointer = builder.CreateLoadElementAddress(
+                    location,
+                    pointer,
+                    elementsToSkip);
+                resultBuilder.Add(mainPointer);
+                var remainingLength = builder.CreateArithmetic(
+                    location,
+                    length,
+                    elementsToSkip,
+                    BinaryArithmeticKind.Sub);
+                resultBuilder.Add(remainingLength);
+            }
+
+            var result = resultBuilder.Seal();
+            context.ReplaceAndRemove(value, result);
+        }
+
         #endregion
 
         #region Rewriter
@@ -253,6 +330,7 @@ namespace ILGPU.Backends.PointerViews
         {
             AddRewriters(
                 Rewriter,
+                Lower,
                 Lower,
                 Lower,
                 Lower,
