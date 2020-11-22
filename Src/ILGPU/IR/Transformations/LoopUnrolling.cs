@@ -324,6 +324,15 @@ namespace ILGPU.IR.Transformations
                     entry.Key.Replace(entry.Value);
             }
 
+            /// <summary>
+            /// Clears all blocks in the body of the loop.
+            /// </summary>
+            public readonly void ClearBody()
+            {
+                foreach (var block in blocks)
+                    Builder[block].Clear();
+            }
+
             #endregion
         }
 
@@ -455,6 +464,9 @@ namespace ILGPU.IR.Transformations
 
                 // Replace all phi values with their computed values
                 loopSpecializer.ReplacePhis();
+
+                // Clear all old body blocks to remove all old uses
+                loopSpecializer.ClearBody();
             }
         }
 
