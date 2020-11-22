@@ -432,6 +432,34 @@ namespace ILGPU.IR.Transformations
             context.Remove(phi);
         }
 
+        private static void Lower(
+            SSARewriterContext<FieldRef> context,
+            LoweringData _,
+            Predicate predicate)
+        {
+            foreach (var (_, fieldAccess) in predicate.Type as StructureType)
+            {
+                // Build a new if predicate which might become dead in the future
+                var trueValue = context.GetValue(
+                    context.Block,
+                    new FieldRef(predicate.TrueValue, fieldAccess));
+                var falseValue = context.GetValue(
+                    context.Block,
+                    new FieldRef(predicate.FalseValue, fieldAccess));
+                var newPredicate = context.Builder.CreatePredicate(
+                    predicate.Location,
+                    predicate.Condition,
+                    trueValue,
+                    falseValue);
+
+                // Bind the new if predicate
+                context.SetValue(
+                    context.Block,
+                    new FieldRef(predicate, fieldAccess),
+                    newPredicate);
+            }
+        }
+
         /// <summary>
         /// Lowers method calls involving structure types.
         /// </summary>
@@ -586,6 +614,8 @@ namespace ILGPU.IR.Transformations
             rewriter.Add<Broadcast>((_, value) => value.Type.IsStructureType, Lower);
             rewriter.Add<WarpShuffle>((_, value) => value.Type.IsStructureType, Lower);
             rewriter.Add<SubWarpShuffle>((_, value) => value.Type.IsStructureType, Lower);
+
+            rewriter.Add<Predicate>((_, value) => value.Type.IsStructureType, Lower);
 
             rewriter.Add<ReturnTerminator>(
                 (_, value) => value.Method.ReturnType.IsStructureType, Lower);

@@ -280,6 +280,12 @@ namespace ILGPU.Backends.PTX
             public PrimitiveRegister PredicateRegister { get; }
 
             /// <summary>
+            /// Gets the actual select command.
+            /// </summary>
+            public string AdjustCommand(string command, PrimitiveRegister[] registers) =>
+                PTXInstructions.GetSelectValueOperation(registers[0].BasicValueType);
+
+            /// <summary>
             /// Emits nested predicates.
             /// </summary>
             public void Emit(
@@ -293,8 +299,8 @@ namespace ILGPU.Backends.PTX
             }
         }
 
-        /// <summary cref="IBackendCodeGenerator.GenerateCode(IfPredicate)"/>
-        public void GenerateCode(IfPredicate predicate)
+        /// <summary cref="IBackendCodeGenerator.GenerateCode(Predicate)"/>
+        public void GenerateCode(Predicate predicate)
         {
             var condition = LoadPrimitive(predicate.Condition);
             var trueValue = Load(predicate.TrueValue);
@@ -322,17 +328,13 @@ namespace ILGPU.Backends.PTX
             else
             {
                 EmitComplexCommand(
-                    PTXInstructions.GetSelectValueOperation(predicate.BasicValueType),
+                    null,
                     new PredicateEmitter(condition),
                     targetRegister,
                     trueValue,
                     falseValue);
             }
         }
-
-        /// <summary cref="IBackendCodeGenerator.GenerateCode(SwitchPredicate)"/>
-        public void GenerateCode(SwitchPredicate predicate) =>
-            throw new InvalidCodeGenerationException();
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(GenericAtomic)"/>
         public void GenerateCode(GenericAtomic atomic)
@@ -659,6 +661,12 @@ namespace ILGPU.Backends.PTX
         /// </summary>
         private readonly struct NullEmitter : IComplexCommandEmitter
         {
+            /// <summary>
+            /// Returns the same command.
+            /// </summary>
+            public string AdjustCommand(string command, PrimitiveRegister[] registers) =>
+                command;
+
             /// <summary>
             /// Emits nested null values.
             /// </summary>

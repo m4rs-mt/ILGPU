@@ -101,16 +101,10 @@ namespace ILGPU.IR.Values
         void Visit(IntAsFloatCast value);
 
         /// <summary>
-        /// Visits the node.
+        /// Visits the given predicate.
         /// </summary>
-        /// <param name="predicate">The node.</param>
-        void Visit(IfPredicate predicate);
-
-        /// <summary>
-        /// Visits the node.
-        /// </summary>
-        /// <param name="predicate">The node.</param>
-        void Visit(SwitchPredicate predicate);
+        /// <param name="predicate">The predicate node.</param>
+        void Visit(Predicate predicate);
 
         /// <summary>
         /// Visits the node.

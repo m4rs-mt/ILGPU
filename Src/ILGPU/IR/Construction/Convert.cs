@@ -157,7 +157,7 @@ namespace ILGPU.IR.Construction
             // Match bool to X
             else if (node.BasicValueType == BasicValueType.Int1)
             {
-                return CreateIfPredicate(
+                return CreatePredicate(
                     location,
                     node,
                     CreatePrimitiveValue(

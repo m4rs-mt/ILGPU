@@ -502,6 +502,14 @@ namespace ILGPU.Backends.PTX
         public interface IComplexCommandEmitter
         {
             /// <summary>
+            /// Adjusts the given command by taking the registers into account.
+            /// </summary>
+            /// <param name="command">The current command.</param>
+            /// <param name="registers">All involved primitive registers.</param>
+            /// <returns>The adjusted command.</returns>
+            string AdjustCommand(string command, PrimitiveRegister[] registers);
+
+            /// <summary>
             /// Emits a nested primitive command in the scope of a complex command chain.
             /// </summary>
             /// <param name="commandEmitter">The command emitter.</param>
@@ -596,6 +604,7 @@ namespace ILGPU.Backends.PTX
                     var primitiveRegisters = new PrimitiveRegister[registers.Length];
                     for (int i = 0, e = registers.Length; i < e; ++i)
                         primitiveRegisters[i] = registers[i] as PrimitiveRegister;
+                    command = emitter.AdjustCommand(command, primitiveRegisters);
                     using (var commandEmitter = BeginCommand(command))
                         emitter.Emit(commandEmitter, primitiveRegisters);
                     break;

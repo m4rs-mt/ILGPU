@@ -21,23 +21,6 @@ using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 namespace ILGPU.IR.Transformations
 {
     /// <summary>
-    /// Specific conversion flags for the <see cref="IfConversion"/> transformation.
-    /// </summary>
-    [Flags]
-    public enum IfConversionFlags : int
-    {
-        /// <summary>
-        /// Converts if branches.
-        /// </summary>
-        Default = 0,
-
-        /// <summary>
-        /// Converts switch branches.
-        /// </summary>
-        Switches = 1 << 0,
-    }
-
-    /// <summary>
     /// Converts nested if/switch branches into value conditionals.
     /// </summary>
     public sealed class IfConversion : UnorderedTransformation
@@ -245,19 +228,16 @@ namespace ILGPU.IR.Transformations
             /// <summary>
             /// Constructs a new conditional analyzer.
             /// </summary>
-            /// <param name="flags">The current flags.</param>
             /// <param name="maxBlockSize">The maximum block size.</param>
             /// <param name="maxBlockDifference">
             /// The maximum block size difference.
             /// </param>
             /// <param name="cfg">The current backwards CFG.</param>
             public ConditionalAnalyzer(
-                IfConversionFlags flags,
                 int maxBlockSize,
                 int maxBlockDifference,
                 CFG<ReversePostOrder, Backwards> cfg)
             {
-                Flags = flags;
                 PostDominators = cfg.CreateDominators();
                 MaxBlockSize = maxBlockSize;
                 MaxBlockDifference = maxBlockDifference;
@@ -267,11 +247,6 @@ namespace ILGPU.IR.Transformations
             #endregion
 
             #region Properties
-
-            /// <summary>
-            /// Returns the associated conversion flags.
-            /// </summary>
-            public IfConversionFlags Flags { get; }
 
             /// <summary>
             /// Returns the maximum block size.
@@ -308,11 +283,8 @@ namespace ILGPU.IR.Transformations
             {
                 converter = default;
                 var successors = block.CurrentSuccessors;
-                if (successors.Length < 2 || successors.Length > 2 &&
-                    (Flags & IfConversionFlags.Switches) != IfConversionFlags.Switches)
-                {
+                if (successors.Length != 2)
                     return false;
-                }
 
                 // Compute the common dominator of all successors
                 var postDominator = PostDominators.GetImmediateCommonDominator(
@@ -515,6 +487,7 @@ namespace ILGPU.IR.Transformations
             {
                 foreach (var phiValue in PhiValues)
                 {
+                    phiValue.Assert(phiValue.Count == 2);
                     var conditionalValues = ValueList.Empty;
                     conditionalValues.Resize(phiValue.Nodes.Length);
                     for (int i = 0, e = phiValue.Nodes.Length; i < e; ++i)
@@ -534,7 +507,8 @@ namespace ILGPU.IR.Transformations
                     var conditional = builder.CreatePredicate(
                         phiValue.Location,
                         Branch.Condition,
-                        ref conditionalValues);
+                        conditionalValues[0],
+                        conditionalValues[1]);
 
                     // Replace the phi node
                     phiValue.Replace(conditional);
@@ -617,19 +591,16 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Constructs a new if/switch conversion transformation.
         /// </summary>
-        /// <param name="flags">The conversion flags.</param>
-        public IfConversion(IfConversionFlags flags)
-            : this(flags, DefaultMaxBlockSize, DefaultMaxBlockDifference)
+        public IfConversion()
+            : this(DefaultMaxBlockSize, DefaultMaxBlockDifference)
         { }
 
         /// <summary>
         /// Constructs a new if/switch conversion transformation.
         /// </summary>
-        /// <param name="flags">The conversion flags.</param>
         /// <param name="maxBlockSize">The maximum block size.</param>
         /// <param name="maxBlockDifference">The maximum block size difference.</param>
         public IfConversion(
-            IfConversionFlags flags,
             int maxBlockSize,
             int maxBlockDifference)
         {
@@ -638,7 +609,6 @@ namespace ILGPU.IR.Transformations
             if (maxBlockDifference < 0)
                 throw new ArgumentOutOfRangeException(nameof(maxBlockDifference));
 
-            Flags = flags;
             MaxBlockSize = maxBlockSize;
             MaxBlockDifference = maxBlockDifference;
         }
@@ -646,11 +616,6 @@ namespace ILGPU.IR.Transformations
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Returns the associated flags.
-        /// </summary>
-        public IfConversionFlags Flags { get; }
 
         /// <summary>
         /// Returns the maximum block size.
@@ -674,7 +639,6 @@ namespace ILGPU.IR.Transformations
             var blocks = builder.SourceBlocks;
             var reverseBlocks = blocks.ChangeDirection<Backwards>();
             var conditionalAnalyzer = new ConditionalAnalyzer(
-                Flags,
                 MaxBlockSize,
                 MaxBlockDifference,
                 reverseBlocks.CreateCFG());
