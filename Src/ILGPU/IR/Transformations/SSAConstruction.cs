@@ -434,4 +434,236 @@ namespace ILGPU.IR.Transformations
 
         #endregion
     }
+
+    /// <summary>
+    /// Performs an SSA structure construction from array allocations transformation.
+    /// </summary>
+    public sealed class SSAStructureConstruction : SSAConstructionBase
+    {
+        #region Utility Methods
+
+        /// <summary>
+        /// Returns true if the given <see cref="LoadElementAddress"/> value requires
+        /// an explicit address in memory (e.g. the offset being accessed could not be
+        /// resolved to a statically known index value).
+        /// </summary>
+        /// <param name="lea">The lea node.</param>
+        /// <param name="arrayLength">The array length.</param>
+        /// <returns>True, if an explicit address is required.</returns>
+        private static bool RequiresAddress(
+            LoadElementAddress lea,
+            int arrayLength) =>
+            !(lea.Offset.Resolve() is PrimitiveValue index &&
+            index.Int32Value >= 0 && index.Int32Value < arrayLength) ||
+            RequiresAddress(lea);
+
+        /// <summary>
+        /// Returns true if the given value requires an explicit address in memory.
+        /// </summary>
+        /// <param name="node">The node to test.</param>
+        /// <param name="arrayLength">The array length.</param>
+        /// <returns>True, if an explicit address is required.</returns>
+        private static bool RequiresAddress(Value node, int arrayLength)
+        {
+            foreach (Value use in node.Uses)
+            {
+                switch (use)
+                {
+                    case NewView newView:
+                        if (RequiresAddress(newView, arrayLength))
+                            return true;
+                        break;
+                    case LoadElementAddress lea:
+                        if (RequiresAddress(lea, arrayLength))
+                            return true;
+                        break;
+                    case GetViewLength _:
+                        break;
+                    case AddressSpaceCast addressSpaceCast:
+                        if (RequiresAddress(addressSpaceCast, arrayLength))
+                            return true;
+                        break;
+                    default:
+                        if (RequiresAddressForUse(use))
+                            return true;
+                        break;
+                }
+            }
+            return false;
+        }
+
+        #endregion
+
+        #region Rewriter Methods
+
+        /// <summary>
+        /// Converts an alloca node to its initial SSA value.
+        /// </summary>
+        private static void Convert<TConstructionData>(
+            SSARewriterContext<Value> context,
+            TConstructionData data,
+            Alloca alloca)
+            where TConstructionData : IConstructionData
+        {
+            if (!data.ContainsAlloca(alloca))
+                return;
+            alloca.Assert(!alloca.IsSimpleAllocation);
+
+            // Get the builder and the associated array length value
+            var builder = context.Builder;
+            var arrayLengthValue = alloca.ArrayLength.ResolveAs<PrimitiveValue>();
+            alloca.AssertNotNull(arrayLengthValue);
+            int arrayLength = arrayLengthValue.Int32Value;
+
+            // Create a structure with the appropriate number of fields that correspond
+            // to the current array length
+            var allocaTypeBuilder = builder.CreateStructureType(arrayLength + 1);
+            // Append array length
+            allocaTypeBuilder.Add(builder.GetPrimitiveType(BasicValueType.Int32));
+            // Append all virtual fields
+            for (int i = 0; i < arrayLength; ++i)
+                allocaTypeBuilder.Add(alloca.AllocaType);
+            var allocationType = allocaTypeBuilder.Seal();
+
+            // Initialize the structure value
+            var initValue = builder.CreateNull(alloca.Location, allocationType);
+            // ... and set the array length
+            initValue = builder.CreateSetField(
+                alloca.Location,
+                initValue,
+                new FieldSpan(new FieldAccess(0)),
+                builder.CreateConvertToInt32(alloca.Location, arrayLengthValue));
+            ConvertAlloca(context, data, alloca, initValue);
+        }
+
+        /// <summary>
+        /// Converts a load node into an SSA value.
+        /// </summary>
+        private static void Convert<TConstructionData>(
+            SSARewriterContext<Value> context,
+            TConstructionData data,
+            LoadElementAddress loadElementAddress)
+            where TConstructionData : IConstructionData
+        {
+            if (!data.TryGetConverted(loadElementAddress.Source, out var leaRef))
+                return;
+
+            // Get the primitive constant field offset
+            loadElementAddress.Assert(loadElementAddress.IsViewAccess);
+            var fieldOffset = loadElementAddress.Offset.ResolveAs<PrimitiveValue>();
+            loadElementAddress.AssertNotNull(fieldOffset);
+
+            // Map the field index + 1 to skip the initial array length
+            int fieldIndex = fieldOffset.Int32Value + 1;
+            data.AddConverted(
+                loadElementAddress,
+                leaRef.Access(new FieldAccess(fieldIndex)));
+            context.Remove(loadElementAddress);
+        }
+
+        /// <summary>
+        /// Converts a new view into an SSA value.
+        /// </summary>
+        private static void Convert<TConstructionData>(
+            SSARewriterContext<Value> context,
+            TConstructionData data,
+            NewView newView)
+            where TConstructionData : IConstructionData
+        {
+            if (!data.TryGetConverted(newView.Pointer, out var newViewRef))
+                return;
+
+            data.AddConverted(newView, newViewRef);
+            context.Remove(newView);
+        }
+
+        /// <summary>
+        /// Converts a new get length node into an SSA value.
+        /// </summary>
+        private static void Convert<TConstructionData>(
+            SSARewriterContext<Value> context,
+            TConstructionData data,
+            GetViewLength getViewLength)
+            where TConstructionData : IConstructionData
+        {
+            if (!data.TryGetConverted(getViewLength.View, out var getRef))
+                return;
+
+            // Get the SSA structure value
+            var ssaValue = context.GetValue(context.Block, getRef.Source);
+
+            // Get the view length from the first field (index 0) of the wrapped
+            // array structure
+            ssaValue = context.Builder.CreateGetField(
+                getViewLength.Location,
+                ssaValue,
+                new FieldSpan(new FieldAccess(0)));
+
+            context.ReplaceAndRemove(getViewLength, ssaValue);
+        }
+
+        #endregion
+
+        #region Rewriter
+
+        /// <summary>
+        /// The internal rewriter.
+        /// </summary>
+        private static readonly SSARewriter<Value, ConstructionData> Rewriter =
+            new SSARewriter<Value, ConstructionData>();
+
+        /// <summary>
+        /// Registers all rewriting patterns.
+        /// </summary>
+        static SSAStructureConstruction()
+        {
+            RegisterRewriters(Rewriter);
+
+            Rewriter.Add<Alloca>(Convert);
+            Rewriter.Add<LoadElementAddress>(Convert);
+
+            Rewriter.Add<NewView>(Convert);
+            Rewriter.Add<GetViewLength>(Convert);
+        }
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new SSA structure construction pass.
+        /// </summary>
+        public SSAStructureConstruction() : this(MemoryAddressSpace.Local) { }
+
+        /// <summary>
+        /// Constructs a new SSA structure construction pass.
+        /// </summary>
+        /// <param name="addressSpace">The target memory address space.</param>
+        public SSAStructureConstruction(MemoryAddressSpace addressSpace)
+            : base(addressSpace)
+        { }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Applies the SSA construction transformation.
+        /// </summary>
+        protected override bool PerformTransformation(Method.Builder builder) =>
+            PerformTransformation(builder, Rewriter);
+
+        /// <summary>
+        /// Returns true if the given allocation is a simple allocation and does not
+        /// require explicit addresses.
+        /// </summary>
+        protected override bool CanConvert(Method.Builder builder, Alloca alloca) =>
+            base.CanConvert(builder, alloca) &&
+            // Check whether we require an address or there are array accesses
+            // that cannot be converted to statically known field index values.
+            alloca.IsArrayAllocation(out var length) &&
+            !RequiresAddress(alloca, length.Int32Value);
+
+        #endregion
+    }
 }
