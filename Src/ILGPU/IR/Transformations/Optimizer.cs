@@ -204,6 +204,7 @@ namespace ILGPU.IR.Transformations
             builder.Add(dce);
             builder.Add(scf);
 
+            builder.Add(new SSAStructureConstruction());
             builder.Add(new IfConversion());
             builder.Add(dce);
             builder.Add(scf);
