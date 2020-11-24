@@ -153,6 +153,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>WarpExtensionTests.cs</LastGenOutput>
     </None>
+    <None Update="XMathTests.BitOperations.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>XMathTests.BitOperations.cs</LastGenOutput>
+    </None>
     <None Update="XMathTests.Log.tt">
       <LastGenOutput>XMathTests.Log.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -257,6 +261,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>WarpExtensionTests.tt</DependentUpon>
+    </Compile>
+    <Compile Update="XMathTests.BitOperations.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>XMathTests.BitOperations.tt</DependentUpon>
     </Compile>
     <Compile Update="XMathTests.Log.cs">
       <DesignTime>True</DesignTime>
