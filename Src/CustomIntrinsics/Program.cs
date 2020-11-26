@@ -124,6 +124,7 @@ namespace CustomIntrinsics
                 PTXInstructions.GetArithmeticOperation(
                     BinaryArithmeticKind.Mul,
                     ArithmeticBasicValueType.Int32,
+                    backend.Capabilities,
                     false)))
             {
                 command.AppendArgument(target);

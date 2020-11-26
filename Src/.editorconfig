@@ -59,3 +59,6 @@ dotnet_diagnostic.CA1303.severity = none
 
 # CA1814: Prefer jagged arrays over multidimensional
 dotnet_diagnostic.CA1814.severity = none
+
+# CA1815: Override equals and operator equals on value types
+dotnet_diagnostic.CA1815.severity = none
