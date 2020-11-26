@@ -13,9 +13,13 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using BlockCollection = ILGPU.IR.BasicBlockCollection<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Transformations
@@ -232,13 +236,13 @@ namespace ILGPU.IR.Transformations
             /// <param name="maxBlockDifference">
             /// The maximum block size difference.
             /// </param>
-            /// <param name="cfg">The current backwards CFG.</param>
+            /// <param name="blocks">The current blocks.</param>
             public ConditionalAnalyzer(
                 int maxBlockSize,
                 int maxBlockDifference,
-                CFG<ReversePostOrder, Backwards> cfg)
+                in BlockCollection blocks)
             {
-                PostDominators = cfg.CreateDominators();
+                PostDominators = blocks.CreatePostDominators();
                 MaxBlockSize = maxBlockSize;
                 MaxBlockDifference = maxBlockDifference;
                 Gathered = null;
@@ -571,7 +575,7 @@ namespace ILGPU.IR.Transformations
 
         #endregion
 
-        #region Static
+        #region Constants
 
         /// <summary>
         /// The default maximum block size measured in instructions.
@@ -637,14 +641,14 @@ namespace ILGPU.IR.Transformations
         protected override bool PerformTransformation(Method.Builder builder)
         {
             var blocks = builder.SourceBlocks;
-            var reverseBlocks = blocks.ChangeDirection<Backwards>();
             var conditionalAnalyzer = new ConditionalAnalyzer(
                 MaxBlockSize,
                 MaxBlockDifference,
-                reverseBlocks.CreateCFG());
+                blocks);
 
-            var converters = new List<ConditionalConverter>();
-            foreach (var block in builder.SourceBlocks)
+            var converters = InlineList<ConditionalConverter>.Create(
+                Math.Max(blocks.Count >> 4, 4));
+            foreach (var block in blocks)
             {
                 // Check whether we can convert the associated branch
                 if (conditionalAnalyzer.CanConvert(block, out var converter))
