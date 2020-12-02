@@ -144,7 +144,7 @@ namespace ILGPU.Runtime
         /// <param name="mode">The exchange buffer mode to use.</param>
         internal ExchangeBufferBase(MemoryBuffer<T, TIndex> buffer,
             ExchangeBufferMode mode)
-            : base(buffer.Accelerator, buffer.Extent.Size)
+            : base(buffer.Accelerator, buffer.Extent.Size, ElementSize)
         {
             cpuMemory = buffer.Accelerator is CudaAccelerator &&
                 mode == ExchangeBufferMode.PreferPagedLockedMemory
@@ -168,11 +168,6 @@ namespace ILGPU.Runtime
         /// Returns an array view that can access this array.
         /// </summary>
         public ArrayView<T, TIndex> View { get; protected set; }
-
-        /// <summary>
-        /// Returns the length of this buffer in bytes.
-        /// </summary>
-        public long LengthInBytes => Buffer.LengthInBytes;
 
         /// <summary>
         /// Returns the extent of this buffer.
@@ -210,11 +205,22 @@ namespace ILGPU.Runtime
         #region Methods
 
         /// <summary>
-        /// Sets the contents of the current buffer to zero.
+        /// Sets the contents of the current buffer to the given byte value.
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
-        public override void MemSetToZero(AcceleratorStream stream) =>
-            Buffer.MemSetToZero(stream);
+        /// <param name="value">The value to write into the memory buffer.</param>
+        /// <param name="offsetInBytes">The raw offset in bytes.</param>
+        /// <param name="lengthInBytes">The raw length in bytes.</param>
+        protected internal override void MemSetInternal(
+            AcceleratorStream stream,
+            byte value,
+            long offsetInBytes,
+            long lengthInBytes) =>
+            Buffer.MemSetInternal(
+                stream,
+                value,
+                offsetInBytes,
+                lengthInBytes);
 
         /// <summary>
         /// Copies the current contents into a new byte array.
