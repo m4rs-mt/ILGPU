@@ -150,6 +150,11 @@ namespace ILGPU
             Index,
             Group.Index);
 
+        /// <summary>
+        /// Returns the global index using 64-bit integers.
+        /// </summary>
+        public static LongIndex3 LongGlobalIndex => GlobalIndex;
+
         #endregion
 
         #region Methods
