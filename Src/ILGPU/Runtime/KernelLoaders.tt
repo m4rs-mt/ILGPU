@@ -552,6 +552,31 @@ namespace ILGPU.Runtime
                 kernelConfig,
                 <#= delegateParams.KernelLaunchArgs #>);
 
+        /// <summary>
+        /// Loads the given kernel and launches it immediately using the given arguments
+        /// with the help of the default accelerator stream.
+        /// </summary>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="kernelConfig">The launch configuration.</param>
+        /// <#= delegateParams.KernelLaunchParamsDocumentation #>
+        /// <remarks>
+        /// Uses the internal launcher cache that explicitly caches all launched kernels
+        /// using strong references. To avoid caching use the context flag
+        /// <see cref="ContextFlags.DisableKernelLaunchCaching" />.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Launch<<#= delegateParams.TypeParams #>>(
+            Action<<#= delegateParams.TypeParams #>> action,
+            in KernelConfig kernelConfig,
+            <#= delegateParams.KernelLaunchParams #>)
+            <#= delegateParams.TypeRestrictions #> =>
+            Launch(
+                action,
+                DefaultStream,
+                kernelConfig,
+                <#= delegateParams.KernelLaunchArgs #>);
+
 <#      // LaunchAutoGrouped #>
         /// <summary>
         /// Loads the given kernel and launches it immediately using the given arguments.
@@ -580,6 +605,33 @@ namespace ILGPU.Runtime
                 Action<AcceleratorStream, TIndex, <#= delegateParams.TypeParams #>>,
                 KernelLaunchAutoGroupedLoader<TIndex, <#= delegateParams.TypeParams #>>>(action)(
                 stream,
+                extent,
+                <#= delegateParams.KernelLaunchArgs #>);
+
+        /// <summary>
+        /// Loads the given kernel and launches it immediately using the given arguments
+        /// with the help of the default accelerator stream.
+        /// </summary>
+        /// <typeparam name="TIndex">The index type.</typeparam>
+        /// <#= delegateParams.TypeParamDocumentation #>
+        /// <param name="action">The action to compile into a kernel.</param>
+        /// <param name="extent">The launch extent.</param>
+        /// <#= delegateParams.KernelLaunchParamsDocumentation #>
+        /// <remarks>
+        /// Uses the internal launcher cache that explicitly caches all launched kernels
+        /// using strong references. To avoid caching use the context flag
+        /// <see cref="ContextFlags.DisableKernelLaunchCaching" />.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void LaunchAutoGrouped<TIndex, <#= delegateParams.TypeParams #>>(
+            Action<TIndex, <#= delegateParams.TypeParams #>> action,
+            TIndex extent,
+            <#= delegateParams.KernelLaunchParams #>)
+            where TIndex : struct, IGenericIndex<TIndex>
+            <#= delegateParams.TypeRestrictions #> =>
+            LaunchAutoGrouped(
+                action,
+                DefaultStream,
                 extent,
                 <#= delegateParams.KernelLaunchArgs #>);
 
