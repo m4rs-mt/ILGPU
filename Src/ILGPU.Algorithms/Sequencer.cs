@@ -36,7 +36,8 @@ namespace ILGPU.Algorithms.Sequencers
     public readonly struct IndexSequencer : ISequencer<Index1>
     {
         /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)" />
-        public Index1 ComputeSequenceElement(Index1 sequenceIndex) => sequenceIndex;
+        public readonly Index1 ComputeSequenceElement(Index1 sequenceIndex) =>
+            sequenceIndex;
     }
 
     /// <summary>
@@ -45,7 +46,7 @@ namespace ILGPU.Algorithms.Sequencers
     public readonly struct HalfSequencer : ISequencer<Half>
     {
         /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)" />
-        public Half ComputeSequenceElement(Index1 sequenceIndex) =>
+        public readonly Half ComputeSequenceElement(Index1 sequenceIndex) =>
             (Half)sequenceIndex.X;
     }
 
@@ -55,7 +56,8 @@ namespace ILGPU.Algorithms.Sequencers
     public readonly struct FloatSequencer : ISequencer<float>
     {
         /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)" />
-        public float ComputeSequenceElement(Index1 sequenceIndex) => sequenceIndex;
+        public readonly float ComputeSequenceElement(Index1 sequenceIndex) =>
+            sequenceIndex;
     }
 
     /// <summary>
@@ -64,6 +66,35 @@ namespace ILGPU.Algorithms.Sequencers
     public readonly struct DoubleSequencer : ISequencer<double>
     {
         /// <summary cref="ISequencer{T}.ComputeSequenceElement(Index1)" />
-        public double ComputeSequenceElement(Index1 sequenceIndex) => sequenceIndex;
+        public readonly double ComputeSequenceElement(Index1 sequenceIndex) =>
+            sequenceIndex;
+    }
+
+    /// <summary>
+    /// Represents a sequencer that wraps an array view in a sequencer.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    public readonly struct ViewSourceSequencer<T> : ISequencer<T>
+        where T : unmanaged
+    {
+        /// <summary>
+        /// Constructs a new sequencer.
+        /// </summary>
+        /// <param name="viewSource">The underlying view source.</param>
+        public ViewSourceSequencer(ArrayView<T> viewSource)
+        {
+            ViewSource = viewSource;
+        }
+
+        /// <summary>
+        /// Returns the data source of this sequence.
+        /// </summary>
+        public ArrayView<T> ViewSource { get; }
+
+        /// <summary>
+        /// Returns the i-th element of the attached <see cref="ViewSource"/>.
+        /// </summary>
+        public readonly T ComputeSequenceElement(Index1 sequenceIndex) =>
+            ViewSource[sequenceIndex];
     }
 }
