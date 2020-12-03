@@ -13,6 +13,7 @@
 using ILGPU.Algorithms.RadixSortOperations;
 using ILGPU.Algorithms.Resources;
 using ILGPU.Algorithms.ScanReduceOperations;
+using ILGPU.Algorithms.Sequencers;
 using ILGPU.Runtime;
 using ILGPU.Util;
 using System;
@@ -38,6 +39,47 @@ namespace ILGPU.Algorithms
         where T : unmanaged;
 
     /// <summary>
+    /// Represents a radix sort operation that sorts (key, value) pair instances.
+    /// </summary>
+    /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+    /// <typeparam name="TValue">The value type of each element.</typeparam>
+    /// <param name="stream">The accelerator stream.</param>
+    /// <param name="keys">The keys to sort.</param>
+    /// <param name="values">The corresponding values.</param>
+    /// <param name="temp">The temp view to store temporary results.</param>
+    /// <remarks>The view buffers will be changed during the sorting operation.</remarks>
+    public delegate void RadixSortPairs<TKey, TValue>(
+        AcceleratorStream stream,
+        ArrayView<TKey> keys,
+        ArrayView<TValue> values,
+        ArrayView<int> temp)
+        where TKey : unmanaged
+        where TValue : unmanaged;
+
+    /// <summary>
+    /// Represents a radix sort operation that sorts (key, value) pair instances using
+    /// a sequencer to provide all values for each key in the beginning of the operation.
+    /// </summary>
+    /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+    /// <typeparam name="TValue">The value type of each element.</typeparam>
+    /// <typeparam name="TSequencer">The sequencer type to generate values.</typeparam>
+    /// <param name="stream">The accelerator stream.</param>
+    /// <param name="keys">The keys to sort.</param>
+    /// <param name="outputValues">The determined output values.</param>
+    /// <param name="sequencer">The sequencer to generate the key-value pairs.</param>
+    /// <param name="temp">The temp view to store temporary results.</param>
+    /// <remarks>The view buffers will be changed during the sorting operation.</remarks>
+    public delegate void RadixSortPairs<TKey, TValue, TSequencer>(
+        AcceleratorStream stream,
+        ArrayView<TKey> keys,
+        ArrayView<TValue> outputValues,
+        TSequencer sequencer,
+        ArrayView<int> temp)
+        where TKey : unmanaged
+        where TValue : unmanaged
+        where TSequencer : struct, ISequencer<TValue>;
+
+    /// <summary>
     /// Represents a radix sort operation using a shuffle and operation logic.
     /// </summary>
     /// <typeparam name="T">The underlying type of the sort operation.</typeparam>
@@ -46,6 +88,43 @@ namespace ILGPU.Algorithms
     /// <remarks>The view buffer will be changed during the sorting operation.</remarks>
     public delegate void BufferedRadixSort<T>(AcceleratorStream stream, ArrayView<T> view)
         where T : unmanaged;
+
+    /// <summary>
+    /// Represents a radix sort operation that sorts (key, value) pair instances.
+    /// </summary>
+    /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+    /// <typeparam name="TValue">The value type of each element.</typeparam>
+    /// <param name="stream">The accelerator stream.</param>
+    /// <param name="keys">The keys to sort.</param>
+    /// <param name="values">The corresponding values.</param>
+    /// <remarks>The view buffers will be changed during the sorting operation.</remarks>
+    public delegate void BufferedRadixSortPairs<TKey, TValue>(
+        AcceleratorStream stream,
+        ArrayView<TKey> keys,
+        ArrayView<TValue> values)
+        where TKey : unmanaged
+        where TValue : unmanaged;
+
+    /// <summary>
+    /// Represents a radix sort operation that sorts (key, value) pair instances using
+    /// a sequencer to provide all values for each key in the beginning of the operation.
+    /// </summary>
+    /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+    /// <typeparam name="TValue">The value type of each element.</typeparam>
+    /// <typeparam name="TSequencer">The sequencer type to generate values.</typeparam>
+    /// <param name="stream">The accelerator stream.</param>
+    /// <param name="keys">The keys to sort.</param>
+    /// <param name="outputValues">The determined output values.</param>
+    /// <param name="sequencer">The sequencer to generate the key-value pairs.</param>
+    /// <remarks>The view buffers will be changed during the sorting operation.</remarks>
+    public delegate void BufferedRadixSortPairs<TKey, TValue, TSequencer>(
+        AcceleratorStream stream,
+        ArrayView<TKey> keys,
+        ArrayView<TValue> outputValues,
+        TSequencer sequencer)
+        where TKey : unmanaged
+        where TValue : unmanaged
+        where TSequencer : struct, ISequencer<TValue>;
 
     #endregion
 
@@ -108,6 +187,104 @@ namespace ILGPU.Algorithms
             {
                 var tempView = AllocateTempRadixSortView<T, TRadixSortOperation>(input);
                 radixSort(stream, input, tempView);
+            };
+        }
+
+        /// <summary>
+        /// Allocates a temporary memory view.
+        /// </summary>
+        /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
+        /// <param name="keys">The keys view.</param>
+        /// <returns>The allocated temporary view.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private ArrayView<int> AllocateTempRadixSortPairsView<
+            TKey,
+            TValue,
+            TRadixSortOperation>(
+            ArrayView<TKey> keys)
+            where TKey : unmanaged
+            where TValue : unmanaged
+            where TRadixSortOperation : struct, IRadixSortOperation<TKey>
+        {
+            var tempSize = Accelerator.ComputeRadixSortPairsTempStorageSize<
+                TKey,
+                TValue,
+                TRadixSortOperation>(
+                keys.Length);
+            return bufferCache.Allocate<int>(tempSize);
+        }
+
+        /// <summary>
+        /// Creates a new radix sort pairs operation that sorts tuples of (key, value)
+        /// instances.
+        /// </summary>
+        /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
+        /// <returns>The created radix sort handler.</returns>
+        public BufferedRadixSortPairs<TKey, TValue> CreateRadixSortPairs<
+            TKey,
+            TValue,
+            TRadixSortOperation>()
+            where TKey : unmanaged
+            where TValue : unmanaged
+            where TRadixSortOperation : struct, IRadixSortOperation<TKey>
+        {
+            var radixSort = Accelerator.CreateRadixSortPairs<
+                TKey,
+                TValue,
+                TRadixSortOperation>();
+            return (stream, keys, values) =>
+            {
+                var tempView = AllocateTempRadixSortPairsView<
+                    TKey,
+                    TValue,
+                    TRadixSortOperation>(keys);
+                radixSort(stream, keys, values, tempView);
+            };
+        }
+
+        /// <summary>
+        /// Creates a new radix sort pairs operation that sorts tuples of (key, value)
+        /// instances.
+        /// </summary>
+        /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TSequencer">
+        /// The sequencer type to generate values.
+        /// </typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
+        /// <returns>The created radix sort handler.</returns>
+        public BufferedRadixSortPairs<TKey, TValue, TSequencer> CreateRadixSortPairs<
+            TKey,
+            TValue,
+            TSequencer,
+            TRadixSortOperation>()
+            where TKey : unmanaged
+            where TValue : unmanaged
+            where TSequencer : struct, ISequencer<TValue>
+            where TRadixSortOperation : struct, IRadixSortOperation<TKey>
+        {
+            var radixSort = Accelerator.CreateRadixSortPairs<
+                TKey,
+                TValue,
+                TSequencer,
+                TRadixSortOperation>();
+            return (stream, keys, values, sequencer) =>
+            {
+                var tempView = AllocateTempRadixSortPairsView<
+                    TKey,
+                    TValue,
+                    TRadixSortOperation>(keys);
+                radixSort(stream, keys, values, sequencer, tempView);
             };
         }
 
@@ -189,6 +366,42 @@ namespace ILGPU.Algorithms
             where T : unmanaged;
 
         /// <summary>
+        /// Computes the required number of temp-storage elements for a radix sort pairs
+        /// operation and the given data length.
+        /// </summary>
+        /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
+        /// <param name="accelerator">The accelerator.</param>
+        /// <param name="dataLength">The number of data elements to sort.</param>
+        /// <returns>
+        /// The required number of temp-storage elements in 32 bit ints.
+        /// </returns>
+        public static Index1 ComputeRadixSortPairsTempStorageSize<
+            TKey,
+            TValue,
+            TRadixSortOperation>(
+            this Accelerator accelerator,
+            Index1 dataLength)
+            where TKey : unmanaged
+            where TValue : unmanaged
+            where TRadixSortOperation : struct, IRadixSortOperation<TKey>
+        {
+            var tempSortSize = ComputeRadixSortTempStorageSize<
+                RadixSortPair<TKey, TValue>,
+                RadixSortPairsOperation<TKey, TValue, TRadixSortOperation>>(
+                accelerator,
+                dataLength);
+
+            var tempBufferSize = XMath.DivRoundUp(
+                Interop.SizeOf<RadixSortPair<TKey, TValue>>() * dataLength,
+                sizeof(int));
+            return tempSortSize + tempBufferSize;
+        }
+
+        /// <summary>
         /// Computes the required number of temp-storage elements for a radix sort
         /// operation and the given data length.
         /// </summary>
@@ -233,6 +446,94 @@ namespace ILGPU.Algorithms
 
         #endregion
 
+        #region Nested Types
+
+        /// <summary>
+        /// Represents a single key/value pair in the scope of radix sort operation.
+        /// </summary>
+        /// <typeparam name="TKey">The key type to sort.</typeparam>
+        /// <typeparam name="TValue">The value type associated to each key.</typeparam>
+        public readonly struct RadixSortPair<TKey, TValue>
+            where TKey : unmanaged
+            where TValue : unmanaged
+        {
+            /// <summary>
+            /// Constructs a new radix-sort pair.
+            /// </summary>
+            /// <param name="key">The key.</param>
+            /// <param name="value">The value.</param>
+            public RadixSortPair(TKey key, TValue value)
+            {
+                Key = key;
+                Value = value;
+            }
+
+            /// <summary>
+            /// Returns the key part of this pair that is used for sorting.
+            /// </summary>
+            public TKey Key { get; }
+
+            /// <summary>
+            /// Returns the associated value part of this pair.
+            /// </summary>
+            public TValue Value { get; }
+
+            /// <summary>
+            /// Returns the string representation of this pair.
+            /// </summary>
+            public readonly override string ToString() => $"({Key}, {Value})";
+        }
+
+        /// <summary>
+        /// Represents a wrapper operation that works on the key part of a merged
+        /// <see cref="RadixSortPair{TKey, TValue}"/> instance.
+        /// </summary>
+        /// <typeparam name="TKey">The key type to sort.</typeparam>
+        /// <typeparam name="TValue">The value type associated to each key.</typeparam>
+        /// <typeparam name="TOperation">The underlying operation type.</typeparam>
+        public readonly struct RadixSortPairsOperation<TKey, TValue, TOperation> :
+            IRadixSortOperation<RadixSortPair<TKey, TValue>>
+            where TKey : unmanaged
+            where TValue : unmanaged
+            where TOperation : struct, IRadixSortOperation<TKey>
+        {
+            /// <summary>
+            /// Returns the default operation.
+            /// </summary>
+            private static TOperation GetOperation() => default;
+
+            /// <summary>
+            /// Returns the number of bits of the parent
+            /// <typeparamref name="TOperation"/>.
+            /// </summary>
+            public readonly int NumBits => GetOperation().NumBits;
+
+            /// <summary>
+            /// Returns the default key-value pair based of the parent
+            /// <typeparamref name="TOperation"/>.
+            /// </summary>
+            public readonly RadixSortPair<TKey, TValue> DefaultValue
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => new RadixSortPair<TKey, TValue>(
+                    GetOperation().DefaultValue,
+                    default);
+            }
+
+            /// <summary>
+            /// Extracts the bits from the key part of the given radix-sort pair using
+            /// the parent <typeparamref name="TOperation"/>.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly int ExtractRadixBits(
+                RadixSortPair<TKey, TValue> value,
+                int shift,
+                int bitMask) =>
+                GetOperation().ExtractRadixBits(value.Key, shift, bitMask);
+        }
+
+        #endregion
+
         #region RadixSort Implementation
 
         private static readonly MethodInfo CPURadixSortKernel1Method =
@@ -270,6 +571,41 @@ namespace ILGPU.Algorithms
             /// next radix-sort iteration.
             /// </summary>
             int BitIncrement { get; }
+        }
+
+        /// <summary>
+        /// Combines the given key and values (given by the sequencer) into a merged
+        /// buffer consisting of <see cref="RadixSortPair{TKey, TValue}"/> instances.
+        /// </summary>
+        internal static void GatherRadixSortPairsKernel<TKey, TValue, TSequencer>(
+            Index1 index,
+            ArrayView<TKey> keys,
+            TSequencer sequencer,
+            ArrayView<RadixSortPair<TKey, TValue>> target)
+            where TKey : unmanaged
+            where TValue : unmanaged
+            where TSequencer : struct, ISequencer<TValue>
+        {
+            target[index] = new RadixSortPair<TKey, TValue>(
+                keys[index],
+                sequencer.ComputeSequenceElement(index));
+        }
+
+        /// <summary>
+        /// Scatters views of <see cref="RadixSortPair{TKey, TValue}"/> instances into
+        /// distinct key and value views.
+        /// </summary>
+        internal static void ScatterRadixSortPairsKernel<TKey, TValue>(
+            Index1 index,
+            ArrayView<RadixSortPair<TKey, TValue>> source,
+            ArrayView<TKey> keys,
+            ArrayView<TValue> values)
+            where TKey : unmanaged
+            where TValue : unmanaged
+        {
+            var pair = source[index];
+            keys[index] = pair.Key;
+            values[index] = pair.Value;
         }
 
         /// <summary>
@@ -600,6 +936,108 @@ namespace ILGPU.Algorithms
         #endregion
 
         #region RadixSort
+
+        /// <summary>
+        /// Creates a new radix sort pairs operation that retrieves its values by
+        /// calling the given sequencer.
+        /// </summary>
+        /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TSequencer">
+        /// The sequencer type to generate values.
+        /// </typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
+        /// <param name="accelerator">The accelerator.</param>
+        /// <returns>The created radix sort handler.</returns>
+        public static RadixSortPairs<TKey, TValue, TSequencer> CreateRadixSortPairs<
+            TKey,
+            TValue,
+            TSequencer,
+            TRadixSortOperation>(
+            this Accelerator accelerator)
+            where TKey : unmanaged
+            where TValue : unmanaged
+            where TSequencer : struct, ISequencer<TValue>
+            where TRadixSortOperation : struct, IRadixSortOperation<TKey>
+        {
+            var gatherKernel = accelerator.LoadAutoGroupedKernel<
+                Index1,
+                ArrayView<TKey>,
+                TSequencer,
+                ArrayView<RadixSortPair<TKey, TValue>>>(GatherRadixSortPairsKernel);
+            var scatterKernel = accelerator.LoadAutoGroupedKernel<
+                Index1,
+                ArrayView<RadixSortPair<TKey, TValue>>,
+                ArrayView<TKey>,
+                ArrayView<TValue>>(ScatterRadixSortPairsKernel);
+            var radixSort = CreateRadixSort<
+                RadixSortPair<TKey, TValue>,
+                RadixSortPairsOperation<TKey, TValue, TRadixSortOperation>>(accelerator);
+            return (stream, keys, values, sequencer, tempView) =>
+            {
+                if (!keys.IsValid)
+                    throw new ArgumentNullException(nameof(keys));
+                if (!values.IsValid)
+                    throw new ArgumentNullException(nameof(values));
+                if (keys.Length != values.Length)
+                    throw new ArgumentOutOfRangeException(nameof(values));
+
+                // Allocate temp memory
+                var viewManager = new TempViewManager(tempView, nameof(tempView));
+                var elements = viewManager.Allocate<
+                    RadixSortPair<TKey, TValue>>(
+                    keys.Length);
+
+                // keys, values => (key, value)s
+                gatherKernel(stream, elements.Length, keys, sequencer, elements);
+
+                // sort elements
+                radixSort(
+                    stream,
+                    elements,
+                    viewManager.TempView.GetSubView(viewManager.NumInts));
+
+                // (key, value)s => keys, values
+                scatterKernel(stream, elements.Length, elements, keys, values);
+            };
+        }
+
+        /// <summary>
+        /// Creates a new radix sort pairs operation that uses a values source view.
+        /// </summary>
+        /// <typeparam name="TKey">The underlying type of the sort operation.</typeparam>
+        /// <typeparam name="TValue">The value type of each element.</typeparam>
+        /// <typeparam name="TRadixSortOperation">
+        /// The type of the radix-sort operation.
+        /// </typeparam>
+        /// <param name="accelerator">The accelerator.</param>
+        /// <returns>The created radix sort handler.</returns>
+        public static RadixSortPairs<TKey, TValue> CreateRadixSortPairs<
+            TKey,
+            TValue,
+            TRadixSortOperation>(
+            this Accelerator accelerator)
+            where TKey : unmanaged
+            where TValue : unmanaged
+            where TRadixSortOperation : struct, IRadixSortOperation<TKey>
+        {
+            var radixSortPairs = accelerator.CreateRadixSortPairs<
+                TKey,
+                TValue,
+                ViewSourceSequencer<TValue>,
+                TRadixSortOperation>();
+            return (stream, keys, values, tempView) =>
+            {
+                radixSortPairs(
+                    stream,
+                    keys,
+                    values,
+                    new ViewSourceSequencer<TValue>(values),
+                    tempView);
+            };
+        }
 
         /// <summary>
         /// Creates a new radix sort operation.
