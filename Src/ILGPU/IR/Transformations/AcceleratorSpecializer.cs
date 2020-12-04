@@ -130,6 +130,17 @@ namespace ILGPU.IR.Transformations
             context.ReplaceAndRemove(value, convert);
         }
 
+        /// <summary>
+        /// Specializes IO output operations via the instance method
+        /// <see cref="Specialize(in RewriterContext, WriteToOutput)"/> of the parent
+        /// <paramref name="specializer"/> instance.
+        /// </summary>
+        private static void Specialize(
+            RewriterContext context,
+            AcceleratorSpecializer specializer,
+            WriteToOutput value) =>
+            specializer.Specialize(context, value);
+
         #endregion
 
         #region Rewriter
@@ -147,6 +158,8 @@ namespace ILGPU.IR.Transformations
         {
             Rewriter.Add<AcceleratorTypeValue>(Specialize);
             Rewriter.Add<WarpSizeValue>(Specialize);
+            Rewriter.Add<WriteToOutput>(Specialize);
+
             Rewriter.Add<IntAsPointerCast>(CanSpecialize, Specialize);
             Rewriter.Add<PointerAsIntCast>(CanSpecialize, Specialize);
         }
@@ -199,6 +212,17 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected override bool PerformTransformation(Method.Builder builder) =>
             Rewriter.Rewrite(builder.SourceBlocks, builder, this);
+
+        /// <summary>
+        /// Specializes IO output operations (if any). Note that this default
+        /// implementation removes the output operations from the current program.
+        /// </summary>
+        /// <param name="context">The current rewriter context.</param>
+        /// <param name="writeToOutput">The IO output operation.</param>
+        protected virtual void Specialize(
+            in RewriterContext context,
+            WriteToOutput writeToOutput) =>
+            context.Remove(writeToOutput);
 
         #endregion
     }
