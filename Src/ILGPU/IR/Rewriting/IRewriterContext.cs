@@ -105,6 +105,15 @@ namespace ILGPU.IR.Rewriting
             context.ReplaceAndRemove(value, newValue.Resolve());
 
         /// <summary>
+        /// Returns the parent IR context.
+        /// </summary>
+        /// <typeparam name="T">The context type.</typeparam>
+        /// <param name="context">The context instance.</param>
+        /// <returns>The parent IR context.</returns>
+        public static IRContext GetIRContext<T>(this T context)
+            where T : IRewriterContext => context.Builder.Context;
+
+        /// <summary>
         /// Returns the parent method.
         /// </summary>
         /// <typeparam name="T">The context type.</typeparam>
