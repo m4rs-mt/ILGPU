@@ -25,6 +25,9 @@ namespace ILGPU.Backends.PTX
     {
         #region Debugging
 
+        /// <remarks>
+        /// All strings must be in the generic address space.
+        /// </remarks>
         [External("__assertfail")]
         private static void AssertFail(
             string message,
