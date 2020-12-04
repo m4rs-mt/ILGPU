@@ -442,6 +442,17 @@ namespace ILGPU.Backends.OpenCL
             /// Appends a constant.
             /// </summary>
             /// <param name="value">The constant to append.</param>
+            public void AppendConstant(string value)
+            {
+                AppendOperation("\"");
+                AppendOperation(value);
+                AppendOperation("\"");
+            }
+
+            /// <summary>
+            /// Appends a constant.
+            /// </summary>
+            /// <param name="value">The constant to append.</param>
             public void AppendConstant(long value) =>
                 stringBuilder.Append(value);
 
