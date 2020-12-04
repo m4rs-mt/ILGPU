@@ -673,6 +673,42 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Not supported write format &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedWriteFormat {
+            get {
+                return ResourceManager.GetString("NotSupportedWriteFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported write format argument reference &apos;{1}&apos; in &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedWriteFormatArgumentRef {
+            get {
+                return ResourceManager.GetString("NotSupportedWriteFormatArgumentRef", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported write format argument type &apos;{1} in &apos;{0}&apos;.
+        /// </summary>
+        internal static string NotSupportedWriteFormatArgumentType {
+            get {
+                return ResourceManager.GetString("NotSupportedWriteFormatArgumentType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not supported write format &apos;{0}; must be a constant string reference.
+        /// </summary>
+        internal static string NotSupportedWriteFormatConstant {
+            get {
+                return ResourceManager.GetString("NotSupportedWriteFormatConstant", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to There are no uses to resolve.
         /// </summary>
         internal static string NoUses {
