@@ -309,10 +309,18 @@ namespace ILGPU.IR.Values
         // Debug operations
 
         /// <summary>
-        /// Visits the node.
+        /// Visits the debug operation.
         /// </summary>
         /// <param name="debug">The node.</param>
         void Visit(DebugOperation debug);
+
+        // IO operations
+
+        /// <summary>
+        /// Visits the IO write node.
+        /// </summary>
+        /// <param name="writeToOutput">The write node.</param>
+        void Visit(WriteToOutput writeToOutput);
 
         // Terminators
 
