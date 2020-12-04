@@ -298,6 +298,13 @@ namespace ILGPU.IR
         /// </summary>
         Debug,
 
+        // IO
+
+        /// <summary>
+        /// A <see cref="Values.WriteToOutput"/> value.
+        /// </summary>
+        WriteToOutput,
+
         // Internal use
 
         /// <summary>
