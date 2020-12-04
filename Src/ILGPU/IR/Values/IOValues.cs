@@ -168,6 +168,136 @@ namespace ILGPU.IR.Values
 
         #endregion
 
+        #region Constants
+
+        /// <summary>
+        /// All native PrintF formats for all arithmetic basic value types.
+        /// </summary>
+        private static readonly ImmutableArray<string> PrintFFormats =
+            ImmutableArray.Create(
+                "%n",
+                "%u",
+
+                "%d",
+                "%d",
+                "%d",
+                "%ld",
+
+                "%n",
+                "%f",
+                "%lf",
+
+                "%i",
+                "%i",
+                "%i",
+                "%lu");
+
+        /// <summary>
+        /// The native PrintF pointer format.
+        /// </summary>
+        private const string PrintFPointerFormat = "%p";
+
+        /// <summary>
+        /// The native PrintF percent format.
+        /// </summary>
+        private const string PrintFPercentFormat = "%%";
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Returns the native PrintF format for the given basic value type.
+        /// </summary>
+        /// <param name="valueType">The basic value type.</param>
+        /// <returns>The resolved PrintF format.</returns>
+        public static string GetPrintFFormat(ArithmeticBasicValueType valueType) =>
+            PrintFFormats[(int)valueType];
+
+        /// <summary>
+        /// Converts the given value into a printf compatible argument.
+        /// </summary>
+        /// <param name="builder">The current builder.</param>
+        /// <param name="location">The current location.</param>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted value.</returns>
+        public static Value ConvertToPrintFArgument(
+            IRBuilder builder,
+            Location location,
+            Value value)
+        {
+            switch (value.BasicValueType)
+            {
+                case BasicValueType.Int1:
+                case BasicValueType.Int8:
+                case BasicValueType.Int16:
+                    return builder.CreateConvertToInt32(location, value);
+                case BasicValueType.Float16:
+                case BasicValueType.Float32:
+                    return builder.CreateConvert(
+                        location,
+                        value,
+                        BasicValueType.Float64);
+                default:
+                    return value;
+            }
+        }
+
+        /// <summary>
+        /// Parses the given format expression into an array of format expressions.
+        /// </summary>
+        /// <param name="formatExpression">The format expression.</param>
+        /// <param name="expressions">The array of managed format expressions.</param>
+        /// <returns>True, if all expressions could be parsed successfully.</returns>
+        public static bool TryParse(string formatExpression, out FormatArray expressions)
+        {
+            expressions = FormatArray.Empty;
+
+            // Search for '{xyz}' patterns
+            var result = ImmutableArray.CreateBuilder<FormatExpression>(10);
+            while (formatExpression.Length > 0)
+            {
+                // Search for next {
+                int startIndex = formatExpression.IndexOf('{', 0);
+                if (startIndex < 0)
+                {
+                    result.Add(new FormatExpression(formatExpression));
+                    break;
+                }
+                else if (startIndex > 0)
+                {
+                    result.Add(new FormatExpression(
+                        formatExpression.Substring(0, startIndex)));
+                }
+
+                // Search for next }
+                int endIndex = formatExpression.IndexOf('}', startIndex);
+                if (endIndex < 0)
+                {
+                    result.Add(new FormatExpression(formatExpression));
+                    break;
+                }
+
+                // Check sub expression
+                var subExpr = formatExpression.Substring(
+                    startIndex + 1,
+                    endIndex - startIndex - 1);
+
+                // Check whether the argument can be resolved to an integer
+                if (!int.TryParse(subExpr, out int argument) || argument < 0)
+                    return false;
+
+                // Append current argument
+                result.Add(new FormatExpression(argument));
+                formatExpression = formatExpression.Substring(endIndex + 1);
+            }
+
+            expressions = result.ToImmutable();
+            return true;
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -235,12 +365,75 @@ namespace ILGPU.IR.Values
         /// <summary cref="Value.Accept"/>
         public override void Accept<T>(T visitor) => visitor.Visit(this);
 
+        /// <summary>
+        /// Converts the internal format expressions into a printf string.
+        /// </summary>
+        /// <returns>The converted printf string.</returns>
+        [SuppressMessage(
+            "Globalization",
+            "CA1307:Specify StringComparison",
+            Justification = "There are no affected characters")]
+        public string ToPrintFExpression()
+        {
+            var result = new StringBuilder();
+            foreach (var expression in Expressions)
+            {
+                if (expression.HasArgument)
+                {
+                    // TODO: extend this functionality in the future to support
+                    // typed signed/unsigned outputs
+                    var argument = this[expression.Argument];
+                    string argumentFormat = argument.Type.IsPointerType
+                        ? PrintFPointerFormat
+                        : GetPrintFFormat(
+                            argument.BasicValueType.GetArithmeticBasicValueType(false));
+                    result.Append(argumentFormat);
+                }
+                else
+                {
+                    // Append the underlying expression string and escape % characters
+                    result.Append(
+                        expression.String.Replace(
+                            "%",
+                            PrintFPercentFormat));
+                }
+            }
+            return result.ToString();
+        }
+
+        /// <summary>
+        /// Converts the internal format expressions into an escaped sequence.
+        /// </summary>
+        [SuppressMessage(
+            "Globalization",
+            "CA1307:Specify StringComparison",
+            Justification = "There are no affected characters")]
+        public string ToEscapedPrintFExpression() =>
+            ToPrintFExpression()
+            .Replace("\t", @"\t")
+            .Replace("\r", @"\r")
+            .Replace("\n", @"\n")
+            .Replace("\"", "\\\"")
+            .Replace("\\", @"\\");
+
         #endregion
 
         #region Methods
 
         /// <summary cref="Node.ToPrefixString"/>
         protected override string ToPrefixString() => "write";
+
+
+        /// <summary cref="Value.ToArgString"/>
+        [SuppressMessage(
+            "Globalization",
+            "CA1307:Specify StringComparison",
+            Justification = "There are no affected characters")]
+        protected override string ToArgString() =>
+            ToPrintFExpression().Replace(
+                Environment.NewLine,
+                string.Empty) +
+            " " + base.ToArgString();
 
         #endregion
     }
