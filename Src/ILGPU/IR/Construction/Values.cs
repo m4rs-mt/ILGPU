@@ -15,6 +15,7 @@ using ILGPU.Resources;
 using ILGPU.Util;
 using System;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace ILGPU.IR.Construction
 {
@@ -110,14 +111,26 @@ namespace ILGPU.IR.Construction
         /// <returns>A reference to the requested value.</returns>
         public ValueReference CreatePrimitiveValue(
             Location location,
-            string @string)
-        {
-            if (@string == null)
-                throw location.GetArgumentNullException(nameof(@string));
-            return Append(new StringValue(
+            string @string) =>
+            CreatePrimitiveValue(location, @string, Encoding.Unicode);
+
+        /// <summary>
+        /// Creates a new string constant.
+        /// </summary>
+        /// <param name="location">The current location.</param>
+        /// <param name="string">The string value.</param>
+        /// <param name="encoding">The specific encoding.</param>
+        /// <returns>A reference to the requested value.</returns>
+        public ValueReference CreatePrimitiveValue(
+            Location location,
+            string @string,
+            Encoding encoding) =>
+            @string == null
+            ? throw location.GetArgumentNullException(nameof(@string))
+            : Append(new StringValue(
                 GetInitializer(location),
-                @string));
-        }
+                @string,
+                encoding));
 
         /// <summary>
         /// Creates a primitive <see cref="bool"/> value.
