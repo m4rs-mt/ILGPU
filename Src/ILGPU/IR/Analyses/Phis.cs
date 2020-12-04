@@ -101,6 +101,19 @@ namespace ILGPU.IR.Analyses
             }
 
             /// <summary>
+            /// Adds all phi values in the given block collection.
+            /// </summary>
+            /// <param name="blocks">The blocks to analyze.</param>
+            public void Add<TOrder, TDirection>(
+                in BasicBlockCollection<TOrder, TDirection> blocks)
+                where TOrder : struct, ITraversalOrder
+                where TDirection : struct, IControlFlowDirection
+            {
+                foreach (var block in blocks)
+                    Add(block);
+            }
+
+            /// <summary>
             /// Seals the current builder and creates a <see cref="Phis"/> instance.
             /// </summary>
             /// <returns>The created <see cref="Phis"/> instance.</returns>
@@ -119,6 +132,21 @@ namespace ILGPU.IR.Analyses
         /// <param name="method">The parent method to use.</param>
         /// <returns>The created analysis builder.</returns>
         public static Builder CreateBuilder(Method method) => new Builder(method);
+
+        /// <summary>
+        /// Resolves all phi values in the given block collection.
+        /// </summary>
+        /// <param name="blocks">The blocks to analyze.</param>
+        /// <returns>The resolved phis.</returns>
+        public static Phis Create<TOrder, TDirection>(
+            in BasicBlockCollection<TOrder, TDirection> blocks)
+            where TOrder : struct, ITraversalOrder
+            where TDirection : struct, IControlFlowDirection
+        {
+            var builder = CreateBuilder(blocks.Method);
+            builder.Add(blocks);
+            return builder.Seal();
+        }
 
         /// <summary>
         /// Resolves all phi values in the given block.

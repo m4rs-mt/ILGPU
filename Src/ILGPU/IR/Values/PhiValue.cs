@@ -191,8 +191,8 @@ namespace ILGPU.IR.Values
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void AddArgument(BasicBlock predecessor, Value value)
             {
-                Debug.Assert(value != null, "Invalid phi argument");
-                Debug.Assert(value.Type == Type, "Incompatible phi argument");
+                predecessor.AssertNotNull(value);
+                value.Assert(value.Type == Type);
 
                 arguments.Add(value);
                 argumentBlocks.Add(predecessor);
@@ -351,7 +351,7 @@ namespace ILGPU.IR.Values
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Value RemapArguments<TArgumentRemaper>(
             Method.Builder methodBuilder,
-            in TArgumentRemaper remapper)
+            TArgumentRemaper remapper)
             where TArgumentRemaper : IArgumentRemapper
         {
             // Check for a valid block association

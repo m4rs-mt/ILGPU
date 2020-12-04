@@ -69,6 +69,51 @@ namespace ILGPU.IR
         }
 
         /// <summary>
+        /// Helper class for <see cref="IsInCollectionPredicate{TCollection}"/>.
+        /// </summary>
+        public static class IsInCollectionPredicate
+        {
+            /// <summary>
+            /// Converts the collection into a collection predicate.
+            /// </summary>
+            /// <typeparam name="TCollection">The collection type.</typeparam>
+            /// <param name="collection">The collection instance.</param>
+            /// <returns>The collection predicate.</returns>
+            public static IsInCollectionPredicate<TCollection>
+                ToPredicate<TCollection>(TCollection collection)
+                where TCollection : ICollection<BasicBlock> =>
+                new IsInCollectionPredicate<TCollection>(collection);
+        }
+
+        /// <summary>
+        /// An equality comparer for basic blocks.
+        /// </summary>
+        public readonly struct IsInCollectionPredicate<TCollection> :
+            InlineList.IPredicate<BasicBlock>
+            where TCollection : ICollection<BasicBlock>
+        {
+            /// <summary>
+            /// Constructs a new collection predicate.
+            /// </summary>
+            /// <param name="collection">The source collection.</param>
+            public IsInCollectionPredicate(TCollection collection)
+            {
+                Collection = collection;
+            }
+
+            /// <summary>
+            /// Returns the collection of all blocks.
+            /// </summary>
+            public TCollection Collection { get; }
+
+            /// <summary>
+            /// Returns true if both blocks represent the same block.
+            /// </summary>
+            public readonly bool Apply(BasicBlock item) =>
+                Collection.Contains(item);
+        }
+
+        /// <summary>
         /// Represents a visitor for values.
         /// </summary>
         /// <typeparam name="TValue">The value type.</typeparam>
