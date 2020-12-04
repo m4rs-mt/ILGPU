@@ -405,7 +405,9 @@ namespace ILGPU.Backends.OpenCL
         /// <summary cref="IBackendCodeGenerator.GenerateCode(StringValue)"/>
         public void GenerateCode(StringValue value)
         {
-            // Ignore string values for now
+            var target = Allocate(value);
+            using var statement = BeginStatement(target);
+            statement.AppendConstant(value.String);
         }
 
         /// <summary cref="IBackendCodeGenerator.GenerateCode(NullValue)"/>
