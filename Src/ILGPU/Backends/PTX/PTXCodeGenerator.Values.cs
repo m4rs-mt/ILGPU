@@ -647,10 +647,11 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(StringValue value)
         {
             // Check for already existing global constant
-            if (!stringConstants.TryGetValue(value.String, out string stringBinding))
+            var key = (value.Encoding, value.String);
+            if (!stringConstants.TryGetValue(key, out string stringBinding))
             {
                 stringBinding = "__strconst" + value.Id;
-                stringConstants.Add(value.String, stringBinding);
+                stringConstants.Add(key, stringBinding);
             }
 
             var register = AllocatePlatformRegister(
