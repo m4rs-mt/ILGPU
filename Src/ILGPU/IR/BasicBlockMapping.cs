@@ -243,6 +243,26 @@ namespace ILGPU.IR
             return removed;
         }
 
+        /// <summary>
+        /// Asserts that the set has been cleared.
+        /// </summary>
+        [SuppressMessage(
+            "Performance",
+            "CA1822:Mark members as static",
+            Justification = "For debugging purposes only")]
+        [Conditional("DEBUG")]
+        readonly partial void AssertCleared();
+
+        /// <summary>
+        /// Removes all elements from this set.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            Array.Clear(visited, 0, visited.Length);
+            AssertCleared();
+        }
+
         #endregion
     }
 
@@ -712,6 +732,28 @@ namespace ILGPU.IR
             return result;
         }
 
+        /// <summary>
+        /// Asserts that the map has been cleared.
+        /// </summary>
+        [SuppressMessage(
+            "Performance",
+            "CA1822:Mark members as static",
+            Justification = "For debugging purposes only")]
+        [Conditional("DEBUG")]
+        readonly partial void AssertCleared();
+
+        /// <summary>
+        /// Clears this map by removing all elements.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear()
+        {
+            Array.Clear(values, 0, values.Length);
+            Count = 0;
+
+            AssertCleared();
+        }
+
         #endregion
 
         #region IEnumerable
@@ -771,6 +813,13 @@ namespace ILGPU.IR
         readonly partial void AssertRemoved(BasicBlock block, bool removed) =>
             EntryBlock.Assert(blockSet.Remove(block) == removed);
 
+        /// <summary cref="AssertCleared()"/>
+        readonly partial void AssertCleared()
+        {
+            blockSet.Clear();
+            EntryBlock.Assert(!HasAny && blockSet.Count == 0);
+        }
+
         #endregion
     }
 
@@ -812,39 +861,49 @@ namespace ILGPU.IR
                 EntryBlock.Assert(value.Equals(storedValue));
         }
 
+        /// <summary cref="AssertCleared()"/>
+        readonly partial void AssertCleared()
+        {
+            blockMap.Clear();
+            EntryBlock.Assert(Count == blockMap.Count);
+        }
+
         #endregion
     }
 #else
     partial struct BasicBlockSet
     {
-    #region Instance
+        #region Instance
 
-        /// <summary cref="BasicBlockSet.InitBlockSet"/>
+        /// <summary cref="InitBlockSet"/>
         partial void InitBlockSet() { }
 
-    #endregion
+        #endregion
 
-    #region Methods
+        #region Methods
 
-        /// <summary cref="BasicBlockSet.AssertAdd(BasicBlock, bool)"/>
+        /// <summary cref="AssertAdd(BasicBlock, bool)"/>
         readonly partial void AssertAdd(BasicBlock block, bool added) { }
 
-        /// <summary cref="BasicBlockSet.AssertContained(BasicBlock, bool)"/>
+        /// <summary cref="AssertContained(BasicBlock, bool)"/>
         readonly partial void AssertContained(BasicBlock block, bool contained) { }
 
-    #endregion
+        /// <summary cref="AssertCleared()"/>
+        readonly partial void AssertCleared() { }
+
+        #endregion
     }
 
     partial struct BasicBlockMap<T>
     {
-    #region Instance
+        #region Instance
 
         /// <summary cref="InitBlockMap"/>
         partial void InitBlockMap() { }
 
-    #endregion
+        #endregion
 
-    #region Methods
+        #region Methods
 
         /// <summary cref="AssertAdd(BasicBlock, in T, bool)"/>
         readonly partial void AssertAdd(
@@ -858,7 +917,10 @@ namespace ILGPU.IR
             in T value,
             bool contained) { }
 
-    #endregion
+        /// <summary cref="AssertCleared()"/>
+        readonly partial void AssertCleared() { }
+
+        #endregion
     }
 #endif
 }
