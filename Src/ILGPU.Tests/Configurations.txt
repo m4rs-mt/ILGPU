@@ -13,6 +13,7 @@ SizeOfValues: Debug, Release, O2
 SpecializedKernels: Debug, Release, O2
 StructureValues: Debug, Release, O2
 ValueTuples: Debug, Release, O2
+InteropTests: Debug, Release, O2
 
 BinaryIntOperations: Debug, Release, O2
 UnaryIntOperations: Debug, Release, O2
