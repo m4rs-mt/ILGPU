@@ -243,5 +243,14 @@ namespace ILGPU.IR.Analyses
             this BasicBlockCollection<DominanceOrder, TDirection> blocks)
             where TDirection : struct, IControlFlowDirection =>
             blocks.CreateCFG().CreateDominators();
+
+        /// <summary>
+        /// Creates a new post dominator analysis.
+        /// </summary>
+        /// <param name="blocks">The source blocks.</param>
+        /// <returns>The created post dominator analysis.</returns>
+        public static Dominators<Backwards> CreatePostDominators(
+            this BasicBlockCollection<DominanceOrder, Forwards> blocks) =>
+            blocks.ChangeDirection<Backwards>().CreateDominators();
     }
 }
