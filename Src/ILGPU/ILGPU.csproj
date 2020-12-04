@@ -64,6 +64,11 @@
           <AutoGen>True</AutoGen>
           <DependentUpon>IndexTypes.tt</DependentUpon>
         </None>
+        <None Include="Interop.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>Interop.Generated.tt</DependentUpon>
+        </None>
         <None Include="IntrinsicMath.CPUOnly.cs">
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
@@ -156,6 +161,11 @@
           <DesignTime>True</DesignTime>
           <AutoGen>True</AutoGen>
           <DependentUpon>IndexTypes.tt</DependentUpon>
+        </Compile>
+        <Compile Update="Interop.Generated.cs">
+          <DesignTime>True</DesignTime>
+          <AutoGen>True</AutoGen>
+          <DependentUpon>Interop.Generated.tt</DependentUpon>
         </Compile>
         <Compile Update="IntrinsicMath.CPUOnly.cs">
           <DesignTime>True</DesignTime>
@@ -258,6 +268,10 @@
         <None Update="IndexTypes.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
           <LastGenOutput>IndexTypes.cs</LastGenOutput>
+        </None>
+        <None Update="Interop.Generated.tt">
+          <Generator>TextTemplatingFileGenerator</Generator>
+          <LastGenOutput>Interop.Generated.cs</LastGenOutput>
         </None>
         <None Update="IntrinsicMath.CPUOnly.tt">
           <Generator>TextTemplatingFileGenerator</Generator>
