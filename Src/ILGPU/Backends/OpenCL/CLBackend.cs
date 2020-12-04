@@ -10,10 +10,10 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.OpenCL.Transformations;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
-using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using ILGPU.Runtime.OpenCL;
 using System.Text;
@@ -23,30 +23,13 @@ namespace ILGPU.Backends.OpenCL
     /// <summary>
     /// Represents an OpenCL source backend.
     /// </summary>
-    public sealed partial class CLBackend :
+    public sealed class CLBackend :
         CodeGeneratorBackend<
             CLIntrinsic.Handler,
             CLCodeGenerator.GeneratorArgs,
             CLCodeGenerator,
             StringBuilder>
     {
-        #region Nested Types
-
-        /// <summary>
-        /// The OpenCL accelerator specializer.
-        /// </summary>
-        private sealed class CLAcceleratorSpecializer : AcceleratorSpecializer
-        {
-            public CLAcceleratorSpecializer(PrimitiveType pointerType)
-                : base(
-                      AcceleratorType.OpenCL,
-                      null,
-                      pointerType)
-            { }
-        }
-
-        #endregion
-
         #region Static
 
         /// <summary>
