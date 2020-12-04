@@ -183,7 +183,7 @@ namespace ILGPU.Backends.OpenCL
 
             // Declare primitive types
             mapping[typeContext.VoidType] = "void";
-            mapping[typeContext.StringType] = "char*";
+            mapping[typeContext.StringType] = "__constant char*";
 
             foreach (var basicValueType in IRTypeContext.BasicValueTypes)
             {
