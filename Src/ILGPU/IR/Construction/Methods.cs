@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
+using System;
 using System.Runtime.CompilerServices;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
@@ -75,16 +76,5 @@ namespace ILGPU.IR.Construction
                 type));
             return new PhiValue.Builder(phiNode, capacity);
         }
-
-        /// <summary>
-        /// Declares a method.
-        /// </summary>
-        /// <param name="declaration">The method declaration.</param>
-        /// <param name="created">True, if the method has been created.</param>
-        /// <returns>The declared method.</returns>
-        public Method DeclareMethod(
-            in MethodDeclaration declaration,
-            out bool created) =>
-            Context.Declare(declaration, out created);
     }
 }
