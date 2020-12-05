@@ -41,6 +41,7 @@ namespace ILGPU.Runtime.OpenCL
         {
             CLException.ThrowIfFailed(
                 CurrentAPI.CreateCommandQueue(
+                    accelerator.PlatformVersion,
                     accelerator.DeviceId,
                     accelerator.ContextPtr,
                     out queuePtr));
