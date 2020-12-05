@@ -88,6 +88,7 @@ namespace ILGPU.Backends.PTX
                     TransformerConfiguration.Empty);
                 transformerBuilder.AddBackendOptimizations(
                     new PTXAcceleratorSpecializer(PointerType),
+                    context.Flags,
                     context.OptimizationLevel);
 
                 if (Context.HasFlags(ContextFlags.EnhancedPTXBackendFeatures))
