@@ -843,9 +843,8 @@ namespace ILGPU.Runtime
             long byteOffset,
             long byteExtent)
         {
-            var rawOffset = byteOffset - byteOffset % ElementSize;
-            var offset = byteExtent + rawOffset;
-            var rawExtent = TypeNode.Align(offset, ElementSize);
+            var rawOffset = TypeNode.Align(byteOffset, ElementSize);
+            var rawExtent = TypeNode.Align(byteExtent, ElementSize);
 
             var result = new byte[rawExtent];
             fixed (byte* ptr = &result[0])
@@ -861,8 +860,8 @@ namespace ILGPU.Runtime
             IndexTypeExtensions.AssertIntIndexRange(rawExtent);
             return new ArraySegment<byte>(
                 result,
-                (int)rawOffset,
-                (int)rawExtent);
+                0,
+                (int)(byteExtent + (rawExtent - byteExtent)));
         }
 
         /// <summary>
