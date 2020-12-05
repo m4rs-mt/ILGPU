@@ -12,6 +12,7 @@
 using ILGPU.Resources;
 using ILGPU.Util;
 using System;
+using System.Runtime.CompilerServices;
 using static ILGPU.Runtime.Cuda.CudaAPI;
 
 namespace ILGPU.Runtime.Cuda
@@ -123,16 +124,20 @@ namespace ILGPU.Runtime.Cuda
             binding.Recover();
         }
 
-        /// <summary cref="MemoryBuffer.MemSetToZero(AcceleratorStream)"/>
-        public override void MemSetToZero(AcceleratorStream stream)
+        /// <inheritdoc/>
+        protected internal override unsafe void MemSetInternal(
+            AcceleratorStream stream,
+            byte value,
+            long offsetInBytes,
+            long lengthInBytes)
         {
             var binding = Accelerator.BindScoped();
 
             CudaException.ThrowIfFailed(
                 CurrentAPI.Memset(
-                    NativePtr,
-                    0,
-                    new IntPtr(LengthInBytes),
+                    new IntPtr(NativePtr.ToInt64() + offsetInBytes),
+                    value,
+                    new IntPtr(lengthInBytes),
                     stream));
 
             binding.Recover();

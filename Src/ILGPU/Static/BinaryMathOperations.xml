@@ -120,8 +120,18 @@
         <Flags>BoolsAndInts</Flags>
         <Op>{Value0} &amp; {Value1}</Op>
         <Rewriter>
+            <Source>{Value0} == {Value1}</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
+        <Rewriter>
             <Source>{Value1}.IsZero</Source>
             <Target>{Value1}</Target>
+        </Rewriter>
+        <Rewriter>
+            <Source>
+                {Value1}.IsBool &amp;&amp; {Value1}.HasIntValue(1)
+            </Source>
+            <Target>{Value0}</Target>
         </Rewriter>
         <!-- {Value0}.IsZero not required (commutative) -->
     </Operation>
@@ -130,8 +140,18 @@
         <Flags>BoolsAndInts</Flags>
         <Op>{Value0} | {Value1}</Op>
         <Rewriter>
+            <Source>{Value0} == {Value1}</Source>
+            <Target>{Value0}</Target>
+        </Rewriter>
+        <Rewriter>
             <Source>{Value1}.IsZero</Source>
             <Target>{Value0}</Target>
+        </Rewriter>
+        <Rewriter>
+            <Source>
+                {Value1}.IsBool &amp;&amp; {Value1}.HasIntValue(1)
+            </Source>
+            <Target>{Value1}</Target>
         </Rewriter>
         <!-- {Value0}.IsZero not required (commutative) -->
     </Operation>

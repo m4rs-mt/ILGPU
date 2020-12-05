@@ -203,6 +203,11 @@ namespace ILGPU.IR.Values
         public double Float64Value => Unsafe.As<long, double>(ref rawValue);
 
         /// <summary>
+        /// Returns true if the value is a bool.
+        /// </summary>
+        public bool IsBool => BasicValueType == BasicValueType.Int1;
+
+        /// <summary>
         /// Returns true if the value is an integer.
         /// </summary>
         public bool IsInt => BasicValueType.IsInt();

@@ -236,6 +236,13 @@ namespace ILGPU.Runtime.OpenCL
             PlatformName = CurrentAPI.GetPlatformInfo(
                 PlatformId,
                 CLPlatformInfoType.CL_PLATFORM_NAME);
+            PlatformVersion = CLPlatformVersion.TryParse(
+                CurrentAPI.GetPlatformInfo(
+                    PlatformId,
+                    CLPlatformInfoType.CL_PLATFORM_VERSION),
+                out var platformVersion)
+                ? platformVersion
+                : CLPlatformVersion.CL10;
 
             VendorName = CurrentAPI.GetPlatformInfo(
                 PlatformId,
@@ -454,6 +461,11 @@ namespace ILGPU.Runtime.OpenCL
         /// Returns the associated platform name.
         /// </summary>
         public string PlatformName { get; }
+
+        /// <summary>
+        /// Returns the associated platform version.
+        /// </summary>
+        public CLPlatformVersion PlatformVersion { get; }
 
         /// <summary>
         /// Returns the associated vendor.

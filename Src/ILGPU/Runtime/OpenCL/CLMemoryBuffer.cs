@@ -56,6 +56,7 @@ namespace ILGPU.Runtime.OpenCL
             ArrayView<T> target,
             LongIndex1 sourceOffset)
         {
+            var binding = Accelerator.BindScoped();
             var clStream = (CLStream)stream;
 
             switch (target.AcceleratorType)
@@ -84,6 +85,8 @@ namespace ILGPU.Runtime.OpenCL
                     throw new NotSupportedException(
                         RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
+
+            binding.Recover();
         }
 
         /// <summary cref="MemoryBuffer{T, TIndex}.CopyFromView(
@@ -93,6 +96,7 @@ namespace ILGPU.Runtime.OpenCL
             ArrayView<T> source,
             LongIndex1 targetOffset)
         {
+            var binding = Accelerator.BindScoped();
             var clStream = (CLStream)stream;
 
             switch (source.AcceleratorType)
@@ -121,17 +125,29 @@ namespace ILGPU.Runtime.OpenCL
                     throw new NotSupportedException(
                         RuntimeErrorMessages.NotSupportedTargetAccelerator);
             }
+
+            binding.Recover();
         }
 
-        /// <summary cref="MemoryBuffer.MemSetToZero(AcceleratorStream)"/>
-        public override void MemSetToZero(AcceleratorStream stream) =>
+        /// <inheritdoc/>
+        protected internal override unsafe void MemSetInternal(
+            AcceleratorStream stream,
+            byte value,
+            long offsetInBytes,
+            long lengthInBytes)
+        {
+            var binding = Accelerator.BindScoped();
+
             CLException.ThrowIfFailed(
-                CurrentAPI.FillBuffer<byte>(
+                CurrentAPI.FillBuffer(
                     ((CLStream)stream).CommandQueue,
                     NativePtr,
-                    0,
-                    IntPtr.Zero,
-                    new IntPtr(LengthInBytes)));
+                    value,
+                    new IntPtr(offsetInBytes),
+                    new IntPtr(lengthInBytes)));
+
+            binding.Recover();
+        }
 
         #endregion
 
