@@ -91,6 +91,7 @@ namespace ILGPU.Backends.OpenCL
                         TransformerConfiguration.Empty);
                     transformerBuilder.AddBackendOptimizations(
                         new CLAcceleratorSpecializer(PointerType),
+                        context.Flags,
                         context.OptimizationLevel);
                     builder.Add(transformerBuilder.ToTransformer());
                 });
