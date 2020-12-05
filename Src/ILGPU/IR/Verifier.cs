@@ -150,6 +150,12 @@ namespace ILGPU.IR
             protected void Error(Node node, [CallerMemberName] string stage = "") =>
                 Result.ReportError(node, GetType(), stage);
 
+            /// <summary>
+            /// Asserts that the given condition holds true.
+            /// </summary>
+            /// <param name="node">The current node.</param>
+            /// <param name="condition">The condition.</param>
+            /// <param name="stage">The caller stage name.</param>
             protected void Assert(
                 Node node,
                 bool condition,
@@ -422,6 +428,13 @@ namespace ILGPU.IR
             private void VerifyPhis() =>
                 Method.Blocks.ForEachValue<PhiValue>(phiValue =>
                 {
+                    // Verify predecessors
+                    Assert(
+                        phiValue,
+                        phiValue.Nodes.Length ==
+                        phiValue.BasicBlock.Predecessors.Length);
+
+                    // Verify nodes and sources
                     var visited = new HashSet<BasicBlock>();
                     for (int i = 0, e = phiValue.Nodes.Length; i < e; ++i)
                     {

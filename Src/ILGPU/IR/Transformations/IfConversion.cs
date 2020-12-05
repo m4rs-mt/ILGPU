@@ -13,9 +13,15 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using BlockCollection = ILGPU.IR.BasicBlockCollection<
+    ILGPU.IR.Analyses.TraversalOrders.ReversePostOrder,
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
+using Dominators = ILGPU.IR.Analyses.Dominators<
+    ILGPU.IR.Analyses.ControlFlowDirection.Forwards>;
 using ValueList = ILGPU.Util.InlineList<ILGPU.IR.Values.ValueReference>;
 
 namespace ILGPU.IR.Transformations
@@ -232,13 +238,13 @@ namespace ILGPU.IR.Transformations
             /// <param name="maxBlockDifference">
             /// The maximum block size difference.
             /// </param>
-            /// <param name="cfg">The current backwards CFG.</param>
+            /// <param name="blocks">The current blocks.</param>
             public ConditionalAnalyzer(
                 int maxBlockSize,
                 int maxBlockDifference,
-                CFG<ReversePostOrder, Backwards> cfg)
+                in BlockCollection blocks)
             {
-                PostDominators = cfg.CreateDominators();
+                PostDominators = blocks.CreatePostDominators();
                 MaxBlockSize = maxBlockSize;
                 MaxBlockDifference = maxBlockDifference;
                 Gathered = null;
@@ -571,7 +577,7 @@ namespace ILGPU.IR.Transformations
 
         #endregion
 
-        #region Static
+        #region Constants
 
         /// <summary>
         /// The default maximum block size measured in instructions.
@@ -637,14 +643,14 @@ namespace ILGPU.IR.Transformations
         protected override bool PerformTransformation(Method.Builder builder)
         {
             var blocks = builder.SourceBlocks;
-            var reverseBlocks = blocks.ChangeDirection<Backwards>();
             var conditionalAnalyzer = new ConditionalAnalyzer(
                 MaxBlockSize,
                 MaxBlockDifference,
-                reverseBlocks.CreateCFG());
+                blocks);
 
-            var converters = new List<ConditionalConverter>();
-            foreach (var block in builder.SourceBlocks)
+            var converters = InlineList<ConditionalConverter>.Create(
+                Math.Max(blocks.Count >> 4, 4));
+            foreach (var block in blocks)
             {
                 // Check whether we can convert the associated branch
                 if (conditionalAnalyzer.CanConvert(block, out var converter))
@@ -656,6 +662,983 @@ namespace ILGPU.IR.Transformations
                 converter.Convert(builder);
 
             return converters.Count > 0;
+        }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Transforms and-also and or-else branch chains into efficient logical operations.
+    /// </summary>
+    public sealed class IfConditionConversion : UnorderedTransformation
+    {
+        #region Static
+
+        /// <summary>
+        /// Helper function to return <see cref="IfBranch"/> terminator of the given
+        /// block.
+        /// </summary>
+        private static IfBranch GetIfBranch(BasicBlock block) =>
+            block.GetTerminatorAs<IfBranch>();
+
+        /// <summary>
+        /// Merges two phi case values.
+        /// </summary>
+        /// <param name="currentValue">The current value.</param>
+        /// <param name="caseValue">The case value to merge.</param>
+        /// <returns>True, if both case values are compatible.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool MergePhiCaseValue(ref Value currentValue, Value caseValue)
+        {
+            var oldCaseValue = currentValue;
+            currentValue = caseValue;
+            return oldCaseValue is null || oldCaseValue == caseValue;
+        }
+
+        #endregion
+
+        #region Nested Types
+
+        /// <summary>
+        /// The kind of a single block in the scope of this transformation.
+        /// </summary>
+        private enum BlockKind
+        {
+            /// <summary>
+            /// An inner block that can be merged.
+            /// </summary>
+            Inner,
+
+            /// <summary>
+            /// An exit block that has to be preserved.
+            /// </summary>
+            Exit
+        }
+
+        /// <summary>
+        /// Wraps a pair consisting of a true-case and a false-case block.
+        /// </summary>
+        private readonly struct CaseBlocks
+        {
+            #region Static
+
+            /// <summary>
+            /// Gets the primary true leaf that is used to created the merged branch.
+            /// </summary>
+            /// <param name="kinds">The set of all block kinds.</param>
+            /// <param name="current">The current block.</param>
+            /// <returns>The determined true block.</returns>
+            private static BasicBlock GetTrueExit(
+                in BasicBlockMap<BlockKind> kinds,
+                BasicBlock current) =>
+                kinds[current] == BlockKind.Exit
+                ? current
+                : GetTrueExit(kinds, GetIfBranch(current).TrueTarget);
+
+            /// <summary>
+            /// Gets the primary false leaf that is used to created the merged branch.
+            /// </summary>
+            /// <param name="kinds">The set of all block kinds.</param>
+            /// <param name="trueBlock">The true block.</param>
+            /// <returns>The determined false block.</returns>
+            private static BasicBlock GetFalseExit(
+                in BasicBlockMap<BlockKind> kinds,
+                BasicBlock trueBlock)
+            {
+                foreach (var (block, kind) in kinds)
+                {
+                    if (block != trueBlock && kind == BlockKind.Exit)
+                        return block;
+                }
+
+                // This cannot happen since there must be two leaf nodes
+                throw trueBlock.GetInvalidOperationException();
+            }
+
+            #endregion
+
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new case blocks instance.
+            /// </summary>
+            /// <param name="kinds">The current block kinds.</param>
+            /// <param name="current">The current root block to start the search.</param>
+            public CaseBlocks(in BasicBlockMap<BlockKind> kinds, BasicBlock current)
+            {
+                TrueBlock = GetTrueExit(kinds, current);
+                FalseBlock = GetFalseExit(kinds, TrueBlock);
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the true block.
+            /// </summary>
+            public BasicBlock TrueBlock { get; }
+
+            /// <summary>
+            /// Returns the false block.
+            /// </summary>
+            public BasicBlock FalseBlock { get; }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns true if the given block is the <see cref="TrueBlock"/>.
+            /// </summary>
+            /// <param name="block">The block to test.</param>
+            /// <returns>
+            /// True, if the given block is the <see cref="TrueBlock"/>.
+            /// </returns>
+            public readonly bool IsTrueBlock(BasicBlock block)
+            {
+                bool result = block == TrueBlock;
+                block.Assert(result || block == FalseBlock);
+                return result;
+            }
+
+            /// <summary>
+            /// Returns true if the given block is either the <see cref="TrueBlock"/>
+            /// or the <see cref="FalseBlock"/>.
+            /// </summary>
+            /// <param name="block">The block to test.</param>
+            /// <returns>
+            /// True, if the given block is either the <see cref="TrueBlock"/> or the
+            /// <see cref="FalseBlock"/>.
+            /// </returns>
+            public readonly bool Contains(BasicBlock block) =>
+                block == TrueBlock || block == FalseBlock;
+
+            /// <summary>
+            /// Asserts that the given value is contained in either the
+            /// <see cref="TrueBlock"/> or the <see cref="FalseBlock"/>.
+            /// </summary>
+            /// <param name="value">The value to test.</param>
+            public readonly void AssertInBlocks(Value value) =>
+                value.Assert(Contains(value.BasicBlock));
+
+            #endregion
+        }
+
+        /// <summary>
+        /// A custom successors provider that stops processing as soon as it hits an
+        /// block with kind <see cref="BlockKind.Exit"/>.
+        /// </summary>
+        private readonly struct SuccessorsProvider :
+            ITraversalSuccessorsProvider<Forwards>
+        {
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new successors provider.
+            /// </summary>
+            /// <param name="dominators">The dominators.</param>
+            /// <param name="entryPoint">The current entry point.</param>
+            /// <param name="maxNumInstructions">
+            /// The maximum number of instructions in an inner block.
+            /// </param>
+            public SuccessorsProvider(
+                Dominators dominators,
+                BasicBlock entryPoint,
+                int maxNumInstructions)
+            {
+                Dominators = dominators;
+                EntryPoint = entryPoint;
+                MaxNumInstructions = maxNumInstructions;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns all dominators.
+            /// </summary>
+            public Dominators Dominators { get; }
+
+            /// <summary>
+            /// Returns the current entry point.
+            /// </summary>
+            public BasicBlock EntryPoint { get; }
+
+            /// <summary>
+            /// Returns the maximum number of instructions in an inner block.
+            /// </summary>
+            public int MaxNumInstructions { get; }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns true if the given block can be converted (an inner block).
+            /// </summary>
+            /// <param name="basicBlock">The block to test.</param>
+            /// <param name="terminator">The resolved terminator (if any).</param>
+            /// <returns>
+            /// True, if the block can be considered to be an inner block.
+            /// </returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly bool IsCompatibleBlock(
+                BasicBlock basicBlock,
+                out IfBranch terminator) =>
+                // The current block must have an IfBranch terminator
+                (terminator = basicBlock.Terminator as IfBranch) != null &&
+                // It must be dominated by the entry block in order to avoid rare cases
+                // in which the current block is also reachable by other parts of the
+                // program
+                Dominators.Dominates(EntryPoint, basicBlock) &&
+                // It must not exceed the max #instructions per block and must not have
+                // any side effects
+                basicBlock.Count <= MaxNumInstructions &&
+                !basicBlock.HasSideEffects();
+
+            /// <summary>
+            /// Determines the block kind of the given block.
+            /// </summary>
+            /// <param name="basicBlock">The current block.</param>
+            /// <param name="exitCounter">The current number of exit blocks.</param>
+            /// <returns>The block kind.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly BlockKind GetBlockKind(
+                BasicBlock basicBlock,
+                ref int exitCounter)
+            {
+                if (IsCompatibleBlock(basicBlock, out var _))
+                    return BlockKind.Inner;
+                ++exitCounter;
+                return BlockKind.Exit;
+            }
+
+            /// <summary>
+            /// Returns all successors in the case of an inner block.
+            /// </summary>
+            /// <param name="basicBlock">The current basic block.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public readonly ReadOnlySpan<BasicBlock> GetSuccessors(
+                BasicBlock basicBlock) =>
+                IsCompatibleBlock(basicBlock, out var terminator)
+                ? terminator.Targets
+                : new ReadOnlySpan<BasicBlock>();
+
+            #endregion
+        }
+
+        /// <summary>
+        /// Represents a kind predicate that filters blocks based on their kind.
+        /// </summary>
+        private readonly struct BlockKindPredicate : InlineList.IPredicate<BasicBlock>
+        {
+            /// <summary>
+            /// Constructs a new kind predicate.
+            /// </summary>
+            /// <param name="kinds">All block kinds.</param>
+            /// <param name="kindToInclude">The kind of blocks to include.</param>
+            public BlockKindPredicate(
+                in BasicBlockMap<BlockKind> kinds,
+                BlockKind kindToInclude)
+            {
+                Kinds = kinds;
+                KindToInclude = kindToInclude;
+            }
+
+            /// <summary>
+            /// Returns the kind of blocks to include.
+            /// </summary>
+            public BlockKind KindToInclude { get; }
+
+            /// <summary>
+            /// Returns the map of all block kinds.
+            /// </summary>
+            private BasicBlockMap<BlockKind> Kinds { get; }
+
+            /// <summary>
+            /// Returns true if the kind of the given block is equal to
+            /// <see cref="KindToInclude"/>.
+            /// </summary>
+            public readonly bool Apply(BasicBlock item) =>
+                Kinds[item] == KindToInclude;
+        }
+
+        /// <summary>
+        /// Skips duplicate entries pointing to the entry block.
+        /// </summary>
+        private struct PhiRemapper : PhiValue.IArgumentRemapper
+        {
+            public PhiRemapper(BasicBlock entryBlock)
+            {
+                EntryBlock = entryBlock;
+                Added = false;
+            }
+
+            /// <summary>
+            /// Returns the entry block to remap to.
+            /// </summary>
+            public BasicBlock EntryBlock { get; }
+
+            /// <summary>
+            /// Returns true if the <see cref="EntryBlock"/> has been already wired
+            /// with the current block.
+            /// </summary>
+            public bool Added { get; private set; }
+
+            /// <summary>
+            /// Returns true and sets the value of <see cref="Added"/> to false.
+            /// </summary>
+            public bool CanRemap(PhiValue phiValue)
+            {
+                Added = false;
+                return true;
+            }
+
+            /// <summary>
+            /// Performs an identity mapping by filtering duplicate sources pointing to
+            /// the <see cref="EntryBlock"/>.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool TryRemap(
+                PhiValue phiValue,
+                BasicBlock block,
+                out BasicBlock newBlock)
+            {
+                newBlock = block;
+                if (block != EntryBlock)
+                    return true;
+
+                bool add = !Added;
+                Added = true;
+                return add;
+            }
+
+            /// <summary>
+            /// Returns the input <paramref name="value"/>.
+            /// </summary>
+            public readonly Value RemapValue(
+                PhiValue phiValue,
+                BasicBlock updatedBlock,
+                Value value) => value;
+        }
+
+        /// <summary>
+        /// An analyzer to detect compatible (nested) if-branch conditions.
+        /// </summary>
+        private ref struct ConditionalAnalyzer
+        {
+            #region Instance
+
+            private BasicBlockMap<BlockKind> kinds;
+
+            /// <summary>
+            /// Constructs a new conditional analyzer.
+            /// </summary>
+            /// <param name="blocks">The current block collection.</param>
+            /// <param name="maxBlockSize">The maximum block size.</param>
+            public ConditionalAnalyzer(in BlockCollection blocks, int maxBlockSize)
+            {
+                kinds = blocks.CreateMap<BlockKind>();
+
+                MaxNumBlocks = blocks.Count;
+                MaxBlockSize = maxBlockSize;
+
+                Dominators = blocks.CreateDominators();
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the maximum number of all blocks.
+            /// </summary>
+            public int MaxNumBlocks { get; }
+
+            /// <summary>
+            /// Returns the maximum block size
+            /// </summary>
+            public int MaxBlockSize { get; }
+
+            /// <summary>
+            /// Returns the dominator analysis.
+            /// </summary>
+            public Dominators Dominators { get; }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns true if the given block forms an if-statement that can be
+            /// converted using the associated <see cref="ConditionalConverter"/>.
+            /// </summary>
+            /// <param name="methodBuilder">The current builder.</param>
+            /// <param name="current">The block to check.</param>
+            /// <param name="converter">The created converter (if any).</param>
+            /// <returns>True, if the given block can be converted.</returns>
+            public bool CanConvert(
+                Method.Builder methodBuilder,
+                BasicBlock current,
+                out ConditionalConverter converter)
+            {
+                // Early exit for trivially not-supported block constructions
+                converter = default;
+                if (!(current.Terminator is IfBranch))
+                    return false;
+
+                // Try to determine an intermediate condition graph
+                kinds.Clear();
+                if (!Traverse(current, out var blocks))
+                    return false;
+
+                // Get the true and false-branch leaf nodes that are used to build the
+                // conditional branch in the end
+                var caseBlocks = new CaseBlocks(kinds, current);
+
+                // Check all phi-value references and determine all phis that need
+                // to be adjusted after folding all blocks
+                if (GetLocalPhis(blocks, BlockKind.Inner).Count > 0)
+                    return false;
+
+                // Initialize the list of phi entries and find all phis to adapt
+                var phis = ValueList.Create(2);
+                if (!GatherPhiValues(blocks, caseBlocks, ref phis))
+                    return false;
+
+                // Create the converter to transform all compatible blocks
+                converter = new ConditionalConverter(
+                    methodBuilder,
+                    kinds,
+                    blocks,
+                    phis,
+                    caseBlocks);
+                return true;
+            }
+
+            /// <summary>
+            /// Traverses the control flow starting with the current block and tries to
+            /// determine a set of blocks that can be merged.
+            /// </summary>
+            /// <param name="current">The current block.</param>
+            /// <param name="blocks">The collection of convertible blocks.</param>
+            /// <returns>
+            /// True, if a set of blocks that can be merged could be found.
+            /// </returns>
+            private bool Traverse(BasicBlock current, out BlockCollection blocks)
+            {
+                // Resolve all blocks that can be merged
+                var successorsProvider = new SuccessorsProvider(
+                    Dominators,
+                    current,
+                    MaxBlockSize);
+                blocks = new ReversePostOrder().TraverseToCollection<
+                    ReversePostOrder,
+                    SuccessorsProvider,
+                    Forwards>(MaxNumBlocks, current, successorsProvider);
+
+                // Early exit for incompatible block setups
+                if (blocks.Count < 4)
+                    return false;
+
+                // Register all blocks while using their different kinds
+                int numExitBlocks = 0;
+                foreach (var block in blocks)
+                {
+                    kinds[block] = successorsProvider.GetBlockKind(
+                        block,
+                        ref numExitBlocks);
+                }
+
+                return numExitBlocks == 2;
+            }
+
+            /// <summary>
+            /// Returns all local phi values that are stored in blocks with the
+            /// specified <paramref name="blockKind"/>.
+            /// </summary>
+            /// <param name="blocks">The blocks to be converted.</param>
+            /// <param name="blockKind">The target block kind.</param>
+            /// <returns>The list of all phi values.</returns>
+            private readonly Phis GetLocalPhis(
+                in BlockCollection blocks,
+                BlockKind blockKind)
+            {
+                var builder = Phis.CreateBuilder(blocks.Method);
+                foreach (var block in blocks)
+                {
+                    if (kinds[block] == blockKind)
+                        builder.Add(block);
+                }
+                return builder.Seal();
+            }
+
+            /// <summary>
+            /// Gathers and checks all local phi values that need to be adapted.
+            /// </summary>
+            /// <param name="blocks">The blocks to be converted.</param>
+            /// <param name="caseBlocks">Both case blocks.</param>
+            /// <param name="phis">The list of phi values to adapt.</param>
+            /// <returns>True, if all phi values are compatible.</returns>
+            private readonly bool GatherPhiValues(
+                in BlockCollection blocks,
+                in CaseBlocks caseBlocks,
+                ref ValueList phis)
+            {
+                // Get all phis in the exit block
+                var exitPhis = GetLocalPhis(blocks, BlockKind.Exit);
+
+                // Convert to a set of blocks including all inner blocks
+                var innerBlocksSet = blocks.ToSet(
+                    new BlockKindPredicate(kinds, BlockKind.Inner));
+
+                Value trueValue = null, falseValue = null;
+                foreach (var phi in exitPhis)
+                {
+                    // The phi must be located in one of our exit blocks
+                    caseBlocks.AssertInBlocks(phi);
+
+                    // Check whether this phi value has source that is not linked to our
+                    // block set
+                    if (!phi.Sources.Any(
+                        BasicBlock.IsInCollectionPredicate.ToPredicate(innerBlocksSet)))
+                    {
+                        continue;
+                    }
+
+                    // Check whether all sources are linked to our internal blocks
+                    bool isTrueBlock = caseBlocks.IsTrueBlock(phi.BasicBlock); 
+                    for (int i = 0, e = phi.Count; i < e; ++i)
+                    {
+                        if (!innerBlocksSet.Contains(phi.Sources[i]))
+                            continue;
+
+                        // Get the value for this predecessor
+                        Value phiValue = phi[i];
+
+                        // Check the case for this predecessor
+                        bool merged = isTrueBlock
+                            ? MergePhiCaseValue(ref trueValue, phiValue)
+                            : MergePhiCaseValue(ref falseValue, phiValue);
+
+                        // If we could not merge these case values, we have to skip the
+                        // whole block list, since it contains unknown control flow
+                        if (!merged)
+                            return false;
+                    }
+
+                    // If we reach this point, the current phi value has to be adapted
+                    phis.Add(phi);
+                }
+                return true;
+            }
+
+            #endregion
+        }
+
+        /// <summary>
+        /// A conditional converter to perform the actual if/switch conversion into
+        /// conditional value predicates.
+        /// </summary>
+        private ref struct ConditionalConverter
+        {
+            #region Instance
+
+            /// <summary>
+            /// Constructs a new conditional converter.
+            /// </summary>
+            /// <param name="builder">The parent builder.</param>
+            /// <param name="kinds">The mapping of block kinds.</param>
+            /// <param name="blocks">The block collection to be used.</param>
+            /// <param name="phis">All phis to be adapted.</param>
+            /// <param name="caseBlocks">Both case blocks.</param>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal ConditionalConverter(
+                Method.Builder builder,
+                in BasicBlockMap<BlockKind> kinds,
+                in BlockCollection blocks,
+                ReadOnlySpan<ValueReference> phis,
+                in CaseBlocks caseBlocks)
+            {
+                Blocks = blocks;
+                Kinds = kinds;
+
+                Builder = builder;
+                BlockBuilder = builder[blocks.EntryBlock];
+
+                Phis = phis;
+                CaseBlocks = caseBlocks;
+            }
+
+            #endregion
+
+            #region Properties
+
+            /// <summary>
+            /// Returns the parent builder.
+            /// </summary>
+            public Method.Builder Builder { get; }
+
+            /// <summary>
+            /// Returns the main target builder used to emit all conditionals.
+            /// </summary>
+            public BasicBlock.Builder BlockBuilder { get; }
+
+            /// <summary>
+            /// Returns all blocks in this conditional graph.
+            /// </summary>
+            public BlockCollection Blocks { get; }
+
+            /// <summary>
+            /// Returns all block kinds.
+            /// </summary>
+            public BasicBlockMap<BlockKind> Kinds { get; }
+
+            /// <summary>
+            /// Returns the entry block of the current collections of blocks.
+            /// </summary>
+            public readonly BasicBlock EntryBlock => Blocks.EntryBlock;
+
+            /// <summary>
+            /// Returns all phi values that need to be adapted.
+            /// </summary>
+            public ReadOnlySpan<ValueReference> Phis { get; }
+
+            /// <summary>
+            /// Returns both case blocks.
+            /// </summary>
+            public CaseBlocks CaseBlocks { get; }
+
+            #endregion
+
+            #region Methods
+
+            /// <summary>
+            /// Returns true if the given block should be maintained.
+            /// </summary>
+            private readonly bool IsBlockToKeep(BasicBlock block) =>
+                block == EntryBlock | CaseBlocks.Contains(block);
+
+            /// <summary>
+            /// Returns true if the given block is an exit block.
+            /// </summary>
+            private readonly bool IsExit(BasicBlock block) =>
+                Kinds[block] == BlockKind.Exit;
+
+            /// <summary>
+            /// Converts the underlying conditional tree into a folded set of wired
+            /// conditionals.
+            /// </summary>
+            public void Convert()
+            {
+                // Remember the original target location
+                var terminator = GetIfBranch(EntryBlock);
+
+                // Merge all blocks into one
+                MergeBlocks();
+                BlockBuilder.SetupInsertPositionToEnd();
+
+                // Emit the actual condition
+                Value condition = null;
+                CreateInnerCondition(terminator, null, ref condition);
+                EntryBlock.AssertNotNull(condition);
+
+                // Create the actual branch condition
+                BlockBuilder.CreateIfBranch(
+                    terminator.Location,
+                    condition,
+                    CaseBlocks.TrueBlock,
+                    CaseBlocks.FalseBlock);
+
+                // Adapt all phis
+                AdaptPhis();
+
+                // Clear all other blocks to remove all obsolete uses
+                ClearBlocks();
+            }
+
+            /// <summary>
+            /// Merges the given inner node into the given block builder.
+            /// </summary>
+            private void MergeBlocks()
+            {
+                foreach (var block in Blocks)
+                {
+                    // Skip the root block
+                    if (IsBlockToKeep(block))
+                        continue;
+
+                    BlockBuilder.MergeBlock(block);
+                }
+            }
+
+            /// <summary>
+            /// Merges both conditions using the <paramref name="kind"/>.
+            /// </summary>
+            /// <param name="condition">The source condition (may be null).</param>
+            /// <param name="newCondition">The new condition to merge.</param>
+            /// <param name="kind">The arithmetic kind used to combine them.</param>
+            /// <returns>
+            /// The merged condition or <paramref name="newCondition"/>.
+            /// </returns>
+            private Value MergeCondition(
+                Value condition,
+                Value newCondition,
+                BinaryArithmeticKind kind) =>
+                condition is null
+                ? newCondition
+                : (Value)BlockBuilder.CreateArithmetic(
+                    condition.Location,
+                    condition,
+                    newCondition,
+                    kind);
+
+            /// <summary>
+            /// Creates a merge intermediate condition that will be passed to the
+            /// <see cref="CreateCondition(BasicBlock, Value, ref Value)"/> method.
+            /// </summary>
+            /// <param name="current">The current block.</param>
+            /// <param name="condition">The source condition (may be null).</param>
+            /// <param name="newCondition">The new condition to merge.</param>
+            /// <param name="exitCondition">The exit condition to be updated.</param>
+            private void CreateMergedCondition(
+                BasicBlock current,
+                Value condition,
+                Value newCondition,
+                ref Value exitCondition)
+            {
+                var merged = MergeCondition(
+                    condition,
+                    newCondition,
+                    BinaryArithmeticKind.And);
+
+                // Continue the traversal using the merged condition
+                CreateCondition(
+                    current,
+                    merged,
+                    ref exitCondition);
+            }
+
+            /// <summary>
+            /// Creates and updates the exit condition in the case of a
+            /// <see cref="CaseBlocks.TrueBlock" />
+            /// </summary>
+            /// <param name="current">The current block.</param>
+            /// <param name="condition">The source condition (may be null).</param>
+            /// <param name="exitCondition">The exit condition to be updated.</param>
+            private void CreateExitCondition(
+                BasicBlock current,
+                Value condition,
+                ref Value exitCondition)
+            {
+                current.Assert(IsExit(current));
+
+                // Skip non-true blocks since they will not contribute to the conditional
+                // branch that will be emitted in the end
+                if (!CaseBlocks.IsTrueBlock(current))
+                    return;
+
+                // Append the current condition using a logical or to form clauses of
+                // the form: (a & b & c) | (d & e & f) | ...
+                exitCondition = MergeCondition(
+                    exitCondition,
+                    condition,
+                    BinaryArithmeticKind.Or);
+            }
+
+            /// <summary>
+            /// Creates conditions for inner blocks using recursion.
+            /// </summary>
+            /// <param name="terminator">The current terminator.</param>
+            /// <param name="condition">The source condition (may be null).</param>
+            /// <param name="exitCondition">The exit condition to be updated.</param>
+            private void CreateInnerCondition(
+                IfBranch terminator,
+                Value condition,
+                ref Value exitCondition)
+            {
+                // Determine the true and false conditions, as well as the different
+                // branch targets
+                var trueCondition = terminator.Condition;
+                var falseCondition = trueCondition;
+                var (trueTarget, falseTarget) =
+                    terminator.GetNotInvertedBranchTargets();
+
+                // Simple optimization to avoid the generation on unnecessary operations
+                bool emitFalseTarget = terminator.FalseTarget != CaseBlocks.FalseBlock;
+
+                // Check whether we need to add another not here
+                if (terminator.FalseTarget == CaseBlocks.TrueBlock)
+                {
+                    // Invert the true condition since the true branch target is on the
+                    // RHS of the branch
+                    trueCondition = BlockBuilder.CreateArithmetic(
+                        trueCondition.Location,
+                        trueCondition,
+                        UnaryArithmeticKind.Not);
+                    Utilities.Swap(ref trueTarget, ref falseTarget);
+                }
+                else if (emitFalseTarget)
+                {
+                    // Negate the false condition otherwise
+                    falseCondition = BlockBuilder.CreateArithmetic(
+                        falseCondition.Location,
+                        falseCondition,
+                        UnaryArithmeticKind.Not);
+                }
+
+                // Merge the true condition and continue with the true target
+                CreateMergedCondition(
+                    trueTarget,
+                    condition,
+                    trueCondition,
+                    ref exitCondition);
+
+                // If we have to emit a false target, continue with a recursive emission
+                if (emitFalseTarget)
+                {
+                    // Merge the false condition and continue with the false target
+                    CreateMergedCondition(
+                        falseTarget,
+                        condition,
+                        falseCondition,
+                        ref exitCondition);
+                }
+            }
+
+            /// <summary>
+            /// Creates a condition for an exit or an inner block.
+            /// </summary>
+            /// <param name="current">The current block.</param>
+            /// <param name="condition">The source condition (may be null).</param>
+            /// <param name="exitCondition">The exit condition to be updated.</param>
+            private void CreateCondition(
+                BasicBlock current,
+                Value condition,
+                ref Value exitCondition)
+            {
+                if (IsExit(current))
+                {
+                    // Create an exit-block condition
+                    CreateExitCondition(current, condition, ref exitCondition);
+                }
+                else
+                {
+                    // Create an inner-block condition
+                    var terminator = GetIfBranch(current);
+                    CreateInnerCondition(terminator, condition, ref exitCondition);
+                }
+            }
+
+            /// <summary>
+            /// Clears all blocks that have been merged in order to release the uses.
+            /// </summary>
+            private void ClearBlocks()
+            {
+                foreach (var block in Blocks)
+                {
+                    if (IsBlockToKeep(block))
+                        continue;
+
+                    Builder[block].Clear();
+                }
+            }
+
+            /// <summary>
+            /// Adapts all phi sources to match the new control-flow structure.
+            /// </summary>
+            private void AdaptPhis()
+            {
+                // Initialize the remapper that maps inner blocks to the entry block
+                var phiRemapper = new PhiRemapper(EntryBlock);
+                foreach (PhiValue phi in Phis)
+                {
+                    // The phi must be located in one of our exit blocks
+                    CaseBlocks.AssertInBlocks(phi);
+
+                    // Remap the current phi
+                    phi.RemapArguments(Builder, phiRemapper);
+                }
+            }
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Constants
+
+        /// <summary>
+        /// The default maximum block size measured in instructions.
+        /// </summary>
+        public const int DefaultMaxBlockSize = 4;
+
+        #endregion
+
+        #region Instance
+
+        /// <summary>
+        /// Constructs a new conditional conversion transformation using the default
+        /// maximum block size.
+        /// </summary>
+        public IfConditionConversion()
+            : this(DefaultMaxBlockSize)
+        { }
+
+        /// <summary>
+        /// Constructs a new conditional conversion transformation.
+        /// </summary>
+        /// <param name="maxBlockSize">The maximum block size in instructions.</param>
+        public IfConditionConversion(int maxBlockSize)
+        {
+            if (maxBlockSize < 1)
+                throw new ArgumentOutOfRangeException(nameof(maxBlockSize));
+
+            MaxBlockSize = maxBlockSize;
+        }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Returns the maximum block size for merging in number of instructions.
+        /// </summary>
+        public int MaxBlockSize { get; }
+
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Applies to if-conditional conversion transformation.
+        /// </summary>
+        protected override bool PerformTransformation(Method.Builder builder)
+        {
+            // We change the control-flow structure during the transformation but
+            // need to get information about previous successors
+            builder.AcceptControlFlowUpdates(accept: true);
+
+            // Create the conditional analyzer to detect compatible block setups
+            var blocks = builder.SourceBlocks;
+            var analyzer = new ConditionalAnalyzer(blocks, MaxBlockSize);
+
+            // Convert all ifs in post order
+            bool applied = false;
+            foreach (var block in blocks.AsOrder<PostOrder>())
+            {
+                // Skip blocks that have been converted or cannot be converted
+                if (analyzer.CanConvert(builder, block, out var converter))
+                {
+                    // Apply the instantiated converter
+                    converter.Convert();
+                    applied = true;
+                }
+            }
+
+            return applied;
         }
 
         #endregion

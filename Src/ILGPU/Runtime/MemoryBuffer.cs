@@ -29,12 +29,16 @@ namespace ILGPU.Runtime
         /// </summary>
         /// <param name="accelerator">The associated accelerator.</param>
         /// <param name="length">The length in elements.</param>
-        protected MemoryBuffer(Accelerator accelerator, long length)
+        /// <param name="elementSize">The size of one element.</param>
+        protected MemoryBuffer(Accelerator accelerator, long length, int elementSize)
             : base(accelerator)
         {
             if (length < 1L)
                 throw new ArgumentOutOfRangeException(nameof(length));
+            if (elementSize < 1)
+                throw new ArgumentOutOfRangeException(nameof(elementSize));
             Length = length;
+            LengthInBytes = length * elementSize;
         }
 
         #endregion
@@ -46,15 +50,19 @@ namespace ILGPU.Runtime
         /// </summary>
         public long Length { get; }
 
+        /// <summary>
+        /// Returns the length of this buffer in bytes.
+        /// </summary>
+        public long LengthInBytes { get; }
+
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Sets the contents of the given buffer to zero using
-        /// the default accelerator stream.
+        /// Sets the contents of the given buffer to zero using the default accelerator
+        /// stream.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void MemSetToZero() =>
             MemSetToZero(Accelerator.DefaultStream);
 
@@ -62,7 +70,80 @@ namespace ILGPU.Runtime
         /// Sets the contents of the current buffer to zero.
         /// </summary>
         /// <param name="stream">The used accelerator stream.</param>
-        public abstract void MemSetToZero(AcceleratorStream stream);
+        public void MemSetToZero(AcceleratorStream stream) =>
+            MemSet(stream, 0);
+
+        /// <summary>
+        /// Sets the contents of the given buffer to the given byte value using the
+        /// default accelerator stream.
+        /// </summary>
+        /// <param name="value">The value to write into the memory buffer.</param>
+        public void MemSet(byte value) =>
+            MemSet(Accelerator.DefaultStream, value);
+
+        /// <summary>
+        /// Sets the contents of the given buffer to the given byte value using the
+        /// default accelerator stream.
+        /// </summary>
+        /// <param name="value">The value to write into the memory buffer.</param>
+        /// <param name="offsetInBytes">The raw offset in bytes.</param>
+        /// <param name="lengthInBytes">The raw length in bytes.</param>
+        public void MemSet(
+            byte value,
+            long offsetInBytes,
+            long lengthInBytes) =>
+            MemSet(
+                Accelerator.DefaultStream,
+                value,
+                offsetInBytes,
+                lengthInBytes);
+
+        /// <summary>
+        /// Sets the contents of the current buffer to the given byte value.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="value">The value to write into the memory buffer.</param>
+        public void MemSet(
+            AcceleratorStream stream,
+            byte value) =>
+            MemSet(stream, value, 0L, LengthInBytes);
+
+        /// <summary>
+        /// Sets the contents of the current buffer to the given byte value.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="value">The value to write into the memory buffer.</param>
+        /// <param name="offsetInBytes">The raw offset in bytes.</param>
+        /// <param name="lengthInBytes">The raw length in bytes.</param>
+        public void MemSet(
+            AcceleratorStream stream,
+            byte value,
+            long offsetInBytes,
+            long lengthInBytes)
+        {
+            if (lengthInBytes < 0)
+                throw new ArgumentOutOfRangeException(nameof(lengthInBytes));
+            if (offsetInBytes < 0 || offsetInBytes + lengthInBytes > LengthInBytes)
+                throw new ArgumentOutOfRangeException(nameof(offsetInBytes));
+            MemSetInternal(
+                stream,
+                value,
+                offsetInBytes,
+                lengthInBytes);
+        }
+
+        /// <summary>
+        /// Sets the contents of the current buffer to the given byte value.
+        /// </summary>
+        /// <param name="stream">The used accelerator stream.</param>
+        /// <param name="value">The value to write into the memory buffer.</param>
+        /// <param name="offsetInBytes">The raw offset in bytes.</param>
+        /// <param name="lengthInBytes">The raw length in bytes.</param>
+        protected internal abstract void MemSetInternal(
+            AcceleratorStream stream,
+            byte value,
+            long offsetInBytes,
+            long lengthInBytes);
 
         /// <summary>
         /// Copies the current contents into a new byte array.
@@ -112,7 +193,7 @@ namespace ILGPU.Runtime
         protected unsafe MemoryBuffer(
             Accelerator accelerator,
             TIndex extent)
-            : base(accelerator, extent.Size)
+            : base(accelerator, extent.Size, ElementSize)
         {
             Extent = extent;
         }
@@ -120,11 +201,6 @@ namespace ILGPU.Runtime
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Returns the length of this buffer in bytes.
-        /// </summary>
-        public long LengthInBytes => Length * ElementSize;
 
         /// <summary>
         /// Returns an array view that can access this buffer.

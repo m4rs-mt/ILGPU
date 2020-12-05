@@ -118,18 +118,25 @@ namespace ILGPU.Runtime.CPU
             binding.Recover();
         }
 
-        /// <summary cref="MemoryBuffer.MemSetToZero(AcceleratorStream)"/>
-        public unsafe override void MemSetToZero(AcceleratorStream stream)
+        /// <inheritdoc/>
+        protected internal override unsafe void MemSetInternal(
+            AcceleratorStream stream,
+            byte value,
+            long offsetInBytes,
+            long lengthInBytes)
         {
             stream.Synchronize();
             ref byte targetAddress = ref Unsafe.AsRef<byte>(NativePtr.ToPointer());
-            for (long offset = 0, e = LengthInBytes; offset < e; offset += uint.MaxValue)
+            for (
+                long offset = offsetInBytes, e = offsetInBytes + lengthInBytes;
+                offset < e;
+                offset += uint.MaxValue)
             {
                 Unsafe.InitBlock(
                     ref Unsafe.AddByteOffset(
                         ref targetAddress,
                         new IntPtr(offset)),
-                    0,
+                    value,
                     (uint)Math.Min(uint.MaxValue, e - offset));
             }
         }

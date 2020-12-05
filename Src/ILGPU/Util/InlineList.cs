@@ -508,6 +508,36 @@ namespace ILGPU.Util
             public readonly string Format(T item) => item.ToString();
         }
 
+        /// <summary>
+        /// An abstract predicate interface.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        public interface IPredicate<T>
+        {
+            /// <summary>
+            /// Applies this predicate to the given item.
+            /// </summary>
+            /// <param name="item">The item to apply the predicate to.</param>
+            /// <returns>
+            /// True, if the predicate implementation evaluates to true.
+            /// </returns>
+            bool Apply(T item);
+        }
+
+        /// <summary>
+        /// A predicate that always returns true.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        public readonly struct TruePredicate<T> : IPredicate<T>
+        {
+            /// <summary>
+            /// Returns always true.
+            /// </summary>
+            /// <param name="item">The item to apply the predicate to.</param>
+            /// <returns>True.</returns>
+            public readonly bool Apply(T item) => true;
+        }
+
         #endregion
 
         #region Methods
@@ -557,6 +587,26 @@ namespace ILGPU.Util
         }
 
         /// <summary>
+        /// Returns true if the predicate evaluates to true for any item.
+        /// </summary>
+        /// <param name="span">The span that might contain the given item.</param>
+        /// <param name="predicate">The predicate instance.</param>
+        /// <returns>True, if the predicate evaluates to true for any item.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Any<T, TPredicate>(
+            this ReadOnlySpan<T> span,
+            TPredicate predicate)
+            where TPredicate : IPredicate<T>
+        {
+            foreach (var item in span)
+            {
+                if (predicate.Apply(item))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Creates a new inline list from the given span.
         /// </summary>
         /// <typeparam name="T">The element type.</typeparam>
@@ -566,6 +616,37 @@ namespace ILGPU.Util
         {
             var result = InlineList<T>.Empty;
             span.CopyTo(ref result);
+            return result;
+        }
+
+        /// <summary>
+        /// Converts the given span into a <see cref="HashSet{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <param name="span">The span instance.</param>
+        public static HashSet<T> ToSet<T>(this ReadOnlySpan<T> span) =>
+            span.ToSet(new TruePredicate<T>());
+
+        /// <summary>
+        /// Converts the given span into a <see cref="HashSet{T}"/> that contains all
+        /// all elements for which the given predicate evaluates to true.
+        /// </summary>
+        /// <typeparam name="T">The element type.</typeparam>
+        /// <typeparam name="TPredicate">The predicate type.</typeparam>
+        /// <param name="span">The span instance.</param>
+        /// <param name="predicate">The predicate instance.</param>
+        /// <returns>The created set.</returns>
+        public static HashSet<T> ToSet<T, TPredicate>(
+            this ReadOnlySpan<T> span,
+            TPredicate predicate)
+            where TPredicate : IPredicate<T>
+        {
+            var result = new HashSet<T>();
+            foreach (var item in span)
+            {
+                if (predicate.Apply(item))
+                    result.Add(item);
+            }
             return result;
         }
 

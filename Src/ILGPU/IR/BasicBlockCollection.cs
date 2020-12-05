@@ -12,6 +12,7 @@
 using ILGPU.IR.Analyses.ControlFlowDirection;
 using ILGPU.IR.Analyses.TraversalOrders;
 using ILGPU.IR.Values;
+using ILGPU.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -325,11 +326,25 @@ namespace ILGPU.IR
         /// Converts this collection into a hash set.
         /// </summary>
         /// <returns>The created set.</returns>
-        public readonly HashSet<BasicBlock> ToSet()
+        public readonly HashSet<BasicBlock> ToSet() =>
+            ToSet(new InlineList.TruePredicate<BasicBlock>());
+
+        /// <summary>
+        /// Converts this collection into a hash set that contains all elements for
+        /// which the given predicate evaluates to true.
+        /// </summary>
+        /// <typeparam name="TPredicate">The predicate type.</typeparam>
+        /// <param name="predicate">The predicate instance.</param>
+        /// <returns>The created set.</returns>
+        public readonly HashSet<BasicBlock> ToSet<TPredicate>(TPredicate predicate)
+            where TPredicate : InlineList.IPredicate<BasicBlock>
         {
             var result = new HashSet<BasicBlock>();
             foreach (var block in this)
-                result.Add(block);
+            {
+                if (predicate.Apply(block))
+                    result.Add(block);
+            }
             return result;
         }
 
