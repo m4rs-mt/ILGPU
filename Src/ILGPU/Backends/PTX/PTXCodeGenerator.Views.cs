@@ -71,6 +71,32 @@ namespace ILGPU.Backends.PTX
             }
         }
 
+        /// <summary>
+        /// Creates an address-space cast conversion.
+        /// </summary>
+        /// <param name="sourceRegister">The source register.</param>
+        /// <param name="targetRegister">The target register.</param>
+        /// <param name="sourceAddressSpace">The source address space.</param>
+        /// <param name="targetAddressSpace">The target address space.</param>
+        private void CreateAddressSpaceCast(
+            PrimitiveRegister sourceRegister,
+            HardwareRegister targetRegister,
+            MemoryAddressSpace sourceAddressSpace,
+            MemoryAddressSpace targetAddressSpace)
+        {
+            var toGeneric = targetAddressSpace == MemoryAddressSpace.Generic;
+            var addressSpaceOperation = PTXInstructions.GetAddressSpaceCast(toGeneric);
+            var addressSpaceOperationSuffix =
+                PTXInstructions.GetAddressSpaceCastSuffix(Backend);
+
+            using var command = BeginCommand(addressSpaceOperation);
+            command.AppendAddressSpace(
+                toGeneric ? sourceAddressSpace : targetAddressSpace);
+            command.AppendSuffix(addressSpaceOperationSuffix);
+            command.AppendArgument(targetRegister);
+            command.AppendArgument(sourceRegister);
+        }
+
         /// <summary cref="IBackendCodeGenerator.GenerateCode(AddressSpaceCast)"/>
         public void GenerateCode(AddressSpaceCast value)
         {
@@ -81,17 +107,11 @@ namespace ILGPU.Backends.PTX
             Debug.Assert(value.IsPointerCast, "Invalid pointer access");
 
             var address = LoadPrimitive(value.Value);
-            var toGeneric = value.TargetAddressSpace == MemoryAddressSpace.Generic;
-            var addressSpaceOperation = PTXInstructions.GetAddressSpaceCast(toGeneric);
-            var addressSpaceOperationSuffix =
-                PTXInstructions.GetAddressSpaceCastSuffix(Backend);
-
-            using var command = BeginCommand(addressSpaceOperation);
-            command.AppendAddressSpace(
-                toGeneric ? sourceType.AddressSpace : value.TargetAddressSpace);
-            command.AppendSuffix(addressSpaceOperationSuffix);
-            command.AppendArgument(targetAdressRegister);
-            command.AppendArgument(address);
+            CreateAddressSpaceCast(
+                address,
+                targetAdressRegister,
+                sourceType.AddressSpace,
+                value.TargetAddressSpace);
         }
     }
 }

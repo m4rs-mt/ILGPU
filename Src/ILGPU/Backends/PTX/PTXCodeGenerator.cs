@@ -321,8 +321,8 @@ namespace ILGPU.Backends.PTX
         private int labelCounter = 0;
         private readonly Dictionary<BasicBlock, string> blockLookup =
             new Dictionary<BasicBlock, string>();
-        private readonly Dictionary<string, string> stringConstants =
-            new Dictionary<string, string>();
+        private readonly Dictionary<(Encoding, string), string> stringConstants =
+            new Dictionary<(Encoding, string), string>();
         private readonly string labelPrefix;
 
         /// <summary>
@@ -887,9 +887,13 @@ namespace ILGPU.Backends.PTX
             var declBuilder = new StringBuilder();
             foreach (var stringConstant in stringConstants)
             {
-                declBuilder.Append(".global .align 2 .b8 ");
+                var (encoding, stringValue) = stringConstant.Key;
+                declBuilder.Append(".global .align ");
+                declBuilder.Append(encoding.GetMaxByteCount(1));
+                declBuilder.Append(" .b8 ");
                 declBuilder.Append(stringConstant.Value);
-                var stringBytes = Encoding.Unicode.GetBytes(stringConstant.Key);
+
+                var stringBytes = encoding.GetBytes(stringValue);
                 declBuilder.Append("[");
                 declBuilder.Append(stringBytes.Length + 1);
                 declBuilder.Append("]");

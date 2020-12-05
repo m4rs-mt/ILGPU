@@ -1,0 +1,72 @@
+﻿// ---------------------------------------------------------------------------------------
+//                                        ILGPU
+//                        Copyright (c) 2016-2020 Marcel Koester
+//                                    www.ilgpu.net
+//
+// File: Interop.Generated.tt/Interop.Generated.cs
+//
+// This file is part of ILGPU and is distributed under the University of Illinois Open
+// Source License. See LICENSE.txt for details
+// ---------------------------------------------------------------------------------------
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ include file="Static/TypeInformation.ttinclude" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<# var typeParameterRanges = Enumerable.Range(0, 14); #>
+<# var paramRange = from r in typeParameterRanges
+    let range = Enumerable.Range(1, r + 1)
+    select new
+    {
+        TypeParams = string.Join(", ", from rangeIdx in range select $"T{rangeIdx}"),
+        Params = string.Join(", ", from rangeIdx in range select $"T{rangeIdx} arg{rangeIdx}"),
+        Arguments = string.Join(", ", from rangeIdx in range select $"arg{rangeIdx}.ToString()"),
+        ParamDocumentation = string.Join("        /// ", from rangeIdx in range select
+            $"<param name=\"arg{rangeIdx}\">Argument {rangeIdx} to format.</param>{Environment.NewLine}"),
+        TypeRestrictions = string.Join(" ", from rangeIdx in range select $"where T{rangeIdx} : unmanaged"),
+        TypeParamDocumentation = string.Join("        /// ", from rangeIdx in range select
+            $"<typeparam name=\"T{rangeIdx}\">Parameter type of parameter {rangeIdx}.</typeparam>{Environment.NewLine}"),
+    }; #>
+using ILGPU.Frontend.Intrinsic;
+
+// disable: max_line_length
+
+namespace ILGPU
+{
+    partial class Interop
+    {
+<# foreach (var @params in paramRange) { #>
+        /// <summary>
+        /// Writes the given arguments using the format provided.
+        /// </summary>
+        /// <#= @params.TypeParamDocumentation #>
+        /// <param name="format">The format expression.</param>
+        /// <#= @params.ParamDocumentation #>
+        [InteropIntrinsic(InteropIntrinsicKind.Write)]
+        public static void Write<<#= @params.TypeParams #>>(
+            string format,
+            <#= @params.Params #>)
+            <#= @params.TypeRestrictions #> =>
+            WriteImplementation(format, <#= @params.Arguments #>);
+
+        /// <summary>
+        /// Writes the given arguments using the format provided.
+        /// </summary>
+        /// <#= @params.TypeParamDocumentation #>
+        /// <param name="format">The format expression.</param>
+        /// <#= @params.ParamDocumentation #>
+        [InteropIntrinsic(InteropIntrinsicKind.WriteLine)]
+        public static void WriteLine<<#= @params.TypeParams #>>(
+            string format,
+            <#= @params.Params #>)
+            <#= @params.TypeRestrictions #> =>
+            WriteImplementation(
+                GetWriteLineFormat(format),
+                <#= @params.Arguments #>);
+
+<#  } #>
+    }
+}

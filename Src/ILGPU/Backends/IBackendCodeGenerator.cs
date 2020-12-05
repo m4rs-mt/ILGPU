@@ -544,6 +544,10 @@ namespace ILGPU.Backends
             public void Visit(DebugOperation debug) =>
                 CodeGenerator.GenerateCode(debug);
 
+            /// <summary cref="IValueVisitor.Visit(WriteToOutput)"/>
+            public void Visit(WriteToOutput writeToOutput) =>
+                throw new InvalidCodeGenerationException();
+
             /// <summary cref="IValueVisitor.Visit(ReturnTerminator)"/>
             public void Visit(ReturnTerminator returnTerminator) =>
                 CodeGenerator.GenerateCode(returnTerminator);

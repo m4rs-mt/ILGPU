@@ -15,6 +15,7 @@ using ILGPU.Util;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace ILGPU.IR.Values
 {
@@ -328,10 +329,15 @@ namespace ILGPU.IR.Values
         /// </summary>
         /// <param name="initializer">The value initializer.</param>
         /// <param name="value">The string value.</param>
-        internal StringValue(in ValueInitializer initializer, string value)
+        /// <param name="encoding">The string encoding.</param>
+        internal StringValue(
+            in ValueInitializer initializer,
+            string value,
+            Encoding encoding)
             : base(initializer, initializer.Context.StringType)
         {
             String = value;
+            Encoding = encoding;
         }
 
         #endregion
@@ -351,6 +357,11 @@ namespace ILGPU.IR.Values
         /// </summary>
         public string String { get; }
 
+        /// <summary>
+        /// Returns the associated encoding.
+        /// </summary>
+        public Encoding Encoding { get; }
+
         #endregion
 
         #region Methods
@@ -369,7 +380,8 @@ namespace ILGPU.IR.Values
         #region Object
 
         /// <summary cref="Node.ToPrefixString"/>
-        protected override string ToPrefixString() => "const.str";
+        protected override string ToPrefixString() =>
+            "const.str." + Encoding.EncodingName.ToLower();
 
         /// <summary cref="Value.ToArgString"/>
         protected override string ToArgString() => String;
