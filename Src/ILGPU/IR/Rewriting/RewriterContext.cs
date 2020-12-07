@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR.Types;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -48,7 +49,7 @@ namespace ILGPU.IR.Rewriting
         /// <summary>
         /// Returns the associated block.
         /// </summary>
-        public BasicBlock Block => Builder.BasicBlock;
+        public readonly BasicBlock Block => Builder.BasicBlock;
 
         /// <summary>
         /// The set of all converted nodes.
@@ -64,7 +65,8 @@ namespace ILGPU.IR.Rewriting
         /// </summary>
         /// <param name="newBuilder">The new builder to use.</param>
         /// <returns>The specialized rewriter context.</returns>
-        public RewriterContext SpecializeBuilder(BasicBlock.Builder newBuilder) =>
+        public readonly RewriterContext SpecializeBuilder(
+            BasicBlock.Builder newBuilder) =>
             new RewriterContext(newBuilder, Converted);
 
         /// <summary>
@@ -72,14 +74,14 @@ namespace ILGPU.IR.Rewriting
         /// </summary>
         /// <param name="value">The value to check.</param>
         /// <returns>True, if the given value has been converted.</returns>
-        public bool IsConverted(Value value) => Converted.Contains(value);
+        public readonly bool IsConverted(Value value) => Converted.Contains(value);
 
         /// <summary>
         /// Marks the given value as converted.
         /// </summary>
         /// <param name="value">The value to mark.</param>
         /// <returns>True, if the element has been added to the set of value.</returns>
-        public bool MarkConverted(Value value) => Converted.Add(value);
+        public readonly bool MarkConverted(Value value) => Converted.Add(value);
 
         /// <summary>
         /// Replaces the given value with the new value.
@@ -88,7 +90,7 @@ namespace ILGPU.IR.Rewriting
         /// <param name="value">The current value.</param>
         /// <param name="newValue">The new value.</param>
         /// <returns>Returns the new value.</returns>
-        public TValue Replace<TValue>(Value value, TValue newValue)
+        public readonly TValue Replace<TValue>(Value value, TValue newValue)
             where TValue : Value
         {
             value.Replace(newValue);
@@ -103,7 +105,7 @@ namespace ILGPU.IR.Rewriting
         /// <param name="value">The current value.</param>
         /// <param name="newValue">The new value.</param>
         /// <returns>Returns the new value.</returns>
-        public TValue ReplaceAndRemove<TValue>(Value value, TValue newValue)
+        public readonly TValue ReplaceAndRemove<TValue>(Value value, TValue newValue)
             where TValue : Value
         {
             var replaced = Replace(value, newValue);
@@ -115,7 +117,7 @@ namespace ILGPU.IR.Rewriting
         /// Removes the given value from the block.
         /// </summary>
         /// <param name="value">The current value.</param>
-        public void Remove(Value value)
+        public readonly void Remove(Value value)
         {
             MarkConverted(value);
             Builder.Remove(value);

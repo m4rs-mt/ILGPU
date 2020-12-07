@@ -5,8 +5,8 @@
          NotSupportedException="RuntimeErrorMessages.CLNotSupported">
     <LibraryNames>
         <Windows>opencl</Windows>
-        <Linux>libOpenCL</Linux>
-        <MacOS>libOpenCL</MacOS>
+        <Linux>OpenCL</Linux>
+        <MacOS>OpenCL</MacOS>
     </LibraryNames>
 
     <!-- Devices -->

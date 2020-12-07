@@ -150,6 +150,26 @@ namespace ILGPU.Backends
         }
 
         /// <summary>
+        /// A string variable.
+        /// </summary>
+        public sealed class StringVariable : TypedVariable
+        {
+            /// <summary>
+            /// Constructs a new object variable.
+            /// </summary>
+            /// <param name="id">The current variable id.</param>
+            /// <param name="type">The object type.</param>
+            internal StringVariable(int id, StringType type)
+                : base(id, type)
+            { }
+
+            /// <summary>
+            /// Returns the represented IR string type.
+            /// </summary>
+            public new StringType Type => base.Type as StringType;
+        }
+
+        /// <summary>
         /// An object variable.
         /// </summary>
         public sealed class ObjectVariable : TypedVariable
@@ -264,6 +284,7 @@ namespace ILGPU.Backends
                     primitiveType.BasicValueType),
                 PointerType pointerType => AllocatePointerType(pointerType),
                 ObjectType objectType => new ObjectVariable(idCounter++, objectType),
+                StringType stringType => new StringVariable(idCounter++, stringType),
                 PaddingType paddingType => AllocateType(
                     paddingType.PrimitiveType.BasicValueType),
                 _ => throw new NotSupportedException(),

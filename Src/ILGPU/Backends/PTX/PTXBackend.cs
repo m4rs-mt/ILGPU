@@ -14,7 +14,6 @@ using ILGPU.Backends.PTX.Transformations;
 using ILGPU.IR;
 using ILGPU.IR.Analyses;
 using ILGPU.IR.Transformations;
-using ILGPU.IR.Types;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 using System.Text;
@@ -51,23 +50,6 @@ namespace ILGPU.Backends.PTX
         /// vectorized IO operations in most cases.
         /// </summary>
         public const int DefaultSharedMemoryAlignment = 4;
-
-        #endregion
-
-        #region Nested Types
-
-        /// <summary>
-        /// The PTX accelerator specializer.
-        /// </summary>
-        private sealed class PTXAcceleratorSpecializer : AcceleratorSpecializer
-        {
-            public PTXAcceleratorSpecializer(PrimitiveType pointerType)
-                : base(
-                      AcceleratorType.Cuda,
-                      PTXBackend.WarpSize,
-                      pointerType)
-            { }
-        }
 
         #endregion
 

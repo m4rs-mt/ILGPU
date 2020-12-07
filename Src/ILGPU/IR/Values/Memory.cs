@@ -29,6 +29,15 @@ namespace ILGPU.IR.Values
             : base(initializer)
         { }
 
+        /// <summary>
+        /// Constructs a new memory value.
+        /// </summary>
+        /// <param name="initializer">The value initializer.</param>
+        /// <param name="staticType">The static type.</param>
+        internal MemoryValue(in ValueInitializer initializer, TypeNode staticType)
+            : base(initializer, staticType)
+        { }
+
         #endregion
     }
 
