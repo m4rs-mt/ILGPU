@@ -380,20 +380,28 @@ namespace ILGPU.Runtime.OpenCL
         /// <summary>
         /// Creates a new command queue.
         /// </summary>
+        /// <param name="platformVersion">The current platform version.</param>
         /// <param name="device">The associated device.</param>
         /// <param name="context">The parent context.</param>
         /// <param name="queue">The created queue.</param>
         /// <returns>The error code.</returns>
         public CLError CreateCommandQueue(
+            CLPlatformVersion platformVersion,
             IntPtr device,
             IntPtr context,
             out IntPtr queue)
         {
-            queue = clCreateCommandQueueWithProperties(
-                context,
-                device,
-                IntPtr.Zero,
-                out CLError errorStatus);
+            queue = platformVersion < CLPlatformVersion.CL20
+                ? clCreateCommandQueue(
+                    context,
+                    device,
+                    IntPtr.Zero,
+                    out var errorStatus)
+                : clCreateCommandQueueWithProperties(
+                    context,
+                    device,
+                    IntPtr.Zero,
+                    out errorStatus);
             return errorStatus;
         }
 

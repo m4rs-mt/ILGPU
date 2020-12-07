@@ -22,8 +22,10 @@ namespace ILGPU
     /// <summary>
     /// Contains general interop functions.
     /// </summary>
-    public static class Interop
+    public static partial class Interop
     {
+        #region Unsafe
+
         /// <summary>
         /// Returns an aligned offset that has to be added to the given pointer in order
         /// to compute a new pointer value that is aligned according to the given
@@ -188,6 +190,10 @@ namespace ILGPU
             where T : unmanaged =>
             Marshal.OffsetOf<T>(fieldName).ToInt32();
 
+        #endregion
+
+        #region Float/Int Casts
+
         /// <summary>
         /// Casts the given float to an int via a reinterpret cast.
         /// </summary>
@@ -253,5 +259,57 @@ namespace ILGPU
         [InteropIntrinsic(InteropIntrinsicKind.IntAsFloat)]
         public static double IntAsFloat(ulong value) =>
             Unsafe.As<ulong, double>(ref value);
+
+        #endregion
+
+        #region Write/WriteLine
+
+        /// <summary>
+        /// Ensures that the given format is not null and has a proper line ending.
+        /// </summary>
+        /// <param name="format">The format.</param>
+        internal static string GetWriteLineFormat(string format)
+        {
+            format ??= string.Empty;
+            return format.EndsWith(
+                Environment.NewLine,
+                StringComparison.InvariantCulture)
+                ? format
+                : format + Environment.NewLine;
+        }
+
+        /// <summary>
+        /// Writes the given format to the device output.
+        /// </summary>
+        /// <param name="format">The expression format to write.</param>
+        /// <param name="elements">All elements to write in string format.</param>
+        private static void WriteImplementation(
+            string format,
+            params string[] elements) =>
+            Console.Write(format, elements);
+
+        /// <summary>
+        /// Writes the given expression to the device output.
+        /// </summary>
+        /// <param name="expression">The expression to write.</param>
+        /// <remarks>
+        /// Note that the expression must be a compile-time constant.
+        /// </remarks>
+        [InteropIntrinsic(InteropIntrinsicKind.Write)]
+        public static void Write(string expression) =>
+            WriteImplementation(expression ?? string.Empty);
+
+        /// <summary>
+        /// Writes the given expression to the device output.
+        /// </summary>
+        /// <param name="expression">The expression to write.</param>
+        /// <remarks>
+        /// Note that the expression must be a compile-time constant.
+        /// </remarks>
+        [InteropIntrinsic(InteropIntrinsicKind.WriteLine)]
+        public static void WriteLine(string expression) =>
+            WriteImplementation(GetWriteLineFormat(expression));
+
+        #endregion
     }
 }

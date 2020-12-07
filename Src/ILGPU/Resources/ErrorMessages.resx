@@ -324,4 +324,16 @@
   <data name="NotSupportedLocalMemoryIntrinsic" xml:space="preserve">
     <value>The local memory intrinsic '{0}' is not supported</value>
   </data>
+  <data name="NotSupportedWriteFormat" xml:space="preserve">
+    <value>Not supported write format '{0}'</value>
+  </data>
+  <data name="NotSupportedWriteFormatArgumentRef" xml:space="preserve">
+    <value>Not supported write format argument reference '{1}' in '{0}'</value>
+  </data>
+  <data name="NotSupportedWriteFormatArgumentType" xml:space="preserve">
+    <value>Not supported write format argument type '{1} in '{0}'</value>
+  </data>
+  <data name="NotSupportedWriteFormatConstant" xml:space="preserve">
+    <value>Not supported write format '{0}; must be a constant string reference</value>
+  </data>
 </root>

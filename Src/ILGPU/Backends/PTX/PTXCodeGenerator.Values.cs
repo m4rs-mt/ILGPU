@@ -9,6 +9,7 @@
 // Source License. See LICENSE.txt for details
 // ---------------------------------------------------------------------------------------
 
+using ILGPU.IR;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using System.Collections.Immutable;
@@ -647,19 +648,33 @@ namespace ILGPU.Backends.PTX
         public void GenerateCode(StringValue value)
         {
             // Check for already existing global constant
-            if (!stringConstants.TryGetValue(value.String, out string stringBinding))
+            var key = (value.Encoding, value.String);
+            if (!stringConstants.TryGetValue(key, out string stringBinding))
             {
                 stringBinding = "__strconst" + value.Id;
-                stringConstants.Add(value.String, stringBinding);
+                stringConstants.Add(key, stringBinding);
             }
 
-            var register = AllocatePlatformRegister(
-                value,
+            // Move the value into a register
+            var tempValueRegister = AllocatePlatformRegister(
                 out RegisterDescription description);
-            using var command = BeginMove();
-            command.AppendSuffix(description.BasicValueType);
-            command.AppendArgument(register);
-            command.AppendRawValueReference(stringBinding);
+            using (var command = BeginMove())
+            {
+                command.AppendSuffix(description.BasicValueType);
+                command.AppendArgument(tempValueRegister);
+                command.AppendRawValueReference(stringBinding);
+            }
+
+            // Convert the string value into the generic address space
+            // string (global) -> string (generic)
+            var register = AllocatePlatformRegister(value, out var _);
+            CreateAddressSpaceCast(
+                tempValueRegister,
+                register,
+                MemoryAddressSpace.Global,
+                MemoryAddressSpace.Generic);
+
+            FreeRegister(tempValueRegister);
         }
 
         /// <summary>

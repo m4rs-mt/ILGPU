@@ -12,6 +12,7 @@
 using ILGPU.IR;
 using ILGPU.IR.Values;
 using ILGPU.Resources;
+using ILGPU.Util;
 using System;
 
 namespace ILGPU.Frontend.Intrinsic
@@ -23,6 +24,9 @@ namespace ILGPU.Frontend.Intrinsic
 
         FloatAsInt,
         IntAsFloat,
+
+        Write,
+        WriteLine
     }
 
     /// <summary>
@@ -69,6 +73,8 @@ namespace ILGPU.Frontend.Intrinsic
                 InteropIntrinsicKind.IntAsFloat => builder.CreateIntAsFloatCast(
                     context.Location,
                     context[0]),
+                InteropIntrinsicKind.Write => CreateWrite(ref context),
+                InteropIntrinsicKind.WriteLine => CreateWriteLine(ref context),
                 _ => throw context.Location.GetNotSupportedException(
                     ErrorMessages.NotSupportedInteropIntrinsic,
                     attribute.IntrinsicKind.ToString()),
@@ -99,6 +105,97 @@ namespace ILGPU.Frontend.Intrinsic
                 context.Location,
                 irType,
                 fieldIndex);
+        }
+
+        /// <summary>
+        /// Resolves a format expression string.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        /// <returns>The resolved format expression string.</returns>
+        private static string GetFormatExpression(ref InvocationContext context)
+        {
+            var formatExpression = context[0].ResolveAs<StringValue>();
+            return formatExpression is null
+                ? throw context.Location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedWriteFormatConstant,
+                    context[0].ToString())
+                : formatExpression.String ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Creates a new write instruction to the standard output stream.
+        /// </summary>
+        /// <param name="formatExpression">The format expression string.</param>
+        /// <param name="context">The current invocation context.</param>
+        private static ValueReference CreateWrite(
+            string formatExpression,
+            ref InvocationContext context)
+        {
+            // Parse format expression and ensure valid argument references
+            var location = context.Location;
+            if (!WriteToOutput.TryParse(formatExpression, out var expressions))
+            {
+                throw location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedWriteFormat,
+                    formatExpression);
+            }
+
+            // Validate all expressions
+            foreach (var expression in expressions)
+            {
+                if (!expression.HasArgument)
+                    continue;
+                if (expression.Argument < 0 ||
+                    expression.Argument >= context.NumArguments - 1)
+                {
+                    throw location.GetNotSupportedException(
+                        ErrorMessages.NotSupportedWriteFormatArgumentRef,
+                        formatExpression,
+                        expression.Argument);
+                }
+            }
+
+            // Gather all arguments
+            var arguments = InlineList<ValueReference>.Empty;
+            context.Arguments.CopyTo(ref arguments);
+            arguments.RemoveAt(0);
+
+            // Valid all argument types
+            foreach (var arg in arguments)
+            {
+                if (arg.Type.IsPointerType || arg.BasicValueType != BasicValueType.None)
+                    continue;
+                throw location.GetNotSupportedException(
+                    ErrorMessages.NotSupportedWriteFormatArgumentType,
+                    formatExpression,
+                    arg.Type.ToString());
+            }
+
+            // Create the output writer
+            return context.Builder.CreateWriteToOutput(
+                location,
+                expressions,
+                ref arguments);
+        }
+
+        /// <summary>
+        /// Creates a new write instruction to the standard output stream.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        private static ValueReference CreateWrite(ref InvocationContext context) =>
+            CreateWrite(
+                GetFormatExpression(ref context),
+                ref context);
+
+        /// <summary>
+        /// Creates a new write-line instruction to the standard output stream.
+        /// </summary>
+        /// <param name="context">The current invocation context.</param>
+        private static ValueReference CreateWriteLine(ref InvocationContext context)
+        {
+            var format = GetFormatExpression(ref context);
+            format = Interop.GetWriteLineFormat(format);
+            return CreateWrite(format, ref context);
         }
     }
 }
