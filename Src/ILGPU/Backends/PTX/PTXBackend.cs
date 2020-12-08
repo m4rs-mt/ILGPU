@@ -176,8 +176,8 @@ namespace ILGPU.Backends.PTX
             builder.AppendLine((PointerSize * 8).ToString());
             builder.AppendLine();
 
-            // Creates pointer alignment information in the context of O2 or higher
-            var alignments = Context.OptimizationLevel >= OptimizationLevel.O2
+            // Creates pointer alignment information in the context of O1 or higher
+            var alignments = Context.OptimizationLevel >= OptimizationLevel.O1
                 ? PointerAlignments.Create(
                     backendContext.KernelMethod,
                     DefaultGlobalMemoryAlignment)
