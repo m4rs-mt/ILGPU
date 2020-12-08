@@ -42,9 +42,7 @@ namespace Mandelbrot
             TimeSpan ts = _stopWatch.Elapsed;
 
             // Format and display the TimeSpan value.
-            string elapsedTime = String.Format("{0:00}:{1:00}.{2:000}   -   {3} Ticks",
-                ts.Minutes, ts.Seconds,
-                ts.Milliseconds, ts.Ticks);
+            string elapsedTime = $"{ts.Minutes:00}:{ts.Seconds:00}.{ts.Milliseconds:000}   -   {ts.Ticks} Ticks";
             Console.WriteLine(str + " " + elapsedTime);
         }
     }

@@ -22,9 +22,14 @@ namespace Mandelbrot
         [STAThread]
         static void Main()
         {
+#if !NETFRAMEWORK
+            Application.SetHighDpiMode(HighDpiMode.SystemAware);
+#endif
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+#pragma warning disable CA2000 // Dispose objects before losing scope
             Application.Run(new Form());
+#pragma warning restore CA2000 // Dispose objects before losing scope
         }
     }
 }
