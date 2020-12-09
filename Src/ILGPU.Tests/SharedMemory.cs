@@ -153,5 +153,19 @@ namespace ILGPU.Tests
 
             Verify(buffer, expected);
         }
+
+        internal static void ImplicitSharedMemoryKernel(Index1 index, ArrayView<int> data)
+        {
+            data[index] = AllocateSharedMemoryNested();
+        }
+
+        [Fact]
+        [KernelMethod(nameof(ImplicitSharedMemoryKernel))]
+        public void ImplicitlyGroupedSharedMemory()
+        {
+            using var buffer = Accelerator.Allocate<int>(10);
+            Assert.Throws<InternalCompilerException>(() =>
+                Execute(buffer.Length, buffer.View));
+        }
     }
 }
