@@ -93,10 +93,6 @@ namespace ILGPU
     /// Represents an abstract array view.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
-    [SuppressMessage(
-        "Microsoft.Design",
-        "CA1040: AvoidEmptyInterfaces",
-        Justification = "Can be used in generic constraints")]
     public interface IArrayView<T> : IArrayView<T, Index1, LongIndex1>
         where T : unmanaged
     { }
