@@ -15,6 +15,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace ILGPU.Backends.EntryPoints
 {
@@ -127,9 +128,9 @@ namespace ILGPU.Backends.EntryPoints
 
             var specializedParameters =
                 ImmutableArray.CreateBuilder<SpecializedParameter>(parameterTypes.Length);
-            for (int i = 0, e = Count; i < e; ++i)
+            for (int i = 0, e = ParameterTypes.Length; i < e; ++i)
             {
-                var paramType = this[i];
+                var paramType = GetParameterType(ParameterTypes, i);
                 if (paramType.IsSpecializedType(out var nestedType))
                 {
                     specializedParameters.Add(new SpecializedParameter(
@@ -170,18 +171,26 @@ namespace ILGPU.Backends.EntryPoints
         /// </summary>
         /// <param name="index">The parameter index.</param>
         /// <returns>The desired parameter type.</returns>
-        public Type this[int index]
-        {
-            get
-            {
-                var type = ParameterTypes[index];
-                return type.IsByRef ? type.GetElementType() : type;
-            }
-        }
+        public Type this[int index] => GetParameterType(ParameterTypes, index);
 
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Returns the underlying parameter type (without references).
+        /// </summary>
+        /// <param name="parameterTypes">The parameter types.</param>
+        /// <param name="parameterIndex">The parameter index.</param>
+        /// <returns>The desired parameter type.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Type GetParameterType(
+            ImmutableArray<Type> parameterTypes,
+            int parameterIndex)
+        {
+            var type = parameterTypes[parameterIndex];
+            return type.IsByRef ? type.GetElementType() : type;
+        }
 
         /// <summary>
         /// Returns true if the specified parameter is passed by reference.
