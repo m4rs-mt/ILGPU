@@ -7,6 +7,10 @@
         <Configurations>Debug;Release</Configurations>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Channel)' == 'experimental'">
+        <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
+    </PropertyGroup>
+
     <PropertyGroup>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <VersionPrefix>0.10.0-beta1</VersionPrefix>
