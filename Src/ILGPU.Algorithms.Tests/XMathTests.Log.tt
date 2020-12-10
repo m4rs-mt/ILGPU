@@ -94,7 +94,12 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-                x => Math<#= function.MathSuffix #>.<#= function.Name #>(x)).ToArray();
+#if NETFRAMEWORK
+                x => (<#= function.DataType #>)Math.<#= function.Name #>(x))
+#else
+                x => Math<#= function.MathSuffix #>.<#= function.Name #>(x))
+#endif
+                .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
@@ -150,7 +155,12 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-                x => Math<#= function.MathSuffix #>.Log(x, 2)).ToArray();
+#if NETFRAMEWORK
+                x => (<#= function.DataType #>)Math.Log(x, 2))
+#else
+                x => Math<#= function.MathSuffix #>.Log(x, 2))
+#endif
+                .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
@@ -221,7 +231,13 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-                v => Math<#= function.MathSuffix #>.Log(v.X, v.Y)).ToArray();
+#if NETFRAMEWORK
+                v => (<#= function.DataType #>)Math.Log(v.X, v.Y))
+#else
+                v => Math<#= function.MathSuffix #>.Log(v.X, v.Y))
+#endif
+                .ToArray();
+
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)

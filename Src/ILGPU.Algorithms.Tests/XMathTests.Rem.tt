@@ -27,23 +27,23 @@ using Xunit;
         new RemFunction(
             "Rem",
             "float",
-            "{0} % {1}",
+            "{1} % {2}",
             new RelativeError(0E-00, 1E-06, 0E-00)),
         new RemFunction(
             "Rem",
             "double",
-            "{0} % {1}",
+            "{1} % {2}",
             new RelativeError(0E-00, 1E-06, 0E-00)),
 
         new RemFunction(
             "IEEERemainder",
             "float",
-            "MathF.IEEERemainder({0}, {1})",
+            "{0}.IEEERemainder({1}, {2})",
             new RelativeError(0E-00, 1E-06, 0E-00)),
         new RemFunction(
             "IEEERemainder",
             "double",
-            "Math.IEEERemainder({0}, {1})",
+            "{0}.IEEERemainder({1}, {2})",
             new RelativeError(0E-00, 1E-06, 0E-00)),
     };
 #>
@@ -96,7 +96,21 @@ namespace ILGPU.Algorithms.Tests
                 .ToArray();
             var expected = inputArray
                 .Select(x =>
-                    <#= string.Format(function.ExpectedFormatString, "x", "divisor") #>)
+#if NETFRAMEWORK
+                    <#= string.Format(
+                            function.ExpectedFormatString,
+                            "(" + function.DataType + ")Math",
+                            "x",
+                            "divisor")
+                    #>)
+#else
+                    <#= string.Format(
+                            function.ExpectedFormatString,
+                            "Math" + function.MathSuffix,
+                            "x",
+                            "divisor")
+                    #>)
+#endif
                 .ToArray();
             using var input =
                 Accelerator.Allocate<<#= function.DataType #>>(inputArray.Length);

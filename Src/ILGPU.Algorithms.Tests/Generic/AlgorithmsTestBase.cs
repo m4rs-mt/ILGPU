@@ -33,7 +33,11 @@ namespace ILGPU.Algorithms.Tests
             public readonly float Margin;
 
             public HalfPrecisionComparer(uint decimalPlaces) =>
+#if NETFRAMEWORK
+                Margin = (float)Math.Pow(10, -decimalPlaces);
+#else
                 Margin = MathF.Pow(10, -decimalPlaces);
+#endif
 
             public override bool Equals(Half x, Half y)
             {
@@ -65,7 +69,11 @@ namespace ILGPU.Algorithms.Tests
             public readonly float Margin;
 
             public FloatPrecisionComparer(uint decimalPlaces) =>
+#if NETFRAMEWORK
+                Margin = (float)Math.Pow(10, -decimalPlaces);
+#else
                 Margin = MathF.Pow(10, -decimalPlaces);
+#endif
 
             public override bool Equals(float x, float y)
             {

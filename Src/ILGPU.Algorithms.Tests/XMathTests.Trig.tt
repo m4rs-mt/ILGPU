@@ -33,12 +33,12 @@ using Xunit;
         new TrigFunction("Tan", "float"  , new Precision(15,  3,  5), projection: ".Select(x => XMath.DegToRad((float)x))" , condition: ".Where(x => Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270) // NB: Tan is undefined for these input values"),
         new TrigFunction("Tan", "double" , new Precision(15, 12, 14), projection: ".Select(x => XMath.DegToRad((double)x))", condition: ".Where(x => Math.Abs(x) % 360 != 90 && Math.Abs(x) % 360 != 270) // NB: Tan is undefined for these input values"),
 
-        new TrigFunction("Asin", "float" , new Precision(15,  6,  6), projection: ".Select(x => MathF.Sin(XMath.DegToRad((float)x)))"),
-        new TrigFunction("Asin", "double", new Precision(15, 15, 15), projection: ".Select(x => Math.Sin(XMath.DegToRad((double)x)))"),
-        new TrigFunction("Acos", "float" , new Precision(15,  6,  6), projection: ".Select(x => MathF.Cos(XMath.DegToRad((float)x)))"),
-        new TrigFunction("Acos", "double", new Precision(15, 15, 15), projection: ".Select(x => Math.Cos(XMath.DegToRad((double)x)))"),
-        new TrigFunction("Atan", "float" , new Precision(15,  6,  6), projection: ".Select(x => MathF.Tan(XMath.DegToRad((float)x)))"),
-        new TrigFunction("Atan", "double", new Precision(15, 15, 15), projection: ".Select(x => Math.Tan(XMath.DegToRad((double)x)))"),
+        new TrigFunction("Asin", "float" , new Precision(15,  6,  6), projection: ".Select(x => {0}.Sin(XMath.DegToRad((float)x)))"),
+        new TrigFunction("Asin", "double", new Precision(15, 15, 15), projection: ".Select(x => {0}.Sin(XMath.DegToRad((double)x)))"),
+        new TrigFunction("Acos", "float" , new Precision(15,  6,  6), projection: ".Select(x => {0}.Cos(XMath.DegToRad((float)x)))"),
+        new TrigFunction("Acos", "double", new Precision(15, 15, 15), projection: ".Select(x => {0}.Cos(XMath.DegToRad((double)x)))"),
+        new TrigFunction("Atan", "float" , new Precision(15,  6,  6), projection: ".Select(x => {0}.Tan(XMath.DegToRad((float)x)))"),
+        new TrigFunction("Atan", "double", new Precision(15, 15, 15), projection: ".Select(x => {0}.Tan(XMath.DegToRad((double)x)))"),
 
         new TrigFunction("Sinh", "float" , new Precision(15,  4,  4), projection: ".Select(x => XMath.DegToRad((float)x))"),
         new TrigFunction("Sinh", "double", new Precision(15, 12, 13), projection: ".Select(x => XMath.DegToRad((double)x))"),
@@ -82,7 +82,11 @@ namespace ILGPU.Algorithms.Tests
                 Enumerable.Range(
                     <#= startRange #>,
                     <#= endRange - startRange + 1 #>)<#= function.Condition #>
-                <#= function.Projection #>
+#if NETFRAMEWORK
+                <#= string.Format(function.Projection, "(" + function.DataType + ")Math") #>
+#else
+                <#= string.Format(function.Projection, "Math" + function.MathSuffix) #>
+#endif
                 .Concat(new <#= function.DataType #>[]
                 {
                     0.0<#= function.ValueSuffix #>,
@@ -99,7 +103,12 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-                Math<#= function.MathSuffix #>.<#= function.Name #>).ToArray();
+#if NETFRAMEWORK
+                x => (<#= function.DataType #>)Math.<#= function.Name #>(x))
+#else
+                Math<#= function.MathSuffix #>.<#= function.Name #>)
+#endif
+                .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
@@ -168,8 +177,12 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-                v => Math<#= function.MathSuffix #>.<#= function.Name #>(
-                    v.X, v.Y)).ToArray();
+#if NETFRAMEWORK
+                v => (<#= function.DataType #>)Math.<#= function.Name #>(v.X, v.Y))
+#else
+                v => Math<#= function.MathSuffix #>.<#= function.Name #>(v.X, v.Y))
+#endif
+                    .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)

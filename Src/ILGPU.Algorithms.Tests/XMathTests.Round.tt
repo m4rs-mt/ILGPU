@@ -25,29 +25,29 @@ using Xunit;
         new RoundFunction(
             "RoundAwayFromZero",
             "float",
-            "MathF.Round({0}, MidpointRounding.AwayFromZero)"),
+            "{0}.Round({1}, MidpointRounding.AwayFromZero)"),
         new RoundFunction(
             "RoundAwayFromZero",
             "double",
-            "Math.Round({0}, MidpointRounding.AwayFromZero)"),
+            "{0}.Round({1}, MidpointRounding.AwayFromZero)"),
 
         new RoundFunction(
             "RoundToEven",
             "float",
-            "MathF.Round({0}, MidpointRounding.ToEven)"),
+            "{0}.Round({1}, MidpointRounding.ToEven)"),
         new RoundFunction(
             "RoundToEven",
             "double",
-            "Math.Round({0}, MidpointRounding.ToEven)"),
+            "{0}.Round({1}, MidpointRounding.ToEven)"),
 
-        new RoundFunction("Truncate",   "float" ,   "MathF.Truncate({0})"),
-        new RoundFunction("Truncate",   "double",   "Math.Truncate({0})"),
+        new RoundFunction("Truncate",   "float" ,   "{0}.Truncate({1})"),
+        new RoundFunction("Truncate",   "double",   "{0}.Truncate({1})"),
 
-        new RoundFunction("Floor",      "float" ,   "MathF.Floor({0})"),
-        new RoundFunction("Floor",      "double",   "Math.Floor({0})"),
+        new RoundFunction("Floor",      "float" ,   "{0}.Floor({1})"),
+        new RoundFunction("Floor",      "double",   "{0}.Floor({1})"),
 
-        new RoundFunction("Ceiling",    "float" ,   "MathF.Ceiling({0})"),
-        new RoundFunction("Ceiling",    "double",   "Math.Ceiling({0})"),
+        new RoundFunction("Ceiling",    "float" ,   "{0}.Ceiling({1})"),
+        new RoundFunction("Ceiling",    "double",   "{0}.Ceiling({1})"),
     };
 #>
 namespace ILGPU.Algorithms.Tests
@@ -68,7 +68,11 @@ namespace ILGPU.Algorithms.Tests
                 2.8<#= function.ValueSuffix #>,
                 2.5<#= function.ValueSuffix #>,
                 3.5<#= function.ValueSuffix #>,
+#if NETFRAMEWORK
+                (<#= function.DataType #>)Math.Pow(2, 53),
+#else
                 Math<#= function.MathSuffix #>.Pow(2, 53),
+#endif
                 -0.0<#= function.ValueSuffix #>,
                 -0.4<#= function.ValueSuffix #>,
                 -0.5<#= function.ValueSuffix #>,
@@ -78,7 +82,11 @@ namespace ILGPU.Algorithms.Tests
                 -2.5<#= function.ValueSuffix #>,
                 -2.8<#= function.ValueSuffix #>,
                 -3.5<#= function.ValueSuffix #>,
+#if NETFRAMEWORK
+                (<#= function.DataType #>)-Math.Pow(2, 53),
+#else
                 -Math<#= function.MathSuffix #>.Pow(2, 53),
+#endif
                 <#= function.DataType #>.NaN,
                 <#= function.DataType #>.PositiveInfinity,
                 <#= function.DataType #>.NegativeInfinity,
@@ -99,7 +107,19 @@ namespace ILGPU.Algorithms.Tests
         {
             var expected = new[]
             {
-                <#= string.Format(function.ExpectedFormatString, "value") #>
+#if NETFRAMEWORK
+                <#= string.Format(
+                        function.ExpectedFormatString,
+                        "(" + function.DataType + ")Math",
+                        "value")
+                #>
+#else
+                <#= string.Format(
+                        function.ExpectedFormatString,
+                        "Math" + function.MathSuffix,
+                        "value")
+                #>
+#endif
             };
             using var input = Accelerator.Allocate<<#= function.DataType #>>(1);
             using var output = Accelerator.Allocate<<#= function.DataType #>>(1);

@@ -85,7 +85,12 @@ namespace ILGPU.Algorithms.Tests
             Execute(input.Length, input.View, output.View);
 
             var expected = inputArray.Select(
-                Math<#= function.MathSuffix #>.<#= function.Name #>).ToArray();
+#if NETFRAMEWORK
+                x => (<#= function.DataType #>)Math.<#= function.Name #>(x))
+#else
+                Math<#= function.MathSuffix #>.<#= function.Name #>)
+#endif
+                .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
@@ -141,7 +146,12 @@ namespace ILGPU.Algorithms.Tests
 
             var expected = inputArray.Select(
                 x => 1.0<#= function.ValueSuffix #> /
-                    Math<#= function.MathSuffix #>.Sqrt(x)).ToArray();
+#if NETFRAMEWORK
+                    (<#= function.DataType #>)Math.Sqrt(x))
+#else
+                    Math<#= function.MathSuffix #>.Sqrt(x))
+#endif
+                    .ToArray();
             if (Accelerator.AcceleratorType == AcceleratorType.Cuda)
                 VerifyWithinPrecision(output, expected, <#= function.Precision.Cuda #>);
             else if (Accelerator.AcceleratorType == AcceleratorType.OpenCL)
