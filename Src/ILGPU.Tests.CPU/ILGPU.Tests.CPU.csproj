@@ -7,6 +7,10 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Channel)' == 'experimental'">
+    <TargetFrameworks>$(TargetFrameworks);net5.0</TargetFrameworks>
+  </PropertyGroup>
+
   <PropertyGroup>
     <RunSettingsFilePath>$(MSBuildProjectDirectory)\..\ILGPU.Tests\.test.runsettings</RunSettingsFilePath>
   </PropertyGroup>
