@@ -50,12 +50,10 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\ILGPU\Src\ILGPU\ILGPU.csproj" />

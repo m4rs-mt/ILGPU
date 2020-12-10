@@ -11,12 +11,13 @@
     <Compile Include="..\..\ILGPU\Src\ILGPU.Tests.OpenCL\TestContext.cs" Link="TestContext.cs" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="GitHubActionsTestLogger" Version="1.1.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
