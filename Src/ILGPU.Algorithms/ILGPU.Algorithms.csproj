@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net47;netcoreapp2.0;netstandard2.1</TargetFrameworks>
-    <TargetFrameworks Condition="'$(OS)' == 'Unix'">netcoreapp2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net47;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Unix'">netstandard2.1</TargetFrameworks>
     <Platforms>AnyCPU</Platforms>
     <!-- CAUTION: ILGPU supports a limited subset only - due to the .Net 4.7 backwards compatibility -->
     <LangVersion>8.0</LangVersion>
