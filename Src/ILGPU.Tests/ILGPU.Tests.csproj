@@ -16,6 +16,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\.test.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Generic\Verifier.cs" />
   </ItemGroup>
@@ -173,6 +177,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update=".test.runsettings">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>.test.tt</DependentUpon>
+    </None>
+    <None Update=".test.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>.test.runsettings</LastGenOutput>
+    </None>
     <None Update="AtomicCASOperations.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AtomicCASOperations.cs</LastGenOutput>
