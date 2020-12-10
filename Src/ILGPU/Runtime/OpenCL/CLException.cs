@@ -66,7 +66,9 @@ namespace ILGPU.Runtime.OpenCL
         #region Methods
 
         /// <summary cref="Exception.GetObjectData(SerializationInfo, StreamingContext)"/>
+#if !NET5_0
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
+#endif
         public override void GetObjectData(
             SerializationInfo info, StreamingContext context)
         {
