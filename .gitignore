@@ -288,6 +288,7 @@ Src/ILGPU.Tests/ReinterpretCasts.cs
 Src/ILGPU.Tests/UnaryIntOperations.cs
 Src/ILGPU.Tests/ValueTuples.cs
 
+Src/ILGPU.Tests/.test.runsettings
 Src/ILGPU.Tests.CPU/Configurations.cs
 Src/ILGPU.Tests.CPU/TestContexts.cs
 Src/ILGPU.Tests.Cuda/Configurations.cs
