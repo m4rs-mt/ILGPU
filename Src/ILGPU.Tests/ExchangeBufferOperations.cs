@@ -134,10 +134,6 @@ namespace ILGPU.Tests
         // No need for kernel, assuming copy tests pass.
         // Just going to confirm integrity in this test.
         [Fact]
-        [SuppressMessage(
-            "Microsoft.Performance",
-            "CA1814: PreferJaggedArraysOverMultidimensional",
-            Target = "target")]
         public void GetAsArray()
         {
             using var exchangeBuffer = Accelerator.AllocateExchangeBuffer<long>(

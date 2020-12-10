@@ -99,10 +99,6 @@ namespace ILGPU.IR
             /// </summary>
             public struct Enumerator : IEnumerator<BasicBlock.ValueEntry>
             {
-                [SuppressMessage(
-                    "Style",
-                    "IDE0044:Add readonly modifier",
-                    Justification = "This instance variable will be modified")]
                 private BasicBlockCollection<TOrder, TDirection>.Enumerator
                     blockEnumerator;
                 private BasicBlock.Enumerator valueEnumerator;
