@@ -583,6 +583,15 @@ namespace ILGPU.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Shared memory is not supported by implicitly grouped kernels..
+        /// </summary>
+        internal static string NotSupportedSharedImplicitlyGroupedKernel {
+            get {
+                return ResourceManager.GetString("NotSupportedSharedImplicitlyGroupedKernel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The shared memory intrinsic &apos;{0}&apos; is not supported.
         /// </summary>
         internal static string NotSupportedSharedMemoryIntrinsic {

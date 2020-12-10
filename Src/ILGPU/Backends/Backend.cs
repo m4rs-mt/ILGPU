@@ -679,6 +679,13 @@ namespace ILGPU.Backends
                     entry,
                     backendContext,
                     specialization);
+                if (entryPoint.IsImplictlyGrouped &&
+                    backendContext.SharedMemorySpecification.HasSharedMemory)
+                {
+                    throw new NotSupportedException(
+                        ErrorMessages.NotSupportedSharedImplicitlyGroupedKernel);
+                }
+
                 return Compile(entryPoint, backendContext, specialization);
             }
             catch (TypeLoadException tle)
