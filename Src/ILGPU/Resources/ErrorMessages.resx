@@ -336,4 +336,7 @@
   <data name="NotSupportedWriteFormatConstant" xml:space="preserve">
     <value>Not supported write format '{0}; must be a constant string reference</value>
   </data>
+  <data name="NotSupportedSharedImplicitlyGroupedKernel" xml:space="preserve">
+    <value>Shared memory is not supported by implicitly grouped kernels.</value>
+  </data>
 </root>
