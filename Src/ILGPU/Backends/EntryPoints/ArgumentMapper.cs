@@ -22,6 +22,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ILGPU.Backends.EntryPoints
 {
@@ -32,12 +33,40 @@ namespace ILGPU.Backends.EntryPoints
     /// <remarks>Members of this class are not thread safe.</remarks>
     public abstract class ArgumentMapper : ICache
     {
+        #region Constants
+
+        /// <summary>
+        /// The internal prefix name for all runtime fields.
+        /// </summary>
+        private const string FieldPrefixName = "Field";
+
+        /// <summary>
+        /// The intrinsic kernel length parameter field name.
+        /// </summary>
+        private const string KernelLengthField = "KernelLength";
+
+        #endregion
+
         #region Nested Types
 
         /// <summary>
         /// An emission source.
         /// </summary>
-        protected interface ISource
+        protected interface IRawValueSource
+        {
+            /// <summary>
+            /// Emits a load command.
+            /// </summary>
+            /// <typeparam name="TILEmitter">The emitter type.</typeparam>
+            /// <param name="emitter">The current emitter.</param>
+            void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter;
+        }
+
+        /// <summary>
+        /// An emission source.
+        /// </summary>
+        protected interface ISource : IRawValueSource
         {
             /// <summary>
             /// Returns the source type.
@@ -45,12 +74,12 @@ namespace ILGPU.Backends.EntryPoints
             Type SourceType { get; }
 
             /// <summary>
-            /// Emits a load command.
+            /// Emits a load command that loads a reference to the underlying data.
             /// </summary>
             /// <typeparam name="TILEmitter">The emitter type.</typeparam>
             /// <param name="emitter">The current emitter.</param>
-            void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter;
+            void EmitLoadSourceAddress<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter;
         }
 
         /// <summary>
@@ -68,8 +97,21 @@ namespace ILGPU.Backends.EntryPoints
             /// </summary>
             /// <typeparam name="TILEmitter">The emitter type.</typeparam>
             /// <param name="emitter">The current emitter.</param>
-            void EmitLoadTarget<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter;
+            void EmitLoadTargetAddress<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter;
+
+            /// <summary>
+            /// Emits a target command.
+            /// </summary>
+            /// <typeparam name="TILEmitter">The emitter type.</typeparam>
+            /// <typeparam name="TSource">The source value.</typeparam>
+            /// <param name="emitter">The current emitter.</param>
+            /// <param name="source">The source value.</param>
+            void EmitStoreTarget<TILEmitter, TSource>(
+                in TILEmitter emitter,
+                in TSource source)
+                where TILEmitter : struct, IILEmitter
+                where TSource : struct, IRawValueSource;
         }
 
         /// <summary>
@@ -104,13 +146,28 @@ namespace ILGPU.Backends.EntryPoints
             /// </summary>
             public FieldInfo TargetField { get; }
 
-            /// <summary cref="ITarget.EmitLoadTarget{TILEmitter}(in TILEmitter)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void EmitLoadTarget<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter
+            /// <summary>
+            /// Emits a target field address.
+            /// </summary>
+            public readonly void EmitLoadTargetAddress<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter
             {
-                ParentTarget.EmitLoadTarget(emitter);
+                ParentTarget.EmitLoadTargetAddress(emitter);
                 emitter.Emit(OpCodes.Ldflda, TargetField);
+            }
+
+            /// <summary>
+            /// Emits a store field address.
+            /// </summary>
+            public readonly void EmitStoreTarget<TILEmitter, TSource>(
+                in TILEmitter emitter,
+                in TSource source)
+                where TILEmitter : struct, IILEmitter
+                where TSource : struct, IRawValueSource
+            {
+                ParentTarget.EmitLoadTargetAddress(emitter);
+                source.EmitLoadSource(emitter);
+                emitter.Emit(OpCodes.Stfld, TargetField);
             }
         }
 
@@ -136,11 +193,25 @@ namespace ILGPU.Backends.EntryPoints
             /// </summary>
             public ILLocal Local { get; }
 
-            /// <summary cref="ITarget.EmitLoadTarget{TILEmitter}(in TILEmitter)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void EmitLoadTarget<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter =>
+            /// <summary>
+            /// Emits a target field address.
+            /// </summary>
+            public readonly void EmitLoadTargetAddress<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter =>
                 emitter.Emit(LocalOperation.LoadAddress, Local);
+
+            /// <summary>
+            /// Emits a store local.
+            /// </summary>
+            public readonly void EmitStoreTarget<TILEmitter, TSource>(
+                in TILEmitter emitter,
+                in TSource source)
+                where TILEmitter : struct, IILEmitter
+                where TSource : struct, IRawValueSource
+            {
+                source.EmitLoadSource(emitter);
+                emitter.Emit(LocalOperation.Store, Local);
+            }
         }
 
         /// <summary>
@@ -170,9 +241,16 @@ namespace ILGPU.Backends.EntryPoints
             /// <summary>
             /// Emits the address of an argument.
             /// </summary>
-            public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter =>
+            public readonly void EmitLoadSourceAddress<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter =>
                 emitter.Emit(ArgumentOperation.LoadAddress, ArgumentIndex);
+
+            /// <summary>
+            /// Emits the value of an argument.
+            /// </summary>
+            public readonly void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter =>
+                emitter.Emit(ArgumentOperation.Load, ArgumentIndex);
         }
 
         /// <summary>
@@ -200,9 +278,16 @@ namespace ILGPU.Backends.EntryPoints
             /// <summary>
             /// Emits the address of a local variable.
             /// </summary>
-            public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter =>
+            public readonly void EmitLoadSourceAddress<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter =>
                 emitter.Emit(LocalOperation.LoadAddress, Local);
+
+            /// <summary>
+            /// Emits the value of a local variable.
+            /// </summary>
+            public readonly void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter =>
+                emitter.Emit(LocalOperation.Load, Local);
         }
 
         /// <summary>
@@ -239,11 +324,21 @@ namespace ILGPU.Backends.EntryPoints
             /// <summary>
             /// Emits the address of a structure field.
             /// </summary>
-            public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter
+            public readonly void EmitLoadSourceAddress<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter
+            {
+                ParentSource.EmitLoadSourceAddress(emitter);
+                emitter.Emit(OpCodes.Ldflda, SourceField);
+            }
+
+            /// <summary>
+            /// Emits the value of a structure field.
+            /// </summary>
+            public readonly void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter
             {
                 ParentSource.EmitLoadSource(emitter);
-                emitter.Emit(OpCodes.Ldflda, SourceField);
+                emitter.Emit(OpCodes.Ldfld, SourceField);
             }
         }
 
@@ -286,16 +381,32 @@ namespace ILGPU.Backends.EntryPoints
             /// </summary>
             public FieldAccessChain AccessChain { get; }
 
-            /// <summary cref="ISource.EmitLoadSource{TILEmitter}(in TILEmitter)"/>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
-                where TILEmitter : IILEmitter
+            /// <summary>
+            /// Loads a nested access chain address.
+            /// </summary>
+            public readonly void EmitLoadSourceAddress<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter
+            {
+                Source.EmitLoadSourceAddress(emitter);
+                var type = ParameterType;
+                foreach (var fieldIndex in AccessChain)
+                {
+                    emitter.Emit(OpCodes.Ldflda, type.Fields[(int)fieldIndex]);
+                    type = type.GetFieldTypeInfo((int)fieldIndex);
+                }
+            }
+
+            /// <summary>
+            /// Loads a nested access chain.
+            /// </summary>
+            public readonly void EmitLoadSource<TILEmitter>(in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter
             {
                 Source.EmitLoadSource(emitter);
                 var type = ParameterType;
                 foreach (var fieldIndex in AccessChain)
                 {
-                    emitter.Emit(OpCodes.Ldflda, type.Fields[(int)fieldIndex]);
+                    emitter.Emit(OpCodes.Ldfld, type.Fields[(int)fieldIndex]);
                     type = type.GetFieldTypeInfo((int)fieldIndex);
                 }
             }
@@ -316,10 +427,55 @@ namespace ILGPU.Backends.EntryPoints
             /// <param name="argumentIndex">The index of the kernel argument.</param>
             void MapArgument<TILEmitter, TSource>(
                 in TILEmitter emitter,
-                TSource source,
+                in TSource source,
                 int argumentIndex)
-                where TILEmitter : IILEmitter
-                where TSource : ISource;
+                where TILEmitter : struct, IILEmitter
+                where TSource : struct, ISource;
+        }
+
+        /// <summary>
+        /// An abstract argument mapping handler.
+        /// </summary>
+        /// <typeparam name="T">The custom return type of this mapper.</typeparam>
+        protected interface IStructMappingHandler<T>
+        {
+            /// <summary>
+            /// Returns true if the current kernel supports an implicit kernel length.
+            /// </summary>
+            /// <param name="indexType">The current index type (if any).</param>
+            /// <returns>
+            /// True, if the current kernel supports an implicit kernel length.
+            /// </returns>
+            bool CanMapKernelLength(out Type indexType);
+
+            /// <summary>
+            /// Maps a kernel length parameter.
+            /// </summary>
+            /// <typeparam name="TILEmitter">The emitter type.</typeparam>
+            /// <typeparam name="TTarget">The value target type.</typeparam>
+            /// <param name="emitter">The target emitter.</param>
+            /// <param name="kernelLengthTarget">The length target.</param>
+            void MapKernelLength<TILEmitter, TTarget>(
+                in TILEmitter emitter,
+                in StructureTarget<TTarget> kernelLengthTarget)
+                where TILEmitter : struct, IILEmitter
+                where TTarget : struct, ITarget;
+
+            /// <summary>
+            /// Emits a mapping command that maps all kernel arguments via a struct.
+            /// </summary>
+            /// <typeparam name="TILEmitter">The emitter type.</typeparam>
+            /// <param name="emitter">The target emitter.</param>
+            /// <param name="local">The local variable reference.</param>
+            /// <param name="rawSizeInBytesWithoutPadding">
+            /// The raw size in bytes of the argument structure without taking the
+            /// structure-conversion induced alignment padding into account.
+            /// </param>
+            T MapArgumentStruct<TILEmitter>(
+                in TILEmitter emitter,
+                ILLocal local,
+                int rawSizeInBytesWithoutPadding)
+                where TILEmitter : struct, IILEmitter;
         }
 
         /// <summary>
@@ -342,8 +498,24 @@ namespace ILGPU.Backends.EntryPoints
                 in TSource source,
                 in SeparateViewEntryPoint.ViewParameter viewParameter,
                 int viewArgumentIndex)
-                where TILEmitter : IILEmitter
-                where TSource : ISource;
+                where TILEmitter : struct, IILEmitter
+                where TSource : struct, ISource;
+        }
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Constructs a new field name based on the relative field index within a
+        /// dynamically generated structure.
+        /// </summary>
+        /// <param name="index">The relative field index.</param>
+        /// <returns>The field name.</returns>
+        private static string GetFieldName(int index)
+        {
+            Debug.Assert(index >= 0, "Invalid field index");
+            return FieldPrefixName + index;
         }
 
         #endregion
@@ -406,7 +578,7 @@ namespace ILGPU.Backends.EntryPoints
             if (sourceFields.Length < 1)
                 return structType;
 
-            var nestedTypes = new List<Type>(sourceFields.Length);
+            var nestedTypes = InlineList<Type>.Create(sourceFields.Length);
             bool requireCustomType = false;
             for (int i = 0, e = sourceFields.Length; i < e; ++i)
             {
@@ -423,7 +595,7 @@ namespace ILGPU.Backends.EntryPoints
             for (int i = 0, e = sourceFields.Length; i < e; ++i)
             {
                 typeBuilder.DefineField(
-                    "Field" + i,
+                    GetFieldName(i),
                     nestedTypes[i],
                     FieldAttributes.Public);
             }
@@ -443,7 +615,6 @@ namespace ILGPU.Backends.EntryPoints
             typeMapping.Add(type, mappedType);
             return mappedType;
         }
-
 
         /// <summary>
         /// Maps the given source type to a compatible target type.
@@ -492,11 +663,11 @@ namespace ILGPU.Backends.EntryPoints
         protected abstract void MapViewInstance<TILEmitter, TSource, TTarget>(
             in TILEmitter emitter,
             Type elementType,
-            TSource source,
-            TTarget target)
-            where TILEmitter : IILEmitter
-            where TSource : ISource
-            where TTarget : ITarget;
+            in TSource source,
+            in TTarget target)
+            where TILEmitter : struct, IILEmitter
+            where TSource : struct, ISource
+            where TTarget : struct, ITarget;
 
         /// <summary>
         /// Maps a specific structure instance.
@@ -509,11 +680,11 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="target">The value target.</param>
         protected void MapStructInstance<TILEmitter, TSource, TTarget>(
             in TILEmitter emitter,
-            TSource source,
-            TTarget target)
-            where TILEmitter : IILEmitter
-            where TSource : ISource
-            where TTarget : ITarget
+            in TSource source,
+            in TTarget target)
+            where TILEmitter : struct, IILEmitter
+            where TSource : struct, ISource
+            where TTarget : struct, ITarget
         {
             // Resolve type info of source and target types
             var sourceInfo = TypeInformationManager.GetTypeInfo(source.SourceType);
@@ -546,20 +717,18 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="target">The value target.</param>
         protected void MapInstance<TILEmitter, TSource, TTarget>(
             in TILEmitter emitter,
-            TSource source,
-            TTarget target)
-            where TILEmitter : IILEmitter
-            where TSource : ISource
-            where TTarget : ITarget
+            in TSource source,
+            in TTarget target)
+            where TILEmitter : struct, IILEmitter
+            where TSource : struct, ISource
+            where TTarget : struct, ITarget
         {
             var sourceType = source.SourceType;
             if (sourceType == target.TargetType ||
                 sourceType.IsEnum)
             {
                 // Copy object from source to target
-                target.EmitLoadTarget(emitter);
-                source.EmitLoadSource(emitter);
-                emitter.Emit(OpCodes.Cpobj, target.TargetType);
+                target.EmitStoreTarget(emitter, source);
             }
             else if (sourceType.IsArrayViewType(out Type elementType))
             {
@@ -572,6 +741,38 @@ namespace ILGPU.Backends.EntryPoints
         }
 
         /// <summary>
+        /// Maps a single parameter value.
+        /// </summary>
+        /// <typeparam name="TILEmitter">The emitter type.</typeparam>
+        /// <typeparam name="TTarget">The value target type.</typeparam>
+        /// <param name="emitter">The current emitter.</param>
+        /// <param name="parameters">The parameter collection to map.</param>
+        /// <param name="index">The source parameter index.</param>
+        /// <param name="parameterTarget">The parameter local target.</param>
+        private void MapParameter<TILEmitter, TTarget>(
+            in TILEmitter emitter,
+            in ParameterCollection parameters,
+            int index,
+            TTarget parameterTarget)
+            where TILEmitter : struct, IILEmitter
+            where TTarget : struct, ITarget
+        {
+            if (parameters.IsByRef(index))
+            {
+                throw new NotSupportedException(
+                    ErrorMessages.InvalidEntryPointParameter);
+            }
+
+            // Load parameter argument and map instance
+            var parameterType = parameters.ParameterTypes[index];
+            var parameterIndex = index + Kernel.KernelParameterOffset;
+            var argumentSource = new ArgumentSource(parameterType, parameterIndex);
+
+            // Perform actual instance mapping on local
+            MapInstance(emitter, argumentSource, parameterTarget);
+        }
+
+        /// <summary>
         /// Creates code that maps the given parameter specification to
         /// a compatible representation.
         /// </summary>
@@ -580,46 +781,105 @@ namespace ILGPU.Backends.EntryPoints
         /// <param name="emitter">The target emitter to write to.</param>
         /// <param name="mappingHandler">The target mapping handler to use.</param>
         /// <param name="parameters">The parameter collection to map.</param>
-        protected void Map<TILEmitter, TMappingHandler>(
+        protected void MapArguments<TILEmitter, TMappingHandler>(
             in TILEmitter emitter,
             in TMappingHandler mappingHandler,
             in ParameterCollection parameters)
-            where TILEmitter : IILEmitter
-            where TMappingHandler : IMappingHandler
+            where TILEmitter : struct, IILEmitter
+            where TMappingHandler : struct, IMappingHandler
         {
             // Map all parameters
             for (int i = 0, e = parameters.Count; i < e; ++i)
             {
-                if (parameters.IsByRef(i))
-                {
-                    throw new NotSupportedException(
-                        ErrorMessages.InvalidEntryPointParameter);
-                }
+                // Map type and store the mapped instance in a pinned local
+                var mappedType = MapType(parameters.ParameterTypes[i]);
+                var mappingLocal = emitter.DeclarePinnedLocal(mappedType);
+                var localTarget = new LocalTarget(mappingLocal);
 
-                // Load parameter argument and map instance
-                var parameterType = parameters.ParameterTypes[i];
-                var parameterIndex = i + Kernel.KernelParameterOffset;
-                var argumentSource = new ArgumentSource(parameterType, parameterIndex);
+                // Perform actual instance mapping on local
+                MapParameter(emitter, parameters, i, localTarget);
 
-                // Map type and check result
-                var mappedType = MapType(parameterType);
-                if (mappedType != parameterType)
-                {
-                    // Perform actual instance mapping on local
-                    var mappingLocal = emitter.DeclareLocal(mappedType);
-                    var localTarget = new LocalTarget(mappingLocal);
-                    MapInstance(emitter, argumentSource, localTarget);
-
-                    // Map an indirect argument
-                    var localSource = new LocalSource(mappingLocal);
-                    mappingHandler.MapArgument(emitter, localSource, i);
-                }
-                else
-                {
-                    // Map argument directly
-                    mappingHandler.MapArgument(emitter, argumentSource, i);
-                }
+                // Map the argument from the pinned local
+                var localSource = new LocalSource(mappingLocal);
+                mappingHandler.MapArgument(emitter, localSource, i);
             }
+        }
+
+        /// <summary>
+        /// Creates code that maps the given parameter specification to
+        /// a compatible representation.
+        /// </summary>
+        /// <typeparam name="TILEmitter">The emitter type.</typeparam>
+        /// <typeparam name="TMappingHandler">The handler type.</typeparam>
+        /// <typeparam name="T">The custom handler type of this mapper.</typeparam>
+        /// <param name="emitter">The target emitter to write to.</param>
+        /// <param name="mappingHandler">The target mapping handler to use.</param>
+        /// <param name="parameters">The parameter collection to map.</param>
+        protected T MapArgumentsStruct<TILEmitter, TMappingHandler, T>(
+            in TILEmitter emitter,
+            in TMappingHandler mappingHandler,
+            in ParameterCollection parameters)
+            where TILEmitter : struct, IILEmitter
+            where TMappingHandler : struct, IStructMappingHandler<T>
+        {
+            var typeBuilder = RuntimeSystem.Instance.DefineRuntimeStruct();
+
+            // Define the main kernel length
+            if (mappingHandler.CanMapKernelLength(out var indexType))
+            {
+                typeBuilder.DefineField(
+                    KernelLengthField,
+                    indexType,
+                    FieldAttributes.Public);
+            }
+
+            // Define all parameter types
+            for (int i = 0, e = parameters.Count; i < e; ++i)
+            {
+                var mappedType = MapType(parameters.ParameterTypes[i]);
+                typeBuilder.DefineField(
+                    GetFieldName(i),
+                    mappedType,
+                    FieldAttributes.Public);
+            }
+
+            // Map type and store the mapped instance in a pinned local
+            var argumentType = typeBuilder.CreateType();
+            var mappingLocal = emitter.DeclarePinnedLocal(argumentType);
+            var localTarget = new LocalTarget(mappingLocal);
+
+            // Map the kernel length separately (if any)
+            var kernelLength = argumentType.GetField(KernelLengthField);
+            if (kernelLength != null)
+            {
+                var kernelLengthLocal = new StructureTarget<LocalTarget>(
+                    localTarget,
+                    kernelLength);
+                mappingHandler.MapKernelLength(emitter, kernelLengthLocal);
+            }
+
+            // Map all parameter instances
+            for (int i = 0, e = parameters.Count; i < e; ++i)
+            {
+                var fieldTarget = new StructureTarget<LocalTarget>(
+                    localTarget,
+                    argumentType.GetField(GetFieldName(i)));
+
+                // Perform actual instance mapping on local
+                MapParameter(emitter, parameters, i, fieldTarget);
+            }
+
+            // Compute the actual raw size of the argument structure without taking
+            // the actual alignment-induced padding into account
+            var lastFieldName = GetFieldName(parameters.Count - 1);
+            int lastOffset = Marshal.OffsetOf(argumentType, lastFieldName).ToInt32();
+            int lastFieldSize = Interop.SizeOf(parameters[parameters.Count - 1]);
+
+            // Map the whole argument structure
+            return mappingHandler.MapArgumentStruct(
+                emitter,
+                mappingLocal,
+                lastOffset + lastFieldSize);
         }
 
         /// <summary>
@@ -635,8 +895,8 @@ namespace ILGPU.Backends.EntryPoints
             in TILEmitter emitter,
             in TMappingHandler mappingHandler,
             SeparateViewEntryPoint entryPoint)
-            where TILEmitter : IILEmitter
-            where TMappingHandler : ISeparateViewMappingHandler
+            where TILEmitter : struct, IILEmitter
+            where TMappingHandler : struct, ISeparateViewMappingHandler
         {
             Debug.Assert(entryPoint != null, "Invalid entry point");
 
@@ -663,7 +923,9 @@ namespace ILGPU.Backends.EntryPoints
                 // Map all view parameters
                 foreach (var view in views)
                 {
-                    var viewSource = new ViewSource<ArgumentSource>(argumentSource, view);
+                    var viewSource = new ViewSource<ArgumentSource>(
+                        argumentSource,
+                        view);
                     mappingHandler.MapViewArgument(
                         emitter,
                         viewSource,
