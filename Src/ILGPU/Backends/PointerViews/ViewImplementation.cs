@@ -35,11 +35,6 @@ namespace ILGPU.Backends.PointerViews
             "Microsoft.Design",
             "CA1051: DoNotDeclareVisibleInstanceFields",
             Justification = "Implementation type that simplifies code generation")]
-        [SuppressMessage(
-            "Microsoft.Security",
-            "CA2104: DoNotDeclareReadOnlyMutableReferenceTypes",
-            Justification = "This structure is used for marshaling purposes only. " +
-            "The reference will not be accessed using this structure.")]
         public readonly void* Ptr;
 
         /// <summary>

@@ -10,8 +10,8 @@
 // ---------------------------------------------------------------------------------------
 
 using ILGPU.Backends.EntryPoints;
+using ILGPU.Backends.IL;
 using System;
-using System.Reflection.Emit;
 
 namespace ILGPU.Backends.SeparateViews
 {
@@ -21,6 +21,41 @@ namespace ILGPU.Backends.SeparateViews
     /// <remarks>Members of this class are not thread safe.</remarks>
     public abstract class ViewArgumentMapper : ArgumentMapper
     {
+        #region Nested Types
+
+        /// <summary>
+        /// Wraps a value source and created a new view instance from value references.
+        /// </summary>
+        /// <typeparam name="TSource">The source type.</typeparam>
+        private readonly struct ViewImplementationSource<TSource> : IRawValueSource
+            where TSource : struct, ISource
+        {
+            public ViewImplementationSource(TSource source)
+            {
+                Source = source;
+            }
+
+            /// <summary>
+            /// Returns the parent source.
+            /// </summary>
+            public TSource Source { get; }
+
+            /// <summary>
+            /// Emits a new view-value construction.
+            /// </summary>
+            public readonly void EmitLoadSource<TILEmitter>(
+                in TILEmitter emitter)
+                where TILEmitter : struct, IILEmitter
+            {
+                // Load source and create custom view type
+                Source.EmitLoadSource(emitter);
+                emitter.EmitCall(
+                    ViewImplementation.GetCreateMethod(Source.SourceType));
+            }
+        }
+
+        #endregion
+
         #region Instance
 
         /// <summary>
@@ -47,20 +82,11 @@ namespace ILGPU.Backends.SeparateViews
         protected sealed override void MapViewInstance<TILEmitter, TSource, TTarget>(
             in TILEmitter emitter,
             Type elementType,
-            TSource source,
-            TTarget target)
+            in TSource source,
+            in TTarget target)
         {
-            // Load target address
-            target.EmitLoadTarget(emitter);
-
-            // Load source and create custom view type
-            source.EmitLoadSource(emitter);
-            emitter.Emit(OpCodes.Ldobj, source.SourceType);
-            emitter.EmitCall(
-                ViewImplementation.GetCreateMethod(source.SourceType));
-
-            // Store target
-            emitter.Emit(OpCodes.Stobj, target.TargetType);
+            var viewSource = new ViewImplementationSource<TSource>(source);
+            target.EmitStoreTarget(emitter, viewSource);
         }
 
         #endregion
