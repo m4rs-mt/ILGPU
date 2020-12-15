@@ -34,13 +34,6 @@ namespace ILGPU.Runtime.Cuda
         #region Static
 
         /// <summary>
-        /// Represents a zero integer pointer field.
-        /// </summary>
-        private static readonly FieldInfo ZeroIntPtrField =
-            typeof(IntPtr).GetField(
-                nameof(IntPtr.Zero), BindingFlags.Static | BindingFlags.Public);
-
-        /// <summary>
         /// Represents the <see cref="CurrentAPI"/> property.
         /// </summary>
         private static readonly MethodInfo GetCudaAPIMethod =
@@ -49,13 +42,13 @@ namespace ILGPU.Runtime.Cuda
                 BindingFlags.Public | BindingFlags.Static).GetGetMethod();
 
         /// <summary>
-        /// Represents the <see cref="CudaAPI.LaunchKernelWithStreamBinding(
-        /// CudaStream, CudaKernel, RuntimeKernelConfig, IntPtr, IntPtr)"/> method.
+        /// Represents the <see cref="CudaAPI.LaunchKernelWithStruct{T}(
+        /// CudaStream, CudaKernel, RuntimeKernelConfig, ref T, int)"/> method.
         /// </summary>
         private static readonly MethodInfo LaunchKernelMethod =
             typeof(CudaAPI).GetMethod(
-                nameof(CudaAPI.LaunchKernelWithStreamBinding),
-                BindingFlags.NonPublic | BindingFlags.Instance);
+                nameof(CudaAPI.LaunchKernelWithStruct),
+                BindingFlags.Public | BindingFlags.Instance);
 
         /// <summary>
         /// Represents the <see cref="CudaException.ThrowIfFailed(CudaError)" /> method.
@@ -540,11 +533,9 @@ namespace ILGPU.Runtime.Cuda
 
             // Allocate array of pointers as kernel argument(s)
             var argumentMapper = Backend.ArgumentMapper;
-            var argumentBuffer = argumentMapper.Map(emitter, entryPoint);
-
-            // Add the actual dispatch-size information to the kernel parameters
-            if (!entryPoint.IsExplicitlyGrouped)
-                PTXArgumentMapper.StoreKernelLength(emitter, argumentBuffer);
+            var (argumentBuffer, argumentSize) = argumentMapper.Map(
+                emitter,
+                entryPoint);
 
             // Emit kernel launch
 
@@ -569,13 +560,13 @@ namespace ILGPU.Runtime.Cuda
                 customGroupSize);
 
             // Load kernel arguments
-            emitter.Emit(LocalOperation.Load, argumentBuffer);
-
-            // Load empty kernel arguments
-            emitter.Emit(OpCodes.Ldsfld, ZeroIntPtrField);
+            emitter.Emit(LocalOperation.LoadAddress, argumentBuffer);
+            emitter.EmitConstant(argumentSize);
 
             // Dispatch kernel
-            emitter.EmitCall(LaunchKernelMethod);
+            var launchMethod = LaunchKernelMethod.MakeGenericMethod(
+                argumentBuffer.VariableType);
+            emitter.EmitCall(launchMethod);
 
             // Emit ThrowIfFailed
             emitter.EmitCall(ThrowIfFailedMethod);
