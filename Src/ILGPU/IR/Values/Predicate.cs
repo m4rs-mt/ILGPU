@@ -11,6 +11,7 @@
 
 using ILGPU.IR.Construction;
 using ILGPU.IR.Types;
+using System;
 
 namespace ILGPU.IR.Values
 {
@@ -63,6 +64,11 @@ namespace ILGPU.IR.Values
         /// Returns the false value.
         /// </summary>
         public ValueReference FalseValue => this[2];
+
+        /// <summary>
+        /// Returns a span excluding the condition value reference.
+        /// </summary>
+        public ReadOnlySpan<ValueReference> Values => Nodes.Slice(1);
 
         #endregion
 
