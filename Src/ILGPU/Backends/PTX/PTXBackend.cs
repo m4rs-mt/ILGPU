@@ -178,10 +178,10 @@ namespace ILGPU.Backends.PTX
 
             // Creates pointer alignment information in the context of O1 or higher
             var alignments = Context.OptimizationLevel >= OptimizationLevel.O1
-                ? PointerAlignments.Create(
+                ? PointerAlignments.Apply(
                     backendContext.KernelMethod,
                     DefaultGlobalMemoryAlignment)
-                : null;
+                : PointerAlignments.AlignmentInfo.Empty;
 
             data = new PTXCodeGenerator.GeneratorArgs(
                 this,
