@@ -47,7 +47,7 @@ namespace ILGPU.IR.Types
             /// Constructs a new address space converter.
             /// </summary>
             /// <param name="addressSpace">The target address space.</param>
-            public AddressSpaceConverter(MemoryAddressSpace addressSpace)
+            internal AddressSpaceConverter(MemoryAddressSpace addressSpace)
             {
                 AddressSpace = addressSpace;
             }
@@ -72,6 +72,36 @@ namespace ILGPU.IR.Types
                 typeContext.SpecializeAddressSpaceType(
                     type,
                     AddressSpace);
+        }
+
+        #endregion
+
+        #region Static
+
+        /// <summary>
+        /// Caches all known address space type converters.
+        /// </summary>
+        private static readonly AddressSpaceConverter[] TypeConverters =
+        {
+            new AddressSpaceConverter(MemoryAddressSpace.Generic),
+            new AddressSpaceConverter(MemoryAddressSpace.Global),
+            new AddressSpaceConverter(MemoryAddressSpace.Shared),
+            new AddressSpaceConverter(MemoryAddressSpace.Local),
+        };
+
+        /// <summary>
+        /// Returns a cached version of an <see cref="AddressSpaceConverter"/> for known
+        /// address spaces.
+        /// </summary>
+        /// <param name="addressSpace">The address space to convert into.</param>
+        /// <returns>A cached or a new converter instance.</returns>
+        public static AddressSpaceConverter GetAddressSpaceConverter(
+            MemoryAddressSpace addressSpace)
+        {
+            int index = (int)addressSpace;
+            return index < 0 || index >= TypeConverters.Length
+                ? new AddressSpaceConverter(addressSpace)
+                : TypeConverters[index];
         }
 
         #endregion
