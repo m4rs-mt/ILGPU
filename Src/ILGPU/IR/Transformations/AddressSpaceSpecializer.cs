@@ -13,6 +13,8 @@ using ILGPU.IR.Analyses;
 using ILGPU.IR.Types;
 using ILGPU.IR.Values;
 using static ILGPU.IR.Types.AddressSpaceType;
+using AnalysisResult = ILGPU.IR.Analyses.GlobalAnalysisValueResult<
+    ILGPU.IR.Analyses.PointerAddressSpaces.AddressSpaceInfo>;
 
 namespace ILGPU.IR.Transformations
 {
@@ -22,9 +24,19 @@ namespace ILGPU.IR.Transformations
     /// to the specified <see cref="MemoryAddressSpace"/>.
     /// </summary>
     public sealed class AddressSpaceSpecializer :
-        UnorderedTransformation<PointerAddressSpaces>
+        UnorderedTransformation<AnalysisResult?>
     {
         #region Static
+
+        /// <summary>
+        /// Gets the address space for the given value.
+        /// </summary>
+        private static MemoryAddressSpace GetAddressSpace(
+            in AnalysisResult result,
+            Value value) =>
+            result.TryGetData(value, out var data)
+            ? data.Data.UnifiedAddressSpace
+            : MemoryAddressSpace.Generic;
 
         /// <summary>
         /// Specializes an address-space dependent parameter.
@@ -127,7 +139,7 @@ namespace ILGPU.IR.Transformations
         /// Creates a new <see cref="PointerAddressSpaces"/> analysis based on the main
         /// entry0point method.
         /// </summary>
-        protected override PointerAddressSpaces CreateIntermediate<TPredicate>(
+        protected override AnalysisResult? CreateIntermediate<TPredicate>(
             in MethodCollection<TPredicate> methods)
         {
             // Get the main entry point method
@@ -135,7 +147,8 @@ namespace ILGPU.IR.Transformations
             {
                 if (method.HasFlags(MethodFlags.EntryPoint))
                 {
-                    return PointerAddressSpaces.Create(
+                    var analysis = PointerAddressSpaces.Create();
+                    return analysis.AnalyzeGlobalMethod(
                         method,
                         KernelAddressSpace);
                 }
@@ -150,9 +163,9 @@ namespace ILGPU.IR.Transformations
         /// </summary>
         protected override bool PerformTransformation(
             Method.Builder builder,
-            PointerAddressSpaces addressSpaces)
+            AnalysisResult? addressSpaces)
         {
-            if (addressSpaces is null)
+            if (!addressSpaces.HasValue)
                 return false;
 
             // Initialize the main converted and the entry block builder
@@ -165,7 +178,7 @@ namespace ILGPU.IR.Transformations
             {
                 // Query address-space information from the analysis
                 var parameter = builder[i];
-                var addressSpace = addressSpaces[parameter].UnifiedAddressSpace;
+                var addressSpace = GetAddressSpace(addressSpaces.Value, parameter);
                 var typeConverter = new AddressSpaceConverter(addressSpace);
                 applied |= SpecializeParameter(
                     builder,
@@ -180,7 +193,7 @@ namespace ILGPU.IR.Transformations
         /// <summary>
         /// Performs no operation.
         /// </summary>
-        protected override void FinishProcessing(PointerAddressSpaces intermediate) { }
+        protected override void FinishProcessing(AnalysisResult? _) { }
 
         #endregion
     }
