@@ -85,9 +85,9 @@ namespace ILGPU.IR.Analyses
             /// </param>
             /// <returns>The determined and used alignment in bytes.</returns>
             public readonly int GetAllocaAlignment(Alloca alloca) =>
-                AnalysisResult.TryGetData(alloca, out var data)
-                ? data.Data
-                : AllocaAlignments.GetInitialAlignment(alloca);
+                GetAlignment(
+                    alloca,
+                    AllocaAlignments.GetInitialAlignment(alloca));
 
             /// <summary>
             /// Returns safe alignment information.
@@ -206,6 +206,7 @@ namespace ILGPU.IR.Analyses
                 case PhiValue _:
                 case PrimitiveValue _:
                 case NullValue _:
+                case UndefinedValue _:
                     return int.MaxValue;
                 default:
                     return 1;
