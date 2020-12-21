@@ -250,6 +250,11 @@ namespace ILGPU.IR.Values
         /// </summary>
         public new AddressSpaceType Type => base.Type as AddressSpaceType;
 
+        /// <summary>
+        /// Returns the source type.
+        /// </summary>
+        public new AddressSpaceType SourceType => base.SourceType as AddressSpaceType;
+
         #endregion
     }
 
